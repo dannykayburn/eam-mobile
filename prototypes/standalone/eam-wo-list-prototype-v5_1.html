@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HxGN EAM Mobile — WO List v5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════════
+   OCTAVE — HxGN EAM Mobile · WO List v5 · Inline SVG icons
+   ══════════════════════════════════════════════════════════ */
+:root {
+  --fs:"Inter",system-ui,sans-serif;
+  --fm:"JetBrains Mono",monospace;
+  --black:#1A1A1F; --g5:#3E4047; --g4:#6F7480;
+  --g3:#B2B8C4; --g2:#CBD0D8; --g1:#E7EBF2;
+  --white:#FFFFFF;
+  --purple:#9933FF; --psoft:rgba(153,51,255,0.11); --pglow:rgba(153,51,255,0.18);
+  --orange:#F46600; --green:#00AA14; --red:#E24B4A; --teal:#007B87;
+  --bp:#F2F4F7; --bc:#FFFFFF; --bn:#1A1A1F;
+  --bs:#ECEEF2; --bd:#E2E5EA; --bds:#C8CDD5;
+  --tb:#1A1A1F; --tm:#6B7280; --tf:#9CA3AF;
+}
+[data-theme="dark"] {
+  --bp:#141417; --bc:#1F1E24; --bn:#0D0D10;
+  --bs:#28272E; --bd:#32303A; --bds:#403E4A;
+  --tb:#F0EFF5; --tm:#9B97AA; --tf:#5C5970;
+  --g1:#28272E; --g2:#3A3844; --g3:#6B6880; --g4:#A09DB0;
+  --psoft:rgba(153,51,255,0.14); --pglow:rgba(153,51,255,0.22);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--fs);background:#18181C;color:var(--tb);
+  -webkit-font-smoothing:antialiased;
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:14px;}
+[data-theme="dark"] body{background:#0A0A0D;}
+
+/* ── SVG ICON HELPER ──────────────────────────────────── */
+.ic{display:inline-flex;align-items:center;justify-content:center;
+  flex-shrink:0;line-height:1;}
+.ic svg{display:block;}
+
+/* ── OUTSIDE TOGGLE ───────────────────────────────────── */
+.outer{display:flex;align-items:center;gap:14px;}
+.outer-label{font-size:12px;font-weight:600;
+  color:rgba(255,255,255,0.35);font-family:var(--fm);letter-spacing:0.05em;}
+.outer-sep{width:1px;height:16px;background:rgba(255,255,255,0.12);}
+.tog-row{display:flex;align-items:center;gap:9px;cursor:pointer;}
+.tog-track{width:44px;height:24px;border-radius:12px;
+  background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.10);
+  position:relative;transition:background 0.25s;}
+.tog-track.on{background:var(--teal);}
+.tog-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;
+  border-radius:50%;background:#fff;transition:transform 0.22s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 1px 4px rgba(0,0,0,0.3);}
+.tog-track.on .tog-knob{transform:translateX(20px);}
+
+/* ── DEVICE ───────────────────────────────────────────── */
+.device{width:390px;height:844px;background:var(--bp);border-radius:46px;
+  overflow:hidden;position:relative;flex-shrink:0;
+  box-shadow:0 0 0 1px rgba(255,255,255,0.06),0 2px 4px rgba(0,0,0,0.4),
+    0 20px 60px rgba(0,0,0,0.6),0 60px 120px rgba(0,0,0,0.4);}
+@media(max-width:480px){
+  body{background:var(--bp);justify-content:flex-start;}
+  .device{width:100vw;height:100vh;border-radius:0;box-shadow:none;}
+  .outer{display:none;}
+}
+@media(max-height:900px){.device{height:100vh;border-radius:0;}}
+
+/* ── SCREENS ──────────────────────────────────────────── */
+.screen{display:none;flex-direction:column;position:absolute;
+  inset:0;background:var(--bp);}
+.screen.active{display:flex;}
+
+/* ── STATUS BAR ───────────────────────────────────────── */
+.sbar{height:50px;background:var(--bn);display:flex;align-items:center;
+  justify-content:space-between;padding:0 22px 0 26px;flex-shrink:0;
+  border-bottom:1px solid rgba(255,255,255,0.04);}
+.sbar-time{font-family:var(--fm);font-size:15px;font-weight:600;
+  color:rgba(255,255,255,0.95);letter-spacing:-0.3px;}
+.sbar-right{display:flex;align-items:center;gap:7px;}
+
+/* ── NAV ──────────────────────────────────────────────── */
+.nav{height:54px;background:var(--bn);display:flex;align-items:center;
+  padding:0 10px 0 14px;gap:2px;flex-shrink:0;
+  border-bottom:1px solid rgba(255,255,255,0.07);}
+.nav-logo{width:32px;height:32px;background:var(--teal);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:6px;}
+.nav-title{flex:1;font-family:var(--fm);font-size:13px;font-weight:600;
+  color:rgba(255,255,255,0.92);letter-spacing:-0.2px;}
+.nav-btn{width:38px;height:38px;border-radius:10px;background:none;border:none;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background 0.15s;flex-shrink:0;}
+.nav-btn:hover{background:rgba(255,255,255,0.09);}
+.sync-dot{width:32px;height:32px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,170,20,0.15);flex-shrink:0;margin-left:2px;}
+.nav-back{background:none;border:none;cursor:pointer;display:flex;
+  align-items:center;gap:5px;color:rgba(255,255,255,0.75);
+  font-family:var(--fs);font-size:14px;font-weight:500;
+  padding:4px 8px;border-radius:9px;transition:background 0.15s;}
+.nav-back:hover{background:rgba(255,255,255,0.09);}
+.proto-lbl{position:absolute;top:16px;left:50%;transform:translateX(-50%);
+  font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+  color:rgba(255,255,255,0.28);pointer-events:none;font-family:var(--fm);
+  white-space:nowrap;z-index:10;}
+
+/* ── DATASPY BAR ──────────────────────────────────────── */
+.ds-bar{margin:11px 14px 0;background:var(--bc);border:1.5px solid var(--bd);
+  border-radius:14px;padding:11px 14px;display:flex;align-items:center;
+  gap:11px;cursor:pointer;flex-shrink:0;
+  transition:border-color 0.18s,box-shadow 0.18s;
+  box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+.ds-bar:hover{border-color:var(--purple);box-shadow:0 0 0 3px var(--psoft),0 2px 8px rgba(0,0,0,0.08);}
+[data-theme="dark"] .ds-bar{box-shadow:0 1px 6px rgba(0,0,0,0.2);}
+.ds-icon-w{width:34px;height:34px;border-radius:9px;background:var(--bs);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  border:1px solid var(--bd);}
+.ds-body{flex:1;min-width:0;}
+.ds-name{font-size:14px;font-weight:700;color:var(--tb);letter-spacing:-0.2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ds-count{font-size:11px;color:var(--tm);font-family:var(--fm);margin-top:2px;}
+
+/* ── MODE TOGGLE ──────────────────────────────────────── */
+.mode-tog{margin:10px 14px 0;display:flex;background:var(--bs);
+  border-radius:11px;padding:3px;flex-shrink:0;border:1px solid var(--bd);}
+.mode-btn{flex:1;height:36px;border:none;border-radius:9px;
+  font-size:13px;font-weight:600;cursor:pointer;font-family:var(--fs);
+  background:transparent;color:var(--tm);transition:all 0.18s;}
+.mode-btn.active{background:var(--bc);color:var(--tb);
+  box-shadow:0 1px 5px rgba(0,0,0,0.10),0 0 0 1px var(--bd);}
+[data-theme="dark"] .mode-btn.active{background:var(--g2);color:var(--white);
+  box-shadow:0 1px 4px rgba(0,0,0,0.3);}
+
+/* ── RESULTS ROW ──────────────────────────────────────── */
+.res-row{padding:9px 16px 4px;display:flex;align-items:center;
+  justify-content:space-between;flex-shrink:0;}
+.res-count{font-size:12px;color:var(--tm);font-family:var(--fm);}
+.sort-btn{display:flex;align-items:center;gap:5px;font-size:12px;
+  font-weight:600;color:var(--tm);background:none;border:none;cursor:pointer;
+  padding:4px 8px;border-radius:8px;font-family:var(--fs);transition:all 0.15s;}
+.sort-btn:hover{color:var(--purple);background:var(--psoft);}
+
+/* ── WO LIST ──────────────────────────────────────────── */
+.wo-list{flex:1;overflow-y:auto;padding:4px 14px 28px;}
+.wo-list::-webkit-scrollbar{display:none;}
+
+/* ── DETAILED CARD ────────────────────────────────────── */
+.wo-card{display:flex;align-items:stretch;background:var(--bc);
+  border:1.5px solid var(--bd);border-radius:18px;margin-bottom:10px;
+  overflow:hidden;cursor:pointer;
+  transition:border-color 0.18s,box-shadow 0.18s,transform 0.1s;
+  -webkit-tap-highlight-color:transparent;
+  box-shadow:0 1px 4px rgba(0,0,0,0.05);}
+[data-theme="dark"] .wo-card{box-shadow:0 2px 8px rgba(0,0,0,0.25);}
+.wo-card:hover{border-color:var(--purple);
+  box-shadow:0 0 0 3px var(--psoft),0 4px 20px rgba(153,51,255,0.12);}
+.wo-card:active{transform:scale(0.982);}
+.card-ic{width:58px;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;border-right:1.5px solid var(--bd);padding:16px 0;}
+.card-type-icon{width:40px;height:40px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;}
+.card-body{flex:1;padding:13px 14px 12px;min-width:0;}
+.card-r1{display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:5px;gap:8px;}
+.card-wo-num{font-family:var(--fm);font-size:13px;font-weight:700;
+  color:var(--purple);flex-shrink:0;letter-spacing:0.1px;}
+.card-status{font-size:10px;font-weight:700;padding:3px 9px;
+  border-radius:100px;flex-shrink:0;white-space:nowrap;
+  display:flex;align-items:center;gap:4px;}
+.card-equip-desc{font-size:16px;font-weight:700;color:var(--tb);
+  line-height:1.25;margin-bottom:3px;letter-spacing:-0.3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.card-equip-code{font-family:var(--fm);font-size:11px;
+  color:var(--tf);margin-bottom:10px;letter-spacing:0.2px;}
+.card-pills{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;}
+.card-pill{font-size:11px;font-weight:700;padding:4px 9px;border-radius:100px;
+  display:flex;align-items:center;gap:4px;letter-spacing:0.1px;}
+.pill-type{background:rgba(0,123,135,0.10);color:#00636F;}
+.pill-med {background:rgba(244,102,0,0.10); color:#B34A00;}
+.pill-hi  {background:rgba(228,75,74,0.10);  color:#A32020;}
+.pill-crit{background:rgba(228,75,74,0.17);  color:#8B0000;}
+[data-theme="dark"] .pill-type{background:rgba(0,123,135,0.20);color:#00C8DC;}
+[data-theme="dark"] .pill-med {background:rgba(244,102,0,0.20); color:#FF8833;}
+[data-theme="dark"] .pill-hi  {background:rgba(228,75,74,0.20); color:#FF7070;}
+[data-theme="dark"] .pill-crit{background:rgba(228,75,74,0.28); color:#FF5050;}
+.card-meta{display:flex;align-items:center;gap:5px;
+  font-size:11px;color:var(--tm);flex-wrap:wrap;}
+.card-meta-item{display:flex;align-items:center;gap:3px;font-weight:500;}
+.meta-sep{width:2px;height:2px;border-radius:50%;background:var(--bds);flex-shrink:0;}
+.due-today{color:var(--red);font-weight:700;}
+.due-tmrw {color:var(--orange);font-weight:700;}
+
+/* status colours */
+.st-released{background:rgba(0,170,20,0.11);color:#006B0D;}
+.st-wappr   {background:rgba(244,102,0,0.11);color:#9A3D00;}
+.st-wmatl   {background:rgba(0,123,135,0.11);color:#004F59;}
+.st-comp    {background:rgba(153,51,255,0.11);color:#5500AA;}
+[data-theme="dark"] .st-released{background:rgba(0,170,20,0.18);color:#3DDD55;}
+[data-theme="dark"] .st-wappr   {background:rgba(244,102,0,0.18);color:#FF8833;}
+[data-theme="dark"] .st-wmatl   {background:rgba(0,123,135,0.20);color:#00C8DC;}
+[data-theme="dark"] .st-comp    {background:rgba(153,51,255,0.18);color:#BB66FF;}
+
+/* ── LIST TABLE ───────────────────────────────────────── */
+.list-hs{flex:1;overflow-y:auto;overflow-x:auto;
+  margin:4px 14px 28px;border-radius:16px;border:1.5px solid var(--bd);
+  box-shadow:0 1px 4px rgba(0,0,0,0.05);}
+[data-theme="dark"] .list-hs{box-shadow:0 2px 8px rgba(0,0,0,0.25);}
+.list-hs::-webkit-scrollbar{height:4px;width:4px;}
+.list-hs::-webkit-scrollbar-thumb{background:var(--bds);border-radius:2px;}
+.list-table{min-width:620px;background:var(--bc);}
+.lt-hdr{display:grid;grid-template-columns:210px 100px 46px 120px 72px;
+  background:var(--bs);border-bottom:1.5px solid var(--bd);
+  position:sticky;top:0;z-index:5;}
+[data-theme="dark"] .lt-hdr{background:var(--bs);}
+.lt-hc{padding:9px 12px;font-size:10px;font-weight:700;
+  letter-spacing:0.06em;text-transform:uppercase;color:var(--tf);
+  font-family:var(--fm);display:flex;align-items:center;gap:5px;
+  border-right:1px solid var(--bd);}
+.lt-hc:last-child{border-right:none;}
+.lt-row{display:grid;grid-template-columns:210px 100px 46px 120px 72px;
+  min-height:52px;align-items:center;border-bottom:1px solid var(--bd);
+  cursor:pointer;transition:background 0.12s;-webkit-tap-highlight-color:transparent;}
+.lt-row:last-child{border-bottom:none;}
+.lt-row:hover{background:var(--bs);}
+.lt-row:active{background:var(--bd);}
+.lt-row.child{background:rgba(153,51,255,0.035);}
+[data-theme="dark"] .lt-row.child{background:rgba(153,51,255,0.06);}
+.ltc-desc{padding:9px 10px 9px 12px;display:flex;align-items:center;
+  gap:8px;border-right:1px solid var(--bd);min-width:0;}
+.lt-chev{width:22px;height:22px;border-radius:6px;background:none;border:none;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:transform 0.18s,background 0.15s;}
+.lt-chev:hover{background:var(--bs);}
+.lt-chev.open{transform:rotate(90deg);}
+.lt-chev-ph{width:22px;flex-shrink:0;}
+.lt-type-dot{width:28px;height:28px;border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;}
+.ltc-desc-text{min-width:0;flex:1;}
+.lt-dn{font-size:13px;font-weight:600;color:var(--tb);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.1px;}
+.child .lt-dn{font-weight:500;color:var(--tm);}
+.ltc-wo{padding:9px 12px;border-right:1px solid var(--bd);
+  font-family:var(--fm);font-size:11px;font-weight:600;
+  color:var(--purple);white-space:nowrap;letter-spacing:0.1px;}
+.ltc-pri{padding:9px 6px;border-right:1px solid var(--bd);
+  display:flex;align-items:center;justify-content:center;}
+.ltc-status{padding:8px 10px;border-right:1px solid var(--bd);
+  display:flex;align-items:center;}
+.lt-sb{font-size:10px;font-weight:700;padding:3px 8px;border-radius:100px;
+  white-space:nowrap;display:flex;align-items:center;gap:3px;}
+.ltc-org{padding:9px 12px;font-size:11px;font-weight:700;
+  color:var(--tm);font-family:var(--fm);letter-spacing:0.1px;}
+
+/* ── SEARCH ───────────────────────────────────────────── */
+.s-wrap{padding:12px 14px 6px;flex-shrink:0;}
+.s-row{position:relative;display:flex;align-items:center;}
+.s-inp{width:100%;height:48px;border-radius:100px;
+  border:1.5px solid var(--bds);background:var(--bc);
+  font-family:var(--fs);font-size:15px;color:var(--tb);
+  padding:0 46px 0 46px;outline:none;
+  transition:border-color 0.15s,box-shadow 0.15s;
+  box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+.s-inp::placeholder{color:var(--tf);}
+.s-inp:focus{border-color:var(--purple);box-shadow:0 0 0 3px var(--psoft);}
+.s-ico{position:absolute;left:15px;pointer-events:none;}
+.s-clr{position:absolute;right:12px;width:28px;height:28px;border-radius:50%;
+  background:var(--g3);border:none;cursor:pointer;display:none;
+  align-items:center;justify-content:center;transition:background 0.15s;}
+.s-clr.vis{display:flex;}
+.s-clr:hover{background:var(--g4);}
+[data-theme="dark"] .s-clr{background:var(--g5);}
+
+/* ── CHIPS ────────────────────────────────────────────── */
+.chips{padding:8px 14px 6px;display:flex;gap:7px;overflow-x:auto;flex-shrink:0;}
+.chips::-webkit-scrollbar{display:none;}
+.chip{display:flex;align-items:center;gap:5px;padding:0 12px;height:36px;
+  border-radius:100px;border:1.5px solid var(--bds);background:var(--bc);
+  font-size:12px;font-weight:600;color:var(--tm);cursor:pointer;
+  white-space:nowrap;transition:all 0.15s;flex-shrink:0;font-family:var(--fs);
+  box-shadow:0 1px 2px rgba(0,0,0,0.04);}
+.chip:hover{border-color:var(--purple);color:var(--purple);}
+.chip.active{border-color:var(--purple);background:var(--psoft);color:var(--purple);
+  box-shadow:0 0 0 2px var(--pglow);}
+.chip-badge{background:var(--purple);color:#fff;font-size:9px;font-weight:800;
+  width:17px;height:17px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;}
+.s-rhdr{padding:2px 16px 6px;display:flex;align-items:center;
+  justify-content:space-between;flex-shrink:0;}
+.s-rc{font-size:12px;color:var(--tm);font-family:var(--fm);}
+
+/* ── SHEETS ───────────────────────────────────────────── */
+.ov{position:absolute;inset:0;background:rgba(0,0,0,0.50);z-index:200;
+  display:none;align-items:flex-end;backdrop-filter:blur(2px);}
+.ov.open{display:flex;}
+.sheet{background:var(--bc);border-radius:22px 22px 0 0;width:100%;
+  max-height:76%;display:flex;flex-direction:column;
+  animation:slideUp 0.24s cubic-bezier(.34,1.16,.64,1);
+  border-top:1px solid var(--bd);}
+@keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.sh-hr{padding:10px 0 4px;display:flex;justify-content:center;flex-shrink:0;}
+.sh-h{width:38px;height:4px;border-radius:2px;background:var(--bds);}
+.sh-hdr{padding:4px 16px 13px;display:flex;align-items:center;
+  justify-content:space-between;flex-shrink:0;border-bottom:1px solid var(--bd);}
+.sh-title{font-size:16px;font-weight:700;color:var(--tb);letter-spacing:-0.3px;}
+.sh-close{width:30px;height:30px;border-radius:50%;background:var(--bs);
+  border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background 0.15s;}
+.sh-close:hover{background:var(--bds);}
+.lov-row{display:flex;align-items:center;gap:14px;padding:14px 18px;
+  border-bottom:1px solid var(--bd);cursor:pointer;transition:background 0.12s;}
+.lov-row:hover{background:var(--bs);}
+.lov-row:last-child{border-bottom:none;}
+.lov-icon{width:36px;height:36px;border-radius:10px;background:var(--bs);
+  border:1px solid var(--bd);display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;}
+.lov-body{flex:1;}
+.lov-name{font-size:15px;font-weight:600;color:var(--tb);}
+.lov-sub{font-size:11px;color:var(--tm);font-family:var(--fm);margin-top:2px;}
+.lov-check{width:24px;height:24px;border-radius:50%;display:flex;
+  align-items:center;justify-content:center;flex-shrink:0;
+  border:2px solid var(--bds);transition:all 0.15s;}
+.lov-check.on{border-color:var(--purple);background:var(--purple);}
+.sh-sr{padding:10px 16px;flex-shrink:0;}
+.sh-sw{position:relative;}
+.sh-sw .ic{position:absolute;left:13px;top:50%;transform:translateY(-50%);pointer-events:none;}
+.sh-si{width:100%;height:42px;border-radius:100px;border:1.5px solid var(--bds);
+  background:var(--bs);font-family:var(--fs);font-size:14px;color:var(--tb);
+  padding:0 14px 0 38px;outline:none;transition:border-color 0.15s;}
+.sh-si:focus{border-color:var(--purple);}
+.sh-cr-row{padding:0 16px 6px;display:flex;justify-content:flex-end;}
+.sh-cb{background:none;border:none;font-size:13px;font-weight:600;
+  color:var(--tm);cursor:pointer;font-family:var(--fs);}
+.sh-cb:hover{color:var(--purple);}
+.sh-list{overflow-y:auto;flex:1;}
+.sh-list::-webkit-scrollbar{display:none;}
+.sh-row{display:flex;align-items:center;gap:12px;padding:13px 16px;
+  border-bottom:1px solid var(--bd);cursor:pointer;transition:background 0.12s;}
+.sh-row:hover{background:var(--bs);}
+.sh-row:last-child{border-bottom:none;}
+.sh-ri{width:36px;height:36px;border-radius:10px;display:flex;
+  align-items:center;justify-content:center;flex-shrink:0;}
+.sh-rb{flex:1;}
+.sh-rn{font-size:14px;font-weight:600;color:var(--tb);}
+.sh-rc{font-family:var(--fm);font-size:11px;color:var(--tm);margin-top:2px;}
+.sh-radio{width:24px;height:24px;border-radius:50%;border:2px solid var(--bds);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  transition:all 0.15s;}
+.sh-radio.on{border-color:var(--purple);background:var(--purple);}
+.sh-radio.on::after{content:'';width:9px;height:9px;border-radius:50%;background:#fff;}
+.sh-apply{margin:12px 16px 16px;height:52px;border-radius:100px;
+  background:var(--purple);color:#fff;border:none;font-size:15px;font-weight:700;
+  cursor:pointer;font-family:var(--fs);flex-shrink:0;width:calc(100% - 32px);
+  transition:background 0.15s,box-shadow 0.15s;
+  box-shadow:0 4px 16px rgba(153,51,255,0.30);
+  display:flex;align-items:center;justify-content:center;gap:8px;}
+.sh-apply:hover{background:#7a28cc;box-shadow:0 6px 20px rgba(153,51,255,0.40);}
+
+/* ── EMPTY ────────────────────────────────────────────── */
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:12px;padding:48px;}
+.empty-icon{width:60px;height:60px;border-radius:18px;background:var(--bs);
+  border:1px solid var(--bd);display:flex;align-items:center;
+  justify-content:center;}
+.empty-title{font-size:16px;font-weight:700;color:var(--tb);}
+.empty-sub{font-size:13px;color:var(--tm);text-align:center;line-height:1.55;}
+
+/* ── TOAST ────────────────────────────────────────────── */
+.toast{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);
+  background:var(--black);color:#fff;font-size:13px;font-weight:600;
+  padding:11px 20px;border-radius:100px;white-space:nowrap;
+  opacity:0;transition:opacity 0.2s;pointer-events:none;font-family:var(--fs);
+  z-index:300;box-shadow:0 6px 24px rgba(0,0,0,0.35);
+  display:flex;align-items:center;gap:8px;}
+.toast.show{opacity:1;}
+[data-theme="dark"] .toast{background:var(--g5);}
+</style>
+</head>
+<body id="body">
+
+<!-- SVG icon definitions — all icons used in this file -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- wrench/tool -->
+    <symbol id="ico-tool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>
+    </symbol>
+    <!-- plus -->
+    <symbol id="ico-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </symbol>
+    <!-- search/magnifier -->
+    <symbol id="ico-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </symbol>
+    <!-- x/close -->
+    <symbol id="ico-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </symbol>
+    <!-- cloud-check (sync) -->
+    <symbol id="ico-cloud-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17.5 19H9a7 7 0 113.56-13.04A5 5 0 0118 11a3.5 3.5 0 01-.5 7z"/>
+      <polyline points="9,12 11,14 15,10"/>
+    </symbol>
+    <!-- database (dataspy) -->
+    <symbol id="ico-database" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="12" cy="5" rx="9" ry="3"/>
+      <path d="M21 12c0 1.66-4.03 3-9 3S3 13.66 3 12"/>
+      <path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/>
+    </symbol>
+    <!-- chevron-down -->
+    <symbol id="ico-chevdown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6,9 12,15 18,9"/>
+    </symbol>
+    <!-- chevron-right -->
+    <symbol id="ico-chevright" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="9,18 15,12 9,6"/>
+    </symbol>
+    <!-- arrows-sort -->
+    <symbol id="ico-sort" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <line x1="3" y1="12" x2="15" y2="12"/>
+      <line x1="3" y1="18" x2="9" y2="18"/>
+      <polyline points="17,15 21,18 17,21"/>
+    </symbol>
+    <!-- check -->
+    <symbol id="ico-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20,6 9,17 4,12"/>
+    </symbol>
+    <!-- sun (light mode) -->
+    <symbol id="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </symbol>
+    <!-- moon (dark mode) -->
+    <symbol id="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+    </symbol>
+    <!-- type-specific icons -->
+    <symbol id="ico-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </symbol>
+    <symbol id="ico-cal-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+      <polyline points="9,16 11,18 15,14"/>
+    </symbol>
+    <symbol id="ico-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </symbol>
+    <symbol id="ico-adjust" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
+      <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
+      <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
+      <line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/>
+      <line x1="17" y1="16" x2="23" y2="16"/>
+    </symbol>
+    <symbol id="ico-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+    </symbol>
+    <!-- priority icons -->
+    <symbol id="ico-circle-dot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="ico-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/>
+    </symbol>
+    <symbol id="ico-arrow-up-bold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="5,15 12,8 19,15"/>
+    </symbol>
+    <symbol id="ico-flame" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-7 7 7 7 0 01-7-7c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/>
+    </symbol>
+    <!-- status icons -->
+    <symbol id="ico-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/>
+    </symbol>
+    <symbol id="ico-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/>
+    </symbol>
+    <symbol id="ico-package" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/>
+      <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+      <polyline points="3.27,6.96 12,12.01 20.73,6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+    </symbol>
+    <symbol id="ico-circle-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+      <polyline points="22,4 12,14.01 9,11.01"/>
+    </symbol>
+    <!-- map-pin -->
+    <symbol id="ico-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+      <circle cx="12" cy="10" r="3"/>
+    </symbol>
+    <!-- building/factory -->
+    <symbol id="ico-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="7" width="20" height="15" rx="1"/>
+      <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+      <line x1="12" y1="12" x2="12" y2="12.01"/><line x1="12" y1="16" x2="12" y2="16.01"/>
+    </symbol>
+    <!-- calendar -->
+    <symbol id="ico-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </symbol>
+    <!-- tag (type chip) -->
+    <symbol id="ico-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
+      <line x1="7" y1="7" x2="7.01" y2="7"/>
+    </symbol>
+    <!-- activity (status chip) -->
+    <symbol id="ico-activity" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- helper: inline SVG use -->
+<script>
+function svg(id,size,color){
+  size=size||20;
+  const c=color?` style="color:${color}"`:'';
+  return`<svg width="${size}" height="${size}" viewBox="0 0 24 24"${c}><use href="#${id}"/></svg>`;
+}
+</script>
+
+<!-- ─── OUTER CHROME ───────────────────────────────────── -->
+<div class="outer">
+  <div class="outer-label">HxGN EAM Mobile</div>
+  <div class="outer-sep"></div>
+  <div class="tog-row" onclick="toggleTheme()">
+    <span class="ic" style="color:rgba(255,255,255,0.4)">
+      <svg width="16" height="16" viewBox="0 0 24 24"><use href="#ico-sun"/></svg>
+    </span>
+    <div class="tog-track" id="togTrack"><div class="tog-knob"></div></div>
+    <span class="ic" style="color:rgba(255,255,255,0.4)">
+      <svg width="16" height="16" viewBox="0 0 24 24"><use href="#ico-moon"/></svg>
+    </span>
+  </div>
+</div>
+
+<div class="device" id="shell">
+  <div class="proto-lbl">PROTOTYPE — FOR TESTING ONLY</div>
+
+  <!-- ═══════════════════════ SCREEN 1 — WO LIST ═══════════════════════ -->
+  <div class="screen active" id="s1">
+    <div class="sbar">
+      <span class="sbar-time">9:41</span>
+      <div class="sbar-right">
+        <svg width="17" height="13" viewBox="0 0 17 13" fill="none">
+          <rect x="0" y="9" width="3" height="4" rx="1" fill="rgba(255,255,255,0.9)"/>
+          <rect x="4.5" y="6" width="3" height="7" rx="1" fill="rgba(255,255,255,0.9)"/>
+          <rect x="9" y="3" width="3" height="10" rx="1" fill="rgba(255,255,255,0.9)"/>
+          <rect x="13.5" y="0" width="3" height="13" rx="1" fill="rgba(255,255,255,0.9)"/>
+        </svg>
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+          <path d="M8 9.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" fill="rgba(255,255,255,0.9)"/>
+          <path d="M4.5 6.5C5.6 5.4 6.7 4.8 8 4.8s2.4.6 3.5 1.7" stroke="rgba(255,255,255,0.9)" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+          <path d="M1.5 3.5C3.3 1.7 5.5.8 8 .8s4.7.9 6.5 2.7" stroke="rgba(255,255,255,0.9)" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+        </svg>
+        <svg width="25" height="13" viewBox="0 0 25 13" fill="none">
+          <rect x="0.5" y="0.5" width="21" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+          <rect x="2" y="2" width="16" height="9" rx="2" fill="rgba(255,255,255,0.9)"/>
+          <path d="M23 4.5v4a2 2 0 000-4z" fill="rgba(255,255,255,0.4)"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="nav">
+      <div class="nav-logo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>
+        </svg>
+      </div>
+      <div class="nav-title">Work orders</div>
+      <button class="nav-btn" onclick="showT1('Create WO')" aria-label="Create work order" title="Create work order">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="nav-btn" onclick="goSearch()" aria-label="Search" title="Search">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <div class="sync-dot" title="Synced">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00AA14" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-cloud-check"/></svg>
+      </div>
+    </div>
+
+    <div class="ds-bar" onclick="openDS()">
+      <div class="ds-icon-w">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--tm)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-database"/></svg>
+      </div>
+      <div class="ds-body">
+        <div class="ds-name" id="dsName">My Assigned WOs</div>
+        <div class="ds-count" id="dsCount">8 work orders</div>
+      </div>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--tf)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-chevdown"/></svg>
+    </div>
+
+    <div class="mode-tog">
+      <button class="mode-btn active" id="modeD" onclick="setMode('detailed')">Detailed</button>
+      <button class="mode-btn" id="modeL" onclick="setMode('list')">List</button>
+    </div>
+
+    <div class="res-row">
+      <span class="res-count" id="s1Count">8 work orders</span>
+      <button class="sort-btn" onclick="showT1('Sort options')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-sort"/></svg>
+        Due date
+      </button>
+    </div>
+
+    <div class="wo-list" id="s1DL"></div>
+    <div class="list-hs" id="s1TW" style="display:none"><div class="list-table" id="s1T"></div></div>
+
+    <!-- DS sheet -->
+    <div class="ov" id="dsOv" onclick="dsOvTap(event)">
+      <div class="sheet">
+        <div class="sh-hr"><div class="sh-h"></div></div>
+        <div class="sh-hdr">
+          <span class="sh-title">Select dataspy</span>
+          <button class="sh-close" onclick="closeDS()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--tm)" stroke-width="2" stroke-linecap="round"><use href="#ico-x"/></svg>
+          </button>
+        </div>
+        <div class="sh-list" id="dsList"></div>
+      </div>
+    </div>
+
+    <div class="toast" id="t1">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00AA14" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-check"/></svg>
+      <span id="t1m"></span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ SCREEN 2 — SEARCH ════════════════════════ -->
+  <div class="screen" id="s2">
+    <div class="sbar">
+      <span class="sbar-time">9:41</span>
+      <div class="sbar-right">
+        <svg width="17" height="13" viewBox="0 0 17 13" fill="none">
+          <rect x="0" y="9" width="3" height="4" rx="1" fill="rgba(255,255,255,0.9)"/>
+          <rect x="4.5" y="6" width="3" height="7" rx="1" fill="rgba(255,255,255,0.9)"/>
+          <rect x="9" y="3" width="3" height="10" rx="1" fill="rgba(255,255,255,0.9)"/>
+          <rect x="13.5" y="0" width="3" height="13" rx="1" fill="rgba(255,255,255,0.9)"/>
+        </svg>
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+          <path d="M8 9.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" fill="rgba(255,255,255,0.9)"/>
+          <path d="M4.5 6.5C5.6 5.4 6.7 4.8 8 4.8s2.4.6 3.5 1.7" stroke="rgba(255,255,255,0.9)" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+          <path d="M1.5 3.5C3.3 1.7 5.5.8 8 .8s4.7.9 6.5 2.7" stroke="rgba(255,255,255,0.9)" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+        </svg>
+        <svg width="25" height="13" viewBox="0 0 25 13" fill="none">
+          <rect x="0.5" y="0.5" width="21" height="12" rx="3.5" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+          <rect x="2" y="2" width="16" height="9" rx="2" fill="rgba(255,255,255,0.9)"/>
+          <path d="M23 4.5v4a2 2 0 000-4z" fill="rgba(255,255,255,0.4)"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="nav">
+      <button class="nav-back" onclick="closeSearch()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="nav-title">Search work orders</div>
+      <button class="nav-btn" onclick="showT2('Create WO')" aria-label="Create work order" title="Create work order">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <div class="sync-dot" title="Synced">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00AA14" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-cloud-check"/></svg>
+      </div>
+    </div>
+
+    <div class="s-wrap">
+      <div class="s-row">
+        <span class="s-ico ic">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--tm)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-search"/></svg>
+        </span>
+        <input class="s-inp" id="sInp" type="text" placeholder="Search work orders…"
+          oninput="onSearch(this.value)" autocomplete="off">
+        <button class="s-clr" id="sClr" onclick="clearSearch()" aria-label="Clear">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><use href="#ico-x"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="chips" id="chipsRow">
+      <div class="chip" id="cType"     onclick="openCS('type')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-tag"/></svg>
+        Type
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-chevdown"/></svg>
+      </div>
+      <div class="chip" id="cStatus"   onclick="openCS('status')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-activity"/></svg>
+        Status
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-chevdown"/></svg>
+      </div>
+      <div class="chip" id="cDept"     onclick="openCS('dept')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-building"/></svg>
+        Department
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-chevdown"/></svg>
+      </div>
+      <div class="chip" id="cPriority" onclick="openCS('priority')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-flame"/></svg>
+        Priority
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-chevdown"/></svg>
+      </div>
+    </div>
+
+    <div class="s-rhdr">
+      <span class="s-rc" id="s2Count">8 work orders</span>
+    </div>
+
+    <div class="wo-list" id="s2DL"></div>
+    <div class="list-hs" id="s2TW" style="display:none"><div class="list-table" id="s2T"></div></div>
+
+    <!-- Chip sheet -->
+    <div class="ov" id="csOv" onclick="csOvTap(event)">
+      <div class="sheet">
+        <div class="sh-hr"><div class="sh-h"></div></div>
+        <div class="sh-hdr">
+          <span class="sh-title" id="csTitle">Dataspy</span>
+          <button class="sh-close" onclick="closeCS()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--tm)" stroke-width="2" stroke-linecap="round"><use href="#ico-x"/></svg>
+          </button>
+        </div>
+        <div class="sh-sr">
+          <div class="sh-sw">
+            <span class="ic" style="position:absolute;left:13px;top:50%;transform:translateY(-50%);pointer-events:none;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--tm)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-search"/></svg>
+            </span>
+            <input class="sh-si" id="csSearch" type="text" placeholder="Search…" oninput="filterCSRows(this.value)">
+          </div>
+        </div>
+        <div class="sh-cr-row"><button class="sh-cb" onclick="clearCS()">Clear</button></div>
+        <div class="sh-list" id="csList"></div>
+        <button class="sh-apply" onclick="applyCS()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-check"/></svg>
+          Apply dataspy
+        </button>
+      </div>
+    </div>
+
+    <div class="toast" id="t2">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00AA14" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-check"/></svg>
+      <span id="t2m"></span>
+    </div>
+  </div>
+
+</div><!-- /device -->
+
+<script>
+/* ══ ICON SVG SNIPPETS (used in JS-rendered HTML) ══════════ */
+const SVGS={
+  tool:   `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-tool"/></svg>`,
+  alert:  `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-alert"/></svg>`,
+  calchk: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-cal-check"/></svg>`,
+  eye:    `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-eye"/></svg>`,
+  adjust: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-adjust"/></svg>`,
+  sett:   `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-settings"/></svg>`,
+  send:   `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-send"/></svg>`,
+  clock:  `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-clock"/></svg>`,
+  pkg:    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-package"/></svg>`,
+  circ_chk:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-circle-check"/></svg>`,
+  pri_lo: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><use href="#ico-circle-dot"/></svg>`,
+  pri_med:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-arrow-up"/></svg>`,
+  pri_hi: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-arrow-up-bold"/></svg>`,
+  pri_crit:`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-flame"/></svg>`,
+  pin:    `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-pin"/></svg>`,
+  bldg:   `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-building"/></svg>`,
+  cal:    `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-calendar"/></svg>`,
+  db:     `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--tm)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-database"/></svg>`,
+  chkmark:`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-check"/></svg>`,
+  chevR:  `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-chevright"/></svg>`,
+};
+
+/* ══ DATA ════════════════════════════════════════════════ */
+const TM={
+  BK: {svg:'alert',  color:'#E24B4A',bg:'rgba(228,75,74,0.12)',  name:'Breakdown'},
+  CAL:{svg:'adjust', color:'#007B87',bg:'rgba(0,123,135,0.12)', name:'Calibration'},
+  CM: {svg:'tool',   color:'#F46600',bg:'rgba(244,102,0,0.12)',  name:'Corrective maint'},
+  INS:{svg:'eye',    color:'#9933FF',bg:'rgba(153,51,255,0.12)', name:'Inspection'},
+  MOD:{svg:'sett',   color:'#6F7480',bg:'rgba(111,116,128,0.12)',name:'Modification'},
+  PM: {svg:'calchk', color:'#00AA14',bg:'rgba(0,170,20,0.12)',   name:'Preventive maint'},
+};
+const PRI={
+  '2':{svg:'pri_lo',  color:'#00AA14',label:'Priority 2 — Low',    cls:'pill-med'},
+  '3':{svg:'pri_med', color:'#F46600',label:'Priority 3 — Medium', cls:'pill-med'},
+  '4':{svg:'pri_hi',  color:'#E24B4A',label:'Priority 4 — High',   cls:'pill-hi'},
+  '5':{svg:'pri_crit',color:'#E24B4A',label:'Priority 5 — Critical',cls:'pill-crit'},
+};
+const STI={
+  RELEASED:{svg:'send',   cls:'st-released',label:'Released'},
+  WAPPR:   {svg:'clock',  cls:'st-wappr',   label:'Waiting approval'},
+  WMATL:   {svg:'pkg',    cls:'st-wmatl',   label:'Waiting materials'},
+  COMP:    {svg:'circ_chk',cls:'st-comp',   label:'Completed'},
+};
+
+const WOS=[
+  {id:'WO-19257',eq:'Pump, Centrifugal',      ec:'PUMP-C-0045',tp:'CM',pr:'4',st:'WAPPR',   loc:'PUMP-HOUSE-3',org:'WATER',due:'Today',   dueC:'due-today',   isP:false,pid:null},
+  {id:'WO-19244',eq:'Conveyor Drive Unit',     ec:'CONV-D-0012',tp:'PM',pr:'3',st:'RELEASED',loc:'LINE-B-WEST', org:'MECH', due:'Today',   dueC:'due-today',   isP:true, pid:null},
+  {id:'WO-19243',eq:'Conveyor Belt Tensioner', ec:'CONV-T-0012',tp:'CM',pr:'3',st:'RELEASED',loc:'LINE-B-WEST', org:'MECH', due:'Today',   dueC:'due-today',   isP:false,pid:'WO-19244'},
+  {id:'WO-19242',eq:'Conveyor Drive Gearbox',  ec:'CONV-G-0012',tp:'PM',pr:'3',st:'WAPPR',   loc:'LINE-B-WEST', org:'MECH', due:'Tomorrow',dueC:'due-tmrw',    isP:false,pid:'WO-19244'},
+  {id:'WO-19231',eq:'Heat Exchanger',          ec:'HX-07',      tp:'PM',pr:'3',st:'RELEASED',loc:'UTIL-BLDG-2', org:'MECH', due:'Tomorrow',dueC:'due-tmrw',    isP:false,pid:null},
+  {id:'WO-19218',eq:'MCC Control Panel',       ec:'MCC-12',     tp:'BK',pr:'5',st:'WAPPR',   loc:'ELEC-ROOM-A', org:'ELEC', due:'Today',   dueC:'due-today',   isP:false,pid:null},
+  {id:'WO-19205',eq:'Pressure Transmitter Bank',ec:'PIC-201',   tp:'CAL',pr:'2',st:'WMATL',  loc:'PROCESS-1A',  org:'INSTR',due:'Fri 27',  dueC:'',            isP:false,pid:null},
+  {id:'WO-19187',eq:'Boiler Feed Pump',        ec:'BFP-2',      tp:'CM',pr:'4',st:'RELEASED',loc:'BOILER-ROOM', org:'WATER',due:'Thu 26',  dueC:'',            isP:false,pid:null},
+  {id:'WO-19173',eq:'Safety Valve',            ec:'SV-101',     tp:'INS',pr:'3',st:'WAPPR',  loc:'VESSEL-V3',   org:'INSTR',due:'Thu 26',  dueC:'',            isP:false,pid:null},
+];
+
+const DS=[
+  {id:'ds1',name:'My Assigned WOs',      sub:'Default · personal'},
+  {id:'ds2',name:"Today's Work",         sub:'Due date = today'},
+  {id:'ds3',name:'High Priority — Open', sub:'Priority 4 & 5'},
+  {id:'ds4',name:'My Department — WATER',sub:'Org = WATER'},
+  {id:'ds5',name:'Breakdown WOs',        sub:'Type = BK'},
+  {id:'ds6',name:'Waiting Approval',     sub:'Status = WAPPR'},
+  {id:'ds7',name:'All Open WOs',         sub:'All non-completed'},
+  {id:'ds8',name:'Preventive Maintenance',sub:'Type = PM'},
+];
+const DSF={
+  ds1:()=>true, ds2:w=>w.due==='Today', ds3:w=>['4','5'].includes(w.pr),
+  ds4:w=>w.org==='WATER', ds5:w=>w.tp==='BK', ds6:w=>w.st==='WAPPR',
+  ds7:w=>w.st!=='COMP', ds8:w=>w.tp==='PM',
+};
+
+const CD={
+  type:{title:'Dataspy by WO type',rows:[
+    {code:'BK', name:'Breakdown',       svg:'alert', color:'#E24B4A',bg:'rgba(228,75,74,0.12)'},
+    {code:'CAL',name:'Calibration',     svg:'adjust',color:'#007B87',bg:'rgba(0,123,135,0.12)'},
+    {code:'CM', name:'Corrective maint',svg:'tool',  color:'#F46600',bg:'rgba(244,102,0,0.12)'},
+    {code:'INS',name:'Inspection',      svg:'eye',   color:'#9933FF',bg:'rgba(153,51,255,0.12)'},
+    {code:'MOD',name:'Modification',    svg:'sett',  color:'#6F7480',bg:'rgba(111,116,128,0.12)'},
+    {code:'PM', name:'Preventive maint',svg:'calchk',color:'#00AA14',bg:'rgba(0,170,20,0.12)'},
+  ]},
+  status:{title:'Dataspy by status',rows:[
+    {code:'RELEASED',name:'Released',              svg:'send',     color:'#00AA14',bg:'rgba(0,170,20,0.12)'},
+    {code:'WAPPR',   name:'Waiting approval',       svg:'clock',    color:'#F46600',bg:'rgba(244,102,0,0.12)'},
+    {code:'WMATL',   name:'Waiting materials',      svg:'pkg',      color:'#007B87',bg:'rgba(0,123,135,0.12)'},
+    {code:'COMP',    name:'Completed',              svg:'circ_chk', color:'#9933FF',bg:'rgba(153,51,255,0.12)'},
+  ]},
+  dept:{title:'Dataspy by department',rows:[
+    {code:'ELEC', name:'Electrical',       svg:'alert',  color:'#F4A337',bg:'rgba(244,163,55,0.12)'},
+    {code:'INSTR',name:'Instrumentation',  svg:'adjust', color:'#9933FF',bg:'rgba(153,51,255,0.12)'},
+    {code:'MECH', name:'Mechanical',       svg:'sett',   color:'#007B87',bg:'rgba(0,123,135,0.12)'},
+    {code:'WATER',name:'Water & utilities',svg:'eye',    color:'#42B2EA',bg:'rgba(66,178,234,0.12)'},
+  ]},
+  priority:{title:'Dataspy by priority',rows:[
+    {code:'2',name:'2 — Low',     svg:'pri_lo',  color:'#00AA14',bg:'rgba(0,170,20,0.12)'},
+    {code:'3',name:'3 — Medium',  svg:'pri_med', color:'#F46600',bg:'rgba(244,102,0,0.12)'},
+    {code:'4',name:'4 — High',    svg:'pri_hi',  color:'#E24B4A',bg:'rgba(228,75,74,0.12)'},
+    {code:'5',name:'5 — Critical',svg:'pri_crit',color:'#E24B4A',bg:'rgba(228,75,74,0.16)'},
+  ]},
+};
+
+/* ══ STATE ═══════════════════════════════════════════════ */
+let mode='detailed',curDS='ds1',exp={},sv='',cf={},ack=null,csel={};
+
+/* ══ HELPERS ═════════════════════════════════════════════ */
+const roots=wos=>wos.filter(w=>!w.pid);
+const kids=(wos,pid)=>wos.filter(w=>w.pid===pid);
+function dsFilt(){
+  const fn=DSF[curDS]||(()=>true);
+  const ids=new Set();
+  WOS.forEach(w=>{
+    if(!w.pid&&fn(w))ids.add(w.id);
+    if(w.pid&&fn(w)){ids.add(w.id);ids.add(w.pid);}
+  });
+  return WOS.filter(w=>ids.has(w.id));
+}
+function sFilt(){
+  let wos=WOS;
+  if(sv)wos=wos.filter(w=>w.id.toLowerCase().includes(sv)||w.eq.toLowerCase().includes(sv)||w.ec.toLowerCase().includes(sv));
+  if(cf.type?.length)    wos=wos.filter(w=>cf.type.includes(w.tp));
+  if(cf.status?.length)  wos=wos.filter(w=>cf.status.includes(w.st));
+  if(cf.dept?.length)    wos=wos.filter(w=>cf.dept.includes(w.org));
+  if(cf.priority?.length)wos=wos.filter(w=>cf.priority.includes(w.pr));
+  return wos;
+}
+
+/* ══ DETAILED CARD ═══════════════════════════════════════ */
+function card(w){
+  const tm=TM[w.tp]||TM.CM;
+  const pr=PRI[w.pr]||PRI['3'];
+  const st=STI[w.st]||STI.WAPPR;
+  return`<div class="wo-card" onclick="openWO('${w.id}')">
+    <div class="card-ic">
+      <div class="card-type-icon" style="background:${tm.bg};color:${tm.color}">${SVGS[tm.svg]}</div>
+    </div>
+    <div class="card-body">
+      <div class="card-r1">
+        <span class="card-wo-num">${w.id}</span>
+        <span class="card-status ${st.cls}">${SVGS[st.svg]}${st.label}</span>
+      </div>
+      <div class="card-equip-desc">${w.eq}</div>
+      <div class="card-equip-code">${w.ec}</div>
+      <div class="card-pills">
+        <span class="card-pill pill-type" style="color:${tm.color};background:${tm.bg}">${SVGS[tm.svg]}${tm.name}</span>
+        <span class="card-pill ${pr.cls}" style="color:${pr.color}">${SVGS[pr.svg]}${pr.label}</span>
+      </div>
+      <div class="card-meta">
+        <span class="card-meta-item">${SVGS.pin}${w.loc}</span>
+        <span class="meta-sep"></span>
+        <span class="card-meta-item">${SVGS.bldg}${w.org}</span>
+        <span class="meta-sep"></span>
+        <span class="card-meta-item ${w.dueC}">${SVGS.cal}${w.due}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ══ LIST TABLE ══════════════════════════════════════════ */
+function tHdr(){
+  return`<div class="lt-hdr">
+    <div class="lt-hc">${SVGS.bldg.replace('12','11').replace('12','11')}Work order</div>
+    <div class="lt-hc"># WO number</div>
+    <div class="lt-hc" style="justify-content:center">${SVGS.pri_crit.replace('14','11').replace('14','11')}</div>
+    <div class="lt-hc">${SVGS.send.replace('14','11').replace('14','11')}Status</div>
+    <div class="lt-hc">${SVGS.bldg.replace('12','11').replace('12','11')}Org</div>
+  </div>`;
+}
+function tRow(w,isChild){
+  const tm=TM[w.tp]||TM.CM;
+  const pr=PRI[w.pr]||PRI['3'];
+  const st=STI[w.st]||STI.WAPPR;
+  const ck=kids(WOS,w.id);
+  const hk=w.isP&&ck.length>0;
+  const ex=!!exp[w.id];
+  const chevBtn=hk
+    ?`<button class="lt-chev${ex?' open':''}" id="chev-${w.id}"
+        onclick="event.stopPropagation();toggleP('${w.id}')">${SVGS.chevR}</button>`
+    :`<span class="lt-chev-ph"></span>`;
+  let h=`<div class="lt-row${isChild?' child':''}" onclick="openWO('${w.id}')">
+    <div class="ltc-desc">
+      ${chevBtn}
+      <div class="lt-type-dot" style="background:${tm.bg};color:${tm.color}">${SVGS[tm.svg]}</div>
+      <div class="ltc-desc-text"><div class="lt-dn">${w.eq}</div></div>
+    </div>
+    <div class="ltc-wo">${w.id}</div>
+    <div class="ltc-pri" style="color:${pr.color}">${SVGS[pr.svg].replace('14','17').replace('14','17')}</div>
+    <div class="ltc-status"><span class="lt-sb ${st.cls}">${SVGS[st.svg]}${st.label}</span></div>
+    <div class="ltc-org">${w.org}</div>
+  </div>`;
+  if(hk&&ex)ck.forEach(c=>{h+=tRow(c,true);});
+  return h;
+}
+
+/* ══ RENDER ══════════════════════════════════════════════ */
+function emptyH(){return`<div class="empty"><div class="empty-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--tf)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-search"/></svg></div><div class="empty-title">No work orders found</div><div class="empty-sub">Try a different dataspy or adjust your search</div></div>`;}
+function renderD(id,wos){
+  const el=document.getElementById(id);
+  if(!wos||!wos.length){el.innerHTML=emptyH();return;}
+  el.innerHTML=roots(wos).map(w=>{let h=card(w);if(w.isP&&exp[w.id])kids(wos,w.id).forEach(k=>{h+=card(k);});return h;}).join('');
+}
+function renderT(id,wos){
+  const el=document.getElementById(id);
+  if(!wos||!wos.length){el.innerHTML=tHdr()+'<div style="padding:40px;text-align:center;color:var(--tm);font-size:14px">No work orders found</div>';return;}
+  el.innerHTML=tHdr()+roots(wos).map(w=>tRow(w,false)).join('');
+}
+function refS1(){
+  const wos=dsFilt();const d=mode==='detailed';
+  document.getElementById('s1DL').style.display=d?'':'none';
+  document.getElementById('s1TW').style.display=d?'none':'';
+  d?renderD('s1DL',wos):renderT('s1T',wos);
+  const n=roots(wos).length;
+  document.getElementById('s1Count').textContent=n+' work order'+(n===1?'':'s');
+  document.getElementById('dsCount').textContent=n+' work order'+(n===1?'':'s');
+}
+function refS2(){
+  const wos=sFilt();const d=mode==='detailed';
+  document.getElementById('s2DL').style.display=d?'':'none';
+  document.getElementById('s2TW').style.display=d?'none':'';
+  d?renderD('s2DL',wos):renderT('s2T',wos);
+  const n=roots(wos).length;
+  document.getElementById('s2Count').textContent=n+' work order'+(n===1?'':'s');
+}
+
+/* ══ MODE ════════════════════════════════════════════════ */
+function setMode(m){
+  mode=m;
+  document.getElementById('modeD').classList.toggle('active',m==='detailed');
+  document.getElementById('modeL').classList.toggle('active',m==='list');
+  refS1();refS2();
+}
+
+/* ══ EXPAND PARENT ═══════════════════════════════════════ */
+function toggleP(id){exp[id]=!exp[id];refS1();refS2();}
+
+/* ══ DATASPY SHEET ═══════════════════════════════════════ */
+function openDS(){
+  document.getElementById('dsList').innerHTML=DS.map(d=>`
+    <div class="lov-row" onclick="selDS('${d.id}')">
+      <div class="lov-body">
+        <div class="lov-name">${d.name}</div>
+      </div>
+      <div class="lov-check${curDS===d.id?' on':''}">
+        ${curDS===d.id?SVGS.chkmark:''}
+      </div>
+    </div>`).join('');
+  document.getElementById('dsOv').classList.add('open');
+}
+function closeDS(){document.getElementById('dsOv').classList.remove('open');}
+function dsOvTap(e){if(e.target===document.getElementById('dsOv'))closeDS();}
+function selDS(id){curDS=id;document.getElementById('dsName').textContent=DS.find(d=>d.id===id).name;closeDS();refS1();}
+
+/* ══ SEARCH ══════════════════════════════════════════════ */
+function goSearch(){
+  document.getElementById('s1').classList.remove('active');
+  document.getElementById('s2').classList.add('active');
+  refS2();setTimeout(()=>document.getElementById('sInp').focus(),80);
+}
+function closeSearch(){document.getElementById('s2').classList.remove('active');document.getElementById('s1').classList.add('active');}
+function onSearch(v){sv=v.toLowerCase();document.getElementById('sClr').classList.toggle('vis',v.length>0);refS2();}
+function clearSearch(){document.getElementById('sInp').value='';sv='';document.getElementById('sClr').classList.remove('vis');refS2();}
+
+/* ══ CHIP SHEET ══════════════════════════════════════════ */
+const CID={type:'cType',status:'cStatus',dept:'cDept',priority:'cPriority'};
+const CLB={type:'Type',status:'Status',dept:'Department',priority:'Priority'};
+
+function chipSVG(key){
+  const map={type:SVGS.db,status:SVGS.send,dept:SVGS.bldg,priority:SVGS.pri_crit};
+  return(map[key]||'').replace(/width="\d+"/,'width="13"').replace(/height="\d+"/,'height="13"');
+}
+
+function openCS(k){
+  ack=k;csel=Object.fromEntries((cf[k]||[]).map(v=>[v,true]));
+  document.getElementById('csTitle').textContent=CD[k].title;
+  document.getElementById('csSearch').value='';
+  renderCSRows(CD[k].rows);
+  document.getElementById('csOv').classList.add('open');
+}
+function renderCSRows(rows){
+  document.getElementById('csList').innerHTML=rows.map(r=>`
+    <div class="sh-row" onclick="togCS('${r.code}')">
+      <div class="sh-ri" style="background:${r.bg};color:${r.color}">
+        ${SVGS[r.svg]||''}
+      </div>
+      <div class="sh-rb"><div class="sh-rn">${r.name}</div><div class="sh-rc">${r.code}</div></div>
+      <div class="sh-radio${csel[r.code]?' on':''}" id="csr-${r.code}"></div>
+    </div>`).join('');
+}
+function filterCSRows(v){renderCSRows(CD[ack].rows.filter(r=>r.name.toLowerCase().includes(v.toLowerCase())||r.code.toLowerCase.toLowerCase()));}
+function togCS(c){csel[c]=!csel[c];const el=document.getElementById('csr-'+c);if(el)el.className='sh-radio'+(csel[c]?' on':'');}
+function clearCS(){csel={};renderCSRows(CD[ack].rows);}
+function applyCS(){
+  const sel=Object.keys(csel).filter(k=>csel[k]);
+  cf[ack]=sel;
+  const el=document.getElementById(CID[ack]);
+  el.classList.toggle('active',sel.length>0);
+  const chevS=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-chevdown"/></svg>`;
+  if(sel.length>0){
+    const csm={'type':SVGS.db,'status':SVGS.send,'dept':SVGS.bldg,'priority':SVGS.pri_crit};
+    const ic=(csm[ack]||'').replace(/width="\d+"/,'width="13"').replace(/height="\d+"/,'height="13"');
+    el.innerHTML=ic+CLB[ack]+`<span class="chip-badge">${sel.length}</span>`;
+  } else {
+    const csm={'type':SVGS.db,'status':SVGS.send,'dept':SVGS.bldg,'priority':SVGS.pri_crit};
+    const ic=(csm[ack]||'').replace(/width="\d+"/,'width="13"').replace(/height="\d+"/,'height="13"');
+    el.innerHTML=ic+CLB[ack]+chevS;
+  }
+  refS2();closeCS();
+  if(sel.length)showT2(sel.length+' dataspy'+(sel.length>1?'s':'')+' applied');
+}
+function closeCS(){document.getElementById('csOv').classList.remove('open');}
+function csOvTap(e){if(e.target===document.getElementById('csOv'))closeCS();}
+
+function openWO(id){showT1('Opening '+id+' →');}
+
+function toggleTheme(){
+  const s=document.getElementById('shell');
+  const b=document.getElementById('body');
+  const dark=s.getAttribute('data-theme')==='dark';
+  const next=dark?'':'dark';
+  [s,b].forEach(el=>el.setAttribute('data-theme',next));
+  document.getElementById('togTrack').classList.toggle('on',!dark);
+}
+
+function showT1(msg){document.getElementById('t1m').textContent=msg;const el=document.getElementById('t1');el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2400);}
+function showT2(msg){document.getElementById('t2m').textContent=msg;const el=document.getElementById('t2');el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2400);}
+
+refS1();
+</script>
+</body>
+</html>

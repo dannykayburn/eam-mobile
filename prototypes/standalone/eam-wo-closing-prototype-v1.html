@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HxGN EAM Mobile — WO Closing (Step 5)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/*
+  WO CLOSING — DESIGN DECISIONS (v1)
+
+  Closing Codes: Sequential unlock — Problem first, then Failure, Cause, Action.
+    Each code unlocks only after the previous is set. Locked rows show a
+    subtle locked state (muted, no chevron interaction). Problem Code is
+    pre-filled from WO (MECH).
+
+  Date Completed: Defaults to now, shown as editable LOV row. Tech can change it.
+
+  Downtime Cost / Hours: Optional. Screen-designer controlled. Shown here as
+    optional form rows with no required indicator.
+
+  Closing Comments: Required. Bar stays locked until textarea has content.
+
+  Photo capture: Optional section above the Close WO bar. Tap to add photo.
+    Shows thumbnail grid once photos are added (up to 3 in prototype).
+
+  Bar gating: Locked until Closing Comments has content. Label: "Add closing comments".
+    Unlocks to green "Close Work Order" pill.
+
+  LOV pattern: Description-first (locked in Book Labor v2).
+  Save button state: same green-ready pattern (locked in Book Labor v2).
+*/
+
+:root {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --octave-black:   #1A1A1F;
+  --gray-5:         #3E4047;
+  --gray-4:         #6F7480;
+  --gray-3:         #B2B8C4;
+  --gray-2:         #CBD0D8;
+  --gray-1:         #E7EBF2;
+  --white:          #FFFFFF;
+  --purple:         #9933FF;
+  --orange:         #F46600;
+  --green:          #00AA14;
+  --red:            #E24B4A;
+  --teal:           #007B87;
+  --bg-page:        #F5F6F8;
+  --bg-card:        #FFFFFF;
+  --bg-nav:         #1A1A1F;
+  --bg-section:     #F0F2F5;
+  --border:         #E7EBF2;
+  --border-strong:  #CBD0D8;
+  --nav-height:     52px;
+  --bar-height:     72px;
+  --sheet-radius:   20px;
+}
+[data-theme="dark"] {
+  --bg-page:        #1A1A1F;
+  --bg-card:        #26252B;
+  --bg-nav:         #111114;
+  --bg-section:     #302F33;
+  --border:         #3E4047;
+  --border-strong:  #4A4C55;
+  --gray-1:         #2A2930;
+  --gray-2:         #3E4047;
+  --gray-3:         #6F7480;
+  --gray-4:         #B2B8C4;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { font-family: var(--font-sans); background: var(--bg-page); color: var(--octave-black); -webkit-font-smoothing: antialiased; overflow: hidden; transition: background 0.2s, color 0.2s; }
+[data-theme="dark"] body { color: var(--white); }
+.app { display:flex; flex-direction:column; height:100vh; max-width:430px; margin:0 auto; position:relative; background:var(--bg-page); box-shadow:0 0 40px rgba(0,0,0,0.18); }
+
+/* NAV */
+.nav { height:var(--nav-height); background:var(--bg-nav); display:flex; align-items:center; padding:0 12px; gap:8px; flex-shrink:0; z-index:100; }
+.nav-back { width:32px; height:32px; display:flex; align-items:center; justify-content:center; color:var(--white); background:none; border:none; cursor:pointer; flex-shrink:0; }
+.nav-logo { width:28px; height:28px; background:var(--teal); border-radius:4px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.nav-logo svg { width:18px; height:18px; fill:white; }
+.nav-title { flex:1; font-family:var(--font-mono); font-size:12px; font-weight:500; color:rgba(255,255,255,0.85); line-height:1.3; min-width:0; }
+.nav-title span { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:rgba(255,255,255,0.5); font-size:11px; }
+.nav-actions { display:flex; align-items:center; gap:4px; flex-shrink:0; }
+.nav-icon-btn { width:32px; height:32px; display:flex; align-items:center; justify-content:center; color:var(--white); background:none; border:none; cursor:pointer; border-radius:6px; transition:background 0.15s; position:relative; }
+.nav-icon-btn:hover { background:rgba(255,255,255,0.1); }
+.sync-badge { position:absolute; top:4px; right:4px; width:7px; height:7px; background:var(--green); border-radius:50%; border:1.5px solid var(--bg-nav); }
+.theme-toggle { font-size:11px; font-weight:600; color:rgba(255,255,255,0.7); background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:100px; padding:3px 10px; cursor:pointer; white-space:nowrap; font-family:var(--font-sans); }
+.theme-toggle:hover { background:rgba(255,255,255,0.15); color:white; }
+.prototype-label { font-size:10px; font-weight:700; letter-spacing:0.5px; color:rgba(255,165,0,0.9); white-space:nowrap; }
+
+/* WO BLOCK */
+.wo-block { background:var(--bg-nav); border-bottom:1px solid rgba(255,255,255,0.06); padding:6px 14px 8px; flex-shrink:0; cursor:pointer; }
+.wo-block-inner { display:flex; align-items:center; gap:8px; }
+.wo-number { font-family:var(--font-mono); font-size:12px; font-weight:600; color:rgba(255,255,255,0.55); white-space:nowrap; }
+.wo-divider { color:rgba(255,255,255,0.2); font-size:11px; }
+.wo-desc { font-size:13px; font-weight:600; color:rgba(255,255,255,0.9); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; }
+.wo-chips { display:flex; gap:4px; flex-shrink:0; }
+.chip { font-size:10px; font-weight:700; letter-spacing:0.3px; padding:2px 7px; border-radius:100px; border:1px solid; white-space:nowrap; }
+.chip-type { color:var(--gray-3); border-color:var(--gray-5); }
+.chip-priority { color:var(--orange); border-color:rgba(244,102,0,0.4); }
+.chip-dept { color:#42b2ea; border-color:rgba(66,178,234,0.35); }
+.wo-block-handle { display:flex; justify-content:center; padding-top:4px; }
+.handle-bar { width:32px; height:3px; background:rgba(255,255,255,0.15); border-radius:100px; }
+
+/* STEP RAIL */
+.step-rail { background:var(--bg-card); border-bottom:1px solid var(--border); padding:0 14px; flex-shrink:0; cursor:pointer; transition:background 0.15s; }
+[data-theme="dark"] .step-rail { background:var(--bg-section); }
+.step-rail:hover { background:var(--bg-section); }
+.step-rail-collapsed { height:48px; display:flex; align-items:center; gap:10px; }
+.step-pill { font-family:var(--font-mono); font-size:11px; font-weight:600; color:var(--purple); background:rgba(153,51,255,0.1); border:1px solid rgba(153,51,255,0.25); padding:2px 8px; border-radius:100px; white-space:nowrap; flex-shrink:0; }
+.step-name { font-size:13px; font-weight:600; color:var(--octave-black); flex:1; }
+[data-theme="dark"] .step-name { color:var(--white); }
+.step-segments { display:flex; gap:3px; flex-shrink:0; }
+.seg { width:28px; height:5px; border-radius:100px; }
+.seg-done { background:var(--green); }
+.seg-active { background:var(--purple); }
+.seg-future { background:var(--gray-2); }
+[data-theme="dark"] .seg-future { background:var(--gray-5); }
+.step-chevron { color:var(--gray-4); flex-shrink:0; transition:transform 0.2s; }
+.step-map { display:none; padding:10px 0 12px; border-top:1px solid var(--border); }
+.step-map.open { display:block; }
+.step-map-item { display:flex; align-items:center; gap:10px; padding:6px 14px; cursor:pointer; border-radius:4px; margin:0 6px; transition:background 0.1s; }
+.step-map-item:hover { background:var(--bg-section); }
+.step-map-icon { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:10px; font-weight:700; }
+.smi-done { background:var(--green); color:white; }
+.smi-active { background:var(--purple); color:white; }
+.smi-locked { background:none; border:2px solid var(--gray-3); color:var(--gray-3); }
+.step-map-label { flex:1; font-size:13px; font-weight:500; color:var(--octave-black); }
+[data-theme="dark"] .step-map-label { color:rgba(255,255,255,0.85); }
+.step-map-label.active-label { color:var(--purple); font-weight:700; }
+.step-map-footer { font-size:11px; color:var(--gray-4); padding:6px 20px 0; font-family:var(--font-mono); }
+
+/* CONTENT */
+.content { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:0 0 calc(var(--bar-height) + 16px); }
+.content::-webkit-scrollbar { display:none; }
+
+/* SCREEN HEADER */
+.screen-header { padding:14px 16px 10px; }
+.screen-title { font-size:20px; font-weight:700; color:var(--octave-black); letter-spacing:-0.3px; }
+[data-theme="dark"] .screen-title { color:var(--white); }
+
+/* SECTION CARD */
+.section-card { margin:0 12px 10px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+[data-theme="dark"] .section-card { background:var(--bg-card); }
+
+.section-card-header { padding:10px 14px 8px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; }
+.section-card-title { font-size:11px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; font-family:var(--font-mono); color:var(--gray-4); flex:1; }
+.section-card-badge { font-family:var(--font-mono); font-size:10px; font-weight:700; padding:2px 7px; border-radius:100px; }
+.badge-complete { background:rgba(0,170,20,0.1); color:var(--green); border:1px solid rgba(0,170,20,0.2); }
+.badge-partial  { background:rgba(153,51,255,0.1); color:var(--purple); border:1px solid rgba(153,51,255,0.2); }
+.badge-optional { background:var(--bg-section); color:var(--gray-4); border:1px solid var(--border); }
+
+/* FORM FIELD */
+.form-field { display:flex; align-items:center; padding:10px 14px; border-bottom:1px solid var(--border); position:relative; min-height:50px; transition:opacity 0.2s; }
+.form-field:last-child { border-bottom:none; }
+.form-field.required::before { content:''; position:absolute; left:0; top:8px; bottom:8px; width:3px; border-radius:0 100px 100px 0; background:var(--orange); }
+.form-field.protected { background:var(--bg-section); cursor:default; }
+.form-field.field-locked { opacity:0.38; pointer-events:none; }
+.form-field.field-set .field-lov-desc { color:var(--octave-black); }
+[data-theme="dark"] .form-field.field-set .field-lov-desc { color:rgba(255,255,255,0.9); }
+
+.field-label { font-size:13px; color:var(--gray-4); width:110px; flex-shrink:0; line-height:1.35; }
+.field-value { flex:1; font-size:14px; font-weight:500; color:var(--octave-black); text-align:right; }
+[data-theme="dark"] .field-value { color:rgba(255,255,255,0.9); }
+.field-value.muted { color:var(--gray-3); font-size:13px; }
+.field-value.green { color:var(--green); font-weight:600; font-family:var(--font-mono); }
+.field-chevron { margin-left:6px; color:var(--gray-3); flex-shrink:0; }
+.field-lock    { margin-left:6px; color:var(--gray-3); flex-shrink:0; }
+
+/* LOV description-first pattern */
+.field-lov-value { display:flex; flex-direction:column; align-items:flex-end; flex:1; gap:1px; }
+.field-lov-code  { font-family:var(--font-mono); font-size:11px; font-weight:600; color:var(--gray-4); line-height:1.2; }
+.field-lov-desc  { font-size:14px; font-weight:500; color:var(--gray-3); line-height:1.3; text-align:right; transition:color 0.2s; }
+.field-lov-desc.set { color:var(--octave-black); }
+[data-theme="dark"] .field-lov-desc.set { color:rgba(255,255,255,0.9); }
+.field-lov-desc.placeholder { color:var(--gray-3); font-size:13px; }
+
+/* SEQUENTIAL CODE LOCK — visual indicator */
+.seq-lock-icon { width:18px; height:18px; border-radius:50%; background:var(--bg-section); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-left:6px; }
+[data-theme="dark"] .seq-lock-icon { background:var(--gray-5); border-color:var(--gray-5); }
+
+/* 2×2 CLOSING CODE GRID CELLS */
+.code-cell {
+  background: var(--bg-card);
+  padding: 11px 13px 10px;
+  cursor: pointer;
+  transition: background 0.12s, opacity 0.2s;
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 86px;
+}
+[data-theme="dark"] .code-cell { background: var(--bg-card); }
+.code-cell:hover:not(.field-locked) { background: var(--bg-section); }
+.code-cell.field-locked { opacity: 0.38; pointer-events: none; cursor: default; }
+.code-cell-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+  text-transform: uppercase; font-family: var(--font-mono);
+  color: var(--gray-4);
+}
+.code-cell-body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+.code-cell-desc {
+  font-size: 13px; font-weight: 500; color: var(--gray-3);
+  line-height: 1.35;
+}
+.code-cell-desc.set { color: var(--octave-black); }
+[data-theme="dark"] .code-cell-desc.set { color: rgba(255,255,255,0.9); }
+.code-cell-code {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  color: var(--gray-4);
+}
+.code-cell-footer {
+  display: flex; align-items: center; justify-content: flex-end;
+  color: var(--gray-3); margin-top: 2px;
+}
+.seq-lock-icon-sm {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--bg-section); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--gray-4);
+}
+[data-theme="dark"] .seq-lock-icon-sm { background: var(--gray-5); border-color: var(--gray-5); }
+
+/* CLOSING COMMENTS textarea */
+.comments-area {
+  padding:10px 14px;
+  border-bottom:1px solid var(--border);
+  position:relative;
+}
+.comments-area.required::before { content:''; position:absolute; left:0; top:8px; bottom:8px; width:3px; border-radius:0 100px 100px 0; background:var(--orange); }
+.comments-textarea {
+  width:100%; min-height:96px;
+  background:var(--bg-section);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:10px 12px;
+  font-family:var(--font-sans);
+  font-size:14px;
+  color:var(--octave-black);
+  resize:none;
+  outline:none;
+  line-height:1.5;
+  transition:border-color 0.15s;
+}
+[data-theme="dark"] .comments-textarea { color:rgba(255,255,255,0.9); background:rgba(255,255,255,0.04); border-color:var(--border); }
+.comments-textarea:focus { border-color:var(--purple); }
+.comments-meta { display:flex; align-items:center; justify-content:space-between; padding:5px 0 0; }
+.char-count { font-family:var(--font-mono); font-size:11px; color:var(--gray-4); }
+.char-count.warn { color:var(--orange); }
+
+/* ATTACHMENTS SECTION */
+.attach-section { margin:0 12px 10px; }
+.attach-card { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+[data-theme="dark"] .attach-card { background:var(--bg-card); }
+
+/* Empty state */
+.attach-empty {
+  padding:20px 14px;
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+  text-align:center;
+}
+.attach-empty-icon {
+  width:44px; height:44px; border-radius:10px;
+  background:var(--bg-section); border:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+}
+.attach-empty-text { font-size:13px; color:var(--gray-4); line-height:1.45; }
+.attach-empty-hint { font-size:11px; color:var(--gray-3); font-family:var(--font-mono); }
+
+/* Attachment row */
+.attach-row {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 14px; border-bottom:1px solid var(--border);
+  cursor:pointer; transition:background 0.12s;
+}
+.attach-row:last-child { border-bottom:none; }
+.attach-row:hover { background:var(--bg-section); }
+.attach-type-icon {
+  width:38px; height:38px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+.attach-type-photo { background:rgba(153,51,255,0.1); color:var(--purple); border:1px solid rgba(153,51,255,0.2); }
+.attach-type-pdf   { background:rgba(228,75,74,0.1);  color:var(--red);    border:1px solid rgba(228,75,74,0.2); }
+.attach-type-doc   { background:rgba(66,178,234,0.1); color:#42b2ea;       border:1px solid rgba(66,178,234,0.2); }
+.attach-type-file  { background:rgba(110,116,128,0.1);color:var(--gray-4); border:1px solid rgba(110,116,128,0.2); }
+.attach-row-info { flex:1; min-width:0; }
+.attach-row-name {
+  font-size:13px; font-weight:600; color:var(--octave-black);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+[data-theme="dark"] .attach-row-name { color:rgba(255,255,255,0.9); }
+.attach-row-meta { font-size:11px; color:var(--gray-4); font-family:var(--font-mono); margin-top:1px; }
+.attach-row-remove {
+  width:28px; height:28px; border-radius:50%;
+  background:none; border:1.5px solid var(--gray-2);
+  color:var(--gray-4); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; transition:all 0.15s;
+}
+[data-theme="dark"] .attach-row-remove { border-color:var(--gray-5); }
+.attach-row-remove:hover { border-color:var(--red); color:var(--red); background:rgba(228,75,74,0.06); }
+
+/* Add attachment button row at bottom of card */
+.attach-add-row {
+  display:flex; align-items:center; justify-content:center;
+  padding:10px 14px; gap:6px; border-top:1px solid var(--border);
+  cursor:pointer; transition:background 0.12s;
+}
+.attach-add-row:hover { background:var(--bg-section); }
+.attach-add-btn-label {
+  font-size:13px; font-weight:600; color:var(--purple);
+  font-family:var(--font-sans);
+}
+
+/* SOURCE PICKER SHEET */
+.source-option {
+  display:flex; align-items:center; gap:14px;
+  padding:14px 16px; border-bottom:1px solid var(--border);
+  cursor:pointer; transition:background 0.12s;
+}
+.source-option:last-child { border-bottom:none; }
+.source-option:hover { background:var(--bg-section); }
+.source-option-icon {
+  width:42px; height:42px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.source-option-texts { flex:1; }
+.source-option-title { font-size:14px; font-weight:600; color:var(--octave-black); }
+[data-theme="dark"] .source-option-title { color:rgba(255,255,255,0.9); }
+.source-option-sub { font-size:12px; color:var(--gray-4); margin-top:2px; }
+
+/* VIEWER SHEET */
+.viewer-top-bar {
+  padding:12px 16px; display:flex; align-items:center; gap:10px;
+  border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.viewer-file-icon {
+  width:36px; height:36px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.viewer-info { flex:1; min-width:0; }
+.viewer-name { font-size:14px; font-weight:600; color:var(--octave-black); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+[data-theme="dark"] .viewer-name { color:rgba(255,255,255,0.9); }
+.viewer-meta { font-size:11px; color:var(--gray-4); font-family:var(--font-mono); margin-top:1px; }
+.viewer-body {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  background:var(--bg-section); flex-direction:column; gap:12px;
+  padding:24px 16px;
+}
+[data-theme="dark"] .viewer-body { background:rgba(255,255,255,0.03); }
+.viewer-preview-img {
+  width:100%; max-height:300px; object-fit:contain;
+  border-radius:8px; border:1px solid var(--border);
+}
+.viewer-file-placeholder {
+  width:72px; height:72px; border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+}
+.viewer-file-label { font-size:13px; color:var(--gray-4); text-align:center; }
+.viewer-footer {
+  padding:12px 16px 20px; border-top:1px solid var(--border);
+  display:flex; gap:8px; flex-shrink:0;
+}
+.viewer-action-btn {
+  flex:1; height:44px; border-radius:100px;
+  border:1.5px solid var(--gray-2); background:none;
+  font-size:13px; font-weight:600; font-family:var(--font-sans);
+  color:var(--octave-black); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  transition:all 0.15s;
+}
+[data-theme="dark"] .viewer-action-btn { border-color:var(--gray-5); color:rgba(255,255,255,0.85); }
+.viewer-action-btn:hover { border-color:var(--purple); color:var(--purple); }
+.viewer-action-btn.danger:hover { border-color:var(--red); color:var(--red); }
+
+/* REMOVE CONFIRM SHEET */
+.remove-confirm-body { padding:16px; font-size:14px; color:var(--gray-4); line-height:1.6; border-bottom:1px solid var(--border); }
+.remove-confirm-body strong { color:var(--octave-black); font-weight:600; }
+[data-theme="dark"] .remove-confirm-body strong { color:rgba(255,255,255,0.9); }
+.btn-remove-confirm { width:100%; height:50px; border-radius:100px; border:none; background:var(--red); color:white; font-size:15px; font-weight:700; font-family:var(--font-sans); cursor:pointer; transition:all 0.15s; }
+.btn-remove-confirm:hover { background:#ff6060; }
+
+/* STATUS CHANGE BANNER */
+.status-banner {
+  margin:0 12px 10px;
+  background:rgba(0,170,20,0.05);
+  border:1px solid rgba(0,170,20,0.2);
+  border-radius:10px;
+  padding:10px 14px;
+  display:flex; align-items:center; gap:10px;
+}
+.status-banner-icon { width:36px; height:36px; border-radius:50%; background:rgba(0,170,20,0.1); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.status-banner-info { flex:1; }
+.status-banner-title { font-size:13px; font-weight:600; color:var(--octave-black); }
+[data-theme="dark"] .status-banner-title { color:var(--white); }
+.status-banner-sub { font-size:11px; color:var(--gray-4); font-family:var(--font-mono); margin-top:1px; }
+.status-arrow { display:flex; align-items:center; gap:5px; flex-shrink:0; }
+.status-chip { font-family:var(--font-mono); font-size:10px; font-weight:700; padding:3px 8px; border-radius:100px; }
+.status-released  { background:rgba(66,178,234,0.1);  color:#42b2ea;       border:1px solid rgba(66,178,234,0.25); }
+.status-completed { background:rgba(0,170,20,0.1);    color:var(--green);  border:1px solid rgba(0,170,20,0.25); }
+.status-closed    { background:rgba(110,116,128,0.12); color:var(--gray-4); border:1px solid rgba(110,116,128,0.25); }
+.status-onhold    { background:rgba(244,102,0,0.1);    color:var(--orange); border:1px solid rgba(244,102,0,0.25); }
+.status-target-btn {
+  font-family:var(--font-mono); font-size:10px; font-weight:700;
+  padding:3px 8px; border-radius:100px; cursor:pointer;
+  border:none; display:inline-flex; align-items:center; gap:4px;
+  transition:filter 0.15s;
+}
+.status-target-btn:hover { filter:brightness(0.9); }
+
+/* BOTTOM BAR */
+.bottom-bar { position:absolute; bottom:0; left:0; right:0; height:var(--bar-height); background:var(--bg-card); border-top:1px solid var(--border); padding:0 16px; display:flex; align-items:center; gap:10px; z-index:50; flex-shrink:0; }
+[data-theme="dark"] .bottom-bar { background:var(--octave-black); }
+.bar-pill { flex:1; height:48px; border-radius:100px; display:flex; align-items:center; justify-content:center; gap:8px; font-size:15px; font-weight:700; cursor:not-allowed; transition:all 0.25s; border:none; }
+.bar-pill-locked { background:var(--gray-2); color:var(--gray-4); }
+[data-theme="dark"] .bar-pill-locked { background:var(--gray-5); color:var(--gray-3); }
+.bar-pill-ready { background:var(--green); color:white; cursor:pointer; box-shadow:0 4px 16px rgba(0,170,20,0.3); }
+.bar-pill-ready:hover { background:#00c418; }
+.bar-meta { font-family:var(--font-mono); font-size:12px; font-weight:600; color:var(--gray-4); white-space:nowrap; flex-shrink:0; }
+
+/* OVERLAY / SHEET */
+.sheet-overlay { position:absolute; inset:0; background:rgba(0,0,0,0); z-index:200; pointer-events:none; transition:background 0.3s; }
+.sheet-overlay.open { background:rgba(0,0,0,0.5); pointer-events:all; }
+.bottom-sheet { position:absolute; bottom:0; left:0; right:0; background:var(--bg-card); border-radius:var(--sheet-radius) var(--sheet-radius) 0 0; transform:translateY(100%); transition:transform 0.3s cubic-bezier(0.32,0.72,0,1); z-index:201; max-height:88vh; display:flex; flex-direction:column; }
+[data-theme="dark"] .bottom-sheet { background:#26252B; }
+.bottom-sheet.open { transform:translateY(0); }
+.sheet-handle-row { display:flex; justify-content:center; padding:10px 0 4px; flex-shrink:0; }
+.sheet-handle { width:36px; height:4px; background:var(--gray-2); border-radius:100px; }
+[data-theme="dark"] .sheet-handle { background:var(--gray-5); }
+.sheet-header { padding:4px 16px 12px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); flex-shrink:0; }
+.sheet-title { font-size:17px; font-weight:700; color:var(--octave-black); }
+[data-theme="dark"] .sheet-title { color:var(--white); }
+.sheet-close { width:30px; height:30px; border-radius:50%; background:var(--bg-section); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--gray-4); }
+.sheet-close:hover { background:var(--gray-1); color:var(--octave-black); }
+[data-theme="dark"] .sheet-close:hover { background:var(--gray-5); color:white; }
+.sheet-body { flex:1; overflow-y:auto; }
+.sheet-body::-webkit-scrollbar { display:none; }
+.sheet-footer { padding:12px 16px 20px; border-top:1px solid var(--border); flex-shrink:0; }
+
+/* LOV option rows inside sheet */
+.lov-option { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.1s; }
+.lov-option:last-child { border-bottom:none; }
+.lov-option:hover { background:var(--bg-section); }
+.lov-option.selected { background:rgba(153,51,255,0.05); }
+.lov-option-texts { flex:1; }
+.lov-option-desc { font-size:14px; font-weight:500; color:var(--octave-black); }
+[data-theme="dark"] .lov-option-desc { color:rgba(255,255,255,0.9); }
+.lov-option-code { font-family:var(--font-mono); font-size:11px; color:var(--gray-4); margin-top:1px; }
+.lov-check { width:20px; height:20px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+.lov-check.checked { background:var(--purple); }
+.lov-check.unchecked { border:1.5px solid var(--gray-2); }
+[data-theme="dark"] .lov-check.unchecked { border-color:var(--gray-5); }
+
+/* CONFIRM CLOSE SHEET */
+.confirm-wording { padding:16px; font-size:14px; color:var(--gray-4); line-height:1.6; border-bottom:1px solid var(--border); }
+.confirm-wording strong { color:var(--octave-black); font-weight:600; }
+[data-theme="dark"] .confirm-wording strong { color:var(--white); }
+.confirm-summary { padding:12px 16px; border-bottom:1px solid var(--border); }
+.confirm-summary-row { display:flex; align-items:center; justify-content:space-between; padding:5px 0; font-size:13px; border-bottom:1px solid var(--border); }
+.confirm-summary-row:last-child { border-bottom:none; }
+.confirm-summary-label { color:var(--gray-4); }
+.confirm-summary-value { font-family:var(--font-mono); font-size:12px; color:var(--octave-black); font-weight:500; }
+[data-theme="dark"] .confirm-summary-value { color:rgba(255,255,255,0.85); }
+.btn-close-wo { width:100%; height:50px; border-radius:100px; border:none; background:var(--green); color:white; font-size:15px; font-weight:700; font-family:var(--font-sans); cursor:pointer; box-shadow:0 4px 16px rgba(0,170,20,0.25); transition:all 0.15s; }
+.btn-close-wo:hover { background:#00c418; }
+.btn-cancel { width:100%; height:44px; border-radius:100px; border:1.5px solid var(--gray-2); background:none; color:var(--gray-4); font-size:14px; font-weight:600; font-family:var(--font-sans); cursor:pointer; margin-top:8px; transition:all 0.15s; }
+[data-theme="dark"] .btn-cancel { border-color:var(--gray-5); }
+.btn-cancel:hover { border-color:var(--gray-3); color:var(--octave-black); }
+[data-theme="dark"] .btn-cancel:hover { color:white; }
+
+/* TOAST */
+.toast { position:absolute; bottom:calc(var(--bar-height) + 10px); left:50%; transform:translateX(-50%) translateY(20px); background:rgba(26,26,31,0.95); color:white; padding:9px 16px; border-radius:100px; font-size:13px; font-weight:600; white-space:nowrap; display:flex; align-items:center; gap:7px; opacity:0; transition:all 0.25s; z-index:300; pointer-events:none; box-shadow:0 4px 20px rgba(0,0,0,0.3); }
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* CLOSED STATE overlay */
+.closed-overlay { position:absolute; inset:0; background:rgba(0,170,20,0.97); z-index:400; display:none; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+.closed-overlay.show { display:flex; }
+.closed-icon { width:72px; height:72px; border-radius:50%; background:rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; }
+.closed-title { font-size:24px; font-weight:700; color:white; letter-spacing:-0.5px; }
+.closed-sub { font-size:14px; color:rgba(255,255,255,0.75); font-family:var(--font-mono); }
+.closed-wo { font-family:var(--font-mono); font-size:13px; color:rgba(255,255,255,0.6); margin-top:4px; }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- NAV -->
+  <header class="nav">
+    <button class="nav-back" aria-label="Back">
+      <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="nav-logo">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
+    </div>
+    <div class="nav-title">
+      19257 — Pump Cavitating; lost head
+      <span>WO# 19257 · Activity 10 · TECH</span>
+    </div>
+    <div class="nav-actions">
+      <span class="prototype-label">PROTOTYPE</span>
+      <button class="nav-icon-btn" title="Sync status">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0114-5.2M20 12a8 8 0 01-14 5.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 7l2-2-2-2M8 17l-2 2 2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="sync-badge"></span>
+      </button>
+      <button class="theme-toggle" id="themeToggle">☀ Light</button>
+    </div>
+  </header>
+
+  <!-- WO BLOCK -->
+  <div class="wo-block">
+    <div class="wo-block-inner">
+      <span class="wo-number">19257</span>
+      <span class="wo-divider">·</span>
+      <span class="wo-desc">Pump Cavitating; lost head</span>
+      <div class="wo-chips">
+        <span class="chip chip-type">CORR MAINT</span>
+        <span class="chip chip-priority">P4-HIGH</span>
+        <span class="chip chip-dept">WATER</span>
+      </div>
+    </div>
+    <div class="wo-block-handle"><div class="handle-bar"></div></div>
+  </div>
+
+  <!-- STEP RAIL -->
+  <div class="step-rail" id="stepRail">
+    <div class="step-rail-collapsed">
+      <div class="step-pill">5 of 5</div>
+      <div class="step-name">WO Closing</div>
+      <div class="step-segments">
+        <div class="seg seg-done"></div>
+        <div class="seg seg-done"></div>
+        <div class="seg seg-done"></div>
+        <div class="seg seg-done"></div>
+        <div class="seg seg-active"></div>
+      </div>
+      <svg class="step-chevron" id="stepChevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="step-map" id="stepMap">
+      <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">Activity Checklist</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">Issue Parts</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">Book Labor</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-active">5</div><span class="step-map-label active-label">WO Closing</span></div>
+      <div class="step-map-footer">Admin configured · Corrective Maintenance WO type</div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- Status change banner -->
+    <div class="status-banner" style="margin-top:12px;" id="statusBanner">
+      <div class="status-banner-icon" id="statusBannerIcon">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4" stroke="#00AA14" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="#00AA14" stroke-width="2"/></svg>
+      </div>
+      <div class="status-banner-info">
+        <div class="status-banner-title" id="statusBannerTitle">Closing this work order</div>
+        <div class="status-banner-sub" id="statusBannerSub">Status will change on save</div>
+      </div>
+      <div class="status-arrow">
+        <span class="status-chip status-released">Released</span>
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="var(--gray-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <!-- Tappable target status chip -->
+        <div style="position:relative;">
+          <button class="status-target-btn status-completed" id="statusTargetBtn" onclick="toggleStatusSheet()">
+            <span id="statusTargetLabel">Completed</span>
+            <svg width="9" height="9" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Closing Codes — 2×2 grid, sequential unlock -->
+    <div class="section-card">
+      <div class="section-card-header">
+        <span class="section-card-title">Closing codes</span>
+        <span class="section-card-badge badge-partial" id="codesBadge">1 of 4</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);margin:0;">
+
+        <!-- Problem — pre-filled, always unlocked -->
+        <div id="fieldProblem" class="code-cell field-set" onclick="openLov('problem')">
+          <div class="code-cell-label">Problem</div>
+          <div class="code-cell-body">
+            <div class="code-cell-desc set" id="problemDesc">Mechanical failure</div>
+            <div class="code-cell-code" id="problemCode">MECH</div>
+          </div>
+          <div class="code-cell-footer">
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+
+        <!-- Failure — unlocks when Problem set -->
+        <div id="fieldFailure" class="code-cell" onclick="openLov('failure')">
+          <div class="code-cell-label">Failure</div>
+          <div class="code-cell-body">
+            <div class="code-cell-desc" id="failureDesc">—</div>
+            <div class="code-cell-code" id="failureCode" style="display:none;"></div>
+          </div>
+          <div class="code-cell-footer" id="failureFooter">
+            <div class="seq-lock-icon-sm"><svg width="9" height="9" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          </div>
+        </div>
+
+        <!-- Cause — locked until Failure set -->
+        <div id="fieldCause" class="code-cell field-locked" onclick="openLov('cause')" style="border-top:1px solid var(--border);">
+          <div class="code-cell-label">Cause</div>
+          <div class="code-cell-body">
+            <div class="code-cell-desc" id="causeDesc">—</div>
+            <div class="code-cell-code" id="causeCode" style="display:none;"></div>
+          </div>
+          <div class="code-cell-footer" id="causeFooter">
+            <div class="seq-lock-icon-sm"><svg width="9" height="9" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          </div>
+        </div>
+
+        <!-- Action — locked until Cause set -->
+        <div id="fieldAction" class="code-cell field-locked" onclick="openLov('action')" style="border-top:1px solid var(--border);">
+          <div class="code-cell-label">Action</div>
+          <div class="code-cell-body">
+            <div class="code-cell-desc" id="actionDesc">—</div>
+            <div class="code-cell-code" id="actionCode" style="display:none;"></div>
+          </div>
+          <div class="code-cell-footer" id="actionFooter">
+            <div class="seq-lock-icon-sm"><svg width="9" height="9" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Downtime Details — optional -->
+    <div class="section-card">
+      <div class="section-card-header">
+        <span class="section-card-title">Downtime details</span>
+        <span class="section-card-badge badge-optional">Optional</span>
+      </div>
+      <div class="form-field" style="cursor:pointer;" onclick="showToast('Date / time picker — coming soon','📅')">
+        <span class="field-label">Date completed</span>
+        <div class="field-lov-value">
+          <span class="field-lov-desc set">May 19, 2026 · 09:47</span>
+        </div>
+        <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="form-field" style="cursor:pointer;" onclick="openDowntimeHours()">
+        <span class="field-label">Downtime hours</span>
+        <span class="field-value muted" id="downtimeHoursVal">Not set</span>
+        <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="form-field" style="cursor:pointer;" onclick="openDowntimeCost()">
+        <span class="field-label">Downtime cost</span>
+        <span class="field-value muted" id="downtimeCostVal">Not set</span>
+        <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+
+    <!-- Closing Comments — required -->
+    <div class="section-card">
+      <div class="section-card-header">
+        <span class="section-card-title">Closing comments</span>
+        <span class="section-card-badge badge-optional" id="commentsBadge">Required</span>
+      </div>
+      <div class="comments-area required">
+        <textarea class="comments-textarea" id="closingComments" maxlength="1000"
+          placeholder="Describe work performed, findings, and any follow-up required…"
+          oninput="onCommentsInput()"></textarea>
+        <div class="comments-meta">
+          <span class="char-count" id="charCount">0 / 1000</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attachments — optional, above bar -->
+    <div class="attach-section">
+      <div class="attach-card" id="attachCard">
+        <div class="section-card-header">
+          <span class="section-card-title">Attachments</span>
+          <span class="section-card-badge badge-optional" id="attachBadge">Optional</span>
+        </div>
+
+        <!-- Empty state -->
+        <div class="attach-empty" id="attachEmpty">
+          <div class="attach-empty-icon">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="attach-empty-text">No attachments yet</div>
+          <div class="attach-empty-hint">Photos, documents or files</div>
+        </div>
+
+        <!-- Attachment list (populated by JS) -->
+        <div id="attachList"></div>
+
+        <!-- Add button row — always visible at bottom -->
+        <div class="attach-add-row" onclick="openSourcePicker()">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="var(--purple)" stroke-width="2.5" stroke-linecap="round"/></svg>
+          <span class="attach-add-btn-label">Add attachment</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- BOTTOM BAR -->
+  <div class="bottom-bar">
+    <span class="bar-meta" id="barMeta">Add closing comments</span>
+    <button class="bar-pill bar-pill-locked" id="closeBtn" onclick="onCloseBarTap()">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Close Work Order
+    </button>
+  </div>
+
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <!-- STATUS PICKER SHEET -->
+  <div class="bottom-sheet" id="statusSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <div class="sheet-title">Set target status</div>
+      <button class="sheet-close" onclick="closeAllSheets()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+    </div>
+    <!-- Explanation of auth-driven list -->
+    <div style="padding:10px 16px 6px;border-bottom:1px solid var(--border);font-size:12px;color:var(--gray-4);font-family:var(--font-mono);">
+      Statuses available to BCAMPBELL · Corrective Maintenance
+    </div>
+    <div class="sheet-body">
+      <div class="lov-option selected" id="sOpt-completed" onclick="selectStatus('completed','Completed','Completed — work finished and verified','#00AA14')">
+        <div class="lov-option-texts">
+          <div class="lov-option-desc">Completed</div>
+          <div class="lov-option-code">Work finished and verified</div>
+        </div>
+        <div class="lov-check checked" id="sChk-completed">
+          <svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <div class="lov-option" id="sOpt-closed" onclick="selectStatus('closed','Closed','Fully closed &amp; locked for editing','#6F7480')">
+        <div class="lov-option-texts">
+          <div class="lov-option-desc">Closed</div>
+          <div class="lov-option-code">Fully closed — locked for further editing</div>
+        </div>
+        <div class="lov-check unchecked" id="sChk-closed"></div>
+      </div>
+      <div class="lov-option" id="sOpt-onhold" onclick="selectStatus('onhold','On hold','Pending further action or approval','#F46600')">
+        <div class="lov-option-texts">
+          <div class="lov-option-desc">On hold</div>
+          <div class="lov-option-code">Pending further action or approval</div>
+        </div>
+        <div class="lov-check unchecked" id="sChk-onhold"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOV SHEET -->
+  <div class="bottom-sheet" id="lovSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <div class="sheet-title" id="lovSheetTitle">Select code</div>
+      <button class="sheet-close" onclick="closeAllSheets()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="sheet-body" id="lovSheetBody"></div>
+  </div>
+
+  <!-- CONFIRM CLOSE SHEET -->
+  <div class="bottom-sheet" id="confirmCloseSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <div class="sheet-title">Confirm close</div>
+      <button class="sheet-close" onclick="closeAllSheets()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="confirm-wording">
+      Closing <strong>WO# 19257</strong> will set the status to <strong>Completed</strong> and lock the record for further field edits. Ensure all work has been recorded before proceeding.
+    </div>
+    <div class="confirm-summary" id="confirmSummary"></div>
+    <div class="sheet-footer" style="display:flex;flex-direction:column;gap:0;">
+      <button class="btn-close-wo" onclick="executeClose()">Close Work Order</button>
+      <button class="btn-cancel" onclick="closeAllSheets()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- SOURCE PICKER SHEET -->
+  <div class="bottom-sheet" id="sourcePickerSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <div class="sheet-title">Add attachment</div>
+      <button class="sheet-close" onclick="closeAllSheets()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="sheet-body">
+      <div class="source-option" onclick="addAttachment('camera')">
+        <div class="source-option-icon" style="background:rgba(153,51,255,0.1);border:1px solid rgba(153,51,255,0.2);">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="#9933FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13" r="4" stroke="#9933FF" stroke-width="2"/></svg>
+        </div>
+        <div class="source-option-texts">
+          <div class="source-option-title">Camera</div>
+          <div class="source-option-sub">Take a photo now</div>
+        </div>
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="var(--gray-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="source-option" onclick="addAttachment('library')">
+        <div class="source-option-icon" style="background:rgba(66,178,234,0.1);border:1px solid rgba(66,178,234,0.2);">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#42b2ea" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.5" stroke="#42b2ea" stroke-width="1.5"/><path d="M21 15l-5-5L5 21" stroke="#42b2ea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="source-option-texts">
+          <div class="source-option-title">Photo library</div>
+          <div class="source-option-sub">Choose from device photos</div>
+        </div>
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="var(--gray-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="source-option" onclick="addAttachment('file')">
+        <div class="source-option-icon" style="background:rgba(0,170,20,0.08);border:1px solid rgba(0,170,20,0.2);">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="#00AA14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="#00AA14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="source-option-texts">
+          <div class="source-option-title">File or document</div>
+          <div class="source-option-sub">PDF, Word, or other file</div>
+        </div>
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="var(--gray-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEWER SHEET -->
+  <div class="bottom-sheet" id="viewerSheet" style="max-height:92vh;">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="viewer-top-bar">
+      <div class="viewer-file-icon" id="viewerIcon"></div>
+      <div class="viewer-info">
+        <div class="viewer-name" id="viewerName">filename.jpg</div>
+        <div class="viewer-meta" id="viewerMeta">Photo · 1.2 MB · Added just now</div>
+      </div>
+      <button class="sheet-close" onclick="closeAllSheets()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="viewer-body" id="viewerBody"></div>
+    <div class="viewer-footer">
+      <button class="viewer-action-btn" onclick="showToast('Opening in native app…','↗')">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Open
+      </button>
+      <button class="viewer-action-btn danger" onclick="openRemoveConfirm()" style="flex:0.7;">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M3 6h18M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Remove
+      </button>
+    </div>
+  </div>
+
+  <!-- REMOVE CONFIRM SHEET -->
+  <div class="bottom-sheet" id="removeConfirmSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <div class="sheet-title">Remove attachment</div>
+      <button class="sheet-close" onclick="closeSheet('removeConfirmSheet')"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="remove-confirm-body">
+      Remove <strong id="removeFileName">this attachment</strong>? This cannot be undone.
+    </div>
+    <div class="sheet-footer" style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn-remove-confirm" onclick="executeRemove()">Remove attachment</button>
+      <button class="btn-cancel" onclick="closeSheet('removeConfirmSheet')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"><span id="toastIcon">✓</span><span id="toastMsg">Saved</span></div>
+
+  <!-- CLOSED OVERLAY -->
+  <div class="closed-overlay" id="closedOverlay">
+    <div class="closed-icon">
+      <svg width="36" height="36" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="closed-title">Work Order Closed</div>
+    <div class="closed-sub">Status: Completed</div>
+    <div class="closed-wo">WO# 19257 · May 19, 2026 · 09:47</div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ── THEME
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const dark = document.documentElement.hasAttribute('data-theme');
+  if (dark) { document.documentElement.removeAttribute('data-theme'); document.getElementById('themeToggle').textContent = '☀ Light'; }
+  else { document.documentElement.setAttribute('data-theme','dark'); document.getElementById('themeToggle').textContent = '◑ Dark'; }
+});
+
+// ── STEP RAIL
+document.getElementById('stepRail').addEventListener('click', () => {
+  const map = document.getElementById('stepMap');
+  const ch  = document.getElementById('stepChevron');
+  const open = map.classList.toggle('open');
+  ch.style.transform = open ? 'rotate(180deg)' : '';
+});
+
+// ── SEQUENTIAL CODE STATE
+// problem is pre-filled; failure/cause/action start empty + locked
+const codeState = { problem: 'MECH', failure: '', cause: '', action: '' };
+const codeOrder = ['problem','failure','cause','action'];
+
+const lovData = {
+  problem: [
+    { code:'MECH', desc:'Mechanical failure' },
+    { code:'ELEC', desc:'Electrical failure' },
+    { code:'INST', desc:'Instrumentation fault' },
+    { code:'CORR', desc:'Corrosion / erosion' },
+    { code:'OPER', desc:'Operational error' },
+  ],
+  failure: [
+    { code:'CAVIT', desc:'Cavitation' },
+    { code:'SEAL',  desc:'Seal failure' },
+    { code:'BEAR',  desc:'Bearing failure' },
+    { code:'IMPEQ', desc:'Impeller wear' },
+    { code:'MISC',  desc:'Miscellaneous' },
+  ],
+  cause: [
+    { code:'WEAR',  desc:'Normal wear and tear' },
+    { code:'MAINT', desc:'Inadequate maintenance' },
+    { code:'INSTAL',desc:'Installation defect' },
+    { code:'DESIGN',desc:'Design limitation' },
+    { code:'PROC',  desc:'Process conditions' },
+  ],
+  action: [
+    { code:'REPLACE',desc:'Component replaced' },
+    { code:'REPAIR', desc:'Repaired in place' },
+    { code:'ADJUST', desc:'Adjusted / realigned' },
+    { code:'INSPECT',desc:'Inspected only' },
+    { code:'DEFER',  desc:'Deferred — follow-up WO raised' },
+  ],
+};
+
+const codesTitles = { problem:'Problem code', failure:'Failure code', cause:'Cause code', action:'Action code' };
+
+function refreshSequentialLocks() {
+  const states = {
+    problem: true,
+    failure: !!codeState.problem,
+    cause:   !!codeState.failure,
+    action:  !!codeState.cause,
+  };
+  codeOrder.forEach(key => {
+    const cell = document.getElementById('field' + cap(key));
+    const isLocked = !states[key];
+    cell.classList.toggle('field-locked', isLocked);
+    // Footer: show lock icon when locked, chevron when unlocked
+    const footer = document.getElementById(key + 'Footer');
+    if (footer) {
+      footer.innerHTML = isLocked
+        ? `<div class="seq-lock-icon-sm"><svg width="9" height="9" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>`
+        : `<svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    }
+  });
+  // Problem cell never has a removable footer — leave its static chevron alone
+  const set = codeOrder.filter(k => !!codeState[k]).length;
+  const badge = document.getElementById('codesBadge');
+  badge.textContent = `${set} of 4`;
+  badge.className = 'section-card-badge ' + (set === 4 ? 'badge-complete' : 'badge-partial');
+}
+
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// ── LOV SHEET
+let activeLov = null;
+function openLov(type) {
+  const cell = document.getElementById('field'+cap(type));
+  if (cell.classList.contains('field-locked')) return;
+  activeLov = type;
+  document.getElementById('lovSheetTitle').textContent = codesTitles[type];
+  const body = document.getElementById('lovSheetBody');
+  const currentCode = codeState[type];
+  body.innerHTML = lovData[type].map(opt => `
+    <div class="lov-option ${opt.code === currentCode ? 'selected' : ''}" onclick="selectLov('${type}','${opt.code}','${opt.desc}')">
+      <div class="lov-option-texts">
+        <div class="lov-option-desc">${opt.desc}</div>
+        <div class="lov-option-code">${opt.code}</div>
+      </div>
+      <div class="lov-check ${opt.code === currentCode ? 'checked' : 'unchecked'}">
+        ${opt.code === currentCode ? '<svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>' : ''}
+      </div>
+    </div>`).join('');
+  document.getElementById('sheetOverlay').classList.add('open');
+  document.getElementById('lovSheet').classList.add('open');
+}
+
+function selectLov(type, code, desc) {
+  codeState[type] = code;
+  // Update 2×2 cell
+  const descEl = document.getElementById(type+'Desc');
+  const codeEl = document.getElementById(type+'Code');
+  descEl.textContent = desc;
+  descEl.classList.add('set');
+  codeEl.textContent = code;
+  codeEl.style.display = '';
+  refreshSequentialLocks();
+  closeAllSheets();
+  showToast(`${codesTitles[type]}: ${desc}`, '✓');
+}
+
+// ── DOWNTIME INPUTS (lightweight inline entry)
+function openDowntimeHours() {
+  const current = document.getElementById('downtimeHoursVal').textContent;
+  const val = current === 'Not set' ? '' : current.replace(' hrs','');
+  const input = prompt('Downtime hours (e.g. 2.5):', val);
+  if (input === null) return;
+  const n = parseFloat(input);
+  const el = document.getElementById('downtimeHoursVal');
+  if (!isNaN(n) && n >= 0) {
+    el.textContent = `${n} hrs`;
+    el.classList.remove('muted');
+    showToast(`Downtime: ${n} hrs`, '⏱');
+  } else if (input.trim() === '') {
+    el.textContent = 'Not set';
+    el.classList.add('muted');
+  }
+}
+
+function openDowntimeCost() {
+  const current = document.getElementById('downtimeCostVal').textContent;
+  const val = current === 'Not set' ? '' : current.replace('$','').replace(/,/g,'');
+  const input = prompt('Downtime cost in USD (e.g. 1250):', val);
+  if (input === null) return;
+  const n = parseFloat(input);
+  const el = document.getElementById('downtimeCostVal');
+  if (!isNaN(n) && n >= 0) {
+    el.textContent = `$${n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+    el.classList.remove('muted');
+    showToast(`Downtime cost: $${n.toLocaleString()}`, '💰');
+  } else if (input.trim() === '') {
+    el.textContent = 'Not set';
+    el.classList.add('muted');
+  }
+}
+
+// ── STATUS PICKER
+const statusOptions = {
+  completed: { label:'Completed', chipClass:'status-completed', bannerColor:'rgba(0,170,20,0.05)', bannerBorder:'rgba(0,170,20,0.2)', iconColor:'#00AA14', sub:'Status will change on save' },
+  closed:    { label:'Closed',    chipClass:'status-closed',    bannerColor:'rgba(110,116,128,0.06)', bannerBorder:'rgba(110,116,128,0.2)', iconColor:'#6F7480', sub:'Record will be locked on save' },
+  onhold:    { label:'On hold',   chipClass:'status-onhold',    bannerColor:'rgba(244,102,0,0.05)', bannerBorder:'rgba(244,102,0,0.2)', iconColor:'#F46600', sub:'WO will be placed on hold on save' },
+};
+let currentStatusKey = 'completed';
+
+function toggleStatusSheet() {
+  document.getElementById('sheetOverlay').classList.add('open');
+  document.getElementById('statusSheet').classList.add('open');
+}
+
+function selectStatus(key, label, sub, iconColor) {
+  currentStatusKey = key;
+  const opt = statusOptions[key];
+  // Update banner
+  const banner = document.getElementById('statusBanner');
+  banner.style.background = opt.bannerColor;
+  banner.style.borderColor = opt.bannerBorder;
+  // Update icon colour
+  const iconSvg = document.getElementById('statusBannerIcon').querySelector('svg');
+  iconSvg.querySelectorAll('[stroke]').forEach(el => el.setAttribute('stroke', opt.iconColor));
+  // Update sub text
+  document.getElementById('statusBannerSub').textContent = opt.sub;
+  // Update chip
+  const btn = document.getElementById('statusTargetBtn');
+  btn.className = 'status-target-btn ' + opt.chipClass;
+  document.getElementById('statusTargetLabel').textContent = label;
+  // Update check marks in sheet
+  Object.keys(statusOptions).forEach(k => {
+    const optEl  = document.getElementById('sOpt-'+k);
+    const chkEl  = document.getElementById('sChk-'+k);
+    if (k === key) {
+      optEl.classList.add('selected');
+      chkEl.className = 'lov-check checked';
+      chkEl.innerHTML = '<svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>';
+    } else {
+      optEl.classList.remove('selected');
+      chkEl.className = 'lov-check unchecked';
+      chkEl.innerHTML = '';
+    }
+  });
+  closeAllSheets();
+  showToast(`Target status: ${label}`, '✓');
+}
+function onCommentsInput() {
+  const ta = document.getElementById('closingComments');
+  const len = ta.value.length;
+  const cc = document.getElementById('charCount');
+  cc.textContent = `${len} / 1000`;
+  cc.classList.toggle('warn', len > 850);
+  const badge = document.getElementById('commentsBadge');
+  if (len > 0) {
+    badge.textContent = 'Complete';
+    badge.className = 'section-card-badge badge-complete';
+  } else {
+    badge.textContent = 'Required';
+    badge.className = 'section-card-badge badge-optional';
+  }
+  checkBarReady();
+}
+
+// ── BAR GATING
+function checkBarReady() {
+  const hasComments = document.getElementById('closingComments').value.trim().length > 0;
+  const btn  = document.getElementById('closeBtn');
+  const meta = document.getElementById('barMeta');
+  if (hasComments) {
+    btn.className = 'bar-pill bar-pill-ready';
+    meta.textContent = 'Ready to close';
+    meta.style.color = 'var(--green)';
+  } else {
+    btn.className = 'bar-pill bar-pill-locked';
+    meta.textContent = 'Add closing comments';
+    meta.style.color = '';
+  }
+}
+
+function onCloseBarTap() {
+  const hasComments = document.getElementById('closingComments').value.trim().length > 0;
+  if (!hasComments) {
+    showToast('Closing comments are required', '⚠');
+    document.getElementById('closingComments').focus();
+    return;
+  }
+  buildConfirmSummary();
+  document.getElementById('sheetOverlay').classList.add('open');
+  document.getElementById('confirmCloseSheet').classList.add('open');
+}
+
+function buildConfirmSummary() {
+  const rows = [
+    { label:'Work order',     value:'19257' },
+    { label:'Equipment',      value:'00067333 — Pump, Centrifugal' },
+    { label:'Date completed', value:'May 19, 2026 · 09:47' },
+    { label:'Problem',        value: codeState.problem ? `${codeState.problem}` : '—' },
+    { label:'Failure',        value: codeState.failure ? `${codeState.failure}` : '—' },
+    { label:'Cause',          value: codeState.cause   ? `${codeState.cause}`   : '—' },
+    { label:'Action',         value: codeState.action  ? `${codeState.action}`  : '—' },
+    { label:'Attachments',   value: attachments.length > 0 ? `${attachments.length} attached` : 'None' },
+  ];
+  document.getElementById('confirmSummary').innerHTML = rows.map(r => `
+    <div class="confirm-summary-row">
+      <span class="confirm-summary-label">${r.label}</span>
+      <span class="confirm-summary-value">${r.value}</span>
+    </div>`).join('');
+}
+
+function executeClose() {
+  closeAllSheets();
+  // Brief delay then show closed overlay
+  setTimeout(() => {
+    document.getElementById('closedOverlay').classList.add('show');
+  }, 400);
+}
+
+// ── ATTACHMENTS
+let attachments = [];
+let viewingIdx  = null;
+
+const attachColors = ['#2A3A4A','#2A4A2A','#3A2A4A','#4A3A2A','#2A4A3A'];
+const fakeSizes    = ['1.2 MB','840 KB','2.4 MB','310 KB','1.8 MB','650 KB'];
+
+const typeMap = {
+  camera:  { ext:'JPG',  label:'Photo',    iconClass:'attach-type-photo', mime:'image' },
+  library: { ext:'HEIC', label:'Photo',    iconClass:'attach-type-photo', mime:'image' },
+  file:    { ext:'PDF',  label:'Document', iconClass:'attach-type-pdf',   mime:'pdf'   },
+};
+const fileNames = {
+  camera:  idx => `IMG_${String(1000+idx).padStart(4,'0')}.JPG`,
+  library: idx => `Photo_${String(idx).padStart(3,'0')}.HEIC`,
+  file:    idx => ['Inspection_Report.pdf','Calibration_Cert.pdf','Work_Permit.pdf','Datasheet.pdf'][idx%4],
+};
+
+// Icon SVGs by type
+function typeIconSvg(mime, size, color) {
+  if (mime === 'image') return `<svg width="${size}" height="${size}" fill="none" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" stroke="${color}" stroke-width="2"/><circle cx="8.5" cy="10.5" r="1.5" stroke="${color}" stroke-width="1.5"/><path d="M21 15l-5-5L5 19" stroke="${color}" stroke-width="2" stroke-linecap="round"/></svg>`;
+  if (mime === 'pdf')   return `<svg width="${size}" height="${size}" fill="none" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="${color}" stroke-width="2" stroke-linecap="round"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="${color}" stroke-width="2" stroke-linecap="round"/></svg>`;
+  return `<svg width="${size}" height="${size}" fill="none" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="${color}" stroke-width="2" stroke-linecap="round"/></svg>`;
+}
+
+function openSourcePicker() {
+  openSheet('sourcePickerSheet');
+}
+
+function addAttachment(source) {
+  closeAllSheets();
+  const t   = typeMap[source];
+  const idx = attachments.length;
+  const att = {
+    id:        idx,
+    source,
+    name:      fileNames[source](idx),
+    label:     t.label,
+    iconClass: t.iconClass,
+    mime:      t.mime,
+    size:      fakeSizes[idx % fakeSizes.length],
+    bgColor:   attachColors[idx % attachColors.length],
+    addedAt:   'Just now',
+  };
+  attachments.push(att);
+  renderAttachList();
+  showToast(`${att.label} added`, '📎');
+}
+
+function renderAttachList() {
+  const list    = document.getElementById('attachList');
+  const empty   = document.getElementById('attachEmpty');
+  const badge   = document.getElementById('attachBadge');
+  const n       = attachments.length;
+
+  empty.style.display = n === 0 ? '' : 'none';
+  badge.textContent   = n === 0 ? 'Optional' : `${n} file${n!==1?'s':''}`;
+  badge.className     = 'section-card-badge ' + (n > 0 ? 'badge-complete' : 'badge-optional');
+
+  list.innerHTML = attachments.map((att, i) => {
+    const iconColors = { 'attach-type-photo':'#9933FF', 'attach-type-pdf':'#E24B4A', 'attach-type-doc':'#42b2ea', 'attach-type-file':'#6F7480' };
+    const ic = iconColors[att.iconClass] || '#6F7480';
+    return `<div class="attach-row" onclick="openViewer(${i})">
+      <div class="attach-type-icon ${att.iconClass}">${typeIconSvg(att.mime, 18, ic)}</div>
+      <div class="attach-row-info">
+        <div class="attach-row-name">${att.name}</div>
+        <div class="attach-row-meta">${att.label} · ${att.size} · ${att.addedAt}</div>
+      </div>
+      <button class="attach-row-remove" onclick="event.stopPropagation();quickRemove(${i})" title="Remove">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+
+  // Update confirm summary attachment count
+  // (no-op if summary not yet built)
+}
+
+// ── VIEWER
+function openViewer(idx) {
+  viewingIdx = idx;
+  const att = attachments[idx];
+  const iconColors = { 'attach-type-photo':'#9933FF', 'attach-type-pdf':'#E24B4A', 'attach-type-doc':'#42b2ea', 'attach-type-file':'#6F7480' };
+  const ic = iconColors[att.iconClass] || '#6F7480';
+
+  // Top bar
+  document.getElementById('viewerIcon').className = 'viewer-file-icon ' + att.iconClass;
+  document.getElementById('viewerIcon').innerHTML = typeIconSvg(att.mime, 18, ic);
+  document.getElementById('viewerName').textContent = att.name;
+  document.getElementById('viewerMeta').textContent = `${att.label} · ${att.size} · Added ${att.addedAt}`;
+
+  // Body
+  const body = document.getElementById('viewerBody');
+  if (att.mime === 'image') {
+    // Simulate photo with a coloured placeholder
+    body.innerHTML = `
+      <div style="width:100%;max-width:320px;aspect-ratio:4/3;border-radius:10px;background:${att.bgColor};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1px solid var(--border);">
+        ${typeIconSvg('image', 36, 'rgba(255,255,255,0.4)')}
+        <span style="font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,0.4);">${att.name}</span>
+      </div>
+      <div class="viewer-file-label">Prototype — photo preview simulated</div>`;
+  } else {
+    body.innerHTML = `
+      <div class="viewer-file-placeholder ${att.iconClass}">${typeIconSvg(att.mime, 32, ic)}</div>
+      <div style="text-align:center;">
+        <div style="font-size:14px;font-weight:600;color:var(--octave-black);">${att.name}</div>
+        <div style="font-size:12px;color:var(--gray-4);margin-top:4px;font-family:var(--font-mono);">${att.size} · ${att.label}</div>
+      </div>
+      <div class="viewer-file-label">Tap Open to view in a document reader</div>`;
+  }
+  openSheet('viewerSheet');
+}
+
+function openRemoveConfirm() {
+  if (viewingIdx === null) return;
+  document.getElementById('removeFileName').textContent = attachments[viewingIdx].name;
+  closeSheet('viewerSheet');
+  openSheet('removeConfirmSheet');
+}
+
+function quickRemove(idx) {
+  attachments.splice(idx, 1);
+  // Re-index IDs
+  attachments.forEach((a,i) => a.id = i);
+  renderAttachList();
+  showToast('Attachment removed', '✕');
+}
+
+function executeRemove() {
+  if (viewingIdx !== null) {
+    quickRemove(viewingIdx);
+    viewingIdx = null;
+  }
+  closeAllSheets();
+}
+
+// ── SHEET HELPERS
+function openSheet(id) {
+  document.getElementById('sheetOverlay').classList.add('open');
+  document.getElementById(id).classList.add('open');
+}
+function closeSheet(id) {
+  document.getElementById(id).classList.remove('open');
+  // Keep overlay open if another sheet is still open
+  const anyOpen = ['statusSheet','lovSheet','confirmCloseSheet',
+                   'sourcePickerSheet','viewerSheet','removeConfirmSheet']
+    .some(sid => document.getElementById(sid).classList.contains('open'));
+  if (!anyOpen) document.getElementById('sheetOverlay').classList.remove('open');
+}
+
+// ── SHEETS
+function closeAllSheets() {
+  document.getElementById('sheetOverlay').classList.remove('open');
+  ['statusSheet','lovSheet','confirmCloseSheet',
+   'sourcePickerSheet','viewerSheet','removeConfirmSheet']
+    .forEach(id => document.getElementById(id).classList.remove('open'));
+}
+
+// ── TOAST
+let toastTimer;
+function showToast(msg, icon) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toastIcon').textContent = icon || '✓';
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+// ── INIT
+refreshSequentialLocks();
+checkBarReady();
+</script>
+</body>
+</html>

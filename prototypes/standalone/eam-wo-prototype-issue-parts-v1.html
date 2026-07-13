@@ -1,0 +1,1907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HxGN EAM Mobile — Issue Parts (Step 3)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ─── OCTAVE DESIGN TOKENS ─────────────────────────────────────────────── */
+:root {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Core palette — light mode (Industrial Neutral default) */
+  --octave-black:   #1A1A1F;
+  --gray-5:         #3E4047;
+  --gray-4:         #6F7480;
+  --gray-3:         #B2B8C4;
+  --gray-2:         #CBD0D8;
+  --gray-1:         #E7EBF2;
+  --white:          #FFFFFF;
+
+  /* Brand / semantic */
+  --purple:         #9933FF;
+  --orange:         #F46600;
+  --green:          #00AA14;
+  --red:            #E24B4A;
+  --teal:           #007B87; /* nav chrome teal from screenshots */
+
+  /* Surface */
+  --bg-page:        #F5F6F8;
+  --bg-card:        #FFFFFF;
+  --bg-nav:         #1A1A1F;
+  --bg-section:     #F0F2F5;
+  --border:         #E7EBF2;
+  --border-strong:  #CBD0D8;
+
+  /* Group color bars */
+  --group-safety-tint:   rgba(244,102,0,0.09);
+  --group-safety-bar:    rgba(244,102,0,0.35);
+  --group-main-tint:     rgba(153,51,255,0.09);
+  --group-main-bar:      rgba(153,51,255,0.35);
+  --group-close-tint:    rgba(0,170,20,0.09);
+  --group-close-bar:     rgba(0,170,20,0.35);
+
+  /* Typography scale */
+  --text-h2:        20px;
+  --text-body-head: 14px;
+  --text-body:      14px;
+  --text-small:     13px;
+  --text-legal:     12px;
+  --text-mono:      13px;
+
+  /* Layout */
+  --nav-height:     52px;
+  --step-rail-h:    48px;
+  --wo-block-h:     44px;
+  --bar-height:     72px;
+  --sheet-radius:   20px;
+}
+
+/* Dark mode */
+[data-theme="dark"] {
+  --bg-page:        #1A1A1F;
+  --bg-card:        #26252B;
+  --bg-nav:         #111114;
+  --bg-section:     #302F33;
+  --border:         #3E4047;
+  --border-strong:  #4A4C55;
+  --white:          #FFFFFF;
+  --octave-black:   #1A1A1F;
+  --gray-1:         #2A2930;
+  --gray-2:         #3E4047;
+  --gray-3:         #6F7480;
+  --gray-4:         #B2B8C4;
+}
+
+/* ─── RESET / BASE ─────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-page);
+  color: var(--octave-black);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  transition: background 0.2s, color 0.2s;
+}
+[data-theme="dark"] body { color: var(--white); }
+
+/* ─── APP SHELL ────────────────────────────────────────────────────────── */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: 430px;
+  margin: 0 auto;
+  position: relative;
+  background: var(--bg-page);
+  box-shadow: 0 0 40px rgba(0,0,0,0.18);
+}
+
+/* ─── TOP NAV ──────────────────────────────────────────────────────────── */
+.nav {
+  height: var(--nav-height);
+  background: var(--bg-nav);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+  flex-shrink: 0;
+  z-index: 100;
+}
+.nav-back {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--white);
+  background: none; border: none; cursor: pointer;
+  flex-shrink: 0;
+}
+.nav-logo {
+  width: 28px; height: 28px;
+  background: var(--teal);
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.nav-logo svg { width: 18px; height: 18px; fill: white; }
+.nav-title {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.85);
+  line-height: 1.3;
+  min-width: 0;
+}
+.nav-title span {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: rgba(255,255,255,0.5);
+  font-size: 11px;
+}
+.nav-actions {
+  display: flex; align-items: center; gap: 4px;
+  flex-shrink: 0;
+}
+.nav-icon-btn {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--white); background: none; border: none; cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s;
+  position: relative;
+}
+.nav-icon-btn:hover { background: rgba(255,255,255,0.1); }
+.sync-badge {
+  position: absolute; top: 4px; right: 4px;
+  width: 7px; height: 7px;
+  background: var(--green);
+  border-radius: 50%;
+  border: 1.5px solid var(--bg-nav);
+}
+.theme-toggle {
+  font-size: 11px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 100px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.theme-toggle:hover { background: rgba(255,255,255,0.15); color: white; }
+.prototype-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: rgba(255,165,0,0.9);
+  white-space: nowrap;
+}
+
+/* ─── WO IDENTITY BLOCK (collapsed) ───────────────────────────────────── */
+.wo-block {
+  background: var(--bg-nav);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding: 6px 14px 8px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.wo-block-inner {
+  display: flex; align-items: center; gap: 8px;
+}
+.wo-number {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.55);
+  white-space: nowrap;
+}
+.wo-divider { color: rgba(255,255,255,0.2); font-size: 11px; }
+.wo-desc {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.wo-chips {
+  display: flex; gap: 4px; flex-shrink: 0;
+}
+.chip {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 2px 7px;
+  border-radius: 100px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.chip-type   { color: var(--gray-3); border-color: var(--gray-5); }
+.chip-priority { color: var(--orange); border-color: rgba(244,102,0,0.4); }
+.chip-dept   { color: #42b2ea; border-color: rgba(66,178,234,0.35); }
+.wo-block-handle {
+  display: flex; justify-content: center; padding-top: 4px;
+}
+.handle-bar {
+  width: 32px; height: 3px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 100px;
+}
+
+/* ─── STEP RAIL ────────────────────────────────────────────────────────── */
+.step-rail {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  padding: 0 14px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+[data-theme="dark"] .step-rail { background: var(--bg-section); }
+.step-rail:hover { background: var(--bg-section); }
+[data-theme="dark"] .step-rail:hover { background: #2e2d35; }
+.step-rail-collapsed {
+  height: var(--step-rail-h);
+  display: flex; align-items: center; gap: 10px;
+}
+.step-pill {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--purple);
+  background: rgba(153,51,255,0.1);
+  border: 1px solid rgba(153,51,255,0.25);
+  padding: 2px 8px;
+  border-radius: 100px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.step-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--octave-black);
+  flex: 1;
+}
+[data-theme="dark"] .step-name { color: var(--white); }
+.step-segments {
+  display: flex; gap: 3px;
+  flex-shrink: 0;
+}
+.seg {
+  width: 28px; height: 5px;
+  border-radius: 100px;
+}
+.seg-done   { background: var(--green); }
+.seg-active { background: var(--purple); }
+.seg-future { background: var(--gray-2); }
+[data-theme="dark"] .seg-future { background: var(--gray-5); }
+.step-chevron {
+  color: var(--gray-4);
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+/* Step map (expanded) */
+.step-map {
+  display: none;
+  padding: 10px 0 12px;
+  border-top: 1px solid var(--border);
+}
+.step-map.open { display: block; }
+.step-map-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.1s;
+  border-radius: 4px;
+  margin: 0 6px;
+}
+.step-map-item:hover { background: var(--bg-section); }
+[data-theme="dark"] .step-map-item:hover { background: rgba(255,255,255,0.05); }
+.step-map-icon {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: 10px; font-weight: 700;
+}
+.smi-done   { background: var(--green); color: white; }
+.smi-active { background: var(--purple); color: white; }
+.smi-locked { background: none; border: 2px solid var(--gray-3); color: var(--gray-3); }
+.step-map-label {
+  flex: 1;
+  font-size: 13px; font-weight: 500;
+  color: var(--octave-black);
+}
+[data-theme="dark"] .step-map-label { color: rgba(255,255,255,0.85); }
+.step-map-label.active-label { color: var(--purple); font-weight: 700; }
+.step-map-footer {
+  font-size: 11px;
+  color: var(--gray-4);
+  padding: 6px 20px 0;
+  font-family: var(--font-mono);
+}
+
+/* ─── SCROLLABLE CONTENT ────────────────────────────────────────────────── */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 0 calc(var(--bar-height) + 16px);
+}
+
+.store-selector {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-section);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 100px;
+  padding: 5px 10px 5px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--octave-black);
+  white-space: nowrap;
+}
+[data-theme="dark"] .store-selector {
+  background: var(--bg-section);
+  border-color: var(--gray-5);
+  color: var(--white);
+}
+.store-selector:hover {
+  border-color: var(--purple);
+  color: var(--purple);
+}
+.store-selector svg:first-child { color: var(--purple); }
+
+/* ─── SCREEN HEADER ──────────────────────────────────────────────────────  */
+.screen-header {
+  padding: 16px 16px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.screen-title {
+  font-size: var(--text-h2);
+  font-weight: 700;
+  color: var(--octave-black);
+  letter-spacing: -0.3px;
+}
+[data-theme="dark"] .screen-title { color: var(--white); }
+.screen-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--gray-4);
+}
+
+/* ─── PARTS SUMMARY BAR ──────────────────────────────────────────────────  */
+.parts-summary {
+  margin: 0 12px 12px;
+  background: rgba(153,51,255,0.07);
+  border: 1px solid rgba(153,51,255,0.18);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.summary-stat {
+  display: flex; flex-direction: column; align-items: center;
+  flex: 1;
+}
+.summary-stat-val {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--purple);
+  line-height: 1.1;
+}
+.summary-stat-label {
+  font-size: 11px;
+  color: var(--gray-4);
+  font-weight: 500;
+  margin-top: 1px;
+}
+.summary-divider {
+  width: 1px; height: 32px;
+  background: rgba(153,51,255,0.2);
+}
+.issued-val { color: var(--green) !important; }
+
+/* ─── SECTION LABEL ──────────────────────────────────────────────────────  */
+.section-label {
+  padding: 0 16px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--gray-4);
+  font-family: var(--font-mono);
+}
+
+/* ─── PART CARD ──────────────────────────────────────────────────────────  */
+.parts-list {
+  padding: 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.part-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: box-shadow 0.15s;
+}
+[data-theme="dark"] .part-card { background: var(--bg-card); border-color: var(--border); }
+.part-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+.part-card.issued {
+  border-color: rgba(0,170,20,0.3);
+  background: rgba(0,170,20,0.03);
+}
+[data-theme="dark"] .part-card.issued {
+  background: rgba(0,170,20,0.06);
+  border-color: rgba(0,170,20,0.25);
+}
+
+.part-card-header {
+  padding: 10px 12px 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.part-status-bar {
+  width: 3px;
+  align-self: stretch;
+  border-radius: 100px;
+  flex-shrink: 0;
+  background: var(--gray-2);
+  margin-top: 2px;
+}
+[data-theme="dark"] .part-status-bar { background: var(--gray-5); }
+.part-status-bar.issued { background: var(--green); }
+.part-status-bar.pending { background: var(--orange); }
+
+.part-main { flex: 1; min-width: 0; }
+.part-number {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--purple);
+  margin-bottom: 2px;
+}
+.part-desc {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--octave-black);
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+[data-theme="dark"] .part-desc { color: var(--white); }
+.part-meta-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.part-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--gray-4);
+  display: flex; align-items: center; gap: 3px;
+}
+.part-meta-label { color: var(--gray-3); }
+.qty-badge {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 100px;
+  flex-shrink: 0;
+}
+.qty-badge-planned { background: rgba(153,51,255,0.1); color: var(--purple); }
+.qty-badge-issued  { background: rgba(0,170,20,0.12); color: var(--green); }
+
+.part-card-footer {
+  padding: 0 12px 10px 25px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.btn-quick-issue {
+  flex: 1;
+  height: 34px;
+  border-radius: 100px;
+  border: 1.5px solid var(--gray-2);
+  background: var(--bg-card);
+  color: var(--octave-black);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  transition: all 0.15s;
+}
+[data-theme="dark"] .btn-quick-issue {
+  border-color: var(--gray-5);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.85);
+}
+.btn-quick-issue:hover {
+  border-color: var(--purple);
+  color: var(--purple);
+}
+.btn-quick-issue.issued-state {
+  border-color: rgba(0,170,20,0.35);
+  color: var(--green);
+  background: rgba(0,170,20,0.06);
+}
+.btn-quick-issue svg { flex-shrink: 0; }
+.btn-undo {
+  width: 34px; height: 34px;
+  border-radius: 100px;
+  border: 1.5px solid var(--gray-2);
+  background: none;
+  color: var(--gray-4);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+[data-theme="dark"] .btn-undo { border-color: var(--gray-5); }
+.btn-undo:hover { border-color: var(--red); color: var(--red); }
+
+/* ─── AD HOC SECTION ─────────────────────────────────────────────────────  */
+.adhoc-section {
+  padding: 0 12px 8px;
+}
+.btn-add-parts {
+  width: 100%;
+  height: 46px;
+  border-radius: 100px;
+  border: 1.5px solid var(--gray-5);
+  background: transparent;
+  color: var(--octave-black);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  transition: all 0.15s;
+}
+[data-theme="dark"] .btn-add-parts {
+  border-color: var(--gray-3);
+  color: var(--white);
+}
+.btn-add-parts:hover {
+  border-color: var(--color-accent-aqua, #00ffff);
+  color: var(--color-accent-aqua, #00ffff);
+}
+
+/* ─── RETURN SECTION ─────────────────────────────────────────────────────  */
+.issued-parts-section {
+  padding: 0 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.issued-row {
+  background: rgba(0,170,20,0.06);
+  border: 1px solid rgba(0,170,20,0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.issued-check {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--green);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.issued-part-info { flex: 1; min-width: 0; }
+.issued-part-num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--green);
+}
+.issued-part-desc {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--octave-black);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+[data-theme="dark"] .issued-part-desc { color: rgba(255,255,255,0.85); }
+.issued-qty {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--green);
+}
+.btn-return-small {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 100px;
+  border: 1.5px solid rgba(0,170,20,0.3);
+  background: none;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-return-small:hover {
+  background: rgba(0,170,20,0.1);
+}
+
+/* ─── BOTTOM BAR ─────────────────────────────────────────────────────────  */
+.bottom-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: var(--bar-height);
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 50;
+  flex-shrink: 0;
+}
+[data-theme="dark"] .bottom-bar { background: var(--octave-black); }
+
+.bar-pill {
+  flex: 1;
+  height: 48px;
+  border-radius: 100px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+.bar-pill-ready {
+  background: var(--green);
+  color: white;
+  box-shadow: 0 4px 16px rgba(0,170,20,0.25);
+}
+.bar-pill-ready:hover {
+  background: #00c418;
+  box-shadow: 0 4px 20px rgba(0,170,20,0.35);
+}
+
+.bar-meta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ─── BOTTOM SHEET OVERLAY ───────────────────────────────────────────────  */
+.sheet-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0);
+  z-index: 200;
+  pointer-events: none;
+  transition: background 0.3s;
+}
+.sheet-overlay.open {
+  background: rgba(0,0,0,0.45);
+  pointer-events: all;
+}
+
+/* ─── BOTTOM SHEET ───────────────────────────────────────────────────────  */
+.bottom-sheet {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: var(--bg-card);
+  border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  z-index: 201;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+[data-theme="dark"] .bottom-sheet { background: #26252B; }
+.bottom-sheet.open { transform: translateY(0); }
+
+.sheet-handle-row {
+  display: flex; justify-content: center;
+  padding: 10px 0 4px;
+  flex-shrink: 0;
+}
+.sheet-handle {
+  width: 36px; height: 4px;
+  background: var(--gray-2);
+  border-radius: 100px;
+}
+[data-theme="dark"] .sheet-handle { background: var(--gray-5); }
+
+.sheet-header {
+  padding: 4px 16px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.sheet-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--octave-black);
+}
+[data-theme="dark"] .sheet-title { color: var(--white); }
+.sheet-close {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--bg-section);
+  border: none;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--gray-4);
+  transition: all 0.15s;
+}
+[data-theme="dark"] .sheet-close { background: var(--bg-section); }
+.sheet-close:hover { background: var(--gray-1); color: var(--octave-black); }
+[data-theme="dark"] .sheet-close:hover { background: var(--gray-5); color: white; }
+
+.sheet-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+/* ─── FORM FIELDS ────────────────────────────────────────────────────────  */
+.form-section-label {
+  padding: 14px 16px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--gray-4);
+  font-family: var(--font-mono);
+}
+.form-field {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  min-height: 46px;
+}
+.form-field.required::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 8px; bottom: 8px;
+  width: 3px;
+  border-radius: 0 100px 100px 0;
+  background: var(--orange);
+}
+.field-label {
+  font-size: 13px;
+  color: var(--gray-4);
+  width: 120px;
+  flex-shrink: 0;
+}
+.field-value {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--octave-black);
+  text-align: right;
+  font-family: var(--font-mono);
+}
+[data-theme="dark"] .field-value { color: rgba(255,255,255,0.9); }
+.field-value.muted { color: var(--gray-3); }
+.field-value.highlighted { color: var(--purple); font-weight: 600; }
+.field-value.green { color: var(--green); font-weight: 700; }
+.field-chevron {
+  margin-left: 6px;
+  color: var(--gray-3);
+  flex-shrink: 0;
+}
+
+/* Part detail header in sheet */
+.sheet-part-header {
+  background: rgba(153,51,255,0.06);
+  border-bottom: 1px solid rgba(153,51,255,0.15);
+  padding: 12px 16px;
+}
+.sheet-part-num {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--purple);
+  margin-bottom: 3px;
+}
+.sheet-part-desc {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--octave-black);
+  line-height: 1.3;
+}
+[data-theme="dark"] .sheet-part-desc { color: var(--white); }
+
+/* ─── SEGMENT CONTROL (Issue / Return) ──────────────────────────────────  */
+.seg-control {
+  display: flex;
+  background: var(--bg-section);
+  border-radius: 8px;
+  padding: 3px;
+  margin: 12px 16px;
+  gap: 0;
+  border: 1px solid var(--border);
+}
+.seg-btn {
+  flex: 1;
+  height: 34px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  background: none;
+  color: var(--gray-4);
+  transition: all 0.15s;
+}
+.seg-btn.active-issue {
+  background: var(--octave-black);
+  color: white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+[data-theme="dark"] .seg-btn.active-issue {
+  background: rgba(255,255,255,0.15);
+}
+.seg-btn.active-return {
+  background: var(--octave-black);
+  color: white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+/* ─── SHEET FOOTER ───────────────────────────────────────────────────────  */
+.sheet-footer {
+  padding: 12px 16px 20px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.btn-save {
+  width: 100%;
+  height: 50px;
+  border-radius: 100px;
+  border: none;
+  background: var(--white);
+  color: var(--octave-black);
+  font-size: 15px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+.btn-save:hover { background: var(--color-accent-aqua, #00ffff); color: #030712; box-shadow: 0 4px 16px rgba(0,255,255,0.2); }
+[data-theme="dark"] .btn-save { background: var(--white); color: var(--octave-black); }
+[data-theme="dark"] .btn-save:hover { background: #00ffff; color: #030712; }
+
+/* ─── TOAST ──────────────────────────────────────────────────────────────  */
+.toast {
+  position: absolute;
+  bottom: calc(var(--bar-height) + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(26,26,31,0.95);
+  color: white;
+  padding: 9px 16px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  display: flex; align-items: center; gap: 7px;
+  opacity: 0;
+  transition: all 0.25s;
+  z-index: 300;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.toast-icon { font-size: 14px; }
+
+/* ─── QUICK ISSUE ALL STRIP ──────────────────────────────────────────────  */
+.quick-issue-all-strip {
+  padding: 0 12px 12px;
+}
+.btn-quick-issue-all {
+  width: 100%;
+  height: 46px;
+  border-radius: 10px;
+  border: none;
+  background: var(--octave-black);
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all 0.15s;
+}
+[data-theme="dark"] .btn-quick-issue-all { background: rgba(255,255,255,0.12); }
+.btn-quick-issue-all:hover {
+  background: #111114;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+[data-theme="dark"] .btn-quick-issue-all:hover { background: rgba(255,255,255,0.18); }
+.btn-quick-issue-all:disabled {
+  background: var(--gray-2);
+  color: var(--gray-4);
+  cursor: default;
+  box-shadow: none;
+}
+[data-theme="dark"] .btn-quick-issue-all:disabled {
+  background: var(--gray-5);
+  color: var(--gray-3);
+}
+
+/* ─── QTY INPUT ROW ──────────────────────────────────────────────────────  */
+.qty-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  gap: 10px;
+  position: relative;
+  min-height: 46px;
+}
+.qty-row.required::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 8px; bottom: 8px;
+  width: 3px;
+  border-radius: 0 100px 100px 0;
+  background: var(--orange);
+}
+.qty-label { font-size: 13px; color: var(--gray-4); flex: 1; }
+.qty-stepper {
+  display: flex; align-items: center; gap: 0;
+  background: var(--bg-section);
+  border-radius: 8px;
+  border: 1.5px solid var(--border-strong);
+  overflow: hidden;
+}
+[data-theme="dark"] .qty-stepper { border-color: var(--gray-5); background: var(--bg-section); }
+.qty-step-btn {
+  width: 36px; height: 36px;
+  border: none; background: none;
+  font-size: 18px; font-weight: 700;
+  color: var(--purple);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.1s;
+}
+.qty-step-btn:hover { background: rgba(153,51,255,0.1); }
+.qty-step-btn:active { background: rgba(153,51,255,0.2); }
+.qty-val {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--octave-black);
+  width: 44px;
+  text-align: center;
+}
+[data-theme="dark"] .qty-val { color: var(--white); }
+.qty-uom {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--gray-4);
+  margin-left: 2px;
+}
+
+/* ─── PART SEARCH BLOCK (ad hoc empty state) ─────────────────────────────  */
+.part-search-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 24px;
+  background: var(--bg-section);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+[data-theme="dark"] .part-search-block { background: rgba(255,255,255,0.03); }
+.part-search-block:hover { background: rgba(153,51,255,0.06); }
+.part-search-icon {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: rgba(153,51,255,0.1);
+  border: 1.5px solid rgba(153,51,255,0.25);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--purple);
+}
+.part-search-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--octave-black);
+}
+[data-theme="dark"] .part-search-label { color: var(--white); }
+.part-search-hint {
+  font-size: 12px;
+  color: var(--gray-4);
+  font-family: var(--font-mono);
+}
+
+/* ─── PROTECTED FIELD ────────────────────────────────────────────────────  */
+.form-field.protected {
+  background: var(--bg-section);
+  opacity: 0.75;
+  cursor: default;
+}
+[data-theme="dark"] .form-field.protected { background: rgba(255,255,255,0.03); }
+.field-lock {
+  margin-left: 6px;
+  color: var(--gray-3);
+  flex-shrink: 0;
+}
+.field-value.protected-val {
+  color: var(--gray-4);
+  font-style: normal;
+}
+
+/* ─── STORE INHERITED HINT ───────────────────────────────────────────────  */
+.store-inherit-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.store-inherit-label {
+  font-size: 13px;
+  color: var(--gray-4);
+  width: 120px;
+  flex-shrink: 0;
+}
+.store-inherit-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(153,51,255,0.08);
+  border: 1px solid rgba(153,51,255,0.2);
+  border-radius: 100px;
+  padding: 3px 10px 3px 7px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--purple);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.store-inherit-pill:hover {
+  background: rgba(153,51,255,0.14);
+  border-color: rgba(153,51,255,0.4);
+}
+
+/* ─── BIN STOCK LIST (replaces single avail-hint line) ──────────────────  */
+/*
+ * DESIGN NOTE — Bin stock list:
+ * After Store is resolved, the system queries storeroom stock for the selected
+ * part and returns up to 3 bin records sorted by quantity descending.
+ * Displayed as a compact list below Available Qty. Each row shows:
+ *   Bin location | Lot (if SHOWLOT=YES) | Qty in hand (green, monospace)
+ * Purpose: lets the tech pick the most efficient bin without leaving the form.
+ * Data source: same call as Available Qty — no extra round trip needed.
+ */
+.bin-stock-list {
+  padding: 4px 16px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bin-stock-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+.bin-stock-row:last-child { border-bottom: none; }
+.bin-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+}
+.bin-loc {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--octave-black);
+  flex: 1;
+}
+[data-theme="dark"] .bin-loc { color: rgba(255,255,255,0.85); }
+.bin-lot-tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--gray-4);
+  background: var(--bg-section);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+}
+/*
+ * DESIGN NOTE — SHOWLOT flag:
+ * The Lot field and lot column in the bin stock list are conditionally shown
+ * based on the storeroom-level SHOWLOT setting (YES/NO).
+ * When SHOWLOT=NO: hide the Lot LOV row entirely and omit the lot column
+ * from the bin stock list. Do not show an empty/dash state — remove the row.
+ * Prototype renders with SHOWLOT=YES (lot visible) by default.
+ */
+.bin-qty {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--green);
+  flex-shrink: 0;
+}
+
+/* ─── AVAILABLE QTY HINT (legacy — kept for avail-dot/avail-text refs) ───  */
+.avail-hint { display: none; } /* superseded by bin-stock-list */
+.avail-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+.avail-text { font-size: 12px; color: var(--green); font-weight: 500; font-family: var(--font-mono); }
+
+/* ─── CONFIRM SHEET ROWS ─────────────────────────────────────────────────  */
+.confirm-row-desc {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--octave-black);
+}
+[data-theme="dark"] .confirm-row-desc { color: var(--white); }
+.confirm-row-qty {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--octave-black);
+}
+[data-theme="dark"] .confirm-row-qty { color: var(--white); }
+.confirm-warning-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--octave-black);
+  margin-bottom: 2px;
+}
+[data-theme="dark"] .confirm-warning-title { color: var(--white); }
+.btn-cancel-confirm {
+  background: var(--gray-1) !important;
+  color: var(--gray-5) !important;
+}
+[data-theme="dark"] .btn-cancel-confirm {
+  background: var(--gray-5) !important;
+  color: var(--gray-3) !important;
+}
+[data-theme="dark"] .confirm-stepper {
+  border-color: var(--gray-5) !important;
+  background: var(--bg-section) !important;
+}
+.content::-webkit-scrollbar,
+.sheet-body::-webkit-scrollbar { display: none; }
+
+/* ─── UTILITY ────────────────────────────────────────────────────────────  */
+.visually-hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- ── NAV ─────────────────────────────────────────────────────────── -->
+  <header class="nav">
+    <button class="nav-back" aria-label="Back">
+      <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+        <path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="nav-logo">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
+    </div>
+    <div class="nav-title">
+      19257 — Pump Cavitating; lost head
+      <span>WO# 19257 · Activity 10 · TECH</span>
+    </div>
+    <div class="nav-actions">
+      <span class="prototype-label">PROTOTYPE</span>
+      <button class="nav-icon-btn" id="syncBtn" title="Sync status">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+          <path d="M4 12a8 8 0 0114-5.2M20 12a8 8 0 01-14 5.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M16 7l2-2-2-2M8 17l-2 2 2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="sync-badge"></span>
+      </button>
+      <button class="theme-toggle" id="themeToggle">☀ Light</button>
+    </div>
+  </header>
+
+  <!-- ── WO IDENTITY BLOCK ─────────────────────────────────────────── -->
+  <div class="wo-block" id="woBlock">
+    <div class="wo-block-inner">
+      <span class="wo-number">19257</span>
+      <span class="wo-divider">·</span>
+      <span class="wo-desc">Pump Cavitating; lost head</span>
+      <div class="wo-chips">
+        <span class="chip chip-type">CORR MAINT</span>
+        <span class="chip chip-priority">P4-HIGH</span>
+        <span class="chip chip-dept">WATER</span>
+      </div>
+    </div>
+    <div class="wo-block-handle"><div class="handle-bar"></div></div>
+  </div>
+
+  <!-- ── STEP RAIL ─────────────────────────────────────────────────── -->
+  <div class="step-rail" id="stepRail">
+    <div class="step-rail-collapsed">
+      <div class="step-pill">3 of 5</div>
+      <div class="step-name">Issue Parts</div>
+      <div class="step-segments">
+        <div class="seg seg-done"></div>
+        <div class="seg seg-done"></div>
+        <div class="seg seg-active"></div>
+        <div class="seg seg-future"></div>
+        <div class="seg seg-future"></div>
+      </div>
+      <svg class="step-chevron" id="stepChevron" width="16" height="16" fill="none" viewBox="0 0 24 24">
+        <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="step-map" id="stepMap">
+      <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">Activity Checklist</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-active">3</div><span class="step-map-label active-label">Issue Parts</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-locked">4</div><span class="step-map-label">Book Labor</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-locked">5</div><span class="step-map-label">WO Closing</span></div>
+      <div class="step-map-footer">Admin configured · Corrective Maintenance WO type</div>
+    </div>
+  </div>
+
+  <!-- ── SCROLLABLE CONTENT ─────────────────────────────────────────── -->
+  <div class="content">
+
+    <!-- Screen header -->
+    <div class="screen-header">
+      <div class="screen-title">Issue Parts</div>
+      <button class="store-selector" id="storeSelectorBtn" onclick="showToast('Storeroom selector — coming soon', '🏪')">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 22V12h6v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span id="activeStore">IND-MAIN</span>
+        <svg width="11" height="11" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;color:var(--gray-4)"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <!-- Parts summary stats -->
+    <div class="parts-summary">
+      <div class="summary-stat">
+        <div class="summary-stat-val">4</div>
+        <div class="summary-stat-label">Planned</div>
+      </div>
+      <div class="summary-divider"></div>
+      <div class="summary-stat">
+        <div class="summary-stat-val issued-val" id="issuedCount">0</div>
+        <div class="summary-stat-label">Issued</div>
+      </div>
+      <div class="summary-divider"></div>
+      <div class="summary-stat">
+        <div class="summary-stat-val" id="remainCount">4</div>
+        <div class="summary-stat-label">Remaining</div>
+      </div>
+    </div>
+
+    <!-- Planned parts label -->
+    <div class="section-label">Planned Parts</div>
+
+    <!-- Parts list -->
+    <div class="parts-list" id="partsList">
+
+      <!-- Part 1 -->
+      <div class="part-card" data-part-id="1">
+        <div class="part-card-header">
+          <div class="part-status-bar" data-bar="1"></div>
+          <div class="part-main">
+            <div class="part-number">400-VP6-14</div>
+            <div class="part-desc">O Ring EPDM</div>
+            <div class="part-meta-row">
+              <span class="part-meta"><span class="part-meta-label">UOM&nbsp;</span>EA</span>
+              <span class="part-meta"><span class="part-meta-label">Store&nbsp;</span>IND-MAIN</span>
+              <span class="part-meta"><span class="part-meta-label">Bin&nbsp;</span>A1-001</span>
+            </div>
+          </div>
+          <div>
+            <span class="qty-badge qty-badge-planned" data-qty-badge="1">8 EA</span>
+          </div>
+        </div>
+        <div class="part-card-footer">
+          <button class="btn-quick-issue" data-part="1" onclick="openSheet(1)">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+            Quick Issue/Return
+          </button>
+        </div>
+      </div>
+
+      <!-- Part 2 -->
+      <div class="part-card" data-part-id="2">
+        <div class="part-card-header">
+          <div class="part-status-bar" data-bar="2"></div>
+          <div class="part-main">
+            <div class="part-number">200-AB8-001</div>
+            <div class="part-desc">Casing (AB-8 Pump)</div>
+            <div class="part-meta-row">
+              <span class="part-meta"><span class="part-meta-label">UOM&nbsp;</span>FA</span>
+              <span class="part-meta"><span class="part-meta-label">Store&nbsp;</span>IND-MAIN</span>
+              <span class="part-meta"><span class="part-meta-label">Bin&nbsp;</span>C3-014</span>
+            </div>
+          </div>
+          <div>
+            <span class="qty-badge qty-badge-planned" data-qty-badge="2">2 FA</span>
+          </div>
+        </div>
+        <div class="part-card-footer">
+          <button class="btn-quick-issue" data-part="2" onclick="openSheet(2)">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+            Quick Issue/Return
+          </button>
+        </div>
+      </div>
+
+      <!-- Part 3 -->
+      <div class="part-card" data-part-id="3">
+        <div class="part-card-header">
+          <div class="part-status-bar" data-bar="3"></div>
+          <div class="part-main">
+            <div class="part-number">400-VP6-16</div>
+            <div class="part-desc">Flat Washer Steel (Zn Plt)</div>
+            <div class="part-meta-row">
+              <span class="part-meta"><span class="part-meta-label">UOM&nbsp;</span>EA</span>
+              <span class="part-meta"><span class="part-meta-label">Store&nbsp;</span>IND-MAIN</span>
+              <span class="part-meta"><span class="part-meta-label">Bin&nbsp;</span>A1-009</span>
+            </div>
+          </div>
+          <div>
+            <span class="qty-badge qty-badge-planned" data-qty-badge="3">4 EA</span>
+          </div>
+        </div>
+        <div class="part-card-footer">
+          <button class="btn-quick-issue" data-part="3" onclick="openSheet(3)">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+            Quick Issue/Return
+          </button>
+        </div>
+      </div>
+
+      <!-- Part 4 -->
+      <div class="part-card" data-part-id="4">
+        <div class="part-card-header">
+          <div class="part-status-bar" data-bar="4"></div>
+          <div class="part-main">
+            <div class="part-number">200-AB8-006</div>
+            <div class="part-desc">Ball Bearing, 2" Bore, Cast</div>
+            <div class="part-meta-row">
+              <span class="part-meta"><span class="part-meta-label">UOM&nbsp;</span>EA</span>
+              <span class="part-meta"><span class="part-meta-label">Store&nbsp;</span>IND-MAIN</span>
+              <span class="part-meta"><span class="part-meta-label">Bin&nbsp;</span>B2-033</span>
+            </div>
+          </div>
+          <div>
+            <span class="qty-badge qty-badge-planned" data-qty-badge="4">2 EA</span>
+          </div>
+        </div>
+        <div class="part-card-footer">
+          <button class="btn-quick-issue" data-part="4" onclick="openSheet(4)">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+            Quick Issue/Return
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Ad hoc — above Quick Issue All -->
+    <div class="adhoc-section" style="padding-bottom:8px;">
+      <button class="btn-add-parts" onclick="openAdHocSheet()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+        Add Parts
+      </button>
+    </div>
+
+    <!-- Quick Issue All -->
+    <div class="quick-issue-all-strip">
+      <button class="btn-quick-issue-all" id="quickIssueAllBtn" onclick="confirmQuickIssueAll()">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Quick Issue All Planned Parts
+      </button>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- ── BOTTOM BAR ──────────────────────────────────────────────────── -->
+  <div class="bottom-bar">
+    <span class="bar-meta" id="barMeta">0 / 4 issued</span>
+    <button class="bar-pill bar-pill-ready" id="nextBtn" onclick="showToast('Moving to Book Labor…', '⏱')">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Next: Book Labor
+    </button>
+  </div>
+
+  <!-- ── SHEET OVERLAY ───────────────────────────────────────────────── -->
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeAnySheet()"></div>
+
+  <!-- ── ISSUE/RETURN SHEET ──────────────────────────────────────────── -->
+  <div class="bottom-sheet" id="issueSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <div class="sheet-title" id="sheetTitle">Issue / Return</div>
+      <button class="sheet-close" onclick="closeSheet()">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <!-- Issue / Return segment -->
+    <div class="seg-control">
+      <button class="seg-btn active-issue" id="segIssue" onclick="setMode('ISSUE')">Issue</button>
+      <button class="seg-btn" id="segReturn" onclick="setMode('RETURN')">Return</button>
+    </div>
+
+    <div class="sheet-body" id="sheetBody">
+      <!-- Dynamically populated -->
+    </div>
+
+    <div class="sheet-footer">
+      <button class="btn-save" id="sheetSaveBtn" onclick="saveIssue()">Save</button>
+    </div>
+  </div>
+
+  <!-- ── QUICK ISSUE ALL CONFIRMATION SHEET ────────────────────────── -->
+  <div class="bottom-sheet" id="confirmSheet" style="max-height:70vh;">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <div class="sheet-title">Confirm Quick Issue</div>
+      <button class="sheet-close" onclick="closeConfirmSheet()">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="sheet-body" id="confirmBody" style="padding:0 16px 8px;"></div>
+    <div class="sheet-footer" style="display:flex;gap:10px;">
+      <button class="btn-save btn-cancel-confirm" style="flex:1;" onclick="closeConfirmSheet()">Cancel</button>
+      <button class="btn-save" style="flex:2;" onclick="executeQuickIssueAll()">Issue All</button>
+    </div>
+  </div>
+
+  <!-- ── TOAST ──────────────────────────────────────────────────────── -->
+  <div class="toast" id="toast">
+    <span class="toast-icon" id="toastIcon">✓</span>
+    <span id="toastMsg">Saved</span>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ─── DATA ──────────────────────────────────────────────────────────────────
+const parts = {
+  1: { num: '400-VP6-14',  desc: 'O Ring EPDM',                  qty: 8,  uom: 'EA', bin: 'A1-001', lot: '*',      avail: 82,  activity: 10, dept: 'WATER', costCode: '100-100', store: 'IND-MAIN' },
+  2: { num: '200-AB8-001', desc: 'Casing (AB-8 Pump)',            qty: 2,  uom: 'FA', bin: 'C3-014', lot: 'LOT-22', avail: 6,   activity: 10, dept: 'WATER', costCode: '100-100', store: 'IND-MAIN' },
+  3: { num: '400-VP6-16',  desc: 'Flat Washer Steel (Zn Plt)',    qty: 4,  uom: 'EA', bin: 'A1-009', lot: '*',      avail: 144, activity: 10, dept: 'WATER', costCode: '100-100', store: 'IND-MAIN' },
+  4: { num: '200-AB8-006', desc: 'Ball Bearing, 2" Bore, Cast',   qty: 2,  uom: 'EA', bin: 'B2-033', lot: 'LOT-08', avail: 11,  activity: 10, dept: 'WATER', costCode: '100-100', store: 'IND-MAIN' },
+};
+
+const issued = {}; // partId -> { txnQty, mode }
+let currentPartId = null;
+let currentMode = 'ISSUE';
+let txnQty = {};   // working qty per open sheet
+Object.keys(parts).forEach(id => { txnQty[id] = parts[id].qty; });
+
+// ─── STEP RAIL TOGGLE ─────────────────────────────────────────────────────
+document.getElementById('stepRail').addEventListener('click', () => {
+  const map  = document.getElementById('stepMap');
+  const chev = document.getElementById('stepChevron');
+  const open = map.classList.toggle('open');
+  chev.style.transform = open ? 'rotate(180deg)' : '';
+});
+
+// ─── THEME TOGGLE ─────────────────────────────────────────────────────────
+const themeToggle = document.getElementById('themeToggle');
+themeToggle.addEventListener('click', () => {
+  const isDark = document.documentElement.hasAttribute('data-theme');
+  if (isDark) {
+    document.documentElement.removeAttribute('data-theme');
+    themeToggle.textContent = '☀ Light';
+  } else {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    themeToggle.textContent = '◑ Dark';
+  }
+});
+
+// ─── SHEET STATE ──────────────────────────────────────────────────────────
+function openSheet(partId) {
+  currentPartId = partId;
+  currentMode = 'ISSUE';
+  renderSheet();
+  document.getElementById('segIssue').className = 'seg-btn active-issue';
+  document.getElementById('segReturn').className = 'seg-btn';
+  document.getElementById('sheetOverlay').classList.add('open');
+  document.getElementById('issueSheet').classList.add('open');
+}
+
+function openAdHocSheet() {
+  currentPartId = null;
+  currentMode = 'ISSUE';
+  renderAdHocSheet();
+  document.getElementById('segIssue').className = 'seg-btn active-issue';
+  document.getElementById('segReturn').className = 'seg-btn';
+  document.getElementById('sheetOverlay').classList.add('open');
+  document.getElementById('issueSheet').classList.add('open');
+}
+
+function closeAnySheet() {
+  closeSheet();
+  closeConfirmSheet();
+}
+
+function closeSheet() {
+  document.getElementById('sheetOverlay').classList.remove('open');
+  document.getElementById('issueSheet').classList.remove('open');
+  currentPartId = null;
+}
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('segIssue').className  = mode === 'ISSUE'  ? 'seg-btn active-issue'  : 'seg-btn';
+  document.getElementById('segReturn').className = mode === 'RETURN' ? 'seg-btn active-return' : 'seg-btn';
+  renderSheet();
+}
+
+function renderSheet() {
+  if (!currentPartId) { renderAdHocSheet(); return; }
+  const p = parts[currentPartId];
+  const body = document.getElementById('sheetBody');
+  const isReturn = currentMode === 'RETURN';
+  const qty = txnQty[currentPartId] || p.qty;
+  const activeStore = document.getElementById('activeStore')?.textContent || p.store;
+
+  // Fake top-3 bin stock records for this part (qty desc) — prototype data
+  const binStock = [
+    { bin: p.bin,    lot: p.lot,    qty: p.avail,              uom: p.uom },
+    { bin: 'A1-002', lot: '*',      qty: Math.floor(p.avail * 0.4), uom: p.uom },
+    { bin: 'BULK-1', lot: 'LOT-03', qty: Math.floor(p.avail * 0.1), uom: p.uom },
+  ].filter(r => r.qty > 0);
+
+  const binRows = binStock.map(r => `
+    <div class="bin-stock-row">
+      <div class="bin-dot"></div>
+      <span class="bin-loc">${r.bin}</span>
+      ${r.lot && r.lot !== '*' ? `<span class="bin-lot-tag">${r.lot}</span>` : ''}
+      <span class="bin-qty">${r.qty} ${r.uom}</span>
+    </div>`).join('');
+
+  document.getElementById('sheetTitle').textContent = isReturn ? 'Return Part' : 'Issue Part';
+
+  body.innerHTML = `
+    <!-- Part identity — header block only, no redundant LOV row below -->
+    <div class="sheet-part-header">
+      <div class="sheet-part-num">${p.num}</div>
+      <div class="sheet-part-desc">${p.desc}</div>
+    </div>
+
+    <!-- Store — LOV row, required. Available qty resolves after store is set. -->
+    <div class="form-field required">
+      <span class="field-label">Store</span>
+      <span class="field-value highlighted">${activeStore}</span>
+      <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <!-- Available Qty — protected, immediately under Store so context is clear -->
+    <div class="form-field protected">
+      <span class="field-label">Available Qty</span>
+      <span class="field-value green">${p.avail} ${p.uom}</span>
+      <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </div>
+    <!-- Top-3 bin stock records (qty desc) — see DESIGN NOTE in CSS -->
+    <div class="bin-stock-list">${binRows}</div>
+
+    <!-- Bin — editable LOV -->
+    <div class="form-field required">
+      <span class="field-label">Bin</span>
+      <span class="field-value">${p.bin}</span>
+      <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <!-- Lot — only shown when storeroom SHOWLOT=YES (see DESIGN NOTE in CSS) -->
+    <div class="form-field required">
+      <span class="field-label">Lot</span>
+      <span class="field-value">${p.lot}</span>
+      <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <!-- Transaction qty — stepper -->
+    <div class="qty-row required">
+      <span class="qty-label">Transaction Qty</span>
+      <div class="qty-stepper">
+        <button class="qty-step-btn" onclick="adjustQty(${currentPartId},-1)">−</button>
+        <span class="qty-val" id="qtyDisplay_${currentPartId}">${qty}</span>
+        <button class="qty-step-btn" onclick="adjustQty(${currentPartId},1)">+</button>
+      </div>
+      <span class="qty-uom">${p.uom}</span>
+    </div>
+
+    <!-- Asset ID — protected, inherited from WO -->
+    <div class="form-field protected">
+      <span class="field-label">Asset ID</span>
+      <span class="field-value protected-val">00067333</span>
+      <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </div>
+    <div style="height:8px;"></div>
+  `;
+}
+
+function renderAdHocSheet() {
+  const body = document.getElementById('sheetBody');
+  const activeStore = document.getElementById('activeStore')?.textContent || 'IND-MAIN';
+  document.getElementById('sheetTitle').textContent = 'Add Part';
+  body.innerHTML = `
+    <!-- Part — big search block, front and centre, IS the part field -->
+    <div class="part-search-block" onclick="showToast('Part search — coming soon', '🔍')">
+      <div class="part-search-icon">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </div>
+      <div class="part-search-label">Search or scan a part</div>
+      <div class="part-search-hint">Part number · Description · Barcode</div>
+    </div>
+
+    <!-- Store — LOV row, required -->
+    <div class="form-field required">
+      <span class="field-label">Store</span>
+      <span class="field-value highlighted">${activeStore}</span>
+      <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <!-- Available Qty — protected, populates after part + store selected -->
+    <div class="form-field protected">
+      <span class="field-label">Available Qty</span>
+      <span class="field-value protected-val">—</span>
+      <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </div>
+    <!-- Bin stock list populates here after part + store resolved -->
+    <div class="bin-stock-list" style="color:var(--gray-4);font-size:12px;font-family:var(--font-mono);padding:6px 16px 10px;">
+      Top bin locations will appear here
+    </div>
+
+    <!-- Bin — cascades from part -->
+    <div class="form-field">
+      <span class="field-label">Bin</span>
+      <span class="field-value muted">—</span>
+      <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <!-- Lot — only shown when storeroom SHOWLOT=YES (see DESIGN NOTE in CSS) -->
+    <div class="form-field">
+      <span class="field-label">Lot</span>
+      <span class="field-value muted">—</span>
+      <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <!-- Transaction qty — stepper -->
+    <div class="qty-row required">
+      <span class="qty-label">Transaction Qty</span>
+      <div class="qty-stepper">
+        <button class="qty-step-btn" onclick="">−</button>
+        <span class="qty-val">1</span>
+        <button class="qty-step-btn" onclick="">+</button>
+      </div>
+      <span class="qty-uom">EA</span>
+    </div>
+
+    <!-- Asset ID — protected -->
+    <div class="form-field protected">
+      <span class="field-label">Asset ID</span>
+      <span class="field-value protected-val">00067333</span>
+      <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </div>
+    <div style="height:8px;"></div>
+  `;
+}
+
+// ─── QTY STEPPER ──────────────────────────────────────────────────────────
+function adjustQty(partId, delta) {
+  const p = parts[partId];
+  const max = currentMode === 'RETURN' ? (issued[partId] ? issued[partId].txnQty : 0) : p.avail;
+  txnQty[partId] = Math.max(1, Math.min(max || 99, (txnQty[partId] || p.qty) + delta));
+  const el = document.getElementById('qtyDisplay_' + partId);
+  if (el) el.textContent = txnQty[partId];
+}
+
+// ─── SAVE ISSUE ───────────────────────────────────────────────────────────
+function saveIssue() {
+  if (!currentPartId) {
+    showToast('Part search required', '⚠');
+    return;
+  }
+  const p = parts[currentPartId];
+  const qty = txnQty[currentPartId] || p.qty;
+  const id = currentPartId;
+
+  if (currentMode === 'ISSUE') {
+    issued[id] = { txnQty: qty, mode: 'ISSUE' };
+    markPartIssued(id, qty, p.uom);
+    showToast(`Issued ${qty} ${p.uom} · ${p.num}`, '✓');
+  } else {
+    delete issued[id];
+    unmarkPart(id);
+    showToast(`Returned ${qty} ${p.uom} · ${p.num}`, '↩');
+  }
+  updateSummary();
+  closeSheet();
+}
+
+function markPartIssued(id, qty, uom) {
+  const card = document.querySelector(`[data-part-id="${id}"]`);
+  const bar  = document.querySelector(`[data-bar="${id}"]`);
+  const btn  = card.querySelector('.btn-quick-issue');
+  const badge = document.querySelector(`[data-qty-badge="${id}"]`);
+
+  card.classList.add('issued');
+  bar.classList.add('issued');
+  btn.classList.add('issued-state');
+  btn.innerHTML = `<svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Issued · Return?`;
+  btn.onclick = () => { openSheet(id); setMode('RETURN'); };
+  badge.className = 'qty-badge qty-badge-issued';
+  badge.textContent = `${qty} ${uom} ✓`;
+}
+
+function unmarkPart(id) {
+  const card  = document.querySelector(`[data-part-id="${id}"]`);
+  const bar   = document.querySelector(`[data-bar="${id}"]`);
+  const btn   = card.querySelector('.btn-quick-issue');
+  const badge = document.querySelector(`[data-qty-badge="${id}"]`);
+  const p = parts[id];
+
+  card.classList.remove('issued');
+  bar.classList.remove('issued');
+  btn.classList.remove('issued-state');
+  btn.innerHTML = `<svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg> Quick Issue/Return`;
+  btn.onclick = () => openSheet(id);
+  badge.className = 'qty-badge qty-badge-planned';
+  badge.textContent = `${p.qty} ${p.uom}`;
+  txnQty[id] = p.qty;
+}
+
+// ─── QUICK ISSUE ALL — CONFIRMATION ───────────────────────────────────────
+let confirmQty = {}; // working qtys while confirm sheet is open
+
+function confirmQuickIssueAll() {
+  const pending = Object.keys(parts).filter(id => !issued[id]);
+  if (pending.length === 0) { showToast('All parts already issued', 'ℹ'); return; }
+
+  // Seed confirmQty with planned qtys
+  pending.forEach(id => { confirmQty[id] = txnQty[id] || parts[id].qty; });
+
+  const rows = pending.map(id => {
+    const p = parts[id];
+    const qty = confirmQty[id];
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border);">
+        <div style="flex:1;min-width:0;">
+          <div style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--purple);margin-bottom:2px;">${p.num}</div>
+          <div class="confirm-row-desc">${p.desc}</div>
+          <div style="font-size:12px;color:var(--gray-4);font-family:var(--font-mono);margin-top:2px;">Bin ${p.bin} · ${p.avail} ${p.uom} avail.</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:0;background:var(--bg-section);border-radius:8px;border:1.5px solid var(--border-strong);overflow:hidden;flex-shrink:0;" class="confirm-stepper">
+          <button
+            onclick="adjustConfirmQty(${id},-1)"
+            style="width:32px;height:34px;border:none;background:none;font-size:17px;font-weight:700;color:var(--purple);cursor:pointer;display:flex;align-items:center;justify-content:center;"
+            onmouseenter="this.style.background='rgba(153,51,255,0.1)'" onmouseleave="this.style.background='none'">−</button>
+          <span id="cqty_${id}" style="font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--octave-black);width:36px;text-align:center;" class="confirm-row-qty">${qty}</span>
+          <button
+            onclick="adjustConfirmQty(${id},1)"
+            style="width:32px;height:34px;border:none;background:none;font-size:17px;font-weight:700;color:var(--purple);cursor:pointer;display:flex;align-items:center;justify-content:center;"
+            onmouseenter="this.style.background='rgba(153,51,255,0.1)'" onmouseleave="this.style.background='none'">+</button>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:12px;color:var(--gray-4);width:22px;flex-shrink:0;">${p.uom}</div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('confirmBody').innerHTML = `
+    <div style="background:rgba(244,102,0,0.07);border:1px solid rgba(244,102,0,0.2);border-radius:8px;padding:10px 12px;margin:12px 0 4px;display:flex;align-items:flex-start;gap:8px;">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#F46600" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div style="font-size:13px;color:var(--gray-4);line-height:1.45;">
+        <strong class="confirm-warning-title">Verify quantities before issuing</strong>
+        Adjust any quantity if needed, then tap Issue All to confirm.
+      </div>
+    </div>
+    <div style="margin:0 0 4px;">${rows}</div>
+    <div style="font-size:12px;color:var(--gray-4);padding:8px 0 4px;font-family:var(--font-mono);">${pending.length} part${pending.length > 1 ? 's' : ''} · IND-MAIN</div>
+  `;
+
+  document.getElementById('sheetOverlay').classList.add('open');
+  document.getElementById('confirmSheet').classList.add('open');
+}
+
+function adjustConfirmQty(id, delta) {
+  const p = parts[id];
+  confirmQty[id] = Math.max(1, Math.min(p.avail, (confirmQty[id] || p.qty) + delta));
+  const el = document.getElementById('cqty_' + id);
+  if (el) {
+    el.textContent = confirmQty[id];
+    // Flash purple briefly to signal change
+    el.style.color = 'var(--purple)';
+    setTimeout(() => { el.style.color = ''; }, 400);
+  }
+}
+
+function closeConfirmSheet() {
+  document.getElementById('sheetOverlay').classList.remove('open');
+  document.getElementById('confirmSheet').classList.remove('open');
+}
+
+function executeQuickIssueAll() {
+  const pending = Object.keys(parts).filter(id => !issued[id]);
+  pending.forEach(id => {
+    const qty = confirmQty[id] || parts[id].qty;
+    const p = parts[id];
+    issued[id] = { txnQty: qty, mode: 'ISSUE' };
+    txnQty[id] = qty;
+    markPartIssued(id, qty, p.uom);
+  });
+  updateSummary();
+  closeConfirmSheet();
+  showToast(`${pending.length} part${pending.length > 1 ? 's' : ''} issued`, '✓');
+  document.getElementById('quickIssueAllBtn').disabled = true;
+}
+
+// ─── SUMMARY UPDATE ───────────────────────────────────────────────────────
+function updateSummary() {
+  const n = Object.keys(issued).length;
+  const total = Object.keys(parts).length;
+  document.getElementById('issuedCount').textContent = n;
+  document.getElementById('remainCount').textContent = total - n;
+  document.getElementById('barMeta').textContent = `${n} / ${total} issued`;
+  if (n === total) {
+    document.getElementById('quickIssueAllBtn').disabled = true;
+  }
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, icon = '✓') {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toastIcon').textContent = icon;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+</script>
+</body>
+</html>
