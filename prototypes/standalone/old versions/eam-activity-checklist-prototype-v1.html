@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HxGN EAM Mobile — Activity Checklist (Step 2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-shared.css">
+<!--
+  WO WORKFLOW — STEP 2: ACTIVITY CHECKLIST (rebuilt 2026-07-16 onto shared/
+  eam-shared.css + shared/eam-shared.js, per docs/EAM-REBUILD-Strategy-and-
+  Execution-Plan-v1.md). See docs/design-decisions-v3-1.md §14, §16. This
+  file only adds checklist-specific data/markup/behavior — the protected-
+  identity header (§8.1), step rail + bottom bar chrome (§14.2–§14.7, now
+  shared — Activity Checklist is the 2nd WO-workflow consumer, generalized
+  out of WO Record View's rebuild the same day), confirm modal, and sheet
+  primitives all come from the shared files.
+
+  [1] §8.1 protected-identity header — no status, no pin, no Plus (this
+      step's checklist has its own add-affordance concept, N/A here since
+      items are admin-configured, not technician-added). Ellipsis's
+      screen-specific slot carries Print Work Order + Comments/Documents
+      (§14.8 — reachable from any step, unconditionally).
+  [2] Prompt bar (Yes/No, §14.6) and the Instructions/Attachments info
+      sheet (§16.2) stay local — no 2nd consumer yet for either, same
+      "generalize on 2nd consumer" precedent used everywhere else in this
+      rebuild.
+  [3] The 17 checklist item types (§16.3) and group structure (§16.1) are
+      unique to this screen — no shared component for them elsewhere.
+-->
+<style>
+/* Content needs extra bottom padding to clear the bottom bar/prompt bar
+   (screen-specific; the Standard Model's plain .content has neither). */
+.content { padding: 0 0 calc(var(--bar-height) + 16px); }
+
+/* ─── PROGRESS SUMMARY ────────────────────────────────────────────────────  */
+.progress-wrap {
+  padding: 8px 16px 6px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+}
+.progress-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--gray-4);
+  font-family: var(--font-mono);
+}
+.progress-count { font-family: var(--font-mono); font-size: 11px; color: var(--gray-4); }
+.progress-bar { height: 4px; background: var(--gray-1); overflow: hidden; }
+[data-theme="dark"] .progress-bar { background: var(--gray-5); }
+.progress-fill { height: 100%; background: var(--green); transition: width 0.4s; }
+
+/* ─── CHECKLIST GROUPS ───────────────────────────────────────────────────  */
+.group-hdr {
+  padding: 7px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.group-hdr.g-safety { background: rgba(244,102,0,0.09); border-left: 3px solid var(--orange); }
+.group-hdr.g-main   { background: rgba(153,51,255,0.09); border-left: 3px solid var(--purple); }
+.group-hdr.g-close  { background: rgba(0,170,20,0.09);  border-left: 3px solid var(--green); }
+.group-name {
+  font-size: 14px; font-weight: 600;
+}
+.group-hdr.g-safety .group-name { color: #854F0B; }
+.group-hdr.g-main   .group-name { color: #6600CC; }
+.group-hdr.g-close  .group-name { color: #007A0D; }
+[data-theme="dark"] .group-hdr.g-safety .group-name { color: #FAC775; }
+[data-theme="dark"] .group-hdr.g-main   .group-name { color: #CC77FF; }
+[data-theme="dark"] .group-hdr.g-close  .group-name { color: #5DCAA5; }
+.group-prog { font-size: 10px; font-family: var(--font-mono); color: var(--gray-4); }
+
+/* ─── CHECKLIST ITEM ─────────────────────────────────────────────────────  */
+.checklist-item { display: flex; align-items: stretch; border-bottom: 1px solid var(--border); background: var(--bg-card); }
+.item-bar { width: 3px; flex-shrink: 0; }
+.item-bar.g-safety { background: rgba(244,102,0,0.35); }
+.item-bar.g-main   { background: rgba(153,51,255,0.35); }
+.item-bar.g-close  { background: rgba(0,170,20,0.35); }
+.item-content { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.item-top { display: flex; align-items: stretch; }
+.item-main { flex: 1; min-width: 0; padding: 11px 12px 10px; }
+.item-rail {
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  gap: 6px;
+  padding: 11px 9px 0 9px;
+  border-left: 1px solid var(--border);
+}
+.rail-icon {
+  width: 26px; height: 26px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-page);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--gray-4);
+  transition: background 0.12s;
+}
+[data-theme="dark"] .rail-icon { background: var(--bg-section); }
+.rail-icon.has-content { color: var(--purple); border-color: rgba(153,51,255,0.3); }
+.item-head { display: flex; align-items: flex-start; gap: 7px; margin-bottom: 8px; }
+.item-seq { font-size: 10px; color: var(--gray-4); font-family: var(--font-mono); padding-top: 3px; min-width: 18px; flex-shrink: 0; }
+.item-label-wrap { flex: 1; min-width: 0; }
+.item-label { font-size: 14px; font-weight: 600; color: var(--octave-black); line-height: 1.3; margin-bottom: 3px; }
+[data-theme="dark"] .item-label { color: rgba(255,255,255,0.9); }
+.item-label.done { text-decoration: line-through; color: var(--gray-4); }
+.item-equip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; color: var(--gray-4); font-family: var(--font-mono);
+  background: var(--bg-section); border-radius: 4px; padding: 2px 6px; margin-bottom: 5px;
+}
+.item-req { color: var(--orange); font-size: 13px; font-weight: 700; flex-shrink: 0; padding-top: 2px; }
+
+/* Toggle control (Pass/Fail/N/A, OK/Adjusted, Yes/No) */
+.item-toggle { display: flex; border-radius: 8px; overflow: hidden; border: 1.5px solid var(--gray-2); }
+[data-theme="dark"] .item-toggle { border-color: var(--gray-5); }
+.item-opt {
+  flex: 1; padding: 10px 0; text-align: center;
+  font-size: 13px; font-weight: 600; border: none;
+  color: var(--gray-4); background: var(--bg-page);
+  cursor: pointer; transition: all 0.15s;
+}
+[data-theme="dark"] .item-opt { background: var(--bg-section); }
+.item-opt + .item-opt { border-left: 1.5px solid var(--gray-2); }
+[data-theme="dark"] .item-opt + .item-opt { border-left-color: var(--gray-5); }
+.item-opt.sel-green  { background: var(--green);  color: #fff; }
+.item-opt.sel-red    { background: var(--red);    color: #fff; }
+.item-opt.sel-orange { background: var(--orange); color: #fff; }
+.item-opt.sel-gray   { background: var(--gray-4); color: #fff; }
+
+/* Checkbox */
+.item-chk-row { display: flex; align-items: center; gap: 10px; }
+.item-chk {
+  width: 26px; height: 26px; border-radius: 7px;
+  border: 1.5px solid var(--gray-3); background: var(--bg-page);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+}
+[data-theme="dark"] .item-chk { border-color: var(--gray-5); background: var(--bg-section); }
+.item-chk.checked { background: var(--green); border-color: var(--green); }
+.item-chk svg { display: none; }
+.item-chk.checked svg { display: block; }
+.item-chk-lbl { font-size: 13px; font-weight: 500; color: var(--gray-4); }
+
+/* Numeric input */
+.item-num-row { display: flex; gap: 8px; align-items: center; }
+.item-num-in {
+  width: 110px; background: var(--bg-page); border: 1.5px solid var(--gray-2);
+  border-radius: 8px; padding: 9px 11px; font-size: 14px; font-weight: 600;
+  color: var(--octave-black); font-family: var(--font-mono); text-align: right; outline: none;
+}
+[data-theme="dark"] .item-num-in { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
+.item-num-in:focus { border-color: var(--purple); }
+/* Number fields — no native spinner arrows (design-decisions-v3-1.md §15) —
+   browser-chrome spin buttons don't theme reliably across light/dark; the
+   numeric keyboard still appears without them. */
+.item-num-in::-webkit-outer-spin-button, .item-num-in::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.item-num-in { -moz-appearance: textfield; }
+.item-uom { font-size: 12px; color: var(--gray-4); }
+.item-range-hint { font-size: 10px; color: var(--gray-4); font-family: var(--font-mono); margin-top: 4px; }
+
+/* Free-text item */
+.item-textarea {
+  width: 100%; background: var(--bg-page); border: 1.5px solid var(--gray-2);
+  border-radius: 7px; padding: 8px 10px; font-size: 13px; color: var(--octave-black);
+  font-family: var(--font-sans); resize: none; outline: none; line-height: 1.5; margin-top: 2px;
+}
+[data-theme="dark"] .item-textarea { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
+.item-textarea:focus { border-color: var(--purple); }
+
+/* Notes row */
+.notes-row { border-top: 1px solid var(--border); display: flex; align-items: center; gap: 6px; padding: 6px 10px; }
+.fu-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px; font-size: 11px; font-weight: 600;
+  border: 1px solid var(--gray-2); border-radius: 6px;
+  background: var(--bg-page); color: var(--gray-4);
+  white-space: nowrap; flex-shrink: 0; cursor: pointer; transition: all 0.2s;
+}
+[data-theme="dark"] .fu-btn { background: var(--bg-section); border-color: var(--gray-5); }
+.fu-btn.on { background: var(--orange); color: #fff; border-color: var(--orange); }
+.notes-trigger {
+  flex: 1; display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border: 1px solid var(--gray-2); border-radius: 6px;
+  background: var(--bg-page); text-align: left; cursor: pointer; transition: border-color 0.15s;
+}
+[data-theme="dark"] .notes-trigger { background: var(--bg-section); border-color: var(--gray-5); }
+.notes-trigger .pen { color: var(--gray-4); flex-shrink: 0; }
+.notes-trigger.has-note .pen { color: var(--purple); }
+.notes-placeholder { font-size: 12px; color: var(--gray-4); flex: 1; }
+.notes-trigger.has-note .notes-placeholder { color: var(--octave-black); font-weight: 500; }
+[data-theme="dark"] .notes-trigger.has-note .notes-placeholder { color: var(--white); }
+.notes-chev { color: var(--gray-4); flex-shrink: 0; }
+
+/* Notes expand */
+.notes-expand { border-top: 1px solid var(--border); padding: 10px 12px; background: var(--bg-section); display: none; }
+.notes-expand.open { display: block; }
+.notes-ta {
+  width: 100%; background: var(--bg-card); border: 1.5px solid var(--gray-2);
+  border-radius: 7px; padding: 8px 10px; font-size: 12px; color: var(--octave-black);
+  font-family: var(--font-sans); resize: none; outline: none; line-height: 1.5;
+}
+[data-theme="dark"] .notes-ta { border-color: var(--gray-5); background: var(--bg-card); color: var(--white); }
+.notes-ta:focus { border-color: var(--purple); }
+.notes-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+.notes-count { font-size: 10px; color: var(--gray-4); font-family: var(--font-mono); }
+.notes-done { font-size: 11px; color: var(--purple); font-weight: 600; border: none; background: none; cursor: pointer; }
+
+/* Prompt bar — Option 4 segmented Yes/No (design-decisions-v3-1.md §14.6).
+   Local — no 2nd consumer yet, unlike step-rail/bottom-bar above it. */
+.prompt-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  padding: 10px 16px 16px;
+  flex-shrink: 0;
+  z-index: 51;
+  display: none;
+}
+[data-theme="dark"] .prompt-bar { background: var(--octave-black); }
+.prompt-bar.show { display: block; }
+.prompt-question {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.4px; text-transform: uppercase;
+  color: var(--gray-4); text-align: center; margin-bottom: 8px;
+}
+.prompt-seg { display: flex; border-radius: 100px; overflow: hidden; border: 1px solid var(--border); }
+.prompt-seg-btn {
+  flex: 1; height: 48px; border: none; font-size: 15px; font-weight: 700;
+  cursor: pointer; font-family: var(--font-sans);
+  background: var(--bg-section); color: var(--octave-black);
+}
+[data-theme="dark"] .prompt-seg-btn { background: var(--gray-5); color: var(--white); }
+.prompt-seg-btn.yes { background: var(--green); color: white; }
+.prompt-seg-btn.yes:hover { background: #00c418; }
+.prompt-seg-divider { width: 1px; background: var(--border); flex-shrink: 0; }
+
+/* ─── INFO SHEET (instructions / attachments, §16.2) ──────────────────────
+   Local — no 2nd consumer yet. */
+.info-sheet-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,0);
+  pointer-events: none; transition: background 0.2s; z-index: 200;
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.info-sheet-overlay.open { background: rgba(0,0,0,0.5); pointer-events: all; }
+.info-sheet {
+  background: var(--bg-card);
+  border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+  max-height: 60%;
+  display: flex; flex-direction: column;
+}
+[data-theme="dark"] .info-sheet { background: #26252B; }
+.info-sheet-overlay.open .info-sheet { transform: translateY(0); }
+.info-sheet-handle { width: 36px; height: 4px; border-radius: 100px; background: var(--gray-2); margin: 10px auto 4px; flex-shrink: 0; }
+[data-theme="dark"] .info-sheet-handle { background: var(--gray-5); }
+.info-sheet-head { padding: 8px 16px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.info-sheet-title { font-size: 15px; font-weight: 700; color: var(--octave-black); }
+[data-theme="dark"] .info-sheet-title { color: var(--white); }
+.info-sheet-close {
+  width: 28px; height: 28px; border-radius: 50%; background: var(--bg-section);
+  border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--gray-4);
+}
+.info-sheet-close:hover { background: var(--gray-1); color: var(--octave-black); }
+[data-theme="dark"] .info-sheet-close:hover { background: var(--gray-5); color: var(--white); }
+.info-sheet-body { padding: 14px 16px 24px; font-size: 13px; color: var(--octave-black); line-height: 1.65; overflow-y: auto; white-space: pre-wrap; }
+[data-theme="dark"] .info-sheet-body { color: rgba(255,255,255,0.88); }
+
+/* Toast sits above the bottom bar/prompt bar on this screen (screen-
+   specific override — the shared default assumes no bottom chrome). */
+.toast { bottom: calc(var(--bar-height) + 10px); }
+</style>
+</head>
+<body>
+
+<!-- Prototype-only theme preview — real app theme lives in User Settings,
+     not in-screen chrome. See design-decisions-v3-1.md §20. -->
+<div class="proto-theme-bar">
+  <span class="proto-theme-label">Preview theme</span>
+  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+</div>
+
+<div class="app" id="app">
+
+  <header class="nav" onclick="scrollFormToTop()">
+    <div class="nav-left">
+      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation(); navBack()">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+          <path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <span class="prototype-label">PROTOTYPE</span>
+    </div>
+    <div class="nav-title">Work Orders</div>
+    <div class="nav-actions">
+      <span id="syncCtrl"></span>
+    </div>
+  </header>
+
+  <!-- ── DETAIL HEADER (§8.1) — protected identity + ellipsis, no status,
+       no pin, no Plus. Screen-specific ellipsis slot carries Print Work
+       Order + Comments/Documents (§14.8 — reachable from any step). ── -->
+  <div class="rec-header" id="recHeader" onclick="scrollFormToTop()">
+    <div class="rec-id-row">
+      <div class="rec-id-text">
+        <span class="rec-num" id="recNum">19257</span>
+        <span class="rec-desc protected" id="recDesc">Pump Cavitating; lost head</span>
+      </div>
+      <div class="rec-header-actions">
+        <button class="rec-ellipsis-btn" id="recEllipsisBtn" onclick="event.stopPropagation(); toggleRecActionsMenu()" aria-label="More actions">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+        </button>
+        <div class="rec-actions-menu" id="recActionsMenu">
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyLink()">Copy Link</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyRecord()">Copy</div>
+            <div class="rec-actions-item danger" onclick="recDeleteRecord()">Delete</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group" id="recActionsScreenSpecific">
+            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Printing work order — coming soon')">Print Work Order</div>
+            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Opening Comments — coming soon')">Comments (3)</div>
+            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Opening Documents — coming soon')">Documents (4)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP RAIL (§14.2/§14.3) — chrome + toggle are shared, this
+       screen's own step-rail-left/step-name/timer/step-map content stays. ── -->
+  <div class="step-rail" id="stepRail">
+    <div class="step-rail-collapsed">
+      <div class="step-rail-left">
+        <div class="timer-pill" id="timerPill"><div class="timer-dot"></div><span id="timerText">00:00:00</span></div>
+      </div>
+      <div class="step-name">Activity Checklist</div>
+      <div class="step-rail-right">
+        <svg class="step-chevron" id="stepChevron" width="16" height="16" fill="none" viewBox="0 0 24 24">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+    <div class="step-segments">
+      <div class="seg seg-done"></div>
+      <div class="seg seg-active"></div>
+      <div class="seg seg-future"></div>
+      <div class="seg seg-future"></div>
+      <div class="seg seg-future"></div>
+    </div>
+    <div class="step-map" id="stepMap">
+      <!-- Larger timer + Pause/Stop (§14.2 follow-up, 2026-07-16) — shown
+           only where the timer is running, same condition as the pill. -->
+      <div class="step-timer-panel">
+        <div class="step-timer-value" id="stepTimerValue">00:00:00</div>
+        <div class="step-timer-actions">
+          <button class="step-timer-btn" onclick="toggleStepTimerPause()">
+            <span id="stepPauseBtnIcon"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="5" x2="8" y2="19"/><line x1="16" y1="5" x2="16" y2="19"/></svg></span>
+            <span id="stepPauseBtnLabel">Pause</span>
+          </button>
+          <button class="step-timer-btn danger" onclick="confirmStopTimer()">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+            Stop
+          </button>
+        </div>
+      </div>
+      <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
+      <div class="step-map-item active"><div class="step-map-icon smi-active">2</div><span class="step-map-label active-label">Activity Checklist</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-locked">3</div><span class="step-map-label">Issue Parts</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-locked">4</div><span class="step-map-label">Book Labor</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-locked">5</div><span class="step-map-label">WO Closing</span></div>
+      <div class="step-map-footer">WO.WORKFLOW.01 - Corrective Maintenance Execution</div>
+    </div>
+  </div>
+
+  <!-- ── SCROLLABLE CONTENT ─────────────────────────────────────────── -->
+  <div class="content">
+
+    <!-- Progress summary -->
+    <div class="progress-wrap">
+      <span class="progress-label">Checklist</span>
+      <span class="progress-count" id="progressCount">0 / 7 completed</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+    <div id="checklist">
+
+      <!-- GROUP: Safety checks (orange) -->
+      <div class="group-hdr g-safety">
+        <span class="group-name">Safety checks</span>
+        <span class="group-prog" id="grp-safety">0 / 2</span>
+      </div>
+
+      <!-- Item 01: Checkbox — LOTO -->
+      <div class="checklist-item" data-group="safety" data-required="true">
+        <div class="item-bar g-safety"></div>
+        <div class="item-content">
+          <div class="item-top">
+            <div class="item-main">
+              <div class="item-head">
+                <span class="item-seq">01</span>
+                <div class="item-label-wrap"><p class="item-label">Confirm LOTO applied to all energy sources</p></div>
+                <span class="item-req">*</span>
+              </div>
+              <div class="item-chk-row">
+                <div class="item-chk" onclick="toggleCheck(this)"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="item-chk-lbl">Confirmed</span>
+              </div>
+            </div>
+            <div class="item-rail">
+              <button class="rail-icon has-content" onclick="openInfoSheet('LOTO Procedure','Ensure all energy isolation points are identified on the P&amp;ID before applying locks. Each lock must be uniquely keyed. Tag must include technician name and date.')" title="Instructions">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <button class="rail-icon" title="Attachments">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="notes-row">
+            <button class="fu-btn" onclick="toggleFollowUp(this)">
+              <svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 22V15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              Follow-up
+            </button>
+            <button class="notes-trigger" onclick="toggleNotes(this)">
+              <svg class="pen" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span class="notes-placeholder">Add a note…</span>
+              <svg class="notes-chev" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="notes-expand">
+            <textarea class="notes-ta" rows="2" maxlength="256" placeholder="Notes… (256 chars)" oninput="notesCount(this)"></textarea>
+            <div class="notes-foot"><span class="notes-count">0 / 256</span><button class="notes-done" onclick="closeNotes(this)">Done</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Item 02: Checkbox — PPE -->
+      <div class="checklist-item" data-group="safety" data-required="true">
+        <div class="item-bar g-safety"></div>
+        <div class="item-content">
+          <div class="item-top">
+            <div class="item-main">
+              <div class="item-head">
+                <span class="item-seq">02</span>
+                <div class="item-label-wrap"><p class="item-label">PPE check — gloves, goggles, steel-cap boots</p></div>
+                <span class="item-req">*</span>
+              </div>
+              <div class="item-chk-row">
+                <div class="item-chk" onclick="toggleCheck(this)"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <span class="item-chk-lbl">Confirmed</span>
+              </div>
+            </div>
+            <div class="item-rail">
+              <button class="rail-icon" title="Instructions">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <button class="rail-icon" title="Attachments">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="notes-row">
+            <button class="fu-btn" onclick="toggleFollowUp(this)">
+              <svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 22V15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              Follow-up
+            </button>
+            <button class="notes-trigger" onclick="toggleNotes(this)">
+              <svg class="pen" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span class="notes-placeholder">Add a note…</span>
+              <svg class="notes-chev" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="notes-expand">
+            <textarea class="notes-ta" rows="2" maxlength="256" placeholder="Notes… (256 chars)" oninput="notesCount(this)"></textarea>
+            <div class="notes-foot"><span class="notes-count">0 / 256</span><button class="notes-done" onclick="closeNotes(this)">Done</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GROUP: Inspection (purple) -->
+      <div class="group-hdr g-main">
+        <span class="group-name">Inspection</span>
+        <span class="group-prog" id="grp-main">0 / 3</span>
+      </div>
+
+      <!-- Item 03: Pass/Fail/N-A — bearing housing -->
+      <div class="checklist-item" data-group="main" data-required="true">
+        <div class="item-bar g-main"></div>
+        <div class="item-content">
+          <div class="item-top">
+            <div class="item-main">
+              <div class="item-head">
+                <span class="item-seq">03</span>
+                <div class="item-label-wrap">
+                  <p class="item-label">Bearing housing — visual condition</p>
+                  <span class="item-equip">A-00067333 — Pump, Centrifugal</span>
+                </div>
+                <span class="item-req">*</span>
+              </div>
+              <div class="item-toggle">
+                <button class="item-opt" onclick="selectToggle(this,'sel-green')">Pass</button>
+                <button class="item-opt" onclick="selectToggle(this,'sel-red')">Fail</button>
+                <button class="item-opt" onclick="selectToggle(this,'sel-gray')">N/A</button>
+              </div>
+            </div>
+            <div class="item-rail">
+              <button class="rail-icon has-content" onclick="openInfoSheet('Visual Inspection Guide','Inspect all external surfaces for cracks, corrosion, and impact damage. Pay particular attention to the bearing housing lip and seal grooves. Document any findings with reference to the equipment drawing.')" title="Instructions">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <button class="rail-icon has-content" onclick="openInfoSheet('Attachments (2)','• Bearing_Housing_Drawing_Rev4.pdf\n• Inspection_Photo_Template.jpg')" title="Attachments">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="notes-row">
+            <button class="fu-btn" onclick="toggleFollowUp(this)">
+              <svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 22V15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              Follow-up
+            </button>
+            <button class="notes-trigger" onclick="toggleNotes(this)">
+              <svg class="pen" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span class="notes-placeholder">Add a note…</span>
+              <svg class="notes-chev" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="notes-expand">
+            <textarea class="notes-ta" rows="2" maxlength="256" placeholder="Notes… (256 chars)" oninput="notesCount(this)"></textarea>
+            <div class="notes-foot"><span class="notes-count">0 / 256</span><button class="notes-done" onclick="closeNotes(this)">Done</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Item 04: OK/Adjusted — shaft alignment (optional) -->
+      <div class="checklist-item" data-group="main">
+        <div class="item-bar g-main"></div>
+        <div class="item-content">
+          <div class="item-top">
+            <div class="item-main">
+              <div class="item-head">
+                <span class="item-seq">04</span>
+                <div class="item-label-wrap">
+                  <p class="item-label">Shaft alignment</p>
+                  <span class="item-equip">A-00067333 — Pump, Centrifugal</span>
+                </div>
+              </div>
+              <div class="item-toggle">
+                <button class="item-opt" onclick="selectToggle(this,'sel-green')">OK</button>
+                <button class="item-opt" onclick="selectToggle(this,'sel-orange')">Adjusted</button>
+              </div>
+            </div>
+            <div class="item-rail">
+              <button class="rail-icon" title="Instructions">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <button class="rail-icon" title="Attachments">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="notes-row">
+            <button class="fu-btn" onclick="toggleFollowUp(this)">
+              <svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 22V15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              Follow-up
+            </button>
+            <button class="notes-trigger" onclick="toggleNotes(this)">
+              <svg class="pen" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span class="notes-placeholder">Add a note…</span>
+              <svg class="notes-chev" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="notes-expand">
+            <textarea class="notes-ta" rows="2" maxlength="256" placeholder="Notes… (256 chars)" oninput="notesCount(this)"></textarea>
+            <div class="notes-foot"><span class="notes-count">0 / 256</span><button class="notes-done" onclick="closeNotes(this)">Done</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Item 05: Quantitative — bearing temp -->
+      <div class="checklist-item" data-group="main" data-required="true">
+        <div class="item-bar g-main"></div>
+        <div class="item-content">
+          <div class="item-top">
+            <div class="item-main">
+              <div class="item-head">
+                <span class="item-seq">05</span>
+                <div class="item-label-wrap">
+                  <p class="item-label">Bearing temperature — post run</p>
+                  <span class="item-equip">A-00067333 — Pump, Centrifugal</span>
+                </div>
+                <span class="item-req">*</span>
+              </div>
+              <div class="item-num-row">
+                <input class="item-num-in" type="number" placeholder="—" oninput="numInput(this)">
+                <span class="item-uom">°F</span>
+              </div>
+              <p class="item-range-hint">Acceptable range: 60 – 180 °F</p>
+            </div>
+            <div class="item-rail">
+              <button class="rail-icon" title="Instructions">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <button class="rail-icon" title="Attachments">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="notes-row">
+            <button class="fu-btn" onclick="toggleFollowUp(this)">
+              <svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 22V15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              Follow-up
+            </button>
+            <button class="notes-trigger" onclick="toggleNotes(this)">
+              <svg class="pen" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span class="notes-placeholder">Add a note…</span>
+              <svg class="notes-chev" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="notes-expand">
+            <textarea class="notes-ta" rows="2" maxlength="256" placeholder="Notes… (256 chars)" oninput="notesCount(this)"></textarea>
+            <div class="notes-foot"><span class="notes-count">0 / 256</span><button class="notes-done" onclick="closeNotes(this)">Done</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GROUP: Close-out (green) -->
+      <div class="group-hdr g-close">
+        <span class="group-name">Close-out</span>
+        <span class="group-prog" id="grp-close">0 / 2</span>
+      </div>
+
+      <!-- Item 06: Yes/No — area restored -->
+      <div class="checklist-item" data-group="close" data-required="true">
+        <div class="item-bar g-close"></div>
+        <div class="item-content">
+          <div class="item-top">
+            <div class="item-main">
+              <div class="item-head">
+                <span class="item-seq">06</span>
+                <div class="item-label-wrap"><p class="item-label">Area restored and barricades removed?</p></div>
+                <span class="item-req">*</span>
+              </div>
+              <div class="item-toggle">
+                <button class="item-opt" onclick="selectToggle(this,'sel-green')">Yes</button>
+                <button class="item-opt" onclick="selectToggle(this,'sel-red')">No</button>
+              </div>
+            </div>
+            <div class="item-rail">
+              <button class="rail-icon" title="Instructions">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <button class="rail-icon" title="Attachments">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="notes-row">
+            <button class="fu-btn" onclick="toggleFollowUp(this)">
+              <svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 22V15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              Follow-up
+            </button>
+            <button class="notes-trigger" onclick="toggleNotes(this)">
+              <svg class="pen" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span class="notes-placeholder">Add a note…</span>
+              <svg class="notes-chev" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="notes-expand">
+            <textarea class="notes-ta" rows="2" maxlength="256" placeholder="Notes… (256 chars)" oninput="notesCount(this)"></textarea>
+            <div class="notes-foot"><span class="notes-count">0 / 256</span><button class="notes-done" onclick="closeNotes(this)">Done</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Item 07: Free text — work completion notes (optional) -->
+      <div class="checklist-item" data-group="close">
+        <div class="item-bar g-close"></div>
+        <div class="item-content">
+          <div class="item-top">
+            <div class="item-main">
+              <div class="item-head">
+                <span class="item-seq">07</span>
+                <div class="item-label-wrap"><p class="item-label">Work completion notes</p></div>
+              </div>
+              <textarea class="item-textarea" rows="3" placeholder="Describe work performed and any findings…" oninput="updateProgress()"></textarea>
+            </div>
+            <div class="item-rail">
+              <button class="rail-icon" title="Instructions">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <button class="rail-icon" title="Attachments">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="notes-row">
+            <button class="fu-btn" onclick="toggleFollowUp(this)">
+              <svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 22V15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              Follow-up
+            </button>
+            <button class="notes-trigger" onclick="toggleNotes(this)">
+              <svg class="pen" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span class="notes-placeholder">Add a note…</span>
+              <svg class="notes-chev" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="notes-expand">
+            <textarea class="notes-ta" rows="2" maxlength="256" placeholder="Notes… (256 chars)" oninput="notesCount(this)"></textarea>
+            <div class="notes-foot"><span class="notes-count">0 / 256</span><button class="notes-done" onclick="closeNotes(this)">Done</button></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /checklist -->
+    <div style="height:16px;"></div>
+  </div>
+
+  <!-- ── BOTTOM BAR — locked until all required items are complete (§14.7).
+       Chrome is shared; readiness rule below is this screen's own. ───── -->
+  <div class="bottom-bar" id="bottomBar">
+    <span class="bar-meta" id="barMeta">Required: 0 / 0</span>
+    <button class="bar-pill bar-pill-locked" id="barBtn" onclick="showToast('Complete all required items first')">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Continue
+    </button>
+  </div>
+
+  <!-- ── PROMPT BAR — appears once checklist is complete (§14.6) ──────── -->
+  <div class="prompt-bar" id="promptBar">
+    <div class="prompt-question">Did you need to issue parts?</div>
+    <div class="prompt-seg">
+      <button class="prompt-seg-btn yes" onclick="promptAnswer(true)">Yes</button>
+      <div class="prompt-seg-divider"></div>
+      <button class="prompt-seg-btn no" onclick="promptAnswer(false)">No</button>
+    </div>
+  </div>
+
+  <!-- ── INSTRUCTIONS / ATTACHMENTS SHEET ─────────────────────────────── -->
+  <div class="info-sheet-overlay" id="infoSheetOverlay" onclick="if(event.target===this) closeInfoSheet()">
+    <div class="info-sheet">
+      <div class="info-sheet-handle"></div>
+      <div class="info-sheet-head">
+        <span class="info-sheet-title" id="infoSheetTitle">Instructions</span>
+        <button class="info-sheet-close" onclick="closeInfoSheet()">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="info-sheet-body" id="infoSheetBody"></div>
+    </div>
+  </div>
+
+  <!-- Centered confirmation modal — destructive actions (Delete etc.),
+       markup only; behavior lives in eam-shared.js. -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-modal">
+      <div class="confirm-message" id="confirmMessage">Are you sure?</div>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="confirm-btn confirm-danger" id="confirmDangerBtn" onclick="confirmDangerAction()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Question message — first of its kind (§14.2 follow-up, 2026-07-16):
+       a 3-outcome Yes/No/Cancel modal, markup only; behavior lives in
+       eam-shared.js. Own overlay from #confirmOverlay — different shape,
+       never both open at once. -->
+  <div class="confirm-overlay" id="questionOverlay">
+    <div class="question-modal">
+      <div class="question-message" id="questionMessage">Are you sure?</div>
+      <div class="question-actions">
+        <button class="question-btn yes" onclick="questionAnswerYes()">Yes</button>
+        <button class="question-btn no" onclick="questionAnswerNo()">No</button>
+        <button class="question-btn cancel" onclick="closeQuestion()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+</div><!-- /app -->
+
+<script src="shared/eam-shared.js"></script>
+<script>
+/* ── screen-specific config/behavior — chrome (nav, header, step rail,
+   confirm modal, toast, theme toggle) comes from eam-shared.js. ── */
+
+function navBack() {
+  showToast('← Back to WO Record View');
+}
+
+/* ─── TIMER — auto-started on WO Record View "Start Work"; keeps running
+   through Steps 2-4, shown stopped from Book Labor onward (§6.2, §12.2).
+   Engine (start/pause/resume) lives in eam-shared.js (startStepTimer()/
+   toggleStepTimerPause()) — this screen just starts it and supplies the
+   Stop confirmation's outcomes. ── */
+startStepTimer();
+
+// Stop (§14.2 follow-up) — Yes: book time now, go to Book Labor. No: stop
+// the timer but stay here, time is captured and can be booked later.
+// Cancel: keep working, timer keeps running (handled generically by
+// closeQuestion() — no callback needed).
+function confirmStopTimer() {
+  openQuestion('Stop working and book your current time?',
+    () => { stopStepTimer(); showToast('Time booked — moving to Book Labor…'); },
+    () => { stopStepTimer(); showToast('Time captured — resume later from Book Labor'); }
+  );
+}
+
+// ─── CHECKLIST INTERACTIONS ───────────────────────────────────────────────
+function toggleCheck(el) {
+  el.classList.toggle('checked');
+  const label = el.closest('.item-main').querySelector('.item-label');
+  if (label) label.classList.toggle('done', el.classList.contains('checked'));
+  updateProgress();
+}
+
+function selectToggle(btn, cls) {
+  const pair = btn.closest('.item-toggle');
+  pair.querySelectorAll('.item-opt').forEach(b => b.className = 'item-opt');
+  btn.classList.add(cls);
+  const label = btn.closest('.item-main').querySelector('.item-label');
+  if (label) label.classList.add('done');
+  updateProgress();
+}
+
+function numInput(el) {
+  const label = el.closest('.item-main').querySelector('.item-label');
+  if (label) label.classList.toggle('done', !!el.value.trim());
+  updateProgress();
+}
+
+function toggleFollowUp(btn) { btn.classList.toggle('on'); }
+
+function toggleNotes(btn) {
+  const expand = btn.closest('.item-content').querySelector('.notes-expand');
+  const chev = btn.querySelector('.notes-chev');
+  const open = expand.classList.toggle('open');
+  chev.innerHTML = open
+    ? '<path d="M18 15l-6-6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+    : '<path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+  if (open) expand.querySelector('.notes-ta').focus();
+}
+
+function closeNotes(btn) {
+  const expand = btn.closest('.notes-expand');
+  expand.classList.remove('open');
+  const trigger = expand.closest('.item-content').querySelector('.notes-trigger');
+  const chev = trigger.querySelector('.notes-chev');
+  chev.innerHTML = '<path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+  const ta = expand.querySelector('.notes-ta');
+  const hasNote = ta.value.trim().length > 0;
+  trigger.classList.toggle('has-note', hasNote);
+  trigger.querySelector('.notes-placeholder').textContent = hasNote
+    ? ta.value.substring(0, 38) + (ta.value.length > 38 ? '…' : '')
+    : 'Add a note…';
+}
+
+function notesCount(ta) {
+  const foot = ta.closest('.notes-expand').querySelector('.notes-count');
+  if (foot) foot.textContent = ta.value.length + ' / 256';
+}
+
+function isItemDone(item) {
+  const chk  = item.querySelector('.item-chk');
+  const opts = item.querySelectorAll('.item-opt');
+  const numIn = item.querySelector('.item-num-in');
+  const ta = item.querySelector('.item-textarea');
+  if (chk && chk.classList.contains('checked')) return true;
+  if (opts.length && [...opts].some(o => o.classList.length > 1)) return true;
+  if (numIn && numIn.value.trim()) return true;
+  if (ta && ta.value.trim()) return true;
+  return false;
+}
+
+function updateProgress() {
+  const allItems = document.querySelectorAll('#checklist .checklist-item');
+  const reqItems = document.querySelectorAll('#checklist .checklist-item[data-required]');
+  let allDone = 0, reqDone = 0;
+  allItems.forEach(item => { if (isItemDone(item)) allDone++; });
+  reqItems.forEach(item => { if (isItemDone(item)) reqDone++; });
+
+  const pct = Math.round(allDone / allItems.length * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressCount').textContent = allDone + ' / ' + allItems.length + ' completed';
+
+  ['safety', 'main', 'close'].forEach(g => {
+    const items = document.querySelectorAll('#checklist .checklist-item[data-group="' + g + '"]');
+    let done = 0;
+    items.forEach(item => { if (isItemDone(item)) done++; });
+    const el = document.getElementById('grp-' + g);
+    if (el) el.textContent = done + ' / ' + items.length;
+  });
+
+  document.getElementById('barMeta').textContent = 'Required: ' + reqDone + ' / ' + reqItems.length;
+
+  const ready = reqDone === reqItems.length;
+  document.getElementById('bottomBar').style.display = ready ? 'none' : 'flex';
+  document.getElementById('promptBar').classList.toggle('show', ready);
+}
+
+// ─── PROMPT BAR (Yes/No — design-decisions-v3-1.md §14.6) ─────────────────
+function promptAnswer(issuedParts) {
+  showToast(issuedParts ? 'Moving to Issue Parts…' : 'Skipping to Book Labor…');
+}
+
+// ─── INSTRUCTIONS / ATTACHMENTS SHEET ─────────────────────────────────────
+function openInfoSheet(title, body) {
+  document.getElementById('infoSheetTitle').textContent = title;
+  document.getElementById('infoSheetBody').textContent = body;
+  document.getElementById('infoSheetOverlay').classList.add('open');
+}
+function closeInfoSheet() {
+  document.getElementById('infoSheetOverlay').classList.remove('open');
+}
+
+/* ── init ── */
+updateProgress();
+initSharedApp({ contentSelector: '.content' });
+</script>
+</body>
+</html>

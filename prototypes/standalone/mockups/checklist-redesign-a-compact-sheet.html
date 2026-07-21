@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Checklist Redesign — Option A: Compact Rows + Detail Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/eam-shared.css">
+<!--
+  DESIGN EXPLORATION — NOT A LOCKED SCREEN. One of 3 redesign options for
+  eam-activity-checklist-prototype-v1.html, requested 2026-07-20+ session.
+  Do not treat as replacing the real prototype until a direction is picked.
+
+  CONCEPT: every item collapses to a single ~52px scannable row (seq,
+  label, status chip, small presence dots for instructions/attachments/
+  notes/follow-up). Tapping a row opens one shared bottom sheet with the
+  full-size answer control + instructions/attachments/notes/follow-up.
+  Goal: shrink the "always-on" per-item chrome that makes the real
+  screen tall (rail icons + notes row + expand, visible even when empty),
+  so a 20-40 item checklist doesn't turn into an endless scroll.
+-->
+<style>
+.content { padding: 0 0 calc(var(--bar-height) + 16px); }
+
+.progress-wrap { padding: 8px 16px 6px; display: flex; align-items: center; justify-content: space-between; background: var(--bg-card); border-bottom: 1px solid var(--border); }
+.progress-label { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--gray-4); font-family: var(--font-mono); }
+.progress-count { font-family: var(--font-mono); font-size: 11px; color: var(--gray-4); }
+.progress-bar { height: 4px; background: var(--gray-1); overflow: hidden; }
+[data-theme="dark"] .progress-bar { background: var(--gray-5); }
+.progress-fill { height: 100%; background: var(--green); transition: width 0.4s; }
+
+/* Sticky group header w/ progress ring instead of "x / y" text */
+.group-hdr { position: sticky; top: 0; z-index: 5; padding: 7px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+.group-hdr.g-safety { background: rgba(244,102,0,0.12); border-left: 3px solid var(--orange); }
+.group-hdr.g-main   { background: rgba(153,51,255,0.12); border-left: 3px solid var(--purple); }
+.group-hdr.g-close  { background: rgba(0,170,20,0.12);  border-left: 3px solid var(--green); }
+.group-name { font-size: 13px; font-weight: 700; }
+.group-hdr.g-safety .group-name { color: #854F0B; }
+.group-hdr.g-main   .group-name { color: #6600CC; }
+.group-hdr.g-close  .group-name { color: #007A0D; }
+[data-theme="dark"] .group-hdr.g-safety .group-name { color: #FAC775; }
+[data-theme="dark"] .group-hdr.g-main   .group-name { color: #CC77FF; }
+[data-theme="dark"] .group-hdr.g-close  .group-name { color: #5DCAA5; }
+.group-ring-wrap { display: flex; align-items: center; gap: 6px; }
+.group-prog { font-size: 10px; font-family: var(--font-mono); color: var(--gray-4); }
+
+/* Compact row */
+.c-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--border); background: var(--bg-card); cursor: pointer; }
+.c-row:active { background: var(--bg-section); }
+.c-bar { width: 3px; align-self: stretch; border-radius: 2px; flex-shrink: 0; }
+.c-bar.g-safety { background: rgba(244,102,0,0.35); }
+.c-bar.g-main   { background: rgba(153,51,255,0.35); }
+.c-bar.g-close  { background: rgba(0,170,20,0.35); }
+.c-seq { font-size: 10px; color: var(--gray-4); font-family: var(--font-mono); flex-shrink: 0; width: 16px; }
+.c-check { width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--gray-3); background: var(--bg-page); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .15s; }
+[data-theme="dark"] .c-check { border-color: var(--gray-5); background: var(--bg-section); }
+.c-check.done { background: var(--green); border-color: var(--green); }
+.c-check.done.red { background: var(--red); border-color: var(--red); }
+.c-check svg { display: none; }
+.c-check.done svg { display: block; }
+.c-main { flex: 1; min-width: 0; }
+.c-label { font-size: 13.5px; font-weight: 600; color: var(--octave-black); line-height: 1.3; }
+[data-theme="dark"] .c-label { color: rgba(255,255,255,0.9); }
+.c-label.done { color: var(--gray-4); }
+.c-sub { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+.c-equip { font-size: 10px; color: var(--gray-4); font-family: var(--font-mono); }
+.c-dots { display: flex; align-items: center; gap: 4px; }
+.c-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gray-2); }
+[data-theme="dark"] .c-dot { background: var(--gray-5); }
+.c-dot.on { background: var(--purple); }
+.c-req { color: var(--orange); font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.c-status { flex-shrink: 0; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 100px; background: var(--bg-section); color: var(--gray-4); white-space: nowrap; }
+.c-status.st-green  { background: var(--green);  color: #fff; }
+.c-status.st-red    { background: var(--red);    color: #fff; }
+.c-status.st-orange { background: var(--orange); color: #fff; }
+.c-chev { color: var(--gray-3); flex-shrink: 0; }
+
+/* ─── ITEM DETAIL SHEET (single shared instance) ────────────────────── */
+.item-sheet-title-wrap { flex: 1; text-align: left; }
+.is-group-pill { display: inline-block; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; padding: 2px 7px; border-radius: 100px; margin-bottom: 4px; font-family: var(--font-mono); }
+.is-group-pill.g-safety { background: rgba(244,102,0,0.15); color: #854F0B; }
+.is-group-pill.g-main   { background: rgba(153,51,255,0.15); color: #6600CC; }
+.is-group-pill.g-close  { background: rgba(0,170,20,0.15);  color: #007A0D; }
+[data-theme="dark"] .is-group-pill.g-safety { color: #FAC775; }
+[data-theme="dark"] .is-group-pill.g-main   { color: #CC77FF; }
+[data-theme="dark"] .is-group-pill.g-close  { color: #5DCAA5; }
+.is-label { font-size: 15px; font-weight: 700; color: var(--octave-black); line-height: 1.3; }
+[data-theme="dark"] .is-label { color: var(--white); }
+.is-equip { display: inline-flex; margin-top: 5px; font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); background: var(--bg-section); border-radius: 4px; padding: 2px 7px; }
+
+.is-section { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.is-section:last-child { border-bottom: none; }
+.is-section-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--gray-4); font-family: var(--font-mono); margin-bottom: 8px; }
+
+.is-toggle { display: flex; border-radius: 9px; overflow: hidden; border: 1.5px solid var(--gray-2); }
+[data-theme="dark"] .is-toggle { border-color: var(--gray-5); }
+.is-opt { flex: 1; padding: 13px 0; text-align: center; font-size: 14px; font-weight: 600; border: none; color: var(--gray-4); background: var(--bg-page); cursor: pointer; }
+[data-theme="dark"] .is-opt { background: var(--bg-section); }
+.is-opt + .is-opt { border-left: 1.5px solid var(--gray-2); }
+[data-theme="dark"] .is-opt + .is-opt { border-left-color: var(--gray-5); }
+.is-opt.sel-green  { background: var(--green);  color: #fff; }
+.is-opt.sel-red    { background: var(--red);    color: #fff; }
+.is-opt.sel-orange { background: var(--orange); color: #fff; }
+.is-opt.sel-gray   { background: var(--gray-4); color: #fff; }
+
+.is-chk-row { display: flex; align-items: center; gap: 12px; }
+.is-chk { width: 30px; height: 30px; border-radius: 8px; border: 1.5px solid var(--gray-3); background: var(--bg-page); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+[data-theme="dark"] .is-chk { border-color: var(--gray-5); background: var(--bg-section); }
+.is-chk.checked { background: var(--green); border-color: var(--green); }
+.is-chk svg { display: none; }
+.is-chk.checked svg { display: block; }
+.is-chk-lbl { font-size: 14px; font-weight: 500; color: var(--octave-black); }
+[data-theme="dark"] .is-chk-lbl { color: var(--white); }
+
+.is-num-row { display: flex; gap: 10px; align-items: center; }
+.is-num-in { width: 130px; background: var(--bg-page); border: 1.5px solid var(--gray-2); border-radius: 9px; padding: 11px 12px; font-size: 15px; font-weight: 600; color: var(--octave-black); font-family: var(--font-mono); text-align: right; outline: none; }
+[data-theme="dark"] .is-num-in { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
+.is-num-in:focus { border-color: var(--purple); }
+.is-uom { font-size: 13px; color: var(--gray-4); }
+.is-range-hint { font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); margin-top: 6px; }
+
+.is-textarea { width: 100%; background: var(--bg-page); border: 1.5px solid var(--gray-2); border-radius: 8px; padding: 10px 11px; font-size: 14px; color: var(--octave-black); font-family: var(--font-sans); resize: none; outline: none; line-height: 1.5; }
+[data-theme="dark"] .is-textarea { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
+.is-textarea:focus { border-color: var(--purple); }
+
+.is-info-text { font-size: 13px; color: var(--octave-black); line-height: 1.6; white-space: pre-wrap; }
+[data-theme="dark"] .is-info-text { color: rgba(255,255,255,0.85); }
+.is-attach-list { display: flex; flex-direction: column; gap: 6px; }
+.is-attach-row { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--octave-black); }
+[data-theme="dark"] .is-attach-row { color: rgba(255,255,255,0.85); }
+.is-attach-row svg { color: var(--purple); flex-shrink: 0; }
+
+.is-fu-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.is-fu-lbl { font-size: 13px; font-weight: 600; color: var(--octave-black); }
+[data-theme="dark"] .is-fu-lbl { color: var(--white); }
+.is-fu-toggle { width: 44px; height: 26px; border-radius: 100px; background: var(--gray-2); position: relative; cursor: pointer; flex-shrink: 0; transition: background .15s; border: none; }
+[data-theme="dark"] .is-fu-toggle { background: var(--gray-5); }
+.is-fu-toggle.on { background: var(--orange); }
+.is-fu-knob { width: 20px; height: 20px; border-radius: 50%; background: #fff; position: absolute; top: 3px; left: 3px; transition: left .15s; }
+.is-fu-toggle.on .is-fu-knob { left: 21px; }
+
+.toast { bottom: calc(var(--bar-height) + 10px); }
+</style>
+</head>
+<body>
+
+<div class="proto-theme-bar">
+  <span class="proto-theme-label">Preview theme — OPTION A: Compact Rows + Detail Sheet</span>
+  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+</div>
+
+<div class="app" id="app">
+
+  <header class="nav" onclick="scrollFormToTop()">
+    <div class="nav-left">
+      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation(); showToast('← Back to WO Record View')">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="prototype-label">PROTOTYPE</span>
+    </div>
+    <div class="nav-title">Work Orders</div>
+    <div class="nav-actions"><span id="syncCtrl"></span></div>
+  </header>
+
+  <div class="rec-header" id="recHeader" onclick="scrollFormToTop()">
+    <div class="rec-id-row">
+      <div class="rec-id-text">
+        <span class="rec-num" id="recNum">19257</span>
+        <span class="rec-desc protected" id="recDesc">Pump Cavitating; lost head</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-rail" id="stepRail">
+    <div class="step-rail-collapsed">
+      <div class="step-pill">2 of 5</div>
+      <div class="step-name">Activity Checklist</div>
+      <div class="step-rail-right">
+        <div class="timer-pill" id="timerPill"><div class="timer-dot"></div><span id="timerText">00:00:00</span></div>
+        <svg class="step-chevron" id="stepChevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="step-map" id="stepMap"></div>
+  </div>
+
+  <div class="content" id="content">
+
+    <div class="progress-wrap">
+      <span class="progress-label">Checklist</span>
+      <span class="progress-count" id="progressCount">0 / 7 completed</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+    <div id="checklist"></div>
+    <div style="height:16px;"></div>
+  </div>
+
+  <div class="bottom-bar" id="bottomBar">
+    <span class="bar-meta" id="barMeta">Required: 0 / 0</span>
+    <button class="bar-pill bar-pill-locked" id="barBtn" onclick="showToast('Complete all required items first')">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Continue
+    </button>
+  </div>
+
+  <!-- ── SHARED ITEM DETAIL SHEET — one instance, populated per tap ──── -->
+  <div class="sheet-overlay" id="itemSheetOverlay" onclick="if(event.target===this) closeItemSheet()">
+    <div class="bottom-sheet" id="itemSheet" style="max-height:88vh;">
+      <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+      <div class="sheet-header">
+        <div class="item-sheet-title-wrap"></div>
+        <button class="sheet-close" onclick="closeItemSheet()">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="sheet-body" id="itemSheetBody"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+</div>
+
+<script src="../shared/eam-shared.js"></script>
+<script>
+const ITEMS = [
+  { id:1, group:'safety', seq:'01', label:'Confirm LOTO applied to all energy sources', required:true, type:'check',
+    instructions:'Ensure all energy isolation points are identified on the P&ID before applying locks. Each lock must be uniquely keyed. Tag must include technician name and date.',
+    attachments:[], note:'', followup:false, value:false },
+  { id:2, group:'safety', seq:'02', label:'PPE check — gloves, goggles, steel-cap boots', required:true, type:'check',
+    instructions:'', attachments:[], note:'', followup:false, value:false },
+  { id:3, group:'main', seq:'03', label:'Bearing housing — visual condition', equip:'A-00067333 — Pump, Centrifugal', required:true, type:'toggle3',
+    options:[['Pass','sel-green'],['Fail','sel-red'],['N/A','sel-gray']],
+    instructions:'Inspect all external surfaces for cracks, corrosion, and impact damage. Pay particular attention to the bearing housing lip and seal grooves.',
+    attachments:['Bearing_Housing_Drawing_Rev4.pdf','Inspection_Photo_Template.jpg'], note:'', followup:false, value:null },
+  { id:4, group:'main', seq:'04', label:'Shaft alignment', equip:'A-00067333 — Pump, Centrifugal', required:false, type:'toggle2',
+    options:[['OK','sel-green'],['Adjusted','sel-orange']],
+    instructions:'', attachments:[], note:'', followup:false, value:null },
+  { id:5, group:'main', seq:'05', label:'Bearing temperature — post run', equip:'A-00067333 — Pump, Centrifugal', required:true, type:'num', uom:'°F', range:'60 – 180 °F',
+    instructions:'', attachments:[], note:'', followup:false, value:'' },
+  { id:6, group:'close', seq:'06', label:'Area restored and barricades removed?', required:true, type:'toggle2',
+    options:[['Yes','sel-green'],['No','sel-red']],
+    instructions:'', attachments:[], note:'', followup:false, value:null },
+  { id:7, group:'close', seq:'07', label:'Work completion notes', required:false, type:'textarea',
+    instructions:'', attachments:[], note:'', followup:false, value:'' },
+];
+const GROUP_NAMES = { safety:'Safety checks', main:'Inspection', close:'Close-out' };
+
+function isDone(it) {
+  if (it.type === 'check') return !!it.value;
+  if (it.type === 'toggle2' || it.type === 'toggle3') return it.value != null;
+  if (it.type === 'num') return String(it.value).trim() !== '';
+  if (it.type === 'textarea') return String(it.value).trim() !== '';
+  return false;
+}
+function statusChip(it) {
+  if (!isDone(it)) return { text:'Pending', cls:'' };
+  if (it.type === 'check') return { text:'Confirmed', cls:'st-green' };
+  if (it.type === 'toggle2' || it.type === 'toggle3') {
+    const opt = it.options.find(o => o[0] === it.value);
+    const cls = opt[1] === 'sel-green' ? 'st-green' : opt[1] === 'sel-red' ? 'st-red' : opt[1] === 'sel-orange' ? 'st-orange' : '';
+    return { text: it.value, cls };
+  }
+  if (it.type === 'num') return { text: it.value + ' ' + (it.uom||''), cls:'st-green' };
+  if (it.type === 'textarea') return { text:'Added', cls:'st-green' };
+  return { text:'—', cls:'' };
+}
+
+function renderChecklist() {
+  const root = document.getElementById('checklist');
+  let html = '';
+  let lastGroup = null;
+  ITEMS.forEach(it => {
+    if (it.group !== lastGroup) {
+      const items = ITEMS.filter(x => x.group === it.group);
+      const done = items.filter(isDone).length;
+      html += `<div class="group-hdr g-${it.group}">
+        <span class="group-name">${GROUP_NAMES[it.group]}</span>
+        <span class="group-prog">${done} / ${items.length}</span>
+      </div>`;
+      lastGroup = it.group;
+    }
+    const chip = statusChip(it);
+    const dots = [
+      it.instructions ? 1 : 0,
+      it.attachments.length ? 1 : 0,
+      it.note ? 1 : 0,
+      it.followup ? 1 : 0,
+    ];
+    html += `<div class="c-row" onclick="openItemSheet(${it.id})">
+      <div class="c-bar g-${it.group}"></div>
+      <span class="c-seq">${it.seq}</span>
+      <div class="c-main">
+        <p class="c-label ${isDone(it)?'done':''}">${it.label}</p>
+        <div class="c-sub">
+          ${it.equip ? `<span class="c-equip">${it.equip}</span>` : ''}
+          <div class="c-dots">${dots.map(d => `<span class="c-dot ${d?'on':''}"></span>`).join('')}</div>
+        </div>
+      </div>
+      ${it.required ? '<span class="c-req">*</span>' : ''}
+      <span class="c-status ${chip.cls}">${chip.text}</span>
+      <svg class="c-chev" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>`;
+  });
+  root.innerHTML = html;
+  updateProgress();
+}
+
+function updateProgress() {
+  const done = ITEMS.filter(isDone).length;
+  document.getElementById('progressFill').style.width = Math.round(done/ITEMS.length*100) + '%';
+  document.getElementById('progressCount').textContent = done + ' / ' + ITEMS.length + ' completed';
+  const req = ITEMS.filter(i => i.required);
+  const reqDone = req.filter(isDone).length;
+  document.getElementById('barMeta').textContent = 'Required: ' + reqDone + ' / ' + req.length;
+  document.getElementById('bottomBar').style.display = (reqDone === req.length) ? 'none' : 'flex';
+}
+
+let activeItem = null;
+
+function openItemSheet(id) {
+  const it = ITEMS.find(x => x.id === id);
+  activeItem = it;
+  document.querySelector('.item-sheet-title-wrap').innerHTML = `
+    <span class="is-group-pill g-${it.group}">${GROUP_NAMES[it.group]}</span>
+    <div class="is-label">${it.seq} · ${it.label}${it.required?' <span style=\"color:var(--orange)\">*</span>':''}</div>
+    ${it.equip ? `<span class="is-equip">${it.equip}</span>` : ''}
+  `;
+
+  let body = '';
+  body += `<div class="is-section">`;
+  if (it.type === 'check') {
+    body += `<div class="is-chk-row">
+      <div class="is-chk ${it.value?'checked':''}" onclick="setCheck(this)"><svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <span class="is-chk-lbl">Confirmed</span>
+    </div>`;
+  } else if (it.type === 'toggle2' || it.type === 'toggle3') {
+    body += `<div class="is-toggle">` + it.options.map(([label,cls]) =>
+      `<button class="is-opt ${it.value===label?cls:''}" onclick="setToggle(this,'${label}','${cls}')">${label}</button>`).join('') + `</div>`;
+  } else if (it.type === 'num') {
+    body += `<div class="is-num-row"><input class="is-num-in" type="number" value="${it.value}" placeholder="—" oninput="setNum(this)"><span class="is-uom">${it.uom}</span></div>`;
+    if (it.range) body += `<p class="is-range-hint">Acceptable range: ${it.range}</p>`;
+  } else if (it.type === 'textarea') {
+    body += `<textarea class="is-textarea" rows="4" placeholder="Describe work performed and any findings…" oninput="setText(this)">${it.value}</textarea>`;
+  }
+  body += `</div>`;
+
+  if (it.instructions) {
+    body += `<div class="is-section"><div class="is-section-lbl">Instructions</div><p class="is-info-text">${it.instructions}</p></div>`;
+  }
+  if (it.attachments.length) {
+    body += `<div class="is-section"><div class="is-section-lbl">Attachments (${it.attachments.length})</div><div class="is-attach-list">` +
+      it.attachments.map(a => `<div class="is-attach-row"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>${a}</div>`).join('') +
+      `</div></div>`;
+  }
+  body += `<div class="is-section">
+    <div class="is-fu-row">
+      <span class="is-fu-lbl">Flag for follow-up</span>
+      <button class="is-fu-toggle ${it.followup?'on':''}" onclick="setFollowup(this)"><span class="is-fu-knob"></span></button>
+    </div>
+    <div class="is-section-lbl">Notes</div>
+    <textarea class="is-textarea" rows="2" maxlength="256" placeholder="Add a note…" oninput="setNote(this)">${it.note}</textarea>
+  </div>`;
+
+  document.getElementById('itemSheetBody').innerHTML = body;
+  document.getElementById('itemSheetOverlay').classList.add('open');
+  document.getElementById('itemSheet').classList.add('open');
+}
+function closeItemSheet() {
+  document.getElementById('itemSheetOverlay').classList.remove('open');
+  document.getElementById('itemSheet').classList.remove('open');
+  renderChecklist();
+}
+function setCheck(el) { activeItem.value = !activeItem.value; el.classList.toggle('checked', activeItem.value); }
+function setToggle(btn, label, cls) {
+  activeItem.value = label;
+  btn.closest('.is-toggle').querySelectorAll('.is-opt').forEach(b => b.className = 'is-opt');
+  btn.classList.add(cls);
+}
+function setNum(el) { activeItem.value = el.value; }
+function setText(el) { activeItem.value = el.value; }
+function setNote(el) { activeItem.note = el.value; }
+function setFollowup(btn) { activeItem.followup = !activeItem.followup; btn.classList.toggle('on', activeItem.followup); }
+
+renderChecklist();
+startStepTimer();
+initSharedApp({ contentSelector: '#content' });
+</script>
+</body>
+</html>

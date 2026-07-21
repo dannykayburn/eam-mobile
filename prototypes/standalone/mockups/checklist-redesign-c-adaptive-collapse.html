@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Checklist Redesign — Option C: Adaptive Collapse + Filters</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/eam-shared.css">
+<!--
+  DESIGN EXPLORATION — NOT A LOCKED SCREEN. Option C of 3 for the Activity
+  Checklist redesign (see Option A's header comment for context).
+
+  CONCEPT: least structurally different from today's screen — same
+  grouped, full-detail cards for anything still open. The moment an item
+  is answered it auto-collapses to a single confirmation line (so the
+  list visibly shrinks as the tech works — momentum/reward), filter chips
+  (All/Required/Incomplete/Flagged) reduce a long list to what matters
+  right now, and a floating "Next required" button jumps straight to the
+  next incomplete required item instead of making the tech scroll-hunt
+  for what's blocking Continue. Goal: fix the "long checklist is a wall
+  of scroll" problem without changing the interaction model techs already
+  know from the current screen.
+-->
+<style>
+.content { padding: 0 0 calc(var(--bar-height) + 16px); position: relative; }
+
+.progress-wrap { padding: 8px 16px 6px; display: flex; align-items: center; justify-content: space-between; background: var(--bg-card); border-bottom: 1px solid var(--border); }
+.progress-label { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--gray-4); font-family: var(--font-mono); }
+.progress-count { font-family: var(--font-mono); font-size: 11px; color: var(--gray-4); }
+.progress-bar { height: 4px; background: var(--gray-1); overflow: hidden; }
+[data-theme="dark"] .progress-bar { background: var(--gray-5); }
+.progress-fill { height: 100%; background: var(--green); transition: width 0.4s; }
+
+.filter-chip-row { background: var(--bg-card); border-bottom: 1px solid var(--border); padding: 9px 12px; }
+
+.group-hdr { position: sticky; top: 0; z-index: 5; padding: 7px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+.group-hdr.g-safety { background: rgba(244,102,0,0.12); border-left: 3px solid var(--orange); }
+.group-hdr.g-main   { background: rgba(153,51,255,0.12); border-left: 3px solid var(--purple); }
+.group-hdr.g-close  { background: rgba(0,170,20,0.12);  border-left: 3px solid var(--green); }
+.group-name { font-size: 13px; font-weight: 700; }
+.group-hdr.g-safety .group-name { color: #854F0B; } .group-hdr.g-main .group-name { color: #6600CC; } .group-hdr.g-close .group-name { color: #007A0D; }
+[data-theme="dark"] .group-hdr.g-safety .group-name { color: #FAC775; } [data-theme="dark"] .group-hdr.g-main .group-name { color: #CC77FF; } [data-theme="dark"] .group-hdr.g-close .group-name { color: #5DCAA5; }
+.group-prog { font-size: 10px; font-family: var(--font-mono); color: var(--gray-4); }
+.group-hdr.all-hidden { display: none; }
+
+/* Open item — same anatomy language as the current screen (kept intentionally recognizable) */
+.checklist-item { display: flex; align-items: stretch; border-bottom: 1px solid var(--border); background: var(--bg-card); }
+.checklist-item.hidden-by-filter { display: none; }
+.item-bar { width: 3px; flex-shrink: 0; }
+.item-bar.g-safety { background: rgba(244,102,0,0.35); } .item-bar.g-main { background: rgba(153,51,255,0.35); } .item-bar.g-close { background: rgba(0,170,20,0.35); }
+.item-content { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.item-top { display: flex; align-items: stretch; }
+.item-main { flex: 1; min-width: 0; padding: 11px 12px 10px; }
+.item-rail { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 6px; padding: 11px 9px 0 9px; border-left: 1px solid var(--border); }
+.rail-icon { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-page); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--gray-4); }
+[data-theme="dark"] .rail-icon { background: var(--bg-section); }
+.rail-icon.has-content { color: var(--purple); border-color: rgba(153,51,255,0.3); }
+.item-head { display: flex; align-items: flex-start; gap: 7px; margin-bottom: 8px; }
+.item-seq { font-size: 10px; color: var(--gray-4); font-family: var(--font-mono); padding-top: 3px; min-width: 18px; flex-shrink: 0; }
+.item-label-wrap { flex: 1; min-width: 0; }
+.item-label { font-size: 14px; font-weight: 600; color: var(--octave-black); line-height: 1.3; margin-bottom: 3px; }
+[data-theme="dark"] .item-label { color: rgba(255,255,255,0.9); }
+.item-equip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); background: var(--bg-section); border-radius: 4px; padding: 2px 6px; margin-bottom: 5px; }
+.item-req { color: var(--orange); font-size: 13px; font-weight: 700; flex-shrink: 0; padding-top: 2px; }
+
+.item-toggle { display: flex; border-radius: 8px; overflow: hidden; border: 1.5px solid var(--gray-2); }
+[data-theme="dark"] .item-toggle { border-color: var(--gray-5); }
+.item-opt { flex: 1; padding: 10px 0; text-align: center; font-size: 13px; font-weight: 600; border: none; color: var(--gray-4); background: var(--bg-page); cursor: pointer; }
+[data-theme="dark"] .item-opt { background: var(--bg-section); }
+.item-opt + .item-opt { border-left: 1.5px solid var(--gray-2); }
+[data-theme="dark"] .item-opt + .item-opt { border-left-color: var(--gray-5); }
+.item-opt.sel-green { background: var(--green); color: #fff; } .item-opt.sel-red { background: var(--red); color: #fff; } .item-opt.sel-orange { background: var(--orange); color: #fff; } .item-opt.sel-gray { background: var(--gray-4); color: #fff; }
+
+.item-chk-row { display: flex; align-items: center; gap: 10px; }
+.item-chk { width: 26px; height: 26px; border-radius: 7px; border: 1.5px solid var(--gray-3); background: var(--bg-page); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+[data-theme="dark"] .item-chk { border-color: var(--gray-5); background: var(--bg-section); }
+.item-chk.checked { background: var(--green); border-color: var(--green); }
+.item-chk svg { display: none; } .item-chk.checked svg { display: block; }
+.item-chk-lbl { font-size: 13px; font-weight: 500; color: var(--gray-4); }
+
+.item-num-row { display: flex; gap: 8px; align-items: center; }
+.item-num-in { width: 110px; background: var(--bg-page); border: 1.5px solid var(--gray-2); border-radius: 8px; padding: 9px 11px; font-size: 14px; font-weight: 600; color: var(--octave-black); font-family: var(--font-mono); text-align: right; outline: none; }
+[data-theme="dark"] .item-num-in { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
+.item-num-in:focus { border-color: var(--purple); }
+.item-uom { font-size: 12px; color: var(--gray-4); }
+.item-range-hint { font-size: 10px; color: var(--gray-4); font-family: var(--font-mono); margin-top: 4px; }
+.item-textarea { width: 100%; background: var(--bg-page); border: 1.5px solid var(--gray-2); border-radius: 7px; padding: 8px 10px; font-size: 13px; color: var(--octave-black); font-family: var(--font-sans); resize: none; outline: none; line-height: 1.5; margin-top: 2px; }
+[data-theme="dark"] .item-textarea { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
+
+.notes-row { border-top: 1px solid var(--border); display: flex; align-items: center; gap: 6px; padding: 6px 10px; }
+.fu-btn { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; font-size: 11px; font-weight: 600; border: 1px solid var(--gray-2); border-radius: 6px; background: var(--bg-page); color: var(--gray-4); cursor: pointer; }
+[data-theme="dark"] .fu-btn { background: var(--bg-section); border-color: var(--gray-5); }
+.fu-btn.on { background: var(--orange); color: #fff; border-color: var(--orange); }
+.notes-trigger { flex: 1; display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border: 1px solid var(--gray-2); border-radius: 6px; background: var(--bg-page); cursor: pointer; }
+[data-theme="dark"] .notes-trigger { background: var(--bg-section); border-color: var(--gray-5); }
+.notes-placeholder { font-size: 12px; color: var(--gray-4); flex: 1; }
+
+/* Collapsed confirmation row — replaces the full card once answered */
+.collapsed-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--border); background: var(--bg-card); animation: collapseIn .25s ease; }
+@keyframes collapseIn { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: scale(1); } }
+.collapsed-row.hidden-by-filter { display: none; }
+.cr-bar { width: 3px; align-self: stretch; border-radius: 2px; flex-shrink: 0; }
+.cr-bar.g-safety { background: rgba(244,102,0,0.35); } .cr-bar.g-main { background: rgba(153,51,255,0.35); } .cr-bar.g-close { background: rgba(0,170,20,0.35); }
+.cr-check { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.cr-check.green { background: var(--green); } .cr-check.red { background: var(--red); } .cr-check.orange { background: var(--orange); } .cr-check.gray { background: var(--gray-4); }
+.cr-label { flex: 1; font-size: 13px; font-weight: 500; color: var(--gray-4); text-decoration: line-through; }
+.cr-answer { font-size: 11px; font-weight: 700; color: var(--octave-black); flex-shrink: 0; }
+[data-theme="dark"] .cr-answer { color: var(--white); }
+.cr-flag { color: var(--orange); flex-shrink: 0; }
+.cr-edit { font-size: 11px; font-weight: 600; color: var(--purple); background: none; border: none; cursor: pointer; flex-shrink: 0; padding: 4px 2px; }
+
+/* Floating jump-to-next-required button */
+.jump-fab { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(var(--bar-height) + 14px); z-index: 55; display: none; align-items: center; gap: 7px; background: var(--octave-black); color: #fff; border: none; border-radius: 100px; padding: 10px 16px; font-size: 12.5px; font-weight: 700; box-shadow: 0 4px 16px rgba(0,0,0,0.25); cursor: pointer; }
+[data-theme="dark"] .jump-fab { background: var(--white); color: var(--octave-black); }
+.jump-fab.show { display: flex; }
+
+.toast { bottom: calc(var(--bar-height) + 10px); }
+</style>
+</head>
+<body>
+
+<div class="proto-theme-bar">
+  <span class="proto-theme-label">Preview theme — OPTION C: Adaptive Collapse + Filters</span>
+  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+</div>
+
+<div class="app" id="app">
+
+  <header class="nav" onclick="scrollFormToTop()">
+    <div class="nav-left">
+      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation(); showToast('← Back to WO Record View')">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="prototype-label">PROTOTYPE</span>
+    </div>
+    <div class="nav-title">Work Orders</div>
+    <div class="nav-actions"><span id="syncCtrl"></span></div>
+  </header>
+
+  <div class="rec-header" id="recHeader" onclick="scrollFormToTop()">
+    <div class="rec-id-row">
+      <div class="rec-id-text">
+        <span class="rec-num" id="recNum">19257</span>
+        <span class="rec-desc protected" id="recDesc">Pump Cavitating; lost head</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-rail" id="stepRail">
+    <div class="step-rail-collapsed">
+      <div class="step-pill">2 of 5</div>
+      <div class="step-name">Activity Checklist</div>
+      <div class="step-rail-right">
+        <div class="timer-pill" id="timerPill"><div class="timer-dot"></div><span id="timerText">00:00:00</span></div>
+        <svg class="step-chevron" id="stepChevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="step-map" id="stepMap"></div>
+  </div>
+
+  <div class="content" id="content">
+
+    <div class="progress-wrap">
+      <span class="progress-label">Checklist</span>
+      <span class="progress-count" id="progressCount">0 / 7 completed</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+    <div class="filter-chip-row">
+      <div class="filter-chip active" data-filter="all" onclick="setFilter('all')">All <span class="chip-count" id="cnt-all">7</span></div>
+      <div class="filter-chip" data-filter="incomplete" onclick="setFilter('incomplete')">Incomplete <span class="chip-count" id="cnt-incomplete">7</span></div>
+      <div class="filter-chip" data-filter="required" onclick="setFilter('required')">Required <span class="chip-count" id="cnt-required">5</span></div>
+      <div class="filter-chip" data-filter="flagged" onclick="setFilter('flagged')">Flagged <span class="chip-count" id="cnt-flagged">0</span></div>
+    </div>
+
+    <div id="checklist"></div>
+    <div style="height:16px;"></div>
+  </div>
+
+  <!-- Sibling of .content (not a scroll-area child) — anchors to .app,
+       same pattern as .bottom-bar, so it floats over the viewport rather
+       than scrolling away with the list. -->
+  <button class="jump-fab" id="jumpFab" onclick="jumpToNextRequired()">
+    <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Next required item
+  </button>
+
+  <div class="bottom-bar" id="bottomBar">
+    <span class="bar-meta" id="barMeta">Required: 0 / 0</span>
+    <button class="bar-pill bar-pill-locked" id="barBtn" onclick="showToast('Complete all required items first')">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Continue
+    </button>
+  </div>
+
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+</div>
+
+<script src="../shared/eam-shared.js"></script>
+<script>
+const ITEMS = [
+  { id:1, group:'safety', seq:'01', label:'Confirm LOTO applied to all energy sources', required:true, type:'check',
+    instructions:'Ensure all energy isolation points are identified on the P&ID before applying locks.', attachments:[], note:'', followup:false, value:false },
+  { id:2, group:'safety', seq:'02', label:'PPE check — gloves, goggles, steel-cap boots', required:true, type:'check',
+    instructions:'', attachments:[], note:'', followup:false, value:false },
+  { id:3, group:'main', seq:'03', label:'Bearing housing — visual condition', equip:'A-00067333 — Pump, Centrifugal', required:true, type:'toggle3',
+    options:[['Pass','sel-green'],['Fail','sel-red'],['N/A','sel-gray']],
+    instructions:'Inspect all external surfaces for cracks, corrosion, and impact damage.', attachments:['Bearing_Housing_Drawing_Rev4.pdf','Inspection_Photo_Template.jpg'], note:'', followup:false, value:null },
+  { id:4, group:'main', seq:'04', label:'Shaft alignment', equip:'A-00067333 — Pump, Centrifugal', required:false, type:'toggle2',
+    options:[['OK','sel-green'],['Adjusted','sel-orange']], instructions:'', attachments:[], note:'', followup:false, value:null },
+  { id:5, group:'main', seq:'05', label:'Bearing temperature — post run', equip:'A-00067333 — Pump, Centrifugal', required:true, type:'num', uom:'°F', range:'60 – 180 °F',
+    instructions:'', attachments:[], note:'', followup:false, value:'' },
+  { id:6, group:'close', seq:'06', label:'Area restored and barricades removed?', required:true, type:'toggle2',
+    options:[['Yes','sel-green'],['No','sel-red']], instructions:'', attachments:[], note:'', followup:false, value:null },
+  { id:7, group:'close', seq:'07', label:'Work completion notes', required:false, type:'textarea',
+    instructions:'', attachments:[], note:'', followup:false, value:'' },
+];
+const GROUP_NAMES = { safety:'Safety checks', main:'Inspection', close:'Close-out' };
+let currentFilter = 'all';
+
+function isDone(it) {
+  if (it.type === 'check') return !!it.value;
+  if (it.type === 'toggle2' || it.type === 'toggle3') return it.value != null;
+  if (it.type === 'num' || it.type === 'textarea') return String(it.value).trim() !== '';
+  return false;
+}
+function answerText(it) {
+  if (it.type === 'check') return 'Confirmed';
+  if (it.type === 'toggle2' || it.type === 'toggle3') return it.value;
+  if (it.type === 'num') return it.value + ' ' + it.uom;
+  if (it.type === 'textarea') return 'Note added';
+}
+function crClass(it) {
+  if (it.type === 'check' || it.type === 'textarea' || it.type === 'num') return 'green';
+  const opt = it.options.find(o => o[0] === it.value);
+  return opt[1] === 'sel-green' ? 'green' : opt[1] === 'sel-red' ? 'red' : opt[1] === 'sel-orange' ? 'orange' : 'gray';
+}
+function passesFilter(it) {
+  if (currentFilter === 'all') return true;
+  if (currentFilter === 'incomplete') return !isDone(it);
+  if (currentFilter === 'required') return it.required;
+  if (currentFilter === 'flagged') return it.followup;
+  return true;
+}
+
+function itemControlHtml(it) {
+  if (it.type === 'check') {
+    return `<div class="item-chk-row">
+      <div class="item-chk ${it.value?'checked':''}" onclick="toggleCheck(${it.id})"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <span class="item-chk-lbl">Confirmed</span>
+    </div>`;
+  }
+  if (it.type === 'toggle2' || it.type === 'toggle3') {
+    return `<div class="item-toggle">` + it.options.map(([label,cls]) =>
+      `<button class="item-opt" onclick="selectToggle(${it.id},'${label}','${cls}')">${label}</button>`).join('') + `</div>`;
+  }
+  if (it.type === 'num') {
+    return `<div class="item-num-row"><input class="item-num-in" type="number" placeholder="—" oninput="numInput(${it.id}, this.value)"><span class="item-uom">${it.uom}</span></div>
+      ${it.range ? `<p class="item-range-hint">Acceptable range: ${it.range}</p>` : ''}`;
+  }
+  if (it.type === 'textarea') {
+    return `<textarea class="item-textarea" rows="3" placeholder="Describe work performed and any findings…" oninput="textInput(${it.id}, this.value)"></textarea>`;
+  }
+  return '';
+}
+
+function renderOpenItem(it) {
+  return `<div class="checklist-item ${passesFilter(it)?'':'hidden-by-filter'}" data-id="${it.id}">
+    <div class="item-bar g-${it.group}"></div>
+    <div class="item-content">
+      <div class="item-top">
+        <div class="item-main">
+          <div class="item-head">
+            <span class="item-seq">${it.seq}</span>
+            <div class="item-label-wrap">
+              <p class="item-label">${it.label}</p>
+              ${it.equip ? `<span class="item-equip">${it.equip}</span>` : ''}
+            </div>
+            ${it.required ? '<span class="item-req">*</span>' : ''}
+          </div>
+          ${itemControlHtml(it)}
+        </div>
+        <div class="item-rail">
+          <button class="rail-icon ${it.instructions?'has-content':''}" title="Instructions">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="rail-icon ${it.attachments.length?'has-content':''}" title="Attachments">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="notes-row">
+        <button class="fu-btn ${it.followup?'on':''}" onclick="toggleFollowup(${it.id})">🚩 Follow-up</button>
+        <button class="notes-trigger" onclick="showToast('Notes editor — same pattern as current screen')">
+          <span class="notes-placeholder">${it.note || 'Add a note…'}</span>
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderCollapsedItem(it) {
+  return `<div class="collapsed-row ${passesFilter(it)?'':'hidden-by-filter'}" data-id="${it.id}">
+    <div class="cr-bar g-${it.group}"></div>
+    <div class="cr-check ${crClass(it)}"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <span class="cr-label">${it.seq} — ${it.label}</span>
+    <span class="cr-answer">${answerText(it)}</span>
+    ${it.followup ? '<span class="cr-flag">🚩</span>' : ''}
+    <button class="cr-edit" onclick="reopenItem(${it.id})">Edit</button>
+  </div>`;
+}
+
+function renderChecklist() {
+  const root = document.getElementById('checklist');
+  let html = '';
+  let lastGroup = null;
+  ITEMS.forEach(it => {
+    if (it.group !== lastGroup) {
+      const items = ITEMS.filter(x => x.group === it.group);
+      const visible = items.some(passesFilter);
+      const done = items.filter(isDone).length;
+      html += `<div class="group-hdr g-${it.group} ${visible?'':'all-hidden'}">
+        <span class="group-name">${GROUP_NAMES[it.group]}</span>
+        <span class="group-prog">${done} / ${items.length}</span>
+      </div>`;
+      lastGroup = it.group;
+    }
+    html += isDone(it) ? renderCollapsedItem(it) : renderOpenItem(it);
+  });
+  root.innerHTML = html;
+  updateProgress();
+  updateFilterCounts();
+  updateJumpFab();
+}
+
+function updateProgress() {
+  const done = ITEMS.filter(isDone).length;
+  document.getElementById('progressFill').style.width = Math.round(done/ITEMS.length*100) + '%';
+  document.getElementById('progressCount').textContent = done + ' / ' + ITEMS.length + ' completed';
+  const req = ITEMS.filter(i => i.required);
+  const reqDone = req.filter(isDone).length;
+  document.getElementById('barMeta').textContent = 'Required: ' + reqDone + ' / ' + req.length;
+  document.getElementById('bottomBar').style.display = (reqDone === req.length) ? 'none' : 'flex';
+}
+function updateFilterCounts() {
+  document.getElementById('cnt-all').textContent = ITEMS.length;
+  document.getElementById('cnt-incomplete').textContent = ITEMS.filter(i => !isDone(i)).length;
+  document.getElementById('cnt-required').textContent = ITEMS.filter(i => i.required).length;
+  document.getElementById('cnt-flagged').textContent = ITEMS.filter(i => i.followup).length;
+}
+function updateJumpFab() {
+  const nextReq = ITEMS.find(i => i.required && !isDone(i));
+  document.getElementById('jumpFab').classList.toggle('show', !!nextReq && currentFilter === 'all');
+}
+function jumpToNextRequired() {
+  const nextReq = ITEMS.find(i => i.required && !isDone(i));
+  if (!nextReq) return;
+  const row = document.querySelector(`[data-id="${nextReq.id}"]`);
+  if (row) { row.scrollIntoView({ behavior: 'smooth', block: 'center' }); row.style.outline = '2px solid var(--purple)'; setTimeout(() => row.style.outline = 'none', 900); }
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('active', c.dataset.filter === f));
+  renderChecklist();
+}
+
+function toggleCheck(id) { const it = ITEMS.find(x=>x.id===id); it.value = !it.value; renderChecklist(); }
+function selectToggle(id, label, cls) { const it = ITEMS.find(x=>x.id===id); it.value = label; renderChecklist(); }
+function numInput(id, val) { ITEMS.find(x=>x.id===id).value = val; }
+function textInput(id, val) { ITEMS.find(x=>x.id===id).value = val; }
+function toggleFollowup(id) { const it = ITEMS.find(x=>x.id===id); it.followup = !it.followup; renderChecklist(); }
+function reopenItem(id) { const it = ITEMS.find(x=>x.id===id); it.value = it.type==='check' ? false : (it.type==='num'||it.type==='textarea' ? '' : null); renderChecklist(); }
+
+// numInput/textInput above intentionally don't re-render on every keystroke
+// (would blur the input); commit + re-collapse happens on blur instead.
+document.addEventListener('blur', (e) => {
+  if (e.target.classList && (e.target.classList.contains('item-num-in') || e.target.classList.contains('item-textarea'))) {
+    if (e.target.value.trim()) renderChecklist();
+  }
+}, true);
+
+renderChecklist();
+startStepTimer();
+initSharedApp({ contentSelector: '#content' });
+</script>
+</body>
+</html>

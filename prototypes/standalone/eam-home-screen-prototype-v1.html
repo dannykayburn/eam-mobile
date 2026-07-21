@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HxGN EAM Mobile — Home v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-shared.css">
+<!--
+  HOME SCREEN — session riff, first pass (2026-07-16). Loads the two
+  shared files per docs/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md;
+  this file only adds Home-specific markup/data plus a few new
+  screen-local components (bottom nav, favorites chip row, quick-create
+  breaker, home tile grid) that have exactly one consumer so far — kept
+  local here rather than promoted into shared/eam-shared.css, same
+  "promote on 2nd real consumer" pattern CLAUDE.md already documents for
+  every other shared component. The nav avatar (top-left, browsing tier)
+  is the one exception, promoted to eam-shared.css immediately (2026-07-16)
+  rather than held local — it's nav-bar chrome per §4.2, same category as
+  .nav-back which has lived there from day one, not gated behind a usage
+  count the way genuinely Home-specific content is.
+
+  Nav-bar mechanics below implement docs/design-decisions-v3-1.md §4.2
+  (bottom nav + avatar/back toggle) and §9.4 (Insert Mode's two-pill
+  header for Home's Create action) — both locked. The tile/chip CONTENT
+  itself (which dataspies, tile shapes, counts) is still an open session
+  riff, not written into that doc.
+
+  Known simplifications, flagged rather than hidden:
+  - WO favorites (§8.3, revised 2026-07-20) are real now — read from
+    localStorage, written by eam-wo-list-prototype-v5_1.html's own
+    dataspy-selector star toggle, same origin/local server. Their counts
+    are still not computed live (would mean pulling in the real WOS
+    dataset + filter engine from that file, out of scope here), so a WO
+    favorite chip just omits the count badge entirely. The Home tile
+    grid below is unaffected — still static demo numbers.
+  - Long-press enters "reorder mode" (jiggle + Done bar), but the actual
+    reordering is done via ‹ › arrows per item, not continuous drag —
+    a deliberate, fully-working simplification rather than a half-built
+    drag implementation.
+  - Insert Mode's Type/Status header box (§9.4) is genuinely wired per
+    entity: Work Order reuses the real TYPE_META colours from
+    eam-wo-record-view-prototype-v1.html and a real WO status set. For
+    Equipment, "Type" becomes "Class" (Equipment's closest real analog —
+    it has no colour-coded Type field of its own, §5.2's Class/Category/
+    Manufacturer/Criticality are all plain attr-text there) reusing the
+    real PUMP/VALVE/COMPRESSOR class values; its badge *colours* are new,
+    not reused, since none exist on the real screen to reuse. Status IS
+    fully reused for Equipment (real Operational/Down/Standby colours).
+-->
+<style>
+/* ── BOTTOM NAV BAR (§4.2) — .bottom-nav/.bottom-nav-item/.bottom-nav-badge
+   promoted to eam-shared.css 2026-07-21 (UI inventory pass): this was the
+   1st of 2 consumers, already past this file's own "promote on 2nd real
+   consumer" threshold but never actually moved — fixed there instead of
+   re-duplicated here. .home-body's bottom padding below is sized to clear
+   it; still position:absolute + backdrop-filter over real scrollable
+   content (docs/reference_screenshots/jr home 1.png), not a flat fill. */
+/* Icon+badge share a tight wrapper sized to the icon itself, not the
+   button (which is wider than its icon whenever the label — e.g.
+   "Notifications" — is the long one) — the badge overlaps the icon's own
+   corner instead of drifting toward the button's outer edge. */
+.nav-icon-wrap{position:relative;display:flex;}
+
+/* ── HOME BODY ── */
+.home-body{flex:1;overflow-y:auto;padding:14px 14px 78px;}
+/* Section titles — bumped from a muted caption to a bold, high-contrast
+   label (classic black/white, no color) so "Favorites"/"My Work"/
+   "Reference" read as real section dividers rather than fine print. */
+.home-section-label{display:flex;align-items:center;gap:6px;font-size:15px;font-weight:800;letter-spacing:.1px;color:var(--octave-black);margin:22px 2px 10px;}
+[data-theme="dark"] .home-section-label{color:var(--white);}
+.home-section-label:first-child{margin-top:2px;}
+/* Outline star next to "Favorites" (§home riff) — same star used for the
+   dataspy favorite toggle elsewhere (ico-star, above), so the section
+   ties visually to that "star = favorite" language. currentColor, not a
+   hardcoded black, so it matches the label's own black/white theme flip
+   for free rather than needing its own dark-mode override. */
+.fav-section-star{width:15px;height:15px;fill:none;stroke:currentColor;flex-shrink:0;}
+
+/* Greeting strip — top of the scrolling body, ahead of Favorites.
+   Time-of-day greeting only, no due-today/status count — there's no
+   methodical way for an admin to configure what that count would even
+   mean yet, so showing one would be misleading rather than useful.
+   Single consumer, screen-local. */
+.home-greeting{font-size:15px;font-weight:700;color:var(--octave-black);margin:2px 2px 4px;}
+[data-theme="dark"] .home-greeting{color:rgba(255,255,255,.92);}
+
+/* Favorites — dataspy chip row, horizontally scrollable, no visible
+   scrollbar (the underlying scroll works fine on a touch device without
+   one; this is a desktop-preview-only affordance otherwise, §home riff).
+   Chips are a vertical icon-over-name stack — no count badge is surfaced
+   here since the screen icon already disambiguates which screen a
+   favorite belongs to and that was judged sufficient on its own.
+   Height is content-driven (min-height only, not a fixed height) — a
+   fixed height left short names like "Pumps" sitting in a box sized for
+   worst case, all dead space below the text. One consistent rule
+   instead: min-width/max-width bound the width (short names stay
+   compact, long ones get more room before wrapping), min-height gives
+   every chip the same one-line floor, and the name just wraps to as
+   many lines as it actually needs — no line-clamp/ellipsis, so nothing
+   clips even at dataspy-name-field-length extremes (~80 chars: wraps to
+   several lines and the chip grows taller, but never truncates). */
+.fav-row{display:flex;align-items:flex-start;gap:8px;overflow-x:auto;margin:0 -14px;padding:0 14px 4px;-ms-overflow-style:none;scrollbar-width:none;}
+.fav-row::-webkit-scrollbar{display:none;}
+.fav-chip{flex-shrink:0;min-height:74px;min-width:80px;max-width:150px;display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:18px;padding:14px 8px 10px;font-size:11px;font-weight:600;color:var(--octave-black);text-align:center;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;}
+[data-theme="dark"] .fav-chip{color:rgba(255,255,255,.92);}
+.fav-chip-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.fav-chip-icon svg{width:15px;height:15px;}
+.fav-chip-name{line-height:1.25;overflow-wrap:break-word;}
+.fav-chip.reordering{animation:home-jiggle .22s ease-in-out infinite;}
+
+/* Quick-create bar — pinned strip between the header and the scrolling
+   body (outside .home-body so it never scrolls away, same "outside the
+   scroll container" pattern .reorder-done-bar already uses at the bottom
+   of this screen). Opens the two-pill Insert Mode sheet (§9.4). Filled
+   the reverse of the Favorites chips below it (chips: light fill/dark
+   text; this: dark fill/white text) so it still reads as the one
+   deliberately prominent action. var(--bg-nav) rather than a literal
+   black so it stays consistent (and stays reversed relative to the
+   chips) across the light/dark theme toggle.
+   Also opts into the generic .scroll-collapse mechanism (§5.3, same
+   threshold/hysteresis scroll listener that already drives #recHeader's
+   status row on Record View — generalized in eam-shared.js for this,
+   its 2nd consumer) so it collapses away as the user scrolls down and
+   reappears once they scroll back near the top — no bespoke JS needed
+   here, just the shared class + this file's own collapsed-state CSS. */
+.create-bar{flex-shrink:0;padding:10px 14px 12px;border-bottom:1px solid var(--border);overflow:hidden;max-height:100px;opacity:1;transition:max-height .22s ease,opacity .18s ease,padding .22s ease,border-color .22s ease;}
+.create-bar.scrolled{max-height:0;opacity:0;padding-top:0;padding-bottom:0;border-bottom-color:transparent;}
+.create-pill{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--bg-nav);border:none;border-radius:100px;padding:13px 0;font-size:14px;font-weight:700;color:#fff;cursor:pointer;font-family:var(--font-sans);}
+.create-pill svg{width:16px;height:16px;color:#fff;}
+/* Dark theme: --bg-nav sits too close in value to --bg-page to read as a
+   true reversal of the (lighter, in dark mode) chips above it — flip to
+   a light fill instead so "reverse of the chips" holds in both themes,
+   not just light. */
+[data-theme="dark"] .create-pill{background:var(--white);color:var(--octave-black);}
+[data-theme="dark"] .create-pill svg{color:var(--octave-black);}
+
+/* Home tiles — "Tile A": square icon block + corner badge + label
+   outside/below, closest to the Digital Work Home reference. Sections
+   ("My Work" / "My Equipment") follow the same horizontally-scrolling
+   row mechanic as Favorites (.fav-row) instead of a fixed-column grid —
+   there's no cap on how many tiles a user can add to a section, and a
+   scroll row absorbs that growth without the page getting taller, the
+   way an ever-wrapping grid would. Sized a notch above Favorites (84px
+   vs. 76px) — deliberately, so the two rows still read as different
+   scopes even though they now share the same scroll-row mechanic.
+   Top padding on the row bumped 0→10px: the corner badge pokes above
+   the tile via a negative offset, and `overflow-x:auto` here forces
+   `overflow-y` to compute as `auto` too (CSS spec — a row can't scroll
+   one axis and stay `visible` on the other), which was clipping the
+   badge's overhang with no top padding to give it room. */
+.home-tilegrid{display:flex;gap:10px;overflow-x:auto;margin:6px -14px 0;padding:10px 14px 4px;-ms-overflow-style:none;scrollbar-width:none;}
+.home-tilegrid::-webkit-scrollbar{display:none;}
+.home-tile{flex-shrink:0;width:84px;display:flex;flex-direction:column;align-items:center;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;}
+.home-tile-sq{width:100%;aspect-ratio:1;max-width:84px;border-radius:18px;display:flex;align-items:center;justify-content:center;position:relative;}
+.home-tile-sq svg{width:32px;height:32px;}
+.home-tile-badge{position:absolute;top:-7px;right:-7px;background:var(--octave-black);color:var(--white);font-size:11px;font-weight:700;font-family:var(--font-sans);border-radius:100px;padding:2px 6px;min-width:19px;text-align:center;line-height:1.3;border:2px solid var(--bg-page);}
+[data-theme="dark"] .home-tile-sq{background-color:rgba(255,255,255,.06) !important;}
+[data-theme="dark"] .home-tile-badge{border-color:var(--bg-page);}
+.home-tile-label{font-size:12px;font-weight:500;color:var(--octave-black);text-align:center;margin-top:7px;line-height:1.3;}
+[data-theme="dark"] .home-tile-label{color:rgba(255,255,255,.85);}
+.home-tile.reordering .home-tile-sq{animation:home-jiggle .22s ease-in-out infinite;}
+.reorder-arrows{display:flex;gap:4px;margin-top:5px;}
+.reorder-arrow{width:20px;height:20px;border-radius:50%;border:1px solid var(--border-strong);background:var(--bg-card);color:var(--octave-black);font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;cursor:pointer;}
+[data-theme="dark"] .reorder-arrow{color:rgba(255,255,255,.85);}
+.reorder-arrow:disabled{opacity:.3;cursor:default;}
+
+@keyframes home-jiggle{0%{transform:rotate(-1.5deg);}50%{transform:rotate(1.5deg);}100%{transform:rotate(-1.5deg);}}
+
+.reorder-done-bar{display:none;flex-shrink:0;background:var(--bg-nav);padding:10px 14px;text-align:center;}
+.reorder-done-bar.active{display:block;}
+.reorder-done-btn{background:none;border:none;color:var(--white);font-size:13px;font-weight:700;font-family:var(--font-sans);cursor:pointer;}
+
+/* ── INSERT MODE two-pill header (§9.4) — chains the new Screen/entity
+   pill in front of the existing Organization pill, same .org-pill
+   component reused for both. Local to this file — the only consumer of
+   the two-pill variant so far; every other Insert Mode entry point keeps
+   §9.3's single org-pill-or-none treatment untouched. ── */
+.im-pill-row{display:flex;align-items:center;gap:8px;padding:14px 16px 6px;flex-wrap:wrap;}
+.im-pill-connector{color:var(--gray-3);flex-shrink:0;display:flex;}
+.im-pill-connector svg{width:13px;height:13px;}
+.im-entity-pill svg{width:13px;height:13px;color:var(--gray-4);}
+
+/* ── Profile menu identity row (§4.3) — not reused from anywhere, since
+   no other .rec-actions-menu consumer has an identity display at its top;
+   local until a 2nd consumer wants one. Reuses .nav-avatar itself for the
+   small photo/initials circle rather than a second avatar component. ── */
+.profile-menu-identity{display:flex;align-items:center;gap:10px;padding:12px 16px 10px;}
+.profile-menu-name{font-size:14px;font-weight:600;color:var(--octave-black);}
+[data-theme="dark"] .profile-menu-name{color:rgba(255,255,255,.92);}
+.profile-menu-org{font-size:12px;color:var(--gray-4);margin-top:1px;}
+</style>
+</head>
+<body>
+
+<!-- SVG icon definitions — reused via <use href="#ico-...">, same
+     duplicate-per-file convention as every other standalone (no shared
+     sprite exists yet — see eam-wo-list-prototype-v5_1.html's own copy
+     of this pattern). Only ico-droplet is new; everything else already
+     exists verbatim in that file. -->
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <symbol id="ico-tool" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>
+    </symbol>
+    <symbol id="ico-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </symbol>
+    <symbol id="ico-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </symbol>
+    <symbol id="ico-cloud-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17.5 19H9a7 7 0 113.56-13.04A5 5 0 0118 11a3.5 3.5 0 01-.5 7z"/>
+      <polyline points="9,12 11,14 15,10"/>
+    </symbol>
+    <!-- §4.4.1 error state — cloud-exclamation, added 2026-07-20 for the
+         Sync Status Screen demo (needs at least one screen showing a
+         non-Synced icon to reach the panel from). -->
+    <symbol id="ico-cloud-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17.5 19H9a7 7 0 113.56-13.04A5 5 0 0118 11a3.5 3.5 0 01-.5 7z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </symbol>
+    <symbol id="ico-chevdown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6,9 12,15 18,9"/>
+    </symbol>
+    <symbol id="ico-chevright" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="9,18 15,12 9,6"/>
+    </symbol>
+    <symbol id="ico-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20,6 9,17 4,12"/>
+    </symbol>
+    <symbol id="ico-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </symbol>
+    <symbol id="ico-cal-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+      <polyline points="9,16 11,18 15,14"/>
+    </symbol>
+    <symbol id="ico-package" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/>
+      <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+      <polyline points="3.27,6.96 12,12.01 20.73,6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+    </symbol>
+    <symbol id="ico-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/>
+    </symbol>
+    <!-- new: pump/fluid-equipment stand-in, no existing icon for this -->
+    <symbol id="ico-droplet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2.5c4 5 7 9.2 7 12.5a7 7 0 11-14 0c0-3.3 3-7.5 7-12.5z"/>
+    </symbol>
+    <!-- Same star as eam-wo-list-prototype-v5_1.html's dataspy favorite
+         toggle (§8.3) — reused verbatim so this reads as the same "star
+         = favorite" language as the rest of the app, not a new symbol.
+         Outline-only here (fill:none via .fav-section-star, no .favorited
+         toggle state needed) since this is a decorative label icon, not
+         an interactive favorite button. -->
+    <symbol id="ico-star" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2.5l3.09 6.26 6.91 1-5 4.87 1.18 6.88L12 18.27l-6.18 3.24L7 14.63l-5-4.87 6.91-1L12 2.5z"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="proto-theme-bar">
+  <span class="proto-theme-label">Preview theme</span>
+  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+</div>
+
+<div class="app" id="app">
+
+  <header class="nav" onclick="scrollFormToTop()">
+    <div class="nav-left">
+      <button class="nav-avatar" onclick="event.stopPropagation();toggleProfileMenu()" aria-label="Profile">
+        <img class="nav-avatar-img" src="shared/img/bcampbell.jpg" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <span class="nav-avatar-initials" style="display:none;">BC</span>
+      </button>
+      <span class="prototype-label">PROTOTYPE</span>
+    </div>
+    <!-- §4.3 Profile dropdown — 100% reused: same .rec-actions-menu/
+         .rec-actions-item/.rec-actions-divider component every other
+         header ellipsis menu already uses, just left-anchored under the
+         avatar instead of right-anchored under an ellipsis. Dummy content
+         for this pass; real Settings/session scope still undecided. -->
+    <div class="rec-actions-menu anchor-left" id="profileMenu">
+      <div class="profile-menu-identity">
+        <span class="nav-avatar" style="cursor:default;">
+          <img class="nav-avatar-img" src="shared/img/bcampbell.jpg" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+          <span class="nav-avatar-initials" style="display:none;">BC</span>
+        </span>
+        <div>
+          <div class="profile-menu-name">Bruce Campbell</div>
+          <div class="profile-menu-org">Water Utility</div>
+        </div>
+      </div>
+      <div class="rec-actions-divider"></div>
+      <div class="rec-actions-item" onclick="closeProfileMenu();showToast('Settings — coming soon')">Settings</div>
+      <div class="rec-actions-divider"></div>
+      <div class="rec-actions-item danger" onclick="closeProfileMenu();showToast('Logged out — coming soon')">Log out</div>
+    </div>
+    <div class="nav-title">Home</div>
+    <div class="nav-actions">
+      <span id="syncCtrl"></span>
+    </div>
+  </header>
+
+  <div class="create-bar scroll-collapse">
+    <button class="create-pill" onclick="openInsertModeFromHome()">
+      <svg viewBox="0 0 24 24"><use href="#ico-plus"/></svg>
+      Create
+    </button>
+  </div>
+
+  <div class="home-body">
+    <div class="home-greeting" id="homeGreeting"></div>
+
+    <div class="home-section-label">Favorites<svg class="fav-section-star" viewBox="0 0 24 24"><use href="#ico-star"/></svg></div>
+    <div class="fav-row" id="favRow"></div>
+
+    <div class="home-section-label">My Work</div>
+    <div class="home-tilegrid" id="homeTileGridMyWork"></div>
+
+    <div class="home-section-label">My Equipment</div>
+    <div class="home-tilegrid" id="homeTileGridReference"></div>
+
+    <div class="home-section-label">Reference Section</div>
+    <div class="home-tilegrid" id="homeTileGridRefSection"></div>
+  </div>
+
+  <div class="reorder-done-bar" id="reorderDoneBar">
+    <button class="reorder-done-btn" onclick="exitReorderMode()">Done</button>
+  </div>
+
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="bottom-nav-item active" onclick="showToast('Already on Home')">
+      <span class="nav-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></span>
+      Home
+    </button>
+    <button class="bottom-nav-item" onclick="showToast('Work — coming soon')">
+      <span class="nav-icon-wrap"><svg viewBox="0 0 24 24"><use href="#ico-tool"/></svg></span>
+      Work
+    </button>
+    <button class="bottom-nav-item" onclick="showToast('Notifications — coming soon')">
+      <span class="nav-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        <span class="bottom-nav-badge" id="notifBadge">3</span>
+      </span>
+      Notifications
+    </button>
+  </nav>
+
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <!-- Sync panel (§4.4.2) — opened from the sync icon in the header
+       below. Content rendered by openSyncPanel() in eam-shared.js
+       (shared with the Sync Status Screen, its 2nd real consumer, so
+       the markup shell here is the only Home-local piece). Review
+       navigates to eam-sync-status-prototype-v1.html. -->
+  <div class="bottom-sheet" id="syncPanelSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Sync Status</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sync-panel-state" id="syncPanelStateLabel"></div>
+    <div class="sheet-body" id="syncPanelList"></div>
+    <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
+  </div>
+
+  <div class="bottom-sheet" id="lovSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="lovSheetTitle">Select value</div>
+      <button class="sheet-clear-btn" id="lovClearBtn" onclick="clearLov()">Clear</button>
+    </div>
+    <div class="lov-search-row" id="lovSearchRow">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input class="lov-search-input" id="lovSearchInput" placeholder="Search" oninput="filterLovOptions(this.value)">
+    </div>
+    <div class="sheet-body" id="lovSheetBody"></div>
+  </div>
+
+  <!-- EQUIPMENT LOV (§15.5/§9, named 2026-07-21, docs/component-library.md)
+       — Insert Mode's Equipment field now uses the same full Search+
+       Structure picker as WO Record View, not a plain generic LOV sheet.
+       Markup copied verbatim from eam-wo-record-view-prototype-v1.html —
+       shared CSS/JS in eam-shared.css/.js drives both. -->
+  <div class="hyperlink-popup" id="equipmentPopup">
+    <div class="insert-mode-header">
+      <button class="sheet-close" onclick="closeHyperlinkPopup('equipmentPopup')">✕</button>
+      <div class="insert-mode-title">Select Equipment</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="mode-tog">
+      <button class="mode-btn active" id="equipTabBtnSearch" onclick="switchEquipTab('search')">Search</button>
+      <button class="mode-btn" id="equipTabBtnStructure" onclick="switchEquipTab('structure')">Structure</button>
+    </div>
+    <div class="insert-mode-body" id="equipmentPopupBody">
+      <div id="equipTabSearch">
+        <div id="equipSearchShell"></div>
+      </div>
+      <div id="equipTabStructure" style="display:none;">
+        <div class="tree-wrap" id="equipTreeBody"></div>
+      </div>
+    </div>
+  </div>
+  <div class="qr-scan-overlay" id="qrScanOverlay">
+    <div class="qr-scan-header">
+      <button class="qr-scan-close" onclick="closeEquipScan()" aria-label="Close scanner">✕</button>
+    </div>
+    <div class="qr-scan-body">
+      <div class="qr-scan-reticle"></div>
+      <div class="qr-scan-hint">Point camera at the equipment's QR code</div>
+    </div>
+    <div class="qr-scan-footer">
+      <button class="insert-save-btn ready" onclick="simulateQrScan()">Simulate scan</button>
+    </div>
+  </div>
+
+  <!-- Date + text-editor sheets — added 2026-07-20 alongside the real
+       Description/Date Reported fields below (openTextEditor()/openDate()
+       need both to exist; this file had neither before, since Insert Mode
+       previously stopped at a non-functional Description tap). Markup
+       copied verbatim from the canonical shared pattern. -->
+  <div class="bottom-sheet" id="dateSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="dateSheetTitle">Select date</div>
+      <button class="sheet-clear-btn" id="dateClearBtn" onclick="clearDate()">Clear</button>
+    </div>
+    <div class="sheet-body">
+      <div class="cal-header">
+        <button class="cal-nav-btn" onclick="calNavMonth(-1)">‹</button>
+        <span class="cal-month-label" id="calMonthLabel">July 2026</span>
+        <button class="cal-nav-btn" onclick="calNavMonth(1)">›</button>
+      </div>
+      <div class="cal-weekdays"><span class="cal-weekday">Sun</span><span class="cal-weekday">Mon</span><span class="cal-weekday">Tue</span><span class="cal-weekday">Wed</span><span class="cal-weekday">Thu</span><span class="cal-weekday">Fri</span><span class="cal-weekday">Sat</span></div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+  </div>
+
+  <div class="bottom-sheet text-editor-sheet" id="textEditorSheet">
+    <div class="text-editor-header">
+      <div class="text-editor-left">
+        <button class="text-editor-close" id="textEditorCloseBtn" onclick="textEditorCloseTap()">✕</button>
+        <button class="text-editor-discard" id="textEditorDiscard" onclick="textEditorConfirmDiscard()">Discard unsaved changes</button>
+      </div>
+      <div class="text-editor-title" id="textEditorTitle">Edit</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="text-editor-body"><textarea class="text-editor-textarea" id="textEditorTextarea" oninput="textEditorInputChanged()" placeholder="Type here…"></textarea></div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveTextEditor()">Save</button></div>
+  </div>
+
+  <!-- Insert Mode (§9.1–§9.4) — Home's Create entry point. Two-pill
+       header (Screen/entity → Organization) instead of §9.3's single
+       org-pill, since Home's Create isn't already scoped to one record
+       type the way a list screen's own + or a List/Detail tab's own Plus
+       already are. -->
+  <div class="insert-mode-sheet" id="insertModeSheet">
+    <div class="insert-mode-handle-row" id="insertModeHandle"><div class="sheet-handle"></div></div>
+    <div class="insert-mode-header">
+      <button class="sheet-close" onclick="closeInsertMode()">✕</button>
+      <div class="insert-mode-title">Create</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="insert-mode-body">
+      <div class="im-pill-row">
+        <button class="org-pill im-entity-pill" data-field="insertEntity" onclick="openEntityPicker()">
+          <span id="fv-insertEntity-icon"></span>
+          <span class="field-value" id="fv-insertEntity-desc">Work order</span>
+          <svg class="org-pill-chevron" width="12" height="12" viewBox="0 0 24 24"><use href="#ico-chevdown"/></svg>
+        </button>
+        <span class="im-pill-connector"><svg viewBox="0 0 24 24"><use href="#ico-chevright"/></svg></span>
+        <button class="org-pill" data-field="insertOrganization" onclick="openLov('insertOrganization')">
+          <span class="field-value" id="fv-insertOrganization-code">ORG1</span>
+          <svg class="org-pill-chevron" width="12" height="12" viewBox="0 0 24 24"><use href="#ico-chevdown"/></svg>
+        </button>
+      </div>
+
+      <!-- Equipment reference field (§15.5/§9.3 shared component) — WO
+           entity only, same relative position as WO's own Insert Mode
+           (above the Type/Status header box). Hidden for the Equipment
+           entity, which has no equipment-reference field of its own. -->
+      <div class="section-card" id="insertEquipCard">
+        <div id="insertEquipMount"></div>
+      </div>
+
+      <div class="section-card">
+        <div class="equip-attrs">
+          <div class="attr-item required" data-field="insertType" onclick="openLov('insertType')">
+            <span class="attr-label" id="imTypeLabel">Type</span>
+            <div class="attr-value">
+              <span class="attr-badge" id="fv-insertType-badge"></span>
+              <span class="attr-text" id="fv-insertType-desc"></span>
+            </div>
+          </div>
+          <div class="attr-item required" data-field="insertStatus" onclick="openLov('insertStatus')">
+            <span class="attr-label">Status</span>
+            <div class="attr-value">
+              <span class="attr-badge" id="fv-insertStatus-badge"></span>
+              <span class="attr-text" id="fv-insertStatus-desc"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="form-field" data-field="insertDescription" onclick="openTextEditor('insertDescription','Description')">
+          <span class="field-label">Description</span>
+          <span class="field-value muted" id="fv-insertDescription">Tap to add…</span>
+          <span class="field-chevron">›</span>
+        </div>
+      </div>
+      <!-- Flat fields container, required-first (§9.3 point 5 — no Screen
+           Designer yet; field sets below match WO List's/Equipment's own
+           real required fields, built 2026-07-20). Regenerated per entity
+           by renderFlatFields() below on every entity switch. -->
+      <div class="section-card">
+        <div id="insertFlatFieldsMount"></div>
+      </div>
+
+      <!-- Comments + Documents (§9.3 point 6 — both entities include both,
+           starting empty, same call as WO List's own Insert Mode). -->
+      <div class="section-card">
+        <div class="section-card-header"><span class="section-card-title">Comments</span></div>
+        <div id="insertCommentsList">
+          <div class="comment-add-row" onclick="openTextEditor('__insertComment','Add Comment',(t)=>addComment(t,'insertCommentsList'))">
+            <span class="comment-add-plus">+</span> Add comment
+          </div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-card-header"><span class="section-card-title">Documents</span></div>
+        <div class="comment-add-row" onclick="showToast('Attach document — coming soon')">
+          <span class="comment-add-plus">+</span> Add document
+        </div>
+      </div>
+    </div>
+    <div class="insert-mode-footer">
+      <button class="insert-save-btn" id="insertSaveBtn" onclick="saveHomeInsertRecord()">Create</button>
+    </div>
+  </div>
+
+  <div class="bottom-sheet" id="commentActionsSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Comment Actions</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sheet-body" id="commentActionsBody"></div>
+  </div>
+
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-modal">
+      <div class="confirm-message" id="confirmMessage">Are you sure?</div>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="confirm-btn confirm-danger" id="confirmDangerBtn" onclick="confirmDangerAction()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+</div>
+
+<script src="shared/eam-shared.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   FAVORITES (dataspy chips), revised 2026-07-20 — see the note below for
+   the WO List integration. All entries deliberately read narrower than
+   the Home tiles further down, so the two rows read as different scopes,
+   not duplicates (original session riff ask).
+   ═══════════════════════════════════════════════════════════════════════ */
+/* WO dataspy favorites now come from eam-wo-list-prototype-v5_1.html's
+   own dataspy-selector star toggle (§8.3, revised 2026-07-20) — not
+   hardcoded here anymore. Both files share one origin (this local
+   server), so localStorage under the same key is a real cross-file
+   channel: favoriting "High Priority — Open" there writes {id:'ds3',
+   name:'High Priority — Open'} to LS_FAVORITE_DS_KEY, and this file just
+   reads it back on load. No live count is computed for these (would mean
+   pulling in WO List's own WOS dataset + filter engine — the same
+   known-simplification the file header already flags for the static
+   tiles below), so a WO favorite chip just shows no count badge at all
+   rather than fabricate one. fav3 (Equipment) has no live favoriting
+   source yet — no Equipment List screen exists — so it stays a static
+   seed entry, same as before. */
+const LS_FAVORITE_DS_KEY = 'eamFavoriteDataspies';
+function loadWoFavorites() {
+  try {
+    const raw = localStorage.getItem(LS_FAVORITE_DS_KEY);
+    return raw ? (JSON.parse(raw) || []) : [];
+  } catch (e) { return []; }
+}
+let FAVORITES = [
+  ...loadWoFavorites().map(f => ({ id: f.id, screen: 'wo', name: f.name })),
+  { id:'fav3', screen:'equip', name:'Centrifugal Pumps', count:3 },
+];
+// Screen-identity colour/icon — purple+wrench for Work Orders, teal+box
+// for Equipment, same pairing already used on the bottom nav and the
+// Equipment home tile below. This is what lets two similarly-named
+// favorites from different screens stay visually distinguishable.
+const SCREEN_META = {
+  wo:    { icon:'tool',    color:'#9933FF' },
+  equip: { icon:'package', color:'#007B87' },
+};
+
+/* ═══════════════════════════════════════════════════════════════════════
+   HOME TILES — "Tile A": icon square + corner badge + label below,
+   closest to the Digital Work Home reference tile. Corrective/PM reuse
+   the real WO type colours (CM/PM) from TYPE_META in
+   eam-wo-record-view-prototype-v1.html; Equipment/Pumps reuse the real
+   Class=PUMP value from eam-equipment-record-view-prototype-v1.html.
+   Counts are static demo numbers — see file-header note on why a live
+   dataspy count isn't wired up in this pass.
+   ═══════════════════════════════════════════════════════════════════════ */
+let HOME_TILES = [
+  { id:'tile1', name:"Corrective WO's",   icon:'tool',     color:'#F46600', count:18,  group:'mywork' },
+  { id:'tile2', name:"My PM WO's",        icon:'cal-check', color:'#00AA14', count:12,  group:'mywork' },
+  { id:'tile3', name:'Equipment',         icon:'package',   color:'#007B87', count:134, group:'reference' },
+  { id:'tile4', name:'Pumps',             icon:'droplet',    color:'#007B87', count:9,   group:'reference' },
+  // Reference Section — WO shortcuts too, but scoped to closed/historical
+  // work rather than open work (§home riff). Same "coming soon" tap stub
+  // as every other tile for now (onItemTap below) — mapped to a real WO
+  // List dataspy later, not built this pass.
+  { id:'tile5', name:"My Closed WO's",    icon:'check',    color:'#9933FF', count:7,   group:'refsection' },
+  { id:'tile6', name:"Last Week's Work",  icon:'clock',    color:'#9933FF', count:4,   group:'refsection' },
+];
+
+/* ═══ Local-only ordering (long-press reorder, §home riff) — persisted to
+   localStorage, never synced. Order-of-ids only; content stays the arrays
+   above. ═══ */
+const LS_FAV_KEY = 'eamHomeFavOrder', LS_TILE_KEY = 'eamHomeTileOrder';
+function applyStoredOrder(list, key) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(key) || 'null');
+    if (!Array.isArray(saved)) return list;
+    const byId = Object.fromEntries(list.map(x => [x.id, x]));
+    const ordered = saved.map(id => byId[id]).filter(Boolean);
+    list.forEach(x => { if (!ordered.includes(x)) ordered.push(x); });
+    return ordered;
+  } catch (e) { return list; }
+}
+FAVORITES = applyStoredOrder(FAVORITES, LS_FAV_KEY);
+HOME_TILES = applyStoredOrder(HOME_TILES, LS_TILE_KEY);
+
+let reorderTarget = null; // null | 'fav' | 'tile'
+let pressTimer = null, pressStartXY = null, didLongPress = false;
+
+function onItemPointerDown(e, kind, id) {
+  if (reorderTarget) return; // already reordering — arrows handle movement, ignore container presses
+  didLongPress = false;
+  pressStartXY = { x: e.clientX, y: e.clientY };
+  const el = e.currentTarget;
+  clearTimeout(pressTimer);
+  pressTimer = setTimeout(() => { didLongPress = true; startReorder(kind); }, 500);
+  const cancel = () => clearTimeout(pressTimer);
+  const moveHandler = (ev) => {
+    if (Math.abs(ev.clientX - pressStartXY.x) > 8 || Math.abs(ev.clientY - pressStartXY.y) > 8) cancel();
+  };
+  el.addEventListener('pointerup', function up() {
+    cancel();
+    el.removeEventListener('pointermove', moveHandler);
+    if (!didLongPress) onItemTap(kind, id);
+  }, { once: true });
+  el.addEventListener('pointerleave', cancel, { once: true });
+  el.addEventListener('pointermove', moveHandler);
+}
+function startReorder(kind) {
+  reorderTarget = kind;
+  document.getElementById('reorderDoneBar').classList.add('active');
+  document.getElementById('bottomNav').classList.add('hidden'); // now absolutely positioned (glass nav) — hide rather than let it overlap the Done bar, and navigating away mid-reorder isn't a sensible action anyway
+  kind === 'fav' ? renderFavorites() : renderTiles();
+}
+function exitReorderMode() {
+  const kind = reorderTarget;
+  reorderTarget = null;
+  document.getElementById('reorderDoneBar').classList.remove('active');
+  document.getElementById('bottomNav').classList.remove('hidden');
+  if (kind === 'fav') {
+    renderFavorites();
+    localStorage.setItem(LS_FAV_KEY, JSON.stringify(FAVORITES.map(x => x.id)));
+    showToast('Favorites order saved on this device');
+  }
+  if (kind === 'tile') {
+    renderTiles();
+    localStorage.setItem(LS_TILE_KEY, JSON.stringify(HOME_TILES.map(x => x.id)));
+    showToast('Home tile order saved on this device');
+  }
+}
+function moveItem(kind, index, dir) {
+  const list = kind === 'fav' ? FAVORITES : HOME_TILES;
+  const j = index + dir;
+  if (j < 0 || j >= list.length) return;
+  [list[index], list[j]] = [list[j], list[index]];
+  kind === 'fav' ? renderFavorites() : renderTiles();
+}
+function onItemTap(kind, id) {
+  if (kind === 'fav') {
+    const f = FAVORITES.find(x => x.id === id);
+    showToast('Opening "' + f.name + '" — list screen not wired in this prototype yet');
+  } else {
+    const t = HOME_TILES.find(x => x.id === id);
+    showToast('Opening "' + t.name + '" — coming soon');
+  }
+}
+
+function renderFavorites() {
+  const mode = reorderTarget === 'fav';
+  document.getElementById('favRow').innerHTML = FAVORITES.map((f, i) => {
+    const m = SCREEN_META[f.screen];
+    return `<div class="fav-chip${mode ? ' reordering' : ''}" data-id="${f.id}" onpointerdown="onItemPointerDown(event,'fav','${f.id}')">
+      <span class="fav-chip-icon" style="background:${m.color}22"><svg width="15" height="15" viewBox="0 0 24 24" style="color:${m.color}"><use href="#ico-${m.icon}"/></svg></span>
+      <span class="fav-chip-name">${f.name}</span>
+      ${mode ? `<span class="reorder-arrows">
+        <button class="reorder-arrow" onclick="event.stopPropagation();moveItem('fav',${i},-1)" ${i === 0 ? 'disabled' : ''}>‹</button>
+        <button class="reorder-arrow" onclick="event.stopPropagation();moveItem('fav',${i},1)" ${i === FAVORITES.length - 1 ? 'disabled' : ''}>›</button>
+      </span>` : ''}
+    </div>`;
+  }).join('');
+}
+// Tiles render into two group-scoped grids ("My Work" / "My Equipment"), but
+// moveItem() swaps by index into the flat HOME_TILES array, so each tile
+// keeps its real array index (not its position within the filtered group)
+// for the reorder-arrow onclick handlers.
+function renderTileGroup(containerId, group) {
+  const mode = reorderTarget === 'tile';
+  const indexed = HOME_TILES.map((t, i) => ({ t, i })).filter(x => x.t.group === group);
+  document.getElementById(containerId).innerHTML = indexed.map(({ t, i }) => `
+    <div class="home-tile${mode ? ' reordering' : ''}" data-id="${t.id}" onpointerdown="onItemPointerDown(event,'tile','${t.id}')">
+      <span class="home-tile-sq" style="background:${t.color}22">
+        <svg viewBox="0 0 24 24" style="color:${t.color}"><use href="#ico-${t.icon}"/></svg>
+        <span class="home-tile-badge">${t.count}</span>
+      </span>
+      <span class="home-tile-label">${t.name}</span>
+      ${mode ? `<span class="reorder-arrows">
+        <button class="reorder-arrow" onclick="event.stopPropagation();moveItem('tile',${i},-1)" ${i === 0 ? 'disabled' : ''}>‹</button>
+        <button class="reorder-arrow" onclick="event.stopPropagation();moveItem('tile',${i},1)" ${i === HOME_TILES.length - 1 ? 'disabled' : ''}>›</button>
+      </span>` : ''}
+    </div>`).join('');
+}
+function renderTiles() {
+  renderTileGroup('homeTileGridMyWork', 'mywork');
+  renderTileGroup('homeTileGridReference', 'reference');
+  renderTileGroup('homeTileGridRefSection', 'refsection');
+}
+// Greeting strip — time-of-day greeting only (no due-today/status count,
+// see the CSS comment above for why). Name reused from the profile menu
+// identity row above rather than a separate hardcoded value.
+function renderGreeting() {
+  const hour = new Date().getHours();
+  const part = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+  const firstName = document.querySelector('.profile-menu-name').textContent.split(' ')[0];
+  document.getElementById('homeGreeting').textContent = `Good ${part}, ${firstName}`;
+}
+renderGreeting();
+renderFavorites();
+renderTiles();
+
+/* ═══════════════════════════════════════════════════════════════════════
+   INSERT MODE — two-pill header (§9.4). LOV_DATA/LOV_CURRENT/LOV_TITLES/
+   BADGE_LOV_META are the exact same screen-local globals eam-shared.js's
+   generic openLov()/selectLov() already read (see e.g.
+   sample-screen-standard-model-prototype.html) — selecting the entity
+   pill just swaps what insertType/insertStatus point to underneath, then
+   re-renders those two rows through the shared renderColorBadge() helper
+   so a manual entity-switch and a normal LOV pick produce identical
+   markup.
+   ═══════════════════════════════════════════════════════════════════════ */
+const ICO = k => `<svg width="14" height="14" viewBox="0 0 24 24" style="color:white"><use href="#ico-${k}"/></svg>`;
+
+const ENTITY_META = {
+  WO:    { desc: 'Work order', icon: 'tool' },
+  EQUIP: { desc: 'Equipment',  icon: 'package' },
+};
+// Work Order: Type reuses eam-wo-record-view-prototype-v1.html's real
+// TYPE_META colours (CM/PM/BK) and Status a real WO status set (derived
+// from that file's STATUS_CLASS_MAP). Equipment: "Type" becomes "Class"
+// (its real closest analog — see file-header note); Status is fully
+// reused (real Operational/Down/Standby colours).
+const ENTITY_FIELD_META = {
+  WO: {
+    typeLabel: 'Type',
+    typeOptions: [
+      { code:'CM', desc:'Corrective Maintenance', color:'#F46600', icon:ICO('tool') },
+      { code:'PM', desc:'Preventive Maintenance',  color:'#00AA14', icon:ICO('cal-check') },
+      { code:'BK', desc:'Breakdown',               color:'#E24B4A', icon:ICO('alert') },
+    ],
+    defaultType: 'CM',
+    statusOptions: [
+      { code:'RELEASED',    desc:'Released',    color:'#00AA14', icon:ICO('check') },
+      { code:'IN_PROGRESS', desc:'In Progress',  color:'#F46600', icon:ICO('clock') },
+      { code:'HOLD',        desc:'On Hold',      color:'#E24B4A', icon:ICO('alert') },
+    ],
+    defaultStatus: 'RELEASED',
+  },
+  EQUIP: {
+    typeLabel: 'Class',
+    typeOptions: [
+      { code:'PUMP',       desc:'Pump',       color:'#007B87', icon:ICO('droplet') },
+      { code:'VALVE',      desc:'Valve',      color:'#6F7480', icon:ICO('tool') },
+      { code:'COMPRESSOR', desc:'Compressor', color:'#9933FF', icon:ICO('package') },
+    ],
+    defaultType: 'PUMP',
+    statusOptions: [
+      { code:'OPERATIONAL', desc:'Operational', color:'#00AA14', icon:ICO('check') },
+      { code:'DOWN',        desc:'Down',         color:'#E24B4A', icon:ICO('alert') },
+      { code:'STANDBY',     desc:'Standby',      color:'#F46600', icon:ICO('clock') },
+    ],
+    defaultStatus: 'OPERATIONAL',
+  },
+};
+
+let currentEntity = 'WO';
+let LOV_TITLES = { insertOrganization:'Organization', insertEquipment:'Equipment', insertType:'Type', insertStatus:'Status', insertDescription:'Description' };
+let LOV_DATA = {
+  insertOrganization: [{code:'FBPP',desc:'Field-Based Plant & Production'},{code:'ORG1',desc:'Corporate'},{code:'ORG2',desc:'US Industrial'}],
+  // Equipment reference field (§15.5/§9.3, shared component, WO entity
+  // only) — literally EQUIPMENT_LOOKUP_DATA (eam-shared.js) now, not a
+  // hand-copied duplicate of it, since the Equipment LOV convergence
+  // (2026-07-21, docs/component-library.md) gave this field the real
+  // shared Search+Structure picker instead of a plain generic LOV sheet.
+  insertEquipment: EQUIPMENT_LOOKUP_DATA,
+};
+let LOV_CURRENT = { insertOrganization:'ORG1', insertEquipment:'' };
+let BADGE_LOV_META = {};
+const NO_SEARCH_LOVS = new Set(['insertOrganization', 'insertType', 'insertStatus']);
+const ORG_STYLE_LOVS = new Set(['insertOrganization']);
+const REF_CARD_FIELDS = { insertEquipment: { mountId: 'insertEquipMount', attrs: ['class','category','type'], emptyLabel: 'Tap to select equipment', useEquipmentLookup: true } };
+// eam-shared.js's openDate()/selectDate()/clearDate() read/write
+// RECORD[key] directly (§3.4) — needed for the WO entity's Date Reported
+// field; this file otherwise has no RECORD object.
+let RECORD = {};
+
+/* ── Flat fields container (§9.3 point 5), per entity — built 2026-07-20.
+   Field sets match WO List's/Equipment Record View's own real required
+   fields exactly, so an entity switch here reuses the same working
+   defaults those screens' own Insert Mode already established, not a
+   3rd independent guess. Regenerated into #insertFlatFieldsMount on every
+   entity switch (renderFlatFields() below), same "re-scope everything
+   below the entity pill" principle §9.4 already documents for Type/
+   Status. ── */
+const ENTITY_FLAT_FIELDS = {
+  WO: [
+    { key:'insertDepartment', label:'Department', required:true },
+    { key:'insertProblemCode', label:'Problem Code', required:true },
+    { key:'insertPriority', label:'Priority', required:false },
+    { key:'insertAssignedTo', label:'Assigned To', required:false },
+    { key:'insertReportedBy', label:'Reported By', required:false },
+    { key:'insertDateReported', label:'Date Reported', required:false, type:'date' },
+  ],
+  EQUIP: [
+    { key:'insertDepartment', label:'Department', required:true },
+    { key:'insertCriticality', label:'Criticality', required:true },
+    { key:'insertManufacturer', label:'Manufacturer', required:false },
+    { key:'insertCategory', label:'Category', required:false },
+    { key:'insertPmWoDepartment', label:'PM WO Department', required:false },
+    { key:'insertAssignedTo', label:'Assigned To', required:false },
+    { key:'insertCostCode', label:'Cost Code', required:false },
+  ],
+};
+const ENTITY_FLAT_LOV_DATA = {
+  WO: {
+    insertDepartment: [{code:'WATER',desc:'Water Utility'},{code:'MAINT',desc:'Maintenance'},{code:'OPS',desc:'Operations'}],
+    insertProblemCode: [{code:'MECH',desc:'Mechanical'},{code:'ELEC',desc:'Electrical'},{code:'HYDRAULIC',desc:'Hydraulic'}],
+    insertPriority: [{code:'LOW',desc:'Low'},{code:'MEDIUM',desc:'Medium'},{code:'HIGH',desc:'High'},{code:'CRITICAL',desc:'Critical'}],
+    insertAssignedTo: [{code:'BCAMPBELL',desc:'Bruce Campbell'},{code:'JRODRIGUEZ',desc:'Juan Rodriguez'},{code:'MKUMAR',desc:'Meera Kumar'}],
+    insertReportedBy: [{code:'DKILBURN',desc:'Danny Kilburn'},{code:'RSMITH',desc:'Rachel Smith'},{code:'PJONES',desc:'Pat Jones'}],
+  },
+  EQUIP: {
+    insertDepartment: [{code:'ENG',desc:'Engineering'},{code:'WATER',desc:'Water Utility'},{code:'MAINT',desc:'Maintenance'},{code:'MECH',desc:'Mechanical'}],
+    insertCriticality: [{code:'1',desc:'1 - Low'},{code:'2',desc:'2 - Medium'},{code:'3',desc:'3 - High'},{code:'4',desc:'4 - Critical'}],
+    insertManufacturer: [{code:'DAYTON',desc:'Dayton Electric Mfg.'},{code:'GRUNDFOS',desc:'Grundfos'},{code:'GOULDS',desc:'Goulds Pumps'}],
+    insertCategory: [{code:'CENTRIFUGAL',desc:'Centrifugal'},{code:'RECIPROCATING',desc:'Reciprocating'}],
+    insertPmWoDepartment: [{code:'',desc:'(none)'},{code:'ENG',desc:'Engineering'},{code:'MAINT',desc:'Maintenance'}],
+    insertAssignedTo: [{code:'BCAMPBELL',desc:'Bruce Campbell'},{code:'JRODRIGUEZ',desc:'Juan Rodriguez'},{code:'MKUMAR',desc:'Meera Kumar'}],
+    insertCostCode: [{code:'100-100',desc:'General Maintenance'},{code:'100-200',desc:'Capital Repair'}],
+  },
+};
+function renderFlatFields() {
+  const fields = ENTITY_FLAT_FIELDS[currentEntity];
+  const lovSets = ENTITY_FLAT_LOV_DATA[currentEntity];
+  fields.forEach(f => { LOV_DATA[f.key] = lovSets[f.key]; LOV_TITLES[f.key] = f.label; LOV_CURRENT[f.key] = ''; RECORD[f.key] = ''; });
+  document.getElementById('insertFlatFieldsMount').innerHTML = fields.map(f => f.type === 'date'
+    ? `<div class="form-field${f.required ? ' required' : ''}" data-field="${f.key}" onclick="openDate('${f.key}','${f.label}')">
+         <span class="field-label">${f.label}</span>
+         <span class="field-value muted" id="fv-${f.key}"></span>
+         <span class="field-chevron">›</span>
+       </div>`
+    : `<div class="form-field${f.required ? ' required' : ''}" data-field="${f.key}" onclick="openLov('${f.key}')">
+         <span class="field-label">${f.label}</span>
+         <div class="field-lov-value"><span class="field-lov-desc muted" id="fv-${f.key}-desc"></span></div>
+         <span class="field-chevron">›</span>
+       </div>`
+  ).join('');
+}
+
+function renderEntityFields() {
+  const cfg = ENTITY_FIELD_META[currentEntity];
+  document.getElementById('imTypeLabel').textContent = cfg.typeLabel;
+  LOV_TITLES.insertType = cfg.typeLabel;
+  LOV_DATA.insertType = cfg.typeOptions.map(o => ({ code:o.code, desc:o.desc }));
+  BADGE_LOV_META.insertType = Object.fromEntries(cfg.typeOptions.map(o => [o.code, o]));
+  LOV_CURRENT.insertType = cfg.defaultType;
+  const typeOpt = BADGE_LOV_META.insertType[cfg.defaultType];
+  document.getElementById('fv-insertType-badge').outerHTML = renderColorBadge(typeOpt).replace('class="attr-badge"', 'class="attr-badge" id="fv-insertType-badge"');
+  document.getElementById('fv-insertType-desc').textContent = typeOpt.desc;
+
+  LOV_DATA.insertStatus = cfg.statusOptions.map(o => ({ code:o.code, desc:o.desc }));
+  BADGE_LOV_META.insertStatus = Object.fromEntries(cfg.statusOptions.map(o => [o.code, o]));
+  LOV_CURRENT.insertStatus = cfg.defaultStatus;
+  const statusOpt = BADGE_LOV_META.insertStatus[cfg.defaultStatus];
+  document.getElementById('fv-insertStatus-badge').outerHTML = renderColorBadge(statusOpt).replace('class="attr-badge"', 'class="attr-badge" id="fv-insertStatus-badge"');
+  document.getElementById('fv-insertStatus-desc').textContent = statusOpt.desc;
+
+  // Equipment reference field — WO entity only (§15.5/§9.3); re-scoping to
+  // Equipment hides it entirely rather than leaving an irrelevant field
+  // visible, same "everything below the pill re-scopes" principle §9.4
+  // already documents for Type/Status.
+  document.getElementById('insertEquipCard').style.display = currentEntity === 'WO' ? '' : 'none';
+  if (currentEntity === 'WO') renderRefCard('insertEquipment');
+  renderFlatFields();
+  updateInsertSaveGate();
+}
+renderEntityFields(); // pre-render defaults so the sheet isn't empty the first time it opens
+
+function openEntityPicker() {
+  document.getElementById('lovSheetTitle').textContent = 'Create';
+  document.getElementById('lovClearBtn').classList.add('hidden');
+  document.getElementById('lovSearchRow').classList.add('hidden');
+  document.getElementById('lovSheetBody').innerHTML = Object.entries(ENTITY_META).map(([code, m]) => `
+    <div class="lov-option ${code === currentEntity ? 'selected' : ''}" onclick="selectEntity('${code}')">
+      <div class="lov-option-texts"><div class="lov-option-desc">${m.desc}</div></div>
+      <div class="lov-check ${code === currentEntity ? 'checked' : ''}"></div>
+    </div>`).join('');
+  openSheet('lovSheet');
+}
+function selectEntity(code) {
+  currentEntity = code;
+  document.getElementById('fv-insertEntity-desc').textContent = ENTITY_META[code].desc;
+  document.getElementById('fv-insertEntity-icon').innerHTML = ICO(ENTITY_META[code].icon);
+  closeAllSheets();
+  renderEntityFields();
+  showToast('✓ ' + ENTITY_META[code].desc);
+}
+function openInsertModeFromHome() {
+  currentEntity = 'WO';
+  document.getElementById('fv-insertEntity-desc').textContent = ENTITY_META.WO.desc;
+  document.getElementById('fv-insertEntity-icon').innerHTML = ICO(ENTITY_META.WO.icon);
+  LOV_CURRENT.insertOrganization = 'ORG1';
+  document.getElementById('fv-insertOrganization-code').textContent = 'ORG1';
+  LOV_CURRENT.insertEquipment = '';
+  const descEl = document.getElementById('fv-insertDescription');
+  descEl.textContent = 'Tap to add…';
+  descEl.classList.add('muted');
+  document.getElementById('insertCommentsList').querySelectorAll('.comment-item').forEach(el => el.remove());
+  renderEntityFields();
+  openInsertMode();
+}
+// Overrides the shared gate (declared after eam-shared.js loads, so this
+// binding wins) — real required-field checking per entity, built
+// 2026-07-20 (was: always force-ready, since no field set existed yet).
+function updateInsertSaveGate() {
+  const btn = document.getElementById('insertSaveBtn');
+  if (!btn) return;
+  const fields = ENTITY_FLAT_FIELDS[currentEntity] || [];
+  let ready = fields.every(f => !f.required || LOV_CURRENT[f.key]);
+  if (currentEntity === 'WO') ready = ready && !!LOV_CURRENT.insertEquipment;
+  btn.classList.toggle('ready', ready);
+}
+// §9.2 "After Save" (locked 2026-07-16, built 2026-07-20): navigate to the
+// new record's own Record View in Standard Update Mode, using the same
+// sessionStorage keys + `?new=1` flag WO List's own Create already uses —
+// each Record View only needs one read-path regardless of entry point.
+function saveHomeInsertRecord() {
+  const fields = ENTITY_FLAT_FIELDS[currentEntity];
+  for (const f of fields) {
+    if (f.required && !LOV_CURRENT[f.key]) { showToast(f.label + ' is required'); return; }
+  }
+  if (currentEntity === 'WO' && !LOV_CURRENT.insertEquipment) { showToast('Equipment is required'); return; }
+  const opt = (key) => { const o = (LOV_DATA[key] || []).find(o => o.code === LOV_CURRENT[key]); return o ? { code: o.code, desc: o.desc } : null; };
+  const descEl = document.getElementById('fv-insertDescription');
+  const desc = descEl.classList.contains('muted') ? '' : descEl.textContent;
+  const comments = Array.from(document.querySelectorAll('#insertCommentsList .comment-item')).map(el => ({
+    author: el.querySelector('.comment-author')?.textContent.replace(' (You)', '') || CURRENT_USER_NAME,
+    text: el.querySelector('.comment-text')?.textContent || '',
+  }));
+  closeInsertMode();
+  if (currentEntity === 'WO') {
+    const woNumber = String(parseInt(localStorage.getItem('eamNextWoNumber') || '19258', 10));
+    localStorage.setItem('eamNextWoNumber', String(parseInt(woNumber, 10) + 1));
+    navigateToNewRecord('eam-wo-record-view-prototype-v1.html', 'eamNewWoRecord', {
+      number: woNumber, desc,
+      department: opt('insertDepartment'), assignedTo: opt('insertAssignedTo'), reportedBy: opt('insertReportedBy'),
+      dateReported: RECORD.insertDateReported || '', problemCode: opt('insertProblemCode'),
+      type: { code: LOV_CURRENT.insertType, desc: document.getElementById('fv-insertType-desc').textContent },
+      status: { code: LOV_CURRENT.insertStatus, desc: document.getElementById('fv-insertStatus-desc').textContent },
+      priority: opt('insertPriority'),
+      equipment: (LOV_DATA.insertEquipment || []).find(o => o.code === LOV_CURRENT.insertEquipment) || null,
+      comments,
+    });
+  } else {
+    const equipNumber = String(parseInt(localStorage.getItem('eamNextEquipNumber') || '67400', 10)).padStart(8, '0');
+    localStorage.setItem('eamNextEquipNumber', String(parseInt(equipNumber, 10) + 1));
+    navigateToNewRecord('eam-equipment-record-view-prototype-v1.html', 'eamNewEquipRecord', {
+      asset: equipNumber, desc,
+      department: opt('insertDepartment'), criticality: opt('insertCriticality'),
+      class: { code: LOV_CURRENT.insertType, desc: document.getElementById('fv-insertType-desc').textContent },
+      category: opt('insertCategory'), manufacturer: opt('insertManufacturer'),
+      pmWoDepartment: opt('insertPmWoDepartment'), assignedTo: opt('insertAssignedTo'), costCode: opt('insertCostCode'),
+      status: { code: LOV_CURRENT.insertStatus, desc: document.getElementById('fv-insertStatus-desc').textContent },
+      organization: { code: LOV_CURRENT.insertOrganization, desc: '' },
+      comments,
+    });
+  }
+}
+
+initSharedApp({ contentSelector: '.home-body' });
+</script>
+</body>
+</html>

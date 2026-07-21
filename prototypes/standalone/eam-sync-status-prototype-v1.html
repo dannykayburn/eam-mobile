@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HxGN EAM Mobile — Sync Status</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-shared.css">
+<!--
+  Sync Status Screen (§4.5, design-decisions-v3-1.md) — drill-down reached
+  from the sync panel's Review action (§4.4.2). Error triage only; the
+  panel's own 4-bar hydration progress stays in the panel, not duplicated
+  here (locked 2026-07-20). Demo data (SYNC_DEMO_ITEMS) lives in
+  eam-shared.js since the sync panel is its 2nd real consumer — this file
+  only adds its own card rendering/protection-rule presentation, which so
+  far has exactly one consumer (this screen).
+-->
+<style>
+  /* ── Screen-local: error-card content built on the shared .ld-card shell
+     (§8.3) — trouble-field chips and the protection/lock row are still
+     single-consumer-so-far, so they stay local. The two-button action row
+     (.sync-card-actions/.sync-card-btn) moved to eam-shared.css 2026-07-20
+     when the sync error banner became its 2nd real consumer. ── */
+  .sync-status-strip{padding:12px 14px;background:var(--bg-card);border-bottom:1px solid var(--border);flex-shrink:0;}
+  .sync-status-strip-row{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--gray-4);margin-bottom:10px;}
+  .sync-status-strip-row b{color:var(--octave-black);font-weight:700;}
+  [data-theme="dark"] .sync-status-strip-row b{color:var(--white);}
+  .sync-section-label{padding:14px 14px 4px;font-size:12px;font-weight:700;color:var(--octave-black);}
+  [data-theme="dark"] .sync-section-label{color:var(--white);}
+  .sync-error-card{position:relative;}
+  .sync-error-card.flash{border-color:var(--red);}
+  .sync-card-error-text{font-size:12.5px;color:var(--gray-4);line-height:1.4;}
+  .trouble-chip{display:inline-flex;font-size:10.5px;font-weight:600;color:var(--red);background:rgba(228,75,74,.1);border:1px solid rgba(228,75,74,.3);border-radius:100px;padding:3px 9px;margin:7px 5px 0 0;}
+  .sync-card-lock{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--gray-4);margin-top:9px;padding-top:9px;border-top:1px solid var(--border);}
+  .sync-card-lock svg{flex-shrink:0;color:var(--gray-4);}
+  .sync-empty-state{padding:70px 24px;text-align:center;}
+  .sync-empty-state-title{font-size:15px;font-weight:700;color:var(--octave-black);margin-bottom:6px;}
+  [data-theme="dark"] .sync-empty-state-title{color:var(--white);}
+  .sync-empty-state-sub{font-size:12.5px;color:var(--gray-4);}
+</style>
+</head>
+<body>
+
+<div class="proto-theme-bar">
+  <span class="proto-theme-label">Preview theme</span>
+  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+  <!-- Demo-only connectivity toggle (§4.5, 2026-07-20) — same one the
+       Record View screens carry, so Retry's online-success path can be
+       demoed straight from this list too, not just from inside a record. -->
+  <button class="theme-toggle" id="onlineToggle" onclick="toggleDemoOnline()">🌐 Offline</button>
+</div>
+
+<div class="app" id="app">
+
+  <header class="nav" onclick="scrollFormToTop()">
+    <div class="nav-left">
+      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation();navBack()">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="prototype-label">PROTOTYPE</span>
+    </div>
+    <div class="nav-title">Sync Status</div>
+    <div class="nav-actions"><span id="syncCtrl"></span></div>
+  </header>
+
+  <div class="content" id="syncContent">
+    <div class="sync-status-strip">
+      <div class="sync-status-strip-row"><span>Last sync</span><b id="lastSyncTime">2:11 PM</b></div>
+      <div class="sync-hydrate-row">
+        <div class="sync-hydrate-label"><span>Outbox</span><span id="outboxProgressLabel"></span></div>
+        <div class="sync-hydrate-track"><div class="sync-hydrate-fill" id="outboxProgressFill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div class="sync-section-label">Needs Attention</div>
+    <div id="syncErrorList"></div>
+  </div>
+
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-modal">
+      <div class="confirm-message" id="confirmMessage">Are you sure?</div>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="confirm-btn confirm-danger" id="confirmDangerBtn" onclick="confirmDangerAction()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+</div>
+
+<script src="shared/eam-shared.js"></script>
+<script>
+/* ── screen-specific: card rendering + protection-label presentation only
+   — the underlying data (SYNC_DEMO_ITEMS) and the open/retry/delete
+   behavior all live in eam-shared.js, shared with the sync panel. ── */
+const PROTECTION_LABEL = {
+  'readonly': 'This type of transaction cannot be modified here',
+  'delete-only': 'Only delete is available for this transaction',
+  'locked-workflow': 'Status is protected — this Work Order’s workflow is Started',
+};
+const LOCK_ICON = '<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>';
+
+function renderSyncErrorCard(item) {
+  const chips = item.fields.map(f => `<span class="trouble-chip">${f.label}</span>`).join('');
+  const lockLabel = PROTECTION_LABEL[item.protection];
+  const seqHint = item.protection === 'delete-from-end' && !syncItemDeletable(item)
+    ? 'Part of a Start/Stop sequence — only the most recent can be discarded'
+    : null;
+  return `
+    <div class="ld-card sync-error-card" id="syncCard-${item.id}" data-sync-id="${item.id}" onclick="onSyncCardTap(event,'${item.id}')">
+      <div class="ld-card-top">
+        <div class="ld-card-headline">${item.recordLabel}</div>
+        <span class="ld-card-org">${item.entity}</span>
+      </div>
+      <div class="ld-card-subline">${item.sub} · ${item.timestamp}</div>
+      <div class="ld-card-attrs">
+        <div class="sync-card-error-text">${syncErrorTierText(item)}</div>
+        ${chips}
+      </div>
+      ${lockLabel ? `<div class="sync-card-lock">${LOCK_ICON}<span>${lockLabel}</span></div>` : ''}
+      ${seqHint ? `<div class="sync-card-lock">${LOCK_ICON}<span>${seqHint}</span></div>` : ''}
+      <div class="sync-card-actions">
+        <button class="sync-card-btn${item.fields.length === 0 ? ' ready' : ''}" onclick="event.stopPropagation();retrySyncItem('${item.id}')">Retry</button>
+        <button class="sync-card-btn danger" onclick="event.stopPropagation();onSyncCardDiscard('${item.id}')">Discard</button>
+      </div>
+    </div>`;
+}
+function onSyncCardTap(event, id) {
+  const item = SYNC_DEMO_ITEMS.find(i => i.id === id);
+  if (item) openSyncErrorRecord(item);
+}
+function onSyncCardDiscard(id) {
+  deleteSyncItem(id, renderSyncStatusScreen);
+}
+function renderSyncStatusScreen() {
+  const errorItems = SYNC_DEMO_ITEMS.filter(i => i.state === 'error');
+  const queuedCount = SYNC_DEMO_ITEMS.filter(i => i.state === 'queued').length;
+  const total = SYNC_DEMO_ITEMS.length;
+  const synced = total - errorItems.length - queuedCount;
+  const pct = total ? Math.round((synced / total) * 100) : 100;
+  document.getElementById('outboxProgressLabel').textContent = `${synced} of ${total} synced`;
+  document.getElementById('outboxProgressFill').style.width = pct + '%';
+
+  const listEl = document.getElementById('syncErrorList');
+  const labelEl = document.querySelector('.sync-section-label');
+  if (!errorItems.length) {
+    labelEl.style.display = 'none';
+    listEl.innerHTML = `<div class="sync-empty-state">
+      <div class="sync-empty-state-title">No Transactions</div>
+      <div class="sync-empty-state-sub">Last sync: <span id="lastSyncTimeEmpty"></span></div>
+    </div>`;
+    return;
+  }
+  labelEl.style.display = '';
+  listEl.innerHTML = errorItems.map(renderSyncErrorCard).join('');
+
+  const focusId = sessionStorage.getItem('eamSyncFocusItem');
+  if (focusId) {
+    sessionStorage.removeItem('eamSyncFocusItem');
+    const card = document.getElementById('syncCard-' + focusId);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('flash');
+      setTimeout(() => card.classList.remove('flash'), 1400);
+    }
+  }
+}
+function navBack() {
+  showToast('← Back');
+}
+renderSyncStatusScreen();
+initDemoOnlineToggle();
+initSharedApp({ contentSelector: '.content' });
+</script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HxGN EAM Mobile — List Search Screen Card Standard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-shared.css">
+<!--
+  CANONICAL REFERENCE — the §8.3 "List Search Screen standard" card, in
+  isolation. Not a throwaway — kept live in standalone/ alongside the
+  other canonical reference files (sample-screen-standard-model-
+  prototype.html, eam-equipment-record-view-prototype-v1.html) as the
+  dedicated place to see the card/corner-badge anatomy on its own,
+  without a full screen's chrome around it. All CSS here is the real
+  shared/eam-shared.css (.ld-card and friends) — nothing is re-declared
+  locally except the demo-only scaffolding (.demo-label/.demo-note).
+
+  Renders four example cards demonstrating design-decisions-v3-1.md §8.3:
+    A. Baseline — 5 populated fields, none status/type-like.
+    B. Field 1 is a status-type field per EAM metadata — renders as a
+       solid pill in the headline slot.
+    C. Only 3 of 5 configured fields are populated — card collapses to
+       those 3 slots rather than padding with placeholders.
+    D. Organization present within the dataspy's first 6 columns —
+       carved out of the normal slot sequence, rendered as a gray corner
+       badge instead of consuming a body slot.
+
+  Renders via the same renderStdCard() helper (eam-shared.js) every real
+  consumer (WO List/Search, Equipment's child tabs) uses — this file
+  just calls it directly against a few illustrative field arrays instead
+  of a real dataspy, so the markup/CSS never has a second hand-authored
+  copy to drift from the shared one.
+-->
+<style>
+  .demo-label{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--gray-4);margin:18px 12px 6px;font-family:var(--font-mono);}
+  .demo-note{font-size:12px;color:var(--gray-4);margin:0 12px 10px;line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="app" style="overflow:auto;">
+  <div class="proto-theme-bar">
+    <span class="proto-theme-label">theme</span>
+    <button class="theme-toggle" onclick="document.documentElement.hasAttribute('data-theme')?document.documentElement.removeAttribute('data-theme'):document.documentElement.setAttribute('data-theme','dark')">toggle dark</button>
+  </div>
+
+  <div class="demo-label">A — baseline (5/5 fields populated)</div>
+  <div class="demo-note">Equipment &gt; Events tab, hypothetical dataspy columns: Description, Event Date, Performed By, Duration, Work Order #. None are status/type fields, so every slot renders plain.</div>
+  <div id="cardA"></div>
+
+  <div class="demo-label">B — field 1 is status-type (pill headline)</div>
+  <div class="demo-note">Hypothetical PM Schedules tab: column order is Status, Description, Frequency, Next Due, Equipment. Status lands in slot 1, so it takes the pill treatment at headline weight/position instead of plain bold text.</div>
+  <div id="cardB"></div>
+
+  <div class="demo-label">C — only 3/5 fields populated (collapses)</div>
+  <div class="demo-note">Warranties tab: this record has no value for the dataspy's 4th/5th columns, so those two slots simply don't render — card is shorter, not padded with dashes.</div>
+  <div id="cardC"></div>
+
+  <div class="demo-label">D — Organization within the first 6 columns (corner badge)</div>
+  <div class="demo-note">Same Events-tab data as card A, but Organization now sits at column 2 of the dataspy — carved out of the normal 1-5 sequence into the gray corner badge, and the other 5 fields (Description, Event Date, Performed By, Duration, Work Order #) fill slots 1-5 as normal.</div>
+  <div id="cardD"></div>
+
+</div>
+<script src="shared/eam-shared.js"></script>
+<script>
+document.getElementById('cardA').innerHTML = renderStdCard([
+  { label: 'Description', value: 'Vibration reading exceeded threshold on outboard bearing' },
+  { label: 'Event Date',   value: '07/16/2026' },
+  { label: 'Performed by', value: 'R. Alvarez' },
+  { label: 'Duration',     value: '1.5 hrs' },
+  { label: 'Work order',   value: '19257' },
+]);
+document.getElementById('cardB').innerHTML = renderStdCard([
+  { label: 'Status',      value: 'Overdue', type: 'status', color: 'var(--red)' },
+  { label: 'Description', value: 'Quarterly bearing lubrication — Line 3 conveyor' },
+  { label: 'Frequency',   value: '90 days' },
+  { label: 'Next due',    value: '07/10/2026' },
+  { label: 'Equipment',   value: '00067333' },
+]);
+document.getElementById('cardC').innerHTML = renderStdCard([
+  { label: 'Warranty', value: 'Bearing housing — manufacturer warranty' },
+  { label: 'Provider', value: 'Skyline Motion Systems' },
+  { label: 'Expires',  value: '03/12/2027' },
+]);
+document.getElementById('cardD').innerHTML = renderStdCard([
+  { label: 'Description',  value: 'Vibration reading exceeded threshold on outboard bearing' },
+  { label: 'Organization', value: 'FBPP', type: 'org' },
+  { label: 'Event Date',   value: '07/16/2026' },
+  { label: 'Performed by', value: 'R. Alvarez' },
+  { label: 'Duration',     value: '1.5 hrs' },
+  { label: 'Work order',   value: '19257' },
+]);
+</script>
+</body>
+</html>

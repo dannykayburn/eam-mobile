@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HxGN EAM Mobile — WO Closing (Step 5)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-shared.css">
+<!--
+  WO WORKFLOW — STEP 5: WO CLOSING (rebuilt 2026-07-16 onto shared/eam-
+  shared.css + shared/eam-shared.js, per docs/EAM-REBUILD-Strategy-and-
+  Execution-Plan-v1.md). See docs/design-decisions-v3-1.md §14, §19. This
+  file only adds Closing-specific data/markup/behavior — the protected-
+  identity header (§8.1), step rail + bottom bar chrome (§14.2–§14.7),
+  sheet/field-row primitives, confirm modal, date/edit sheets, and toast
+  all come from the shared files. Was the last of the 5 WO-workflow
+  screens still on the pre-shared-file pattern; v1 retired to "old
+  versions/" now that this file replaces it (§8.1/§20).
+
+  [1] §8.1 protected-identity header, same as Steps 2–4. Ellipsis's
+      screen-specific slot carries Print Work Order + Comments/Documents
+      (§14.8 — reachable from any step, unconditionally) — v1 was missing
+      the Comments/Documents entries every other step already has; added
+      here to close that gap, not a new decision.
+  [2] Step rail has no timer pill — WO Closing is reached after the timer
+      has already stopped and its time is booked (Step 4), same as Book
+      Labor's "no timer at all on Steps 1/5" case, distinct from Book
+      Labor's own STOPPED pill (§14.2/§18.2).
+  [3] Downtime Details' Date completed / Downtime hours / Downtime cost
+      now use the shared openDateTime/openEdit field-edit sheets directly
+      (id="fv-{key}") instead of v1's bespoke date-sheet + edit-sheet
+      JS/CSS — no screen-specific date or currency/number logic left here.
+  [4] Closing Codes' sequential-unlock 2×2 grid stays local — a 4-key,
+      cascading-clear LOV shape the shared single-key openLov() has no
+      equivalent for. Renamed openLov/selectLov/clearLov → openCodeLov/
+      selectCodeLov/clearCodeLov (and its own #codeLovSheet, distinct from
+      shared's #lovSheet, which this file never uses) so it can't shadow
+      the shared generic LOV functions — v1 used the shared names before
+      this file loaded shared/eam-shared.js at all, which would have
+      silently overridden them process-wide once it did.
+  [5] Status change control (§19.2 Option D) and Closing Comments' inline
+      required textarea stay local — no shared equivalent for either.
+  [6] Remove-attachment confirmation now reuses the shared centered
+      openConfirm() modal (§3.4 "Centered confirmation modal") instead of
+      v1's own bottom-sheet — that rule already said destructive actions
+      get the centered dialog, this screen just hadn't been brought in
+      line with it yet. openConfirm() gained an optional 3rd dangerLabel
+      arg for this ('Remove' instead of the default 'Delete') — additive,
+      every existing 2-arg caller elsewhere is unaffected.
+  [7] Close Work Order now actually navigates to the WO List prototype
+      after the success overlay, instead of leaving the overlay up
+      indefinitely — see design-decisions-v3-1.md §20 "post-close
+      navigation." Re-running the user's default/last-run dataspy is noted
+      there as a real gap this static multi-file prototype can't
+      demonstrate on its own.
+  [8] Closing Codes' Problem/Failure/Cause/Action option lists now source
+      from data/closing_codes.js (EAM_CLOSING_CODES) instead of a
+      screen-local `lovData` duplicate — wired 2026-07-21, closing the gap
+      CLAUDE.md had flagged since Phase 0.6 ("Issue Parts/WO Closing still
+      carry their own local hardcoded ... closing-codes data"). Values are
+      unchanged (the data file was itself carried over verbatim from this
+      screen's old `lovData`), only the source of truth moved.
+  [9] Fixed two stale spelled-month date literals baked into this file's
+      markup (design-decisions-v3-1.md §20) — Downtime's Date completed
+      initial value and the Closed overlay's WO/date line, both now plain
+      numeric and the overlay's line is now generated at close time from
+      live state instead of a static string. Also fixed the real cause of
+      why re-picking Date completed didn't already show the right format:
+      shared eam-shared.js's saveDateTime() rendered month:'short' ("May
+      19, 2026") instead of isoToDisplay()'s numeric format — a shared-file
+      bug, fixed there, not patched per-screen.
+-->
+<style>
+/* Content needs extra bottom padding to clear the bottom bar (screen-
+   specific; the Standard Model's plain .content has no bottom bar). */
+.content { padding: 0 0 calc(var(--bar-height) + 16px); }
+.sheet-body::-webkit-scrollbar { display: none; }
+/* Toast sits above the bottom bar on this screen (screen-specific override
+   — the shared default assumes no bottom chrome). */
+.toast { bottom: calc(var(--bar-height) + 10px); }
+
+/* ── Every container is collapsible (design-decisions-v3-1.md §3.4) — no
+   shared equivalent yet, this screen is the first real consumer. Header is
+   the tap target, chevron rotates -90deg when collapsed. Toggled via
+   toggleSectionCard(this), which flips 'collapsed' on the header's own
+   parent — works for both .section-card and .attach-card without needing
+   to know which. ── */
+.section-card-header { cursor: pointer; }
+.section-card-chevron { color: var(--gray-4); flex-shrink: 0; transition: transform 0.2s; }
+.section-card.collapsed .section-card-chevron,
+.attach-card.collapsed .section-card-chevron { transform: rotate(-90deg); }
+.section-card.collapsed .section-card-body,
+.attach-card.collapsed .section-card-body { display: none; }
+
+/* ── STATUS CHANGE CONTROL — Option D (design-decisions-v3-1.md §19.2,
+   §15.4). No shared equivalent — this banner's from/to-status shape is
+   unique to WO Closing. ── */
+.status-banner { margin: 12px 12px 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.status-banner-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.status-banner-icon { width: 30px; height: 30px; border-radius: 50%; background: rgba(0,170,20,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.status-banner-title { font-size: 13px; font-weight: 600; color: var(--octave-black); }
+[data-theme="dark"] .status-banner-title { color: var(--white); }
+.status-row { display: flex; align-items: center; gap: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.status-row-arrow { color: var(--gray-3); flex-shrink: 0; }
+/* Both pills share one box model so a <div> (from — never tappable) and a
+   <button> (to) line up exactly; a bare <button> otherwise picks up the
+   browser's default font/line-height, which caused an earlier vertical
+   mismatch between the two. */
+.status-pill {
+  flex: 1; height: 42px; box-sizing: border-box; margin: 0; border: none; padding: 0 12px;
+  border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-family: var(--font-sans); font-size: 14px; font-weight: 600; line-height: 1;
+}
+/* Redesigned 2026-07-22 — status colour vocabulary unified with the
+   Record View header button's STATUS_CLASS_MAP (green=st-operational,
+   orange=st-standby, red=st-down), so the same status never shows two
+   different colours across screens. Real fix: On Hold was orange here
+   but red (st-down) on the header — now red in both places. "From" pill
+   is hardcoded to Released's colour (green) since this demo has no
+   mechanism to change the WO's own current status independent of the
+   close flow — still always non-interactive, unrelated to Free Form.
+   Closed has no header equivalent (the header's own status LOV never
+   offers it) so it keeps its own gray, not one of the 3 reused colours. */
+.status-pill.from { background: rgba(21,166,74,0.1); color: #157a35; cursor: default; }
+[data-theme="dark"] .status-pill.from { background: rgba(21,166,74,0.18); color: #4ade80; }
+.status-pill.to { cursor: pointer; transition: filter 0.15s; }
+.status-pill.to:hover { filter: brightness(0.95); }
+.status-pill.to.fill-completed { background: var(--green); color: white; }
+.status-pill.to.fill-closed    { background: var(--gray-5); color: white; }
+.status-pill.to.fill-onhold    { background: var(--red); color: white; }
+/* Protected (§15.4 Not Free Form, redesigned 2026-07-22) — no longer
+   grays out the fill colour (a status control that goes gray tells the
+   technician nothing about the WO's actual state). Still tappable;
+   tapping shows a toast explaining why instead of opening the status
+   picker (toggleStatusSheet() below). The lock-vs-chevron icon swap
+   already existed (applyStatusProtection()) — just needed wiring to the
+   real Free Form flag instead of a hardcoded false. */
+
+/* ── CLOSING CODES — 2×2 grid, sequential unlock (§19.3). No shared
+   equivalent — a 4-key cascading LOV shape unique to this screen. ── */
+.codes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); }
+.code-cell {
+  position: relative;
+  background: var(--bg-card);
+  padding: 11px 13px 10px;
+  cursor: pointer;
+  transition: background 0.12s, opacity 0.2s;
+  display: flex; flex-direction: column; gap: 4px;
+  min-height: 86px;
+}
+.code-cell:hover:not(.field-locked) { background: var(--bg-section); }
+.code-cell.field-locked { opacity: 0.38; pointer-events: none; cursor: default; }
+/* Required marker — never shows while the cell is protected (field-locked);
+   appears the instant a cell unlocks, same orange-bar rule as .form-field.
+   Toggled in lockstep with field-locked in refreshSequentialLocks(). */
+.code-cell.required::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 100px 100px 0; background: var(--orange); }
+/* Matches .field-label exactly (§3.4) — sentence case, not the ALL CAPS
+   mini-eyebrow style this cell briefly had. */
+.code-cell-label { font-size: 13px; color: var(--gray-4); }
+.code-cell-body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+.code-cell-desc { font-size: 13px; font-weight: 500; color: var(--gray-3); line-height: 1.35; }
+.code-cell-desc.set { color: var(--octave-black); }
+[data-theme="dark"] .code-cell-desc.set { color: rgba(255,255,255,0.9); }
+.code-cell-code { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--gray-4); }
+.code-cell-footer { display: flex; align-items: center; justify-content: flex-end; color: var(--gray-3); margin-top: 2px; }
+.seq-lock-icon-sm {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--bg-section); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--gray-4);
+}
+[data-theme="dark"] .seq-lock-icon-sm { background: var(--gray-5); border-color: var(--gray-5); }
+
+/* ── CLOSING COMMENTS — required inline textarea (§19.5). No shared
+   equivalent — deliberately not the full-screen long-text editor other
+   record types' Comments use. ── */
+.comments-area { padding: 10px 14px; position: relative; }
+.comments-area.required::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 100px 100px 0; background: var(--orange); }
+.comments-textarea {
+  width: 100%; min-height: 96px;
+  background: var(--bg-section); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 12px; font-family: var(--font-sans); font-size: 14px; color: var(--octave-black);
+  resize: none; outline: none; line-height: 1.5; transition: border-color 0.15s;
+}
+[data-theme="dark"] .comments-textarea { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+.comments-textarea:focus { border-color: var(--purple); }
+.comments-meta { display: flex; align-items: center; justify-content: space-between; padding: 5px 0 0; }
+.char-count { font-family: var(--font-mono); font-size: 11px; color: var(--gray-4); }
+.char-count.warn { color: var(--orange); }
+
+/* ── ATTACHMENTS (§19.6). No shared equivalent. ── */
+.attach-empty { padding: 20px 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.attach-empty-icon { width: 44px; height: 44px; border-radius: 10px; background: var(--bg-section); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
+.attach-empty-text { font-size: 13px; color: var(--gray-4); line-height: 1.45; }
+.attach-empty-hint { font-size: 11px; color: var(--gray-3); font-family: var(--font-mono); }
+.attach-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
+.attach-row:last-child { border-bottom: none; }
+.attach-row:hover { background: var(--bg-section); }
+.attach-type-icon { width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.attach-type-photo { background: rgba(153,51,255,0.1); color: var(--purple); border: 1px solid rgba(153,51,255,0.2); }
+.attach-type-pdf   { background: rgba(228,75,74,0.1);  color: var(--red);    border: 1px solid rgba(228,75,74,0.2); }
+.attach-type-doc   { background: rgba(66,178,234,0.1); color: #42b2ea;       border: 1px solid rgba(66,178,234,0.2); }
+.attach-type-file  { background: rgba(110,116,128,0.1);color: var(--gray-4); border: 1px solid rgba(110,116,128,0.2); }
+.attach-row-info { flex: 1; min-width: 0; }
+.attach-row-name { font-size: 14px; font-weight: 600; color: var(--octave-black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+[data-theme="dark"] .attach-row-name { color: rgba(255,255,255,0.9); }
+.attach-row-meta { font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); margin-top: 1px; }
+.attach-row-remove { width: 28px; height: 28px; border-radius: 50%; background: none; border: 1.5px solid var(--gray-2); color: var(--gray-4); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+[data-theme="dark"] .attach-row-remove { border-color: var(--gray-5); }
+.attach-row-remove:hover { border-color: var(--red); color: var(--red); background: rgba(228,75,74,0.06); }
+.attach-add-row { display: flex; align-items: center; justify-content: center; padding: 10px 14px; gap: 6px; border-top: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
+.attach-add-row:hover { background: var(--bg-section); }
+.attach-add-btn-label { font-size: 13px; font-weight: 600; color: var(--purple); font-family: var(--font-sans); }
+
+/* Source picker sheet rows */
+.source-option { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
+.source-option:last-child { border-bottom: none; }
+.source-option:hover { background: var(--bg-section); }
+.source-option-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.source-option-texts { flex: 1; }
+.source-option-title { font-size: 14px; font-weight: 600; color: var(--octave-black); }
+[data-theme="dark"] .source-option-title { color: rgba(255,255,255,0.9); }
+.source-option-sub { font-size: 12px; color: var(--gray-4); margin-top: 2px; }
+
+/* Attachment viewer sheet — its own 2-part header shape, distinct from the
+   shared 3-part field-edit header. */
+.viewer-top-bar { padding: 12px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.viewer-file-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.viewer-info { flex: 1; min-width: 0; }
+.viewer-name { font-size: 14px; font-weight: 600; color: var(--octave-black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+[data-theme="dark"] .viewer-name { color: rgba(255,255,255,0.9); }
+.viewer-meta { font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); margin-top: 1px; }
+.viewer-body { flex: 1; display: flex; align-items: center; justify-content: center; background: var(--bg-section); flex-direction: column; gap: 12px; padding: 24px 16px; }
+[data-theme="dark"] .viewer-body { background: rgba(255,255,255,0.03); }
+.viewer-file-placeholder { width: 72px; height: 72px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.viewer-file-label { font-size: 13px; color: var(--gray-4); text-align: center; }
+.viewer-footer { padding: 12px 16px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; }
+/* Was a local .viewer-action-btn — converged onto the shared
+   .row-action-btn 2026-07-21 (UI inventory pass), unifying with Issue
+   Parts'/Book Labor's equivalent per-row tertiary action buttons at one
+   size (34px/13px, was 44px/13px here). */
+
+/* ── CONFIRM CLOSE SHEET (§19.7) — rich summary content, its own bottom
+   sheet like Book Labor's Correction sheet, not the plain centered
+   confirm. No shared equivalent. ── */
+.confirm-wording { padding: 16px; font-size: 14px; color: var(--gray-4); line-height: 1.6; border-bottom: 1px solid var(--border); }
+.confirm-wording strong { color: var(--octave-black); font-weight: 600; }
+[data-theme="dark"] .confirm-wording strong { color: var(--white); }
+.confirm-summary { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.confirm-summary-row { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; font-size: 13px; border-bottom: 1px solid var(--border); }
+.confirm-summary-row:last-child { border-bottom: none; }
+.confirm-summary-label { color: var(--gray-4); }
+/* Inter by default — descriptions/dates/counts never render in mono. Rows
+   that need mono (WO#/asset identifiers) apply it via an inline span. */
+.confirm-summary-value { font-family: var(--font-sans); font-size: 12px; color: var(--octave-black); font-weight: 500; }
+[data-theme="dark"] .confirm-summary-value { color: rgba(255,255,255,0.85); }
+.confirm-summary-value .mono { font-family: var(--font-mono); }
+/* Were local .btn-close-wo/.btn-cancel — converged onto the shared
+   .insert-save-btn.ready and .btn-outlined respectively 2026-07-21 (UI
+   inventory pass): both were near-identical duplicates of those two
+   existing shared controls (same green-action/outlined-cancel roles used
+   elsewhere in the app) with slightly different specs. .btn-outlined
+   needs a small top margin here since it follows directly under the
+   full-width Close button with no other gap. */
+.close-cancel-gap { margin-top: 8px; }
+
+/* ── CLOSED overlay — full-screen success state before navigating to the
+   WO List. No shared equivalent. ── */
+.closed-overlay { position: absolute; inset: 0; background: rgba(0,170,20,0.97); z-index: 400; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+.closed-overlay.show { display: flex; }
+.closed-icon { width: 72px; height: 72px; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; }
+.closed-title { font-size: 24px; font-weight: 700; color: white; letter-spacing: -0.5px; }
+.closed-sub { font-size: 14px; color: rgba(255,255,255,0.75); font-family: var(--font-mono); }
+.closed-wo { font-family: var(--font-mono); font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<!-- Prototype-only theme preview — real app theme lives in User Settings,
+     not in-screen chrome. See design-decisions-v3-1.md §20. -->
+<div class="proto-theme-bar">
+  <span class="proto-theme-label">Preview theme</span>
+  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+  <!-- Demo-only WO Workflow selector (§11-13, 2026-07-22) — see
+       eam-wo-record-view-prototype-v1.html's copy of this button for the
+       full note; cycleDemoWo() in eam-shared.js is the shared mechanism.
+       On this screen it also drives the PM-specific Closing layout
+       (§13 — no Closing Codes, optional Comments). -->
+  <button class="theme-toggle" id="demoWoToggle" onclick="cycleDemoWo()">📋 WO 19257</button>
+</div>
+
+<div class="app" id="app">
+
+  <header class="nav" onclick="scrollFormToTop()">
+    <div class="nav-left">
+      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation(); navBack()">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="prototype-label">PROTOTYPE</span>
+    </div>
+    <div class="nav-title">Work Orders</div>
+    <div class="nav-actions">
+      <span id="syncCtrl"></span>
+    </div>
+  </header>
+
+  <!-- ── DETAIL HEADER (§8.1) — protected identity + ellipsis, no status,
+       no pin, no Plus. Screen-specific ellipsis slot carries Print Work
+       Order + Comments/Documents (§14.8 — reachable from any step). ── -->
+  <div class="rec-header" id="recHeader" onclick="scrollFormToTop()">
+    <div class="rec-id-row">
+      <div class="rec-id-text">
+        <span class="rec-num" id="recNum">19257</span>
+        <span class="rec-desc protected" id="recDesc">Pump Cavitating; lost head</span>
+      </div>
+      <div class="rec-header-actions">
+        <button class="rec-ellipsis-btn" id="recEllipsisBtn" onclick="event.stopPropagation(); toggleRecActionsMenu()" aria-label="More actions">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+        </button>
+        <div class="rec-actions-menu" id="recActionsMenu">
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyLink()">Copy Link</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyRecord()">Copy</div>
+            <div class="rec-actions-item danger" onclick="recDeleteRecord()">Delete</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group" id="recActionsScreenSpecific">
+            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Printing work order — coming soon')">Print Work Order</div>
+            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Opening Comments — coming soon')">Comments (3)</div>
+            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Opening Documents — coming soon')">Documents (4)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP RAIL (§14.2/§14.3) — chrome + toggle are shared. No timer
+       pill — the WO timer already stopped at Book Labor (Step 4). ── -->
+  <div class="step-rail" id="stepRail">
+    <div class="step-rail-collapsed">
+      <div class="step-name">WO Closing</div>
+      <div class="step-rail-right">
+        <svg class="step-chevron" id="stepChevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="step-segments">
+      <div class="seg seg-done"></div>
+      <div class="seg seg-done"></div>
+      <div class="seg seg-done"></div>
+      <div class="seg seg-done"></div>
+      <div class="seg seg-active"></div>
+    </div>
+    <div class="step-map" id="stepMap">
+      <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">Activity Checklist</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">Issue Parts</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">Book Labor</span></div>
+      <div class="step-map-item active"><div class="step-map-icon smi-active">5</div><span class="step-map-label active-label">WO Closing</span></div>
+      <div class="step-map-footer">WO.WORKFLOW.01 - Corrective Maintenance Execution</div>
+    </div>
+  </div>
+
+  <!-- ── SCROLLABLE CONTENT ─────────────────────────────────────────── -->
+  <div class="content">
+
+    <!-- Status change control — Option D (§19.2) -->
+    <div class="status-banner" id="statusBanner">
+      <div class="status-banner-header">
+        <div class="status-banner-icon">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4" stroke="#00AA14" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="#00AA14" stroke-width="2"/></svg>
+        </div>
+        <div class="status-banner-title">Work Order Close Status</div>
+      </div>
+      <div class="status-row">
+        <div class="status-pill from">Released</div>
+        <svg class="status-row-arrow" width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <button class="status-pill to fill-completed" id="statusTargetBtn" onclick="toggleStatusSheet()">
+          <span id="statusTargetLabel">Completed</span>
+          <span id="statusTargetIcon"><svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Closing Codes — 2×2 grid, sequential unlock (§19.3). Hidden
+         entirely for PM-type WOs (§13's field-layout-by-WO-Type example,
+         via onDemoWoChanged() below) — not a collapsed/empty state, no
+         container at all, same "conditional render, not empty state" rule
+         Custom Fields already uses (§22). -->
+    <div class="section-card" id="closingCodesCard">
+      <div class="section-card-header" onclick="toggleSectionCard(this)">
+        <span class="section-card-title">Closing codes</span>
+        <svg class="section-card-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="section-card-body codes-grid">
+
+        <!-- Problem — pre-filled, always unlocked -->
+        <div id="fieldProblem" class="code-cell field-set" onclick="openCodeLov('problem')">
+          <div class="code-cell-label">Problem</div>
+          <div class="code-cell-body">
+            <div class="code-cell-desc set" id="problemDesc">Mechanical failure</div>
+            <div class="code-cell-code" id="problemCode">P-001</div>
+          </div>
+          <div class="code-cell-footer">
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+
+        <!-- Failure — unlocks when Problem set -->
+        <div id="fieldFailure" class="code-cell" onclick="openCodeLov('failure')">
+          <div class="code-cell-label">Failure</div>
+          <div class="code-cell-body">
+            <div class="code-cell-desc" id="failureDesc"></div>
+            <div class="code-cell-code" id="failureCode"></div>
+          </div>
+          <div class="code-cell-footer" id="failureFooter">
+            <div class="seq-lock-icon-sm"><svg width="9" height="9" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          </div>
+        </div>
+
+        <!-- Cause — locked until Failure set -->
+        <div id="fieldCause" class="code-cell field-locked" onclick="openCodeLov('cause')">
+          <div class="code-cell-label">Cause</div>
+          <div class="code-cell-body">
+            <div class="code-cell-desc" id="causeDesc"></div>
+            <div class="code-cell-code" id="causeCode"></div>
+          </div>
+          <div class="code-cell-footer" id="causeFooter">
+            <div class="seq-lock-icon-sm"><svg width="9" height="9" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          </div>
+        </div>
+
+        <!-- Action — locked until Cause set -->
+        <div id="fieldAction" class="code-cell field-locked" onclick="openCodeLov('action')">
+          <div class="code-cell-label">Action</div>
+          <div class="code-cell-body">
+            <div class="code-cell-desc" id="actionDesc"></div>
+            <div class="code-cell-code" id="actionCode"></div>
+          </div>
+          <div class="code-cell-footer" id="actionFooter">
+            <div class="seq-lock-icon-sm"><svg width="9" height="9" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Downtime Details — optional (§19.4). Date completed/hours/cost all
+         use the shared openDateTime/openEdit field-edit sheets directly. -->
+    <div class="section-card collapsed">
+      <div class="section-card-header" onclick="toggleSectionCard(this)">
+        <span class="section-card-title">Downtime details</span>
+        <svg class="section-card-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="section-card-body">
+        <div class="form-field" data-field="dateCompleted" onclick="openDateTime('dateCompleted','Date completed')">
+          <span class="field-label">Date completed</span>
+          <span class="field-value" id="fv-dateCompleted">05/19/2026 · 09:47</span>
+          <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="form-field" data-field="downtimeHours" onclick="openEdit('downtimeHours','Downtime hours','number')">
+          <span class="field-label">Downtime hours</span>
+          <span class="field-value muted" id="fv-downtimeHours"></span>
+          <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="form-field" data-field="downtimeCost" onclick="openEdit('downtimeCost','Downtime cost','currency')">
+          <span class="field-label">Downtime cost</span>
+          <span class="field-value muted" id="fv-downtimeCost"></span>
+          <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Closing Comments — required (§19.5) -->
+    <div class="section-card">
+      <div class="section-card-header" onclick="toggleSectionCard(this)">
+        <span class="section-card-title">Closing comments</span>
+        <svg class="section-card-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="section-card-body">
+        <div class="comments-area required" id="commentsArea">
+          <textarea class="comments-textarea" id="closingComments" maxlength="1000"
+            placeholder="Describe work performed, findings, and any follow-up required…"
+            oninput="onCommentsInput()"></textarea>
+          <div class="comments-meta">
+            <span class="char-count" id="charCount">0 / 1000</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attachments — optional (§19.6) -->
+    <div class="attach-section" style="margin:0 12px 10px;">
+      <div class="attach-card collapsed" id="attachCard">
+        <div class="section-card-header" onclick="toggleSectionCard(this)">
+          <span class="section-card-title">Attachments</span>
+          <svg class="section-card-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="section-card-body">
+          <!-- Empty state -->
+          <div class="attach-empty" id="attachEmpty">
+            <div class="attach-empty-icon">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="attach-empty-text">No attachments yet</div>
+            <div class="attach-empty-hint">Photos, documents or files</div>
+          </div>
+
+          <!-- Attachment list (populated by JS) -->
+          <div id="attachList"></div>
+
+          <!-- Add button row — always visible at bottom -->
+          <div class="attach-add-row" onclick="openSourcePicker()">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="var(--purple)" stroke-width="2.5" stroke-linecap="round"/></svg>
+            <span class="attach-add-btn-label">Add attachment</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- ── BOTTOM BAR — locked until Closing Comments has content (§19.8). -->
+  <div class="bottom-bar">
+    <span class="bar-meta" id="closeBarMeta">Comments required</span>
+    <button class="bar-pill bar-pill-locked" id="closeBtn" onclick="onCloseBarTap()">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Close Work Order
+    </button>
+  </div>
+
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <!-- ══ STATUS PICKER SHEET — plain LOV sheet shape (§3.4), description-
+       only rows (statuses are a system code, never code+description). ══ -->
+  <div class="bottom-sheet" id="statusSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Target status</div>
+      <button class="sheet-clear-btn hidden">Clear</button>
+    </div>
+    <div class="sheet-body">
+      <div class="lov-option selected" id="sOpt-completed" onclick="selectStatus('completed','Completed')">
+        <div class="lov-option-texts"><div class="lov-option-desc">Completed</div></div>
+        <div class="lov-check checked" id="sChk-completed">
+          <svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <div class="lov-option" id="sOpt-closed" onclick="selectStatus('closed','Closed')">
+        <div class="lov-option-texts"><div class="lov-option-desc">Closed</div></div>
+        <div class="lov-check unchecked" id="sChk-closed"></div>
+      </div>
+      <div class="lov-option" id="sOpt-onhold" onclick="selectStatus('onhold','On hold')">
+        <div class="lov-option-texts"><div class="lov-option-desc">On hold</div></div>
+        <div class="lov-check unchecked" id="sChk-onhold"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CLOSING CODE SHEET — the sequential 2×2 grid's own LOV, distinct
+       from shared's #lovSheet/openLov() (§19.3, file-header note [4]).
+       Clear is hidden on Problem (never-clearable) and whenever the target
+       cell is currently empty; clearing Failure/Cause/Action cascades
+       downstream to keep the sequential chain intact. ══ -->
+  <div class="bottom-sheet" id="codeLovSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="codeLovSheetTitle">Select code</div>
+      <button class="sheet-clear-btn" id="codeLovClearBtn" onclick="clearCodeLov()">Clear</button>
+    </div>
+    <div class="lov-search-row" id="codeLovSearchRow">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input class="lov-search-input" id="codeLovSearchInput" type="text" placeholder="Search code or description" oninput="filterCodeLovOptions(this.value)" autocomplete="off">
+    </div>
+    <div class="sheet-body" id="codeLovSheetBody"></div>
+  </div>
+
+  <!-- ══ EDIT SHEET (currency / number) — shared component, Downtime
+       hours/cost only field-edit sheet this screen needs. ══ -->
+  <div class="bottom-sheet" id="editSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="editSheetTitle">Edit field</div>
+      <button class="sheet-clear-btn" id="editClearBtn" onclick="clearEdit()">Clear</button>
+    </div>
+    <div class="edit-input-wrap"><input class="edit-input" id="editSheetInput" type="text" oninput="sanitizeCurrencyInput(this)"></div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveEdit()">Save</button></div>
+  </div>
+
+  <!-- ══ DATE + TIME SHEET — shared component (Date completed). ══ -->
+  <div class="bottom-sheet" id="dateTimeSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="dateTimeSheetTitle">Select date &amp; time</div>
+      <button class="sheet-clear-btn" id="dateTimeClearBtn" onclick="clearDateTime()">Clear</button>
+    </div>
+    <div class="sheet-body">
+      <div class="cal-header">
+        <button class="cal-nav-btn" onclick="calNavMonthDT(-1)">‹</button>
+        <span class="cal-month-label" id="calMonthLabelDT">July 2026</span>
+        <button class="cal-nav-btn" onclick="calNavMonthDT(1)">›</button>
+      </div>
+      <div class="cal-weekdays"><span class="cal-weekday">Sun</span><span class="cal-weekday">Mon</span><span class="cal-weekday">Tue</span><span class="cal-weekday">Wed</span><span class="cal-weekday">Thu</span><span class="cal-weekday">Fri</span><span class="cal-weekday">Sat</span></div>
+      <div class="cal-grid" id="calGridDT"></div>
+      <div class="form-field">
+        <span class="field-label">Time</span>
+        <input class="time-input" type="time" lang="en-GB" id="dateTimeInput" value="09:47">
+      </div>
+    </div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveDateTime()">Save</button></div>
+  </div>
+
+  <!-- ══ CONFIRM CLOSE SHEET (§19.7) ══ -->
+  <div class="bottom-sheet" id="confirmCloseSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Confirm close</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="confirm-wording">
+      Closing <strong>WO# 19257</strong> will set the status to <strong id="confirmTargetStatus">Completed</strong> and lock the record for further field edits. Ensure all work has been recorded before proceeding.
+    </div>
+    <div class="confirm-summary" id="confirmSummary"></div>
+    <div class="sheet-footer" style="display:flex;flex-direction:column;gap:0;">
+      <button class="insert-save-btn ready" onclick="executeClose()">Close Work Order</button>
+      <button class="btn-outlined close-cancel-gap" onclick="closeAllSheets()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ══ SOURCE PICKER SHEET ══ -->
+  <div class="bottom-sheet" id="sourcePickerSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Add attachment</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sheet-body">
+      <div class="source-option" onclick="addAttachment('camera')">
+        <div class="source-option-icon" style="background:rgba(153,51,255,0.1);border:1px solid rgba(153,51,255,0.2);">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="#9933FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13" r="4" stroke="#9933FF" stroke-width="2"/></svg>
+        </div>
+        <div class="source-option-texts">
+          <div class="source-option-title">Camera</div>
+          <div class="source-option-sub">Take a photo now</div>
+        </div>
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="var(--gray-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="source-option" onclick="addAttachment('library')">
+        <div class="source-option-icon" style="background:rgba(66,178,234,0.1);border:1px solid rgba(66,178,234,0.2);">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#42b2ea" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.5" stroke="#42b2ea" stroke-width="1.5"/><path d="M21 15l-5-5L5 21" stroke="#42b2ea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="source-option-texts">
+          <div class="source-option-title">Photo library</div>
+          <div class="source-option-sub">Choose from device photos</div>
+        </div>
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="var(--gray-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="source-option" onclick="addAttachment('file')">
+        <div class="source-option-icon" style="background:rgba(0,170,20,0.08);border:1px solid rgba(0,170,20,0.2);">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="#00AA14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="#00AA14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="source-option-texts">
+          <div class="source-option-title">File or document</div>
+          <div class="source-option-sub">PDF, Word, or other file</div>
+        </div>
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="var(--gray-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ VIEWER SHEET ══ -->
+  <div class="bottom-sheet" id="viewerSheet" style="max-height:92vh;">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="viewer-top-bar">
+      <div class="viewer-file-icon" id="viewerIcon"></div>
+      <div class="viewer-info">
+        <div class="viewer-name" id="viewerName">filename.jpg</div>
+        <div class="viewer-meta" id="viewerMeta">Photo · 1.2 MB · Added just now</div>
+      </div>
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+    </div>
+    <div class="viewer-body" id="viewerBody"></div>
+    <div class="viewer-footer">
+      <button class="row-action-btn" onclick="showToast('Opening in native app…')">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Open
+      </button>
+      <button class="row-action-btn danger" onclick="openRemoveConfirm()" style="flex:0.7;">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M3 6h18M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Remove
+      </button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+  <!-- Centered confirmation modal — header's Delete action, and now Remove
+       attachment too (§3.4, file-header note [6]); behavior in eam-shared.js. -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-modal">
+      <div class="confirm-message" id="confirmMessage">Are you sure?</div>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="confirm-btn confirm-danger" id="confirmDangerBtn" onclick="confirmDangerAction()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLOSED OVERLAY -->
+  <div class="closed-overlay" id="closedOverlay">
+    <div class="closed-icon">
+      <svg width="36" height="36" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="closed-title">Work Order Closed</div>
+    <div class="closed-sub" id="closedSub">Status: Completed</div>
+    <div class="closed-wo" id="closedWo">WO# 19257</div>
+  </div>
+
+</div><!-- /app -->
+
+<script src="../../data/closing_codes.js"></script>
+<script src="../../data/wo-19257.js"></script>
+<script src="../../data/wo-19831.js"></script>
+<script src="../../data/wo-20450.js"></script>
+<script src="../../data/wotype.js"></script>
+<script src="../../data/wo-workflow.js"></script>
+<script src="../../data/wo-workflow-steps.js"></script>
+<script src="shared/eam-shared.js"></script>
+<script>
+/* ── screen-specific config/behavior — chrome (nav, header, step rail,
+   confirm modal, toast, theme toggle, date/edit sheets) comes from
+   eam-shared.js. ── */
+
+function navBack() {
+  showToast('← Back to Book Labor');
+}
+
+// ── SECTION CARDS — every container is collapsible (design-decisions-v3-1.md
+// §3.4). No shared equivalent yet — this screen is the first consumer.
+// Toggles 'collapsed' on the header's own parent, which works for both
+// .section-card and .attach-card without needing to know which.
+function toggleSectionCard(headerEl) {
+  headerEl.parentElement.classList.toggle('collapsed');
+}
+
+// ── SEQUENTIAL CODE STATE (§19.3) ──────────────────────────────────────
+// problem is pre-filled; failure/cause/action start empty + locked.
+// codeState holds the raw code (business logic / sequential-unlock check);
+// codeDescState holds the description shown anywhere the value is
+// displayed (cell, confirm summary).
+const codeState = { problem: 'P-001', failure: '', cause: '', action: '' };
+const codeDescState = { problem: 'Mechanical failure', failure: '', cause: '', action: '' };
+const codeOrder = ['problem','failure','cause','action'];
+
+// Code convention: <first letter of code type>-0xx, e.g. P-001, F-002 —
+// placeholder scheme standing in for the admin-configured code lists these
+// will resolve to in the real app. Sourced from data/closing_codes.js
+// (EAM_CLOSING_CODES) as of 2026-07-21 — see file-header note [8].
+const lovData = EAM_CLOSING_CODES;
+
+const codesTitles = { problem:'Problem code', failure:'Failure code', cause:'Cause code', action:'Action code' };
+
+function refreshSequentialLocks() {
+  const states = {
+    problem: true,
+    failure: !!codeState.problem,
+    cause:   !!codeState.failure,
+    action:  !!codeState.cause,
+  };
+  codeOrder.forEach(key => {
+    const cell = document.getElementById('field' + cap(key));
+    const isLocked = !states[key];
+    cell.classList.toggle('field-locked', isLocked);
+    // Required marker: never shows while protected (locked); appears the
+    // instant the cell unlocks — same rule as any other standard-model
+    // required field, regardless of whether it's been filled in yet.
+    cell.classList.toggle('required', !isLocked);
+    // Footer: show lock icon when locked, chevron when unlocked
+    const footer = document.getElementById(key + 'Footer');
+    if (footer) {
+      footer.innerHTML = isLocked
+        ? `<div class="seq-lock-icon-sm"><svg width="9" height="9" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>`
+        : `<svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    }
+  });
+  // Problem cell never has a removable footer — leave its static chevron alone
+}
+
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// ── CLOSING CODE SHEET — local, distinct from shared's openLov/selectLov/
+// clearLov (file-header note [4]). ──────────────────────────────────────
+let activeCodeLov = null;
+function openCodeLov(type) {
+  const cell = document.getElementById('field'+cap(type));
+  if (cell.classList.contains('field-locked')) return;
+  activeCodeLov = type;
+  document.getElementById('codeLovSheetTitle').textContent = codesTitles[type];
+  // Clear visibility: hidden for Problem (the never-clearable foundation of
+  // the sequential chain — parallel to a required field) or when this cell
+  // is currently empty (nothing to clear).
+  const hideClear = (type === 'problem') || !codeState[type];
+  document.getElementById('codeLovClearBtn').classList.toggle('hidden', hideClear);
+  document.getElementById('codeLovSearchInput').value = '';
+  const body = document.getElementById('codeLovSheetBody');
+  const currentCode = codeState[type];
+  body.innerHTML = lovData[type].map(opt => `
+    <div class="lov-option ${opt.code === currentCode ? 'selected' : ''}" data-search="${(opt.desc+' '+opt.code).toLowerCase()}" onclick="selectCodeLov('${type}','${opt.code}','${opt.desc}')">
+      <div class="lov-option-texts">
+        <div class="lov-option-desc">${opt.desc}</div>
+        <div class="lov-option-code">${opt.code}</div>
+      </div>
+      <div class="lov-check ${opt.code === currentCode ? 'checked' : 'unchecked'}">
+        ${opt.code === currentCode ? '<svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>' : ''}
+      </div>
+    </div>`).join('');
+  openSheet('codeLovSheet');
+}
+
+function filterCodeLovOptions(query) {
+  const q = query.trim().toLowerCase();
+  document.querySelectorAll('#codeLovSheetBody .lov-option').forEach(opt => {
+    opt.classList.toggle('filtered-out', q && !opt.dataset.search.includes(q));
+  });
+}
+
+function selectCodeLov(type, code, desc) {
+  codeState[type] = code;
+  codeDescState[type] = desc;
+  const descEl = document.getElementById(type+'Desc');
+  descEl.textContent = desc;
+  descEl.classList.add('set');
+  document.getElementById(type+'Code').textContent = code;
+  refreshSequentialLocks();
+  closeAllSheets();
+  showToast(`${codesTitles[type]}: ${desc}`);
+}
+
+function clearCodeLov() {
+  const type = activeCodeLov;
+  if (type === 'problem') return; // never clearable — guarded in the UI too
+  // Clearing a cell cascades to every cell downstream of it, since a later
+  // code can't remain set once its predecessor is empty.
+  const idx = codeOrder.indexOf(type);
+  codeOrder.slice(idx).forEach(k => {
+    codeState[k] = '';
+    codeDescState[k] = '';
+    const descEl = document.getElementById(k+'Desc');
+    descEl.textContent = '';
+    descEl.classList.remove('set');
+    document.getElementById(k+'Code').textContent = '';
+  });
+  refreshSequentialLocks();
+  closeAllSheets();
+  showToast('Cleared');
+}
+
+// ── STATUS PICKER — Option D banner (§19.2). Each status keeps its own
+// accent colour, as the target pill's solid fill instead of a small chip.
+const statusOptions = {
+  completed: { label:'Completed', fillClass:'fill-completed' },
+  closed:    { label:'Closed',    fillClass:'fill-closed' },
+  onhold:    { label:'On hold',   fillClass:'fill-onhold' },
+};
+let currentStatusKey = 'completed';
+
+// Whether the WO Status field is protected per Screen/System Design — a
+// protected field is never user-editable (§5.2), so the target pill goes
+// static/locked and the picker sheet won't open. Same flag as §15.4's Free
+// Form/Not Free Form (protected = Not Free Form), just not modeled as a
+// real field yet (design-decisions-v3-1.md §20), so hardcoded here; flip
+// to true to preview the protected state.
+// statusFieldProtected (§15.4/§19.2, redesigned 2026-07-22) — now a real
+// flag driven by the resolved workflow's Free Form setting (onDemoWoChanged()
+// below), not a hardcoded stand-in.
+let statusFieldProtected = false;
+
+function applyStatusProtection() {
+  const btn = document.getElementById('statusTargetBtn');
+  const icon = document.getElementById('statusTargetIcon');
+  btn.classList.toggle('protected', statusFieldProtected);
+  icon.innerHTML = statusFieldProtected
+    ? '<svg width="12" height="12" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+    : '<svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+
+function toggleStatusSheet() {
+  if (statusFieldProtected) {
+    showToast('Status is determined by workflow. Cannot be updated.');
+    return;
+  }
+  openSheet('statusSheet');
+}
+
+function selectStatus(key, label) {
+  currentStatusKey = key;
+  const opt = statusOptions[key];
+  const btn = document.getElementById('statusTargetBtn');
+  btn.className = 'status-pill to ' + opt.fillClass;
+  document.getElementById('statusTargetLabel').textContent = label;
+  document.getElementById('confirmTargetStatus').textContent = label;
+  // Update check marks in sheet
+  Object.keys(statusOptions).forEach(k => {
+    const optEl  = document.getElementById('sOpt-'+k);
+    const chkEl  = document.getElementById('sChk-'+k);
+    if (k === key) {
+      optEl.classList.add('selected');
+      chkEl.className = 'lov-check checked';
+      chkEl.innerHTML = '<svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>';
+    } else {
+      optEl.classList.remove('selected');
+      chkEl.className = 'lov-check unchecked';
+      chkEl.innerHTML = '';
+    }
+  });
+  closeAllSheets();
+  showToast(`Target status: ${label}`);
+}
+
+// ── CLOSING COMMENTS + BAR GATING (§19.5/§19.8) ────────────────────────
+// PM_COMMENTS_OPTIONAL (§13, added 2026-07-22) — PM's Closing field
+// layout makes Comments optional instead of required; set by
+// onDemoWoChanged() below, not a per-field default.
+let PM_COMMENTS_OPTIONAL = false;
+function onCommentsInput() {
+  const ta = document.getElementById('closingComments');
+  const len = ta.value.length;
+  const cc = document.getElementById('charCount');
+  cc.textContent = `${len} / 1000`;
+  cc.classList.toggle('warn', len > 850);
+  checkBarReady();
+}
+
+function checkBarReady() {
+  const hasComments = document.getElementById('closingComments').value.trim().length > 0;
+  const ready = hasComments || PM_COMMENTS_OPTIONAL;
+  document.getElementById('closeBtn').className = 'bar-pill ' + (ready ? 'bar-pill-ready' : 'bar-pill-locked');
+  // §19.8 "Bar meta — status wording, not instruction": a state ("Comments
+  // required"), not an instruction ("Add closing comments") — the pill
+  // button's own label stays "Close Work Order" throughout; this is the
+  // only element that changes with readiness.
+  document.getElementById('closeBarMeta').textContent = ready ? '' : 'Comments required';
+}
+
+function onCloseBarTap() {
+  const hasComments = document.getElementById('closingComments').value.trim().length > 0;
+  if (!hasComments && !PM_COMMENTS_OPTIONAL) {
+    showToast('Closing comments are required');
+    document.getElementById('closingComments').focus();
+    return;
+  }
+  buildConfirmSummary();
+  openSheet('confirmCloseSheet');
+}
+
+/* Demo-WO workflow hook (design-decisions-v3-1.md §11-13, added
+   2026-07-22) — called by cycleDemoWo() (eam-shared.js) and once at init.
+   PM's Closing layout difference (no Closing Codes, optional Comments) is
+   a §13 field-layout fact about the WO Type, independent of the Free
+   Form flag rendered via renderStepRail()'s own rail colour. */
+function onDemoWoChanged() {
+  const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
+  applyDemoWoIdentity();
+  const workflow = resolveWoWorkflow(jobType);
+  renderStepRail(workflow, 'closing');
+  const isPM = jobType === 'PM';
+  const codesCard = document.getElementById('closingCodesCard');
+  const commentsArea = document.getElementById('commentsArea');
+  if (codesCard) codesCard.style.display = isPM ? 'none' : '';
+  if (commentsArea) commentsArea.classList.toggle('required', !isPM);
+  PM_COMMENTS_OPTIONAL = isPM;
+  checkBarReady();
+  statusFieldProtected = !workflow.freeForm;
+  applyStatusProtection();
+}
+
+function buildConfirmSummary() {
+  // Detail-grid values: description only for reference-data lookups (the
+  // closing codes) — never the raw code (§3.4). Identifier fields (WO#,
+  // equipment number) are the one case that keeps its code, rendered in
+  // mono via an inline span; plain descriptions/dates/counts render in
+  // Inter (the confirm-summary-value default). No "—"/"Not set"
+  // placeholder on empty values — left blank.
+  const mono = (s) => `<span class="mono">${s}</span>`;
+  const rows = [
+    { label:'Work order',     value: mono('19257') },
+    { label:'Equipment',      value: mono('00067333') + ' Pump, Centrifugal' },
+    { label:'Date completed', value: document.getElementById('fv-dateCompleted').textContent },
+    { label:'Problem',        value: codeDescState.problem },
+    { label:'Failure',        value: codeDescState.failure },
+    { label:'Cause',          value: codeDescState.cause },
+    { label:'Action',         value: codeDescState.action },
+    { label:'Attachments',    value: attachments.length > 0 ? `${attachments.length} attached` : 'None' },
+  ];
+  document.getElementById('confirmSummary').innerHTML = rows.map(r => `
+    <div class="confirm-summary-row">
+      <span class="confirm-summary-label">${r.label}</span>
+      <span class="confirm-summary-value">${r.value}</span>
+    </div>`).join('');
+}
+
+// Close Work Order → brief success overlay, then navigate to the WO List
+// and (in the real app) re-run the user's default/last-run dataspy — this
+// static prototype can't demonstrate the dataspy re-run itself, just the
+// navigation (design-decisions-v3-1.md §20).
+function executeClose() {
+  closeAllSheets();
+  document.getElementById('closedSub').textContent = 'Status: ' + statusOptions[currentStatusKey].label;
+  // Built from live state, not a static literal (design-decisions-v3-1.md
+  // §20) — Date completed reflects whatever was actually entered above.
+  const dateCompleted = document.getElementById('fv-dateCompleted').textContent;
+  document.getElementById('closedWo').textContent = 'WO# 19257' + (dateCompleted ? ' · ' + dateCompleted : '');
+  setTimeout(() => {
+    document.getElementById('closedOverlay').classList.add('show');
+    setTimeout(() => { window.location.href = 'eam-wo-list-prototype-v5_1.html'; }, 1400);
+  }, 400);
+}
+
+// ── ATTACHMENTS (§19.6) ─────────────────────────────────────────────────
+let attachments = [];
+let viewingIdx  = null;
+
+const attachColors = ['#2A3A4A','#2A4A2A','#3A2A4A','#4A3A2A','#2A4A3A'];
+const fakeSizes    = ['1.2 MB','840 KB','2.4 MB','310 KB','1.8 MB','650 KB'];
+
+const typeMap = {
+  camera:  { ext:'JPG',  label:'Photo',    iconClass:'attach-type-photo', mime:'image' },
+  library: { ext:'HEIC', label:'Photo',    iconClass:'attach-type-photo', mime:'image' },
+  file:    { ext:'PDF',  label:'Document', iconClass:'attach-type-pdf',   mime:'pdf'   },
+};
+const fileNames = {
+  camera:  idx => `IMG_${String(1000+idx).padStart(4,'0')}.JPG`,
+  library: idx => `Photo_${String(idx).padStart(3,'0')}.HEIC`,
+  file:    idx => ['Inspection_Report.pdf','Calibration_Cert.pdf','Work_Permit.pdf','Datasheet.pdf'][idx%4],
+};
+
+function typeIconSvg(mime, size, color) {
+  if (mime === 'image') return `<svg width="${size}" height="${size}" fill="none" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" stroke="${color}" stroke-width="2"/><circle cx="8.5" cy="10.5" r="1.5" stroke="${color}" stroke-width="1.5"/><path d="M21 15l-5-5L5 19" stroke="${color}" stroke-width="2" stroke-linecap="round"/></svg>`;
+  if (mime === 'pdf')   return `<svg width="${size}" height="${size}" fill="none" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="${color}" stroke-width="2" stroke-linecap="round"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="${color}" stroke-width="2" stroke-linecap="round"/></svg>`;
+  return `<svg width="${size}" height="${size}" fill="none" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="${color}" stroke-width="2" stroke-linecap="round"/></svg>`;
+}
+
+function openSourcePicker() {
+  openSheet('sourcePickerSheet');
+}
+
+function addAttachment(source) {
+  closeAllSheets();
+  const t   = typeMap[source];
+  const idx = attachments.length;
+  const att = {
+    id:        idx,
+    source,
+    name:      fileNames[source](idx),
+    label:     t.label,
+    iconClass: t.iconClass,
+    mime:      t.mime,
+    size:      fakeSizes[idx % fakeSizes.length],
+    bgColor:   attachColors[idx % attachColors.length],
+    addedAt:   'Just now',
+  };
+  attachments.push(att);
+  renderAttachList();
+  showToast(`${att.label} added`);
+}
+
+function renderAttachList() {
+  const list    = document.getElementById('attachList');
+  const empty   = document.getElementById('attachEmpty');
+  const n       = attachments.length;
+
+  empty.style.display = n === 0 ? '' : 'none';
+
+  list.innerHTML = attachments.map((att, i) => {
+    const iconColors = { 'attach-type-photo':'#9933FF', 'attach-type-pdf':'#E24B4A', 'attach-type-doc':'#42b2ea', 'attach-type-file':'#6F7480' };
+    const ic = iconColors[att.iconClass] || '#6F7480';
+    return `<div class="attach-row" onclick="openViewer(${i})">
+      <div class="attach-type-icon ${att.iconClass}">${typeIconSvg(att.mime, 18, ic)}</div>
+      <div class="attach-row-info">
+        <div class="attach-row-name">${att.name}</div>
+        <div class="attach-row-meta">${att.label} · ${att.size} · ${att.addedAt}</div>
+      </div>
+      <button class="attach-row-remove" onclick="event.stopPropagation();quickRemove(${i})" title="Remove">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+}
+
+// ── VIEWER ───────────────────────────────────────────────────────────────
+function openViewer(idx) {
+  viewingIdx = idx;
+  const att = attachments[idx];
+  const iconColors = { 'attach-type-photo':'#9933FF', 'attach-type-pdf':'#E24B4A', 'attach-type-doc':'#42b2ea', 'attach-type-file':'#6F7480' };
+  const ic = iconColors[att.iconClass] || '#6F7480';
+
+  document.getElementById('viewerIcon').className = 'viewer-file-icon ' + att.iconClass;
+  document.getElementById('viewerIcon').innerHTML = typeIconSvg(att.mime, 18, ic);
+  document.getElementById('viewerName').textContent = att.name;
+  document.getElementById('viewerMeta').textContent = `${att.label} · ${att.size} · Added ${att.addedAt}`;
+
+  const body = document.getElementById('viewerBody');
+  if (att.mime === 'image') {
+    body.innerHTML = `
+      <div style="width:100%;max-width:320px;aspect-ratio:4/3;border-radius:10px;background:${att.bgColor};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1px solid var(--border);">
+        ${typeIconSvg('image', 36, 'rgba(255,255,255,0.4)')}
+        <span style="font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,0.4);">${att.name}</span>
+      </div>
+      <div class="viewer-file-label">Prototype — photo preview simulated</div>`;
+  } else {
+    body.innerHTML = `
+      <div class="viewer-file-placeholder ${att.iconClass}">${typeIconSvg(att.mime, 32, ic)}</div>
+      <div style="text-align:center;">
+        <div style="font-size:14px;font-weight:600;color:var(--octave-black);">${att.name}</div>
+        <div style="font-size:12px;color:var(--gray-4);margin-top:4px;font-family:var(--font-mono);">${att.size} · ${att.label}</div>
+      </div>
+      <div class="viewer-file-label">Tap Open to view in a document reader</div>`;
+  }
+  openSheet('viewerSheet');
+}
+
+// Remove-attachment confirmation reuses the shared centered openConfirm()
+// modal (§3.4, file-header note [6]) instead of a bespoke bottom sheet.
+function openRemoveConfirm() {
+  if (viewingIdx === null) return;
+  const idx = viewingIdx;
+  const name = attachments[idx].name;
+  closeAllSheets();
+  openConfirm(`Remove ${name}? This cannot be undone.`, () => {
+    quickRemove(idx);
+    viewingIdx = null;
+  }, 'Remove');
+}
+
+function quickRemove(idx) {
+  attachments.splice(idx, 1);
+  attachments.forEach((a,i) => a.id = i);
+  renderAttachList();
+  showToast('Attachment removed');
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────
+refreshSequentialLocks();
+onDemoWoChanged();
+initSharedApp({ contentSelector: '.content' });
+</script>
+</body>
+</html>

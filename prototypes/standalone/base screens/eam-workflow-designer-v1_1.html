@@ -1,0 +1,1758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EAM Workflow Designer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.x/dist/tabler-icons.min.css" rel="stylesheet">
+<style>
+  :root {
+    --oct-black: #1A1A1F;
+    --oct-slate: #2C2D35;
+    --oct-teal: #007B87;
+    --oct-teal-light: #E1F5EE;
+    --oct-teal-mid: #0F6E56;
+    --oct-aqua: #00C5D4;
+    --oct-purple: #6B4EFF;
+    --oct-purple-light: #EEEDFE;
+    --oct-green: #28A745;
+    --oct-green-light: #EAF3DE;
+    --oct-amber: #F59E0B;
+    --oct-amber-light: #FAEEDA;
+    --oct-red: #DC3545;
+    --oct-red-light: #FCEBEB;
+    --oct-gray-50: #F8F9FA;
+    --oct-gray-100: #F1EFE8;
+    --oct-gray-200: #E2E0D8;
+    --oct-gray-300: #D3D1C7;
+    --oct-gray-400: #B4B2A9;
+    --oct-gray-500: #888780;
+    --oct-gray-600: #5F5E5A;
+    --oct-gray-700: #444441;
+    --oct-gray-800: #2C2C2A;
+    --font-main: 'DM Sans', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --shell-nav: 52px;
+    --panel-left: 260px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-main); font-size: 13px; background: var(--oct-gray-50); color: var(--oct-gray-800); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+  /* ── TOP NAV ── */
+  .top-nav {
+    height: var(--shell-nav);
+    background: var(--oct-black);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .top-nav .logo { display: flex; align-items: center; gap: 8px; color: #fff; font-weight: 600; font-size: 14px; letter-spacing: 0.01em; }
+  .top-nav .logo .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--oct-aqua); }
+  .top-nav .nav-sep { width: 1px; height: 24px; background: rgba(255,255,255,0.12); margin: 0 4px; }
+  .top-nav .breadcrumb { display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.5); font-size: 12px; }
+  .top-nav .breadcrumb span { color: rgba(255,255,255,0.9); }
+  .top-nav .spacer { flex: 1; }
+  .top-nav .nav-btn { background: none; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.8); border-radius: 6px; padding: 5px 12px; font-size: 12px; font-family: var(--font-main); cursor: pointer; display: flex; align-items: center; gap: 6px; transition: border-color 0.15s, background 0.15s; }
+  .top-nav .nav-btn:hover { border-color: var(--oct-aqua); color: #fff; }
+  .top-nav .nav-btn.primary { background: var(--oct-teal); border-color: var(--oct-teal); color: #fff; }
+  .top-nav .nav-btn.primary:hover { background: var(--oct-teal-mid); }
+
+  /* ── SHELL ── */
+  .shell { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── LEFT PANEL ── */
+  .panel-left {
+    width: var(--panel-left);
+    background: var(--oct-slate);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    border-right: 1px solid rgba(255,255,255,0.06);
+  }
+  .panel-left .section-hdr {
+    padding: 12px 16px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+  }
+  .wf-list { flex: 1; overflow-y: auto; padding-bottom: 12px; }
+  .wf-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    cursor: pointer;
+    transition: background 0.12s;
+    position: relative;
+  }
+  .wf-item:hover { background: rgba(255,255,255,0.05); }
+  .wf-item.active { background: rgba(0,197,212,0.1); }
+  .wf-item.active::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--oct-aqua); border-radius:0 2px 2px 0; }
+  .wf-item .wf-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .wf-icon.teal { background: rgba(0,123,135,0.25); color: var(--oct-aqua); }
+  .wf-icon.amber { background: rgba(245,158,11,0.2); color: var(--oct-amber); }
+  .wf-icon.purple { background: rgba(107,78,255,0.2); color: #9B84FF; }
+  .wf-icon.locked { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.3); }
+  .wf-info { flex: 1; min-width: 0; }
+  .wf-info .name { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wf-info .meta { font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 1px; }
+  .wf-badge { font-size: 9px; padding: 2px 6px; border-radius: 10px; font-weight: 600; letter-spacing: 0.04em; flex-shrink: 0; }
+  .wf-badge.default { background: rgba(0,197,212,0.2); color: var(--oct-aqua); }
+  .wf-badge.draft { background: rgba(245,158,11,0.2); color: var(--oct-amber); }
+  .wf-badge.locked { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.3); }
+
+  .panel-left-footer {
+    padding: 12px 16px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .btn-new {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px;
+    border: 1px dashed rgba(0,197,212,0.4);
+    border-radius: 8px;
+    color: var(--oct-aqua);
+    font-size: 12px;
+    font-family: var(--font-main);
+    background: none;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .btn-new:hover { background: rgba(0,197,212,0.08); border-color: var(--oct-aqua); }
+
+  /* ── MAIN CONTENT ── */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── LEVEL TABS ── */
+  .level-tabs {
+    display: flex;
+    align-items: stretch;
+    background: #fff;
+    border-bottom: 1px solid var(--oct-gray-200);
+    padding: 0 24px;
+    gap: 0;
+    flex-shrink: 0;
+  }
+  .level-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 20px;
+    height: 44px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--oct-gray-500);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .level-tab:hover { color: var(--oct-gray-700); }
+  .level-tab.active { color: var(--oct-teal); border-bottom-color: var(--oct-teal); }
+  .level-tab .tab-num {
+    width: 18px; height: 18px; border-radius: 50%; font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--oct-gray-200); color: var(--oct-gray-600);
+  }
+  .level-tab.active .tab-num { background: var(--oct-teal); color: #fff; }
+  .level-tab .tab-lock { font-size: 11px; color: var(--oct-gray-400); }
+
+  /* ── VIEWS ── */
+  .view { flex: 1; overflow-y: auto; display: none; }
+  .view.active { display: block; }
+
+  /* ═══════════════════════════════════════
+     VIEW 1 — WORKFLOW HEADER
+  ═══════════════════════════════════════ */
+  .view-header {
+    padding: 24px 28px 0;
+  }
+  .wf-title-row { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+  .wf-title-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    background: var(--oct-teal-light); color: var(--oct-teal-mid);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .wf-title-text h1 { font-size: 18px; font-weight: 600; color: var(--oct-gray-800); line-height: 1.2; }
+  .wf-title-text .wf-sub { font-size: 12px; color: var(--oct-gray-500); margin-top: 3px; font-family: var(--font-mono); }
+
+  .status-row { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  }
+  .tag.active { background: var(--oct-green-light); color: #28A745; }
+  .tag.draft { background: var(--oct-amber-light); color: #B45309; }
+  .tag.default { background: var(--oct-teal-light); color: var(--oct-teal-mid); }
+  .tag.locked { background: var(--oct-gray-100); color: var(--oct-gray-500); }
+  .tag.rev { background: var(--oct-purple-light); color: var(--oct-purple); }
+  .tag i { font-size: 11px; }
+
+  /* Form grid */
+  .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px 28px; padding: 0 28px 28px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.span2 { grid-column: span 2; }
+  .form-group.span3 { grid-column: span 3; }
+  .form-label { font-size: 11px; font-weight: 600; color: var(--oct-gray-600); letter-spacing: 0.03em; text-transform: uppercase; }
+  .form-label .req { color: var(--oct-red); margin-left: 2px; }
+  .form-input, .form-select, .form-textarea {
+    border: 1px solid var(--oct-gray-300);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-family: var(--font-main);
+    color: var(--oct-gray-800);
+    background: #fff;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    outline: none;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--oct-teal);
+    box-shadow: 0 0 0 3px rgba(0,123,135,0.1);
+  }
+  .form-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23888780' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+  .form-textarea { resize: vertical; min-height: 72px; }
+
+  .multi-select-tags {
+    border: 1px solid var(--oct-gray-300);
+    border-radius: 6px;
+    padding: 6px 8px;
+    background: #fff;
+    display: flex; flex-wrap: wrap; gap: 5px; cursor: text;
+    min-height: 38px;
+    transition: border-color 0.15s;
+  }
+  .multi-select-tags:focus-within { border-color: var(--oct-teal); box-shadow: 0 0 0 3px rgba(0,123,135,0.1); }
+  .ms-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--oct-teal-light); color: var(--oct-teal-mid);
+    border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 500;
+  }
+  .ms-tag .rm { cursor: pointer; font-size: 10px; opacity: 0.7; }
+  .ms-tag .rm:hover { opacity: 1; }
+  .ms-add {
+    font-size: 12px; color: var(--oct-teal); cursor: pointer;
+    display: inline-flex; align-items: center; gap: 3px; padding: 2px 4px;
+  }
+  .ms-add:hover { text-decoration: underline; }
+
+  .criteria-hint { font-size: 11px; color: var(--oct-gray-500); margin-top: 4px; }
+
+  .form-divider { grid-column: span 3; border: none; border-top: 1px solid var(--oct-gray-200); margin: 4px 0; }
+
+  .form-section-hdr { grid-column: span 3; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--oct-gray-500); padding-top: 4px; }
+
+  .rev-block {
+    display: flex; align-items: center; gap: 16px;
+    background: var(--oct-gray-100); border-radius: 8px; padding: 12px 16px;
+    border: 1px solid var(--oct-gray-200);
+  }
+  .rev-field { display: flex; flex-direction: column; gap: 3px; }
+  .rev-field label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--oct-gray-500); }
+  .rev-field .val { font-size: 13px; font-weight: 600; font-family: var(--font-mono); color: var(--oct-gray-800); }
+  .rev-field .val.green { color: var(--oct-green); }
+  .rev-field .val.amber { color: #B45309; }
+  .rev-sep { width: 1px; height: 36px; background: var(--oct-gray-300); }
+
+  /* ═══════════════════════════════════════
+     VIEW 2 — STEP SEQUENCER
+  ═══════════════════════════════════════ */
+  .view2-shell { display: flex; height: 100%; }
+
+  .step-canvas {
+    flex: 1;
+    padding: 24px 28px;
+    overflow-y: auto;
+  }
+
+  .step-toolbar {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 20px;
+  }
+  .step-toolbar .tb-label { font-size: 12px; font-weight: 600; color: var(--oct-gray-600); margin-right: 4px; }
+  .tb-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 6px 12px; border-radius: 6px; border: 1px solid var(--oct-gray-300);
+    background: #fff; font-size: 12px; font-family: var(--font-main);
+    color: var(--oct-gray-700); cursor: pointer; transition: all 0.15s;
+  }
+  .tb-btn:hover { border-color: var(--oct-teal); color: var(--oct-teal); background: var(--oct-teal-light); }
+  .tb-btn i { font-size: 14px; }
+  .tb-spacer { flex: 1; }
+  .tb-hint { font-size: 11px; color: var(--oct-gray-400); display: flex; align-items: center; gap: 4px; }
+
+  /* Step cards */
+  .step-list { display: flex; flex-direction: column; gap: 0; position: relative; }
+  .step-connector {
+    width: 2px; height: 20px;
+    background: var(--oct-gray-200);
+    margin: 0 0 0 27px;
+  }
+  .step-card {
+    background: #fff;
+    border: 1px solid var(--oct-gray-200);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    cursor: grab;
+    transition: box-shadow 0.15s, border-color 0.15s;
+    position: relative;
+  }
+  .step-card:hover { border-color: var(--oct-gray-300); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .step-card.active-step { border-color: var(--oct-teal); box-shadow: 0 0 0 3px rgba(0,123,135,0.08); }
+
+  .step-num {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+    border: 2px solid var(--oct-gray-300);
+    color: var(--oct-gray-500);
+    background: var(--oct-gray-50);
+  }
+  .step-num.done { background: var(--oct-green-light); border-color: var(--oct-green); color: var(--oct-green); }
+  .step-num.active { background: var(--oct-teal); border-color: var(--oct-teal); color: #fff; }
+
+  .step-body { flex: 1; min-width: 0; }
+  .step-name { font-size: 14px; font-weight: 600; color: var(--oct-gray-800); }
+  .step-desc { font-size: 12px; color: var(--oct-gray-500); margin-top: 2px; }
+  .step-pills { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .step-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+  }
+  .sp-req { background: var(--oct-red-light); color: var(--oct-red); }
+  .sp-opt { background: var(--oct-gray-100); color: var(--oct-gray-600); }
+  .sp-branch { background: var(--oct-purple-light); color: var(--oct-purple); }
+  .sp-skip { background: var(--oct-amber-light); color: #B45309; }
+
+  .step-actions {
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+  }
+  .step-act-btn {
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--oct-gray-200);
+    background: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: var(--oct-gray-400); cursor: pointer; transition: all 0.15s;
+  }
+  .step-act-btn:hover { border-color: var(--oct-teal); color: var(--oct-teal); background: var(--oct-teal-light); }
+  .step-act-btn.danger:hover { border-color: var(--oct-red); color: var(--oct-red); background: var(--oct-red-light); }
+  .drag-handle { color: var(--oct-gray-300); cursor: grab; font-size: 16px; margin-top: 6px; }
+
+  /* ── NODE LIBRARY (persistent left panel on Step Sequencer) ── */
+  .node-library {
+    width: 256px;
+    border-right: 1px solid var(--oct-gray-200);
+    background: var(--oct-gray-50);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .nl-hdr {
+    padding: 14px 14px 10px;
+    border-bottom: 1px solid var(--oct-gray-200);
+    background: var(--oct-gray-50);
+  }
+  .nl-hdr .nl-title { font-size: 13px; font-weight: 600; color: var(--oct-gray-800); margin-bottom: 6px; }
+  .nl-hdr .nl-sub { font-size: 11px; color: var(--oct-gray-400); margin-bottom: 8px; }
+  .nl-search {
+    position: relative;
+  }
+  .nl-search input {
+    width: 100%;
+    padding: 7px 10px 7px 30px;
+    border: 1px solid var(--oct-gray-200);
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: var(--font-main);
+    outline: none;
+    background: #fff;
+    transition: border-color 0.15s;
+  }
+  .nl-search input:focus { border-color: var(--oct-teal); box-shadow: 0 0 0 2px rgba(0,123,135,0.08); }
+  .nl-search .si { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--oct-gray-400); pointer-events: none; }
+
+  .nl-scroll { flex: 1; overflow-y: auto; padding: 6px 8px 12px; }
+  .nl-group-label {
+    font-size: 10px; font-weight: 700; color: var(--oct-gray-400);
+    text-transform: uppercase; letter-spacing: 0.07em;
+    padding: 10px 6px 4px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .nl-group-label::after { content:''; flex:1; height:1px; background:var(--oct-gray-200); }
+
+  .nl-node {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 10px; border-radius: 8px;
+    background: #fff; border: 1px solid var(--oct-gray-200);
+    margin-bottom: 5px;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .nl-node.available { cursor: pointer; }
+  .nl-node.available:hover { border-color: var(--oct-teal); box-shadow: 0 1px 5px rgba(0,0,0,0.07); }
+  .nl-node.available:hover .nl-add-btn { opacity: 1; }
+  .nl-node.in-use { background: var(--oct-gray-50); border-color: var(--oct-gray-100); cursor: default; }
+  .nl-node.in-use .pn-name { color: var(--oct-gray-400); }
+  .nl-node.in-use .pn-entity { color: var(--oct-gray-300); }
+
+  .pn-icon { width: 30px; height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+  .pn-teal { background: var(--oct-teal-light); color: var(--oct-teal-mid); }
+  .pn-purple { background: var(--oct-purple-light); color: var(--oct-purple); }
+  .pn-amber { background: var(--oct-amber-light); color: #B45309; }
+  .pn-green { background: var(--oct-green-light); color: #28A745; }
+  .pn-gray { background: var(--oct-gray-100); color: var(--oct-gray-600); }
+  .nl-node.in-use .pn-icon { opacity: 0.4; }
+
+  .pn-info { flex: 1; min-width: 0; }
+  .pn-info .pn-name { font-size: 12px; font-weight: 500; color: var(--oct-gray-800); }
+  .pn-info .pn-entity { font-size: 10px; color: var(--oct-gray-400); margin-top: 1px; }
+
+  .nl-add-btn {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--oct-teal); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; flex-shrink: 0;
+    opacity: 0; transition: opacity 0.15s;
+  }
+  .nl-in-use-tag {
+    font-size: 9px; font-weight: 700; padding: 2px 6px;
+    border-radius: 10px; background: var(--oct-gray-200);
+    color: var(--oct-gray-500); flex-shrink: 0;
+    letter-spacing: 0.04em;
+  }
+
+  /* Legacy alias kept for step-options panel */
+  .node-palette { display: none; }
+  .palette-node { display: none; }
+
+  /* Step Options Panel (right side when step selected) */
+  .step-options {
+    width: 280px;
+    border-left: 1px solid var(--oct-gray-200);
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .so-hdr {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--oct-gray-200);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .so-hdr .title { font-size: 13px; font-weight: 600; color: var(--oct-gray-800); }
+  .so-hdr .close-btn { font-size: 16px; color: var(--oct-gray-400); cursor: pointer; }
+  .so-hdr .close-btn:hover { color: var(--oct-gray-700); }
+  .so-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+
+  .so-section { display: flex; flex-direction: column; gap: 8px; }
+  .so-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--oct-gray-500); }
+  .so-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .so-row label { font-size: 12px; color: var(--oct-gray-700); }
+
+  .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--oct-gray-300); border-radius: 20px; cursor: pointer; transition: background 0.2s;
+  }
+  .toggle-track::before {
+    content: ''; position: absolute; left: 3px; top: 3px;
+    width: 14px; height: 14px; border-radius: 50%; background: #fff;
+    transition: transform 0.2s;
+  }
+  .toggle input:checked + .toggle-track { background: var(--oct-teal); }
+  .toggle input:checked + .toggle-track::before { transform: translateX(16px); }
+
+  .so-select { width: 100%; border: 1px solid var(--oct-gray-300); border-radius: 6px; padding: 6px 8px; font-size: 12px; font-family: var(--font-main); color: var(--oct-gray-800); background: #fff; }
+
+  .drill-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 10px; border-radius: 8px;
+    border: 1px solid var(--oct-teal); color: var(--oct-teal);
+    background: var(--oct-teal-light); font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; font-family: var(--font-main);
+  }
+  .drill-btn:hover { background: var(--oct-teal); color: #fff; }
+
+  /* ═══════════════════════════════════════
+     VIEW 3 — SCREEN / FIELD CONFIGURATOR
+  ═══════════════════════════════════════ */
+  .view3-shell { display: flex; height: 100%; }
+
+  .field-config-left {
+    width: 340px;
+    border-right: 1px solid var(--oct-gray-200);
+    display: flex; flex-direction: column;
+    flex-shrink: 0;
+  }
+  .fc-hdr {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--oct-gray-200);
+    background: var(--oct-gray-50);
+  }
+  .fc-hdr .step-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; background: var(--oct-teal-light);
+    color: var(--oct-teal-mid); padding: 3px 10px; border-radius: 20px;
+    font-weight: 600; margin-bottom: 6px;
+  }
+  .fc-hdr h3 { font-size: 14px; font-weight: 600; color: var(--oct-gray-800); }
+  .fc-hdr p { font-size: 11px; color: var(--oct-gray-500); margin-top: 2px; }
+
+  .fc-search {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--oct-gray-200);
+    position: relative;
+  }
+  .fc-search input {
+    width: 100%;
+    padding: 7px 10px 7px 32px;
+    border: 1px solid var(--oct-gray-200);
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: var(--font-main);
+    outline: none;
+    background: #fff;
+  }
+  .fc-search input:focus { border-color: var(--oct-teal); }
+  .fc-search .search-icon { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--oct-gray-400); }
+
+  .field-list { flex: 1; overflow-y: auto; }
+  .field-group-hdr {
+    padding: 8px 14px 4px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--oct-gray-400);
+    background: var(--oct-gray-50);
+    border-bottom: 1px solid var(--oct-gray-100);
+    position: sticky; top: 0; z-index: 1;
+  }
+  .field-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--oct-gray-100);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .field-row:hover { background: var(--oct-gray-50); }
+  .field-row.selected { background: var(--oct-teal-light); }
+  .field-row.selected .field-name { color: var(--oct-teal-mid); font-weight: 600; }
+
+  .field-type-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .fd-text { background: var(--oct-teal); }
+  .fd-lov { background: var(--oct-purple); }
+  .fd-num { background: var(--oct-amber); }
+  .fd-bool { background: var(--oct-green); }
+  .fd-date { background: #EC4899; }
+
+  .field-name { font-size: 12px; color: var(--oct-gray-700); flex: 1; }
+  .field-api { font-size: 10px; color: var(--oct-gray-400); font-family: var(--font-mono); }
+
+  .field-behavior {
+    flex-shrink: 0;
+  }
+  .fb-badge {
+    font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px;
+  }
+  .fb-required { background: var(--oct-red-light); color: var(--oct-red); }
+  .fb-optional { background: var(--oct-gray-100); color: var(--oct-gray-500); }
+  .fb-protected { background: var(--oct-amber-light); color: #B45309; }
+  .fb-hidden { background: var(--oct-gray-100); color: var(--oct-gray-400); text-decoration: line-through; }
+
+  /* Preview panel */
+  .fc-preview {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #F0F2F5;
+  }
+  .fc-preview-hdr {
+    padding: 14px 20px;
+    background: #fff;
+    border-bottom: 1px solid var(--oct-gray-200);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .fc-preview-hdr h4 { font-size: 13px; font-weight: 600; color: var(--oct-gray-700); flex: 1; }
+  .preview-mode-toggle {
+    display: flex; border: 1px solid var(--oct-gray-300); border-radius: 6px; overflow: hidden;
+  }
+  .pmt-btn {
+    padding: 5px 12px; font-size: 11px; font-weight: 600; cursor: pointer;
+    background: #fff; color: var(--oct-gray-500); border: none; font-family: var(--font-main);
+    transition: all 0.15s;
+  }
+  .pmt-btn.active { background: var(--oct-teal); color: #fff; }
+  .pmt-btn + .pmt-btn { border-left: 1px solid var(--oct-gray-300); }
+
+  .preview-body { flex: 1; overflow-y: auto; padding: 24px; display: flex; justify-content: center; align-items: flex-start; }
+
+  /* Mobile shell preview */
+  .mobile-shell {
+    width: 320px;
+    background: #fff;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 8px solid var(--oct-gray-800);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+  .mob-nav {
+    background: var(--oct-black);
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .mob-nav-back { color: rgba(255,255,255,0.7); font-size: 16px; }
+  .mob-nav-title { color: #fff; font-size: 11px; font-weight: 600; flex: 1; font-family: var(--font-mono); }
+  .mob-step-rail {
+    background: var(--oct-slate);
+    padding: 8px 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .mob-step-pill {
+    background: var(--oct-teal); color: #fff;
+    font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+    font-family: var(--font-mono);
+  }
+  .mob-step-name { color: rgba(255,255,255,0.7); font-size: 10px; flex: 1; }
+  .mob-step-bar { display: flex; gap: 2px; }
+  .mob-seg { height: 3px; width: 14px; border-radius: 2px; }
+  .mob-seg.done { background: var(--oct-green); }
+  .mob-seg.active { background: var(--oct-teal); }
+  .mob-seg.future { background: rgba(255,255,255,0.2); }
+
+  .mob-form { padding: 12px 14px; }
+  .mob-section-hdr {
+    font-size: 11px; font-weight: 700; color: var(--oct-gray-600);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin-bottom: 8px; padding-bottom: 5px;
+    border-bottom: 1px solid var(--oct-gray-200);
+  }
+  .mob-field {
+    display: flex; align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--oct-gray-100);
+    gap: 8px;
+  }
+  .mob-field.hidden-field { opacity: 0.3; }
+  .mob-field-req-bar { width: 3px; height: 100%; border-radius: 2px; background: var(--oct-red); flex-shrink: 0; align-self: stretch; margin: -9px 0; }
+  .mob-field-label { font-size: 11px; color: var(--oct-gray-500); flex: 1; }
+  .mob-field-value { font-size: 11px; color: var(--oct-gray-400); }
+  .mob-field-chevron { font-size: 13px; color: var(--oct-gray-300); }
+  .mob-field.protected { background: rgba(245,158,11,0.04); }
+  .mob-field.protected .mob-field-label { color: var(--oct-gray-400); }
+  .mob-field-lock { font-size: 11px; color: var(--oct-gray-400); }
+
+  .mob-save-btn {
+    margin: 12px 14px;
+    background: var(--oct-black);
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    padding: 12px;
+    width: calc(100% - 28px);
+    font-size: 13px; font-weight: 600;
+    font-family: var(--font-main);
+    cursor: pointer;
+    text-align: center;
+  }
+
+  /* Field inspector right panel */
+  .field-inspector {
+    width: 260px;
+    border-left: 1px solid var(--oct-gray-200);
+    background: #fff;
+    display: flex; flex-direction: column;
+    flex-shrink: 0;
+  }
+  .fi-hdr {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--oct-gray-200);
+    background: var(--oct-gray-50);
+  }
+  .fi-hdr .fi-api { font-family: var(--font-mono); font-size: 10px; color: var(--oct-gray-400); }
+  .fi-hdr h4 { font-size: 13px; font-weight: 600; color: var(--oct-gray-800); margin-top: 2px; }
+  .fi-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+  .fi-section { display: flex; flex-direction: column; gap: 8px; }
+  .fi-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--oct-gray-500); }
+  .behavior-options { display: flex; flex-direction: column; gap: 4px; }
+  .beh-option {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; border-radius: 6px; border: 1px solid var(--oct-gray-200);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .beh-option:hover { border-color: var(--oct-gray-300); background: var(--oct-gray-50); }
+  .beh-option.selected.req { border-color: var(--oct-red); background: var(--oct-red-light); }
+  .beh-option.selected.opt { border-color: var(--oct-teal); background: var(--oct-teal-light); }
+  .beh-option.selected.prot { border-color: var(--oct-amber); background: var(--oct-amber-light); }
+  .beh-option.selected.hid { border-color: var(--oct-gray-400); background: var(--oct-gray-100); }
+  .beh-radio { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--oct-gray-300); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .beh-radio .dot { width: 6px; height: 6px; border-radius: 50%; background: transparent; }
+  .beh-option.selected .beh-radio .dot { background: currentColor; }
+  .beh-label { font-size: 12px; font-weight: 500; flex: 1; }
+  .beh-option.selected.req .beh-label { color: var(--oct-red); }
+  .beh-option.selected.opt .beh-label { color: var(--oct-teal-mid); }
+  .beh-option.selected.prot .beh-label { color: #B45309; }
+  .beh-option.selected.hid .beh-label { color: var(--oct-gray-500); }
+
+  .fi-input { width: 100%; border: 1px solid var(--oct-gray-300); border-radius: 6px; padding: 7px 10px; font-size: 12px; font-family: var(--font-main); outline: none; }
+  .fi-input:focus { border-color: var(--oct-teal); }
+  .fi-hint { font-size: 11px; color: var(--oct-gray-400); line-height: 1.5; }
+
+  .fi-order-row { display: flex; align-items: center; gap: 8px; }
+  .fi-order-btn { width: 28px; height: 28px; border: 1px solid var(--oct-gray-300); border-radius: 6px; background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; color: var(--oct-gray-500); transition: all 0.15s; }
+  .fi-order-btn:hover { border-color: var(--oct-teal); color: var(--oct-teal); }
+  .fi-order-num { font-size: 14px; font-weight: 600; font-family: var(--font-mono); color: var(--oct-gray-800); min-width: 24px; text-align: center; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--oct-gray-300); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--oct-gray-400); }
+
+  /* Modals */
+  .modal-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  .modal {
+    background: #fff; border-radius: 14px;
+    width: 520px; max-height: 80vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  }
+  .modal-hdr {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--oct-gray-200);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .modal-hdr h3 { font-size: 15px; font-weight: 600; color: var(--oct-gray-800); flex: 1; }
+  .modal-hdr .close { font-size: 18px; color: var(--oct-gray-400); cursor: pointer; }
+  .modal-body { padding: 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px; }
+  .modal-footer { padding: 14px 20px; border-top: 1px solid var(--oct-gray-200); display: flex; justify-content: flex-end; gap: 8px; }
+  .btn { padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font-main); border: 1px solid transparent; transition: all 0.15s; }
+  .btn-cancel { background: #fff; border-color: var(--oct-gray-300); color: var(--oct-gray-600); }
+  .btn-cancel:hover { background: var(--oct-gray-50); }
+  .btn-primary { background: var(--oct-teal); color: #fff; border-color: var(--oct-teal); }
+  .btn-primary:hover { background: var(--oct-teal-mid); }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--oct-gray-800); color: #fff;
+    padding: 9px 18px; border-radius: 8px;
+    font-size: 12px; font-weight: 500;
+    display: flex; align-items: center; gap: 8px;
+    z-index: 200;
+    animation: toastIn 0.2s ease;
+  }
+  @keyframes toastIn { from { opacity:0; transform: translateX(-50%) translateY(8px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 48px 24px; text-align: center; color: var(--oct-gray-400);
+    gap: 8px;
+  }
+  .empty-state i { font-size: 32px; color: var(--oct-gray-300); }
+  .empty-state p { font-size: 13px; }
+
+  .no-select { user-select: none; }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="top-nav">
+  <div class="logo">
+    <div class="dot"></div>
+    HxGN EAM
+  </div>
+  <div class="nav-sep"></div>
+  <div class="breadcrumb">
+    Admin &nbsp;/&nbsp; <span>Workflow Designer</span>
+  </div>
+  <div class="spacer"></div>
+  <div id="revBadge" class="tag rev" style="margin-right:8px"><i class="ti ti-versions"></i> Rev 1.0 · Draft</div>
+  <button class="nav-btn" onclick="showToast('Workflow published successfully', 'ti-circle-check')">
+    <i class="ti ti-send"></i> Publish
+  </button>
+  <button class="nav-btn primary" onclick="showToast('Layout saved', 'ti-device-floppy')">
+    <i class="ti ti-device-floppy"></i> Save
+  </button>
+</nav>
+
+<!-- SHELL -->
+<div class="shell">
+
+  <!-- LEFT PANEL: Workflow List -->
+  <aside class="panel-left">
+    <div class="section-hdr">Workflows</div>
+    <div class="wf-list">
+
+      <div class="wf-item active" onclick="selectWorkflow(this, 'corrective')">
+        <div class="wf-icon teal"><i class="ti ti-tools"></i></div>
+        <div class="wf-info">
+          <div class="name">Corrective Maintenance</div>
+          <div class="meta">WO · 5 steps</div>
+        </div>
+        <span class="wf-badge default">DEFAULT</span>
+      </div>
+
+      <div class="wf-item" onclick="selectWorkflow(this, 'pm')">
+        <div class="wf-icon teal"><i class="ti ti-calendar-check"></i></div>
+        <div class="wf-info">
+          <div class="name">Preventive Maintenance</div>
+          <div class="meta">WO · 4 steps</div>
+        </div>
+      </div>
+
+      <div class="wf-item" onclick="selectWorkflow(this, 'breakdown')">
+        <div class="wf-icon amber"><i class="ti ti-alert-triangle"></i></div>
+        <div class="wf-info">
+          <div class="name">Breakdown WO</div>
+          <div class="meta">WO · 3 steps · Draft</div>
+        </div>
+        <span class="wf-badge draft">DRAFT</span>
+      </div>
+
+      <div class="wf-item" onclick="selectWorkflow(this, 'inspection')">
+        <div class="wf-icon purple"><i class="ti ti-clipboard-check"></i></div>
+        <div class="wf-info">
+          <div class="name">Inspection Round</div>
+          <div class="meta">WO · 6 steps</div>
+        </div>
+      </div>
+
+      <div class="wf-item" onclick="selectWorkflow(this, 'calibration')">
+        <div class="wf-icon purple"><i class="ti ti-adjustments"></i></div>
+        <div class="wf-info">
+          <div class="name">Calibration</div>
+          <div class="meta">WO · 5 steps</div>
+        </div>
+      </div>
+
+      <div class="wf-item" onclick="selectWorkflow(this, 'std-template')">
+        <div class="wf-icon locked"><i class="ti ti-lock"></i></div>
+        <div class="wf-info">
+          <div class="name">Standard Template</div>
+          <div class="meta">WO · System · Read-only</div>
+        </div>
+        <span class="wf-badge locked">SYS</span>
+      </div>
+
+    </div>
+    <div class="panel-left-footer">
+      <button class="btn-new" onclick="showNewWorkflowModal()">
+        <i class="ti ti-plus"></i> New Workflow
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- Level Tabs -->
+    <div class="level-tabs">
+      <div class="level-tab active" id="tab1" onclick="switchTab(1)">
+        <div class="tab-num">1</div>
+        Workflow Definition
+      </div>
+      <div class="level-tab" id="tab2" onclick="switchTab(2)">
+        <div class="tab-num">2</div>
+        Step Sequencer
+      </div>
+      <div class="level-tab" id="tab3" onclick="switchTab(3)">
+        <div class="tab-num">3</div>
+        Screen Configurator
+        <span id="tab3StepLabel" style="font-size:11px; color: var(--oct-gray-400); font-weight:400; font-style:italic"> — select a step</span>
+      </div>
+    </div>
+
+    <!-- ══ VIEW 1: Workflow Definition ══ -->
+    <div class="view active" id="view1">
+      <div class="view-header">
+        <div class="wf-title-row">
+          <div class="wf-title-icon"><i class="ti ti-tools"></i></div>
+          <div class="wf-title-text">
+            <h1>Corrective Maintenance</h1>
+            <div class="wf-sub">WO · WSJOBS · Entity: Work Orders</div>
+          </div>
+        </div>
+        <div class="status-row">
+          <span class="tag active"><i class="ti ti-circle-check"></i> Active</span>
+          <span class="tag default"><i class="ti ti-home"></i> Default Workflow</span>
+          <span class="tag rev"><i class="ti ti-versions"></i> Rev 1.0</span>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Workflow Name <span class="req">*</span></label>
+          <input class="form-input" type="text" value="Corrective Maintenance">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Entity <span class="req">*</span></label>
+          <select class="form-select">
+            <option selected>Work Orders (WSJOBS)</option>
+            <option>Equipment (EQUIPMENT)</option>
+            <option>Locations (LOCATIONS)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-select">
+            <option>Draft</option>
+            <option selected>Active</option>
+            <option>Inactive</option>
+          </select>
+        </div>
+
+        <div class="form-group span3">
+          <label class="form-label">Description</label>
+          <textarea class="form-textarea" placeholder="Describe when this workflow applies...">Standard corrective maintenance execution flow for reactive work orders. Covers WO review, checklist, parts issuance, labor booking, and closing.</textarea>
+        </div>
+
+        <hr class="form-divider">
+        <div class="form-section-hdr"><i class="ti ti-filter" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i> Matching Criteria — Precedence by number of criteria set</div>
+
+        <div class="form-group">
+          <label class="form-label">WO Type <span class="req">*</span></label>
+          <div class="multi-select-tags" onclick="this.querySelector('input').focus()">
+            <span class="ms-tag">CM — Corrective <span class="rm" onclick="removeTag(event,this)">×</span></span>
+            <span class="ms-tag">BK — Breakdown <span class="rm" onclick="removeTag(event,this)">×</span></span>
+            <input type="text" style="border:none;outline:none;font-size:11px;min-width:80px;color:var(--oct-gray-600)" placeholder="+ Add type…">
+          </div>
+          <div class="criteria-hint"><i class="ti ti-info-circle" style="font-size:11px;vertical-align:-1px"></i> Matches WOs where Type is any of the selected values</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">WO Class</label>
+          <div class="multi-select-tags" onclick="this.querySelector('input').focus()">
+            <span class="ms-tag">MECH — Mechanical <span class="rm" onclick="removeTag(event,this)">×</span></span>
+            <span class="ms-tag">ELEC — Electrical <span class="rm" onclick="removeTag(event,this)">×</span></span>
+            <input type="text" style="border:none;outline:none;font-size:11px;min-width:80px;color:var(--oct-gray-600)" placeholder="+ Add class…">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Priority</label>
+          <div class="multi-select-tags" onclick="this.querySelector('input').focus()">
+            <input type="text" style="border:none;outline:none;font-size:11px;min-width:80px;color:var(--oct-gray-600)" placeholder="+ Add priority…">
+          </div>
+          <div class="criteria-hint" style="color:var(--oct-gray-400)">Extensible — future criteria slot</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Department</label>
+          <div class="multi-select-tags" onclick="this.querySelector('input').focus()">
+            <input type="text" style="border:none;outline:none;font-size:11px;min-width:80px;color:var(--oct-gray-600)" placeholder="+ Add department…">
+          </div>
+          <div class="criteria-hint" style="color:var(--oct-gray-400)">Extensible — future criteria slot</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Set as Default</label>
+          <div style="display:flex;align-items:center;gap:10px;padding:6px 0">
+            <label class="toggle">
+              <input type="checkbox" checked>
+              <div class="toggle-track"></div>
+            </label>
+            <span style="font-size:12px;color:var(--oct-gray-600)">Fallback when no criteria match</span>
+          </div>
+        </div>
+
+        <hr class="form-divider">
+        <div class="form-section-hdr"><i class="ti ti-versions" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i> Revision Control</div>
+
+        <div class="form-group span3">
+          <div class="rev-block">
+            <div class="rev-field">
+              <label>Current Rev</label>
+              <div class="val">1.0</div>
+            </div>
+            <div class="rev-sep"></div>
+            <div class="rev-field">
+              <label>Status</label>
+              <div class="val green">Active</div>
+            </div>
+            <div class="rev-sep"></div>
+            <div class="rev-field">
+              <label>Last Modified</label>
+              <div class="val">2026-05-16</div>
+            </div>
+            <div class="rev-sep"></div>
+            <div class="rev-field">
+              <label>Modified By</label>
+              <div class="val">ADMIN</div>
+            </div>
+            <div class="rev-sep"></div>
+            <div style="display:flex;gap:8px;margin-left:auto">
+              <button class="btn btn-cancel" onclick="showToast('Draft revision created: v1.1', 'ti-versions')">Create Rev</button>
+              <button class="btn btn-primary" onclick="switchTab(2)">Next: Steps <i class="ti ti-arrow-right" style="font-size:12px"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW 2: Step Sequencer ══ -->
+    <div class="view" id="view2">
+      <div class="view2-shell">
+
+        <!-- Node Library — persistent left panel -->
+        <div class="node-library">
+          <div class="nl-hdr">
+            <div class="nl-title">Available Nodes</div>
+            <div class="nl-sub">Work Orders entity · tap + to add to sequence</div>
+            <div class="nl-search">
+              <i class="ti ti-search si"></i>
+              <input type="text" id="nodeSearch" placeholder="Search nodes…" oninput="filterNodes(this.value)">
+            </div>
+          </div>
+          <div class="nl-scroll" id="nodeLibraryScroll">
+
+            <div class="nl-group-label" data-group="wo">Work Order</div>
+            <div class="nl-node in-use" data-name="wo record view" data-group="wo">
+              <div class="pn-icon pn-teal"><i class="ti ti-file-description"></i></div>
+              <div class="pn-info"><div class="pn-name">WO Record View</div><div class="pn-entity">Work Orders</div></div>
+              <span class="nl-in-use-tag">IN USE</span>
+            </div>
+            <div class="nl-node in-use" data-name="wo closing" data-group="wo">
+              <div class="pn-icon pn-teal"><i class="ti ti-circle-check"></i></div>
+              <div class="pn-info"><div class="pn-name">WO Closing</div><div class="pn-entity">Work Orders</div></div>
+              <span class="nl-in-use-tag">IN USE</span>
+            </div>
+
+            <div class="nl-group-label" data-group="exec">Execution</div>
+            <div class="nl-node in-use" data-name="activity checklist" data-group="exec">
+              <div class="pn-icon pn-purple"><i class="ti ti-clipboard-check"></i></div>
+              <div class="pn-info"><div class="pn-name">Activity Checklist</div><div class="pn-entity">Task Plans</div></div>
+              <span class="nl-in-use-tag">IN USE</span>
+            </div>
+            <div class="nl-node in-use" data-name="issue return parts" data-group="exec">
+              <div class="pn-icon pn-teal"><i class="ti ti-box-multiple"></i></div>
+              <div class="pn-info"><div class="pn-name">Issue / Return Parts</div><div class="pn-entity">Parts / Storeroom</div></div>
+              <span class="nl-in-use-tag">IN USE</span>
+            </div>
+            <div class="nl-node in-use" data-name="book labor" data-group="exec">
+              <div class="pn-icon pn-amber"><i class="ti ti-clock-hour-4"></i></div>
+              <div class="pn-info"><div class="pn-name">Book Labor</div><div class="pn-entity">Labor / Timekeeping</div></div>
+              <span class="nl-in-use-tag">IN USE</span>
+            </div>
+            <div class="nl-node available" data-name="activities" data-group="exec" onclick="addNode(this, 'Activities')">
+              <div class="pn-icon pn-gray"><i class="ti ti-list-check"></i></div>
+              <div class="pn-info"><div class="pn-name">Activities</div><div class="pn-entity">Work Orders</div></div>
+              <div class="nl-add-btn"><i class="ti ti-plus"></i></div>
+            </div>
+
+            <div class="nl-group-label" data-group="spec">Specialized</div>
+            <div class="nl-node available" data-name="calibration" data-group="spec" onclick="addNode(this, 'Calibration')">
+              <div class="pn-icon pn-purple"><i class="ti ti-adjustments"></i></div>
+              <div class="pn-info"><div class="pn-name">Calibration</div><div class="pn-entity">Equipment</div></div>
+              <div class="nl-add-btn"><i class="ti ti-plus"></i></div>
+            </div>
+            <div class="nl-node available" data-name="inspection" data-group="spec" onclick="addNode(this, 'Inspection')">
+              <div class="pn-icon pn-green"><i class="ti ti-eye-check"></i></div>
+              <div class="pn-info"><div class="pn-name">Inspection</div><div class="pn-entity">Compliance</div></div>
+              <div class="nl-add-btn"><i class="ti ti-plus"></i></div>
+            </div>
+            <div class="nl-node available" data-name="equipment child replacement" data-group="spec" onclick="addNode(this, 'Equipment Child Replacement')">
+              <div class="pn-icon pn-amber"><i class="ti ti-switch"></i></div>
+              <div class="pn-info"><div class="pn-name">Equip. Child Replacement</div><div class="pn-entity">Equipment</div></div>
+              <div class="nl-add-btn"><i class="ti ti-plus"></i></div>
+            </div>
+            <div class="nl-node available" data-name="nonconformity" data-group="spec" onclick="addNode(this, 'Nonconformity')">
+              <div class="pn-icon pn-gray"><i class="ti ti-alert-triangle"></i></div>
+              <div class="pn-info"><div class="pn-name">Nonconformity</div><div class="pn-entity">Compliance</div></div>
+              <div class="nl-add-btn"><i class="ti ti-plus"></i></div>
+            </div>
+            <div class="nl-node available" data-name="meter reading" data-group="spec" onclick="addNode(this, 'Meter Reading')">
+              <div class="pn-icon pn-teal"><i class="ti ti-gauge"></i></div>
+              <div class="pn-info"><div class="pn-name">Meter Reading</div><div class="pn-entity">Equipment</div></div>
+              <div class="nl-add-btn"><i class="ti ti-plus"></i></div>
+            </div>
+            <div class="nl-node available" data-name="document attachment" data-group="spec" onclick="addNode(this, 'Document Attachment')">
+              <div class="pn-icon pn-gray"><i class="ti ti-paperclip"></i></div>
+              <div class="pn-info"><div class="pn-name">Document Attachment</div><div class="pn-entity">Work Orders</div></div>
+              <div class="nl-add-btn"><i class="ti ti-plus"></i></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Main step canvas -->
+        <div class="step-canvas">
+          <div class="step-toolbar">
+            <span class="tb-label">5 Steps</span>
+            <button class="tb-btn" onclick="showToast('Navigation mode: Free Jump', 'ti-sitemap')">
+              <i class="ti ti-sitemap"></i> Free Jump
+            </button>
+            <button class="tb-btn" onclick="showToast('Navigation mode: Strictly Linear', 'ti-arrow-bar-right')">
+              <i class="ti ti-arrow-bar-right"></i> Strictly Linear
+            </button>
+            <div class="tb-spacer"></div>
+            <div class="tb-hint"><i class="ti ti-drag-drop" style="font-size:14px"></i> Drag to reorder</div>
+          </div>
+
+          <div class="step-list" id="stepList">
+
+            <div class="step-card" id="stepCard1" onclick="selectStep(1)">
+              <i class="ti ti-grip-vertical drag-handle"></i>
+              <div class="step-num done"><i class="ti ti-check" style="font-size:13px"></i></div>
+              <div class="step-body">
+                <div class="step-name">WO Record View</div>
+                <div class="step-desc">Review WO details, assign activity, start execution</div>
+                <div class="step-pills">
+                  <span class="step-pill sp-req"><i class="ti ti-alert-circle" style="font-size:10px"></i> Required</span>
+                  <span class="step-pill sp-opt">Activity selection</span>
+                </div>
+              </div>
+              <div class="step-actions">
+                <div class="step-act-btn" title="Configure screen" onclick="openConfigurator(event,1,'WO Record View')"><i class="ti ti-layout"></i></div>
+                <div class="step-act-btn danger" onclick="showToast('Step removed from workflow', 'ti-trash')"><i class="ti ti-trash"></i></div>
+              </div>
+            </div>
+
+            <div class="step-connector"></div>
+
+            <div class="step-card" id="stepCard2" onclick="selectStep(2)">
+              <i class="ti ti-grip-vertical drag-handle"></i>
+              <div class="step-num done"><i class="ti ti-check" style="font-size:13px"></i></div>
+              <div class="step-body">
+                <div class="step-name">Activity Checklist</div>
+                <div class="step-desc">Complete task plan items and inspections</div>
+                <div class="step-pills">
+                  <span class="step-pill sp-req"><i class="ti ti-alert-circle" style="font-size:10px"></i> Required</span>
+                  <span class="step-pill sp-branch"><i class="ti ti-git-branch" style="font-size:10px"></i> Branch: Parts?</span>
+                </div>
+              </div>
+              <div class="step-actions">
+                <div class="step-act-btn" title="Configure screen" onclick="openConfigurator(event,2,'Activity Checklist')"><i class="ti ti-layout"></i></div>
+                <div class="step-act-btn danger" onclick="showToast('Step removed from workflow', 'ti-trash')"><i class="ti ti-trash"></i></div>
+              </div>
+            </div>
+
+            <div class="step-connector"></div>
+
+            <div class="step-card active-step" id="stepCard3" onclick="selectStep(3)">
+              <i class="ti ti-grip-vertical drag-handle"></i>
+              <div class="step-num active">3</div>
+              <div class="step-body">
+                <div class="step-name">Issue / Return Parts</div>
+                <div class="step-desc">Issue planned and ad hoc parts from storeroom</div>
+                <div class="step-pills">
+                  <span class="step-pill sp-opt">Optional</span>
+                  <span class="step-pill sp-skip"><i class="ti ti-player-skip-forward" style="font-size:10px"></i> Skippable</span>
+                </div>
+              </div>
+              <div class="step-actions">
+                <div class="step-act-btn" title="Configure screen" onclick="openConfigurator(event,3,'Issue / Return Parts')"><i class="ti ti-layout"></i></div>
+                <div class="step-act-btn danger" onclick="showToast('Step removed from workflow', 'ti-trash')"><i class="ti ti-trash"></i></div>
+              </div>
+            </div>
+
+            <div class="step-connector"></div>
+
+            <div class="step-card" id="stepCard4" onclick="selectStep(4)">
+              <i class="ti ti-grip-vertical drag-handle"></i>
+              <div class="step-num" style="color:var(--oct-gray-400)">4</div>
+              <div class="step-body">
+                <div class="step-name">Book Labor</div>
+                <div class="step-desc">Log time and crew against the work order</div>
+                <div class="step-pills">
+                  <span class="step-pill sp-req"><i class="ti ti-alert-circle" style="font-size:10px"></i> Required</span>
+                </div>
+              </div>
+              <div class="step-actions">
+                <div class="step-act-btn" title="Configure screen" onclick="openConfigurator(event,4,'Book Labor')"><i class="ti ti-layout"></i></div>
+                <div class="step-act-btn danger" onclick="showToast('Step removed from workflow', 'ti-trash')"><i class="ti ti-trash"></i></div>
+              </div>
+            </div>
+
+            <div class="step-connector"></div>
+
+            <div class="step-card" id="stepCard5" onclick="selectStep(5)">
+              <i class="ti ti-grip-vertical drag-handle"></i>
+              <div class="step-num" style="color:var(--oct-gray-400)">5</div>
+              <div class="step-body">
+                <div class="step-name">WO Closing</div>
+                <div class="step-desc">Closing codes, comments, photo capture</div>
+                <div class="step-pills">
+                  <span class="step-pill sp-req"><i class="ti ti-alert-circle" style="font-size:10px"></i> Required</span>
+                </div>
+              </div>
+              <div class="step-actions">
+                <div class="step-act-btn" title="Configure screen" onclick="openConfigurator(event,5,'WO Closing')"><i class="ti ti-layout"></i></div>
+                <div class="step-act-btn danger" onclick="showToast('Step removed from workflow', 'ti-trash')"><i class="ti ti-trash"></i></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Step Options Panel (shows when step selected) -->
+        <div class="step-options" id="stepOptionsPanel">
+          <div class="so-hdr">
+            <div class="title"><i class="ti ti-box-multiple" style="font-size:13px;vertical-align:-1px;margin-right:5px;color:var(--oct-teal)"></i> Issue / Return Parts</div>
+            <div class="close-btn" onclick="clearStepSelection()"><i class="ti ti-x"></i></div>
+          </div>
+          <div class="so-body">
+            <div class="so-section">
+              <div class="so-section-label">Step Behavior</div>
+              <div class="so-row">
+                <label>Required before next step</label>
+                <label class="toggle"><input type="checkbox"><div class="toggle-track"></div></label>
+              </div>
+              <div class="so-row">
+                <label>Allow skip with reason</label>
+                <label class="toggle"><input type="checkbox" checked><div class="toggle-track"></div></label>
+              </div>
+              <div class="so-row">
+                <label>Show Yes/No prompt bar</label>
+                <label class="toggle"><input type="checkbox" checked><div class="toggle-track"></div></label>
+              </div>
+              <div class="so-row">
+                <label>Repeat allowed</label>
+                <label class="toggle"><input type="checkbox"><div class="toggle-track"></div></label>
+              </div>
+            </div>
+
+            <div class="so-section">
+              <div class="so-section-label">Navigation</div>
+              <div class="so-row">
+                <label>Jump target (skip goes to)</label>
+              </div>
+              <select class="so-select">
+                <option>Step 4 · Book Labor</option>
+                <option>Step 5 · WO Closing</option>
+                <option>End of workflow</option>
+              </select>
+            </div>
+
+            <div class="so-section">
+              <div class="so-section-label">Prompt (Yes/No bar)</div>
+              <input class="fi-input" type="text" value="Did you issue any parts?">
+              <div class="fi-hint">Shown in the bottom prompt bar before this step</div>
+            </div>
+
+            <div class="so-section">
+              <div class="so-section-label">Notes (internal)</div>
+              <textarea class="fi-input" style="height:56px;resize:none" placeholder="Admin notes about this step…"></textarea>
+            </div>
+
+            <button class="drill-btn" onclick="openConfigurator(event, 3, 'Issue / Return Parts')">
+              <i class="ti ti-layout"></i> Configure Screen Fields
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══ VIEW 3: Screen Configurator ══ -->
+    <div class="view" id="view3">
+      <div class="view3-shell">
+
+        <!-- Field List -->
+        <div class="field-config-left">
+          <div class="fc-hdr">
+            <div class="step-badge"><i class="ti ti-box-multiple" style="font-size:11px"></i> Step 3</div>
+            <h3>Issue / Return Parts</h3>
+            <p>Configure field visibility and behavior for this screen</p>
+          </div>
+          <div class="fc-search">
+            <i class="ti ti-search search-icon"></i>
+            <input type="text" placeholder="Search fields…" oninput="filterFields(this.value)">
+          </div>
+          <div class="field-list" id="fieldList">
+
+            <div class="field-group-hdr">Header Fields</div>
+
+            <div class="field-row selected" onclick="selectField(this, 'Activity', 'WSJOBS_ACT', 'lov')">
+              <div class="field-type-dot fd-lov"></div>
+              <div class="field-name">Activity</div>
+              <div class="field-api">WSJOBS_ACT</div>
+              <div class="field-behavior"><span class="fb-badge fb-protected">Protected</span></div>
+            </div>
+            <div class="field-row" onclick="selectField(this, 'Issue / Return', 'TRANS_TYPE', 'lov')">
+              <div class="field-type-dot fd-lov"></div>
+              <div class="field-name">Issue / Return</div>
+              <div class="field-api">TRANS_TYPE</div>
+              <div class="field-behavior"><span class="fb-badge fb-required">Required</span></div>
+            </div>
+            <div class="field-row" onclick="selectField(this, 'Department', 'WSJOBS_DEPT', 'lov')">
+              <div class="field-type-dot fd-lov"></div>
+              <div class="field-name">Department</div>
+              <div class="field-api">WSJOBS_DEPT</div>
+              <div class="field-behavior"><span class="fb-badge fb-required">Required</span></div>
+            </div>
+            <div class="field-row" onclick="selectField(this, 'Cost Code', 'WSJOBS_COSTCODE', 'lov')">
+              <div class="field-type-dot fd-lov"></div>
+              <div class="field-name">Cost Code</div>
+              <div class="field-api">WSJOBS_COSTCODE</div>
+              <div class="field-behavior"><span class="fb-badge fb-optional">Optional</span></div>
+            </div>
+            <div class="field-row" onclick="selectField(this, 'Store', 'STOR_STORE', 'lov')">
+              <div class="field-type-dot fd-lov"></div>
+              <div class="field-name">Store</div>
+              <div class="field-api">STOR_STORE</div>
+              <div class="field-behavior"><span class="fb-badge fb-required">Required</span></div>
+            </div>
+            <div class="field-row" onclick="selectField(this, 'Material List', 'MAT_LIST', 'lov')">
+              <div class="field-type-dot fd-lov"></div>
+              <div class="field-name">Material List</div>
+              <div class="field-api">MAT_LIST</div>
+              <div class="field-behavior"><span class="fb-badge fb-hidden">Hidden</span></div>
+            </div>
+
+            <div class="field-group-hdr">Part Details</div>
+
+            <div class="field-row" onclick="selectField(this, 'Part', 'PART_CODE', 'lov')">
+              <div class="field-type-dot fd-lov"></div>
+              <div class="field-name">Part</div>
+              <div class="field-api">PART_CODE</div>
+              <div class="field-behavior"><span class="fb-badge fb-required">Required</span></div>
+            </div>
+            <div class="field-row" onclick="selectField(this, 'Bin', 'PART_BIN', 'lov')">
+              <div class="field-type-dot fd-lov"></div>
+              <div class="field-name">Bin</div>
+              <div class="field-api">PART_BIN</div>
+              <div class="field-behavior"><span class="fb-badge fb-required">Required</span></div>
+            </div>
+            <div class="field-row" onclick="selectField(this, 'Lot', 'PART_LOT', 'lov')">
+              <div class="field-type-dot fd-lov"></div>
+              <div class="field-name">Lot</div>
+              <div class="field-api">PART_LOT</div>
+              <div class="field-behavior"><span class="fb-badge fb-optional">Optional</span></div>
+            </div>
+            <div class="field-row" onclick="selectField(this, 'Condition', 'PART_COND', 'lov')">
+              <div class="field-type-dot fd-lov"></div>
+              <div class="field-name">Condition</div>
+              <div class="field-api">PART_COND</div>
+              <div class="field-behavior"><span class="fb-badge fb-optional">Optional</span></div>
+            </div>
+            <div class="field-row" onclick="selectField(this, 'Available Qty', 'AVAIL_QTY', 'num')">
+              <div class="field-type-dot fd-num"></div>
+              <div class="field-name">Available Qty</div>
+              <div class="field-api">AVAIL_QTY</div>
+              <div class="field-behavior"><span class="fb-badge fb-protected">Protected</span></div>
+            </div>
+            <div class="field-row" onclick="selectField(this, 'Transaction Qty', 'TRANS_QTY', 'num')">
+              <div class="field-type-dot fd-num"></div>
+              <div class="field-name">Transaction Qty</div>
+              <div class="field-api">TRANS_QTY</div>
+              <div class="field-behavior"><span class="fb-badge fb-required">Required</span></div>
+            </div>
+            <div class="field-row" onclick="selectField(this, 'Asset ID', 'WO_ASSET', 'text')">
+              <div class="field-type-dot fd-text"></div>
+              <div class="field-name">Asset ID</div>
+              <div class="field-api">WO_ASSET</div>
+              <div class="field-behavior"><span class="fb-badge fb-protected">Protected</span></div>
+            </div>
+            <div class="field-row" onclick="selectField(this, 'Return Condition', 'RET_COND', 'lov')">
+              <div class="field-type-dot fd-lov"></div>
+              <div class="field-name">Return Condition</div>
+              <div class="field-api">RET_COND</div>
+              <div class="field-behavior"><span class="fb-badge fb-optional">Optional</span></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Mobile Preview -->
+        <div class="fc-preview">
+          <div class="fc-preview-hdr">
+            <i class="ti ti-device-mobile" style="font-size:16px;color:var(--oct-gray-500)"></i>
+            <h4>Live Preview — Issue / Return Parts</h4>
+            <div class="preview-mode-toggle">
+              <button class="pmt-btn active" onclick="setPreviewMode(this,'light')">Light</button>
+              <button class="pmt-btn" onclick="setPreviewMode(this,'dark')">Dark</button>
+            </div>
+          </div>
+          <div class="preview-body">
+            <div class="mobile-shell" id="mobileShell">
+              <div class="mob-nav">
+                <i class="ti ti-chevron-left mob-nav-back"></i>
+                <div class="mob-nav-title">WO#19257 · Pump Cavitating</div>
+                <i class="ti ti-refresh" style="color:rgba(255,255,255,0.5);font-size:15px"></i>
+              </div>
+              <div class="mob-step-rail">
+                <span class="mob-step-pill">3 of 5</span>
+                <span class="mob-step-name">Issue / Return Parts</span>
+                <div class="mob-step-bar">
+                  <div class="mob-seg done"></div>
+                  <div class="mob-seg done"></div>
+                  <div class="mob-seg active"></div>
+                  <div class="mob-seg future"></div>
+                  <div class="mob-seg future"></div>
+                </div>
+              </div>
+              <div class="mob-form" id="mobileForm">
+                <div class="mob-section-hdr">Header</div>
+                <div class="mob-field">
+                  <div class="mob-field-req-bar" style="background:var(--oct-amber)"></div>
+                  <div class="mob-field-label">Activity</div>
+                  <div class="mob-field-value">10</div>
+                  <i class="mob-field-lock ti ti-lock" style="font-size:11px;color:var(--oct-gray-400)"></i>
+                </div>
+                <div class="mob-field">
+                  <div class="mob-field-req-bar"></div>
+                  <div class="mob-field-label">Issue / Return <span style="color:var(--oct-red)">*</span></div>
+                  <div class="mob-field-value">ISSUE</div>
+                  <i class="mob-field-chevron ti ti-chevron-right"></i>
+                </div>
+                <div class="mob-field">
+                  <div class="mob-field-req-bar"></div>
+                  <div class="mob-field-label">Department <span style="color:var(--oct-red)">*</span></div>
+                  <div class="mob-field-value">WATER</div>
+                  <i class="mob-field-chevron ti ti-chevron-right"></i>
+                </div>
+                <div class="mob-field">
+                  <div class="mob-field-req-bar"></div>
+                  <div class="mob-field-label">Cost Code</div>
+                  <div class="mob-field-value">100-100</div>
+                  <i class="mob-field-chevron ti ti-chevron-right"></i>
+                </div>
+                <div class="mob-field">
+                  <div class="mob-field-req-bar"></div>
+                  <div class="mob-field-label">Store <span style="color:var(--oct-red)">*</span></div>
+                  <div class="mob-field-value">IND-MAIN</div>
+                  <i class="mob-field-chevron ti ti-chevron-right"></i>
+                </div>
+                <div class="mob-section-hdr" style="margin-top:8px">Part Details</div>
+                <div class="mob-field">
+                  <div class="mob-field-req-bar"></div>
+                  <div class="mob-field-label">Part <span style="color:var(--oct-red)">*</span></div>
+                  <div class="mob-field-value" style="color:var(--oct-gray-300)">Select…</div>
+                  <i class="mob-field-chevron ti ti-chevron-right"></i>
+                </div>
+                <div class="mob-field">
+                  <div class="mob-field-req-bar"></div>
+                  <div class="mob-field-label">Bin <span style="color:var(--oct-red)">*</span></div>
+                  <div class="mob-field-value" style="color:var(--oct-gray-300)">Select…</div>
+                  <i class="mob-field-chevron ti ti-chevron-right"></i>
+                </div>
+                <div class="mob-field">
+                  <div class="mob-field-req-bar"></div>
+                  <div class="mob-field-label">Condition</div>
+                  <div class="mob-field-value"></div>
+                  <i class="mob-field-chevron ti ti-chevron-right"></i>
+                </div>
+                <div class="mob-field">
+                  <div class="mob-field-req-bar" style="background:var(--oct-amber)"></div>
+                  <div class="mob-field-label">Available Qty</div>
+                  <div class="mob-field-value">—</div>
+                  <i class="mob-field-lock ti ti-lock" style="font-size:11px;color:var(--oct-gray-400)"></i>
+                </div>
+                <div class="mob-field">
+                  <div class="mob-field-req-bar"></div>
+                  <div class="mob-field-label">Transaction Qty <span style="color:var(--oct-red)">*</span></div>
+                  <div class="mob-field-value">1</div>
+                </div>
+                <div class="mob-field">
+                  <div class="mob-field-req-bar" style="background:var(--oct-amber)"></div>
+                  <div class="mob-field-label">Asset ID</div>
+                  <div class="mob-field-value" style="font-family:var(--font-mono);font-size:10px">EQ-4421</div>
+                  <i class="mob-field-lock ti ti-lock" style="font-size:11px;color:var(--oct-gray-400)"></i>
+                </div>
+              </div>
+              <div class="mob-save-btn">Save</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Field Inspector -->
+        <div class="field-inspector">
+          <div class="fi-hdr">
+            <div class="fi-api">WSJOBS_ACT</div>
+            <h4 id="fi-field-name">Activity</h4>
+          </div>
+          <div class="fi-body">
+            <div class="fi-section">
+              <div class="fi-section-label">Field Behavior</div>
+              <div class="behavior-options">
+                <div class="beh-option req" onclick="setBehavior(this,'req')">
+                  <div class="beh-radio"><div class="dot"></div></div>
+                  <span class="beh-label">Required</span>
+                  <i class="ti ti-alert-circle" style="font-size:13px;color:var(--oct-red);opacity:0.7"></i>
+                </div>
+                <div class="beh-option opt" onclick="setBehavior(this,'opt')">
+                  <div class="beh-radio"><div class="dot"></div></div>
+                  <span class="beh-label">Optional</span>
+                </div>
+                <div class="beh-option prot selected" onclick="setBehavior(this,'prot')">
+                  <div class="beh-radio"><div class="dot"></div></div>
+                  <span class="beh-label">Protected</span>
+                  <i class="ti ti-lock" style="font-size:13px;color:#B45309;opacity:0.7"></i>
+                </div>
+                <div class="beh-option hid" onclick="setBehavior(this,'hid')">
+                  <div class="beh-radio"><div class="dot"></div></div>
+                  <span class="beh-label">Hidden</span>
+                  <i class="ti ti-eye-off" style="font-size:13px;color:var(--oct-gray-400)"></i>
+                </div>
+              </div>
+            </div>
+
+            <div class="fi-section">
+              <div class="fi-section-label">Display Label</div>
+              <input class="fi-input" type="text" value="Activity" id="fi-label-input">
+              <div class="fi-hint">Override the default field label shown on mobile</div>
+            </div>
+
+            <div class="fi-section">
+              <div class="fi-section-label">Position</div>
+              <div class="fi-order-row">
+                <button class="fi-order-btn" onclick="reorderField(-1)"><i class="ti ti-arrow-up"></i></button>
+                <span class="fi-order-num" id="fi-order-num">1</span>
+                <button class="fi-order-btn" onclick="reorderField(1)"><i class="ti ti-arrow-down"></i></button>
+                <span style="font-size:11px;color:var(--oct-gray-400)">in section</span>
+              </div>
+            </div>
+
+            <div class="fi-section">
+              <div class="fi-section-label">Placeholder / Hint</div>
+              <input class="fi-input" type="text" placeholder="e.g. Select activity…">
+            </div>
+
+            <div class="fi-section">
+              <div class="fi-section-label">Conditional Visibility</div>
+              <select class="so-select">
+                <option>Always visible</option>
+                <option>When Issue/Return = ISSUE</option>
+                <option>When Issue/Return = RETURN</option>
+                <option>Custom expression…</option>
+              </select>
+              <div class="fi-hint">Show or hide based on another field value</div>
+            </div>
+
+            <div class="fi-section">
+              <div class="fi-section-label">API Field Info</div>
+              <div style="background:var(--oct-gray-50);border-radius:6px;padding:10px;font-size:11px;color:var(--oct-gray-500);line-height:1.7;">
+                <div><strong style="color:var(--oct-gray-700)">Column:</strong> WSJOBS_ACT</div>
+                <div><strong style="color:var(--oct-gray-700)">Type:</strong> LOV / Character(8)</div>
+                <div><strong style="color:var(--oct-gray-700)">Inherited:</strong> From WO context</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- New Workflow Modal -->
+<div id="newWfModal" style="display:none; position:fixed; inset:0; z-index:100;">
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,0.45)" onclick="closeNewWorkflowModal()"></div>
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:14px;width:500px;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+    <div class="modal-hdr">
+      <div style="width:36px;height:36px;border-radius:8px;background:var(--oct-teal-light);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--oct-teal-mid)"><i class="ti ti-plus"></i></div>
+      <h3>New Workflow</h3>
+      <div class="modal-hdr close" onclick="closeNewWorkflowModal()"><i class="ti ti-x"></i></div>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Workflow Name <span class="req">*</span></label>
+        <input class="form-input" type="text" placeholder="e.g. Emergency Work Order" id="newWfName">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Entity <span class="req">*</span></label>
+        <select class="form-select">
+          <option>Work Orders (WSJOBS)</option>
+          <option>Equipment (EQUIPMENT)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Create From</label>
+        <select class="form-select">
+          <option>Blank workflow</option>
+          <option>Copy: Standard Template (System)</option>
+          <option>Copy: Corrective Maintenance</option>
+          <option>Copy: Preventive Maintenance</option>
+        </select>
+      </div>
+      <div style="background:var(--oct-amber-light);border-radius:8px;padding:10px 14px;font-size:12px;color:#B45309;display:flex;gap:8px;align-items:flex-start">
+        <i class="ti ti-info-circle" style="font-size:14px;flex-shrink:0;margin-top:1px"></i>
+        New workflows are created in Draft status. Set criteria and steps before activating.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeNewWorkflowModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="createWorkflow()">Create Workflow</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toastContainer"></div>
+
+<script>
+let currentTab = 1;
+let selectedStep = 3;
+let fieldOrder = 1;
+
+function switchTab(n) {
+  currentTab = n;
+  document.querySelectorAll('.level-tab').forEach((t,i) => t.classList.toggle('active', i+1===n));
+  document.querySelectorAll('.view').forEach((v,i) => v.classList.toggle('active', i+1===n));
+}
+
+function selectWorkflow(el, id) {
+  document.querySelectorAll('.wf-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  showToast('Workflow loaded', 'ti-check');
+}
+
+function selectStep(num) {
+  selectedStep = num;
+  document.querySelectorAll('.step-card').forEach((c,i) => c.classList.toggle('active-step', i+1===num));
+  document.getElementById('stepOptionsPanel').style.display = 'flex';
+}
+
+function clearStepSelection() {
+  document.querySelectorAll('.step-card').forEach(c => c.classList.remove('active-step'));
+  document.getElementById('stepOptionsPanel').style.display = 'flex';
+}
+
+function openConfigurator(e, stepNum, stepName) {
+  e.stopPropagation();
+  document.getElementById('tab3StepLabel').textContent = ' — ' + stepName;
+  switchTab(3);
+  showToast('Configuring: ' + stepName, 'ti-layout');
+}
+
+function filterNodes(q) {
+  const lq = q.toLowerCase().replace(/[^a-z0-9 ]/g,'');
+  const nodes = document.querySelectorAll('#nodeLibraryScroll .nl-node');
+  const groups = document.querySelectorAll('#nodeLibraryScroll .nl-group-label');
+  nodes.forEach(n => {
+    const name = n.dataset.name || '';
+    n.style.display = (!lq || name.includes(lq)) ? '' : 'none';
+  });
+  groups.forEach(g => {
+    const grp = g.dataset.group;
+    const visible = [...nodes].filter(n => n.dataset.group === grp && n.style.display !== 'none');
+    g.style.display = visible.length ? '' : 'none';
+  });
+}
+
+function addNode(el, name) {
+  el.classList.remove('available');
+  el.classList.add('in-use');
+  el.onclick = null;
+  el.style.cursor = 'default';
+  const addBtn = el.querySelector('.nl-add-btn');
+  if (addBtn) {
+    addBtn.outerHTML = '<span class="nl-in-use-tag">IN USE</span>';
+  }
+  el.querySelectorAll('.pn-name').forEach(n => n.style.color = 'var(--oct-gray-400)');
+  el.querySelectorAll('.pn-entity').forEach(n => n.style.color = 'var(--oct-gray-300)');
+  el.querySelector('.pn-icon').style.opacity = '0.4';
+  showToast(name + ' added to sequence', 'ti-circle-check');
+}
+
+function selectField(el, name, api, type) {
+  document.querySelectorAll('.field-row').forEach(r => r.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('fi-field-name').textContent = name;
+  document.querySelector('.fi-api').textContent = api;
+  document.getElementById('fi-label-input').value = name;
+  document.getElementById('fi-order-num').textContent = fieldOrder;
+}
+
+function setBehavior(el, type) {
+  const opts = document.querySelectorAll('.beh-option');
+  opts.forEach(o => {
+    o.classList.remove('selected');
+    o.querySelector('.dot').style.background = 'transparent';
+  });
+  el.classList.add('selected');
+  el.querySelector('.dot').style.background = 'currentColor';
+}
+
+function reorderField(dir) {
+  fieldOrder = Math.max(1, Math.min(15, fieldOrder + dir));
+  document.getElementById('fi-order-num').textContent = fieldOrder;
+  showToast('Field reordered to position ' + fieldOrder, 'ti-arrows-sort');
+}
+
+function setPreviewMode(btn, mode) {
+  document.querySelectorAll('.pmt-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const shell = document.getElementById('mobileShell');
+  if (mode === 'dark') {
+    shell.style.background = 'var(--oct-black)';
+    shell.querySelectorAll('.mob-form, .mob-save-btn').forEach(el => el.style.background = '#24252B');
+    shell.querySelectorAll('.mob-section-hdr').forEach(el => { el.style.color='rgba(255,255,255,0.4)'; el.style.borderColor='rgba(255,255,255,0.08)'; });
+    shell.querySelectorAll('.mob-field').forEach(el => el.style.borderColor = 'rgba(255,255,255,0.06)');
+    shell.querySelectorAll('.mob-field-label').forEach(el => el.style.color='rgba(255,255,255,0.6)');
+    shell.querySelectorAll('.mob-field-value').forEach(el => el.style.color='rgba(255,255,255,0.9)');
+    shell.querySelectorAll('.mob-field-chevron').forEach(el => el.style.color='rgba(255,255,255,0.2)');
+  } else {
+    shell.style.background = '#fff';
+    shell.querySelectorAll('.mob-section-hdr').forEach(el => { el.style.color=''; el.style.borderColor=''; });
+    shell.querySelectorAll('.mob-field').forEach(el => el.style.borderColor = '');
+    shell.querySelectorAll('.mob-field-label').forEach(el => el.style.color='');
+    shell.querySelectorAll('.mob-field-value').forEach(el => el.style.color='');
+    shell.querySelectorAll('.mob-field-chevron').forEach(el => el.style.color='');
+  }
+}
+
+function filterFields(q) {
+  const rows = document.querySelectorAll('.field-row');
+  const lq = q.toLowerCase();
+  rows.forEach(r => {
+    const name = r.querySelector('.field-name').textContent.toLowerCase();
+    const api = r.querySelector('.field-api').textContent.toLowerCase();
+    r.style.display = (!lq || name.includes(lq) || api.includes(lq)) ? '' : 'none';
+  });
+}
+
+function removeTag(e, el) {
+  e.stopPropagation();
+  el.closest('.ms-tag').remove();
+}
+
+function showNewWorkflowModal() {
+  document.getElementById('newWfModal').style.display = 'block';
+}
+
+function closeNewWorkflowModal() {
+  document.getElementById('newWfModal').style.display = 'none';
+}
+
+function createWorkflow() {
+  const name = document.getElementById('newWfName').value || 'New Workflow';
+  closeNewWorkflowModal();
+  showToast('Workflow "' + name + '" created as Draft', 'ti-circle-check');
+}
+
+function showToast(msg, icon) {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<i class="ti ${icon}" style="font-size:15px;color:var(--oct-aqua)"></i> ${msg}`;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 2600);
+}
+
+// Initialize step options panel visible (step 3 selected by default)
+document.getElementById('stepOptionsPanel').style.display = 'flex';
+</script>
+</body>
+</html>

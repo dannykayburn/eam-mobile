@@ -71,17 +71,20 @@
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
-body { font-family: var(--font-sans); background: var(--bg-page); color: var(--octave-black); -webkit-font-smoothing: antialiased; overflow: hidden; transition: background 0.2s, color 0.2s; }
+body { font-family: var(--font-sans); background: var(--bg-page); color: var(--octave-black); -webkit-font-smoothing: antialiased; overflow: hidden; transition: background 0.2s, color 0.2s; display:flex; flex-direction:column; height:100vh; }
 [data-theme="dark"] body { color: var(--white); }
-.app { display:flex; flex-direction:column; height:100vh; max-width:430px; margin:0 auto; position:relative; background:var(--bg-page); box-shadow:0 0 40px rgba(0,0,0,0.18); }
+/* Prototype-only theme preview bar — outside the app frame. Real theme
+   lives in User Settings (design-decisions-v3-1.md §20), not here. */
+.proto-theme-bar { flex-shrink:0; display:flex; align-items:center; justify-content:center; gap:8px; padding:6px 0; }
+.proto-theme-label { font-size:10px; font-weight:600; letter-spacing:0.3px; color:var(--gray-4); font-family:var(--font-mono); text-transform:uppercase; }
+.app { display:flex; flex-direction:column; flex:1; min-height:0; max-width:430px; width:100%; margin:0 auto; position:relative; background:var(--bg-page); box-shadow:0 0 40px rgba(0,0,0,0.18); }
 
 /* NAV */
-.nav { height:var(--nav-height); background:var(--bg-nav); display:flex; align-items:center; padding:0 12px; gap:8px; flex-shrink:0; z-index:100; }
+.nav { height:var(--nav-height); background:var(--bg-nav); display:flex; align-items:center; justify-content:space-between; padding:0 12px; gap:8px; flex-shrink:0; z-index:100; position:relative; }
 .nav-back { width:32px; height:32px; display:flex; align-items:center; justify-content:center; color:var(--white); background:none; border:none; cursor:pointer; flex-shrink:0; }
-.nav-logo { width:28px; height:28px; background:var(--teal); border-radius:4px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.nav-logo svg { width:18px; height:18px; fill:white; }
-.nav-title { flex:1; font-family:var(--font-mono); font-size:12px; font-weight:500; color:rgba(255,255,255,0.85); line-height:1.3; min-width:0; }
-.nav-title span { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:rgba(255,255,255,0.5); font-size:11px; }
+/* Absolutely centered over the bar regardless of how wide nav-back/nav-actions
+   are on either side — matches the shared eam-shared.css .nav-title convention. */
+.nav-title { position:absolute; left:0; right:0; text-align:center; font-size:14px; font-weight:700; color:var(--white); pointer-events:none; }
 .nav-actions { display:flex; align-items:center; gap:4px; flex-shrink:0; }
 .nav-icon-btn { width:32px; height:32px; display:flex; align-items:center; justify-content:center; color:var(--white); background:none; border:none; cursor:pointer; border-radius:6px; transition:background 0.15s; position:relative; }
 .nav-icon-btn:hover { background:rgba(255,255,255,0.1); }
@@ -90,25 +93,59 @@ body { font-family: var(--font-sans); background: var(--bg-page); color: var(--o
 .theme-toggle:hover { background:rgba(255,255,255,0.15); color:white; }
 .prototype-label { font-size:10px; font-weight:700; letter-spacing:0.5px; color:rgba(255,165,0,0.9); white-space:nowrap; }
 
-/* WO BLOCK */
-.wo-block { background:var(--bg-nav); border-bottom:1px solid rgba(255,255,255,0.06); padding:6px 14px 8px; flex-shrink:0; cursor:pointer; }
-.wo-block-inner { display:flex; align-items:center; gap:8px; }
-.wo-number { font-family:var(--font-mono); font-size:12px; font-weight:600; color:rgba(255,255,255,0.55); white-space:nowrap; }
-.wo-divider { color:rgba(255,255,255,0.2); font-size:11px; }
-.wo-desc { font-size:13px; font-weight:600; color:rgba(255,255,255,0.9); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; }
-.wo-chips { display:flex; gap:4px; flex-shrink:0; }
-.chip { font-size:10px; font-weight:700; letter-spacing:0.3px; padding:2px 7px; border-radius:100px; border:1px solid; white-space:nowrap; }
-.chip-type { color:var(--gray-3); border-color:var(--gray-5); }
-.chip-priority { color:var(--orange); border-color:rgba(244,102,0,0.4); }
-.chip-dept { color:#42b2ea; border-color:rgba(66,178,234,0.35); }
-.wo-block-handle { display:flex; justify-content:center; padding-top:4px; }
-.handle-bar { width:32px; height:3px; background:rgba(255,255,255,0.15); border-radius:100px; }
+/* ── DETAIL HEADER (canonical, §8.1) — protected identity + ellipsis only,
+   no status button, no pin, no Plus. Exact match to the §8.1 CSS/HTML
+   reference (values brought into line with the shared eam-shared.css copy
+   2026-07-16 — this file predates the shared-file rebuild so it carries a
+   local copy rather than the link). The separate status change control
+   further down (§19.2) is untouched — page content, not header chrome.
+   Protected description: no edit, no textarea. No scroll-collapse. ── */
+.rec-header { background:var(--bg-nav); flex-shrink:0; }
+.rec-id-row { display:flex; align-items:flex-start; gap:10px; padding:12px 16px; }
+.rec-id-text { display:flex; flex-direction:column; gap:1px; min-width:0; flex:1; }
+.rec-num { font-family:var(--font-mono); font-size:22px; font-weight:700; letter-spacing:0.3px; color:white; line-height:1.1; }
+.rec-desc.protected { display:block; font-size:15px; font-weight:600; color:rgba(255,255,255,0.5); line-height:1.3; cursor:default; }
 
-/* STEP RAIL */
-.step-rail { background:var(--bg-card); border-bottom:1px solid var(--border); padding:0 14px; flex-shrink:0; cursor:pointer; transition:background 0.15s; }
-[data-theme="dark"] .step-rail { background:var(--bg-section); }
-.step-rail:hover { background:var(--bg-section); }
-.step-rail-collapsed { height:48px; display:flex; align-items:center; gap:10px; }
+/* Header actions — ellipsis menu only, no pin (§8.1). */
+.rec-header-actions { display:flex; align-items:center; gap:2px; flex-shrink:0; margin-left:auto; margin-top:-3px; position:relative; }
+.rec-ellipsis-btn { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:none; border:none; cursor:pointer; color:rgba(255,255,255,0.55); transition:background 0.15s, color 0.15s; }
+.rec-ellipsis-btn:hover { background:rgba(255,255,255,0.1); color:white; }
+.rec-ellipsis-btn svg { width:18px; height:18px; }
+.rec-actions-menu { position:absolute; top:40px; right:0; min-width:190px; background:var(--bg-card); border-radius:12px; border:1px solid var(--border); box-shadow:0 8px 28px rgba(0,0,0,0.28); padding:6px 0; opacity:0; visibility:hidden; transform:translateY(-6px) scale(0.98); transition:opacity 0.15s, transform 0.15s, visibility 0.15s; z-index:150; }
+[data-theme="dark"] .rec-actions-menu { background:#26252B; }
+.rec-actions-menu.open { opacity:1; visibility:visible; transform:translateY(0) scale(1); }
+.rec-actions-group:empty { display:none; }
+.rec-actions-divider { height:1px; background:var(--border); margin:4px 0; }
+.rec-actions-item { padding:10px 16px; font-size:14px; font-weight:500; color:var(--octave-black); cursor:pointer; white-space:nowrap; }
+[data-theme="dark"] .rec-actions-item { color:rgba(255,255,255,0.9); }
+.rec-actions-item:hover { background:var(--bg-section); }
+.rec-actions-item.danger { color:var(--red); }
+
+/* Centered confirmation modal — destructive actions other than the
+   existing bottom-sheet-style close/remove confirmations already in this
+   file (§15's centered-modal pattern is specifically for the header's own
+   Delete action, kept distinct from those). */
+.confirm-overlay { position:absolute; inset:0; background:rgba(0,0,0,0); pointer-events:none; transition:background 0.2s; z-index:300; display:flex; align-items:center; justify-content:center; }
+.confirm-overlay.open { background:rgba(0,0,0,0.5); pointer-events:all; }
+.confirm-modal { width:280px; background:var(--bg-card); border-radius:14px; padding:20px 18px; text-align:center; transform:scale(0.92); opacity:0; transition:all 0.2s; box-shadow:0 10px 40px rgba(0,0,0,0.3); }
+.confirm-overlay.open .confirm-modal { transform:scale(1); opacity:1; }
+.confirm-message { font-size:14px; font-weight:600; color:var(--octave-black); text-align:center; line-height:1.4; margin-bottom:16px; }
+[data-theme="dark"] .confirm-message { color:white; }
+.confirm-actions { display:flex; gap:10px; }
+.confirm-btn { flex:1; padding:10px 0; border-radius:8px; font-size:14px; font-weight:700; font-family:var(--font-sans); border:none; cursor:pointer; }
+.confirm-cancel { background:var(--bg-section); color:var(--octave-black); }
+[data-theme="dark"] .confirm-cancel { color:white; }
+.confirm-danger { background:var(--red); color:white; }
+
+/* STEP RAIL — purple-tinted wash on the collapsed bar (design-decisions-v3-1.md
+   §15 "Tab rail / step rail background"); the expanded list is an opaque
+   panel, not washed, except a lighter wash on the active row. */
+.step-rail { background:rgba(153,51,255,0.12); border-bottom:1px solid rgba(153,51,255,0.25); padding:0 14px; flex-shrink:0; cursor:pointer; transition:background 0.15s; }
+.step-rail:hover { background:rgba(153,51,255,0.18); }
+/* Scoped to the open state only (toggled via JS) so it doesn't leak into the
+   collapsed row's own 8px bottom padding below. */
+.step-rail.expanded { padding-bottom:14px; }
+.step-rail-collapsed { height:48px; display:flex; align-items:center; gap:10px; padding-bottom:8px; }
 .step-pill { font-family:var(--font-mono); font-size:11px; font-weight:600; color:var(--purple); background:rgba(153,51,255,0.1); border:1px solid rgba(153,51,255,0.25); padding:2px 8px; border-radius:100px; white-space:nowrap; flex-shrink:0; }
 .step-name { font-size:13px; font-weight:600; color:var(--octave-black); flex:1; }
 [data-theme="dark"] .step-name { color:var(--white); }
@@ -119,10 +156,16 @@ body { font-family: var(--font-sans); background: var(--bg-page); color: var(--o
 .seg-future { background:var(--gray-2); }
 [data-theme="dark"] .seg-future { background:var(--gray-5); }
 .step-chevron { color:var(--gray-4); flex-shrink:0; transition:transform 0.2s; }
-.step-map { display:none; padding:10px 0 12px; border-top:1px solid var(--border); }
+/* Opaque background — .step-map is nested inside .step-rail, so without its
+   own background the collapsed bar's purple wash bleeds through the whole
+   expanded list. */
+.step-map { display:none; background:var(--bg-card); padding:10px 0 12px; border-top:1px solid var(--border); }
 .step-map.open { display:block; }
 .step-map-item { display:flex; align-items:center; gap:10px; padding:6px 14px; cursor:pointer; border-radius:4px; margin:0 6px; transition:background 0.1s; }
 .step-map-item:hover { background:var(--bg-section); }
+/* Lighter wash than the collapsed bar's 0.12 — marks the current step within
+   the list without competing with the top bar. */
+.step-map-item.active { background:rgba(153,51,255,0.06); }
 .step-map-icon { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:10px; font-weight:700; }
 .smi-done { background:var(--green); color:white; }
 .smi-active { background:var(--purple); color:white; }
@@ -145,12 +188,19 @@ body { font-family: var(--font-sans); background: var(--bg-page); color: var(--o
 .section-card { margin:0 12px 10px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
 [data-theme="dark"] .section-card { background:var(--bg-card); }
 
-.section-card-header { padding:10px 14px 8px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; }
-.section-card-title { font-size:11px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; font-family:var(--font-mono); color:var(--gray-4); flex:1; }
-.section-card-badge { font-family:var(--font-mono); font-size:10px; font-weight:700; padding:2px 7px; border-radius:100px; }
-.badge-complete { background:rgba(0,170,20,0.1); color:var(--green); border:1px solid rgba(0,170,20,0.2); }
-.badge-partial  { background:rgba(153,51,255,0.1); color:var(--purple); border:1px solid rgba(153,51,255,0.2); }
-.badge-optional { background:var(--bg-section); color:var(--gray-4); border:1px solid var(--border); }
+/* Every container is collapsible (design-decisions-v3-1.md §3.4) — header
+   is the tap target, chevron rotates -90deg when collapsed. Toggled via
+   toggleSectionCard(this), which flips 'collapsed' on the header's own
+   parent (works for both .section-card and .attach-card without needing
+   to know which). */
+.section-card-header { padding:10px 14px 8px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; cursor:pointer; }
+.section-card-title { font-size:14px; font-weight:600; color:var(--octave-black); flex:1; }
+[data-theme="dark"] .section-card-title { color:var(--white); }
+.section-card-chevron { color:var(--gray-4); flex-shrink:0; transition:transform 0.2s; }
+.section-card.collapsed .section-card-chevron,
+.attach-card.collapsed .section-card-chevron { transform:rotate(-90deg); }
+.section-card.collapsed .section-card-body,
+.attach-card.collapsed .section-card-body { display:none; }
 
 /* FORM FIELD */
 .form-field { display:flex; align-items:center; padding:10px 14px; border-bottom:1px solid var(--border); position:relative; min-height:50px; transition:opacity 0.2s; }
@@ -182,7 +232,9 @@ body { font-family: var(--font-sans); background: var(--bg-page); color: var(--o
 [data-theme="dark"] .seq-lock-icon { background:var(--gray-5); border-color:var(--gray-5); }
 
 /* 2×2 CLOSING CODE GRID CELLS */
+.codes-grid { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--border); margin:0; }
 .code-cell {
+  position: relative;
   background: var(--bg-card);
   padding: 11px 13px 10px;
   cursor: pointer;
@@ -193,9 +245,15 @@ body { font-family: var(--font-sans); background: var(--bg-page); color: var(--o
 [data-theme="dark"] .code-cell { background: var(--bg-card); }
 .code-cell:hover:not(.field-locked) { background: var(--bg-section); }
 .code-cell.field-locked { opacity: 0.38; pointer-events: none; cursor: default; }
+/* Required marker — never shows while the cell is protected (field-locked);
+   appears the instant a cell unlocks, same orange-bar rule as .form-field.
+   Toggled in lockstep with field-locked in refreshSequentialLocks(). */
+.code-cell.required::before { content:''; position:absolute; left:0; top:8px; bottom:8px; width:3px; border-radius:0 100px 100px 0; background:var(--orange); }
+/* Matches .field-label exactly (design-decisions-v3-1.md §3.4) — was
+   11px/700/uppercase/letter-spaced, a leftover mini-eyebrow style from
+   before this cell was brought in line with the standard field label. */
 .code-cell-label {
-  font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
-  text-transform: uppercase; font-family: var(--font-mono);
+  font-size: 13px;
   color: var(--gray-4);
 }
 .code-cell-body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
@@ -381,33 +439,37 @@ body { font-family: var(--font-sans); background: var(--bg-page); color: var(--o
 .btn-remove-confirm { width:100%; height:50px; border-radius:100px; border:none; background:var(--red); color:white; font-size:15px; font-weight:700; font-family:var(--font-sans); cursor:pointer; transition:all 0.15s; }
 .btn-remove-confirm:hover { background:#ff6060; }
 
-/* STATUS CHANGE BANNER */
-.status-banner {
-  margin:0 12px 10px;
-  background:rgba(0,170,20,0.05);
-  border:1px solid rgba(0,170,20,0.2);
-  border-radius:10px;
-  padding:10px 14px;
-  display:flex; align-items:center; gap:10px;
-}
-.status-banner-icon { width:36px; height:36px; border-radius:50%; background:rgba(0,170,20,0.1); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.status-banner-info { flex:1; }
+/* STATUS BANNER — Option D (locked 2026-07-16, design-decisions-v3-1.md
+   §19.2/§20). Card keeps the same position/style it always had; what
+   changed is the from/to controls moved out from beside the icon into
+   their own row below the title, with room for a bigger button. Status
+   text is Inter (never mono — a status label isn't an identifier code). */
+.status-banner { margin:0 12px 10px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:10px 12px; }
+.status-banner-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.status-banner-icon { width:30px; height:30px; border-radius:50%; background:rgba(0,170,20,0.1); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .status-banner-title { font-size:13px; font-weight:600; color:var(--octave-black); }
 [data-theme="dark"] .status-banner-title { color:var(--white); }
-.status-banner-sub { font-size:11px; color:var(--gray-4); font-family:var(--font-mono); margin-top:1px; }
-.status-arrow { display:flex; align-items:center; gap:5px; flex-shrink:0; }
-.status-chip { font-family:var(--font-mono); font-size:10px; font-weight:700; padding:3px 8px; border-radius:100px; }
-.status-released  { background:rgba(66,178,234,0.1);  color:#42b2ea;       border:1px solid rgba(66,178,234,0.25); }
-.status-completed { background:rgba(0,170,20,0.1);    color:var(--green);  border:1px solid rgba(0,170,20,0.25); }
-.status-closed    { background:rgba(110,116,128,0.12); color:var(--gray-4); border:1px solid rgba(110,116,128,0.25); }
-.status-onhold    { background:rgba(244,102,0,0.1);    color:var(--orange); border:1px solid rgba(244,102,0,0.25); }
-.status-target-btn {
-  font-family:var(--font-mono); font-size:10px; font-weight:700;
-  padding:3px 8px; border-radius:100px; cursor:pointer;
-  border:none; display:inline-flex; align-items:center; gap:4px;
-  transition:filter 0.15s;
+.status-row { display:flex; align-items:center; gap:10px; padding-top:10px; border-top:1px solid var(--border); }
+.status-row-arrow { color:var(--gray-3); flex-shrink:0; }
+/* Both pills share one box model so a <div> (from — never tappable) and a
+   <button> (to) line up exactly; a bare <button> otherwise picks up the
+   browser's default font/line-height, which is what caused the earlier
+   vertical mismatch between the two. */
+.status-pill {
+  flex:1; height:42px; box-sizing:border-box; margin:0; border:none; padding:0 12px;
+  border-radius:8px; display:flex; align-items:center; justify-content:center; gap:6px;
+  font-family:var(--font-sans); font-size:14px; font-weight:600; line-height:1;
 }
-.status-target-btn:hover { filter:brightness(0.9); }
+.status-pill.from { background:rgba(66,178,234,0.1); color:#1c5f85; cursor:default; }
+[data-theme="dark"] .status-pill.from { background:rgba(66,178,234,0.18); color:#8fcdfb; }
+.status-pill.to { cursor:pointer; transition:filter 0.15s; }
+.status-pill.to:hover:not(.protected) { filter:brightness(0.95); }
+.status-pill.to.fill-completed { background:var(--green); color:white; }
+.status-pill.to.fill-closed    { background:var(--gray-5); color:white; }
+.status-pill.to.fill-onhold    { background:var(--orange); color:white; }
+/* Declared after the fill-* rules so protected always wins regardless of
+   which status colour is currently selected underneath it. */
+.status-pill.to.protected { background:var(--bg-section); color:var(--gray-4); cursor:default; }
 
 /* BOTTOM BAR */
 .bottom-bar { position:absolute; bottom:0; left:0; right:0; height:var(--bar-height); background:var(--bg-card); border-top:1px solid var(--border); padding:0 16px; display:flex; align-items:center; gap:10px; z-index:50; flex-shrink:0; }
@@ -417,7 +479,6 @@ body { font-family: var(--font-sans); background: var(--bg-page); color: var(--o
 [data-theme="dark"] .bar-pill-locked { background:var(--gray-5); color:var(--gray-3); }
 .bar-pill-ready { background:var(--green); color:white; cursor:pointer; box-shadow:0 4px 16px rgba(0,170,20,0.3); }
 .bar-pill-ready:hover { background:#00c418; }
-.bar-meta { font-family:var(--font-mono); font-size:12px; font-weight:600; color:var(--gray-4); white-space:nowrap; flex-shrink:0; }
 
 /* OVERLAY / SHEET */
 .sheet-overlay { position:absolute; inset:0; background:rgba(0,0,0,0); z-index:200; pointer-events:none; transition:background 0.3s; }
@@ -438,11 +499,21 @@ body { font-family: var(--font-sans); background: var(--bg-page); color: var(--o
 .sheet-body::-webkit-scrollbar { display:none; }
 .sheet-footer { padding:12px 16px 20px; border-top:1px solid var(--border); flex-shrink:0; }
 
+/* LOV search row — matches the shared eam-shared.css .lov-search-row
+   convention (this file predates the shared-file architecture, so it's
+   reproduced locally rather than linked). */
+.lov-search-row { display:flex; align-items:center; gap:8px; margin:2px 16px 10px; padding:9px 14px; background:var(--bg-section); border-radius:100px; color:var(--gray-4); flex-shrink:0; }
+.lov-search-row.hidden { display:none; }
+.lov-search-input { flex:1; border:none; background:none; outline:none; font-size:14px; font-family:var(--font-sans); color:var(--octave-black); }
+[data-theme="dark"] .lov-search-input { color:var(--white); }
+.lov-search-input::placeholder { color:var(--gray-4); }
+
 /* LOV option rows inside sheet */
 .lov-option { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--border); cursor:pointer; transition:background 0.1s; }
 .lov-option:last-child { border-bottom:none; }
 .lov-option:hover { background:var(--bg-section); }
 .lov-option.selected { background:rgba(153,51,255,0.05); }
+.lov-option.filtered-out { display:none; }
 .lov-option-texts { flex:1; }
 .lov-option-desc { font-size:14px; font-weight:500; color:var(--octave-black); }
 [data-theme="dark"] .lov-option-desc { color:rgba(255,255,255,0.9); }
@@ -452,6 +523,44 @@ body { font-family: var(--font-sans); background: var(--bg-page); color: var(--o
 .lov-check.unchecked { border:1.5px solid var(--gray-2); }
 [data-theme="dark"] .lov-check.unchecked { border-color:var(--gray-5); }
 
+/* FIELD-EDIT SHEET HEADER — close (left) / title (center) / Clear (right).
+   Scoped to the LOV, edit (currency/number), and date sheets only — the
+   other sheets on this screen (status picker, confirm close, source
+   picker, viewer, remove confirm) are not field-edit sheets and keep their
+   own title-left/close-right header per design-decisions-v3-1.md §15
+   "Sheet header layout — standardized". */
+.sheet-header-fe { padding:4px 16px 12px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border); flex-shrink:0; }
+.sheet-title-fe { flex:1; text-align:center; font-size:17px; font-weight:700; color:var(--octave-black); }
+[data-theme="dark"] .sheet-title-fe { color:var(--white); }
+.sheet-clear-btn { font-size:15px; font-weight:500; color:var(--gray-4); background:none; border:none; cursor:pointer; padding:4px 2px; flex-shrink:0; font-family:var(--font-sans); }
+.sheet-clear-btn.hidden { visibility:hidden; }
+
+/* EDIT SHEET — currency (Downtime cost) / number (Downtime hours) */
+.edit-input-wrap { padding:16px; }
+.edit-input { width:100%; background:var(--bg-section); border:1px solid var(--border); border-radius:8px; padding:12px 14px; font-family:var(--font-sans); font-size:15px; color:var(--octave-black); outline:none; }
+[data-theme="dark"] .edit-input { color:var(--white); color-scheme:dark; }
+/* Native number-input spinner arrows don't theme reliably across light/dark
+   — removed rather than reskinned. Numeric keyboard still appears. */
+.edit-input[type=number]::-webkit-outer-spin-button, .edit-input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+.edit-input[type=number] { -moz-appearance:textfield; }
+.btn-save { width:100%; height:50px; border-radius:100px; border:none; font-size:15px; font-weight:700; font-family:var(--font-sans); cursor:pointer; background:var(--octave-black); color:white; }
+[data-theme="dark"] .btn-save { background:var(--white); color:var(--octave-black); }
+
+/* DATE SHEET — custom calendar (Date completed), never native <input type=date> */
+.cal-header { display:flex; align-items:center; justify-content:space-between; padding:10px 16px; }
+.cal-nav-btn { width:32px; height:32px; border-radius:50%; border:none; background:var(--bg-section); color:var(--octave-black); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+[data-theme="dark"] .cal-nav-btn { color:var(--white); }
+.cal-month-label { font-size:15px; font-weight:700; color:var(--octave-black); font-family:var(--font-mono); }
+[data-theme="dark"] .cal-month-label { color:var(--white); }
+.cal-weekdays { display:grid; grid-template-columns:repeat(7,1fr); padding:0 12px; }
+.cal-weekday { text-align:center; font-size:10px; font-weight:700; letter-spacing:0.4px; text-transform:uppercase; color:var(--gray-4); font-family:var(--font-mono); padding:4px 0 8px; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; padding:0 12px 8px; }
+.cal-day { aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:13px; border-radius:50%; cursor:pointer; color:var(--octave-black); }
+[data-theme="dark"] .cal-day { color:var(--white); }
+.cal-day.other-month { color:var(--gray-3); }
+.cal-day.today { border:1.5px solid var(--purple); }
+.cal-day.selected { background:var(--purple); color:white; }
+
 /* CONFIRM CLOSE SHEET */
 .confirm-wording { padding:16px; font-size:14px; color:var(--gray-4); line-height:1.6; border-bottom:1px solid var(--border); }
 .confirm-wording strong { color:var(--octave-black); font-weight:600; }
@@ -460,8 +569,12 @@ body { font-family: var(--font-sans); background: var(--bg-page); color: var(--o
 .confirm-summary-row { display:flex; align-items:center; justify-content:space-between; padding:5px 0; font-size:13px; border-bottom:1px solid var(--border); }
 .confirm-summary-row:last-child { border-bottom:none; }
 .confirm-summary-label { color:var(--gray-4); }
-.confirm-summary-value { font-family:var(--font-mono); font-size:12px; color:var(--octave-black); font-weight:500; }
+/* Inter by default — descriptions/dates/counts never render in mono. Rows
+   that need mono (WO#/asset identifiers) apply it via an inline span, not
+   this base class — see buildConfirmSummary(). */
+.confirm-summary-value { font-family:var(--font-sans); font-size:12px; color:var(--octave-black); font-weight:500; }
 [data-theme="dark"] .confirm-summary-value { color:rgba(255,255,255,0.85); }
+.confirm-summary-value .mono { font-family:var(--font-mono); }
 .btn-close-wo { width:100%; height:50px; border-radius:100px; border:none; background:var(--green); color:white; font-size:15px; font-weight:700; font-family:var(--font-sans); cursor:pointer; box-shadow:0 4px 16px rgba(0,170,20,0.25); transition:all 0.15s; }
 .btn-close-wo:hover { background:#00c418; }
 .btn-cancel { width:100%; height:44px; border-radius:100px; border:1.5px solid var(--gray-2); background:none; color:var(--gray-4); font-size:14px; font-weight:600; font-family:var(--font-sans); cursor:pointer; margin-top:8px; transition:all 0.15s; }
@@ -483,43 +596,62 @@ body { font-family: var(--font-sans); background: var(--bg-page); color: var(--o
 </style>
 </head>
 <body>
+<!-- Prototype-only theme preview — real app theme lives in User Settings,
+     not in-screen chrome. See design-decisions-v3-1.md §20. -->
+<div class="proto-theme-bar">
+  <span class="proto-theme-label">Preview theme</span>
+  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+</div>
 <div class="app" id="app">
 
-  <!-- NAV -->
-  <header class="nav">
-    <button class="nav-back" aria-label="Back">
+  <!-- NAV — nav-title restored 2026-07-16 as "Work Orders" (the parent-list
+       breadcrumb, matching Book Labor/Issue Parts), not a duplicate of
+       .rec-header below (which shows this specific WO's own identity). -->
+  <header class="nav" onclick="scrollFormToTop()">
+    <button class="nav-back" aria-label="Back" onclick="event.stopPropagation()">
       <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
-    <div class="nav-logo">
-      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
-    </div>
-    <div class="nav-title">
-      19257 — Pump Cavitating; lost head
-      <span>WO# 19257 · Activity 10 · TECH</span>
-    </div>
+    <div class="nav-title">Work Orders</div>
     <div class="nav-actions">
       <span class="prototype-label">PROTOTYPE</span>
-      <button class="nav-icon-btn" title="Sync status">
+      <button class="nav-icon-btn" title="Sync status" onclick="event.stopPropagation()">
         <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0114-5.2M20 12a8 8 0 01-14 5.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 7l2-2-2-2M8 17l-2 2 2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span class="sync-badge"></span>
       </button>
-      <button class="theme-toggle" id="themeToggle">☀ Light</button>
     </div>
   </header>
 
-  <!-- WO BLOCK -->
-  <div class="wo-block">
-    <div class="wo-block-inner">
-      <span class="wo-number">19257</span>
-      <span class="wo-divider">·</span>
-      <span class="wo-desc">Pump Cavitating; lost head</span>
-      <div class="wo-chips">
-        <span class="chip chip-type">CORR MAINT</span>
-        <span class="chip chip-priority">P4-HIGH</span>
-        <span class="chip chip-dept">WATER</span>
+  <!-- DETAIL HEADER (§8.1) — protected identity + ellipsis, no status, no
+       pin, no Plus. Screen-specific ellipsis slot carries Print Work Order
+       + Comments/Documents (§14.8 — reachable from any step). No mini-icon
+       — removed from the header pattern entirely 2026-07-16; dropped here
+       2026-07-16 too (this file predated that pass). -->
+  <div class="rec-header" id="recHeader" onclick="scrollFormToTop()">
+    <div class="rec-id-row">
+      <div class="rec-id-text">
+        <span class="rec-num" id="recNum">19257</span>
+        <span class="rec-desc protected" id="recDesc">Pump Cavitating; lost head</span>
+      </div>
+      <div class="rec-header-actions">
+        <button class="rec-ellipsis-btn" id="recEllipsisBtn" onclick="event.stopPropagation(); toggleRecActionsMenu()" aria-label="More actions">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+        </button>
+        <div class="rec-actions-menu" id="recActionsMenu">
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyLink()">Copy Link</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyRecord()">Copy</div>
+            <div class="rec-actions-item danger" onclick="recDeleteRecord()">Delete</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group" id="recActionsScreenSpecific">
+            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Printing work order — coming soon', '🖨')">Print Work Order</div>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="wo-block-handle"><div class="handle-bar"></div></div>
   </div>
 
   <!-- STEP RAIL -->
@@ -541,7 +673,7 @@ body { font-family: var(--font-sans); background: var(--bg-page); color: var(--o
       <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">Activity Checklist</span></div>
       <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">Issue Parts</span></div>
       <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">Book Labor</span></div>
-      <div class="step-map-item"><div class="step-map-icon smi-active">5</div><span class="step-map-label active-label">WO Closing</span></div>
+      <div class="step-map-item active"><div class="step-map-icon smi-active">5</div><span class="step-map-label active-label">WO Closing</span></div>
       <div class="step-map-footer">Admin configured · Corrective Maintenance WO type</div>
     </div>
   </div>
@@ -549,42 +681,38 @@ body { font-family: var(--font-sans); background: var(--bg-page); color: var(--o
   <!-- CONTENT -->
   <div class="content">
 
-    <!-- Status change banner -->
+    <!-- Status change banner — Option D (design-decisions-v3-1.md §19.2/§20) -->
     <div class="status-banner" style="margin-top:12px;" id="statusBanner">
-      <div class="status-banner-icon" id="statusBannerIcon">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4" stroke="#00AA14" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="#00AA14" stroke-width="2"/></svg>
-      </div>
-      <div class="status-banner-info">
-        <div class="status-banner-title" id="statusBannerTitle">Closing this work order</div>
-        <div class="status-banner-sub" id="statusBannerSub">Status will change on save</div>
-      </div>
-      <div class="status-arrow">
-        <span class="status-chip status-released">Released</span>
-        <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="var(--gray-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <!-- Tappable target status chip -->
-        <div style="position:relative;">
-          <button class="status-target-btn status-completed" id="statusTargetBtn" onclick="toggleStatusSheet()">
-            <span id="statusTargetLabel">Completed</span>
-            <svg width="9" height="9" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
+      <div class="status-banner-header">
+        <div class="status-banner-icon">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4" stroke="#00AA14" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="#00AA14" stroke-width="2"/></svg>
         </div>
+        <div class="status-banner-title">Work Order Close Status</div>
+      </div>
+      <div class="status-row">
+        <div class="status-pill from">Released</div>
+        <svg class="status-row-arrow" width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <button class="status-pill to fill-completed" id="statusTargetBtn" onclick="toggleStatusSheet()">
+          <span id="statusTargetLabel">Completed</span>
+          <span id="statusTargetIcon"><svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </button>
       </div>
     </div>
 
     <!-- Closing Codes — 2×2 grid, sequential unlock -->
     <div class="section-card">
-      <div class="section-card-header">
+      <div class="section-card-header" onclick="toggleSectionCard(this)">
         <span class="section-card-title">Closing codes</span>
-        <span class="section-card-badge badge-partial" id="codesBadge">1 of 4</span>
+        <svg class="section-card-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);margin:0;">
+      <div class="section-card-body codes-grid">
 
         <!-- Problem — pre-filled, always unlocked -->
         <div id="fieldProblem" class="code-cell field-set" onclick="openLov('problem')">
           <div class="code-cell-label">Problem</div>
           <div class="code-cell-body">
             <div class="code-cell-desc set" id="problemDesc">Mechanical failure</div>
-            <div class="code-cell-code" id="problemCode">MECH</div>
+            <div class="code-cell-code" id="problemCode">P-001</div>
           </div>
           <div class="code-cell-footer">
             <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -595,8 +723,8 @@ body { font-family: var(--font-sans); background: var(--bg-page); color: var(--o
         <div id="fieldFailure" class="code-cell" onclick="openLov('failure')">
           <div class="code-cell-label">Failure</div>
           <div class="code-cell-body">
-            <div class="code-cell-desc" id="failureDesc">—</div>
-            <div class="code-cell-code" id="failureCode" style="display:none;"></div>
+            <div class="code-cell-desc" id="failureDesc"></div>
+            <div class="code-cell-code" id="failureCode"></div>
           </div>
           <div class="code-cell-footer" id="failureFooter">
             <div class="seq-lock-icon-sm"><svg width="9" height="9" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
@@ -607,8 +735,8 @@ body { font-family: var(--font-sans); background: var(--bg-page); color: var(--o
         <div id="fieldCause" class="code-cell field-locked" onclick="openLov('cause')" style="border-top:1px solid var(--border);">
           <div class="code-cell-label">Cause</div>
           <div class="code-cell-body">
-            <div class="code-cell-desc" id="causeDesc">—</div>
-            <div class="code-cell-code" id="causeCode" style="display:none;"></div>
+            <div class="code-cell-desc" id="causeDesc"></div>
+            <div class="code-cell-code" id="causeCode"></div>
           </div>
           <div class="code-cell-footer" id="causeFooter">
             <div class="seq-lock-icon-sm"><svg width="9" height="9" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
@@ -619,8 +747,8 @@ body { font-family: var(--font-sans); background: var(--bg-page); color: var(--o
         <div id="fieldAction" class="code-cell field-locked" onclick="openLov('action')" style="border-top:1px solid var(--border);">
           <div class="code-cell-label">Action</div>
           <div class="code-cell-body">
-            <div class="code-cell-desc" id="actionDesc">—</div>
-            <div class="code-cell-code" id="actionCode" style="display:none;"></div>
+            <div class="code-cell-desc" id="actionDesc"></div>
+            <div class="code-cell-code" id="actionCode"></div>
           </div>
           <div class="code-cell-footer" id="actionFooter">
             <div class="seq-lock-icon-sm"><svg width="9" height="9" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
@@ -631,70 +759,75 @@ body { font-family: var(--font-sans); background: var(--bg-page); color: var(--o
     </div>
 
     <!-- Downtime Details — optional -->
-    <div class="section-card">
-      <div class="section-card-header">
+    <div class="section-card collapsed">
+      <div class="section-card-header" onclick="toggleSectionCard(this)">
         <span class="section-card-title">Downtime details</span>
-        <span class="section-card-badge badge-optional">Optional</span>
+        <svg class="section-card-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
-      <div class="form-field" style="cursor:pointer;" onclick="showToast('Date / time picker — coming soon','📅')">
-        <span class="field-label">Date completed</span>
-        <div class="field-lov-value">
-          <span class="field-lov-desc set">May 19, 2026 · 09:47</span>
+      <div class="section-card-body">
+        <div class="form-field" style="cursor:pointer;" onclick="openDateSheet('dateCompleted','Date completed')">
+          <span class="field-label">Date completed</span>
+          <div class="field-lov-value">
+            <span class="field-lov-desc set" id="dateCompletedVal" data-raw="2026-05-19T09:47:00">May 19, 2026 · 09:47</span>
+          </div>
+          <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="form-field" style="cursor:pointer;" onclick="openDowntimeHours()">
-        <span class="field-label">Downtime hours</span>
-        <span class="field-value muted" id="downtimeHoursVal">Not set</span>
-        <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="form-field" style="cursor:pointer;" onclick="openDowntimeCost()">
-        <span class="field-label">Downtime cost</span>
-        <span class="field-value muted" id="downtimeCostVal">Not set</span>
-        <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="form-field" style="cursor:pointer;" onclick="openEdit('downtimeHours','Downtime hours','number')">
+          <span class="field-label">Downtime hours</span>
+          <span class="field-value muted" id="downtimeHoursVal" data-raw=""></span>
+          <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="form-field" style="cursor:pointer;" onclick="openEdit('downtimeCost','Downtime cost','currency')">
+          <span class="field-label">Downtime cost</span>
+          <span class="field-value muted" id="downtimeCostVal" data-raw=""></span>
+          <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
       </div>
     </div>
 
     <!-- Closing Comments — required -->
     <div class="section-card">
-      <div class="section-card-header">
+      <div class="section-card-header" onclick="toggleSectionCard(this)">
         <span class="section-card-title">Closing comments</span>
-        <span class="section-card-badge badge-optional" id="commentsBadge">Required</span>
+        <svg class="section-card-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
-      <div class="comments-area required">
-        <textarea class="comments-textarea" id="closingComments" maxlength="1000"
-          placeholder="Describe work performed, findings, and any follow-up required…"
-          oninput="onCommentsInput()"></textarea>
-        <div class="comments-meta">
-          <span class="char-count" id="charCount">0 / 1000</span>
+      <div class="section-card-body">
+        <div class="comments-area required">
+          <textarea class="comments-textarea" id="closingComments" maxlength="1000"
+            placeholder="Describe work performed, findings, and any follow-up required…"
+            oninput="onCommentsInput()"></textarea>
+          <div class="comments-meta">
+            <span class="char-count" id="charCount">0 / 1000</span>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Attachments — optional, above bar -->
     <div class="attach-section">
-      <div class="attach-card" id="attachCard">
-        <div class="section-card-header">
+      <div class="attach-card collapsed" id="attachCard">
+        <div class="section-card-header" onclick="toggleSectionCard(this)">
           <span class="section-card-title">Attachments</span>
-          <span class="section-card-badge badge-optional" id="attachBadge">Optional</span>
+          <svg class="section-card-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-
-        <!-- Empty state -->
-        <div class="attach-empty" id="attachEmpty">
-          <div class="attach-empty-icon">
-            <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="section-card-body">
+          <!-- Empty state -->
+          <div class="attach-empty" id="attachEmpty">
+            <div class="attach-empty-icon">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="attach-empty-text">No attachments yet</div>
+            <div class="attach-empty-hint">Photos, documents or files</div>
           </div>
-          <div class="attach-empty-text">No attachments yet</div>
-          <div class="attach-empty-hint">Photos, documents or files</div>
-        </div>
 
-        <!-- Attachment list (populated by JS) -->
-        <div id="attachList"></div>
+          <!-- Attachment list (populated by JS) -->
+          <div id="attachList"></div>
 
-        <!-- Add button row — always visible at bottom -->
-        <div class="attach-add-row" onclick="openSourcePicker()">
-          <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="var(--purple)" stroke-width="2.5" stroke-linecap="round"/></svg>
-          <span class="attach-add-btn-label">Add attachment</span>
+          <!-- Add button row — always visible at bottom -->
+          <div class="attach-add-row" onclick="openSourcePicker()">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="var(--purple)" stroke-width="2.5" stroke-linecap="round"/></svg>
+            <span class="attach-add-btn-label">Add attachment</span>
+          </div>
         </div>
       </div>
     </div>
@@ -703,7 +836,6 @@ body { font-family: var(--font-sans); background: var(--bg-page); color: var(--o
 
   <!-- BOTTOM BAR -->
   <div class="bottom-bar">
-    <span class="bar-meta" id="barMeta">Add closing comments</span>
     <button class="bar-pill bar-pill-locked" id="closeBtn" onclick="onCloseBarTap()">
       <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Close Work Order
@@ -712,52 +844,94 @@ body { font-family: var(--font-sans); background: var(--bg-page); color: var(--o
 
   <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
 
-  <!-- STATUS PICKER SHEET -->
+  <!-- STATUS PICKER SHEET — standard field-edit sheet pattern (§3.4/§8.1's
+       sibling rule for every LOV, not a bespoke design): close (left) /
+       title (center) / Clear (right, hidden — target status is always
+       required, same treatment as Equipment's __status). No search row —
+       short fixed list. Description-only rows, no code line — statuses are
+       a system code (§3.4), always description-only, never code+
+       description like a reference-data LOV. Colour lives on the target
+       pill itself (§19.2), never in the picker list. No explanatory
+       caption row — the list itself is already the user-authorised set,
+       same as any other LOV. -->
   <div class="bottom-sheet" id="statusSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
-    <div class="sheet-header">
-      <div class="sheet-title">Set target status</div>
+    <div class="sheet-header-fe">
       <button class="sheet-close" onclick="closeAllSheets()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
-    </div>
-    <!-- Explanation of auth-driven list -->
-    <div style="padding:10px 16px 6px;border-bottom:1px solid var(--border);font-size:12px;color:var(--gray-4);font-family:var(--font-mono);">
-      Statuses available to BCAMPBELL · Corrective Maintenance
+      <div class="sheet-title-fe">Target status</div>
+      <button class="sheet-clear-btn hidden">Clear</button>
     </div>
     <div class="sheet-body">
-      <div class="lov-option selected" id="sOpt-completed" onclick="selectStatus('completed','Completed','Completed — work finished and verified','#00AA14')">
+      <div class="lov-option selected" id="sOpt-completed" onclick="selectStatus('completed','Completed')">
         <div class="lov-option-texts">
           <div class="lov-option-desc">Completed</div>
-          <div class="lov-option-code">Work finished and verified</div>
         </div>
         <div class="lov-check checked" id="sChk-completed">
           <svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
         </div>
       </div>
-      <div class="lov-option" id="sOpt-closed" onclick="selectStatus('closed','Closed','Fully closed &amp; locked for editing','#6F7480')">
+      <div class="lov-option" id="sOpt-closed" onclick="selectStatus('closed','Closed')">
         <div class="lov-option-texts">
           <div class="lov-option-desc">Closed</div>
-          <div class="lov-option-code">Fully closed — locked for further editing</div>
         </div>
         <div class="lov-check unchecked" id="sChk-closed"></div>
       </div>
-      <div class="lov-option" id="sOpt-onhold" onclick="selectStatus('onhold','On hold','Pending further action or approval','#F46600')">
+      <div class="lov-option" id="sOpt-onhold" onclick="selectStatus('onhold','On hold')">
         <div class="lov-option-texts">
           <div class="lov-option-desc">On hold</div>
-          <div class="lov-option-code">Pending further action or approval</div>
         </div>
         <div class="lov-check unchecked" id="sChk-onhold"></div>
       </div>
     </div>
   </div>
 
-  <!-- LOV SHEET -->
+  <!-- LOV SHEET — close (left) / title (center) / Clear (right). Clear is
+       hidden on Problem (the foundational, never-clearable first cell) and
+       whenever the target cell is currently empty; clearing Failure/Cause/
+       Action cascades downstream to keep the sequential chain intact. -->
   <div class="bottom-sheet" id="lovSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
-    <div class="sheet-header">
-      <div class="sheet-title" id="lovSheetTitle">Select code</div>
+    <div class="sheet-header-fe">
       <button class="sheet-close" onclick="closeAllSheets()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+      <div class="sheet-title-fe" id="lovSheetTitle">Select code</div>
+      <button class="sheet-clear-btn" id="lovClearBtn" onclick="clearLov()">Clear</button>
+    </div>
+    <div class="lov-search-row" id="lovSearchRow">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input class="lov-search-input" id="lovSearchInput" type="text" placeholder="Search code or description" oninput="filterClosingLovOptions(this.value)" autocomplete="off">
     </div>
     <div class="sheet-body" id="lovSheetBody"></div>
+  </div>
+
+  <!-- EDIT SHEET (currency / number) — Downtime cost / Downtime hours -->
+  <div class="bottom-sheet" id="editSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header-fe">
+      <button class="sheet-close" onclick="closeAllSheets()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+      <div class="sheet-title-fe" id="editSheetTitle">Edit field</div>
+      <button class="sheet-clear-btn" id="editClearBtn" onclick="clearEdit()">Clear</button>
+    </div>
+    <div class="edit-input-wrap"><input class="edit-input" id="editSheetInput" type="text" oninput="sanitizeCurrencyInput(this)"></div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveEdit()">Save</button></div>
+  </div>
+
+  <!-- DATE SHEET — Date completed. Custom calendar, never native <input type=date>. -->
+  <div class="bottom-sheet" id="dateSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header-fe">
+      <button class="sheet-close" onclick="closeAllSheets()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+      <div class="sheet-title-fe" id="dateSheetTitle">Select date</div>
+      <button class="sheet-clear-btn" id="dateClearBtn" onclick="clearDateSheet()">Clear</button>
+    </div>
+    <div class="sheet-body">
+      <div class="cal-header">
+        <button class="cal-nav-btn" onclick="calNavMonth(-1)">‹</button>
+        <span class="cal-month-label" id="calMonthLabel">July 2026</span>
+        <button class="cal-nav-btn" onclick="calNavMonth(1)">›</button>
+      </div>
+      <div class="cal-weekdays"><span class="cal-weekday">Sun</span><span class="cal-weekday">Mon</span><span class="cal-weekday">Tue</span><span class="cal-weekday">Wed</span><span class="cal-weekday">Thu</span><span class="cal-weekday">Fri</span><span class="cal-weekday">Sat</span></div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
   </div>
 
   <!-- CONFIRM CLOSE SHEET -->
@@ -861,6 +1035,18 @@ body { font-family: var(--font-sans); background: var(--bg-page); color: var(--o
   <!-- TOAST -->
   <div class="toast" id="toast"><span id="toastIcon">✓</span><span id="toastMsg">Saved</span></div>
 
+  <!-- Centered confirmation modal — header's Delete action (§15). Distinct
+       from this file's existing bottom-sheet-style close/remove confirms. -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-modal">
+      <div class="confirm-message" id="confirmMessage">Are you sure?</div>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="confirm-btn confirm-danger" id="confirmDangerBtn" onclick="confirmDangerAction()">Delete</button>
+      </div>
+    </div>
+  </div>
+
   <!-- CLOSED OVERLAY -->
   <div class="closed-overlay" id="closedOverlay">
     <div class="closed-icon">
@@ -881,47 +1067,105 @@ document.getElementById('themeToggle').addEventListener('click', () => {
   else { document.documentElement.setAttribute('data-theme','dark'); document.getElementById('themeToggle').textContent = '◑ Dark'; }
 });
 
+// ── DETAIL HEADER (§8.1)
+function scrollFormToTop() {
+  document.querySelector('.content')?.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── HEADER ACTIONS — ellipsis menu only, no pin (§8.1)
+function toggleRecActionsMenu() {
+  document.getElementById('recActionsMenu').classList.toggle('open');
+}
+function closeRecActionsMenu() {
+  document.getElementById('recActionsMenu').classList.remove('open');
+}
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('recActionsMenu');
+  if (menu && menu.classList.contains('open') && !e.target.closest('.rec-header-actions')) menu.classList.remove('open');
+});
+function recCopyLink() { closeRecActionsMenu(); showToast('Link copied', '🔗'); }
+function recCopyRecord() { closeRecActionsMenu(); showToast('Copy — coming soon', '⧉'); }
+function recDeleteRecord() {
+  closeRecActionsMenu();
+  openConfirm('Are you sure you want to delete this record?', () => showToast('Record deleted', '✓'));
+}
+
+// ── CENTERED CONFIRM MODAL (§15) — for the header's Delete action only;
+// distinct from this file's existing confirmCloseSheet/removeConfirmSheet.
+let confirmCallback = null;
+function openConfirm(message, onConfirm) {
+  document.getElementById('confirmMessage').textContent = message;
+  confirmCallback = onConfirm;
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('open');
+  confirmCallback = null;
+}
+function confirmDangerAction() {
+  if (confirmCallback) confirmCallback();
+  closeConfirm();
+}
+
+// ── SECTION CARDS — every container is collapsible (design-decisions-v3-1.md
+// §3.4). Toggles 'collapsed' on the header's own parent, which works for
+// both .section-card and .attach-card without needing to know which.
+function toggleSectionCard(headerEl) {
+  headerEl.parentElement.classList.toggle('collapsed');
+}
+
 // ── STEP RAIL
 document.getElementById('stepRail').addEventListener('click', () => {
-  const map = document.getElementById('stepMap');
-  const ch  = document.getElementById('stepChevron');
+  const rail = document.getElementById('stepRail');
+  const map  = document.getElementById('stepMap');
+  const ch   = document.getElementById('stepChevron');
   const open = map.classList.toggle('open');
+  rail.classList.toggle('expanded', open);
   ch.style.transform = open ? 'rotate(180deg)' : '';
 });
 
 // ── SEQUENTIAL CODE STATE
-// problem is pre-filled; failure/cause/action start empty + locked
-const codeState = { problem: 'MECH', failure: '', cause: '', action: '' };
+// problem is pre-filled; failure/cause/action start empty + locked.
+// codeState holds the raw code (business logic / sequential-unlock check);
+// codeDescState holds the description shown anywhere the value is
+// displayed (cell, confirm summary) — closing codes are reference-data
+// lookups, not on the §15.1 code-visibility exception list, so the code
+// itself is never rendered, only tracked internally.
+const codeState = { problem: 'P-001', failure: '', cause: '', action: '' };
+const codeDescState = { problem: 'Mechanical failure', failure: '', cause: '', action: '' };
 const codeOrder = ['problem','failure','cause','action'];
 
+// Code convention: <first letter of code type>-0xx, e.g. P-001, F-002 —
+// placeholder scheme standing in for the admin-configured code lists these
+// will resolve to in the real app.
 const lovData = {
   problem: [
-    { code:'MECH', desc:'Mechanical failure' },
-    { code:'ELEC', desc:'Electrical failure' },
-    { code:'INST', desc:'Instrumentation fault' },
-    { code:'CORR', desc:'Corrosion / erosion' },
-    { code:'OPER', desc:'Operational error' },
+    { code:'P-001', desc:'Mechanical failure' },
+    { code:'P-002', desc:'Electrical failure' },
+    { code:'P-003', desc:'Instrumentation fault' },
+    { code:'P-004', desc:'Corrosion / erosion' },
+    { code:'P-005', desc:'Operational error' },
   ],
   failure: [
-    { code:'CAVIT', desc:'Cavitation' },
-    { code:'SEAL',  desc:'Seal failure' },
-    { code:'BEAR',  desc:'Bearing failure' },
-    { code:'IMPEQ', desc:'Impeller wear' },
-    { code:'MISC',  desc:'Miscellaneous' },
+    { code:'F-001', desc:'Cavitation' },
+    { code:'F-002', desc:'Seal failure' },
+    { code:'F-003', desc:'Bearing failure' },
+    { code:'F-004', desc:'Impeller wear' },
+    { code:'F-005', desc:'Miscellaneous' },
   ],
   cause: [
-    { code:'WEAR',  desc:'Normal wear and tear' },
-    { code:'MAINT', desc:'Inadequate maintenance' },
-    { code:'INSTAL',desc:'Installation defect' },
-    { code:'DESIGN',desc:'Design limitation' },
-    { code:'PROC',  desc:'Process conditions' },
+    { code:'C-001', desc:'Normal wear and tear' },
+    { code:'C-002', desc:'Inadequate maintenance' },
+    { code:'C-003', desc:'Installation defect' },
+    { code:'C-004', desc:'Design limitation' },
+    { code:'C-005', desc:'Process conditions' },
   ],
   action: [
-    { code:'REPLACE',desc:'Component replaced' },
-    { code:'REPAIR', desc:'Repaired in place' },
-    { code:'ADJUST', desc:'Adjusted / realigned' },
-    { code:'INSPECT',desc:'Inspected only' },
-    { code:'DEFER',  desc:'Deferred — follow-up WO raised' },
+    { code:'A-001', desc:'Component replaced' },
+    { code:'A-002', desc:'Repaired in place' },
+    { code:'A-003', desc:'Adjusted / realigned' },
+    { code:'A-004', desc:'Inspected only' },
+    { code:'A-005', desc:'Deferred — follow-up WO raised' },
   ],
 };
 
@@ -938,6 +1182,10 @@ function refreshSequentialLocks() {
     const cell = document.getElementById('field' + cap(key));
     const isLocked = !states[key];
     cell.classList.toggle('field-locked', isLocked);
+    // Required marker: never shows while protected (locked); appears the
+    // instant the cell unlocks — same rule as any other standard-model
+    // required field, regardless of whether it's been filled in yet.
+    cell.classList.toggle('required', !isLocked);
     // Footer: show lock icon when locked, chevron when unlocked
     const footer = document.getElementById(key + 'Footer');
     if (footer) {
@@ -947,10 +1195,6 @@ function refreshSequentialLocks() {
     }
   });
   // Problem cell never has a removable footer — leave its static chevron alone
-  const set = codeOrder.filter(k => !!codeState[k]).length;
-  const badge = document.getElementById('codesBadge');
-  badge.textContent = `${set} of 4`;
-  badge.className = 'section-card-badge ' + (set === 4 ? 'badge-complete' : 'badge-partial');
 }
 
 function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
@@ -962,10 +1206,17 @@ function openLov(type) {
   if (cell.classList.contains('field-locked')) return;
   activeLov = type;
   document.getElementById('lovSheetTitle').textContent = codesTitles[type];
+  // Clear visibility: hidden for Problem (the never-clearable foundation of
+  // the sequential chain — parallel to a required field) or when this cell
+  // is currently empty (nothing to clear). Shown otherwise, per the
+  // required-OR-empty-hides-it rule (design-decisions-v3-1.md §15).
+  const hideClear = (type === 'problem') || !codeState[type];
+  document.getElementById('lovClearBtn').classList.toggle('hidden', hideClear);
+  document.getElementById('lovSearchInput').value = '';
   const body = document.getElementById('lovSheetBody');
   const currentCode = codeState[type];
   body.innerHTML = lovData[type].map(opt => `
-    <div class="lov-option ${opt.code === currentCode ? 'selected' : ''}" onclick="selectLov('${type}','${opt.code}','${opt.desc}')">
+    <div class="lov-option ${opt.code === currentCode ? 'selected' : ''}" data-search="${(opt.desc+' '+opt.code).toLowerCase()}" onclick="selectLov('${type}','${opt.code}','${opt.desc}')">
       <div class="lov-option-texts">
         <div class="lov-option-desc">${opt.desc}</div>
         <div class="lov-option-code">${opt.code}</div>
@@ -978,83 +1229,212 @@ function openLov(type) {
   document.getElementById('lovSheet').classList.add('open');
 }
 
+function filterClosingLovOptions(query) {
+  const q = query.trim().toLowerCase();
+  document.querySelectorAll('#lovSheetBody .lov-option').forEach(opt => {
+    opt.classList.toggle('filtered-out', q && !opt.dataset.search.includes(q));
+  });
+}
+
 function selectLov(type, code, desc) {
   codeState[type] = code;
-  // Update 2×2 cell
+  codeDescState[type] = desc;
+  // Update 2×2 cell — code + description both shown (§3.4's always-code+
+  // description default, applied here 2026-07-16; previously description
+  // only, per a since-superseded exception list — see design-decisions-v3-1.md §21).
   const descEl = document.getElementById(type+'Desc');
-  const codeEl = document.getElementById(type+'Code');
   descEl.textContent = desc;
   descEl.classList.add('set');
-  codeEl.textContent = code;
-  codeEl.style.display = '';
+  document.getElementById(type+'Code').textContent = code;
   refreshSequentialLocks();
   closeAllSheets();
   showToast(`${codesTitles[type]}: ${desc}`, '✓');
 }
 
-// ── DOWNTIME INPUTS (lightweight inline entry)
-function openDowntimeHours() {
-  const current = document.getElementById('downtimeHoursVal').textContent;
-  const val = current === 'Not set' ? '' : current.replace(' hrs','');
-  const input = prompt('Downtime hours (e.g. 2.5):', val);
-  if (input === null) return;
-  const n = parseFloat(input);
-  const el = document.getElementById('downtimeHoursVal');
-  if (!isNaN(n) && n >= 0) {
-    el.textContent = `${n} hrs`;
-    el.classList.remove('muted');
-    showToast(`Downtime: ${n} hrs`, '⏱');
-  } else if (input.trim() === '') {
-    el.textContent = 'Not set';
-    el.classList.add('muted');
-  }
+function clearLov() {
+  const type = activeLov;
+  if (type === 'problem') return; // never clearable — guarded in the UI too
+  // Clearing a cell cascades to every cell downstream of it, since a later
+  // code can't remain set once its predecessor is empty — keeps the
+  // sequential-unlock chain intact rather than fighting it.
+  const idx = codeOrder.indexOf(type);
+  codeOrder.slice(idx).forEach(k => {
+    codeState[k] = '';
+    codeDescState[k] = '';
+    const descEl = document.getElementById(k+'Desc');
+    descEl.textContent = '';
+    descEl.classList.remove('set');
+    document.getElementById(k+'Code').textContent = '';
+  });
+  refreshSequentialLocks();
+  closeAllSheets();
+  showToast('Cleared', '✕');
 }
 
-function openDowntimeCost() {
-  const current = document.getElementById('downtimeCostVal').textContent;
-  const val = current === 'Not set' ? '' : current.replace('$','').replace(/,/g,'');
-  const input = prompt('Downtime cost in USD (e.g. 1250):', val);
-  if (input === null) return;
-  const n = parseFloat(input);
-  const el = document.getElementById('downtimeCostVal');
-  if (!isNaN(n) && n >= 0) {
-    el.textContent = `$${n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
-    el.classList.remove('muted');
-    showToast(`Downtime cost: $${n.toLocaleString()}`, '💰');
-  } else if (input.trim() === '') {
-    el.textContent = 'Not set';
-    el.classList.add('muted');
+// ── EDIT SHEET (currency / number) — Downtime cost / Downtime hours.
+// Replaces the earlier native prompt()-based entry — that had no sheet
+// header, no Clear, no $ formatting, and no keystroke sanitization, none
+// of which match the canonical field-edit-sheet pattern.
+const editFieldMeta = {
+  downtimeHours: { elId: 'downtimeHoursVal', suffix: ' hrs' },
+  downtimeCost:  { elId: 'downtimeCostVal' },
+};
+function formatCurrency(val) {
+  const n = parseFloat(String(val).replace(/[^0-9.-]/g,''));
+  return isNaN(n) ? '' : '$' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+// Active "Clean" step of the Clean+Format pattern — strips anything that
+// isn't a digit or a single decimal point on every keystroke, preserving
+// cursor position from the end of the string. Currency only; the number
+// field uses a native type=number input instead (spinner arrows removed
+// via CSS rather than reskinned).
+function sanitizeCurrencyInput(input) {
+  if (activeEditType !== 'currency') return;
+  const fromEnd = input.value.length - input.selectionStart;
+  let cleaned = input.value.replace(/[^0-9.]/g, '');
+  const firstDot = cleaned.indexOf('.');
+  if (firstDot !== -1) cleaned = cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, '');
+  if (input.value !== cleaned) {
+    input.value = cleaned;
+    const pos = Math.max(0, cleaned.length - fromEnd);
+    input.setSelectionRange(pos, pos);
   }
 }
+let activeEditKey = null, activeEditType = null;
+function openEdit(key, label, type) {
+  activeEditKey = key; activeEditType = type;
+  document.getElementById('editSheetTitle').textContent = label;
+  const el = document.getElementById(editFieldMeta[key].elId);
+  const raw = el.dataset.raw || '';
+  // Clear hidden when empty — neither downtime field is required.
+  document.getElementById('editClearBtn').classList.toggle('hidden', raw === '');
+  const input = document.getElementById('editSheetInput');
+  input.type = type === 'number' ? 'number' : 'text';
+  input.inputMode = type === 'currency' ? 'decimal' : '';
+  input.placeholder = type === 'currency' ? '0.00' : '';
+  input.value = raw;
+  openSheet('editSheet');
+  setTimeout(() => input.focus(), 260);
+}
+function saveEdit() {
+  const raw = document.getElementById('editSheetInput').value.trim();
+  const meta = editFieldMeta[activeEditKey];
+  const el = document.getElementById(meta.elId);
+  el.dataset.raw = raw;
+  if (raw === '') {
+    el.textContent = '';
+    el.classList.add('muted');
+  } else if (activeEditType === 'currency') {
+    el.textContent = formatCurrency(raw);
+    el.classList.remove('muted');
+  } else {
+    el.textContent = raw + (meta.suffix || '');
+    el.classList.remove('muted');
+  }
+  closeAllSheets();
+  showToast('Saved', '✓');
+}
+function clearEdit() {
+  const meta = editFieldMeta[activeEditKey];
+  const el = document.getElementById(meta.elId);
+  el.dataset.raw = '';
+  el.textContent = '';
+  el.classList.add('muted');
+  closeAllSheets();
+  showToast('Cleared', '✕');
+}
 
-// ── STATUS PICKER
+// ── DATE SHEET — Date completed. Custom calendar month-grid, never the
+// native <input type=date>. Time-of-day isn't editable in this prototype;
+// only the date portion changes, the existing time is preserved.
+let calYear, calMonth;
+function openDateSheet(key, label) {
+  document.getElementById('dateSheetTitle').textContent = label;
+  const el = document.getElementById('dateCompletedVal');
+  const hasVal = !!(el.dataset.raw);
+  document.getElementById('dateClearBtn').classList.toggle('hidden', !hasVal);
+  const now = el.dataset.raw ? new Date(el.dataset.raw) : new Date();
+  calYear = now.getFullYear(); calMonth = now.getMonth();
+  renderCal();
+  openSheet('dateSheet');
+}
+function calNavMonth(d) { calMonth += d; if (calMonth<0){calMonth=11;calYear--;} if(calMonth>11){calMonth=0;calYear++;} renderCal(); }
+function renderCal() {
+  const first = new Date(calYear, calMonth, 1);
+  const startDow = first.getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  // Hardcoded 'en-US' as a prototype stand-in — the real app must format
+  // using the logged-in user's actual locale (design-decisions-v3-1.md §19.6).
+  document.getElementById('calMonthLabel').textContent = first.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const today = new Date();
+  const el = document.getElementById('dateCompletedVal');
+  const selected = el.dataset.raw ? new Date(el.dataset.raw) : null;
+  let html = '';
+  for (let i=0;i<startDow;i++) html += `<div class="cal-day other-month"></div>`;
+  for (let d=1; d<=daysInMonth; d++) {
+    const isToday = d===today.getDate() && calMonth===today.getMonth() && calYear===today.getFullYear();
+    const isSelected = selected && d===selected.getDate() && calMonth===selected.getMonth() && calYear===selected.getFullYear();
+    html += `<div class="cal-day${isToday?' today':''}${isSelected?' selected':''}" onclick="selectDate(${d})">${d}</div>`;
+  }
+  document.getElementById('calGrid').innerHTML = html;
+}
+function selectDate(d) {
+  const dt = new Date(calYear, calMonth, d);
+  const el = document.getElementById('dateCompletedVal');
+  const priorTime = el.dataset.raw ? new Date(el.dataset.raw) : dt;
+  dt.setHours(priorTime.getHours(), priorTime.getMinutes());
+  el.dataset.raw = dt.toISOString();
+  el.textContent = dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
+    + ' · ' + dt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+  el.classList.add('set');
+  closeAllSheets();
+  showToast('Date completed updated', '✓');
+}
+function clearDateSheet() {
+  const el = document.getElementById('dateCompletedVal');
+  el.dataset.raw = '';
+  el.textContent = '';
+  el.classList.remove('set');
+  closeAllSheets();
+  showToast('Cleared', '✕');
+}
+
+// ── STATUS PICKER — Option D banner (§19.2/§20). Each status keeps its own
+// accent colour, now as the target pill's solid fill instead of a small chip.
 const statusOptions = {
-  completed: { label:'Completed', chipClass:'status-completed', bannerColor:'rgba(0,170,20,0.05)', bannerBorder:'rgba(0,170,20,0.2)', iconColor:'#00AA14', sub:'Status will change on save' },
-  closed:    { label:'Closed',    chipClass:'status-closed',    bannerColor:'rgba(110,116,128,0.06)', bannerBorder:'rgba(110,116,128,0.2)', iconColor:'#6F7480', sub:'Record will be locked on save' },
-  onhold:    { label:'On hold',   chipClass:'status-onhold',    bannerColor:'rgba(244,102,0,0.05)', bannerBorder:'rgba(244,102,0,0.2)', iconColor:'#F46600', sub:'WO will be placed on hold on save' },
+  completed: { label:'Completed', fillClass:'fill-completed' },
+  closed:    { label:'Closed',    fillClass:'fill-closed' },
+  onhold:    { label:'On hold',   fillClass:'fill-onhold' },
 };
 let currentStatusKey = 'completed';
 
+// Whether the WO Status field is protected per Screen/System Design — a
+// protected field is never user-editable (§5.2), so the target pill goes
+// static/locked and the picker sheet won't open. The driving SD flag isn't
+// modeled anywhere yet (design-decisions-v3-1.md §20), so this is
+// hardcoded; flip to true to preview the protected state.
+const statusFieldProtected = false;
+
+function applyStatusProtection() {
+  const btn = document.getElementById('statusTargetBtn');
+  const icon = document.getElementById('statusTargetIcon');
+  btn.classList.toggle('protected', statusFieldProtected);
+  icon.innerHTML = statusFieldProtected
+    ? '<svg width="12" height="12" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+    : '<svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+
 function toggleStatusSheet() {
+  if (statusFieldProtected) return;
   document.getElementById('sheetOverlay').classList.add('open');
   document.getElementById('statusSheet').classList.add('open');
 }
 
-function selectStatus(key, label, sub, iconColor) {
+function selectStatus(key, label) {
   currentStatusKey = key;
   const opt = statusOptions[key];
-  // Update banner
-  const banner = document.getElementById('statusBanner');
-  banner.style.background = opt.bannerColor;
-  banner.style.borderColor = opt.bannerBorder;
-  // Update icon colour
-  const iconSvg = document.getElementById('statusBannerIcon').querySelector('svg');
-  iconSvg.querySelectorAll('[stroke]').forEach(el => el.setAttribute('stroke', opt.iconColor));
-  // Update sub text
-  document.getElementById('statusBannerSub').textContent = opt.sub;
-  // Update chip
   const btn = document.getElementById('statusTargetBtn');
-  btn.className = 'status-target-btn ' + opt.chipClass;
+  btn.className = 'status-pill to ' + opt.fillClass;
   document.getElementById('statusTargetLabel').textContent = label;
   // Update check marks in sheet
   Object.keys(statusOptions).forEach(k => {
@@ -1079,31 +1459,13 @@ function onCommentsInput() {
   const cc = document.getElementById('charCount');
   cc.textContent = `${len} / 1000`;
   cc.classList.toggle('warn', len > 850);
-  const badge = document.getElementById('commentsBadge');
-  if (len > 0) {
-    badge.textContent = 'Complete';
-    badge.className = 'section-card-badge badge-complete';
-  } else {
-    badge.textContent = 'Required';
-    badge.className = 'section-card-badge badge-optional';
-  }
   checkBarReady();
 }
 
 // ── BAR GATING
 function checkBarReady() {
   const hasComments = document.getElementById('closingComments').value.trim().length > 0;
-  const btn  = document.getElementById('closeBtn');
-  const meta = document.getElementById('barMeta');
-  if (hasComments) {
-    btn.className = 'bar-pill bar-pill-ready';
-    meta.textContent = 'Ready to close';
-    meta.style.color = 'var(--green)';
-  } else {
-    btn.className = 'bar-pill bar-pill-locked';
-    meta.textContent = 'Add closing comments';
-    meta.style.color = '';
-  }
+  document.getElementById('closeBtn').className = 'bar-pill ' + (hasComments ? 'bar-pill-ready' : 'bar-pill-locked');
 }
 
 function onCloseBarTap() {
@@ -1119,15 +1481,22 @@ function onCloseBarTap() {
 }
 
 function buildConfirmSummary() {
+  // Detail-grid values: description only for reference-data lookups (the
+  // closing codes) — never the raw code, since none of them are on the
+  // §15.1 exception list. Identifier fields (WO#, equipment number) are the
+  // one case that keeps its code, rendered in mono via an inline span; plain
+  // descriptions/dates/counts render in Inter (the confirm-summary-value
+  // default). No "—"/"Not set" placeholder on empty values — left blank.
+  const mono = (s) => `<span class="mono">${s}</span>`;
   const rows = [
-    { label:'Work order',     value:'19257' },
-    { label:'Equipment',      value:'00067333 — Pump, Centrifugal' },
-    { label:'Date completed', value:'May 19, 2026 · 09:47' },
-    { label:'Problem',        value: codeState.problem ? `${codeState.problem}` : '—' },
-    { label:'Failure',        value: codeState.failure ? `${codeState.failure}` : '—' },
-    { label:'Cause',          value: codeState.cause   ? `${codeState.cause}`   : '—' },
-    { label:'Action',         value: codeState.action  ? `${codeState.action}`  : '—' },
-    { label:'Attachments',   value: attachments.length > 0 ? `${attachments.length} attached` : 'None' },
+    { label:'Work order',     value: mono('19257') },
+    { label:'Equipment',      value: mono('00067333') + ' Pump, Centrifugal' },
+    { label:'Date completed', value: document.getElementById('dateCompletedVal').textContent },
+    { label:'Problem',        value: codeDescState.problem },
+    { label:'Failure',        value: codeDescState.failure },
+    { label:'Cause',          value: codeDescState.cause },
+    { label:'Action',         value: codeDescState.action },
+    { label:'Attachments',    value: attachments.length > 0 ? `${attachments.length} attached` : 'None' },
   ];
   document.getElementById('confirmSummary').innerHTML = rows.map(r => `
     <div class="confirm-summary-row">
@@ -1196,12 +1565,9 @@ function addAttachment(source) {
 function renderAttachList() {
   const list    = document.getElementById('attachList');
   const empty   = document.getElementById('attachEmpty');
-  const badge   = document.getElementById('attachBadge');
   const n       = attachments.length;
 
   empty.style.display = n === 0 ? '' : 'none';
-  badge.textContent   = n === 0 ? 'Optional' : `${n} file${n!==1?'s':''}`;
-  badge.className     = 'section-card-badge ' + (n > 0 ? 'badge-complete' : 'badge-optional');
 
   list.innerHTML = attachments.map((att, i) => {
     const iconColors = { 'attach-type-photo':'#9933FF', 'attach-type-pdf':'#E24B4A', 'attach-type-doc':'#42b2ea', 'attach-type-file':'#6F7480' };
@@ -1285,21 +1651,19 @@ function openSheet(id) {
   document.getElementById('sheetOverlay').classList.add('open');
   document.getElementById(id).classList.add('open');
 }
+const ALL_SHEET_IDS = ['statusSheet','lovSheet','editSheet','dateSheet','confirmCloseSheet',
+                       'sourcePickerSheet','viewerSheet','removeConfirmSheet'];
 function closeSheet(id) {
   document.getElementById(id).classList.remove('open');
   // Keep overlay open if another sheet is still open
-  const anyOpen = ['statusSheet','lovSheet','confirmCloseSheet',
-                   'sourcePickerSheet','viewerSheet','removeConfirmSheet']
-    .some(sid => document.getElementById(sid).classList.contains('open'));
+  const anyOpen = ALL_SHEET_IDS.some(sid => document.getElementById(sid).classList.contains('open'));
   if (!anyOpen) document.getElementById('sheetOverlay').classList.remove('open');
 }
 
 // ── SHEETS
 function closeAllSheets() {
   document.getElementById('sheetOverlay').classList.remove('open');
-  ['statusSheet','lovSheet','confirmCloseSheet',
-   'sourcePickerSheet','viewerSheet','removeConfirmSheet']
-    .forEach(id => document.getElementById(id).classList.remove('open'));
+  ALL_SHEET_IDS.forEach(id => document.getElementById(id).classList.remove('open'));
 }
 
 // ── TOAST
@@ -1316,6 +1680,7 @@ function showToast(msg, icon) {
 // ── INIT
 refreshSequentialLocks();
 checkBarReady();
+applyStatusProtection();
 </script>
 </body>
 </html>

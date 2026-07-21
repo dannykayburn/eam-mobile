@@ -1,0 +1,10 @@
+﻿Employee,Name,Class,Trade,Department,E-mail Address,Notification preference,Associated User,Out of Service,Job Title,Hire Date,Work Phone No.,Fleet Customer,Cost Code,Driver's License No.,Transferred To Employee,Scheduling Session,Scheduling Session Type,Customer,Alias,Associated Asset ID
+BBAGGINS,Bilbo Baggins,,TECH,ENG,,,BBAGGINS,NO,Vice President,,,,,,,,,,,AUTO@E@10009
+BCAMPBELL,Bruce Campbell,,TECH,MAINT,,,BCAMPBELL,NO,Technician II,7/8/2016,,,,,,,,,,AUTO@E@10001
+CWEAVER,Charles Weaver,,ELEC,MAINT,,,CWEAVER,NO,,4/5/1996,,,,,,,,,,AUTO@E@10002
+DKILBURN,Danny Kilburn,,TECH,ENG,,,DKILBURN,NO,EAM Administrator,,999999999,,,,,,,,,AUTO@E@10000
+EFILLION,Elmer Fillion,,TECH-II,OPS,,,,NO,,,,,,,,,,,,AUTO@E@10003
+JMCGARITY,James McGarity,,ELEC,MAINT,,,,NO,,,,,,,,,,,,AUTO@E@10004
+MWALRAVEN,Michael Walraven,,ELEC,ENG,,,,NO,,,,,,,,,,,,AUTO@E@10005
+WIRVING,William Irving,,TECH,MAINT,,,,NO,,,,,,,,,,,,AUTO@E@10006
+WSTONE,William Stone,,TECH-II,ENG,,,WSTONE,NO,,,,,,,,,,,,AUTO@E@10007

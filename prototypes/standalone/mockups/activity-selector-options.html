@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Activity Selector — Layout Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  ACTIVITY SELECTOR — LAYOUT OPTIONS (2026-07-22, scratchpad, self-
+  contained, NOT wired to eam-shared.css/.js). Follows the Palette D
+  color/typography rules (monochrome selection via black weight/fill,
+  mono reserved for identifiers, always gray/black/white — never
+  tinted) but is scoped to ONE component: the Activities selector on
+  WO Record View. Requested changes, all 4 options below implement:
+
+  - Radio is vertically CENTERED on the row (was top-aligned with a
+    hand-tuned margin-top offset that only worked for 3-line content —
+    broke as soon as the note line was removed for a null-note row).
+  - "Activity 10" shrinks to a BULKY STANDALONE NUMBER — just "10" — in
+    large bold mono (same identifier logic as the WO number itself: an
+    activity number is a code, mono/gray-black-white, just sized up to
+    read as a real leading element instead of a small caption).
+  - Trade (code + description) now ALWAYS renders — it's a real,
+    always-populated field, not optional like the note.
+  - Start Date now ALWAYS renders, in the app's standard MM/DD/YYYY
+    format (was "Nov 7, 2025" — spelled-month, inconsistent with the
+    rest of the app's numeric-date rule).
+  - The note/description line (the old "act-name," e.g. "Pump overhaul
+    — bearing replacement") stays, but is OPTIONAL — not every activity
+    has one. Each option below shows Activity 10 (has a note) directly
+    above Activity 20 (no note) so you can see both the populated and
+    the collapsed-when-null state side by side, not just described.
+
+  4 different shapes for the Trade/Date pairing, since that's the part
+  that "didn't align with existing rows":
+    A — Grid cell pair, matching the Type/Priority badge-row already on
+        Record View (bordered 2-column cell, label caption above value,
+        Trade stacked code-then-description like a field-lov value).
+    B — Field-row pair, matching the Work Order Details section exactly
+        (label left / value right, full-width stacked rows) — the most
+        literal "reuse what's already there" answer.
+    C — Outlined chips, matching the newly-outlined icon language
+        (Palette D) — Trade and Date each as a small bordered pill,
+        sitting inline, compact.
+    D — Single inline line — the lightest-footprint option, Trade
+        rendered "CODE — Description" then a middot then the date, all
+        on one line (closest evolutionary fix to the original single
+        meta line, best if an activity list needs to stay short).
+-->
+<style>
+:root{
+  --ink:#1A1A1F; --ink-soft:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --good:#00AA14; --bad:#E24B4A;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --border:#E7EBF2; --border-strong:#CBD0D8; --bg-section:#F0F2F5;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--ink);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:390px;width:100%;color:#fff;font-size:12px;line-height:1.5;margin-bottom:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;}
+.legend b{color:#fff;}
+.wrap{max-width:390px;width:100%;}
+.opt-label{color:#fff;font-size:13px;font-weight:700;margin:22px 2px 8px;}
+.opt-label:first-of-type{margin-top:6px;}
+.opt-sub{color:var(--gray-3);font-size:11px;font-weight:500;margin:-6px 2px 8px;display:block;}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.ident{font-family:var(--font-mono);letter-spacing:.2px;font-weight:600;}
+
+/* ── Shared row shell — radio now vertically centered (align-items:
+   center on the row, no manual offset on the radio itself). ── */
+.act-item{display:flex;align-items:center;gap:12px;padding:13px 14px;border-top:1px solid var(--border);cursor:pointer;position:relative;}
+.act-item:first-child{border-top:none;}
+.act-radio{width:19px;height:19px;border-radius:50%;border:1.5px solid var(--border-strong);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.act-item.selected{background:var(--bg-section);}
+.act-item.selected::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ink);}
+.act-item.selected .act-radio{border-color:var(--ink);background:var(--ink);}
+.act-radio svg{display:none;}
+.act-item.selected .act-radio svg{display:block;}
+
+/* ── Bulky standalone number — was the small mono "Activity 10"
+   caption; now a large bold mono numeral, its own leading element. ── */
+.act-num-big{font-size:22px;font-weight:700;color:var(--ink);flex-shrink:0;width:34px;text-align:center;}
+
+.act-body{flex:1;min-width:0;}
+.act-note{font-size:13px;font-weight:600;color:var(--ink);line-height:1.35;}
+.act-item.selected .act-note{font-weight:700;}
+/* Spacing only applies when a note is actually present (see .has-note) —
+   a no-note row's meta content sits directly under the number, no gap. */
+.act-meta-block{margin-top:0;}
+.has-note .act-meta-block{margin-top:7px;}
+
+/* — Option A: grid-cell pair (matches the Type/Priority badge-row) — */
+.meta-grid-a{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.meta-cell-a{flex:1;padding:7px 10px;}
+.meta-cell-a + .meta-cell-a{border-left:1px solid var(--border);}
+.meta-cell-label{font-size:10px;color:var(--gray-4);display:block;margin-bottom:3px;}
+.meta-cell-a .trade-code{font-size:10px;color:var(--gray-4);display:block;}
+.meta-cell-a .trade-desc{font-size:12px;font-weight:600;color:var(--ink);}
+.meta-cell-a .date-val{font-size:12px;font-weight:600;color:var(--ink);}
+
+/* — Option B: field-row pair (matches Work Order Details exactly) — */
+.meta-rows-b{border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.meta-row-b{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;}
+.meta-row-b + .meta-row-b{border-top:1px solid var(--border);}
+.meta-row-b .row-label{font-size:11px;color:var(--gray-4);}
+.meta-row-b .row-value-stack{display:flex;flex-direction:column;align-items:flex-end;gap:1px;}
+.meta-row-b .trade-code{font-size:10px;color:var(--gray-4);}
+.meta-row-b .trade-desc{font-size:12px;font-weight:600;color:var(--ink);}
+.meta-row-b .date-val{font-size:12px;font-weight:600;color:var(--ink);}
+
+/* — Option C: outlined chips (matches Palette D's outlined-icon rule) — */
+.meta-chips-c{display:flex;gap:8px;flex-wrap:wrap;}
+.chip-c{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;border:1.5px solid var(--border-strong);font-size:11px;color:var(--ink);}
+.chip-c .trade-code{color:var(--gray-4);}
+
+/* — Option D: single inline line, lightest footprint — */
+.meta-line-d{font-size:12px;color:var(--gray-4);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.meta-line-d .trade-desc{color:var(--ink);font-weight:600;}
+.meta-line-d .dot{color:var(--gray-3);}
+</style>
+</head>
+<body>
+
+<div class="legend">
+  <b>Activity Selector — 4 layout options.</b> Radio is now vertically centered on the row in all 4. "Activity 10" is now a bulky standalone <b>10</b> in large mono. Trade (code + description) and Start Date (standard MM/DD/YYYY) always render. The optional note (Activity 20 has none) collapses cleanly — no empty line, no placeholder. Only the Trade/Date pairing's shape changes between options A–D.
+</div>
+
+<div class="wrap">
+
+  <div class="opt-label">A — Grid cell pair</div>
+  <span class="opt-sub">matches the Type/Priority badge-row already on Record View</span>
+  <div class="card">
+    <div class="act-item selected has-note">
+      <div class="act-radio"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="act-num-big ident">10</div>
+      <div class="act-body">
+        <div class="act-note">Pump overhaul — bearing replacement</div>
+        <div class="act-meta-block">
+          <div class="meta-grid-a">
+            <div class="meta-cell-a"><span class="meta-cell-label">Trade</span><span class="trade-code ident">MECH</span><span class="trade-desc">Mechanical</span></div>
+            <div class="meta-cell-a"><span class="meta-cell-label">Start Date</span><span class="date-val ident">11/07/2025</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="act-item">
+      <div class="act-radio"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="act-num-big ident">20</div>
+      <div class="act-body">
+        <div class="act-meta-block">
+          <div class="meta-grid-a">
+            <div class="meta-cell-a"><span class="meta-cell-label">Trade</span><span class="trade-code ident">TECH</span><span class="trade-desc">Technician</span></div>
+            <div class="meta-cell-a"><span class="meta-cell-label">Start Date</span><span class="date-val ident">11/07/2025</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="opt-label">B — Field-row pair</div>
+  <span class="opt-sub">reuses the exact Work Order Details field-row component</span>
+  <div class="card">
+    <div class="act-item selected has-note">
+      <div class="act-radio"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="act-num-big ident">10</div>
+      <div class="act-body">
+        <div class="act-note">Pump overhaul — bearing replacement</div>
+        <div class="act-meta-block">
+          <div class="meta-rows-b">
+            <div class="meta-row-b"><span class="row-label">Trade</span><div class="row-value-stack"><span class="trade-code ident">MECH</span><span class="trade-desc">Mechanical</span></div></div>
+            <div class="meta-row-b"><span class="row-label">Start Date</span><span class="date-val ident">11/07/2025</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="act-item">
+      <div class="act-radio"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="act-num-big ident">20</div>
+      <div class="act-body">
+        <div class="act-meta-block">
+          <div class="meta-rows-b">
+            <div class="meta-row-b"><span class="row-label">Trade</span><div class="row-value-stack"><span class="trade-code ident">TECH</span><span class="trade-desc">Technician</span></div></div>
+            <div class="meta-row-b"><span class="row-label">Start Date</span><span class="date-val ident">11/07/2025</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="opt-label">C — Outlined chips</div>
+  <span class="opt-sub">matches Palette D's outlined-icon language, compact/inline</span>
+  <div class="card">
+    <div class="act-item selected has-note">
+      <div class="act-radio"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="act-num-big ident">10</div>
+      <div class="act-body">
+        <div class="act-note">Pump overhaul — bearing replacement</div>
+        <div class="act-meta-block">
+          <div class="meta-chips-c">
+            <span class="chip-c"><span class="trade-code ident">MECH</span> Mechanical</span>
+            <span class="chip-c ident">11/07/2025</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="act-item">
+      <div class="act-radio"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="act-num-big ident">20</div>
+      <div class="act-body">
+        <div class="act-meta-block">
+          <div class="meta-chips-c">
+            <span class="chip-c"><span class="trade-code ident">TECH</span> Technician</span>
+            <span class="chip-c ident">11/07/2025</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="opt-label">D — Single inline line</div>
+  <span class="opt-sub">lightest footprint — closest evolutionary fix, best for long lists</span>
+  <div class="card">
+    <div class="act-item selected has-note">
+      <div class="act-radio"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="act-num-big ident">10</div>
+      <div class="act-body">
+        <div class="act-note">Pump overhaul — bearing replacement</div>
+        <div class="act-meta-block">
+          <div class="meta-line-d"><span class="trade-code ident">MECH</span><span class="trade-desc">Mechanical</span><span class="dot">·</span><span class="ident">11/07/2025</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="act-item">
+      <div class="act-radio"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="act-num-big ident">20</div>
+      <div class="act-body">
+        <div class="act-meta-block">
+          <div class="meta-line-d"><span class="trade-code ident">TECH</span><span class="trade-desc">Technician</span><span class="dot">·</span><span class="ident">11/07/2025</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:24px;"></div>
+</div>
+
+</body>
+</html>

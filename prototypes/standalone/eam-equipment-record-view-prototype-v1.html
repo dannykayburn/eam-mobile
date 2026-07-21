@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HxGN EAM Mobile — Equipment Record View (Standard)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-shared.css">
+<!--
+  STANDARD RECORD VIEW — EQUIPMENT (rebuilt 2026-07-16 onto shared/eam-
+  shared.css + shared/eam-shared.js, per docs/EAM-REBUILD-Strategy-and-
+  Execution-Plan-v1.md Phase 0.4). See docs/design-decisions-v3-1.md §5–§9
+  for the Standard Model this now conforms to directly (canonical reference
+  files: sample-screen-standard-model-prototype.html and this one). This
+  file only ever adds Equipment-specific data/config/markup — every shared
+  component's CSS/JS lives in the two shared files, not here.
+
+  [1] No Edit Mode — every field is tappable directly from this view.
+      Any change marks the record dirty; autosave fires on leaving the
+      screen or switching tabs, not per keystroke (§5.1).
+  [2] Header + tab rail shell (§5.3/§8.1) — no sequence/gating, every tab
+      always tappable.
+  [3] Comments + Documents are ALWAYS present, using the shared record-
+      level data-driven excerpt+tab pattern (§7.2/§8, D7–D9) — not a
+      one-off Equipment accordion anymore.
+  [4] Custom Fields (§22) — generic, admin-defined per Class+Class Org
+      (data/custom_field_defs.js), rendered via eam-shared.js's
+      applyCustomFields()/renderCustomFieldsSection(). Changing Class
+      re-runs the lookup and re-renders the whole section via the shared
+      LOV_ON_SELECT hook, since a different Class can mean a wholly
+      different field set, not just show/hide of a fixed one.
+-->
+<style>
+/* ── STRUCTURE DETAILS TREE — page-specific, no shared component exists
+   for this (tree content is explicitly untouched by the §8.2 List/Detail
+   shell rewrite — see design-decisions-v3-1.md §7.3). ── */
+.tree-wrap { padding: 12px; }
+.tree-node { position: relative; }
+.tree-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: background 0.15s; border: 1px solid var(--border); background: var(--bg-card); margin-bottom: 8px; }
+.tree-row:hover { background: var(--bg-section); }
+.tree-row.current { border-color: var(--purple); background: rgba(153,51,255,0.06); }
+[data-theme="dark"] .tree-row.current { background: rgba(153,51,255,0.1); }
+.tree-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-section); color: var(--gray-4); }
+.tree-row.current .tree-icon { background: rgba(153,51,255,0.15); color: var(--purple); }
+.tree-body { flex: 1; min-width: 0; }
+.tree-type { font-size: 10px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: var(--gray-4); font-family: var(--font-mono); margin-bottom: 1px; }
+.tree-desc { font-size: 13px; font-weight: 600; color: var(--octave-black); }
+[data-theme="dark"] .tree-desc { color: rgba(255,255,255,0.9); }
+.tree-row.current .tree-desc { color: var(--purple); }
+.tree-code { font-family: var(--font-mono); font-size: 11px; color: var(--gray-4); margin-top: 1px; }
+.tree-here { font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--purple); background: rgba(153,51,255,0.1); border: 1px solid rgba(153,51,255,0.25); padding: 2px 7px; border-radius: 100px; flex-shrink: 0; }
+.tree-indent-1 { margin-left: 20px; }
+.tree-indent-2 { margin-left: 40px; }
+.tree-indent-3 { margin-left: 60px; }
+.tree-guide { position: absolute; left: -14px; top: -8px; bottom: 24px; width: 14px; border-left: 2px solid var(--border-strong); border-bottom: 2px solid var(--border-strong); border-radius: 0 0 0 8px; }
+</style>
+</head>
+<body>
+
+<div class="proto-theme-bar">
+  <span class="proto-theme-label">Preview theme</span>
+  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+  <!-- Demo-only connectivity toggle (§4.5, 2026-07-20) — this prototype has
+       no real backend, so "online" is a flag a reviewer flips by hand to
+       see both outcomes of the sync banner's Retry button. -->
+  <button class="theme-toggle" id="onlineToggle" onclick="toggleDemoOnline()">🌐 Offline</button>
+</div>
+
+<div class="app" id="app">
+
+  <header class="nav" onclick="scrollFormToTop()">
+    <div class="nav-left">
+      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation();navBack()">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="prototype-label">PROTOTYPE</span>
+    </div>
+    <div class="nav-title">Equipment</div>
+    <div class="nav-actions">
+      <span id="syncCtrl"></span>
+    </div>
+  </header>
+
+  <div class="rec-header" id="recHeader" onclick="onRecHeaderTap(event)">
+    <div class="rec-id-row">
+      <div class="rec-id-text">
+        <span class="rec-num" id="recNum">00067333</span>
+        <span class="rec-desc" id="recDesc" onclick="onDescTap(event)">Pump, Centrifugal</span>
+        <textarea class="rec-desc-edit" id="recDescEdit" maxlength="255" oninput="autoGrow(this)" onblur="onDescBlur()"></textarea>
+      </div>
+      <div class="rec-header-actions">
+        <button class="rec-pin-btn" id="recPinBtn" onclick="event.stopPropagation(); toggleRecordPin()" aria-label="Pin record" title="Pin to my list">
+          <svg class="pin-outline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
+          <svg class="pin-fill" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22h1v-5h-1z"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
+        </button>
+        <button class="rec-ellipsis-btn" id="recEllipsisBtn" onclick="event.stopPropagation(); toggleRecActionsMenu()" aria-label="More actions">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+        </button>
+        <div class="rec-actions-menu" id="recActionsMenu">
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyLink()">Copy Link</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyRecord()">Copy</div>
+            <div class="rec-actions-item danger" onclick="recDeleteRecord()">Delete</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group" id="recActionsScreenSpecific">
+            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Create/Insert Mode popup coming soon')">Create WO</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="rec-status-row" id="recStatusRow">
+      <div class="rec-status-row-inner">
+        <button class="rec-status-btn st-operational" id="recStatusBtn" onclick="openLov('__status')">
+          <span id="recStatusBtnText">Installed</span>
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <!-- Organization pill (§5.2 D1, moved into the header 2026-07-16) —
+             always protected, justified opposite the status button, and
+             collapses with it on scroll since it's inside the same
+             .rec-status-row. -->
+        <button class="org-pill protected in-header" data-field="organization">
+          <span class="field-value" id="fv-organization-code">FBPP</span>
+          <svg class="org-pill-chevron" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- List/Detail header (§8.1) — every sibling tab except Record View. -->
+  <div class="rec-header" id="listDetailHeader" onclick="scrollFormToTop()">
+    <div class="rec-id-row">
+      <div class="rec-id-text">
+        <span class="rec-num" id="listDetailNum">00067333</span>
+        <span class="rec-desc protected" id="listDetailDesc">Pump, Centrifugal</span>
+      </div>
+      <div class="rec-header-actions">
+        <button class="rec-ellipsis-btn" id="listDetailPlusBtn" onclick="event.stopPropagation(); onListDetailPlusTap()" aria-label="Add">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button class="rec-ellipsis-btn" id="listDetailSearchBtn" onclick="event.stopPropagation(); onListDetailSearchTap()" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        </button>
+        <button class="rec-ellipsis-btn" onclick="event.stopPropagation(); toggleListDetailMenu()" aria-label="More actions">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+        </button>
+        <div class="rec-actions-menu" id="listDetailMenu">
+          <div class="rec-actions-group"><div class="rec-actions-item" onclick="closeListDetailMenu(); showToast('Sort — coming soon')">Sort</div></div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group"><div class="rec-actions-item" onclick="closeListDetailMenu(); showToast('Detailed/List view toggle — coming soon')">View: Detailed</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-rail" id="tabRail">
+    <div class="tab-rail-collapsed">
+      <span class="tab-rail-icon" id="tabRailIcon"></span>
+      <div class="tab-rail-name" id="tabRailName">Record View</div>
+      <svg class="tab-chevron" id="tabChevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="tab-map" id="tabMap"></div>
+  </div>
+
+  <div class="content">
+    <div class="tab-content active" data-tab="record"></div>
+    <div class="tab-content" data-tab="comments"></div>
+    <div class="tab-content" data-tab="documents"></div>
+    <div class="tab-content" data-tab="events"></div>
+    <div class="tab-content" data-tab="costs"></div>
+    <div class="tab-content" data-tab="pm"></div>
+    <div class="tab-content" data-tab="structure"></div>
+    <div class="tab-content" data-tab="depr"></div>
+    <div class="tab-content" data-tab="meters"></div>
+    <div class="tab-content" data-tab="warranty"></div>
+    <div class="tab-content" data-tab="parts"></div>
+  </div>
+
+  <!-- ── SHEETS (shared component markup — behavior lives in eam-shared.js) ── -->
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <div class="bottom-sheet" id="lovSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="lovSheetTitle">Select value</div>
+      <button class="sheet-clear-btn" id="lovClearBtn" onclick="clearLov()">Clear</button>
+    </div>
+    <div class="lov-search-row" id="lovSearchRow">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input class="lov-search-input" id="lovSearchInput" placeholder="Search" oninput="filterLovOptions(this.value)">
+    </div>
+    <div class="sheet-body" id="lovSheetBody"></div>
+  </div>
+
+  <div class="bottom-sheet" id="dataspySheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Select dataspy</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sheet-body" id="dataspySheetBody"></div>
+  </div>
+
+  <div class="bottom-sheet" id="editSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="editSheetTitle">Edit field</div>
+      <button class="sheet-clear-btn" id="editClearBtn" onclick="clearEdit()">Clear</button>
+    </div>
+    <div class="edit-input-wrap"><input class="edit-input" id="editSheetInput" type="text" oninput="sanitizeCurrencyInput(this)"></div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveEdit()">Save</button></div>
+  </div>
+
+  <div class="bottom-sheet" id="dateSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="dateSheetTitle">Select date</div>
+      <button class="sheet-clear-btn" id="dateClearBtn" onclick="clearDate()">Clear</button>
+    </div>
+    <div class="sheet-body">
+      <div class="cal-header">
+        <button class="cal-nav-btn" onclick="calNavMonth(-1)">‹</button>
+        <span class="cal-month-label" id="calMonthLabel">July 2026</span>
+        <button class="cal-nav-btn" onclick="calNavMonth(1)">›</button>
+      </div>
+      <div class="cal-weekdays"><span class="cal-weekday">Sun</span><span class="cal-weekday">Mon</span><span class="cal-weekday">Tue</span><span class="cal-weekday">Wed</span><span class="cal-weekday">Thu</span><span class="cal-weekday">Fri</span><span class="cal-weekday">Sat</span></div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+  </div>
+
+  <div class="bottom-sheet text-editor-sheet" id="textEditorSheet">
+    <div class="text-editor-header">
+      <div class="text-editor-left">
+        <button class="text-editor-close" id="textEditorCloseBtn" onclick="textEditorCloseTap()">✕</button>
+        <button class="text-editor-discard" id="textEditorDiscard" onclick="textEditorConfirmDiscard()">Discard unsaved changes</button>
+      </div>
+      <div class="text-editor-title" id="textEditorTitle">Edit</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="text-editor-body"><textarea class="text-editor-textarea" id="textEditorTextarea" oninput="textEditorInputChanged()" placeholder="Type here…"></textarea></div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveTextEditor()">Save</button></div>
+  </div>
+
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-modal">
+      <div class="confirm-message" id="confirmMessage">Are you sure?</div>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="confirm-btn confirm-danger" id="confirmDangerBtn" onclick="confirmDangerAction()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-sheet" id="commentActionsSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Comment Actions</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sheet-body" id="commentActionsBody"></div>
+  </div>
+
+  <button class="inline-confirm-btn" id="inlineConfirmBtn" tabindex="-1">
+    <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+</div>
+
+<script src="../../data/custom_field_defs.js"></script>
+<script src="../../data/equipment.js"></script>
+<script src="shared/eam-shared.js"></script>
+<script>
+/* ── screen-specific config — everything below is data/wiring only;
+   all behavior comes from shared/eam-shared.js. ── */
+const ICONS = {
+  recordView: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>',
+  message: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>',
+  paperclip: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>',
+  events: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
+  costs: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>',
+  pm: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg>',
+  structure: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="4" r="2"/><circle cx="6" cy="20" r="2"/><circle cx="18" cy="12" r="2"/><path d="M6 6v12M6 12h10"/></svg>',
+  depreciation: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22,17 13.5,8.5 8.5,13.5 2,7"/><polyline points="16,17 22,17 22,11"/></svg>',
+  meters: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12A10 10 0 112 12"/><path d="M12 12L16 7"/><circle cx="12" cy="12" r="1"/></svg>',
+  warranties: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg>',
+  parts: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27,6.96 12,12.01 20.73,6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
+  pdf: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>',
+};
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DATA — RECORD (renamed from EQUIP), LOV_DATA (renamed from LOV_OPTIONS)
+   ═══════════════════════════════════════════════════════════════════════ */
+// Insert Mode "After Save" (§9.2, built 2026-07-20) — reachable only via
+// Home's Create bar (no Equipment List screen exists yet, per this
+// session's scope decision). Same sessionStorage hand-off as
+// eam-wo-record-view-prototype-v1.html; see navigateToNewRecord() in
+// eam-shared.js. Empty optional fields use this file's own existing
+// {code:'',desc:''} unset convention (already the shape pmWoDepartment
+// uses below). Consume-once, not a `?new=1` query flag — see the matching
+// comment in eam-wo-record-view-prototype-v1.html for why (`npx serve`
+// drops query strings on its clean-URL redirect).
+const NEW_RECORD_RAW = sessionStorage.getItem('eamNewEquipRecord');
+const NEW_RECORD = NEW_RECORD_RAW ? JSON.parse(NEW_RECORD_RAW) : null;
+if (NEW_RECORD) sessionStorage.removeItem('eamNewEquipRecord');
+const RECORD = NEW_RECORD ? {
+  asset: NEW_RECORD.asset, desc: NEW_RECORD.desc || '',
+  department: NEW_RECORD.department || { code: '', desc: '' },
+  pmWoDepartment: NEW_RECORD.pmWoDepartment || { code: '', desc: '' },
+  criticality: NEW_RECORD.criticality || { code: '', desc: '' },
+  commissionDate: '',
+  assignedTo: NEW_RECORD.assignedTo || { code: '', desc: '' },
+  organization: NEW_RECORD.organization || { code: 'ORG1', desc: '' },
+  status: { code: '', desc: '' }, // Operational Status (Asset Details) — distinct from the header's __status pill below; not collected by Insert Mode
+  class: NEW_RECORD.class || { code: 'PUMP', desc: 'Pump' },
+  category: NEW_RECORD.category || { code: '', desc: '' },
+  costCode: NEW_RECORD.costCode || { code: '', desc: '' },
+  outOfService: false,
+  alias: '', equipmentValue: '',
+  dormantStart: '', dormantEnd: '',
+  reuseDormantPeriod: false,
+  originalInstallDate: '', latestInstallDate: '',
+  manufacturer: NEW_RECORD.manufacturer || { code: '', desc: '' },
+  serialNumber: '', model: '',
+  xCoord: '', yCoord: '',
+  revisionControl: false,
+  equipmentRevision: '',
+  rcOnGeneration: false,
+} : {
+  asset: '00067333', desc: 'Pump, Centrifugal',
+  department: {code:'ENG', desc:'Engineering'},
+  pmWoDepartment: {code:'', desc:''},
+  criticality: {code:'3', desc:'3 - High'},
+  commissionDate: '2021-07-20',
+  assignedTo: {code:'BCAMPBELL', desc:'Bruce Campbell'},
+  organization: {code:'FBPP', desc:'Field-Based Plant & Production'},
+  status: {code:'PENDING', desc:'Pending'},
+  class: {code:'PUMP', desc:'Pump'},
+  category: {code:'CENTRIFUGAL', desc:'Centrifugal'},
+  costCode: {code:'100-100', desc:'General Maintenance'},
+  outOfService: false,
+  alias: 'Ole Faithful',
+  equipmentValue: '50,000.00',
+  dormantStart: '', dormantEnd: '',
+  reuseDormantPeriod: false,
+  originalInstallDate: '2021-07-20',
+  latestInstallDate: '2021-07-20',
+  manufacturer: {code:'DAYTON', desc:'Dayton Electric Mfg.'},
+  serialNumber: '81877SJA787A2',
+  model: 'AB5S11',
+  xCoord: '', yCoord: '',
+  revisionControl: false,
+  equipmentRevision: '',
+  rcOnGeneration: false,
+};
+// Custom Fields (§22) — this record's Class+Class Org may or may not
+// have any defined; applyCustomFields() merges whatever matches
+// straight into RECORD/FIELD_LABELS/LOV_DATA/LOV_CURRENT/LOV_TITLES below,
+// so fieldRowLov/fieldRowEdit/fieldRowCheckbox handle them like any other
+// native field. Class Org is always '*' (wildcard) for this demo — see
+// data/custom_field_defs.js.
+const RECORD_CLASS_ORG = '*';
+const LOV_DATA = {
+  department:    [{code:'ENG',desc:'Engineering'},{code:'WATER',desc:'Water Utility'},{code:'MAINT',desc:'Maintenance'},{code:'MECH',desc:'Mechanical'}],
+  pmWoDepartment: [{code:'',desc:'(none)'},{code:'ENG',desc:'Engineering'},{code:'MAINT',desc:'Maintenance'}],
+  assignedTo:     [{code:'BCAMPBELL',desc:'Bruce Campbell'},{code:'JRODRIGUEZ',desc:'Juan Rodriguez'},{code:'MKUMAR',desc:'Meera Kumar'}],
+  organization:   [{code:'FBPP',desc:'Field-Based Plant & Production'},{code:'ORG1',desc:'Corporate'},{code:'ORG2',desc:'US Industrial'}],
+  criticality:    [{code:'1',desc:'1 - Low'},{code:'2',desc:'2 - Medium'},{code:'3',desc:'3 - High'},{code:'4',desc:'4 - Critical'}],
+  status:         [{code:'PENDING',desc:'Pending'},{code:'INSTALLED',desc:'Installed'},{code:'IN_SERVICE',desc:'In Service'},{code:'WITHDRAWN',desc:'Withdrawn'}],
+  __status:       [{code:'OPERATIONAL',desc:'Installed'},{code:'DOWN',desc:'Down'},{code:'STANDBY',desc:'Withdrawn'}],
+  class:          [{code:'PUMP',desc:'Pump'},{code:'VALVE',desc:'Valve'},{code:'COMPRESSOR',desc:'Compressor'}],
+  category:       [{code:'CENTRIFUGAL',desc:'Centrifugal'},{code:'RECIPROCATING',desc:'Reciprocating'}],
+  costCode:       [{code:'100-100',desc:'General Maintenance'},{code:'100-200',desc:'Capital Repair'}],
+  manufacturer:   [{code:'DAYTON',desc:'Dayton Electric Mfg.'},{code:'GRUNDFOS',desc:'Grundfos'},{code:'GOULDS',desc:'Goulds Pumps'}],
+};
+const FIELD_LABELS = {
+  department:'Department', pmWoDepartment:'PM WO Department', criticality:'Criticality',
+  assignedTo:'Assigned To', status:'Operational Status', class:'Class', category:'Category',
+  costCode:'Cost Code', manufacturer:'Manufacturer',
+};
+// Every LOV field shows code + description by default (§3.4, D6 2026-07-16
+// — CODE_VISIBLE_FIELDS is retired). LOV_CURRENT seeds from RECORD's initial
+// values so the sheet shows the right option pre-checked the first time it
+// opens; after that, LOV_CURRENT + the DOM are the running state (RECORD
+// itself is read once at initial render, same contract as fieldRowLov/
+// fieldRowEdit document in eam-shared.js).
+const LOV_CURRENT = {
+  department: RECORD.department.code, pmWoDepartment: RECORD.pmWoDepartment.code,
+  criticality: RECORD.criticality.code, assignedTo: RECORD.assignedTo.code,
+  status: RECORD.status.code, class: RECORD.class.code, category: RECORD.category.code,
+  costCode: RECORD.costCode.code, manufacturer: RECORD.manufacturer.code,
+  __status: (NEW_RECORD && NEW_RECORD.status && NEW_RECORD.status.code) || 'OPERATIONAL',
+};
+const LOV_TITLES = {
+  department:'Department', pmWoDepartment:'PM WO Department', criticality:'Criticality',
+  assignedTo:'Assigned To', status:'Operational Status', class:'Class', category:'Category',
+  costCode:'Cost Code', manufacturer:'Manufacturer', __status:'Operational Status',
+  organization:'Organization',
+};
+// Short fixed dropdowns skip the search row; everything else (real
+// reference-data lookups with a longer list) keeps it.
+const NO_SEARCH_LOVS = new Set(['__status', 'status', 'criticality', 'class']);
+// Header Fields box membership no longer implies required (§5.2, revised
+// 2026-07-16) — required-ness is a per-field standard-model setting
+// (system design / Screen Designer), same as any other field, marked via
+// the ordinary 'required' class on the attr-item (Department, Criticality
+// below) and picked up by isRequiredField()'s generic DOM check — no
+// listing needed here for those. __status has to stay in this set since
+// it drives the header's own status button, which has no data-field
+// element at all to carry a 'required' class on.
+const ALWAYS_REQUIRED_LOVS = new Set(['__status']);
+// Org pill shows code only, no description (§3.4.1) — inert on this screen
+// specifically (the Record View org pill is always protected/non-
+// interactive, so openLov/selectLov never actually runs for 'organization'
+// here), kept for consistency with the shared convention documented in
+// sample-screen-standard-model-prototype.html.
+const ORG_STYLE_LOVS = new Set(['organization']);
+// Class-driven attribute section (§5.2, [4]) — Pump Information only shows
+// for Class=PUMP. Reads LOV_CURRENT.class, not RECORD.class.code — RECORD
+// is only the *initial* value; LOV_CURRENT is what selectLov() actually
+// keeps live on every change. The Custom Fields set (§22) can change
+// entirely on a Class change (different class = different fields, not
+// just show/hide), so this re-runs the lookup and re-renders the whole
+// mount, rather than toggling a fixed section's display.
+function refreshCustomFieldsSection() {
+  applyCustomFields('equipment', LOV_CURRENT.class, RECORD_CLASS_ORG, EAM_EQUIPMENT[RECORD.asset] ? EAM_EQUIPMENT[RECORD.asset].customFieldValues : {});
+  const mount = document.getElementById('customFieldsMount');
+  if (mount) mount.innerHTML = renderCustomFieldsSection();
+}
+const LOV_ON_SELECT = { class: () => refreshCustomFieldsSection() };
+
+// Header identity + status button reflect a freshly-created record — both
+// header spans (record-view header and the List/Detail header's own
+// duplicate) and the status button are plain markup in this file (not
+// generated from RECORD at render time), so a new record needs one
+// explicit sync pass here, same as eam-wo-record-view-prototype-v1.html.
+if (NEW_RECORD) {
+  document.getElementById('recNum').textContent = RECORD.asset;
+  document.getElementById('recDesc').textContent = RECORD.desc || 'Untitled equipment';
+  if (!RECORD.desc) document.getElementById('recDesc').classList.add('muted');
+  document.getElementById('listDetailNum').textContent = RECORD.asset;
+  document.getElementById('listDetailDesc').textContent = RECORD.desc || 'Untitled equipment';
+  document.getElementById('fv-organization-code').textContent = RECORD.organization.code;
+  const statusOpt = LOV_DATA.__status.find(o => o.code === LOV_CURRENT.__status) || LOV_DATA.__status[0];
+  const statusClassMap = { OPERATIONAL: 'st-operational', DOWN: 'st-down', STANDBY: 'st-standby' };
+  document.getElementById('recStatusBtn').className = 'rec-status-btn ' + (statusClassMap[LOV_CURRENT.__status] || 'st-operational');
+  document.getElementById('recStatusBtnText').textContent = statusOpt.desc;
+}
+
+/* ── Comments/Documents — config only; rendering lives in eam-shared.js's
+   generalized data-driven pattern (§7.2/§8, D7–D9). Supersedes this file's
+   old local rv-section accordion (all-inline, no dedicated tab) — that
+   pattern predated D8/D9 and doesn't match the current Standard Model. ── */
+// Current logged-in user, for new comments' author + the "(You)" suffix
+// (§7.2, revised 2026-07-16) — comment author is always the full user
+// description, never an abbreviation.
+const CURRENT_USER_NAME = 'Bruce Campbell';
+let commentIdSeq = 2;
+let COMMENTS_DATA = NEW_RECORD ? (NEW_RECORD.comments || []).map((c, i) => ({
+  id: 'nc' + i, mine: true, author: c.author || CURRENT_USER_NAME, time: 'Just now', text: c.text,
+})) : [
+  { id: 'c1', mine: false, author: 'Meera Kumar', time: 'May 19 · 09:12', text: 'Bearing replaced and alignment verified after WO 19257. Vibration reading back within tolerance.' },
+  { id: 'c2', mine: false, author: 'Jamie Martinez', time: 'Jan 15 · 14:03', text: 'Quarterly PM completed — no defects found. Recommend continuing current interval.' },
+];
+const COMMENTS_EXCERPT_MOUNT = 'recordCommentsMount';
+const COMMENTS_EXCERPT_LIMIT = 3;
+const COMMENTS_TAB_KEY = 'comments';
+const COMMENTS_BADGE_ID = 'commentsBadgeCount';
+
+const DOCUMENTS_DATA = NEW_RECORD ? [] : [
+  { icon: 'pdf', name: 'Pump_Assembly_PMP3042_Rev4.pdf', meta: 'PDF · 2.4 MB · Nov 2024' },
+  { icon: 'pdf', name: 'Dayton_AB5S11_Datasheet.pdf', meta: 'PDF · 640 KB · Jul 2021' },
+  { icon: 'pdf', name: 'Install_Certificate.pdf', meta: 'PDF · 210 KB · Jul 2021' },
+];
+const DOC_ICON_SVG = { pdf: ICONS.pdf };
+const DOCUMENTS_EXCERPT_MOUNT = 'recordDocumentsMount';
+const DOCUMENTS_TAB_KEY = 'documents';
+const DOCUMENTS_BADGE_ID = 'documentsBadgeCount';
+
+const TABS = [
+  { key:'record',   name:'Record View',      icon: ICONS.recordView },
+  { key:'comments', name:'Comments',         icon: ICONS.message },
+  { key:'documents',name:'Documents',        icon: ICONS.paperclip },
+  { key:'events',   name:'Events',           icon: ICONS.events },
+  { key:'costs',    name:'Costs',            icon: ICONS.costs },
+  { key:'pm',       name:'PM Schedules',     icon: ICONS.pm },
+  { key:'structure',name:'Structure Details',icon: ICONS.structure },
+  { key:'depr',     name:'Depreciation',     icon: ICONS.depreciation },
+  { key:'meters',   name:'Meters',           icon: ICONS.meters },
+  { key:'warranty', name:'Warranties',       icon: ICONS.warranties },
+  { key:'parts',    name:'Parts Associated', icon: ICONS.parts },
+];
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LIST/DETAIL TABS (§8.2) — same config-driven shell as every other List/
+   Detail tab in this app. Costs is folded into the same listDetailState/
+   openDataspySheet/setListDetailMode/toggleListDetailSearch mechanism as
+   every other tab now (was a separate parallel set of costsX module
+   variables before this rebuild) — renderCostsTab() below just adds its
+   own aggregate-footer markup on top of the shared state, rather than
+   duplicating the dataspy/mode/search plumbing a second way.
+   ═══════════════════════════════════════════════════════════════════════ */
+const LIST_DETAIL_TABS = {
+  events: {
+    label: 'Events', sortLabel: 'Date',
+    dataspies: [
+      { key:'all',    name:'All Events' },
+      { key:'open',   name:'Open WO Events' },
+      { key:'closed', name:'Closed WO Events' },
+    ],
+    fieldDefs: [ {key:'event',label:'Event'}, {key:'description',label:'Description'}, {key:'date',label:'Date'} ],
+    rows: [
+      { ds:['all','open'],   fields: [ {label:'Event', value:'Down'},                 {label:'Description', value:'Bearing failure reported — logged against WO 19257'}, {label:'Date', value:'05/12/2026'} ] },
+      { ds:['all','closed'], fields: [ {label:'Event', value:'PM Completed'},         {label:'Description', value:'Quarterly PM — no defects found'},                     {label:'Date', value:'01/15/2026'} ] },
+      { ds:['all','closed'], fields: [ {label:'Event', value:'Meter Reading Logged'}, {label:'Description', value:'Vibration: 2.1 mm/s (within tolerance)'},              {label:'Date', value:'03/03/2026'} ] },
+      { ds:['all','closed'], fields: [ {label:'Event', value:'Moved'},                {label:'Description', value:'Transferred from PUMP-HOUSE-1 to PUMP-HOUSE-3'},        {label:'Date', value:'02/08/2023'} ] },
+      { ds:['all','closed'], fields: [ {label:'Event', value:'Installed'},            {label:'Description', value:'Initial installation at BELMONT-WWTP'},                {label:'Date', value:'07/20/2021'} ] },
+    ],
+  },
+  pm: {
+    label: 'PM Schedules', sortLabel: 'Next due',
+    dataspies: [
+      { key:'all', name:'All PM Schedules' },
+      { key:'due', name:'Due This Quarter' },
+    ],
+    fieldDefs: [ {key:'schedule',label:'Schedule'}, {key:'code',label:'PM Code · Frequency'}, {key:'nextDue',label:'Next due'} ],
+    rows: [
+      { ds:['all','due'], fields: [ {label:'Schedule', value:'Quarterly Pump Inspection'}, {label:'PM Code · Frequency', value:'PM-PUMP-Q · Every 3 months'},  {label:'Next due', value:'10/15/2026'} ] },
+      { ds:['all'],       fields: [ {label:'Schedule', value:'Annual Overhaul'},           {label:'PM Code · Frequency', value:'PM-PUMP-A · Every 12 months'}, {label:'Next due', value:'07/20/2027'} ] },
+      { ds:['all','due'], fields: [ {label:'Schedule', value:'Monthly Vibration Check'},    {label:'PM Code · Frequency', value:'PM-VIB-M · Every 1 month'},    {label:'Next due', value:'08/03/2026'} ] },
+    ],
+  },
+  depr: {
+    label: 'Depreciation', sortLabel: 'Year',
+    dataspies: [{ key:'all', name:'Depreciation Schedule' }],
+    fieldDefs: [ {key:'year',label:'Year'}, {key:'basis',label:'Basis'}, {key:'value',label:'Book value'} ],
+    rows: [
+      { ds:['all'], fields: [ {label:'Year', value:'2021'}, {label:'Basis', value:'Year-end book value'}, {label:'Book value', value:'$50,000.00'} ] },
+      { ds:['all'], fields: [ {label:'Year', value:'2022'}, {label:'Basis', value:'Year-end book value'}, {label:'Book value', value:'$47,000.00'} ] },
+      { ds:['all'], fields: [ {label:'Year', value:'2023'}, {label:'Basis', value:'Year-end book value'}, {label:'Book value', value:'$44,000.00'} ] },
+      { ds:['all'], fields: [ {label:'Year', value:'2024'}, {label:'Basis', value:'Year-end book value'}, {label:'Book value', value:'$41,000.00'} ] },
+      { ds:['all'], fields: [ {label:'Year', value:'2025'}, {label:'Basis', value:'Year-end book value'}, {label:'Book value', value:'$38,000.00'} ] },
+    ],
+  },
+  meters: {
+    label: 'Meters', sortLabel: 'Last reading',
+    dataspies: [{ key:'all', name:'All Meters' }],
+    fieldDefs: [ {key:'meter',label:'Meter'}, {key:'lastReading',label:'Last reading'}, {key:'value',label:'Value'} ],
+    rows: [
+      { ds:['all'], fields: [ {label:'Meter', value:'Vibration'},           {label:'Last reading', value:'03/03/2026'}, {label:'Value', value:'2.1 mm/s'} ] },
+      { ds:['all'], fields: [ {label:'Meter', value:'Running Hours'},       {label:'Last reading', value:'05/19/2026'}, {label:'Value', value:'18,204 hrs'} ] },
+      { ds:['all'], fields: [ {label:'Meter', value:'Bearing Temperature'}, {label:'Last reading', value:'05/19/2026'}, {label:'Value', value:'142 °F'} ] },
+    ],
+  },
+  warranty: {
+    label: 'Warranties', sortLabel: 'Expiration',
+    dataspies: [
+      { key:'all',    name:'All Warranties' },
+      { key:'active', name:'Active Only' },
+    ],
+    fieldDefs: [ {key:'provider',label:'Provider'}, {key:'coverage',label:'Coverage'}, {key:'status',label:'Status'} ],
+    rows: [
+      { ds:['all','active'], fields: [ {label:'Provider', value:'Dayton Electric Mfg.'},     {label:'Coverage', value:'Parts & Labor · 07/20/2021 → 07/20/2026'},         {label:'Status', value:'Active',  type:'status', color:'var(--green)'} ] },
+      { ds:['all'],          fields: [ {label:'Provider', value:'Grundfos Service Partner'}, {label:'Coverage', value:'Extended Service Plan · 07/20/2021 → 07/20/2024'}, {label:'Status', value:'Expired', type:'status', color:'var(--gray-5)'} ] },
+    ],
+  },
+  parts: {
+    label: 'Parts Associated', sortLabel: 'Part',
+    dataspies: [{ key:'all', name:'All Parts Associated' }],
+    fieldDefs: [ {key:'part',label:'Part'}, {key:'code',label:'Part code'}, {key:'qty',label:'Qty on hand'} ],
+    rows: [
+      { ds:['all'], fields: [ {label:'Part', value:'O Ring EPDM'},                {label:'Part code', value:'400-VP6-14'},  {label:'Qty on hand', value:'8 EA'} ] },
+      { ds:['all'], fields: [ {label:'Part', value:'Casing (AB-8 Pump)'},          {label:'Part code', value:'200-AB8-001'}, {label:'Qty on hand', value:'2 FA'} ] },
+      { ds:['all'], fields: [ {label:'Part', value:'Flat Washer Steel (Zn Plt)'},  {label:'Part code', value:'400-VP6-16'},  {label:'Qty on hand', value:'4 EA'} ] },
+      { ds:['all'], fields: [ {label:'Part', value:'Ball Bearing, 2" Bore, Cast'}, {label:'Part code', value:'200-AB8-006'}, {label:'Qty on hand', value:'2 EA'} ] },
+    ],
+  },
+  costs: {
+    label: 'Costs', sortLabel: 'Total cost',
+    dataspies: [
+      { key:'all',  name:'All Work Orders' },
+      { key:'open', name:'Open WO Costs' },
+    ],
+    rows: [
+      { ds:['all','open'], wo:'19257', type:'Breakdown',  status:'In Progress', material:18.40, labor:102.75, tool:0,   total:121.15 },
+      { ds:['all'],        wo:'18902', type:'Inspection', status:'Closed',      material:0,     labor:0,      tool:340, total:340.00 },
+      { ds:['all'],        wo:'18760', type:'PM',         status:'Closed',      material:0,     labor:96.00,  tool:0,   total:96.00 },
+      { ds:['all','open'], wo:'17949', type:'Breakdown',  status:'Cancelled',   material:0,     labor:752.50, tool:0,   total:752.50 },
+    ],
+  },
+};
+// A freshly-created record has no history yet on any of these tabs — empty
+// every one of them rather than leave 0-second-old equipment showing 5
+// years of fabricated depreciation/PM/warranty/cost data. renderListDetail
+// Shell() already renders an empty result set correctly (just "0 records"),
+// so this is the only change needed for Events/PM/Depreciation/Meters/
+// Warranty/Parts/Costs.
+if (NEW_RECORD) { Object.values(LIST_DETAIL_TABS).forEach(cfg => { cfg.rows = []; }); }
+
+/* ── Comments/Documents tabs get Plus (add directly, §8.1's
+   TAB_PLUS_HANDLERS override) but not the generic List/Detail Search.
+   Meters/Parts keep their Plus as a toast stub, same as before this
+   rebuild — a full Insert Mode build-out for either is explicitly out of
+   scope (design-decisions-v3-1.md §9.3: "every other List/Detail Plus
+   button... still shows a coming-soon toast"). Overriding both here (
+   rather than leaving them to the shared default of opening #insertMode
+   Sheet) avoids a crash, since this file has no Insert Mode markup at all —
+   deliberately: nothing in Equipment exercises it yet. ── */
+const TABS_WITH_PLUS = new Set(['comments', 'documents', 'meters', 'parts']);
+// Every List/Detail-shell tab except Structure Details (a tree, not a
+// searchable row list) gets the search icon; Record/Comments/Documents
+// aren't List/Detail-shell tabs at all, so they're excluded automatically.
+const TABS_WITH_SEARCH = new Set(['events', 'costs', 'pm', 'depr', 'meters', 'warranty', 'parts']);
+const TAB_PLUS_HANDLERS = {
+  comments: () => openTextEditor('__comment', 'Add Comment', (t) => addCommentToData(t)),
+  documents: () => showToast('Attach document — coming soon'),
+  meters: () => showToast('Add Meter — coming soon'),
+  parts: () => showToast('Add Part — coming soon'),
+};
+
+/* ═══════════════════════════════════════════════════════════════════════
+   NAV
+   ═══════════════════════════════════════════════════════════════════════ */
+function navBack() {
+  // Opened from the Sync Status Screen's review flow (§4.5, 2026-07-20)?
+  // Send the technician back there instead of the generic Equipment list
+  // stub — consume-once, same lifetime as eamSyncErrorContext.
+  const returnUrl = sessionStorage.getItem('eamSyncReturnUrl');
+  if (returnUrl) { sessionStorage.removeItem('eamSyncReturnUrl'); location.href = returnUrl; return; }
+  autosaveIfDirty();
+  showToast('← Back to Equipment list');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RECORD VIEW TAB — static, rendered once at init (not in TAB_RENDERERS,
+   same convention as sample-screen-standard-model-prototype.html's
+   'record' tab) — every update after that happens via direct DOM
+   mutation from the shared field helpers, not a re-render.
+   ═══════════════════════════════════════════════════════════════════════ */
+function renderRecordViewTab() {
+  return `
+    <!-- §4.5 — populated by applySyncErrorBanner() (eam-shared.js) when
+         this record was opened from the Sync Status Screen; empty/inert
+         otherwise. -->
+    <div class="sync-error-banner" id="syncErrorBanner"></div>
+
+    <div class="section-card">
+      <div class="equip-attrs">
+        ${fieldRowAttr('department', false, true)}
+        ${fieldRowAttr('criticality', false, true)}
+        ${fieldRowAttr('class')}
+        ${fieldRowAttr('manufacturer')}
+        ${fieldRowAttr('category', true)}
+      </div>
+    </div>
+
+    <div class="fg-section">
+      <div class="fg-toggle-row" onclick="toggleFg(this)">
+        <span class="fg-toggle-title">Asset Details</span>
+        <svg class="fg-chev open" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="fg-collapse open">
+        ${fieldRowLov('pmWoDepartment', false)}
+        ${fieldRowLov('status', false)}
+        ${fieldRowEdit('commissionDate', 'Commission Date', 'date', true)}
+        ${fieldRowLov('assignedTo', false)}
+      </div>
+    </div>
+
+    <div class="fg-section">
+      <div class="fg-toggle-row" onclick="toggleFg(this)">
+        <span class="fg-toggle-title">Equipment Details</span>
+        <svg class="fg-chev" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="fg-collapse">
+        ${fieldRowLov('costCode', false)}
+        ${fieldRowCheckbox('outOfService', 'Out of Service')}
+        ${fieldRowInline('alias', 'Alias', false)}
+        ${fieldRowEdit('equipmentValue', 'Equipment Value', 'currency', false)}
+        ${fieldRowEdit('dormantStart', 'Dormant Start', 'date', true)}
+        ${fieldRowEdit('dormantEnd', 'Dormant End', 'date', true)}
+        ${fieldRowCheckbox('reuseDormantPeriod', 'Reuse Dormant Period')}
+        ${fieldRowEdit('originalInstallDate', 'Original Install Date', 'date', false)}
+        ${fieldRowEdit('latestInstallDate', 'Latest Install Date', 'date', false)}
+      </div>
+    </div>
+
+    <div class="fg-section">
+      <div class="fg-toggle-row" onclick="toggleFg(this)">
+        <span class="fg-toggle-title">Tracking Details</span>
+        <svg class="fg-chev" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="fg-collapse">
+        ${fieldRowInline('serialNumber', 'Serial Number', false)}
+        ${fieldRowInline('model', 'Model', false)}
+        ${fieldRowEdit('xCoord', 'X Coordinate', 'number', true)}
+        ${fieldRowEdit('yCoord', 'Y Coordinate', 'number', true)}
+        ${fieldRowCheckbox('revisionControl', 'Revision Control')}
+        ${fieldRowProtected('Equipment Revision', RECORD.equipmentRevision)}
+        ${fieldRowCheckbox('rcOnGeneration', 'RC On Generation')}
+      </div>
+    </div>
+
+    <!-- [4] Custom Fields (§22) — generic, admin-defined per Class+Class
+         Org (data/custom_field_defs.js). This record's Class=PUMP set is
+         the real "Pump Information" group this section used to hardcode;
+         now data-driven so it varies with Class like any other Customer
+         Fields record. -->
+    <div id="customFieldsMount">${renderCustomFieldsSection()}</div>
+
+    <div class="fg-section">
+      <div class="fg-toggle-row" onclick="toggleFg(this)">
+        <span class="fg-toggle-title">Contract and Rental Details</span>
+        <svg class="fg-chev" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="fg-collapse">
+        <div class="form-field"><span class="field-label">Contract Number</span><span class="field-value muted">—</span></div>
+        <div class="form-field"><span class="field-label">Vendor</span><span class="field-value muted">—</span></div>
+        <div class="form-field"><span class="field-label">Rental Start Date</span><span class="field-value muted">—</span></div>
+        <div class="form-field"><span class="field-label">Rental End Date</span><span class="field-value muted">—</span></div>
+        <div class="form-field"><span class="field-label">Rental Rate</span><span class="field-value muted">—</span></div>
+      </div>
+    </div>
+
+    <div class="fg-section">
+      <div class="fg-toggle-row" onclick="toggleFg(this)">
+        <span class="fg-toggle-title">Performance Details</span>
+        <svg class="fg-chev" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="fg-collapse">
+        ${NEW_RECORD ? `
+        <div class="form-field"><span class="field-label">MTBF</span><span class="field-value muted">—</span></div>
+        <div class="form-field"><span class="field-label">MTTR</span><span class="field-value muted">—</span></div>
+        <div class="form-field"><span class="field-label">Availability</span><span class="field-value muted">—</span></div>
+        <div class="form-field"><span class="field-label">Last Failure Date</span><span class="field-value muted">—</span></div>
+        ` : `
+        <div class="form-field"><span class="field-label">MTBF</span><span class="field-value">4,200 hrs</span></div>
+        <div class="form-field"><span class="field-label">MTTR</span><span class="field-value">3.5 hrs</span></div>
+        <div class="form-field"><span class="field-label">Availability</span><span class="field-value" style="color:var(--green);font-weight:700;">98.2%</span></div>
+        <div class="form-field"><span class="field-label">Last Failure Date</span><span class="field-value">May 19, 2026</span></div>
+        `}
+      </div>
+    </div>
+
+    <!-- [3] Comments and Documents — ALWAYS present, shared data-driven pattern.
+         Collapsible (§5.2: "collapsed except the first section") — conformance
+         audit 2026-07-16 found these rendering as plain always-expanded
+         .section-cards in both canonical files, same .rv-section/.rv-toggle-row/
+         .rv-collapse component WO Record View already uses correctly. -->
+    <div class="rv-section">
+      <div class="rv-toggle-row" onclick="rvToggle('comments')">
+        <div class="rv-toggle-left">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="rv-toggle-title">Comments</span>
+        </div>
+        <div class="rv-toggle-right">
+          <span class="rv-badge" id="commentsBadgeCount">${COMMENTS_DATA.length}</span>
+          <svg class="rv-chev" id="rv-chev-comments" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="rv-collapse" id="rv-comments"><div id="recordCommentsMount"></div></div>
+    </div>
+
+    <div class="rv-section">
+      <div class="rv-toggle-row" onclick="rvToggle('documents')">
+        <div class="rv-toggle-left">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="rv-toggle-title">Documents</span>
+        </div>
+        <div class="rv-toggle-right">
+          <span class="rv-badge" id="documentsBadgeCount">${DOCUMENTS_DATA.length}</span>
+          <svg class="rv-chev" id="rv-chev-documents" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="rv-collapse" id="rv-documents"><div id="recordDocumentsMount"></div></div>
+    </div>
+    <div style="height:16px;"></div>`;
+}
+// Header Fields box row (§5.2 D2) — plain-LOV style, description only, no
+// code (revised 2026-07-16). Uses the same id (fv-{key}-desc) fieldRowLov()/
+// selectLov() already expect, so selection updates this row the same way
+// it would any other LOV field — no special-casing needed in eam-shared.js.
+// `required` gets the same orange left-bar marker as a .form-field.required
+// row (§5.2, revised 2026-07-16 — Header Fields membership no longer
+// implies required on its own).
+function fieldRowAttr(key, fullWidth, required) {
+  const v = RECORD[key];
+  return `<div class="attr-item${fullWidth ? ' full-width' : ''}${required ? ' required' : ''}" data-field="${key}" onclick="openLov('${key}')">
+    <span class="attr-label">${FIELD_LABELS[key]}</span>
+    <div class="attr-value"><span class="attr-text" id="fv-${key}-desc">${v.desc}</span></div>
+  </div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LIST/DETAIL TABS — thin wrappers over the shared shell.
+   ═══════════════════════════════════════════════════════════════════════ */
+function renderEventsTab() { return renderListDetailShell('events'); }
+function renderPmTab() { return renderListDetailShell('pm'); }
+function renderMetersTab() { return renderListDetailShell('meters'); }
+function renderWarrantyTab() { return renderListDetailShell('warranty'); }
+function renderPartsTab() { return renderListDetailShell('parts'); }
+function renderDeprTab() {
+  const methodCard = NEW_RECORD ? `
+    <div class="section-card">
+      <div class="section-card-header"><span class="section-card-title">Depreciation Method</span></div>
+      <div class="form-field"><span class="field-label">Method</span><span class="field-value muted">—</span></div>
+      <div class="form-field"><span class="field-label">Useful Life</span><span class="field-value muted">—</span></div>
+      <div class="form-field"><span class="field-label">Salvage Value</span><span class="field-value muted">—</span></div>
+      <div class="form-field"><span class="field-label">Current Book Value</span><span class="field-value muted">—</span></div>
+    </div>` : `
+    <div class="section-card">
+      <div class="section-card-header"><span class="section-card-title">Depreciation Method</span></div>
+      <div class="form-field"><span class="field-label">Method</span><span class="field-value">Straight-line</span></div>
+      <div class="form-field"><span class="field-label">Useful Life</span><span class="field-value">15 years</span></div>
+      <div class="form-field"><span class="field-label">Salvage Value</span><span class="field-value">$5,000.00</span></div>
+      <div class="form-field"><span class="field-label">Current Book Value</span><span class="field-value" style="color:var(--green);font-weight:700;">$38,000.00</span></div>
+    </div>`;
+  return renderListDetailShell('depr', methodCard);
+}
+
+/* ── COSTS — a version of the same standard shell, not a plain instance of
+   it: rows are work orders carrying their own cost breakdown, and an
+   aggregate footer sums material/labor/tool/overall cost across whatever
+   the active dataspy has in view. No Plus — costs are derived from labor/
+   parts/tool transactions recorded elsewhere, never inserted directly
+   here. Uses the same listDetailState/openDataspySheet/setListDetailMode/
+   toggleListDetailSearch mechanism as every other List/Detail tab. ── */
+function renderCostsTab() {
+  const cfg = LIST_DETAIL_TABS.costs;
+  const state = listDetailState.costs || {};
+  const dsKey = state.dataspy || cfg.dataspies[0].key;
+  const mode = state.mode || 'detailed';
+  const ds = cfg.dataspies.find(d => d.key === dsKey) || cfg.dataspies[0];
+  const rows = cfg.rows.filter(r => r.ds.includes(dsKey));
+  const sums = rows.reduce((s, r) => ({ material: s.material + r.material, labor: s.labor + r.labor, tool: s.tool + r.tool, total: s.total + r.total }), { material: 0, labor: 0, tool: 0, total: 0 });
+  return `
+    ${state.searchOpen ? `
+    <div class="ld-search-bar">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input class="ld-search-input" type="text" placeholder="Search Costs" value="${(state.search||'').replace(/"/g,'&quot;')}" oninput="onListDetailSearchInput('costs', this.value)" autocomplete="off">
+      <button class="ld-search-close" onclick="toggleListDetailSearch('costs')" aria-label="Close search"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>` : ''}
+    <div class="ds-bar" onclick="openDataspySheet('costs')">
+      <div class="ds-icon-w"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg></div>
+      <div class="ds-body"><div class="ds-name">${ds.name}</div><div class="ds-count">${rows.length} work order${rows.length===1?'':'s'}</div></div>
+      <svg class="ds-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="mode-tog">
+      <button class="mode-btn ${mode==='detailed'?'active':''}" onclick="setListDetailMode('costs','detailed')">Detailed</button>
+      <button class="mode-btn ${mode==='list'?'active':''}" onclick="setListDetailMode('costs','list')">List</button>
+    </div>
+    <div class="res-row">
+      <span class="res-count">${rows.length} work order${rows.length===1?'':'s'}</span>
+      <button class="sort-btn" onclick="showToast('Sort — coming soon')"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="11" y2="12"/><line x1="4" y1="18" x2="8" y2="18"/><path d="M17 4v16m0 0l3-3m-3 3l-3-3"/></svg>Total cost</button>
+    </div>
+    <div class="plain-list">${rows.map(r => `
+      <div class="plain-row" data-search="${('wo '+r.wo+' '+r.type+' '+r.status).toLowerCase()}" onclick="showToast('Opens this record in Update Mode — code/PK protected there (coming soon)')">
+        <div class="plain-row-body">
+          <div class="plain-row-title">WO ${r.wo} · ${r.type}</div>
+          ${mode==='detailed' ? `<div class="plain-row-sub">${r.status}${r.labor?' · Labor '+formatCurrency(r.labor):''}${r.material?' · Material '+formatCurrency(r.material):''}${r.tool?' · Tool '+formatCurrency(r.tool):''}</div>` : ''}
+        </div>
+        <div class="plain-row-trailing">${formatCurrency(r.total)}</div>
+      </div>`).join('')}</div>
+    <div class="cost-summary">
+      <div class="cost-summary-row"><span>Total Material Cost</span><span class="cost-summary-value">${formatCurrency(sums.material)}</span></div>
+      <div class="cost-summary-row"><span>Total Labor Cost</span><span class="cost-summary-value">${formatCurrency(sums.labor)}</span></div>
+      <div class="cost-summary-row"><span>Total Tool Cost</span><span class="cost-summary-value">${formatCurrency(sums.tool)}</span></div>
+      <div class="cost-summary-row total"><span>Total Overall Cost</span><span class="cost-summary-value">${formatCurrency(sums.total)}</span></div>
+    </div>
+    <div style="height:16px;"></div>`;
+}
+
+/* ── STRUCTURE DETAILS — untouched tree content (§7.3), not a List/Detail
+   shell instance. ── */
+function renderStructureTab() {
+  return `<div class="tree-wrap">
+    <div class="tree-node">
+      <div class="tree-row" onclick="showToast('Opening L-BELMONT-WWTP →')">
+        <div class="tree-icon">${ICONS.structure}</div>
+        <div class="tree-body"><div class="tree-type">Location</div><div class="tree-desc">Belmont Wastewater Treatment Plant</div><div class="tree-code">L-BELMONT-WWTP</div></div>
+      </div>
+    </div>
+    <div class="tree-node tree-indent-1">
+      <div class="tree-guide"></div>
+      <div class="tree-row" onclick="showToast('Opening P-004-00167063 →')">
+        <div class="tree-icon">${ICONS.structure}</div>
+        <div class="tree-body"><div class="tree-type">Position</div><div class="tree-desc">Pump House 3 — Bay 4</div><div class="tree-code">P-004-00167063</div></div>
+      </div>
+    </div>
+    <div class="tree-node tree-indent-2">
+      <div class="tree-guide"></div>
+      <div class="tree-row" onclick="showToast('Opening S-002-00167061 →')">
+        <div class="tree-icon">${ICONS.structure}</div>
+        <div class="tree-body"><div class="tree-type">System</div><div class="tree-desc">Primary Transfer Pumping System</div><div class="tree-code">S-002-00167061</div></div>
+      </div>
+    </div>
+    <div class="tree-node tree-indent-3">
+      <div class="tree-guide"></div>
+      <div class="tree-row current">
+        <div class="tree-icon">${ICONS.structure}</div>
+        <div class="tree-body"><div class="tree-type">Asset</div><div class="tree-desc">Pump, Centrifugal</div><div class="tree-code">A-00067333</div></div>
+        <span class="tree-here">YOU ARE HERE</span>
+      </div>
+    </div>
+  </div><div style="height:16px;"></div>`;
+}
+
+const TAB_RENDERERS = {
+  comments: () => renderCommentsTabContent(),
+  documents: () => renderDocumentsTabContent(),
+  events: renderEventsTab, costs: renderCostsTab, pm: renderPmTab,
+  structure: renderStructureTab, depr: renderDeprTab, meters: renderMetersTab,
+  warranty: renderWarrantyTab, parts: renderPartsTab,
+  // no 'record' entry — that tab is static, rendered once below.
+};
+
+/* ── init ── */
+currentTab = 'record';
+renderTabRail();
+applyCustomFields('equipment', RECORD.class.code, RECORD_CLASS_ORG, EAM_EQUIPMENT[RECORD.asset] ? EAM_EQUIPMENT[RECORD.asset].customFieldValues : {});
+document.querySelector('.tab-content[data-tab="record"]').innerHTML = renderRecordViewTab();
+applySyncErrorBanner();
+renderCommentsExcerptMount();
+renderDocumentsExcerptMount();
+['comments','documents','events','costs','pm','structure','depr','meters','warranty','parts'].forEach(k => {
+  document.querySelector(`.tab-content[data-tab="${k}"]`).innerHTML = TAB_RENDERERS[k]();
+});
+initDemoOnlineToggle();
+initSharedApp({ contentSelector: '.content' });
+</script>
+</body>
+</html>

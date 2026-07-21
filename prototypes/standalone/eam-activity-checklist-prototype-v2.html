@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HxGN EAM Mobile — Activity Checklist (Step 2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-shared.css">
+<!--
+  WO WORKFLOW — STEP 2: ACTIVITY CHECKLIST — v2, rebuilt 2026-07-21 onto
+  the "Focused Stepper" model. Supersedes v1's grouped-scroll-list design
+  (retired to `old versions/eam-activity-checklist-prototype-v1.html`) —
+  don't resurrect that pattern; this was a deliberate, user-driven
+  redesign explored across several rounds in
+  `prototypes/standalone/mockups/checklist-redesign-b-focused-stepper.html`
+  (2 sibling directions — a compact-rows-with-detail-sheet option and an
+  adaptive-collapse-with-filters option — were also prototyped there and
+  NOT chosen; don't revive them either).
+
+  WHAT CHANGED FROM v1 AND WHY:
+  - One item at a time, full-width, instead of a long scrolling list of
+    dense cards — a checklist item genuinely has a lot going on (answer
+    control, Notes, Follow-up, Comments, Documents, sometimes Equipment),
+    and v1 crammed all of it into a fixed-height card whether or not it
+    was in use. Prev/Next (#stepperNav) replaces free scrolling; "View
+    all" (#overviewOverlay) is the escape hatch back to an at-a-glance
+    list, and is also the only thing that scales to a checklist with
+    ~100 items — this file's own progress indicator is a proportional bar
+    (#stepperProgressFill), not per-item dots/segments, for the same
+    reason.
+  - Notes is a real always-visible field now (same shape as UDF01 in
+    sample-screen-standard-model-prototype.html, §5.2 — a .form-field
+    with a .field-inline-input textarea), not hidden behind a tap-to-
+    expand trigger.
+  - Comments and Documents are real per-item containers, reusing the
+    exact shared §7.2 data-driven pattern (.rv-section/.rv-toggle-row/
+    .rv-collapse + renderCommentsExcerptMount()/renderDocumentsExcerptMount()
+    from eam-shared.js) that Equipment/WO Record View already use for the
+    whole record — the trick, since only one item is focused at a time,
+    is rebinding the shared COMMENTS_DATA/DOCUMENTS_DATA globals to the
+    focused item's own arrays on every render (see renderFocus()). v1's
+    Attachments was a read-only info-sheet listing filenames as plain
+    text; that's gone, replaced by a real Documents container.
+  - Follow-up is a full-width, orange-outlined button now, not a small
+    pill fighting for space with three others. Flagging it reveals a
+    "Create Follow-up WO" button (hidden entirely, not just disabled,
+    until flagged) — new capability v1 didn't have at all.
+  - Equipment (when an item is equipment-scoped) is a plain, always-
+    visible, read-only field — .form-field.protected, code + description,
+    same shape as any other protected field elsewhere in the app. Earlier
+    in this rebuild it was tried both as a dark identity-style banner and
+    as a collapsible section; both were rejected — equipment context for
+    the item you're answering should never require a tap to see.
+  - Dynamic checklist items: an item's answer can insert new items right
+    after it (syncDynamicChildren()) — real functionality this app
+    supports, not previously represented in any checklist prototype.
+    "View all" indents them under their trigger with a branch-icon cue,
+    and shows a locked "ghost" placeholder row for an as-yet-untriggered
+    branch so the list previews that one could appear there. The
+    checklist's item counter denominator is intentionally just "however
+    many items are known to exist right now" — it grows the moment a
+    branch fires rather than trying to predict a maximum.
+  - Instructions is gone — it isn't a real, separately-supported field on
+    a checklist item (the item's label/description is the only
+    instructional text there is). v1's purple instructions callout and
+    its info-sheet were both built on this same wrong assumption; neither
+    survived into v2.
+  - Required moved from a "*" glyph on the label to a small badge to the
+    right of it — same shape/font as the org corner-badge elsewhere in
+    the app (§8.3's .ld-card-org: Inter, 12px, pill), just orange.
+
+  WHAT DIDN'T CHANGE — still shared chrome, untouched by this rebuild:
+  the protected-identity header (§8.1, no status/pin/Plus — this step's
+  checklist has its own add-affordance concept, N/A here since items are
+  admin-configured, not technician-added), its ellipsis's Print Work
+  Order + Comments/Documents stubs (§14.8 — those are WO-level, a
+  separate context from this file's own per-item Comments/Documents),
+  the step rail + timer panel (§14.2/§14.3), the Yes/No prompt bar
+  (§14.6) and its trigger condition (all required items complete), and
+  the confirm/question modals. One adaptation worth flagging: v1's prompt
+  bar could pop up mid-scroll, the instant the last required field was
+  filled in, because everything was visible in one list. A one-item-at-
+  a-time flow has no equivalent "still working, but already technically
+  done" moment to interrupt, so the prompt bar here only surfaces once
+  you've stepped to the actual last item with all required items
+  complete — reaching the end of the list, not completing requirements
+  mid-browse, is what triggers it now.
+-->
+<style>
+.content { padding: 0 0 calc(var(--bar-height) + 16px); display: flex; flex-direction: column; }
+
+/* ─── CHECKLIST-WIDE RAIL ─────────────────────────────────────────────
+   Item counter + group name + a proportional completion bar spanning
+   every item in the checklist, not scoped to the current group — dots
+   or segments don't scale to a large checklist (a 100-item one would
+   need ~3px slivers, neither readable nor tappable); a single fill
+   does, at any N. Position-within-the-list is "View all"'s job, not
+   this bar's — a plain scrollable row list is the only thing that
+   actually scales for jumping to a specific item at that size. ── */
+.stepper-head { position: sticky; top: 0; z-index: 5; padding: 10px 16px 8px; background: var(--bg-card); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.stepper-head-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
+.stepper-head-left { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
+.stepper-group-name { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stepper-group-name.g-safety { color: #854F0B; } .stepper-group-name.g-main { color: #6600CC; } .stepper-group-name.g-close { color: #007A0D; }
+[data-theme="dark"] .stepper-group-name.g-safety { color: #FAC775; } [data-theme="dark"] .stepper-group-name.g-main { color: #CC77FF; } [data-theme="dark"] .stepper-group-name.g-close { color: #5DCAA5; }
+/* Plain muted text, not a pill/badge — a second competing pill here
+   read as cluttered. Mono — a position/count, same family as every
+   other count/number in the app. */
+.stepper-item-count { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--gray-4); white-space: nowrap; }
+.view-all-btn { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: var(--gray-4); background: var(--bg-section); border: 1px solid var(--border); border-radius: 100px; padding: 5px 11px; cursor: pointer; flex-shrink: 0; }
+.stepper-progress-bar { height: 4px; border-radius: 100px; background: var(--gray-1); overflow: hidden; }
+[data-theme="dark"] .stepper-progress-bar { background: var(--gray-5); }
+.stepper-progress-fill { height: 100%; background: var(--green); transition: width .3s; }
+
+/* ─── FOCUSED ITEM ───────────────────────────────────────────────── */
+.focus-wrap { flex: 1; padding: 14px 0 4px; }
+.focus-label-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 0 16px; margin-bottom: 10px; }
+.focus-label { flex: 1; font-size: 19px; font-weight: 700; color: var(--octave-black); line-height: 1.3; }
+[data-theme="dark"] .focus-label { color: var(--white); }
+/* Required — same shape/font as the org corner-badge pill (§8.3's
+   .ld-card-org). Orange, beside the item description, not a "*". */
+.focus-req-tag { flex-shrink: 0; margin-top: 2px; display: inline-flex; align-items: center; font-family: var(--font-sans); font-size: 11px; font-weight: 600; color: var(--orange); background: rgba(244,102,0,.1); border: 1px solid rgba(244,102,0,.3); border-radius: 999px; padding: 4px 9px; }
+/* Dynamic checklist items — an item's answer can insert new items right
+   after it (syncDynamicChildren()). This tag marks a dynamically-added
+   item's provenance; the hint marks the trigger item itself. Purple —
+   this app's existing "linked/extra content" language. */
+.focus-dynamic-tag { display: flex; align-items: center; gap: 6px; margin: 0 16px 6px; font-size: 11px; font-weight: 600; color: var(--purple); }
+.focus-dynamic-hint { display: flex; align-items: center; gap: 6px; margin: 8px 16px 0; font-size: 11.5px; color: var(--gray-4); }
+.focus-dynamic-tag svg, .focus-dynamic-hint svg { color: var(--purple); flex-shrink: 0; }
+
+.focus-control { padding: 18px 16px; }
+.f-toggle { display: flex; flex-direction: column; gap: 10px; }
+.f-opt { padding: 18px 0; text-align: center; font-size: 16px; font-weight: 700; border-radius: 10px; border: 2px solid var(--gray-2); color: var(--octave-black); background: var(--bg-page); cursor: pointer; transition: all .15s; }
+[data-theme="dark"] .f-opt { border-color: var(--gray-5); color: var(--white); background: var(--bg-section); }
+.f-opt.sel-green  { background: var(--green);  border-color: var(--green);  color: #fff; }
+.f-opt.sel-red    { background: var(--red);    border-color: var(--red);    color: #fff; }
+.f-opt.sel-orange { background: var(--orange); border-color: var(--orange); color: #fff; }
+.f-opt.sel-gray   { background: var(--gray-4); border-color: var(--gray-4); color: #fff; }
+
+.f-chk { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 22px 0; border-radius: 10px; border: 2px solid var(--gray-2); background: var(--bg-page); cursor: pointer; }
+[data-theme="dark"] .f-chk { border-color: var(--gray-5); background: var(--bg-section); }
+.f-chk.checked { border-color: var(--green); background: rgba(0,170,20,0.08); }
+.f-chk-circle { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--gray-3); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.f-chk.checked .f-chk-circle { background: var(--green); border-color: var(--green); }
+.f-chk-circle svg { display: none; }
+.f-chk.checked .f-chk-circle svg { display: block; }
+.f-chk-lbl { font-size: 15px; font-weight: 600; color: var(--octave-black); }
+[data-theme="dark"] .f-chk-lbl { color: var(--white); }
+
+.f-num-row { display: flex; align-items: center; gap: 12px; justify-content: center; }
+.f-num-in { width: 150px; background: var(--bg-page); border: 2px solid var(--gray-2); border-radius: 10px; padding: 16px 14px; font-size: 22px; font-weight: 700; color: var(--octave-black); font-family: var(--font-mono); text-align: center; outline: none; }
+[data-theme="dark"] .f-num-in { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
+.f-num-in:focus { border-color: var(--purple); }
+/* Number fields — no native spinner arrows (design-decisions-v3-1.md §15). */
+.f-num-in::-webkit-outer-spin-button, .f-num-in::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.f-num-in { -moz-appearance: textfield; }
+.f-uom { font-size: 14px; color: var(--gray-4); font-weight: 600; }
+.f-range-hint { text-align: center; font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); margin-top: 10px; }
+.f-textarea { width: 100%; min-height: 120px; background: var(--bg-page); border: 2px solid var(--gray-2); border-radius: 10px; padding: 12px 13px; font-size: 15px; color: var(--octave-black); font-family: var(--font-sans); resize: none; outline: none; line-height: 1.5; }
+[data-theme="dark"] .f-textarea { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
+
+/* Follow-up — full-width, deliberately loud, not one of several small
+   competing pills. Create Follow-up WO is hidden entirely (not just
+   disabled) until Follow-up is flagged, so it never reads as dead. */
+.followup-btn-lg { margin: 12px 12px 0; display: flex; align-items: center; justify-content: center; gap: 8px; width: calc(100% - 24px); padding: 13px 0; border-radius: 10px; border: 1.5px solid var(--orange); background: var(--bg-card); color: var(--orange); font-size: 14px; font-weight: 700; cursor: pointer; transition: all .15s; font-family: var(--font-sans); }
+.followup-btn-lg:hover { background: rgba(244,102,0,.08); }
+.followup-btn-lg.on { background: var(--orange); color: #fff; }
+[data-theme="dark"] .followup-btn-lg { background: var(--bg-section); }
+.create-fu-wo-btn { margin: 10px 12px 0; width: calc(100% - 24px); animation: fuBtnIn .2s ease; }
+@keyframes fuBtnIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ─── PREV/NEXT NAV — replaces free scrolling; hidden once the prompt
+   bar takes over (see updateFooter()). ── */
+.stepper-nav { position: absolute; bottom: 0; left: 0; right: 0; height: var(--bar-height); background: var(--bg-card); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; padding: 0 14px; z-index: 50; }
+.snav-btn { flex: 1; height: 46px; border-radius: 12px; border: none; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.snav-btn.prev { background: var(--bg-section); color: var(--octave-black); flex: 0 0 46px; }
+[data-theme="dark"] .snav-btn.prev { color: var(--white); }
+.snav-btn.next { background: var(--octave-black); color: #fff; }
+[data-theme="dark"] .snav-btn.next { background: var(--white); color: var(--octave-black); }
+.snav-btn:disabled { opacity: .35; cursor: default; }
+
+/* ─── PROMPT BAR — Option 4 segmented Yes/No (design-decisions-v3-1.md
+   §14.6). Unchanged from v1 — still local, no 2nd consumer yet. ── */
+.prompt-bar { position: absolute; bottom: 0; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border); padding: 10px 16px 16px; flex-shrink: 0; z-index: 51; display: none; }
+[data-theme="dark"] .prompt-bar { background: var(--octave-black); }
+.prompt-bar.show { display: block; }
+.prompt-question { font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: var(--gray-4); text-align: center; margin-bottom: 8px; }
+.prompt-seg { display: flex; border-radius: 100px; overflow: hidden; border: 1px solid var(--border); }
+.prompt-seg-btn { flex: 1; height: 48px; border: none; font-size: 15px; font-weight: 700; cursor: pointer; font-family: var(--font-sans); background: var(--bg-section); color: var(--octave-black); }
+[data-theme="dark"] .prompt-seg-btn { background: var(--gray-5); color: var(--white); }
+.prompt-seg-btn.yes { background: var(--green); color: white; }
+.prompt-seg-btn.yes:hover { background: #00c418; }
+.prompt-seg-divider { width: 1px; background: var(--border); flex-shrink: 0; }
+
+/* ─── "VIEW ALL" OVERVIEW — the escape hatch back to an at-a-glance
+   list, and the only navigation that scales to a large checklist. ── */
+.overview-overlay { position: absolute; inset: 0; background: var(--bg-page); z-index: 90; display: none; flex-direction: column; }
+.overview-overlay.open { display: flex; }
+.overview-head { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--bg-card); }
+.overview-title { font-size: 15px; font-weight: 700; color: var(--octave-black); }
+[data-theme="dark"] .overview-title { color: var(--white); }
+.overview-body { flex: 1; overflow-y: auto; }
+.ov-group-hdr { padding: 7px 16px; font-size: 12px; font-weight: 700; color: var(--gray-4); background: var(--bg-section); }
+.ov-row { display: flex; align-items: center; gap: 10px; padding: 11px 16px; border-bottom: 1px solid var(--border); background: var(--bg-card); cursor: pointer; }
+.ov-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-2); flex-shrink: 0; }
+.ov-status-dot.green { background: var(--green); } .ov-status-dot.red { background: var(--red); } .ov-status-dot.orange { background: var(--orange); }
+.ov-label { flex: 1; font-size: 13.5px; font-weight: 500; color: var(--octave-black); }
+[data-theme="dark"] .ov-label { color: rgba(255,255,255,0.9); }
+.ov-close-btn { width: 30px; height: 30px; border-radius: 50%; background: var(--bg-section); border: none; display: flex; align-items: center; justify-content: center; color: var(--gray-4); cursor: pointer; }
+/* Dynamic items — indented under their trigger, with a branch icon; the
+   trigger itself gets a smaller branch cue so a scan of the list shows
+   where branching can happen before it's happened. A ghost row (locked
+   icon, italic, non-interactive) previews an as-yet-untriggered branch,
+   and disappears once real items replace it. */
+.ov-row-indent { padding-left: 40px; background: var(--bg-page); }
+.ov-dynamic-icon, .ov-branch-cue, .ov-ghost-icon { display: flex; flex-shrink: 0; color: var(--purple); }
+.ov-ghost-icon { color: var(--gray-4); }
+.ov-row-ghost { cursor: default; }
+.ov-label-ghost { font-style: italic; font-weight: 400; color: var(--gray-4); }
+
+.toast { bottom: calc(var(--bar-height) + 10px); }
+</style>
+</head>
+<body>
+
+<!-- Prototype-only theme preview — real app theme lives in User Settings,
+     not in-screen chrome. See design-decisions-v3-1.md §20. -->
+<div class="proto-theme-bar">
+  <span class="proto-theme-label">Preview theme</span>
+  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+  <!-- Demo-only WO Workflow selector (§11-13, 2026-07-22) — see
+       eam-wo-record-view-prototype-v1.html's copy of this button for the
+       full note; cycleDemoWo() in eam-shared.js is the shared mechanism. -->
+  <button class="theme-toggle" id="demoWoToggle" onclick="cycleDemoWo()">📋 WO 19257</button>
+</div>
+
+<div class="app" id="app">
+
+  <header class="nav" onclick="scrollFormToTop()">
+    <div class="nav-left">
+      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation(); navBack()">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+          <path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <span class="prototype-label">PROTOTYPE</span>
+    </div>
+    <div class="nav-title">Work Orders</div>
+    <div class="nav-actions">
+      <span id="syncCtrl"></span>
+    </div>
+  </header>
+
+  <!-- ── DETAIL HEADER (§8.1) — protected identity + ellipsis, no status,
+       no pin, no Plus. Screen-specific ellipsis slot carries Print Work
+       Order + Comments/Documents (§14.8 — WO-level, unrelated to this
+       file's own per-item Comments/Documents below). Unchanged from v1. ── -->
+  <div class="rec-header" id="recHeader" onclick="scrollFormToTop()">
+    <div class="rec-id-row">
+      <div class="rec-id-text">
+        <span class="rec-num" id="recNum">19257</span>
+        <span class="rec-desc protected" id="recDesc">Pump Cavitating; lost head</span>
+      </div>
+      <div class="rec-header-actions">
+        <button class="rec-ellipsis-btn" id="recEllipsisBtn" onclick="event.stopPropagation(); toggleRecActionsMenu()" aria-label="More actions">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+        </button>
+        <div class="rec-actions-menu" id="recActionsMenu">
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyLink()">Copy Link</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyRecord()">Copy</div>
+            <div class="rec-actions-item danger" onclick="recDeleteRecord()">Delete</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group" id="recActionsScreenSpecific">
+            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Printing work order — coming soon')">Print Work Order</div>
+            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Opening Comments — coming soon')">Comments (3)</div>
+            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Opening Documents — coming soon')">Documents (4)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP RAIL (§14.2/§14.3) — chrome + toggle are shared, this
+       screen's own step-name/timer/step-map content stays. Unchanged
+       from v1. ── -->
+  <div class="step-rail" id="stepRail">
+    <div class="step-rail-collapsed">
+      <div class="step-name">Activity Checklist</div>
+      <div class="step-rail-right">
+        <div class="timer-pill" id="timerPill"><div class="timer-dot"></div><span id="timerText">00:00:00</span></div>
+        <svg class="step-chevron" id="stepChevron" width="16" height="16" fill="none" viewBox="0 0 24 24">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+    <div class="step-segments">
+      <div class="seg seg-done"></div>
+      <div class="seg seg-active"></div>
+      <div class="seg seg-future"></div>
+      <div class="seg seg-future"></div>
+      <div class="seg seg-future"></div>
+    </div>
+    <div class="step-map" id="stepMap">
+      <!-- Larger timer + Pause/Stop (§14.2 follow-up) — shown only where
+           the timer is running, same condition as the pill. -->
+      <div class="step-timer-panel">
+        <div class="step-timer-value" id="stepTimerValue">00:00:00</div>
+        <div class="step-timer-actions">
+          <button class="step-timer-btn" onclick="toggleStepTimerPause()">
+            <span id="stepPauseBtnIcon"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="5" x2="8" y2="19"/><line x1="16" y1="5" x2="16" y2="19"/></svg></span>
+            <span id="stepPauseBtnLabel">Pause</span>
+          </button>
+          <button class="step-timer-btn danger" onclick="confirmStopTimer()">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+            Stop
+          </button>
+        </div>
+      </div>
+      <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
+      <div class="step-map-item active"><div class="step-map-icon smi-active">2</div><span class="step-map-label active-label">Activity Checklist</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-locked">3</div><span class="step-map-label">Issue Parts</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-locked">4</div><span class="step-map-label">Book Labor</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-locked">5</div><span class="step-map-label">WO Closing</span></div>
+      <div class="step-map-footer">WO.WORKFLOW.01 - Corrective Maintenance Execution</div>
+    </div>
+  </div>
+
+  <!-- ── SCROLLABLE CONTENT — checklist-wide rail + the focused item ── -->
+  <div class="content">
+    <div class="stepper-head">
+      <div class="stepper-head-row">
+        <div class="stepper-head-left">
+          <span class="stepper-group-name" id="curGroupName">Safety checks</span>
+          <span class="stepper-item-count" id="stepperItemCount">· Item 01 of 07</span>
+        </div>
+        <button class="view-all-btn" onclick="openOverview()">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          View all
+        </button>
+      </div>
+      <div class="stepper-progress-bar"><div class="stepper-progress-fill" id="stepperProgressFill" style="width:0%"></div></div>
+    </div>
+
+    <div class="focus-wrap" id="focusWrap"></div>
+  </div>
+
+  <div class="stepper-nav" id="stepperNav">
+    <button class="snav-btn prev" id="prevBtn" onclick="goPrev()">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="snav-btn next" id="nextBtn" onclick="goNext()">Next<svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+
+  <!-- ── PROMPT BAR — appears once every required item is complete AND
+       you've reached the last item (§14.6; see the header comment for
+       why the trigger condition differs from v1's). ── -->
+  <div class="prompt-bar" id="promptBar"></div>
+
+  <div class="overview-overlay" id="overviewOverlay">
+    <div class="overview-head">
+      <span class="overview-title">All items</span>
+      <button class="ov-close-btn" onclick="closeOverview()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="overview-body" id="overviewBody"></div>
+  </div>
+
+  <!-- ── Shared Comments/Documents sheets (§7.2) — reused verbatim from
+       Equipment/WO Record View; behavior lives entirely in eam-shared.js. ── -->
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <div class="bottom-sheet text-editor-sheet" id="textEditorSheet">
+    <div class="text-editor-header">
+      <div class="text-editor-left">
+        <button class="text-editor-close" id="textEditorCloseBtn" onclick="textEditorCloseTap()">✕</button>
+        <button class="text-editor-discard" id="textEditorDiscard" onclick="textEditorConfirmDiscard()">Discard unsaved changes</button>
+      </div>
+      <div class="text-editor-title" id="textEditorTitle">Edit</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="text-editor-body"><textarea class="text-editor-textarea" id="textEditorTextarea" oninput="textEditorInputChanged()" placeholder="Type here…"></textarea></div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveTextEditor()">Save</button></div>
+  </div>
+
+  <div class="bottom-sheet" id="commentActionsSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Comment Actions</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sheet-body" id="commentActionsBody"></div>
+  </div>
+
+  <!-- Centered confirmation modal — destructive actions (Delete etc.),
+       markup only; behavior lives in eam-shared.js. Unchanged from v1. -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-modal">
+      <div class="confirm-message" id="confirmMessage">Are you sure?</div>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="confirm-btn confirm-danger" id="confirmDangerBtn" onclick="confirmDangerAction()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Question message — a 3-outcome Yes/No/Cancel modal, markup only;
+       behavior lives in eam-shared.js. Unchanged from v1. -->
+  <div class="confirm-overlay" id="questionOverlay">
+    <div class="question-modal">
+      <div class="question-message" id="questionMessage">Are you sure?</div>
+      <div class="question-actions">
+        <button class="question-btn yes" onclick="questionAnswerYes()">Yes</button>
+        <button class="question-btn no" onclick="questionAnswerNo()">No</button>
+        <button class="question-btn cancel" onclick="closeQuestion()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+</div><!-- /app -->
+
+<script src="../../data/wo-19257.js"></script>
+<script src="../../data/wo-19831.js"></script>
+<script src="../../data/wo-20450.js"></script>
+<script src="../../data/wotype.js"></script>
+<script src="../../data/wo-workflow.js"></script>
+<script src="../../data/wo-workflow-steps.js"></script>
+<script src="shared/eam-shared.js"></script>
+<script>
+/* ── screen-specific config/behavior — chrome (nav, header, step rail,
+   confirm modal, toast, theme toggle) comes from eam-shared.js. ── */
+
+function navBack() {
+  showToast('← Back to WO Record View');
+}
+
+/* ─── TIMER — auto-started on WO Record View "Start Work"; keeps running
+   through Steps 2-4, shown stopped from Book Labor onward (§6.2, §12.2).
+   Engine (start/pause/resume) lives in eam-shared.js — this screen just
+   starts it and supplies the Stop confirmation's outcomes. Unchanged
+   from v1. ── */
+startStepTimer();
+
+function confirmStopTimer() {
+  openQuestion('Stop working and book your current time?',
+    () => { stopStepTimer(); showToast('Time booked — moving to Book Labor…'); },
+    () => { stopStepTimer(); showToast('Time captured — resume later from Book Labor'); }
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// CHECKLIST DATA — one item focused at a time (cursor). Comments/
+// Documents per item reuse the shared §7.2 record-level pattern by
+// rebinding COMMENTS_DATA/DOCUMENTS_DATA to the focused item's own
+// arrays on every render (see renderFocus()).
+// ═══════════════════════════════════════════════════════════════════════
+const ITEMS = [
+  { id:1, group:'safety', label:'Confirm LOTO applied to all energy sources', required:true, type:'check',
+    documents:[], comments:[], note:'', followup:false, value:false },
+  { id:2, group:'safety', label:'PPE check — gloves, goggles, steel-cap boots', required:true, type:'check',
+    documents:[], comments:[], note:'', followup:false, value:false },
+  { id:3, group:'main', label:'Bearing housing — visual condition', equipId:'A-00067333', equipDesc:'Pump, Centrifugal', required:true, type:'toggle3',
+    options:[['Pass','sel-green'],['Fail','sel-red'],['N/A','sel-gray']],
+    documents:[
+      { icon:'pdf', name:'Bearing_Housing_Drawing_Rev4.pdf', meta:'PDF · 2.1 MB' },
+      { icon:'img', name:'Inspection_Photo_Template.jpg', meta:'JPG · 640 KB' },
+    ],
+    comments:[
+      { id:'sc1', mine:false, author:'Meera Kumar', time:'May 19 · 09:12', text:'Last inspection showed light surface corrosion near the seal groove — worth a close look this time.' },
+    ],
+    note:'', followup:false, value:null,
+    // Dynamic checklist items — answering "Fail" loads 2 new items right
+    // after this one. syncDynamicChildren() inserts/removes them live as
+    // the answer changes, so this rule is the only thing that needs to
+    // describe them.
+    dynamicRules:[
+      { when:'Fail', items:[
+        { label:'Failure severity', type:'toggle3', options:[['Minor','sel-orange'],['Major','sel-red'],['Critical','sel-red']], required:true, value:null },
+        { label:'Corrective action taken on-site?', type:'toggle2', options:[['Yes','sel-green'],['No','sel-red']], required:false, value:null },
+      ] },
+    ] },
+  { id:4, group:'main', label:'Shaft alignment', equipId:'A-00067333', equipDesc:'Pump, Centrifugal', required:false, type:'toggle2',
+    options:[['OK','sel-green'],['Adjusted','sel-orange']],
+    documents:[], comments:[], note:'', followup:false, value:null },
+  { id:5, group:'main', label:'Bearing temperature — post run', equipId:'A-00067333', equipDesc:'Pump, Centrifugal', required:true, type:'num', uom:'°F', range:'60 – 180 °F',
+    documents:[], comments:[], note:'', followup:false, value:'' },
+  { id:6, group:'close', label:'Area restored and barricades removed?', required:true, type:'toggle2',
+    options:[['Yes','sel-green'],['No','sel-red']],
+    documents:[], comments:[], note:'', followup:false, value:null },
+  { id:7, group:'close', label:'Work completion notes', required:false, type:'textarea',
+    documents:[], comments:[], note:'', followup:false, value:'' },
+];
+const GROUP_NAMES = { safety:'Safety checks', main:'Inspection', close:'Close-out' };
+let cursor = 0;
+
+const BRANCH_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>';
+const LOCK_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V7a4 4 0 018 0v4"></path></svg>';
+let dynamicIdSeq = 100;
+
+// Insert/remove a trigger item's dynamic follow-up items to match its
+// current answer. Always removes this parent's existing children first
+// — the answer may have changed away from the trigger value, which
+// invalidates them — then re-inserts if the current value still matches
+// a rule. Children land immediately after the parent, in the same
+// group, which is what makes Next/the counter/"View all" pick them up
+// for free.
+function syncDynamicChildren(parent) {
+  for (let i = ITEMS.length - 1; i >= 0; i--) {
+    if (ITEMS[i].dynamicParentId === parent.id) ITEMS.splice(i, 1);
+  }
+  const rule = parent.dynamicRules.find(r => r.when === parent.value);
+  if (!rule) return;
+  const insertAt = ITEMS.indexOf(parent) + 1;
+  const newItems = rule.items.map(cfg => ({
+    documents: [], comments: [], note: '', followup: false,
+    ...cfg,
+    id: ++dynamicIdSeq,
+    group: parent.group,
+    equipId: parent.equipId, equipDesc: parent.equipDesc,
+    dynamic: true,
+    dynamicParentId: parent.id,
+  }));
+  ITEMS.splice(insertAt, 0, ...newItems);
+}
+
+// ─── Shared §7.2 Comments/Documents pattern — rebound per focused item. ──
+const CURRENT_USER_NAME = 'Bruce Campbell';
+let commentIdSeq = 100;
+let COMMENTS_DATA = [];
+let DOCUMENTS_DATA = [];
+const COMMENTS_EXCERPT_MOUNT = 'itemCommentsMount';
+const COMMENTS_BADGE_ID = 'itemCommentsBadge';
+const DOCUMENTS_EXCERPT_MOUNT = 'itemDocumentsMount';
+const DOCUMENTS_BADGE_ID = 'itemDocumentsBadge';
+
+function isDone(it) {
+  if (it.type === 'check') return !!it.value;
+  if (it.type === 'toggle2' || it.type === 'toggle3') return it.value != null;
+  if (it.type === 'num' || it.type === 'textarea') return String(it.value).trim() !== '';
+  return false;
+}
+function dotClass(it) {
+  if (!isDone(it)) return '';
+  if (it.type === 'check' || it.type === 'textarea' || it.type === 'num') return 'done-green';
+  const opt = it.options.find(o => o[0] === it.value);
+  return opt[1] === 'sel-green' ? 'done-green' : opt[1] === 'sel-red' ? 'done-red' : opt[1] === 'sel-orange' ? 'done-orange' : 'done-green';
+}
+
+// Checklist-wide rail — item counter, group name, and a completion bar.
+// Position/total both read live off ITEMS, not a precomputed value — a
+// dynamic item's insertion shifts everything after it, and the total
+// itself grows the moment a trigger fires. That's the honest answer to
+// "the denominator is tough": it always reflects known items so far,
+// not a hypothetical max the checklist could reach.
+function renderStepperHead() {
+  const it = ITEMS[cursor];
+  document.getElementById('curGroupName').textContent = GROUP_NAMES[it.group];
+  document.getElementById('curGroupName').className = 'stepper-group-name g-' + it.group;
+  document.getElementById('stepperItemCount').textContent = `· Item ${String(cursor+1).padStart(2,'0')} of ${String(ITEMS.length).padStart(2,'0')}`;
+  const doneCount = ITEMS.filter(isDone).length;
+  document.getElementById('stepperProgressFill').style.width = Math.round(doneCount / ITEMS.length * 100) + '%';
+}
+
+function controlHtml(it) {
+  if (it.type === 'check') {
+    return `<div class="f-chk ${it.value?'checked':''}" onclick="setCheck()">
+      <div class="f-chk-circle"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <span class="f-chk-lbl">${it.value ? 'Confirmed' : 'Tap to confirm'}</span>
+    </div>`;
+  }
+  if (it.type === 'toggle2' || it.type === 'toggle3') {
+    return `<div class="f-toggle">` + it.options.map(([label,cls]) =>
+      `<button class="f-opt ${it.value===label?cls:''}" onclick="setToggle('${label}','${cls}')">${label}</button>`).join('') + `</div>`;
+  }
+  if (it.type === 'num') {
+    return `<div class="f-num-row"><input class="f-num-in" type="number" value="${it.value}" placeholder="—" oninput="setNum(this)"><span class="f-uom">${it.uom}</span></div>`
+      + (it.range ? `<p class="f-range-hint">Acceptable range: ${it.range}</p>` : '');
+  }
+  if (it.type === 'textarea') {
+    return `<textarea class="f-textarea" placeholder="Describe work performed and any findings…" oninput="setText(this)">${it.value}</textarea>`;
+  }
+  return '';
+}
+
+function renderFocus() {
+  const it = ITEMS[cursor];
+  const dynamicParent = it.dynamic ? ITEMS.find(x => x.id === it.dynamicParentId) : null;
+  let html = `
+    ${dynamicParent ? `<div class="focus-dynamic-tag">${BRANCH_ICON}<span>Added based on your "${dynamicParent.label}" response</span></div>` : ''}
+    <div class="focus-label-row">
+      <p class="focus-label">${it.label}</p>
+      ${it.required ? '<span class="focus-req-tag">Required</span>' : ''}
+    </div>
+
+    <div class="section-card"><div class="focus-control">${controlHtml(it)}</div></div>
+    ${it.dynamicRules ? `<div class="focus-dynamic-hint">${BRANCH_ICON}<span>This response may add follow-up items to the checklist</span></div>` : ''}
+
+    <button class="followup-btn-lg ${it.followup?'on':''}" onclick="toggleFollowup()">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 22V15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      ${it.followup ? 'Flagged for Follow-up' : 'Flag for Follow-up'}
+    </button>
+
+    ${it.followup ? `<button class="btn-contained create-fu-wo-btn" onclick="createFollowupWO()">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      Create Follow-up WO
+    </button>` : ''}
+
+    <div class="section-card">
+      <div class="form-field" data-field="itemNotes" onclick="this.querySelector('textarea').focus()">
+        <span class="field-label">Notes</span>
+        <textarea class="field-inline-input" id="fv-itemNotes" rows="1" maxlength="255" placeholder="Add a note…" oninput="updateInlineFieldLayout(this); setNote(this)" onfocus="onInlineFocus()" onblur="onInlineBlur(this)">${it.note}</textarea>
+      </div>
+    </div>
+
+    ${it.equipId ? `<div class="section-card">
+      <div class="form-field protected" data-field="equipment">
+        <span class="field-label">Equipment</span>
+        <span class="field-value">${it.equipId} — ${it.equipDesc || ''}</span>
+      </div>
+    </div>` : ''}
+
+    <div class="rv-section">
+      <div class="rv-toggle-row" onclick="rvToggle('comments')">
+        <div class="rv-toggle-left">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="rv-toggle-title">Comments</span>
+        </div>
+        <div class="rv-toggle-right">
+          <span class="rv-badge" id="itemCommentsBadge">${it.comments.length}</span>
+          <svg class="rv-chev" id="rv-chev-comments" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="rv-collapse" id="rv-comments"><div id="itemCommentsMount"></div></div>
+    </div>
+
+    <div class="rv-section">
+      <div class="rv-toggle-row" onclick="rvToggle('documents')">
+        <div class="rv-toggle-left">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="rv-toggle-title">Documents</span>
+        </div>
+        <div class="rv-toggle-right">
+          <span class="rv-badge" id="itemDocumentsBadge">${it.documents.length}</span>
+          <svg class="rv-chev" id="rv-chev-documents" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="rv-collapse" id="rv-documents"><div id="itemDocumentsMount"></div></div>
+    </div>
+    <div style="height:16px;"></div>`;
+
+  document.getElementById('focusWrap').innerHTML = html;
+
+  // Rebind the shared record-level Comments/Documents data to this item.
+  COMMENTS_DATA = it.comments;
+  DOCUMENTS_DATA = it.documents;
+  renderCommentsExcerptMount();
+  renderDocumentsExcerptMount();
+
+  document.getElementById('prevBtn').disabled = cursor === 0;
+  const isLast = cursor === ITEMS.length - 1;
+  document.getElementById('nextBtn').innerHTML = isLast
+    ? 'Finish'
+    : 'Next <svg width="16" height="16" fill="none" viewBox="0 0 24 24" style="margin-left:4px"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  renderStepperHead();
+  updateFooter();
+}
+
+// Prompt bar replaces the Prev/Next nav once every required item is
+// complete AND you've reached the last item — see the header comment
+// for why this differs from v1's "any time requirements complete"
+// trigger.
+function updateFooter() {
+  const req = ITEMS.filter(i => i.required);
+  const reqDone = req.filter(isDone).length;
+  const showPrompt = reqDone === req.length && cursor === ITEMS.length - 1;
+  document.getElementById('promptBar').classList.toggle('show', showPrompt);
+  document.getElementById('stepperNav').style.display = showPrompt ? 'none' : 'flex';
+}
+// Prompt bar *content* (design-decisions-v3-1.md §11-13, added
+// 2026-07-22) — built once per demo-WO change, not per updateFooter()
+// call, since it depends on the resolved workflow, not on checklist
+// progress. A workflow that doesn't include Issue Parts as a step (PM)
+// isn't a case of the technician choosing to skip it — the step doesn't
+// exist for this WO Type, so there's no real Yes/No decision left to
+// ask; the bar just confirms moving on to whatever the next configured
+// step actually is.
+function renderPromptBar() {
+  const includesIssueParts = !CURRENT_WORKFLOW || CURRENT_WORKFLOW.steps.includes('issueparts');
+  document.getElementById('promptBar').innerHTML = includesIssueParts
+    ? `<div class="prompt-question">Did you need to issue parts?</div>
+       <div class="prompt-seg">
+         <button class="prompt-seg-btn yes" onclick="promptAnswer(true)">Yes</button>
+         <div class="prompt-seg-divider"></div>
+         <button class="prompt-seg-btn no" onclick="promptAnswer(false)">No</button>
+       </div>`
+    : `<div class="prompt-question">Ready to continue</div>
+       <div class="prompt-seg">
+         <button class="prompt-seg-btn yes" style="flex:1" onclick="promptAnswer(false)">Continue to Book Labor</button>
+       </div>`;
+}
+
+function jumpTo(idx) { closeAllSheets(); cursor = idx; renderFocus(); }
+function goPrev() { if (cursor > 0) { closeAllSheets(); cursor--; renderFocus(); } }
+function goNext() {
+  closeAllSheets();
+  if (cursor < ITEMS.length - 1) { cursor++; renderFocus(); return; }
+  const req = ITEMS.filter(i => i.required);
+  if (req.filter(isDone).length < req.length) showToast('Complete all required items first');
+}
+function setCheck() { const it = ITEMS[cursor]; it.value = !it.value; if (it.dynamicRules) syncDynamicChildren(it); renderFocus(); }
+function setToggle(label, cls) { const it = ITEMS[cursor]; it.value = label; if (it.dynamicRules) syncDynamicChildren(it); renderFocus(); }
+function setNum(el) { const it = ITEMS[cursor]; it.value = el.value; if (it.dynamicRules) syncDynamicChildren(it); renderStepperHead(); updateFooter(); }
+function setText(el) { const it = ITEMS[cursor]; it.value = el.value; if (it.dynamicRules) syncDynamicChildren(it); renderStepperHead(); updateFooter(); }
+function setNote(el) { ITEMS[cursor].note = el.value; }
+function toggleFollowup() { ITEMS[cursor].followup = !ITEMS[cursor].followup; renderFocus(); }
+function createFollowupWO() { showToast('Creating follow-up work order — coming soon'); }
+
+// ─── "VIEW ALL" — the escape hatch back to an at-a-glance list, and the
+// only navigation that scales to a large checklist. ──────────────────
+function openOverview() {
+  let html = '';
+  let lastGroup = null;
+  ITEMS.forEach((it, idx) => {
+    if (it.group !== lastGroup) { html += `<div class="ov-group-hdr">${GROUP_NAMES[it.group]}</div>`; lastGroup = it.group; }
+    html += `<div class="ov-row ${it.dynamic ? 'ov-row-indent' : ''}" onclick="jumpTo(${idx}); closeOverview();">
+      ${it.dynamic ? `<span class="ov-dynamic-icon" title="Added dynamically">${BRANCH_ICON}</span>` : ''}
+      <span class="ov-status-dot ${dotClass(it).replace('done-','')}"></span>
+      <span class="ov-label">${idx+1} — ${it.label}</span>
+      ${it.required ? '<span style="color:var(--orange);font-weight:700;font-size:12px;">*</span>' : ''}
+      ${it.dynamicRules ? `<span class="ov-branch-cue" title="May add follow-up items">${BRANCH_ICON}</span>` : ''}
+    </div>`;
+    // Ghost placeholder — previews an as-yet-untriggered branch. Only
+    // shows while no children are currently active for this trigger;
+    // disappears the instant a real answer inserts (or removes) them.
+    if (it.dynamicRules && !ITEMS.some(x => x.dynamicParentId === it.id)) {
+      html += `<div class="ov-row ov-row-indent ov-row-ghost">
+        <span class="ov-ghost-icon">${LOCK_ICON}</span>
+        <span class="ov-label ov-label-ghost">More items may appear based on your answer</span>
+      </div>`;
+    }
+  });
+  document.getElementById('overviewBody').innerHTML = html;
+  document.getElementById('overviewOverlay').classList.add('open');
+}
+function closeOverview() { document.getElementById('overviewOverlay').classList.remove('open'); }
+
+// ─── PROMPT BAR (Yes/No — design-decisions-v3-1.md §14.6). Real
+// navigation as of 2026-07-22 (was a toast stub) — same sessionStorage
+// hand-off eam-wo-prototype-issue-parts-v1.html's own Next button already
+// uses, so Book Labor's arrival banner/Add-Labor auto-open (§18.7) fires
+// correctly whichever step actually preceded it. ──────────────────────
+function promptAnswer(issuedParts) {
+  sessionStorage.setItem('eamArrivedViaNextStep', 'true');
+  window.location.href = issuedParts ? WO_STEP_FILES.issueparts : WO_STEP_FILES.booklabor;
+}
+
+/* Demo-WO workflow hook (design-decisions-v3-1.md §11-13, added
+   2026-07-22) — called by cycleDemoWo() (eam-shared.js) and once at init. */
+let CURRENT_WORKFLOW = null;
+function onDemoWoChanged() {
+  const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
+  CURRENT_WORKFLOW = resolveWoWorkflow(jobType);
+  applyDemoWoIdentity();
+  renderStepRail(CURRENT_WORKFLOW, 'checklist');
+  renderPromptBar();
+}
+
+/* ── init ── */
+renderFocus();
+onDemoWoChanged();
+initSharedApp({ contentSelector: '.content' });
+</script>
+</body>
+</html>

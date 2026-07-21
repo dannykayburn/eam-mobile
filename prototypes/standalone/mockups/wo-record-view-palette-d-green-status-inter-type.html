@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Palette D — Green Status + Unified Inter Type</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  COLOR-PALETTE MOCKUP — "D: Green Status + Unified Inter Type"
+  (2026-07-22, scratchpad, self-contained, NOT wired to eam-shared.css/.js).
+  4th of the WO Record View palette explorations — builds directly on
+  Palette C (wo-record-view-palette-c-monochrome-canvas.html), which the
+  user reacted positively to (along with B), by request:
+
+  1. STATUS PILL NOW SHOWN FILLED GREEN by default (was defaulting to the
+     neutral/outline "In Progress" state in A/B/C, which never showed off
+     the solid-fill green treatment). Still cycles through all 4 states
+     via the same tap-to-cycle demo hook.
+
+  2. MONOSPACE IS BACK for identifiers (WO number, equipment code, activity
+     codes, org code) — reverted per user direction, same 2nd round. The
+     `.ident` class (below) went from "Inter + tabular-nums" back to
+     `font-family: var(--font-mono)`. Kept from the original complaint:
+     mono is still ALWAYS gray/black/white here, never tinted purple/
+     orange/green like the live app does today — that's the part worth
+     keeping regardless of which typeface identifiers use.
+
+  3. THE "2 REQUIRED" BADGE IS STILL JUST THE NUMBER (unaffected by #2 —
+     `.req-count` is a plain digit, not a "code," so it stays on Inter,
+     not mono). Small rounded-SQUARE, red fill, the digit only, per the
+     "square reads as count, pill reads as tag" reasoning from the last
+     round.
+
+  4. CODES ARE BACK on the Work order details fields (Department/Assigned
+     To/Reported By/Problem Code) — these are LOV fields, and the real
+     app's own `fieldRowLov()` (eam-shared.js) always paired a small mono
+     code above a plain-weight description; this mockup had dropped the
+     code line for the sake of the palette gut-check. Restored via the
+     same stacked `.field-lov-code`/`.field-lov-desc` shape as the real
+     component (code small/mono/gray on top, description normal-weight
+     below, both right-aligned). Date Reported isn't an LOV field (no
+     code to show), so it's unchanged.
+
+  5. ICONS ARE NOW OUTLINED, NOT GRAY-FILLED — the equipment icon box,
+     the Type/Priority badge chips, the org pill (top header), and the
+     Comments/Documents count squares all dropped their `--bg-section`
+     gray fill for a transparent background + a 1.5px border instead.
+     Reasoning: a gray-filled box reads as "a colored surface," which is
+     exactly the kind of low-grade visual noise this whole exercise is
+     trying to remove — an outline still frames the icon/count without
+     adding a filled shape to the page. The red `.req-count` badge is
+     deliberately NOT included in this — that's one of the 3 fixed color
+     instruments (§ this file's legend), not a gray fill, so it stays solid.
+-->
+<style>
+:root{
+  --ink:#1A1A1F; --ink-soft:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --good:#00AA14; --bad:#E24B4A;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-nav:#1A1A1F; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--ink);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:390px;width:100%;color:#fff;font-size:12px;line-height:1.5;margin-bottom:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;}
+.legend b{color:#fff;}
+.legend .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle;}
+.app{max-width:390px;width:100%;background:var(--bg-page);border-radius:20px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+
+/* ── Identifier treatment — mono again (reverted, see header note #2).
+   Always gray/black/white — the original complaint was colored mono,
+   not mono itself, and this still never colors it. ── */
+.ident{font-family:var(--font-mono);letter-spacing:.2px;font-weight:600;}
+
+.nav{height:52px;background:var(--bg-nav);display:flex;align-items:center;justify-content:space-between;padding:0 12px;}
+.nav-left{display:flex;align-items:center;gap:8px;}
+.nav-back{background:none;border:none;color:#fff;padding:0;cursor:pointer;display:flex;}
+.proto-label{font-size:9px;font-weight:700;letter-spacing:.5px;color:var(--gray-3);text-transform:uppercase;}
+.nav-title{color:#fff;font-size:14px;font-weight:600;}
+.sync-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.06);color:var(--good);font-size:11px;font-weight:600;}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--good);}
+
+.rec-header{background:var(--bg-nav);padding:14px 14px 12px;}
+.rec-id-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.rec-num{font-size:20px;color:#fff;}
+.rec-desc{color:#fff;font-size:14px;font-weight:600;margin-top:2px;}
+.rec-actions{display:flex;gap:4px;flex-shrink:0;}
+.icon-btn{width:30px;height:30px;border-radius:8px;background:none;border:none;color:var(--gray-3);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.icon-btn.pinned{color:#fff;}
+.rec-status-row{display:flex;align-items:center;gap:8px;margin-top:12px;}
+.status-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:8px;font-size:14px;font-weight:700;border:none;cursor:pointer;font-family:var(--font-sans);}
+.status-btn.good{background:var(--good);color:#fff;}
+.status-btn.bad{background:var(--bad);color:#fff;}
+.status-btn.neutral{background:none;border:1.5px solid rgba(255,255,255,.35);color:#fff;}
+.org-pill{margin-left:auto;display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:7px;background:none;color:var(--gray-2);font-size:12px;border:1.5px solid rgba(255,255,255,.35);}
+
+.step-rail{background:var(--bg-card);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;}
+.step-name{font-size:13px;font-weight:600;color:var(--ink);}
+.step-chev{color:var(--gray-4);}
+.step-segments{display:flex;gap:4px;padding:0 14px 10px;}
+.seg{flex:1;height:3px;border-radius:2px;background:var(--gray-2);}
+.seg.active{background:var(--ink);}
+
+.content{padding:12px 0 4px;}
+.card{margin:0 12px 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.card-title-row{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;}
+.card-title{font-size:14px;font-weight:600;color:var(--ink);}
+
+/* ── Required-count badge — LOCKED as of this pass: outline square,
+   no fill. Was solid-fill red (see the "1. Old default" comparison row
+   below, which keeps `.filled` around only to show what that looked
+   like) — outline reads lighter and matches the same "outline, not
+   filled" rule already applied to every icon/chip on this screen. ── */
+.req-count{width:20px;height:20px;border-radius:6px;background:none;border:1.5px solid var(--bad);color:var(--bad);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.req-count.filled{background:var(--bad);border-color:var(--bad);color:#fff;}
+.req-count.opt-outline-pill{border-radius:999px;}
+.req-count-cluster{display:inline-flex;align-items:center;gap:5px;}
+.req-count-dot{width:7px;height:7px;border-radius:50%;background:var(--bad);flex-shrink:0;}
+.req-count-cluster .req-count-num{font-size:12px;font-weight:700;color:var(--ink);}
+.req-opt-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid var(--border);}
+.req-opt-row:first-child{border-top:none;}
+.req-opt-label{font-size:12px;color:var(--gray-4);}
+
+.equip-card{display:flex;align-items:center;gap:12px;padding:12px 14px;}
+.equip-icon{width:38px;height:38px;border-radius:9px;background:none;border:1.5px solid var(--border-strong);color:var(--ink-soft);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.equip-desc{font-size:14px;font-weight:700;color:var(--ink);}
+.equip-meta{font-size:12px;color:var(--gray-4);margin-top:2px;}
+.equip-type{font-size:11px;font-weight:600;color:var(--gray-4);margin-top:2px;}
+.equip-chev{margin-left:auto;color:var(--gray-4);}
+
+.badge-row{display:flex;border-top:1px solid var(--border);}
+.badge-cell{flex:1;padding:10px 14px;position:relative;}
+.badge-cell + .badge-cell{border-left:1px solid var(--border);}
+.badge-cell.required::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--bad);}
+.badge-label{font-size:11px;color:var(--gray-4);display:block;margin-bottom:5px;}
+.badge-val{display:flex;align-items:center;gap:7px;}
+.badge-chip{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:none;border:1.5px solid var(--border-strong);color:var(--ink);}
+.badge-chip.crit-red{background:var(--bad);border-color:var(--bad);color:#fff;}
+.badge-text{font-size:13px;font-weight:600;color:var(--ink);}
+.compare-row{padding:12px 14px;border-top:1px solid var(--border);}
+.compare-row-label{font-size:11px;color:var(--gray-4);margin-bottom:8px;display:block;}
+.compare-pair{display:flex;gap:22px;}
+
+.field-row{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-top:1px solid var(--border);position:relative;}
+.field-row.required::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--bad);}
+.field-label{font-size:13px;color:var(--gray-4);}
+.field-value{font-size:13px;font-weight:600;color:var(--ink);}
+.field-value.muted{color:var(--gray-4);font-weight:500;}
+.field-lov-value{display:flex;flex-direction:column;align-items:flex-end;gap:1px;}
+.field-lov-code{font-size:11px;font-weight:600;color:var(--gray-4);line-height:1.2;}
+.field-lov-desc{font-size:13px;font-weight:600;color:var(--ink);line-height:1.3;}
+
+/* ── Activities row — radio now vertically centered on the row itself
+   (align-items:center, no more manual margin-top offset that only
+   worked for one specific line count). ── */
+.act-item{display:flex;align-items:center;gap:12px;padding:13px 14px;border-top:1px solid var(--border);cursor:pointer;position:relative;}
+.act-item:first-child{border-top:none;}
+.act-radio{width:19px;height:19px;border-radius:50%;border:1.5px solid var(--border-strong);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.act-item.selected{background:var(--bg-section);}
+.act-item.selected::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--ink);}
+.act-item.selected .act-radio{border-color:var(--ink);background:var(--ink);}
+.act-radio svg{display:none;}
+.act-item.selected .act-radio svg{display:block;}
+/* Bulky standalone activity number — was the small mono "Activity 10"
+   caption; now its own large bold mono leading element. */
+.act-num-big{font-size:22px;font-weight:700;color:var(--ink);flex-shrink:0;width:34px;text-align:center;}
+.act-body{flex:1;min-width:0;}
+.act-note{font-size:13px;font-weight:600;color:var(--ink);line-height:1.35;}
+.act-item.selected .act-note{font-weight:700;}
+.act-meta-block{margin-top:0;}
+.has-note .act-meta-block{margin-top:7px;}
+/* Option A — grid-cell pair, matches the Type/Priority badge-row above. */
+.meta-grid-a{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.meta-cell-a{flex:1;padding:7px 10px;}
+.meta-cell-a + .meta-cell-a{border-left:1px solid var(--border);}
+.meta-cell-label{font-size:10px;color:var(--gray-4);display:block;margin-bottom:3px;}
+.trade-code{font-size:10px;color:var(--gray-4);display:block;}
+.trade-desc{font-size:12px;font-weight:600;color:var(--ink);}
+.date-val{font-size:12px;font-weight:600;color:var(--ink);}
+/* Option C — outlined chips, matching this screen's outline-icon rule. */
+.meta-chips-c{display:flex;gap:8px;flex-wrap:wrap;}
+.chip-c{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:999px;border:1.5px solid var(--border-strong);font-size:11px;color:var(--ink);}
+.chip-c .trade-code{color:var(--gray-4);}
+
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;}
+.toggle-left{display:flex;align-items:center;gap:9px;color:var(--gray-4);}
+.toggle-title{font-size:14px;font-weight:600;color:var(--ink);}
+.count-badge{width:18px;height:18px;border-radius:5px;font-size:11px;font-weight:700;background:none;color:var(--gray-4);border:1.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;}
+
+.bottom-bar{padding:12px 14px 16px;}
+.bar-pill{width:100%;height:46px;border-radius:100px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:700;border:none;cursor:pointer;font-family:var(--font-sans);}
+.bar-pill.locked{background:var(--gray-2);color:var(--gray-4);}
+.bar-pill.ready{background:var(--ink);color:#fff;}
+</style>
+</head>
+<body>
+
+<div class="legend">
+  <b>Palette D — 3rd pass.</b> Two decisions now LOCKED: Critical priority earns the red exception (see the comparison card — Palette B's rule wins over full monochrome), and the required-count badge is the <b>outline square, no fill</b> (option 2 of 4, marked below) — same "outlined, not filled" language as every icon/chip on this screen already uses. Also new this pass: the Activities section now shows <b>Option A and Option C</b> from the separate activity-selector exploration, rendered in this screen's real colors — radio truly centered, "Activity 10" → a bulky standalone <b>10</b>, Trade (code+desc) and Start Date always render, the note collapses cleanly when null (see Activity 20 in both).<br><br>
+  <span class="sw" style="background:#00AA14"></span>green (filled — status/sync)
+  <span class="sw" style="background:#E24B4A"></span>red (required + blocked)
+  <span class="sw" style="background:#B2B8C4;border:1px solid #888"></span>everything else stays gray/black/white
+</div>
+
+<div class="app">
+  <header class="nav">
+    <div class="nav-left">
+      <button class="nav-back"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <span class="proto-label">PROTOTYPE</span>
+    </div>
+    <div class="nav-title">Work Orders</div>
+    <div class="sync-pill"><span class="sync-dot"></span>Synced</div>
+  </header>
+
+  <div class="rec-header">
+    <div class="rec-id-row">
+      <div>
+        <div class="rec-num ident">19257</div>
+        <div class="rec-desc">Pump Cavitating; lost head</div>
+      </div>
+      <div class="rec-actions">
+        <button class="icon-btn pinned"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22h1v-5h-1z"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg></button>
+        <button class="icon-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button>
+      </div>
+    </div>
+    <div class="rec-status-row">
+      <button class="status-btn good" id="statusBtn" onclick="cycleStatus()">Released</button>
+      <button class="org-pill ident">FBPP</button>
+    </div>
+  </div>
+
+  <div class="step-rail">
+    <div class="step-name">WO Record View</div>
+    <svg class="step-chev" width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <div class="step-segments">
+    <div class="seg active"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div>
+  </div>
+
+  <div class="content">
+    <div class="card">
+      <div class="equip-card">
+        <div class="equip-icon"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div>
+          <div class="equip-desc">Pump, Centrifugal</div>
+          <div class="equip-meta ident">00067333</div>
+          <div class="equip-type">Asset</div>
+        </div>
+        <svg class="equip-chev" width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="badge-row">
+        <div class="badge-cell required">
+          <span class="badge-label">Type</span>
+          <div class="badge-val"><span class="badge-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span><span class="badge-text">Corrective Maintenance</span></div>
+        </div>
+        <div class="badge-cell">
+          <span class="badge-label">Priority</span>
+          <div class="badge-val"><span class="badge-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="5,15 12,8 19,15"/></svg></span><span class="badge-text">High</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRIORITY COMPARISON — not part of the real screen, added on request
+         to directly answer the open B-vs-C fork: does Critical priority
+         deserve to borrow the red budget, or should it stay monochrome
+         like everything else on this screen? Same chevron/flame icon
+         shapes the real TYPE_META/PRIORITY_META already use — only the
+         chip fill changes between rows. -->
+    <div class="card">
+      <div class="card-title-row"><span class="card-title">Priority comparison — High vs. Critical</span></div>
+      <div class="compare-row">
+        <span class="compare-row-label">Monochrome (current Palette D/C rule)</span>
+        <div class="compare-pair">
+          <div class="badge-val"><span class="badge-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="5,15 12,8 19,15"/></svg></span><span class="badge-text">High</span></div>
+          <div class="badge-val"><span class="badge-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-7 7 7 7 0 01-7-7c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg></span><span class="badge-text">Critical</span></div>
+        </div>
+      </div>
+      <div class="compare-row">
+        <span class="compare-row-label">Critical gets red (Palette B's exception)</span>
+        <div class="compare-pair">
+          <div class="badge-val"><span class="badge-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="5,15 12,8 19,15"/></svg></span><span class="badge-text">High</span></div>
+          <div class="badge-val"><span class="badge-chip crit-red"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-7 7 7 7 0 01-7-7c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg></span><span class="badge-text">Critical</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REQUIRED-BADGE OPTIONS — not part of the real screen, added on
+         request to compare the "2 required" indicator's own treatment:
+         current solid fill vs. outline vs. a couple other ideas. -->
+    <div class="card">
+      <div class="card-title-row"><span class="card-title">Required badge — options</span></div>
+      <div class="req-opt-row">
+        <span class="req-opt-label">1. Old default — solid fill (retired)</span>
+        <span class="req-count filled ident">2</span>
+      </div>
+      <div class="req-opt-row">
+        <span class="req-opt-label">2. Outline square — ✓ locked, now the default</span>
+        <span class="req-count ident">2</span>
+      </div>
+      <div class="req-opt-row">
+        <span class="req-opt-label">3. Outline pill</span>
+        <span class="req-count opt-outline-pill ident">2</span>
+      </div>
+      <div class="req-opt-row">
+        <span class="req-opt-label">4. Dot + plain numeral</span>
+        <span class="req-count-cluster"><span class="req-count-dot"></span><span class="req-count-num ident">2</span></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title-row">
+        <span class="card-title">Work order details</span>
+        <span class="req-count ident">2</span>
+      </div>
+      <div class="field-row required">
+        <span class="field-label">Department</span>
+        <div class="field-lov-value">
+          <span class="field-lov-code ident">WATER</span>
+          <span class="field-lov-desc">Water Utility</span>
+        </div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Assigned To</span>
+        <div class="field-lov-value">
+          <span class="field-lov-code ident">BCAMPBELL</span>
+          <span class="field-lov-desc">Bruce Campbell</span>
+        </div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Reported By</span>
+        <div class="field-lov-value">
+          <span class="field-lov-code ident">DKILBURN</span>
+          <span class="field-lov-desc">Danny Kilburn</span>
+        </div>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Date Reported</span>
+        <span class="field-value muted ident">11/07/2025</span>
+      </div>
+      <div class="field-row required">
+        <span class="field-label">Problem Code</span>
+        <div class="field-lov-value">
+          <span class="field-lov-code ident">MECH</span>
+          <span class="field-lov-desc">Mechanical</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVITIES — showing Option A and Option C side by side per
+         request (from the separate activity-selector-options.html
+         exploration), in this screen's real colors/typography. Activity
+         10 has a note; Activity 20 doesn't, to show the collapse. -->
+    <div class="card">
+      <div class="card-title-row"><span class="card-title">Activities — Option A (grid cell)</span></div>
+      <div class="act-item selected has-note" onclick="toggleAct(this)">
+        <div class="act-radio"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="act-num-big ident">10</div>
+        <div class="act-body">
+          <div class="act-note">Pump overhaul — bearing replacement</div>
+          <div class="act-meta-block">
+            <div class="meta-grid-a">
+              <div class="meta-cell-a"><span class="meta-cell-label">Trade</span><span class="trade-code ident">MECH</span><span class="trade-desc">Mechanical</span></div>
+              <div class="meta-cell-a"><span class="meta-cell-label">Start Date</span><span class="date-val ident">11/07/2025</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="act-item" onclick="toggleAct(this)">
+        <div class="act-radio"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="act-num-big ident">20</div>
+        <div class="act-body">
+          <div class="act-meta-block">
+            <div class="meta-grid-a">
+              <div class="meta-cell-a"><span class="meta-cell-label">Trade</span><span class="trade-code ident">TECH</span><span class="trade-desc">Technician</span></div>
+              <div class="meta-cell-a"><span class="meta-cell-label">Start Date</span><span class="date-val ident">11/07/2025</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title-row"><span class="card-title">Activities — Option C (outlined chips)</span></div>
+      <div class="act-item selected has-note" onclick="toggleAct(this)">
+        <div class="act-radio"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="act-num-big ident">10</div>
+        <div class="act-body">
+          <div class="act-note">Pump overhaul — bearing replacement</div>
+          <div class="act-meta-block">
+            <div class="meta-chips-c">
+              <span class="chip-c"><span class="trade-code ident">MECH</span> Mechanical</span>
+              <span class="chip-c ident">11/07/2025</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="act-item" onclick="toggleAct(this)">
+        <div class="act-radio"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="act-num-big ident">20</div>
+        <div class="act-body">
+          <div class="act-meta-block">
+            <div class="meta-chips-c">
+              <span class="chip-c"><span class="trade-code ident">TECH</span> Technician</span>
+              <span class="chip-c ident">11/07/2025</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="toggle-row">
+        <div class="toggle-left"><svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="toggle-title">Comments</span></div>
+        <span class="count-badge ident">3</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="toggle-row">
+        <div class="toggle-left"><svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="toggle-title">Documents</span></div>
+        <span class="count-badge ident">4</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <button class="bar-pill ready" id="barPill" onclick="toggleBar()"><svg width="15" height="15" fill="none" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Start Work</button>
+  </div>
+</div>
+
+<script>
+function toggleAct(el){el.parentElement.querySelectorAll('.act-item').forEach(a=>a.classList.remove('selected'));el.classList.add('selected');}
+function toggleBar(){const b=document.getElementById('barPill');b.classList.toggle('ready');b.classList.toggle('locked');b.innerHTML=b.classList.contains('ready')?'<svg width="15" height="15" fill="none" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Start Work':'Select an activity to start';}
+const STATUSES=[{t:'Released',c:'good'},{t:'In Progress',c:'neutral'},{t:'Completed',c:'good'},{t:'On Hold',c:'bad'}];
+let si=0;
+function cycleStatus(){si=(si+1)%STATUSES.length;const b=document.getElementById('statusBtn');b.className='status-btn '+STATUSES[si].c;b.textContent=STATUSES[si].t;}
+</script>
+</body>
+</html>

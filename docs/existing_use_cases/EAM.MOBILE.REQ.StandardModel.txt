@@ -1,0 +1,346 @@
+CHANGE HISTORY
+Rev.DateAuthorChange Reference113-Apr-2026Brett RainesRefreshed for v12.4213-Apr-2026Brett RainesSG-19847: Note menu structure more clearly including icon color highlight.302-Jun-2026Brett RainesSG-20519: Add additional information concerning logging done to SUMO to record mobile screen usage.404-Jun-2026Brett RainesSG-20519: Move rev. 3 changes to Supplemental Requirements.
+REVIEWS
+Rev.DateReviewed ByTitle408-Jun-2026Jacqueline JohnsonPeer Reviewer
+1.0 
+Brief Description 
+This usecase describes the standard model for EAM Mobile. 
+2.0 Expected End User
+Everyone
+3.0 Exceptions to Standard Model
+None
+4.0 Entry Points
+Unique to each case 
+5.0 Oracle Forms Functionality
+None
+6.0 Basic Flow Assumptions
+User is authorized to use Mobile. See EAM.MOBILE.REQ.Login for more information on Mobile login.
+MOBQUERY = CONTAINS
+MOBTMOUT is OFF
+Allow Mobile Sync Configuration is checked
+MOBSCNCP is not NO
+MOBCCPST is not NO
+MOBSHARE is not NO
+MOBRQPAS is not YES
+DWOLINK is OFF
+7.0 Basic Flow (List View/Record View form)
+1. When user logs into the device, the system will open in a Map View
+2. The user has the option to choose the following screens from the menu:
+* Map View
+* Work Order
+* Equipment
+* Work Request
+* Work Order Schedule
+* Asset Inventory
+* Physical Inventory (Hidden by default)
+* Physical Inventory – CONNECTED
+* Batch Book Labor
+* Hours Worked
+* Breadcrumbs
+* Operator Checklist
+* PO Receipts
+* Receive Assets
+* Work Order – Checklist
+* Notebook
+* Permit to Work
+* Permit to Work Safety
+* Replace Physical Meter
+* Facetime
+* Settings: Refer to EAM.MOBILE.REQ.Settings for all other applicable points in the basic flow
+* Sync Data
+* Logout
+
+8.0 Alternate Flows
+8.1 User selects a screen on the menu
+If the user selects a screen on the menu, then the view will switch to the screen for the selected record. 
+
+8.2 User clicks on Settings
+Refer to EAM.MOBILE.REQ.Settings for details.
+
+8.3 User clicks on Sync Data
+This will initiate a Full Sync of the data with the EAM Database.
+
+If MOBREALT is ‘ON’ or Mobile Auto Sync is defined and sync is already running, the system will not start a new sync, but show current sync progress and provide the user the option to cancel or wait via a YES/NO message.
+Click-Triggered message: "Background sync is running. Do you want to continue?" 
+Yes/No buttons: If “Yes” then the system will cancel the background sync and launch the manual sync process. If “No” then the system will do nothing.
+If the background sync has pending records which are being uploaded the user will not be able to reset the sync until this completes and the system will display a toast message:
+Click-Triggered Error: “Upload is in progress, please try again later.”
+Once the upload is completed the user will then be able to reset the sync process if background sync is in progress.
+8.4 User clicks Logout
+This will log the user out of the app, back to the login screen.
+
+8.5 Barcode/Scan Functionality
+When the user opens the keyboard form on the iOS device, a ‘Scan’ option will be available which will let the user scan barcode for easy data entry. This option will be available every time the user opens the keyboard form for data entry. On Android devices, this will appear as a ‘Icon’ on the search bar, in select screens and lookups.
+
+NOTE: When a QR code containing multiple lines of text is scanned, the system automatically removes all line breaks (carriage returns) and replaces them with spaces, formatting the content into a single continuous line for the selected field. 
+
+8.6 User Touches NFC Icon
+The user will have the ability to scan NFC tags as an additional form of easy data entry. NDEF Specification will be the supported format. The NFC icon will display (when available) next to the Barcode icon, see Barcode/Scan Functionality for OS differences.
+
+8.6.1 And the User Does Not Have NFC Scanning Enabled
+The system will prompt the user to change settings:
+                               
+NFC Chip Disabled – To user NFC, please enable your device’s NFC chip.
+
+Cancel: The system closes this message window, and the user does not have permissions to perform an NFC scan.
+                             
+Open Settings: The system opens the device’s settings, to enable NFC scanning. 
+
+Note: NFC cannot be disabled in certain iOS versions.
+
+8.6.2 And the User Has NFC Scanning Enabled
+    The system will open an NFC scanning window with the following message: 
+
+                           	Ready to Scan – Hold your device near the NFC tag to scan.   
+                                         
+                              	The system will Check if the NFC tag is within scanning vicinity of the device.
+If not, the NFC scanning window do nothing – i.e., no value returned. The user can touch cancel to close this window anytime. If left open, it will timeout and close after a certain time. 
+                               
+                             	Timeout Scenario:
+                                
+                             	Android: There is no timeout, and the NFC scanning window will remain open.
+                             	iOS: The NFC scanning window will timeout after a certain time (determined by the OS).
+
+8.6.3 And Data Exists on the Tag
+    Is NDEF Specification without any data: 
+If no data exists on the tag, the system will return the tag ID to the search bar. 
+
+    Is NDEF Specification with data: See alternate flow NDEF specification tag with data.
+
+    Is not NDEF specification: The system will do nothing
+
+8.6.4 NDEF Specification Tag with Data
+But data is not valid – i.e., the data has nested images, complex objects, non-sequential JSON’s etc...Then system does nothing - – i.e., no value will be returned, and the NFC window will close . There might be some scenarios where the data might look invalid – i.e., it’s not a STRING, but upon scanning, the system will retrieve data as is, and populate it in the search bar. The NFC scanning on the device is not fully cognizant of the data in the NFC tag, so in some scenarios, there might be data returned, and in some scenarios, there might be none. 
+
+
+But data is valid – i.e., the data is of type STRING. Then the system will populate the data of the NFC tag as is, into the search bar.
+
+Note: If valid multiple records exist within the tag, the system will read the first record only.
+
+8.7 Install Parameter MOBQUERY is set to EQUALS
+The LOV search bars will immediately execute the search after a successful scan.
+* If only one record is returned select the one record and close the LOV
+* If multiple records are returned, keep LOV open
+* If the LOV is populated via scanning a barcode, EQUALS query will run (then previous two steps are considered)
+* If an incomplete value is entered, a CONTAINS search will run
+
+8.8 User clicks the clear button within the record search box
+Button has been added to allow a user to clear the entire entry.
+
+8.9 MOBTMOUT is Enabled
+* System will log user out to a ‘quick login’ screen when the user is inactive for the designated time.
+* If user logs back in from the ‘quick login’, system will return to the last screen the user was accessing.
+* Auto Sync will not be interrupted if it is running prior to user timeout.
+* System will not start a new Auto Sync if timeout has occurred.
+* Quick Login screen will have a “Switch User” button, system will revert to standard login and will not return to the last screen in this case.
+
+8.10 Custom Field has a Status Requirement setting applied
+System will validate the record and trigger an error if the required custom field is not populated.
+Save Triggered Error: “Custom Field(s) is required”
+System will require Custom Field(s) to be populated based on setting applied, see Status Requirement Settings. Setting only applies to EVNT and NOCF entity screens.
+ 
+8.11 Allow Mobile Sync Configuration is unchecked
+System will display the Configure Dataspy panel instead of the Sync Configuration panel.
+
+8.12 MOBSCNCP is NO
+System will prevent the mobile device from using screen capture within the EAM mobile applications.
+
+8.13 MOBCCPST is NO
+System will prevent the mobile device from being able to copy and paste from within the EAM mobile applications.
+
+8.14 MOBSHARE is NO
+The system will prevent printing and sharing from within the EAM mobile applications.
+
+8.15 MOBRQPAS is YES
+The system will log the user out to a ‘quick login’ screen if the use changes focus to another application. The system will return to the last screen the user was accessing. 
+
+8.16 System loses GPS and/or Network Connectivity
+In the event the device loses connection to the GPS signal or Network Connectivity (cellular and Wi-Fi), the device will record the last known GPS coordinates of the device (x, y, z) as well as the date and time. In the event when the device reacquires the GPS signal or Network Connectivity, the system will also record the GPS coordinates (x, y, z) as well as the date and time the signal was re-established. 
+
+The following checkboxes will show what signal was lost, the default value for these is unchecked:
+* Network Lost would trigger checked if both cellular and Wi-Fi signals cannot be acquired.
+* GPS Lost would trigger checked if the GPS signal cannot be acquired, then the last known location would be used for this entry in the Breadcrumbs table.
+
+8.17 List View Search bar
+If the user enters more than one field value in the search bars the system will search based on the order in which the records are listed. Values must be comma separated, otherwise the system will search based on single field value. Example: WO#, WO Type (432345, BRKD). The following List Views will be affected by this change, see prospective use cases for what fields are searchable:
+* Work Order (Work Order, Work Order 2, Work Order 3)
+* Work Order on GIS Map
+* Nonconformity on GIS Map
+* Nonconformities
+* Equipment
+* Physical Inventory
+* Batch Book Labor
+* Operator Checklist
+* PO Receipt
+* Notebook
+* Permit to View
+
+8.18 User touches Add/Edit Comment
+This will shift view to the Comments panel. Existing Comments will be displayed.
+See EAM.MOBILE.REQ.Comments use case for details on behavior.
+Note: If the Comments panel is hidden, then the Icon will also be hidden. Additionally, if the Comments panel is read-only, then the system will jump to the Comments panel and further do nothing.
+
+8.19 User touches Add/Edit Document
+The system will display the following menu options:
+* Record a Video
+* Take a Picture
+* Photo and Video Library
+* Record a Voice Memo
+* Attach File
+
+For behavior associated with each option See EAM.MOBILE.REQ.Documents use case for details on behavior.
+
+The system will save the attachment to the Documents panel.
+
+Note: If the Document panel is hidden, the Icon will also be hidden. Additionally, if the Document panel is read-only, the system will jump to the Document panel and further do nothing.
+
+8.20 User Accesses the App via ‘Deep Link”
+Behavior if the user is NOT currently logged into Mobile Offline:
+When connecting to Mobile Offline via Deep Linking, if the user has not logged into Mobile Offline prior to linking over, and:
+* If LGNMOB is STD, and: 
+o if an initial sync has not been performed, then the system will not allow the user to login.
+Note that an active network connection is required in this case.
+o Else, if an initial sync has been performed, then the system will allow login.
+Note that if no active network connection exists, the data available will be limited due to what has already been synced to the device.
+* If LGNMOB is not STD, the system requires an active network connection to validate the user login if SSO is enabled. 
+
+Behavior if the user is currently logged into Mobile Offline (or has previously logged in and performed a full sync):
+The system will proceed to process the deep link query. See User Loses Network Connection and DWOLINK is Not OFF in EAM.DUX.REQ.StandardModel for examples for deep link formatting and expected behavior.
+
+8.21 User selects the ‘Open Digital Work’ from the main menu tray, DWOLINK is not ‘OFF’
+8.21.1 Digital Work is installed on device
+
+The system will display the following:
+
+Question message: “Do you want to open EAM Digital Work?”
+
+* Yes- The system will bring the user to EAM Digital Work. 
+* No- User returns to the previous view. 
+
+
+If user is currently on WCJOBS (or any copies thereof), deep link to Digital Work leveraging the WO record ID and the ‘Mobile Deep Link Mapped Screen’ field to locate the equivalent function of WSJOBS for DUX of the current WCJOBS (or clone) that the user has currently opened. 
+
+See EAM.ADMN.REQ.Screens and EAM.DUX.REQ.StandardModel for additional context. 
+
+8.21.2 Digital Work is NOT installed on device
+
+The system will display the following:
+
+Question message: “This device does not have EAM Digital Work installed. Would you like to install it now?”
+
+* Yes- The system will open relevant app store to EAM Digital Work application for user to download.
+* No- User returns to the previous view. 
+
+Please note that this warning is to be displayed in any event where Mobile Offline is attempting to open Digital Work, but Digital Work has not been downloaded to the device. 
+
+The ‘Open Digital Work’ menu item is hidden unless DWOLINK is not ‘OFF’. 
+
+8.22 EAM Mobile Offline is connected to a Leica device
+If the user is connected to a Leica location device, then the system will automatically pull any location information needed within the app from the Leica device. This will override any location services configurations defined in Settings. 
+Otherwise, the system will use the location services settings defined in Settings to acquire the device location. See design decision for Android devices.
+
+
+9.0 Design Decisions
+* Mobile compatibility scripts will reset all default dataspies back to default values.
+* If the User is ‘Checked’ as a Mobile Administrator, the value of the Allow Mobile Sync Configuration and Enable Mobile Restore User Data will be ignored. See Sync Config use case basic flow for Mobile Administrator behavior.
+* The Install Parameters MOBCCPST, MOBSHARE, MOBRQPAS, and MOBSCNCP values will be ignored if MDM is being used for these setting via the MDM AppConfig.
+* Due to limitations with Leica integration for Android devices additional steps must be taken for connection. The user must enable Mock Locations through Developer Options on the device settings first.
+* Reports will NOT work from Mobile because there is no way to access the temp database for mobile. Additionally, the reports are created from the Base EAM Reports server, so this information cannot be accessed from offline.
+
+
+
+
+10.0 Supplemental Requirements
+* When returning to the List View, the list will default to the last record selected and location in the list.
+* ANDROID ONLY: Device location is based on if the settings for Fused Location Provide, see EAM.MOBILE.REQ.Settings use case. 
+
+Entities Supported for UDF:
+If a UDF is an ‘Entity’ type lookup, then, the mobile device will check for the following: 
+
+MOBENTTY valueConnection Exists?Behavior of Custom field/ UDF configured as an Entity lookupYESYESGreen Dot indicating connection with server, and boiler text ‘Connected’ will show. The lookup will show a full list of system entity values, as per the selected entity lookup from the server. Note: Only show entity values, if it has been added to the mobile entities’ setup screen (EAM.ADMN.REQ.MobileEntitiesSetup)
+This does not include the following entities which will always show, whether it has been added to the mobile entities’ setup screen or not: CSTC, COMM, PERS, TRAD, CREW, EVNT, OBJ. If any one of these entity values have been added to the mobile entities’ setup screen, then show full list of values, else show the downloaded values. 
+YESNOGrey Dot indicating that there is no connection with server and boiler text ‘Disconnected’ will show. The lookup will look for 2 things before displaying the values:
+
+a. If the selected entity is either (CSTC, COMM, PERS, TRAD, CREW, EVNT, OBJ) then show values from the local table.
+
+b. If the selected entity is NOT one of the above, then show values downloaded from the Mobile Entities Setup screen, for the selected entity. Note: For this scenario, the mobile device will first check for all the entities added on the mobile entities’ setup screen (EAM.ADMN.REQ.MobileEntitiesSetup) and match it with the configured entity lookups for UDF and/or custom fields, to download values accordingly. This way, the download time will be fasterNO/Invalid/NULLNot applicableOnly the following entities will be supported :
+
+CSTC – Cost Codes
+COMM – Commodity Codes
+PERS - Employees
+TRAD - Trades
+CREW – Crews
+
+If a UDF lookup is configured for an entity other than CSTC, COMM, PERS, TRAD, CREW, EVNT, OBJ, then the mobile device will check whether that entity has been added to the mobile entities’ setup screen (EAM.ADMN.REQ.MobileEntitiesSetup). If the entity is not part of this screen, then the system will display an error when the lookup is opened: 
+
+Click Triggered Error: “The selected entity lookup value must be added to the Mobile System Entities Screen in base, for values for be downloaded/displayed onto the mobile device.”
+
+This above message will be shown for both connected and disconnected mode of the lookup. 
+
+Other points to consider: 
+
+1. When a new entity has been added after previous sync, all values for this entity should be synced. 
+2. When the value for an existing entity has been added, that value should be downloaded 
+3. When an existing entity has been deleted or a record for the entity is deleted, then clean up the value for mobile
+4. Org Security:  Only show records associated to Orgs that are in the user's org list. Additionally, compare the org of the header record to the orgs of the values in the list. If the header Org is common, then all records are displayed. If the header Org is specific, then all common org records are displayed plus all records belonging to the same specific Org as the header. 
+Users can create Dataspies inside the Entity LOVs in base, and these Dataspies are specific to the Screen (screen entity) and UDF field. This is not supported now.
+
+10.1 Menu
+* Screens listed in the menu are displayed with pre-configured icons. The menu icons for screens listed below are displayed using a highlight color, with the same color applied for menu icons of each of the following sets of screens:  
+* Work Order, Work Request, Work Order Schedule, Work Order - Checklist, Operator Checklist, Batch Book Labor, Hours Worked.
+* Equipment, Asset Inventory, Replace Physical Meter, Notebook.
+* Physical Inventory – CONNECTED, Physical Inventory.
+* PO Receipts, Receive Asset.
+* Permit to Work, Permit to Work Safety.
+* Map View
+
+   All other menu icons will not be displayed highlight color. 
+
+* The Sync Data and Logout options will be pinned to the bottom, under the scrollable menu.
+
+10.2 SUMO Logging for Screen Usage
+The system will log screen usage data to SUMO in order to capture screen access activity within Attune EAM Mobile Offline. It will capture the following information:
+
+           a. Prefix Identifier (for example, MOLOG) 
+           b. UserID 
+           c. Tenant 
+           d. Screen ID 
+           e. Date/time of screen access
+        
+Example output: 
+|MOLOG| |R5| |EAM_PRD| |WCJOBS| |2026-04-13 11:11:11|
+
+Note: If logging needs to be temporarily disabled, a hidden Install Parameter MOLOGOFF can be set        to 'YES'. This can be managed by the Cloud team.
+
+11.0 Lookup Definitions
+None
+12.0 Grid Definitions: 
+        None
+13.0 Additional Information
+13.1 Mobile Screen Permissions
+Mobile Screen Permissions are controlled within Base EAM from the User Group screen. The purpose of this screen is to give the Administrator the ability to control which panels within EAM Offline are available, additionally this tab is used to control individual panel permissions (Query, Insert, Update, Delete). 
+Note: The Checklist panel on the Mobile Screen Permissions tab, when Panel Available is unchecked the system will only hide the Checklist Approval panel in Mobile Offline because the Checklist screen is not stored in EAM Offline as a panel.
+
+13.2 MOBREALT Data Synchronization
+MOBREALT will download additional data when certain transactions or conditions are met. For all other transactions, only an upload of data will occur. Some transactions require updated information on the mobile device. In these cases, a download synchronization will automatically follow the upload synchronization. The following actions performed in Mobile Offline will trigger a download of additional data:
+Note: The below table represents the major items that will trigger a download, there may be other supplemental data that will trigger a download, based on Sync Configuration.
+
+Transaction / ConditionData Downloaded After UploadAdd Work OrderCalibration data for calibration WO
+Standard WO – Related: Activity, Comments, Checklists (when applicable)Update Work Order (when Standard WO or Equipment field is updated)Standard WO – Related: Activity, Comment, Checklist
+Equipment – Related: ChecklistAdd ActivityChecklistUpdate Activity (when Task Plan field is updated)ChecklistStart/Stop Activity with MOBSTST = YESBook labor record when Activity is stoppedAdd Child Equipment to Work OrderChecklist related to Child Equipment
+
+Standard Model (Mobile)HxGN EAM
+
+
+Confidential©2022. All Rights Reserved. Hexagon®Page 1 of 10
+
+
+HxGN EAMEAM.MOBILE.REQ.
+StandardModel (Mobile)
+
+
+
+
+
+Confidential©2022. All Rights Reserved. Hexagon®Page 1 of 10
+

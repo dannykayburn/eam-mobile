@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HxGN EAM Mobile — Field Type Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/*
+  FIELD TYPE REFERENCE (v1)
+  Not tied to any module or screen — a canonical, testable reference for
+  every standard field type and interaction pattern. Check new/edited
+  screens against this file rather than re-deriving the rule each time.
+  See docs/design-decisions-v3-1.md §15 / §19 for the written rules this
+  demonstrates.
+*/
+:root {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --octave-black: #1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --purple:#9933FF; --orange:#F46600; --green:#00AA14; --red:#E24B4A; --teal:#007B87;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-nav:#1A1A1F; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --nav-height:52px; --sheet-radius:20px;
+}
+[data-theme="dark"] {
+  --bg-page:#1A1A1F; --bg-card:#26252B; --bg-nav:#111114; --bg-section:#302F33; --border:#3E4047; --border-strong:#4A4C55;
+  --octave-black:#1A1A1F; --gray-1:#2A2930; --gray-2:#3E4047; --gray-3:#6F7480; --gray-4:#B2B8C4;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-black);-webkit-font-smoothing:antialiased;overflow:hidden;transition:background .2s,color .2s;display:flex;flex-direction:column;height:100vh;}
+[data-theme="dark"] body{color:var(--white);}
+.proto-theme-bar{flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 0;}
+.proto-theme-label{font-size:10px;font-weight:600;letter-spacing:.3px;color:var(--gray-4);font-family:var(--font-mono);text-transform:uppercase;}
+.theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;color:var(--gray-4);background:var(--bg-section);border:1px solid var(--border-strong);border-radius:100px;padding:3px 10px;cursor:pointer;}
+.app{display:flex;flex-direction:column;flex:1;min-height:0;max-width:430px;width:100%;margin:0 auto;position:relative;overflow:hidden;background:var(--bg-page);box-shadow:0 0 40px rgba(0,0,0,.18);}
+
+.nav{height:var(--nav-height);background:var(--bg-nav);display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0;}
+.nav-back{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--white);background:none;border:none;}
+.nav-title{flex:1;font-size:14px;font-weight:700;color:var(--white);}
+.prototype-label{font-size:10px;font-weight:700;letter-spacing:.5px;color:rgba(255,165,0,.9);}
+
+/* ── RECORD IDENTITY HEADER (scroll-collapsing) — same pattern as
+   eam-equipment-record-view-prototype-v1.html §19.6 "Header rev. 2" ── */
+.rec-header{background:var(--bg-nav);flex-shrink:0;}
+.rec-id-row{display:flex;align-items:flex-start;gap:10px;padding:12px 14px 8px;}
+.rec-mini-icon{width:30px;height:30px;background:var(--teal);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.rec-mini-icon svg{width:18px;height:18px;fill:white;}
+.rec-id-text{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1;}
+.rec-num{font-family:var(--font-mono);font-size:22px;font-weight:700;letter-spacing:.3px;color:white;line-height:1.1;}
+.rec-desc{display:block;font-size:14px;font-weight:600;color:rgba(255,255,255,.65);line-height:1.3;cursor:pointer;}
+.rec-desc-edit{display:none;width:100%;border:none;background:none;outline:none;resize:none;font-family:var(--font-sans);font-size:14px;font-weight:600;color:white;line-height:1.3;padding:0;}
+.rec-desc-edit.editing{display:block;}
+.rec-desc.hidden-while-editing{display:none;}
+/* Protected variant (§19.8.1) — non-editable identity description used by
+   the List/Detail header on every tab except Record View: no pointer
+   cursor, no onclick, no edit textarea, slightly more muted than the
+   editable .rec-desc. */
+.rec-desc.protected{cursor:default;color:rgba(255,255,255,.5);}
+.rec-header.hidden{display:none;}
+#listDetailHeader{display:none;}
+#listDetailHeader.active{display:block;}
+.rec-ellipsis-btn.hidden{display:none;}
+.rec-ellipsis-btn.active{background:rgba(255,255,255,.14);color:white;}
+.rec-status-row{overflow:hidden;transition:height .22s ease,opacity .18s ease;height:58px;opacity:1;}
+.rec-header.scrolled .rec-status-row{height:0;opacity:0;}
+.rec-status-row-inner{padding:0 14px 12px;}
+.rec-status-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:8px;font-size:15px;font-weight:700;color:white;cursor:pointer;border:none;font-family:var(--font-sans);}
+.rec-status-btn.st-operational{background:var(--green);}
+.rec-status-btn.st-down{background:var(--red);}
+.rec-status-btn.st-standby{background:var(--orange);}
+
+/* Header actions — pin + ellipsis menu (design-decisions-v3-1.md §19.6/§19.7,
+   added 2026-07-14). Record View headers only, always visible. */
+.rec-header-actions{display:flex;align-items:center;gap:2px;flex-shrink:0;margin-left:auto;position:relative;}
+.rec-pin-btn,.rec-ellipsis-btn{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:rgba(255,255,255,.55);transition:background .15s,color .15s;}
+.rec-pin-btn:hover,.rec-ellipsis-btn:hover{background:rgba(255,255,255,.1);color:white;}
+.rec-pin-btn svg,.rec-ellipsis-btn svg{width:16px;height:16px;}
+.rec-pin-btn .pin-fill{display:none;}
+.rec-pin-btn.pinned{color:var(--purple);}
+.rec-pin-btn.pinned .pin-outline{display:none;}
+.rec-pin-btn.pinned .pin-fill{display:block;}
+.rec-actions-menu{position:absolute;top:36px;right:0;min-width:190px;background:var(--bg-card);border-radius:12px;border:1px solid var(--border);box-shadow:0 8px 28px rgba(0,0,0,.28);padding:6px 0;opacity:0;visibility:hidden;transform:translateY(-6px) scale(.98);transition:opacity .15s,transform .15s,visibility .15s;z-index:150;}
+[data-theme="dark"] .rec-actions-menu{background:#26252B;}
+.rec-actions-menu.open{opacity:1;visibility:visible;transform:translateY(0) scale(1);}
+.rec-actions-group:empty{display:none;}
+.rec-actions-divider{height:1px;background:var(--border);margin:4px 0;}
+.rec-actions-item{padding:10px 16px;font-size:14px;font-weight:500;color:var(--octave-black);cursor:pointer;white-space:nowrap;}
+[data-theme="dark"] .rec-actions-item{color:rgba(255,255,255,.9);}
+.rec-actions-item:hover{background:var(--bg-section);}
+.rec-actions-item.danger{color:var(--red);}
+
+/* ── TAB RAIL (generalized step rail — no sequence, no gating) — same
+   pattern as eam-equipment-record-view-prototype-v1.html §19 ── */
+.tab-rail{background:rgba(153,51,255,.12);border-bottom:1px solid rgba(153,51,255,.25);padding:0 14px;flex-shrink:0;cursor:pointer;transition:background .15s;}
+.tab-rail:hover{background:rgba(153,51,255,.18);}
+.tab-rail-collapsed{height:56px;display:flex;align-items:center;gap:10px;padding-bottom:8px;}
+.tab-rail-icon{color:var(--purple);flex-shrink:0;display:flex;}
+.tab-rail-name{font-size:13px;font-weight:700;color:var(--octave-black);flex:1;}
+[data-theme="dark"] .tab-rail-name{color:var(--white);}
+.tab-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
+/* Opaque background — .tab-map is nested inside .tab-rail, so without its
+   own background the purple wash above bleeds through the whole expanded
+   list. Only the persistent collapsed bar carries that wash; the expanded
+   list reads as a normal panel. */
+.tab-rail.expanded{padding-bottom:14px;}
+.tab-map{display:none;background:var(--bg-card);padding:8px 0 12px;border-top:1px solid var(--border);max-height:45vh;overflow-y:auto;}
+.tab-map.open{display:block;}
+.tab-map-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-radius:4px;margin:0 6px;transition:background .1s;color:var(--gray-4);}
+.tab-map-item:hover{background:var(--bg-section);}
+[data-theme="dark"] .tab-map-item:hover{background:rgba(255,255,255,.05);}
+/* Lighter wash than .tab-rail's .12 — marks the current selection within
+   the list without competing with the top bar's wash. */
+.tab-map-item.active{background:rgba(153,51,255,.06);color:var(--purple);}
+.tab-map-icon{width:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.tab-map-label{flex:1;font-size:13px;font-weight:500;color:var(--octave-black);}
+[data-theme="dark"] .tab-map-label{color:rgba(255,255,255,.85);}
+.tab-map-item.active .tab-map-label{color:var(--purple);font-weight:700;}
+.tab-map-chevron{color:var(--gray-3);flex-shrink:0;}
+
+.content{flex:1;overflow-y:auto;padding:0 0 30px;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+/* ── List/Detail content shell (design-decisions-v3-1.md §19.8.2) — the
+   generalized, config-driven standard: dataspy bar, Detailed/List mode
+   toggle, plain-text rows, inline live-filter search. Canonical example
+   here demonstrates the mechanism generically (Tab 1/2/3), the same
+   component ported to Equipment's Events/PM/Depreciation/Meters/
+   Warranties/Parts Associated tabs. ── */
+.ds-bar{margin:12px 12px 0;background:var(--bg-card);border:1.5px solid var(--border);border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:11px;cursor:pointer;transition:border-color .15s;}
+.ds-bar:hover{border-color:var(--purple);}
+.ds-icon-w{width:30px;height:30px;border-radius:8px;background:rgba(153,51,255,.1);color:var(--purple);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ds-body{flex:1;min-width:0;}
+.ds-name{font-size:13px;font-weight:700;color:var(--octave-black);}
+[data-theme="dark"] .ds-name{color:rgba(255,255,255,.9);}
+.ds-count{font-size:11px;color:var(--gray-4);margin-top:1px;}
+.ds-chevron{color:var(--gray-4);flex-shrink:0;}
+.mode-tog{margin:10px 12px 0;display:flex;background:var(--bg-section);border-radius:11px;padding:3px;border:1px solid var(--border);}
+.mode-btn{flex:1;text-align:center;padding:7px 0;border-radius:9px;font-size:12px;font-weight:600;color:var(--gray-4);background:none;border:none;cursor:pointer;font-family:var(--font-sans);transition:all .15s;}
+.mode-btn.active{background:var(--bg-card);color:var(--octave-black);box-shadow:0 1px 3px rgba(0,0,0,.1);}
+[data-theme="dark"] .mode-btn.active{color:white;}
+.res-row{padding:10px 16px 4px;display:flex;align-items:center;justify-content:space-between;}
+.res-count{font-size:12px;color:var(--gray-4);}
+.sort-btn{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--gray-4);background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:8px;font-family:var(--font-sans);transition:all .15s;}
+.sort-btn:hover{color:var(--purple);background:rgba(153,51,255,.08);}
+.plain-list{padding:6px 12px 0;display:flex;flex-direction:column;gap:8px;}
+.plain-row{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .15s;}
+.plain-row:hover{background:var(--bg-section);}
+.plain-row-body{flex:1;min-width:0;}
+.plain-row-title{font-size:13px;font-weight:600;color:var(--octave-black);margin-bottom:2px;}
+[data-theme="dark"] .plain-row-title{color:rgba(255,255,255,.9);}
+.plain-row-sub{font-size:12px;color:var(--gray-4);line-height:1.4;}
+.plain-row-trailing{font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--octave-black);flex-shrink:0;text-align:right;white-space:nowrap;}
+[data-theme="dark"] .plain-row-trailing{color:rgba(255,255,255,.9);}
+.plain-row.filtered-out{display:none;}
+.ld-search-bar{margin:12px 12px 0;background:var(--bg-card);border:1.5px solid var(--purple);border-radius:14px;padding:9px 12px;display:flex;align-items:center;gap:9px;}
+.ld-search-bar svg{color:var(--gray-4);flex-shrink:0;}
+.ld-search-input{flex:1;border:none;background:none;outline:none;font-family:var(--font-sans);font-size:13px;color:var(--octave-black);min-width:0;}
+[data-theme="dark"] .ld-search-input{color:white;}
+.ld-search-close{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--bg-section);border:none;cursor:pointer;color:var(--gray-4);flex-shrink:0;}
+.ld-search-close:hover{background:var(--gray-1);color:var(--octave-black);}
+[data-theme="dark"] .ld-search-close:hover{background:var(--gray-5);color:white;}
+.section-card{margin:12px 12px 0;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.section-card-header{padding:10px 14px 8px;border-bottom:1px solid var(--border);}
+.section-card-title{font-size:14px;font-weight:600;color:var(--octave-black);}
+[data-theme="dark"] .section-card-title{color:var(--white);}
+
+.form-field{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);position:relative;min-height:48px;cursor:pointer;transition:background .12s;}
+.form-field:last-child{border-bottom:none;}
+.form-field:hover{background:var(--bg-section);}
+.form-field.required::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--orange);}
+.form-field.protected{background:var(--bg-section);opacity:.75;cursor:default;}
+[data-theme="dark"] .form-field.protected{background:rgba(255,255,255,.03);}
+.field-label{font-size:13px;color:var(--gray-4);width:128px;flex-shrink:0;line-height:1.35;}
+.field-value{flex:1;font-size:14px;font-weight:500;color:var(--octave-black);text-align:right;}
+[data-theme="dark"] .field-value{color:rgba(255,255,255,.9);}
+.field-value.muted{color:var(--gray-3);font-size:13px;}
+.field-chevron{margin-left:6px;color:var(--gray-3);flex-shrink:0;}
+.field-lock{margin-left:6px;color:var(--gray-3);flex-shrink:0;}
+/* ── Organization pill (design-decisions-v3-1.md §19.9.1) — the one field
+   that isn't a .form-field row. ── */
+.org-pill-row{padding:14px;}
+.org-pill{display:inline-flex;align-items:center;gap:8px;background:var(--bg-section);border:1px solid var(--border);border-radius:999px;padding:9px 15px;cursor:pointer;font-family:var(--font-sans);transition:border-color .15s,background .15s;}
+.org-pill:hover{border-color:var(--purple);}
+.org-pill svg{color:var(--gray-4);flex-shrink:0;}
+/* Org pill's code reuses .field-lov-code as-is (same font class as every
+   other code-visible field value, §15.1) — no bespoke font rule here. */
+.org-pill-chevron{color:var(--gray-4);}
+/* ── Header fields — Type/Priority-style colour badge pair, ported
+   verbatim from eam-wo-record-view-prototype-v1.html's .equip-attrs. ── */
+.equip-attrs{margin:0;background:var(--bg-card);display:grid;grid-template-columns:1fr 1fr;}
+.attr-item{padding:12px 14px;display:flex;flex-direction:column;gap:6px;border-right:1px solid var(--border);border-top:1px solid var(--border);cursor:pointer;transition:background .15s;}
+.attr-item:hover{background:var(--bg-section);}
+.attr-item:last-child{border-right:none;}
+.attr-label{font-size:13px;color:var(--gray-4);}
+.attr-value{display:flex;align-items:center;gap:6px;}
+.attr-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;flex-shrink:0;}
+.attr-text{font-size:14px;font-weight:600;color:var(--octave-black);}
+[data-theme="dark"] .attr-text{color:rgba(255,255,255,.9);}
+.field-lov-value{display:flex;flex-direction:column;align-items:flex-end;flex:1;gap:1px;}
+.field-lov-code{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--gray-4);line-height:1.2;}
+.field-lov-desc{font-size:14px;font-weight:500;color:var(--octave-black);line-height:1.3;text-align:right;}
+[data-theme="dark"] .field-lov-desc{color:rgba(255,255,255,.9);}
+.field-lov-desc.muted{color:var(--gray-3);font-size:13px;}
+.field-inline-input{flex:1;border:none;background:none;outline:none;text-align:right;font-size:14px;font-weight:500;color:var(--octave-black);font-family:var(--font-sans);padding:0;min-width:0;}
+[data-theme="dark"] .field-inline-input{color:var(--white);}
+/* Long values get squeezed unreadable sharing a row with a fixed-width
+   label — past a length threshold, drop the value below the label instead
+   of forcing it onto the same line. */
+.form-field.stacked{flex-direction:column;align-items:flex-start;gap:4px;}
+.form-field.stacked .field-label{width:auto;}
+.form-field.stacked .field-inline-input{width:100%;text-align:left;}
+.field-inline-input::placeholder{color:var(--gray-3);}
+.inline-confirm-btn{position:absolute;right:16px;bottom:56px;width:52px;height:52px;border-radius:50%;background:#3B82F6;box-shadow:0 4px 14px rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:250;border:none;cursor:pointer;}
+.inline-confirm-btn.show{display:flex;}
+.field-checkbox{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--gray-3);background:var(--bg-card);display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;margin-left:auto;}
+[data-theme="dark"] .field-checkbox{border-color:var(--gray-5);background:var(--bg-section);}
+.field-checkbox.checked{background:var(--purple);border-color:var(--purple);}
+.field-checkbox svg{display:none;}
+.field-checkbox.checked svg{display:block;}
+
+.caption{padding:6px 14px 12px;font-size:11px;color:var(--gray-4);line-height:1.4;background:var(--bg-section);border-bottom:1px solid var(--border);}
+.caption b{color:var(--octave-black);}
+[data-theme="dark"] .caption b{color:var(--white);}
+.caption:last-of-type{border-bottom:none;}
+
+.sheet-overlay{position:absolute;inset:0;background:rgba(0,0,0,0);z-index:200;pointer-events:none;transition:background .3s;}
+.sheet-overlay.open{background:rgba(0,0,0,.45);pointer-events:all;}
+.bottom-sheet{position:absolute;bottom:0;left:0;right:0;background:var(--bg-card);border-radius:var(--sheet-radius) var(--sheet-radius) 0 0;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);z-index:201;max-height:80vh;display:flex;flex-direction:column;}
+.bottom-sheet.open{transform:translateY(0);}
+/* ── Insert Mode (design-decisions-v3-1.md §19.9/§19.9.1) — a full-screen
+   sheet, not the compact .bottom-sheet above: covers the whole screen
+   rather than a partial height, since it's a full create form, not a
+   single-field picker. Same slide-up transform mechanic, just inset:0. ── */
+.insert-mode-sheet{position:absolute;inset:0;background:var(--bg-page);transform:translateY(100%);transition:transform .32s cubic-bezier(.32,.72,0,1);z-index:401;display:flex;flex-direction:column;}
+.insert-mode-sheet.dragging{transition:none;}
+.insert-mode-sheet.open{transform:translateY(0);}
+.insert-mode-header{padding:6px 16px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg-card);touch-action:none;}
+.insert-mode-handle-row{display:flex;justify-content:center;padding:8px 0 2px;flex-shrink:0;background:var(--bg-card);touch-action:none;cursor:grab;}
+.insert-mode-title{flex:1;text-align:center;font-size:17px;font-weight:700;color:var(--octave-black);}
+[data-theme="dark"] .insert-mode-title{color:var(--white);}
+.insert-mode-body{flex:1;overflow-y:auto;}
+.insert-mode-footer{padding:12px 16px 20px;border-top:1px solid var(--border);flex-shrink:0;background:var(--bg-card);}
+.insert-save-btn{width:100%;height:50px;border-radius:100px;border:none;font-size:15px;font-weight:700;font-family:var(--font-sans);cursor:default;background:var(--gray-2);color:var(--gray-4);transition:background .15s,color .15s;}
+.insert-save-btn.ready{background:var(--green);color:white;cursor:pointer;}
+[data-theme="dark"] .insert-save-btn{background:var(--gray-5);color:var(--gray-3);}
+[data-theme="dark"] .insert-save-btn.ready{background:var(--green);color:white;}
+.sheet-handle-row{display:flex;justify-content:center;padding:10px 0 4px;flex-shrink:0;}
+.sheet-handle{width:36px;height:4px;background:var(--gray-2);border-radius:100px;}
+[data-theme="dark"] .sheet-handle{background:var(--gray-5);}
+.sheet-header{padding:4px 16px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.sheet-title{flex:1;text-align:center;font-size:17px;font-weight:700;color:var(--octave-black);}
+[data-theme="dark"] .sheet-title{color:var(--white);}
+.sheet-close{width:30px;height:30px;border-radius:50%;background:var(--bg-section);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gray-4);}
+.sheet-clear-btn{font-size:15px;font-weight:500;color:var(--gray-4);background:none;border:none;cursor:pointer;padding:4px 2px;flex-shrink:0;}
+.sheet-clear-btn.hidden{visibility:hidden;}
+.lov-search-row{display:flex;align-items:center;gap:8px;margin:2px 16px 10px;padding:9px 14px;background:var(--bg-section);border-radius:100px;color:var(--gray-4);flex-shrink:0;}
+.lov-search-row.hidden{display:none;}
+.lov-search-input{flex:1;border:none;background:none;outline:none;font-size:14px;font-family:var(--font-sans);color:var(--octave-black);}
+[data-theme="dark"] .lov-search-input{color:var(--white);}
+.lov-search-input::placeholder{color:var(--gray-4);}
+.lov-option.filtered-out{display:none;}
+#commentActionsBody{padding-bottom:20px;}
+.confirm-overlay{position:absolute;inset:0;background:rgba(0,0,0,0);display:flex;align-items:center;justify-content:center;z-index:260;pointer-events:none;transition:background .2s;}
+.confirm-overlay.open{background:rgba(0,0,0,.5);pointer-events:all;}
+.confirm-modal{background:var(--bg-card);border-radius:14px;padding:20px;width:280px;text-align:center;transform:scale(.9);opacity:0;transition:all .18s;}
+.confirm-overlay.open .confirm-modal{transform:scale(1);opacity:1;}
+.confirm-message{font-size:15px;font-weight:600;color:var(--octave-black);margin-bottom:16px;line-height:1.4;}
+[data-theme="dark"] .confirm-message{color:var(--white);}
+.confirm-actions{display:flex;gap:10px;}
+.confirm-btn{flex:1;height:42px;border-radius:100px;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-sans);}
+.confirm-cancel{background:var(--bg-section);color:var(--octave-black);}
+[data-theme="dark"] .confirm-cancel{color:var(--white);}
+.confirm-danger{background:var(--red);color:white;}
+.sheet-body{flex:1;overflow-y:auto;}
+.sheet-footer{padding:12px 16px 20px;border-top:1px solid var(--border);flex-shrink:0;}
+.lov-option{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;}
+.lov-option:last-child{border-bottom:none;}
+.lov-option:hover{background:var(--bg-section);}
+.lov-option.selected{background:rgba(153,51,255,.05);}
+.lov-option-texts{flex:1;}
+.lov-option-desc{font-size:14px;font-weight:500;color:var(--octave-black);}
+[data-theme="dark"] .lov-option-desc{color:rgba(255,255,255,.9);}
+.lov-option-code{font-family:var(--font-mono);font-size:11px;color:var(--gray-4);margin-top:1px;}
+.lov-check{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid var(--border-strong);}
+.lov-check.checked{background:var(--purple);border-color:var(--purple);}
+.edit-input-wrap{padding:16px;}
+.edit-input{width:100%;background:var(--bg-section);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--font-sans);font-size:15px;color:var(--octave-black);outline:none;}
+[data-theme="dark"] .edit-input{color:var(--white);color-scheme:dark;}
+.edit-input[type=number]::-webkit-outer-spin-button, .edit-input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.edit-input[type=number] { -moz-appearance: textfield; }
+.btn-save{width:100%;height:50px;border-radius:100px;border:none;font-size:15px;font-weight:700;font-family:var(--font-sans);cursor:pointer;background:var(--octave-black);color:white;}
+[data-theme="dark"] .btn-save{background:var(--white);color:var(--octave-black);}
+.cal-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;}
+.cal-nav-btn{width:32px;height:32px;border-radius:50%;border:none;background:var(--bg-section);color:var(--octave-black);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+[data-theme="dark"] .cal-nav-btn{color:var(--white);}
+.cal-month-label{font-size:15px;font-weight:700;color:var(--octave-black);font-family:var(--font-mono);}
+[data-theme="dark"] .cal-month-label{color:var(--white);}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);padding:0 12px;}
+.cal-weekday{text-align:center;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--gray-4);font-family:var(--font-mono);padding:4px 0 8px;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:0 12px 8px;}
+.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:13px;border-radius:50%;cursor:pointer;color:var(--octave-black);}
+[data-theme="dark"] .cal-day{color:var(--white);}
+.cal-day.other-month{color:var(--gray-3);}
+.cal-day.today{border:1.5px solid var(--purple);}
+.cal-day.selected{background:var(--purple);color:white;}
+/* Date/Time's time row — native <input type=time>, same pattern already
+   built for Book Labor's Add Labor sheet (eam-book-labor-prototype-v2.html)
+   rather than a custom time-wheel to match the calendar grid. */
+.time-input{background:none;border:none;outline:none;font-family:var(--font-mono);font-size:14px;font-weight:500;color:var(--octave-black);text-align:right;width:100%;cursor:pointer;}
+[data-theme="dark"] .time-input{color:rgba(255,255,255,.9);}
+.time-input:focus{color:var(--purple);}
+.text-editor-sheet{height:88vh;max-height:88vh;}
+.text-editor-header{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);gap:10px;}
+.text-editor-left{display:flex;align-items:center;gap:10px;flex-shrink:0;min-width:30px;}
+.text-editor-close{width:30px;height:30px;border-radius:50%;background:var(--bg-section);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gray-4);flex-shrink:0;}
+.text-editor-discard{display:none;background:rgba(228,75,74,.12);color:var(--red);border:none;border-radius:100px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;}
+.text-editor-discard.show{display:block;}
+.text-editor-title{flex:1;text-align:center;font-size:15px;font-weight:700;color:var(--octave-black);}
+[data-theme="dark"] .text-editor-title{color:var(--white);}
+.text-editor-mic{width:30px;height:30px;border-radius:50%;background:var(--bg-section);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gray-4);flex-shrink:0;transition:all .15s;}
+.text-editor-mic:hover, .text-editor-mic.recording{background:var(--purple);color:white;}
+.text-editor-body{flex:1;padding:14px 16px;}
+.text-editor-textarea{width:100%;height:100%;border:none;outline:none;resize:none;font-family:var(--font-sans);font-size:15px;color:var(--octave-black);background:transparent;line-height:1.5;}
+[data-theme="dark"] .text-editor-textarea{color:var(--white);}
+.toast{position:absolute;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(26,26,31,.95);color:white;padding:9px 16px;border-radius:100px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;opacity:0;transition:all .25s;z-index:300;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.comment-add-row{display:flex;align-items:center;gap:6px;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;color:var(--purple);font-size:13px;font-weight:600;}
+.comment-add-row:hover{background:var(--bg-section);}
+.comment-add-plus{font-size:15px;font-weight:700;line-height:1;}
+.comment-item{padding:11px 14px;border-bottom:1px solid var(--border);}
+.comment-item:last-child{border-bottom:none;}
+.comment-header{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.comment-author{font-size:12px;font-weight:600;color:var(--octave-black);}
+[data-theme="dark"] .comment-author{color:rgba(255,255,255,.9);}
+.comment-time-actions{margin-left:auto;display:flex;align-items:center;gap:6px;}
+.comment-time{font-size:10px;color:var(--gray-4);font-family:var(--font-mono);}
+.comment-ellipsis{background:none;border:none;color:var(--gray-4);font-size:15px;font-weight:700;cursor:pointer;padding:2px 4px;line-height:1;}
+.comment-ellipsis:hover{color:var(--octave-black);}
+[data-theme="dark"] .comment-ellipsis:hover{color:var(--white);}
+.comment-text{font-size:13px;color:var(--octave-black);line-height:1.55;}
+[data-theme="dark"] .comment-text{color:rgba(255,255,255,.8);}
+</style>
+</head>
+<body>
+
+<div class="proto-theme-bar">
+  <span class="proto-theme-label">Preview theme</span>
+  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+</div>
+
+<div class="app" id="app">
+  <header class="nav" onclick="scrollFormToTop()">
+    <button class="nav-back" onclick="event.stopPropagation()"><svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="nav-title">Field Type Reference</div>
+    <span class="prototype-label">PROTOTYPE</span>
+  </header>
+
+  <div class="rec-header" id="recHeader" onclick="onRecHeaderTap(event)">
+    <div class="rec-id-row">
+      <div class="rec-id-text">
+        <span class="rec-num">CODE-001</span>
+        <span class="rec-desc" id="recDesc" onclick="onDescTap(event)">This is a sample record description used to demonstrate how longer text wraps inside the header area</span>
+        <textarea class="rec-desc-edit" id="recDescEdit" maxlength="255" oninput="autoGrow(this)" onblur="onDescBlur()"></textarea>
+      </div>
+      <div class="rec-header-actions">
+        <button class="rec-pin-btn" id="recPinBtn" onclick="event.stopPropagation(); toggleRecordPin()" aria-label="Pin record" title="Pin to my list">
+          <svg class="pin-outline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
+          <svg class="pin-fill" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22h1v-5h-1z"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
+        </button>
+        <button class="rec-ellipsis-btn" id="recEllipsisBtn" onclick="event.stopPropagation(); toggleRecActionsMenu()" aria-label="More actions">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+        </button>
+        <div class="rec-actions-menu" id="recActionsMenu">
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyLink()">Copy Link</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyRecord()">Copy</div>
+            <div class="rec-actions-item danger" onclick="recDeleteRecord()">Delete</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group" id="recActionsScreenSpecific">
+            <!-- Generic placeholder — this file isn't tied to a module, so the
+                 screen-specific slot demonstrates the pattern rather than a
+                 real action (see design-decisions-v3-1.md §19.7). -->
+            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Screen-specific action — example only', '·')">Example screen action</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="rec-status-row" id="recStatusRow">
+      <div class="rec-status-row-inner">
+        <button class="rec-status-btn st-operational" id="recStatusBtn" onclick="openLov('__status')">
+          <span id="recStatusBtnText">Operational</span>
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LIST/DETAIL HEADER (§19.8.1) — every tab except Record View.
+       Protected identity (no edit), no status, no pin — Plus + Search +
+       Ellipsis instead. Visibility toggled against #recHeader in
+       goToTab(); never both, never neither. Reuses .rec-* classes
+       directly (same visual treatment, §19.8.1's own canonical source),
+       rather than a second namespaced class set — this file only ever
+       shows one of the two headers at a time, so there's no collision
+       risk requiring namespacing the way Equipment's dual-role file
+       needed. ── -->
+  <div class="rec-header" id="listDetailHeader" onclick="scrollFormToTop()">
+    <div class="rec-id-row">
+      <div class="rec-id-text">
+        <span class="rec-num" id="listDetailNum">CODE-001</span>
+        <span class="rec-desc protected" id="listDetailDesc">This is a sample record description used to demonstrate how longer text wraps inside the header area</span>
+      </div>
+      <div class="rec-header-actions">
+        <button class="rec-ellipsis-btn" id="listDetailPlusBtn" onclick="event.stopPropagation(); onListDetailPlusTap()" aria-label="Add">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button class="rec-ellipsis-btn" id="listDetailSearchBtn" onclick="event.stopPropagation(); onListDetailSearchTap()" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        </button>
+        <button class="rec-ellipsis-btn" onclick="event.stopPropagation(); toggleListDetailMenu()" aria-label="More actions">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+        </button>
+        <div class="rec-actions-menu" id="listDetailMenu">
+          <div class="rec-actions-group"><div class="rec-actions-item" onclick="recCopyLink()">Copy Link</div></div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyRecord()">Copy</div>
+            <div class="rec-actions-item danger" onclick="recDeleteRecord()">Delete</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="closeListDetailMenu(); showToast('Screen-specific action — example only', '·')">Example screen action</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB RAIL (generalized — no sequence, no gating) ──────────── -->
+  <div class="tab-rail" id="tabRail">
+    <div class="tab-rail-collapsed">
+      <span class="tab-rail-icon" id="tabRailIcon"></span>
+      <div class="tab-rail-name" id="tabRailName">Record View</div>
+      <svg class="tab-chevron" id="tabChevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="tab-map" id="tabMap"></div>
+  </div>
+
+  <div class="content" id="fieldRefContent">
+
+  <div class="tab-panel active" data-tab="record">
+
+    <!-- ── ORGANIZATION PILL — Insert Mode's top-of-form field (design-
+         decisions-v3-1.md §19.9.1). The one field in this whole file that
+         isn't a `.form-field` row — a standalone rounded pill, always the
+         first thing rendered. Not module-specific: any Insert Mode, on any
+         record type, starts with this exact element. ── -->
+    <div class="section-card">
+      <div class="section-card-header"><span class="section-card-title">Organization pill</span></div>
+      <div class="org-pill-row">
+        <button class="org-pill required" data-field="organization" onclick="openLov('organization')">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 21V7l6-4 6 4v14M9 9h1m4 0h1m-6 4h1m4 0h1m-6 4h1m4 0h1"/></svg>
+          <span class="field-value" id="fv-organization-code">ORG1</span>
+          <svg class="org-pill-chevron" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="caption"><b>Organization pill:</b> defaults to the current user's own org (shown here as <code>ORG1</code>). <b>Code only, no description</b> — a new third category on the §15.1 exception list, distinct from Cost Code/Store (which show code + description) and from identifier fields — organization codes are short, memorized shorthand, and a rotating description alongside them adds clutter without helping identification. The LOV picker sheet still shows the description too, for selection clarity. Font is the plain <code>.field-value</code> treatment — same as any other field's value text — not the small muted monospace treatment used for codes-with-descriptions (Cost Code, Assigned To); since Org has no description sitting next to it here, it reads as the field's whole value, not a secondary code label. <b>Required only when Insert Mode is the Record View standard</b> (creating a brand-new top-level record, design-decisions-v3-1.md §19.9) — a List/Detail insert (a child record scoped to an existing parent) doesn't gate on it, since the parent record's own org already applies. Shown here in its required state (no Clear) as the more locked-down of the two cases.</div>
+    </div>
+
+    <!-- ── HEADER FIELDS — Type/Priority-style colored badge pair (design-
+         decisions-v3-1.md §19.9.1). Ported from eam-wo-record-view-
+         prototype-v1.html's .equip-attrs/TYPE_META/PRIORITY_META — same
+         component, not a re-derived one, so "Type" means the same thing
+         wherever it renders. Generic across modules: whatever a screen's
+         two configured header fields are, they render in this exact
+         two-up badge box, directly under the Organization pill. ── -->
+    <div class="section-card">
+      <div class="section-card-header"><span class="section-card-title">Header fields (Type/Priority style)</span></div>
+      <div class="equip-attrs">
+        <div class="attr-item" data-field="type" onclick="openLov('type')">
+          <span class="attr-label">Type</span>
+          <div class="attr-value">
+            <span class="attr-badge" id="fv-type-badge" style="background:#00AA14"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg></span>
+            <span class="attr-text" id="fv-type-desc">Preventive Maintenance</span>
+          </div>
+        </div>
+        <div class="attr-item" data-field="priority" onclick="openLov('priority')">
+          <span class="attr-label">Priority</span>
+          <div class="attr-value">
+            <span class="attr-badge" id="fv-priority-badge" style="background:#F46600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg></span>
+            <span class="attr-text" id="fv-priority-desc">Medium</span>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><b>Header fields:</b> not a fixed "Type/Priority" pair — any screen can configure any two fields here, Type/Priority is just this file's demonstrated default. Icon+colour comes from a per-field meta map (see <code>TYPE_META</code>/<code>PRIORITY_META</code>) — a code with no colour configured renders an empty, hidden badge rather than a placeholder. Always required, never shows Clear — same treatment as Status.</div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-card-header"><span class="section-card-title">LOV fields</span></div>
+      <div class="form-field required" data-field="department" onclick="openLov('department')">
+        <span class="field-label">Department</span>
+        <div class="field-lov-value"><span class="field-lov-code" id="fv-department-code" style="display:none;"></span><span class="field-lov-desc" id="fv-department-desc">Engineering</span></div>
+        <span class="field-chevron">›</span>
+      </div>
+      <div class="caption"><b>Default rule:</b> description only, no code — applies to every reference-data/LOV lookup (status, type, class, dept, trade, etc.) unless the field is explicitly in the exception list below.</div>
+
+      <div class="form-field" data-field="costCode" onclick="openLov('costCode')">
+        <span class="field-label">Cost Code</span>
+        <div class="field-lov-value"><span class="field-lov-code" id="fv-costCode-code">100-100</span><span class="field-lov-desc" id="fv-costCode-desc">General Maintenance</span></div>
+        <span class="field-chevron">›</span>
+      </div>
+      <div class="caption"><b>Exception:</b> code + description, both in the field row and the LOV picker. Only fields explicitly added to the code-visibility exception list get this — see design-decisions-v3-1.md §15.1. Do not add fields here casually; it's meant to stay a short, deliberate list.</div>
+
+      <div class="form-field" data-field="assignedTo" onclick="openLov('assignedTo')">
+        <span class="field-label">Assigned To</span>
+        <div class="field-lov-value"><span class="field-lov-code" id="fv-assignedTo-code">BCAMPBELL</span><span class="field-lov-desc" id="fv-assignedTo-desc">Brian Campbell</span></div>
+        <span class="field-chevron">›</span>
+      </div>
+      <div class="caption"><b>Identifier exception (different from the one above):</b> the code IS the record's real-world identifier — employee ID, part number, asset number, WO number. Always shown, not because it's on an exception list but because it isn't a decorative lookup pairing in the first place.</div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-card-header"><span class="section-card-title">Text, number, currency, date</span></div>
+      <div class="form-field" data-field="udf01" onclick="this.querySelector('input').focus()">
+        <span class="field-label">User Defined Field 01</span>
+        <input class="field-inline-input" id="fv-udf01" maxlength="255" value="" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus(this)" onblur="onInlineBlur(this)" onkeydown="if(event.key==='Enter')this.blur()">
+      </div>
+      <div class="caption"><b>Inline text (≤255 chars):</b> tap directly into the row and edit right there — no popup at all. A floating blue checkmark appears above the keyboard; tapping it (or Enter, or tapping away) commits the value and marks the form dirty. This supersedes the single-line edit sheet for plain text — the sheet is still used for currency/number below, just not for text.</div>
+
+      <div class="form-field" data-field="equipmentValue" onclick="openEdit('equipmentValue','Equipment Value','currency')">
+        <span class="field-label">Equipment Value</span>
+        <span class="field-value" id="fv-equipmentValue">$50,000.00</span>
+        <span class="field-chevron">›</span>
+      </div>
+      <div class="caption"><b>Currency:</b> every currency field displays a $ symbol with thousands separators and 2 decimals, formatted on render — never a bare number. Raw entry (no $) is fine while editing; formatting is applied on display.</div>
+
+      <div class="form-field" data-field="fullLoadAmps" onclick="openEdit('fullLoadAmps','Full Load Amps','number')">
+        <span class="field-label">Full Load Amps</span>
+        <span class="field-value" id="fv-fullLoadAmps">50</span>
+        <span class="field-chevron">›</span>
+      </div>
+      <div class="caption"><b>Number:</b> plain numeric entry, no currency formatting, no code/description pairing.</div>
+
+      <div class="form-field required" data-field="commissionDate" onclick="openDate('commissionDate','Commission Date')">
+        <span class="field-label">Commission Date</span>
+        <span class="field-value" id="fv-commissionDate">Jul 20, 2021</span>
+        <span class="field-chevron">›</span>
+      </div>
+      <div class="form-field" data-field="udd01" onclick="openDate('udd01','User Defined Date 01')">
+        <span class="field-label">User Defined Date 01</span>
+        <span class="field-value" id="fv-udd01">Mar 3, 2026</span>
+        <span class="field-chevron">›</span>
+      </div>
+      <div class="caption"><b>Date:</b> always the custom calendar sheet (month grid, today ring, selected-day fill) — never the native <code>&lt;input type=date&gt;</code>. Commission Date is required (no Clear); User Defined Date 01 is not (Clear shown).</div>
+
+      <div class="form-field" data-field="lastServiceDateTime" onclick="openDateTime('lastServiceDateTime','Last Service Date/Time')">
+        <span class="field-label">Last Service Date/Time</span>
+        <span class="field-value" id="fv-lastServiceDateTime">Jul 10, 2026 · 2:30 PM</span>
+        <span class="field-chevron">›</span>
+      </div>
+      <div class="caption"><b>Date/Time:</b> same custom calendar sheet as Date, plus a native <code>&lt;input type=time&gt;</code> row below the grid for the time portion — reuses the time-input pattern already built for Book Labor rather than a custom time-wheel. Unlike Date alone (tap a day → auto-save-and-close), tapping a day here only marks it selected; an explicit Save commits date and time together, since the time value is still pending confirmation.</div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-card-header"><span class="section-card-title">Checkbox</span></div>
+      <div class="form-field" data-field="outOfService" onclick="toggleCheckbox(this,'outOfService')">
+        <span class="field-label">Out of Service</span>
+        <div class="field-checkbox" id="fv-outOfService-box"></div>
+      </div>
+      <div class="caption"><b>Checkbox:</b> the entire row is the tap target, not just the small box — confirmed as suboptimal UX to require tapping the tiny box specifically.</div>
+
+      <div class="form-field protected">
+        <span class="field-label">Asset</span>
+        <span class="field-value muted">00067333</span>
+        <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <div class="caption"><b>Protected:</b> gray-tinted row, muted value, lock icon instead of chevron, not tappable. Used for system-derived or inherited fields the user can't change from this screen.</div>
+      <div class="caption"><b>Required (overlay rule, not a separate type):</b> orange left-bar, combines with any field type above — see Commission Date in the section above for a live example.</div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-card-header"><span class="section-card-title">Long-text</span></div>
+      <div class="form-field" data-field="longNote" onclick="openTextEditor('longNote','Edit Note')">
+        <span class="field-label">Long Note</span>
+        <span class="field-value muted" id="fv-longNote">Tap to add…</span>
+        <span class="field-chevron">›</span>
+      </div>
+      <div class="caption"><b>Long-text:</b> full-height text editor sheet, not a cramped inline input. Closing with unsaved edits swaps the close button for a red "Discard unsaved changes" pill; typing again dismisses the warning. No Clear button here — select all and delete instead. (Dictation is handled by the device's own keyboard, not a custom app control — nothing to build here beyond a plain text input.)</div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-card-header"><span class="section-card-title">Comments</span></div>
+      <div id="commentsList">
+        <div class="comment-add-row" onclick="openTextEditor('__comment','Add Comment',addComment)">
+          <span class="comment-add-plus">+</span> Add comment
+        </div>
+        <div class="comment-item" data-mine="false">
+          <div class="comment-header"><span class="comment-author">User Description</span>
+            <div class="comment-time-actions">
+              <span class="comment-time">May 19 · 09:12</span>
+              <button class="comment-ellipsis" onclick="event.stopPropagation();openCommentActions(this,false)">⋯</button>
+            </div>
+          </div>
+          <p class="comment-text">Bearing replaced and alignment verified. Vibration reading back within tolerance.</p>
+        </div>
+        <div class="comment-item" data-mine="true">
+          <div class="comment-header"><span class="comment-author">You</span>
+            <div class="comment-time-actions">
+              <span class="comment-time">May 19 · 10:47</span>
+              <button class="comment-ellipsis" onclick="event.stopPropagation();openCommentActions(this,true)">⋯</button>
+            </div>
+          </div>
+          <p class="comment-text">Ordered replacement bearing — ETA 3 days, tagged for follow-up on next PM visit.</p>
+        </div>
+      </div>
+      <div class="caption"><b>Comments:</b> same long-text editor as above — inserting a new comment and updating an existing field's long text are the exact same pattern (full-screen editor, no Clear). Each comment has an ellipsis next to its timestamp for Edit / Delete / Copy, permission-driven — only the comment's own author sees Edit/Delete; everyone sees Copy. Two examples above demonstrate both states: the first comment isn't yours (ellipsis shows Copy only), the second is yours (ellipsis shows Edit / Delete / Copy) — tap each to compare.</div>
+    </div>
+
+  </div><!-- /tab-panel[record] -->
+
+  <!-- ── LIST/DETAIL CONTENT DEMO (design-decisions-v3-1.md §19.8.2) —
+       Tab 1/2/3 each render the same generalized, config-driven shell with
+       their own dummy dataset, to demonstrate that the mechanism is
+       reusable across any tab, not specific to one dataset. Each panel's
+       body is filled by renderListDetailShell() on load/interaction; the
+       wrapper div here just gives it a mount point per tab. ── -->
+  <div class="tab-panel" data-tab="tab1" id="panel-tab1"></div>
+  <div class="tab-panel" data-tab="tab2" id="panel-tab2"></div>
+  <div class="tab-panel" data-tab="tab3" id="panel-tab3"></div>
+
+  </div>
+
+  <!-- ── SHEETS (shared) ─────────────────────────────────────────────── -->
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <div class="bottom-sheet" id="lovSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="lovSheetTitle">Select value</div>
+      <button class="sheet-clear-btn" id="lovClearBtn" onclick="clearLov()">Clear</button>
+    </div>
+    <div class="lov-search-row" id="lovSearchRow">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input class="lov-search-input" id="lovSearchInput" placeholder="Search" oninput="filterLovOptions(this.value)">
+    </div>
+    <div class="sheet-body" id="lovSheetBody"></div>
+  </div>
+
+  <div class="bottom-sheet" id="dataspySheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Select dataspy</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sheet-body" id="dataspySheetBody"></div>
+  </div>
+
+  <!-- ── INSERT MODE (design-decisions-v3-1.md §19.9/§19.9.1) — triggered by
+       the List/Detail header's Plus. Full-screen sheet, not a compact
+       bottom-sheet. Content order locked: Organization pill → Header
+       fields (Type+Status default) → Description → one flat fields
+       container (required fields first) → Comments → Documents → Save. ── -->
+  <div class="insert-mode-sheet" id="insertModeSheet">
+    <div class="insert-mode-handle-row" id="insertModeHandle"><div class="sheet-handle"></div></div>
+    <div class="insert-mode-header">
+      <button class="sheet-close" onclick="closeInsertMode()">✕</button>
+      <div class="insert-mode-title">Create</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="insert-mode-body">
+      <div class="org-pill-row">
+        <button class="org-pill required" data-field="insertOrganization" onclick="openLov('insertOrganization')">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 21V7l6-4 6 4v14M9 9h1m4 0h1m-6 4h1m4 0h1m-6 4h1m4 0h1"/></svg>
+          <span class="field-value" id="fv-insertOrganization-code">ORG1</span>
+          <svg class="org-pill-chevron" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <div class="section-card">
+      <div class="equip-attrs">
+        <div class="attr-item" data-field="insertType" onclick="openLov('insertType')">
+          <span class="attr-label">Type</span>
+          <div class="attr-value">
+            <span class="attr-badge" id="fv-insertType-badge" style="background:#F46600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span>
+            <span class="attr-text" id="fv-insertType-desc">Corrective Maintenance</span>
+          </div>
+        </div>
+        <div class="attr-item" data-field="insertStatus" onclick="openLov('insertStatus')">
+          <span class="attr-label">Status</span>
+          <div class="attr-value">
+            <span class="attr-badge" id="fv-insertStatus-badge" style="background:#00AA14"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg></span>
+            <span class="attr-text" id="fv-insertStatus-desc">Operational</span>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <div class="section-card">
+        <div class="form-field" data-field="insertDescription" onclick="openTextEditor('insertDescription','Description')">
+          <span class="field-label">Description</span>
+          <span class="field-value muted" id="fv-insertDescription">Tap to add…</span>
+          <span class="field-chevron">›</span>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="form-field required" data-field="insertPriority" onclick="openLov('insertPriority')">
+          <span class="field-label">Priority</span>
+          <div class="field-lov-value"><span class="field-lov-desc muted" id="fv-insertPriority-desc">Select…</span></div>
+          <span class="field-chevron">›</span>
+        </div>
+        <div class="form-field" data-field="insertLocation" onclick="openLov('insertLocation')">
+          <span class="field-label">Location</span>
+          <div class="field-lov-value"><span class="field-lov-desc muted" id="fv-insertLocation-desc">Select…</span></div>
+          <span class="field-chevron">›</span>
+        </div>
+      </div>
+      <div class="caption" style="margin:-4px 12px 0;"><b>Fields container:</b> one flat container, no sub-groups — required fields (Priority) surface at the top, other visible fields (Location) render beneath. Real precedence comes from Screen Designer per record type; this demo just orders the two example fields that way.</div>
+
+      <div class="section-card">
+        <div class="section-card-header"><span class="section-card-title">Comments</span></div>
+        <div id="insertCommentsList">
+          <div class="comment-add-row" onclick="openTextEditor('__insertComment','Add Comment',(t)=>addComment(t,'insertCommentsList'))">
+            <span class="comment-add-plus">+</span> Add comment
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-card-header"><span class="section-card-title">Documents</span></div>
+        <div class="comment-add-row" onclick="showToast('Attach document — coming soon','📎')">
+          <span class="comment-add-plus">+</span> Add document
+        </div>
+      </div>
+      <div class="caption" style="margin:-4px 12px 16px;"><b>Comments and Documents:</b> always the same components as Record View's own sections (§19.3) — never reinvented per screen. Whether a given screen's Insert Mode includes either is a per-screen design decision; this generic demo includes both.</div>
+    </div>
+    <div class="insert-mode-footer">
+      <button class="insert-save-btn" id="insertSaveBtn" onclick="saveInsertRecord()">Create</button>
+    </div>
+  </div>
+
+  <div class="bottom-sheet" id="editSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="editSheetTitle">Edit field</div>
+      <button class="sheet-clear-btn" id="editClearBtn" onclick="clearEdit()">Clear</button>
+    </div>
+    <div class="edit-input-wrap"><input class="edit-input" id="editSheetInput" type="text" oninput="sanitizeCurrencyInput(this)"></div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveEdit()">Save</button></div>
+  </div>
+
+  <div class="bottom-sheet" id="dateSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="dateSheetTitle">Select date</div>
+      <button class="sheet-clear-btn" id="dateClearBtn" onclick="clearDate()">Clear</button>
+    </div>
+    <div class="sheet-body">
+      <div class="cal-header">
+        <button class="cal-nav-btn" onclick="calNavMonth(-1)">‹</button>
+        <span class="cal-month-label" id="calMonthLabel">July 2026</span>
+        <button class="cal-nav-btn" onclick="calNavMonth(1)">›</button>
+      </div>
+      <div class="cal-weekdays"><span class="cal-weekday">Sun</span><span class="cal-weekday">Mon</span><span class="cal-weekday">Tue</span><span class="cal-weekday">Wed</span><span class="cal-weekday">Thu</span><span class="cal-weekday">Fri</span><span class="cal-weekday">Sat</span></div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+  </div>
+
+  <div class="bottom-sheet" id="dateTimeSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="dateTimeSheetTitle">Select date &amp; time</div>
+      <button class="sheet-clear-btn" id="dateTimeClearBtn" onclick="clearDateTime()">Clear</button>
+    </div>
+    <div class="sheet-body">
+      <div class="cal-header">
+        <button class="cal-nav-btn" onclick="calNavMonthDT(-1)">‹</button>
+        <span class="cal-month-label" id="calMonthLabelDT">July 2026</span>
+        <button class="cal-nav-btn" onclick="calNavMonthDT(1)">›</button>
+      </div>
+      <div class="cal-weekdays"><span class="cal-weekday">Sun</span><span class="cal-weekday">Mon</span><span class="cal-weekday">Tue</span><span class="cal-weekday">Wed</span><span class="cal-weekday">Thu</span><span class="cal-weekday">Fri</span><span class="cal-weekday">Sat</span></div>
+      <div class="cal-grid" id="calGridDT"></div>
+      <div class="form-field">
+        <span class="field-label">Time</span>
+        <input class="time-input" type="time" id="dateTimeInput" value="14:30">
+      </div>
+    </div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveDateTime()">Save</button></div>
+  </div>
+
+  <div class="bottom-sheet text-editor-sheet" id="textEditorSheet">
+    <div class="text-editor-header">
+      <div class="text-editor-left">
+        <button class="text-editor-close" id="textEditorCloseBtn" onclick="textEditorCloseTap()">✕</button>
+        <button class="text-editor-discard" id="textEditorDiscard" onclick="textEditorConfirmDiscard()">Discard unsaved changes</button>
+      </div>
+      <div class="text-editor-title" id="textEditorTitle">Edit</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="text-editor-body"><textarea class="text-editor-textarea" id="textEditorTextarea" oninput="textEditorInputChanged()" placeholder="Type here…"></textarea></div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveTextEditor()">Save</button></div>
+  </div>
+
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-modal">
+      <div class="confirm-message" id="confirmMessage">Are you sure?</div>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="confirm-btn confirm-danger" id="confirmDangerBtn" onclick="confirmDangerAction()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-sheet" id="commentActionsSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Comment Actions</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sheet-body" id="commentActionsBody"></div>
+  </div>
+
+  <button class="inline-confirm-btn" id="inlineConfirmBtn" tabindex="-1">
+    <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+</div>
+
+<script>
+/* ── theme ── */
+const themeToggle = document.getElementById('themeToggle');
+themeToggle.addEventListener('click', () => {
+  const dark = document.documentElement.hasAttribute('data-theme');
+  if (dark) { document.documentElement.removeAttribute('data-theme'); themeToggle.textContent = '☀ Light'; }
+  else { document.documentElement.setAttribute('data-theme','dark'); themeToggle.textContent = '◑ Dark'; }
+});
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+function closeAllSheets() {
+  document.querySelectorAll('.bottom-sheet').forEach(s => s.classList.remove('open'));
+  document.getElementById('sheetOverlay').classList.remove('open');
+}
+function openSheet(id) {
+  document.getElementById('sheetOverlay').classList.add('open');
+  document.getElementById(id).classList.add('open');
+}
+
+/* ── TAB RAIL (generalized step rail — no sequence, no gating) — same
+   pattern as eam-equipment-record-view-prototype-v1.html §19. Record View
+   is the master reference for every field type; Tab 1/2/3 are generic
+   placeholders that now render the standard List/Detail content shell
+   (§19.8.2) with their own dummy dataset each, proving the shell is
+   reusable rather than tied to one dataset. ── */
+const TAB_ICON = '<svg width="16" height="16" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/></svg>';
+const TABS = [
+  { key: 'record', name: 'Record View' },
+  { key: 'tab1', name: 'Tab 1' },
+  { key: 'tab2', name: 'Tab 2' },
+  { key: 'tab3', name: 'Tab 3' },
+];
+let currentTab = 'record';
+function renderTabRail() {
+  const current = TABS.find(t => t.key === currentTab);
+  document.getElementById('tabRailIcon').innerHTML = TAB_ICON;
+  document.getElementById('tabRailName').textContent = current.name;
+  document.getElementById('tabMap').innerHTML = TABS.map(t => `
+    <div class="tab-map-item${t.key===currentTab?' active':''}" onclick="goToTab('${t.key}')">
+      <span class="tab-map-icon">${TAB_ICON}</span>
+      <span class="tab-map-label">${t.name}</span>
+      <span class="tab-map-chevron"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    </div>`).join('');
+}
+document.getElementById('tabRail').addEventListener('click', (e) => {
+  if (e.target.closest('.tab-map-item')) return;
+  const rail = document.getElementById('tabRail');
+  const map = document.getElementById('tabMap');
+  const chev = document.getElementById('tabChevron');
+  const open = map.classList.toggle('open');
+  rail.classList.toggle('expanded', open);
+  chev.style.transform = open ? 'rotate(180deg)' : '';
+});
+function goToTab(key) {
+  document.getElementById('tabMap').classList.remove('open');
+  document.getElementById('tabChevron').style.transform = '';
+  if (key === currentTab) return;
+  currentTab = key;
+  renderTabRail();
+  document.querySelectorAll('.tab-panel').forEach(el => el.classList.toggle('active', el.dataset.tab === key));
+  document.getElementById('fieldRefContent').scrollTop = 0;
+  // Header swap (§19.8.1): Record View keeps the full editable §19.7
+  // header (status + no pin, per this file's own layout); every other
+  // tab shows the protected-identity List/Detail header instead — never
+  // both, never neither.
+  const isRecordView = key === 'record';
+  document.getElementById('recHeader').classList.toggle('hidden', !isRecordView);
+  document.getElementById('listDetailHeader').classList.toggle('active', !isRecordView);
+  const searchOpenForTab = !!(listDetailState[key] && listDetailState[key].searchOpen);
+  document.getElementById('listDetailSearchBtn').classList.toggle('active', searchOpenForTab);
+}
+renderTabRail();
+
+/* ── List/Detail content shell (design-decisions-v3-1.md §19.8.2) ──────
+   Canonical generic demo — Tab 1/2/3 each get a distinct dummy dataset
+   through the exact same config-driven mechanism ported to Equipment's
+   child tabs. Search now lives in the List/Detail header (#listDetailHeader,
+   added 2026-07-14) next to Plus/Ellipsis, same as Equipment — the earlier
+   inline-in-.res-row placement was only ever a workaround for this file
+   not having a second header yet; now that it does, it matches the
+   canonical placement. ── */
+const LD_ICONS = {
+  database: '<svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>',
+  sort: '<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="11" y2="12"/><line x1="4" y1="18" x2="8" y2="18"/><path d="M17 4v16m0 0l3-3m-3 3l-3-3"/></svg>',
+  search: '<svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
+  x: '<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+};
+const LIST_DETAIL_TABS = {
+  tab1: {
+    label: 'Sample List A', sortLabel: 'Date',
+    dataspies: [
+      { key: 'all', name: 'All Records' },
+      { key: 'recent', name: 'Recently Added' },
+    ],
+    rows: [
+      { ds: ['all','recent'], title: 'Sample Record 001', sub: 'Demonstrates the standard row anatomy — title + sub, no icons', trailing: 'Jul 20, 2026' },
+      { ds: ['all','recent'], title: 'Sample Record 002', sub: 'Second dataspy-visible row, same tab', trailing: 'Jul 18, 2026' },
+      { ds: ['all'], title: 'Sample Record 003', sub: 'Only visible under "All Records" — not in the Recently Added dataspy', trailing: 'Feb 2, 2026' },
+      { ds: ['all'], title: 'Sample Record 004', sub: 'A fourth row, to show the list scroll/gap rhythm at more than three rows', trailing: 'Jan 9, 2026' },
+    ],
+  },
+  tab2: {
+    label: 'Sample List B', sortLabel: 'Name',
+    dataspies: [
+      { key: 'all', name: 'All Records' },
+    ],
+    rows: [
+      { ds: ['all'], title: 'Sample Record 101', sub: 'A tab with a single dataspy — the ds-bar still works, just with one option', trailing: 'Ready' },
+      { ds: ['all'], title: 'Sample Record 102', sub: 'Second row, single dataspy', trailing: 'Pending' },
+      { ds: ['all'], title: 'Sample Record 103', sub: 'Third row, single dataspy', trailing: 'Ready' },
+    ],
+  },
+  tab3: {
+    label: 'Sample List C', sortLabel: 'Priority',
+    dataspies: [
+      { key: 'all', name: 'All Records' },
+      { key: 'flagged', name: 'Flagged Only' },
+    ],
+    rows: [
+      { ds: ['all','flagged'], title: 'Sample Record 201', sub: 'Flagged row shown in both dataspies' },
+      { ds: ['all'], title: 'Sample Record 202', sub: 'Row with no trailing value at all — trailing is optional, not every row needs one' },
+      { ds: ['all','flagged'], title: 'Sample Record 203', sub: 'Another flagged row', trailing: 'High' },
+      { ds: ['all'], title: 'Sample Record 204', sub: 'Plain row, default dataspy only', trailing: 'Low' },
+      { ds: ['all'], title: 'Sample Record 205', sub: 'Fifth row, to exercise scrolling within the demo', trailing: 'Medium' },
+    ],
+  },
+};
+let listDetailState = {};
+function renderListDetailShell(tabKey) {
+  const cfg = LIST_DETAIL_TABS[tabKey];
+  const state = listDetailState[tabKey] || {};
+  const dsKey = state.dataspy || cfg.dataspies[0].key;
+  const mode = state.mode || 'detailed';
+  const ds = cfg.dataspies.find(d => d.key === dsKey) || cfg.dataspies[0];
+  const rows = cfg.rows.filter(r => r.ds.includes(dsKey));
+  return `
+    ${state.searchOpen ? `
+    <div class="ld-search-bar">
+      ${LD_ICONS.search}
+      <input class="ld-search-input" type="text" placeholder="Search ${cfg.label}" value="${(state.search||'').replace(/"/g,'&quot;')}" oninput="onListDetailSearchInput('${tabKey}', this.value)" autocomplete="off">
+      <button class="ld-search-close" onclick="toggleListDetailSearch('${tabKey}')" aria-label="Close search">${LD_ICONS.x}</button>
+    </div>` : ''}
+    <div class="ds-bar" onclick="openDataspySheet('${tabKey}')">
+      <div class="ds-icon-w">${LD_ICONS.database}</div>
+      <div class="ds-body"><div class="ds-name">${ds.name}</div><div class="ds-count">${rows.length} record${rows.length===1?'':'s'}</div></div>
+      <svg class="ds-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="mode-tog">
+      <button class="mode-btn ${mode==='detailed'?'active':''}" onclick="setListDetailMode('${tabKey}','detailed')">Detailed</button>
+      <button class="mode-btn ${mode==='list'?'active':''}" onclick="setListDetailMode('${tabKey}','list')">List</button>
+    </div>
+    <div class="res-row">
+      <span class="res-count">${rows.length} record${rows.length===1?'':'s'}</span>
+      <button class="sort-btn" onclick="showToast('Sort — coming soon')">${LD_ICONS.sort}${cfg.sortLabel}</button>
+    </div>
+    <div class="plain-list">${rows.map(r => `
+      <div class="plain-row" data-search="${(r.title+' '+r.sub).toLowerCase()}" onclick="showToast('Opening detail — coming soon')">
+        <div class="plain-row-body">
+          <div class="plain-row-title">${r.title}</div>
+          ${mode==='detailed' ? `<div class="plain-row-sub">${r.sub}</div>` : ''}
+        </div>
+        ${r.trailing ? `<div class="plain-row-trailing">${r.trailing}</div>` : ''}
+      </div>`).join('')}</div>
+    <div style="height:16px;"></div>`;
+}
+function renderListDetailTab(tabKey) {
+  document.getElementById(`panel-${tabKey}`).innerHTML = renderListDetailShell(tabKey);
+  const query = (listDetailState[tabKey] || {}).search;
+  if (query) onListDetailSearchInput(tabKey, query);
+}
+Object.keys(LIST_DETAIL_TABS).forEach(renderListDetailTab);
+
+let activeDataspyTabKey = null;
+function openDataspySheet(tabKey) {
+  activeDataspyTabKey = tabKey;
+  const cfg = LIST_DETAIL_TABS[tabKey];
+  const current = (listDetailState[tabKey] && listDetailState[tabKey].dataspy) || cfg.dataspies[0].key;
+  document.getElementById('dataspySheetBody').innerHTML = cfg.dataspies.map(d => `
+    <div class="lov-option ${d.key===current?'selected':''}" onclick="selectDataspy('${d.key}')">
+      <div class="lov-option-texts"><div class="lov-option-desc">${d.name}</div></div>
+      <div class="lov-check ${d.key===current?'checked':''}"></div>
+    </div>`).join('');
+  openSheet('dataspySheet');
+}
+function selectDataspy(key) {
+  listDetailState[activeDataspyTabKey] = listDetailState[activeDataspyTabKey] || {};
+  listDetailState[activeDataspyTabKey].dataspy = key;
+  closeAllSheets();
+  renderListDetailTab(activeDataspyTabKey);
+}
+function setListDetailMode(tabKey, mode) {
+  listDetailState[tabKey] = listDetailState[tabKey] || {};
+  listDetailState[tabKey].mode = mode;
+  renderListDetailTab(tabKey);
+}
+function toggleListDetailSearch(tabKey) {
+  listDetailState[tabKey] = listDetailState[tabKey] || {};
+  listDetailState[tabKey].searchOpen = !listDetailState[tabKey].searchOpen;
+  if (!listDetailState[tabKey].searchOpen) listDetailState[tabKey].search = '';
+  renderListDetailTab(tabKey);
+  if (tabKey === currentTab) {
+    document.getElementById('listDetailSearchBtn').classList.toggle('active', listDetailState[tabKey].searchOpen);
+  }
+  if (listDetailState[tabKey].searchOpen) {
+    const input = document.querySelector(`#panel-${tabKey} .ld-search-input`);
+    if (input) input.focus();
+  }
+}
+function onListDetailSearchInput(tabKey, value) {
+  listDetailState[tabKey] = listDetailState[tabKey] || {};
+  listDetailState[tabKey].search = value;
+  const q = value.trim().toLowerCase();
+  document.querySelectorAll(`#panel-${tabKey} .plain-row`).forEach(row => {
+    row.classList.toggle('filtered-out', q.length > 0 && !(row.dataset.search || '').includes(q));
+  });
+}
+
+/* ── List/Detail header actions (§19.8.1) — Plus + Search + Ellipsis,
+   tab-aware via currentTab so one shared header works for tab1/2/3
+   without re-rendering. ── */
+function onListDetailSearchTap() { toggleListDetailSearch(currentTab); }
+function onListDetailPlusTap() { openInsertMode(currentTab); }
+
+/* ── Insert Mode (design-decisions-v3-1.md §19.9/§19.9.1) ── */
+function openInsertMode(tabKey) {
+  document.getElementById('insertModeSheet').classList.add('open');
+  updateInsertSaveGate();
+}
+function closeInsertMode() {
+  document.getElementById('insertModeSheet').classList.remove('open');
+}
+function updateInsertSaveGate() {
+  const btn = document.getElementById('insertSaveBtn');
+  if (!btn) return;
+  // Organization/Type/Status all default pre-filled — Priority is the one
+  // field that starts empty, specifically so this demo actually shows the
+  // gray→green gate flipping rather than opening already-satisfied.
+  btn.classList.toggle('ready', !!LOV_CURRENT.insertPriority);
+}
+function saveInsertRecord() {
+  if (!LOV_CURRENT.insertPriority) { showToast('Priority is required'); return; }
+  closeInsertMode();
+  showToast('Record created — coming soon', '✓');
+}
+/* Swipe-to-dismiss (§19.9's shell spec) — new gesture for this app, only
+   used by Insert Mode's full-screen presentation. Drag handle only, not
+   the whole header, so the ✕ button stays a normal tap target. */
+let insertDragStartY = null, insertDragDelta = 0;
+function insertDragStart(e) {
+  insertDragStartY = (e.touches ? e.touches[0].clientY : e.clientY);
+  document.getElementById('insertModeSheet').classList.add('dragging');
+}
+function insertDragMove(e) {
+  if (insertDragStartY === null) return;
+  const y = (e.touches ? e.touches[0].clientY : e.clientY);
+  insertDragDelta = Math.max(0, y - insertDragStartY);
+  document.getElementById('insertModeSheet').style.transform = `translateY(${insertDragDelta}px)`;
+}
+function insertDragEnd() {
+  if (insertDragStartY === null) return;
+  const sheet = document.getElementById('insertModeSheet');
+  sheet.classList.remove('dragging');
+  sheet.style.transform = '';
+  insertDragStartY = null;
+  if (insertDragDelta > 120) closeInsertMode();
+  insertDragDelta = 0;
+}
+document.getElementById('insertModeHandle').addEventListener('pointerdown', insertDragStart);
+document.addEventListener('pointermove', insertDragMove);
+document.addEventListener('pointerup', insertDragEnd);
+function toggleListDetailMenu() {
+  document.getElementById('listDetailMenu').classList.toggle('open');
+}
+function closeListDetailMenu() {
+  document.getElementById('listDetailMenu').classList.remove('open');
+}
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('listDetailMenu');
+  if (menu && menu.classList.contains('open') && !e.target.closest('.rec-header-actions')) {
+    menu.classList.remove('open');
+  }
+});
+
+/* ── shared: hide Clear on required fields (and the always-populated status control) ── */
+// Clear is hidden for two independent reasons: the field is required (set by
+// screen design or system design — clearing it to empty would contradict the
+// requirement), or the field is already empty (nothing to clear). Either one
+// hides it; matches the reference behavior of Clear disappearing on a null
+// field, shown only on the required-false + populated combination.
+function isRequiredField(key) {
+  if (['__status', 'type', 'priority', 'insertType', 'insertStatus', 'insertPriority'].includes(key)) return true;
+  const el = document.querySelector(`[data-field="${key}"]`);
+  return !!el && el.classList.contains('required');
+}
+function fieldIsEmpty(el) {
+  return !el || el.classList.contains('muted') || el.textContent.trim() === '';
+}
+function shouldHideClear(key, el) {
+  return isRequiredField(key) || fieldIsEmpty(el);
+}
+
+/* ── LOV (description-only default, code-visible exception, identifier) ── */
+const CODE_VISIBLE_FIELDS = new Set(['assignedTo', 'costCode', 'organization']); // exception list — see §15.1
+const LOV_DATA = {
+  department: [{code:'ENG',desc:'Engineering'},{code:'WATER',desc:'Water Utility'},{code:'MAINT',desc:'Maintenance'}],
+  costCode: [{code:'100-100',desc:'General Maintenance'},{code:'100-200',desc:'Capital Repair'}],
+  assignedTo: [{code:'BCAMPBELL',desc:'Brian Campbell'},{code:'JRODRIGUEZ',desc:'Juan Rodriguez'}],
+  organization: [{code:'ORG1',desc:'Field-Based Plant & Production'},{code:'ORG2',desc:'US Industrial'}],
+  __status: [{code:'OPERATIONAL',desc:'Operational'},{code:'DOWN',desc:'Down'},{code:'STANDBY',desc:'Standby'}],
+  type: [{code:'BK',desc:'Breakdown'},{code:'CAL',desc:'Calibration'},{code:'CM',desc:'Corrective Maintenance'},{code:'INS',desc:'Inspection'},{code:'MOD',desc:'Modification'},{code:'PM',desc:'Preventive Maintenance'}],
+  priority: [{code:'LOW',desc:'Low'},{code:'MEDIUM',desc:'Medium'},{code:'HIGH',desc:'High'},{code:'CRITICAL',desc:'Critical'}],
+  // ── Insert Mode (§19.9.1) — separate keys/state from the outer record's
+  // own Organization/Type/Priority above, even though they're conceptually
+  // the "same kind" of field. Insert Mode is creating a DIFFERENT record;
+  // sharing state with the record you're currently viewing would silently
+  // overwrite it, which is a real prototype bug, not a convenient shortcut.
+  insertOrganization: [{code:'ORG1',desc:'Field-Based Plant & Production'},{code:'ORG2',desc:'US Industrial'}],
+  insertType: [{code:'BK',desc:'Breakdown'},{code:'CAL',desc:'Calibration'},{code:'CM',desc:'Corrective Maintenance'},{code:'INS',desc:'Inspection'},{code:'MOD',desc:'Modification'},{code:'PM',desc:'Preventive Maintenance'}],
+  insertStatus: [{code:'OPERATIONAL',desc:'Operational'},{code:'DOWN',desc:'Down'},{code:'STANDBY',desc:'Standby'}],
+  insertPriority: [{code:'LOW',desc:'Low'},{code:'MEDIUM',desc:'Medium'},{code:'HIGH',desc:'High'},{code:'CRITICAL',desc:'Critical'}],
+  insertLocation: [{code:'BLDG-A',desc:'Building A'},{code:'BLDG-B',desc:'Building B'}],
+};
+const LOV_CURRENT = {
+  department:'ENG', costCode:'100-100', assignedTo:'BCAMPBELL', organization:'ORG1', __status:'OPERATIONAL', type:'PM', priority:'MEDIUM',
+  // Insert Mode defaults to Type + Status (§19.9.1 — not Type + Priority;
+  // that pairing is specific to this file's own Header Fields demo above,
+  // not privileged as the Insert Mode default). Priority starts unset on
+  // purpose — it's the one field that demonstrates Save's gray→green gate.
+  insertOrganization:'ORG1', insertType:'CM', insertStatus:'OPERATIONAL', insertPriority:'', insertLocation:'',
+};
+const LOV_TITLES = { __status: 'Operational Status', organization: 'Organization', type: 'Type', priority: 'Priority', insertOrganization: 'Organization', insertType: 'Type', insertStatus: 'Status', insertPriority: 'Priority' };
+// Search applies to reference-data lookups (Department, Cost Code, Assigned
+// To, Organization — anything you'd search a longer list for). It does NOT
+// apply to short fixed dropdowns like Status/Type, which don't need it.
+const NO_SEARCH_LOVS = new Set(['__status', 'type', 'priority', 'insertType', 'insertStatus', 'insertPriority']);
+/* Header-fields colour language (design-decisions-v3-1.md §19.9.1) — ported
+   verbatim from eam-wo-record-view-prototype-v1.html's TYPE_META/
+   PRIORITY_META so "Type"/"Priority" mean the same thing everywhere they
+   render, not re-derived per file. */
+const TYPE_META = {
+  BK:  { color: '#E24B4A', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
+  CAL: { color: '#007B87', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>' },
+  CM:  { color: '#F46600', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>' },
+  INS: { color: '#9933FF', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' },
+  MOD: { color: '#6F7480', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>' },
+  PM:  { color: '#00AA14', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg>' },
+};
+const PRIORITY_META = {
+  LOW:      { color: '#00AA14', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="2" fill="white" stroke="none"/></svg>' },
+  MEDIUM:   { color: '#F46600', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg>' },
+  HIGH:     { color: '#E24B4A', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="5,15 12,8 19,15"/></svg>' },
+  CRITICAL: { color: '#E24B4A', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-7 7 7 7 0 01-7-7c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>' },
+};
+// Status as a header-fields badge (Insert Mode's Type+Status default,
+// §19.9.1) — same colours as the .rec-status-btn pill (st-operational/
+// st-down/st-standby) so Status means the same thing in badge form too.
+const STATUS_META = {
+  OPERATIONAL: { color: '#00AA14', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>' },
+  DOWN:        { color: '#E24B4A', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' },
+  STANDBY:     { color: '#F46600', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12,7 12,12 15,15"/></svg>' },
+};
+// Header-fields badge keys (Type/Priority-style, §19.9.1) vs. plain LOV
+// form-field keys — selectLov() branches on membership here rather than a
+// growing if-chain per key.
+const BADGE_LOV_META = { type: TYPE_META, priority: PRIORITY_META, insertType: TYPE_META, insertStatus: STATUS_META };
+const ORG_STYLE_LOVS = new Set(['organization', 'insertOrganization']);
+function renderColorBadge(meta) {
+  return meta ? `<span class="attr-badge" style="background:${meta.color}">${meta.icon}</span>` : `<span class="attr-badge"></span>`;
+}
+let activeLovKey = null;
+function openLov(key) {
+  activeLovKey = key;
+  document.getElementById('lovSheetTitle').textContent = LOV_TITLES[key] || document.querySelector(`[data-field="${key}"] .field-label`).textContent;
+  document.getElementById('lovClearBtn').classList.toggle('hidden', shouldHideClear(key, document.getElementById(`fv-${key}-desc`)));
+  document.getElementById('lovSearchInput').value = '';
+  document.getElementById('lovSearchRow').classList.toggle('hidden', NO_SEARCH_LOVS.has(key));
+  const current = LOV_CURRENT[key];
+  document.getElementById('lovSheetBody').innerHTML = LOV_DATA[key].map(opt => `
+    <div class="lov-option ${opt.code===current?'selected':''}" data-search="${(opt.desc+' '+opt.code).toLowerCase()}" onclick="selectLov('${opt.code}','${opt.desc.replace(/'/g,"\\'")}')">
+      <div class="lov-option-texts">
+        <div class="lov-option-desc">${opt.desc}</div>
+        ${opt.code && CODE_VISIBLE_FIELDS.has(key) ? `<div class="lov-option-code">${opt.code}</div>` : ''}
+      </div>
+      <div class="lov-check ${opt.code===current?'checked':''}"></div>
+    </div>`).join('');
+  openSheet('lovSheet');
+}
+function filterLovOptions(query) {
+  const q = query.trim().toLowerCase();
+  document.querySelectorAll('#lovSheetBody .lov-option').forEach(opt => {
+    opt.classList.toggle('filtered-out', q && !opt.dataset.search.includes(q));
+  });
+}
+function selectLov(code, desc) {
+  const key = activeLovKey;
+  LOV_CURRENT[key] = code;
+  if (key === '__status') {
+    const cls = { OPERATIONAL:'st-operational', DOWN:'st-down', STANDBY:'st-standby' }[code] || 'st-operational';
+    document.getElementById('recStatusBtn').className = 'rec-status-btn ' + cls;
+    document.getElementById('recStatusBtnText').textContent = desc;
+    closeAllSheets();
+    showToast('✓ ' + desc);
+    return;
+  }
+  if (ORG_STYLE_LOVS.has(key)) {
+    // Code-only exception (§15.1) — no description element on this pill at
+    // all, unlike the generic CODE_VISIBLE_FIELDS branch below which always
+    // updates a paired description too.
+    document.getElementById(`fv-${key}-code`).textContent = code;
+    closeAllSheets();
+    showToast('✓ ' + code);
+    updateInsertSaveGate();
+    return;
+  }
+  if (BADGE_LOV_META[key]) {
+    const meta = BADGE_LOV_META[key][code];
+    const badgeEl = document.getElementById(`fv-${key}-badge`);
+    badgeEl.outerHTML = renderColorBadge(meta).replace('class="attr-badge"', `class="attr-badge" id="fv-${key}-badge"`);
+    document.getElementById(`fv-${key}-desc`).textContent = desc;
+    closeAllSheets();
+    showToast('✓ ' + desc);
+    updateInsertSaveGate();
+    return;
+  }
+  const codeEl = document.getElementById(`fv-${key}-code`);
+  const descEl = document.getElementById(`fv-${key}-desc`);
+  if (codeEl) { codeEl.textContent = code; codeEl.style.display = CODE_VISIBLE_FIELDS.has(key) ? '' : 'none'; }
+  descEl.textContent = desc;
+  descEl.classList.remove('muted'); // clears the "Select…" placeholder styling — first exercised by insertPriority/insertLocation, which (unlike every other default-branch LOV field) start genuinely empty
+  closeAllSheets();
+  showToast('✓ ' + desc);
+  updateInsertSaveGate();
+}
+function clearLov() {
+  const key = activeLovKey;
+  LOV_CURRENT[key] = '';
+  const codeEl = document.getElementById(`fv-${key}-code`);
+  const descEl = document.getElementById(`fv-${key}-desc`);
+  if (codeEl) { codeEl.textContent = ''; codeEl.style.display = 'none'; }
+  descEl.textContent = '';
+  descEl.classList.add('muted');
+  closeAllSheets();
+  showToast('Cleared');
+}
+
+/* ── scroll-collapsing header (same hysteresis fix as Equipment) ── */
+let recHeaderScrolled = false, recHeaderTicking = false;
+function onRecContentScroll(el) {
+  if (recHeaderTicking) return;
+  recHeaderTicking = true;
+  requestAnimationFrame(() => {
+    const top = el.scrollTop;
+    const header = document.getElementById('recHeader');
+    if (!recHeaderScrolled && top > 40) { recHeaderScrolled = true; header.classList.add('scrolled'); }
+    else if (recHeaderScrolled && top < 10) { recHeaderScrolled = false; header.classList.remove('scrolled'); }
+    recHeaderTicking = false;
+  });
+}
+document.getElementById('fieldRefContent').addEventListener('scroll', function() { onRecContentScroll(this); });
+
+/* ── Fundamental, module-agnostic behavior: tapping the nav bar always
+   scrolls the record's content back to the top, which — via the scroll
+   listener above — also re-expands the header (status button reappears).
+   Applies to every standard-record-view screen, not just Equipment. ── */
+function scrollFormToTop() {
+  document.getElementById('fieldRefContent').scrollTo({ top: 0, behavior: 'smooth' });
+}
+/* The identity header (code+description) is visually part of the same black
+   top region as the nav bar. While collapsed, it has no action of its own
+   (status is hidden, description isn't tappable-to-edit in that state) —
+   so tapping anywhere in it does the same thing tapping the nav bar does.
+   While expanded, this is a no-op: the description/status children handle
+   their own taps and this never overrides them. */
+function onRecHeaderTap(event) {
+  if (document.getElementById('recHeader').classList.contains('scrolled')) {
+    scrollFormToTop();
+  }
+}
+
+/* ── Header description — inline edit, same pattern as any other ≤255-char
+   text field, but gated: only tappable while the header is expanded (status
+   button visible). While collapsed/scrolled, tapping the description does
+   nothing — the header isn't in a state where editing it makes sense.
+   No Clear — description is required. ── */
+function onDescTap(event) {
+  // No stopPropagation here on purpose: when collapsed, this is a no-op and
+  // the click must bubble up to onRecHeaderTap so tapping the description
+  // while scrolled still scrolls-to-top like the rest of the header does.
+  if (document.getElementById('recHeader').classList.contains('scrolled')) return;
+  event.stopPropagation();
+  const span = document.getElementById('recDesc');
+  const edit = document.getElementById('recDescEdit');
+  edit.value = span.textContent;
+  span.classList.add('hidden-while-editing');
+  edit.classList.add('editing');
+  autoGrow(edit);
+  edit.focus();
+  edit.setSelectionRange(edit.value.length, edit.value.length);
+  document.getElementById('inlineConfirmBtn').classList.add('show');
+}
+function onDescBlur() {
+  const span = document.getElementById('recDesc');
+  const edit = document.getElementById('recDescEdit');
+  span.textContent = edit.value;
+  span.classList.remove('hidden-while-editing');
+  edit.classList.remove('editing');
+  document.getElementById('inlineConfirmBtn').classList.remove('show');
+  showToast('Saved');
+}
+function autoGrow(ta) {
+  ta.style.height = 'auto';
+  ta.style.height = ta.scrollHeight + 'px';
+}
+
+/* ── HEADER ACTIONS — pin + ellipsis menu (design-decisions-v3-1.md §19.7,
+   added 2026-07-14). Record View headers only. ── */
+function toggleRecordPin() {
+  const btn = document.getElementById('recPinBtn');
+  const pinned = btn.classList.toggle('pinned');
+  showToast(pinned ? 'Pinned' : 'Unpinned');
+}
+
+function toggleRecActionsMenu() {
+  document.getElementById('recActionsMenu').classList.toggle('open');
+}
+function closeRecActionsMenu() {
+  document.getElementById('recActionsMenu').classList.remove('open');
+  document.getElementById('listDetailMenu').classList.remove('open');
+}
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('recActionsMenu');
+  if (menu && menu.classList.contains('open') && !e.target.closest('.rec-header-actions')) {
+    menu.classList.remove('open');
+  }
+});
+
+function recCopyLink() {
+  closeRecActionsMenu();
+  showToast('Link copied');
+}
+function recCopyRecord() {
+  closeRecActionsMenu();
+  showToast('Copy — coming soon');
+}
+function recDeleteRecord() {
+  closeRecActionsMenu();
+  openConfirm('Are you sure you want to delete this record?', () => {
+    showToast('Record deleted');
+  });
+}
+
+/* ── edit sheet (text / number / currency) ── */
+function formatCurrency(val) {
+  const n = parseFloat(String(val).replace(/[^0-9.-]/g,''));
+  return isNaN(n) ? val : '$' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+// Active "Clean" step of the Clean+Format pattern (uxpatterns.dev / Rivet) —
+// on mobile, some OS keyboards/autofill inject thousands separators as you
+// type even on a plain type=text input (confirmed: commas were appearing
+// live after the 4th, then 7th digit). Passive type=text wasn't enough;
+// this strips anything that isn't a digit or a single decimal point on every
+// keystroke, preserving cursor position from the end of the string so
+// typing mid-value doesn't jump the caret to the end.
+function sanitizeCurrencyInput(input) {
+  if (activeEditType !== 'currency') return;
+  const fromEnd = input.value.length - input.selectionStart;
+  let cleaned = input.value.replace(/[^0-9.]/g, '');
+  const firstDot = cleaned.indexOf('.');
+  if (firstDot !== -1) cleaned = cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, '');
+  if (input.value !== cleaned) {
+    input.value = cleaned;
+    const pos = Math.max(0, cleaned.length - fromEnd);
+    input.setSelectionRange(pos, pos);
+  }
+}
+let activeEditKey = null, activeEditType = null;
+function openEdit(key, label, type) {
+  activeEditKey = key; activeEditType = type;
+  document.getElementById('editSheetTitle').textContent = label;
+  document.getElementById('editClearBtn').classList.toggle('hidden', shouldHideClear(key, document.getElementById('fv-'+key)));
+  const input = document.getElementById('editSheetInput');
+  input.type = type === 'number' ? 'number' : 'text';
+  // Currency: raw digits only while editing, no live commas — see
+  // design-decisions-v3-1.md §15 (cursor-jump is the standard failure mode
+  // of live-formatting). Commas + 2 decimals apply on save via formatCurrency().
+  input.inputMode = type === 'currency' ? 'decimal' : '';
+  input.placeholder = type === 'currency' ? '0.00' : '';
+  const raw = document.getElementById('fv-'+key).textContent.replace(/[$,]/g,'');
+  input.value = raw;
+  openSheet('editSheet');
+}
+function saveEdit() {
+  const val = document.getElementById('editSheetInput').value;
+  const el = document.getElementById('fv-'+activeEditKey);
+  el.textContent = activeEditType === 'currency' ? formatCurrency(val) : val;
+  el.classList.remove('muted');
+  closeAllSheets();
+  showToast('Saved');
+}
+function clearEdit() {
+  const el = document.getElementById('fv-'+activeEditKey);
+  el.textContent = '';
+  el.classList.add('muted');
+  closeAllSheets();
+  showToast('Cleared');
+}
+
+/* ── date sheet ── */
+let calYear, calMonth, activeDateKey;
+function openDate(key, label) {
+  activeDateKey = key;
+  document.getElementById('dateSheetTitle').textContent = label;
+  document.getElementById('dateClearBtn').classList.toggle('hidden', shouldHideClear(key, document.getElementById('fv-'+key)));
+  const now = new Date();
+  calYear = now.getFullYear(); calMonth = now.getMonth();
+  renderCal();
+  openSheet('dateSheet');
+}
+function calNavMonth(d) { calMonth += d; if (calMonth<0){calMonth=11;calYear--;} if(calMonth>11){calMonth=0;calYear++;} renderCal(); }
+function renderCal() {
+  const first = new Date(calYear, calMonth, 1);
+  const startDow = first.getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  document.getElementById('calMonthLabel').textContent = first.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const today = new Date();
+  let html = '';
+  for (let i=0;i<startDow;i++) html += `<div class="cal-day other-month"></div>`;
+  for (let d=1;d<=daysInMonth;d++) {
+    const isToday = d===today.getDate() && calMonth===today.getMonth() && calYear===today.getFullYear();
+    html += `<div class="cal-day${isToday?' today':''}" onclick="selectDate(${d})">${d}</div>`;
+  }
+  document.getElementById('calGrid').innerHTML = html;
+}
+function selectDate(d) {
+  const dt = new Date(calYear, calMonth, d);
+  // Hardcoded 'en-US' here as a prototype stand-in — the real app must format
+  // using the logged-in user's actual locale, not a fixed one (design-decisions-v3-1.md §19.6).
+  const el = document.getElementById('fv-'+activeDateKey);
+  el.textContent = dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  el.classList.remove('muted');
+  closeAllSheets();
+  showToast('Saved');
+}
+function clearDate() {
+  const el = document.getElementById('fv-'+activeDateKey);
+  el.textContent = '';
+  el.classList.add('muted');
+  closeAllSheets();
+  showToast('Cleared');
+}
+
+/* ── date/time sheet — same calendar grid as Date, plus a native
+   <input type=time> row (Book Labor's existing time-input pattern). Tap-a-
+   day doesn't auto-close here (unlike Date): it just marks the day
+   selected, since the time value is still pending — an explicit Save
+   commits both together. ── */
+let calYearDT, calMonthDT, selectedDayDT, activeDateTimeKey;
+function openDateTime(key, label) {
+  activeDateTimeKey = key;
+  document.getElementById('dateTimeSheetTitle').textContent = label;
+  document.getElementById('dateTimeClearBtn').classList.toggle('hidden', shouldHideClear(key, document.getElementById('fv-'+key)));
+  const now = new Date();
+  calYearDT = now.getFullYear(); calMonthDT = now.getMonth(); selectedDayDT = now.getDate();
+  renderCalDT();
+  openSheet('dateTimeSheet');
+}
+function calNavMonthDT(d) { calMonthDT += d; if (calMonthDT<0){calMonthDT=11;calYearDT--;} if(calMonthDT>11){calMonthDT=0;calYearDT++;} renderCalDT(); }
+function renderCalDT() {
+  const first = new Date(calYearDT, calMonthDT, 1);
+  const startDow = first.getDay();
+  const daysInMonth = new Date(calYearDT, calMonthDT+1, 0).getDate();
+  document.getElementById('calMonthLabelDT').textContent = first.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const today = new Date();
+  let html = '';
+  for (let i=0;i<startDow;i++) html += `<div class="cal-day other-month"></div>`;
+  for (let d=1;d<=daysInMonth;d++) {
+    const isToday = d===today.getDate() && calMonthDT===today.getMonth() && calYearDT===today.getFullYear();
+    const isSelected = d===selectedDayDT;
+    html += `<div class="cal-day${isToday?' today':''}${isSelected?' selected':''}" onclick="selectDayDT(${d})">${d}</div>`;
+  }
+  document.getElementById('calGridDT').innerHTML = html;
+}
+function selectDayDT(d) {
+  selectedDayDT = d;
+  renderCalDT();
+}
+function saveDateTime() {
+  const dt = new Date(calYearDT, calMonthDT, selectedDayDT);
+  const [h, m] = document.getElementById('dateTimeInput').value.split(':').map(Number);
+  dt.setHours(h, m);
+  // Hardcoded 'en-US' here as a prototype stand-in — the real app must format
+  // using the logged-in user's actual locale, not a fixed one (design-decisions-v3-1.md §19.6).
+  const el = document.getElementById('fv-'+activeDateTimeKey);
+  el.textContent = `${dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · ${dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}`;
+  el.classList.remove('muted');
+  closeAllSheets();
+  showToast('Saved');
+}
+function clearDateTime() {
+  const el = document.getElementById('fv-'+activeDateTimeKey);
+  el.textContent = '';
+  el.classList.add('muted');
+  closeAllSheets();
+  showToast('Cleared');
+}
+
+/* ── inline text edit (<=255 chars) — no popup, floating confirm above keyboard ── */
+function onInlineFocus(input) {
+  document.getElementById('inlineConfirmBtn').classList.add('show');
+}
+function onInlineBlur(input) {
+  document.getElementById('inlineConfirmBtn').classList.remove('show');
+  showToast('Saved');
+}
+// Character-length heuristic rather than live width-measurement: measuring
+// scrollWidth vs clientWidth would oscillate once the row switches to
+// stacked layout (the input suddenly has much more room, so it would
+// "fit" again and immediately un-stack). A fixed threshold is stable
+// regardless of current layout state.
+function updateInlineFieldLayout(input) {
+  input.closest('.form-field').classList.toggle('stacked', input.value.length > 24);
+}
+
+/* ── checkbox (full-row tap target) ── */
+function toggleCheckbox(row, key) {
+  const box = row.querySelector('.field-checkbox');
+  const checked = box.classList.toggle('checked');
+  box.innerHTML = checked ? '<svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>' : '';
+}
+
+/* ── full-screen long-text editor with discard-confirmation ── */
+let textEditorKey = null, textEditorInitial = '', textEditorAwaitingDiscard = false;
+let textEditorOnSave = null;
+function openTextEditor(key, title, onSaveCallback, initialOverride) {
+  textEditorKey = key;
+  textEditorOnSave = onSaveCallback || null;
+  document.getElementById('textEditorTitle').textContent = title;
+  const current = initialOverride !== undefined ? initialOverride : (onSaveCallback ? '' : document.getElementById('fv-'+key).textContent);
+  textEditorInitial = current === 'Tap to add…' ? '' : current;
+  document.getElementById('textEditorTextarea').value = textEditorInitial;
+  textEditorAwaitingDiscard = false;
+  document.getElementById('textEditorDiscard').classList.remove('show');
+  document.getElementById('textEditorCloseBtn').style.display = '';
+  openSheet('textEditorSheet');
+  setTimeout(() => document.getElementById('textEditorTextarea').focus(), 250);
+}
+function textEditorInputChanged() {
+  if (textEditorAwaitingDiscard) {
+    textEditorAwaitingDiscard = false;
+    document.getElementById('textEditorDiscard').classList.remove('show');
+    document.getElementById('textEditorCloseBtn').style.display = '';
+  }
+}
+/* Dictation demo — real app wires this to on-device speech-to-text. Always
+   appends to whatever's already typed; never overwrites existing content. */
+function textEditorCloseTap() {
+  const dirty = document.getElementById('textEditorTextarea').value !== textEditorInitial;
+  if (dirty && !textEditorAwaitingDiscard) {
+    textEditorAwaitingDiscard = true;
+    document.getElementById('textEditorCloseBtn').style.display = 'none';
+    document.getElementById('textEditorDiscard').classList.add('show');
+    return;
+  }
+  closeAllSheets();
+}
+function textEditorConfirmDiscard() {
+  document.getElementById('textEditorTextarea').value = textEditorInitial;
+  closeAllSheets();
+}
+function saveTextEditor() {
+  const val = document.getElementById('textEditorTextarea').value;
+  if (textEditorOnSave) {
+    textEditorOnSave(val);
+  } else {
+    const el = document.getElementById('fv-'+textEditorKey);
+    el.textContent = val || 'Tap to add…';
+    el.classList.toggle('muted', !val);
+  }
+  closeAllSheets();
+  showToast('Saved');
+}
+function addComment(text, listId) {
+  if (!text.trim()) return;
+  const list = document.getElementById(listId || 'commentsList');
+  const now = new Date();
+  const div = document.createElement('div');
+  div.className = 'comment-item';
+  div.dataset.mine = 'true';
+  div.innerHTML = `<div class="comment-header"><span class="comment-author">You</span>
+    <div class="comment-time-actions">
+      <span class="comment-time">${now.toLocaleDateString('en-US',{month:'short',day:'numeric'})} · ${now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}</span>
+      <button class="comment-ellipsis" onclick="event.stopPropagation();openCommentActions(this,true)">⋯</button>
+    </div>
+  </div><p class="comment-text"></p>`;
+  div.querySelector('.comment-text').textContent = text;
+  list.appendChild(div);
+}
+
+/* ── comment actions (Edit / Delete / Copy) — permission-driven: only the
+   comment's own author sees Edit/Delete, everyone sees Copy. ── */
+let activeCommentItem = null;
+function openCommentActions(btn, isMine) {
+  activeCommentItem = btn.closest('.comment-item');
+  const actions = isMine ? ['Edit', 'Delete', 'Copy'] : ['Copy'];
+  document.getElementById('commentActionsBody').innerHTML = actions.map(a => `
+    <div class="lov-option" onclick="commentAction('${a}')">
+      <div class="lov-option-texts"><div class="lov-option-desc"${a === 'Delete' ? ' style="color:var(--red);"' : ''}>${a}</div></div>
+    </div>`).join('');
+  openSheet('commentActionsSheet');
+}
+/* ── reusable centered confirmation modal (Delete etc.) — distinct from the
+   bottom-sheet pattern used everywhere else; a destructive confirmation
+   reads better as a centered dialog than a slide-up sheet. ── */
+let confirmCallback = null;
+function openConfirm(message, onConfirm) {
+  document.getElementById('confirmMessage').textContent = message;
+  confirmCallback = onConfirm;
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('open');
+  confirmCallback = null;
+}
+function confirmDangerAction() {
+  if (confirmCallback) confirmCallback();
+  closeConfirm();
+}
+function commentAction(action) {
+  const item = activeCommentItem;
+  closeAllSheets();
+  if (action === 'Delete') {
+    openConfirm('Are you sure you want to delete the comment?', () => {
+      item.remove();
+      showToast('Comment deleted');
+    });
+  } else if (action === 'Copy') {
+    const text = item.querySelector('.comment-text').textContent;
+    if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
+    showToast('Copied');
+  } else if (action === 'Edit') {
+    const current = item.querySelector('.comment-text').textContent;
+    openTextEditor('__comment_edit', 'Edit Comment', (val) => {
+      item.querySelector('.comment-text').textContent = val;
+    }, current);
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HxGN EAM Mobile — Sample Standard Screen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-shared.css">
+<!--
+  FIELD TYPE REFERENCE — canonical, testable reference for every standard
+  field type and interaction pattern. Check new/edited screens against
+  this file rather than re-deriving the rule each time. See
+  docs/design-decisions-v3-1.md §5 / §7–§9 for the written rules this
+  demonstrates. Shared component CSS/JS: shared/eam-shared.css,
+  shared/eam-shared.js — this file only ever adds screen-specific demo
+  content and config, never redefines a shared component.
+-->
+</head>
+<body>
+
+<div class="proto-theme-bar">
+  <span class="proto-theme-label">Preview theme</span>
+  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+</div>
+
+<div class="app" id="app">
+  <header class="nav" onclick="scrollFormToTop()">
+    <div class="nav-left">
+      <button class="nav-back" onclick="event.stopPropagation()"><svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <span class="prototype-label">PROTOTYPE</span>
+    </div>
+    <div class="nav-title">Sample Standard Screen</div>
+    <div class="nav-actions">
+      <span id="syncCtrl"></span>
+    </div>
+  </header>
+
+  <div class="rec-header" id="recHeader" onclick="onRecHeaderTap(event)">
+    <div class="rec-id-row">
+      <div class="rec-id-text">
+        <span class="rec-num" id="recNum">CODE-001</span>
+        <span class="rec-desc" id="recDesc" onclick="onDescTap(event)">[Click in here] This is a sample record description used to demonstrate how longer text wraps inside the header area</span>
+        <textarea class="rec-desc-edit" id="recDescEdit" maxlength="255" oninput="autoGrow(this)" onblur="onDescBlur()"></textarea>
+      </div>
+      <div class="rec-header-actions">
+        <button class="rec-pin-btn" id="recPinBtn" onclick="event.stopPropagation(); toggleRecordPin()" aria-label="Pin record" title="Pin to my list">
+          <svg class="pin-outline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
+          <svg class="pin-fill" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22h1v-5h-1z"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
+        </button>
+        <button class="rec-ellipsis-btn" id="recEllipsisBtn" onclick="event.stopPropagation(); toggleRecActionsMenu()" aria-label="More actions">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+        </button>
+        <div class="rec-actions-menu" id="recActionsMenu">
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyLink()">Copy Link</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyRecord()">Copy</div>
+            <div class="rec-actions-item danger" onclick="recDeleteRecord()">Delete</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group" id="recActionsScreenSpecific">
+            <!-- Generic placeholder — this file isn't tied to a module, so the
+                 screen-specific slot demonstrates the pattern rather than a
+                 real action (§5.3). -->
+            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Screen-specific action — example only')">Example screen action</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="rec-status-row" id="recStatusRow">
+      <div class="rec-status-row-inner">
+        <button class="rec-status-btn st-operational" id="recStatusBtn" onclick="openLov('__status')">
+          <span id="recStatusBtnText">Operational</span>
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <!-- Organization pill (§5.2 D1, moved into the header 2026-07-16) —
+             always protected on a Record View in update mode, justified
+             opposite the status button, and collapses with it on scroll
+             since it's inside the same .rec-status-row. The pill's
+             editable, required state (code-only, §3.4.1) is Insert-Mode-
+             only — a separate case from this one, see the Insert Mode sheet. -->
+        <button class="org-pill protected in-header" data-field="organization">
+          <span class="field-value" id="fv-organization-code">ORG1</span>
+          <svg class="org-pill-chevron" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- List/Detail header (§8.1) — every tab except Record View. Reuses
+       .rec-* classes directly (same element type, id="listDetailHeader")
+       since this file only ever shows one header at a time. -->
+  <div class="rec-header" id="listDetailHeader" onclick="scrollFormToTop()">
+    <div class="rec-id-row">
+      <div class="rec-id-text">
+        <span class="rec-num" id="listDetailNum">CODE-001</span>
+        <span class="rec-desc protected" id="listDetailDesc">This is a sample record description used to demonstrate how longer text wraps inside the header area</span>
+      </div>
+      <div class="rec-header-actions">
+        <button class="rec-ellipsis-btn" id="listDetailPlusBtn" onclick="event.stopPropagation(); onListDetailPlusTap()" aria-label="Add">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button class="rec-ellipsis-btn" id="listDetailSearchBtn" onclick="event.stopPropagation(); onListDetailSearchTap()" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        </button>
+        <button class="rec-ellipsis-btn" onclick="event.stopPropagation(); toggleListDetailMenu()" aria-label="More actions">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+        </button>
+        <div class="rec-actions-menu" id="listDetailMenu">
+          <div class="rec-actions-group"><div class="rec-actions-item" onclick="recCopyLink()">Copy Link</div></div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyRecord()">Copy</div>
+            <div class="rec-actions-item danger" onclick="recDeleteRecord()">Delete</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="closeListDetailMenu(); showToast('Screen-specific action — example only')">Example screen action</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-rail" id="tabRail">
+    <div class="tab-rail-collapsed">
+      <span class="tab-rail-icon" id="tabRailIcon"></span>
+      <div class="tab-rail-name" id="tabRailName">Record View</div>
+      <svg class="tab-chevron" id="tabChevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="tab-map" id="tabMap"></div>
+  </div>
+
+  <div class="content">
+
+  <!-- ── Record tab — static demo content, never re-rendered by goToTab
+       (no TAB_RENDERERS.record entry — the shared tab dispatch leaves any
+       tab it has no renderer for untouched). Tab 1/2/3 below use the
+       shared List/Detail shell instead, config-driven. ── -->
+  <div class="tab-content active" data-tab="record">
+
+    <div class="section-card">
+      <div class="equip-attrs">
+        <div class="attr-item required" data-field="type" onclick="openLov('type')">
+          <span class="attr-label">Type</span>
+          <div class="attr-value">
+            <span class="attr-badge" id="fv-type-badge" style="background:#00AA14"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg></span>
+            <span class="attr-text" id="fv-type-desc">Preventive Maintenance</span>
+          </div>
+        </div>
+        <div class="attr-item" data-field="priority" onclick="openLov('priority')">
+          <span class="attr-label">Priority</span>
+          <div class="attr-value">
+            <span class="attr-badge" id="fv-priority-badge" style="background:#F46600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg></span>
+            <span class="attr-text" id="fv-priority-desc">Medium</span>
+          </div>
+        </div>
+        <div class="attr-item full-width required" data-field="department" onclick="openLov('department')">
+          <span class="attr-label">Department</span>
+          <div class="attr-value">
+            <span class="attr-text" id="fv-department-desc">Engineering</span>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><b>Header Fields / Non-nullable Fields (revised 2026-07-16):</b> holds fields the standard model surfaces prominently, not just a fixed Type/Priority pair — badge-style (Type/Priority) and plain-LOV-style (Department, added here to illustrate) fields both belong here. 2-per-row grid; an odd field out spans the full width of the row below, rather than leaving an empty cell (see Department above). No section title on this container — the fields just sit directly in the card. Plain-LOV items show description only, no code — Organization moved into the header above (opposite the status button, justified/sized to balance it, collapses with it on scroll) and is out of scope here. Real precedence/membership comes from Screen Designer per record type; this file demonstrates the layout rule with 3 example fields. <b>WO Record View exception, not shown here:</b> the Equipment field is its own large standalone container above this grid, not one of the 2-per-row cells — the other header fields stay consistent with this standard below it.</div>
+      <div class="caption"><b>Required marker (revised 2026-07-16):</b> membership in this box no longer implies required — whether a given field is required is the same per-field standard-model setting as anywhere else, so a required field here gets the identical orange left-bar a <code>.form-field.required</code> row gets, just on this cell instead. Type and Department are required in this demo (two markers); Priority isn't.</div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-card-header"><span class="section-card-title">LOV fields</span></div>
+      <div class="form-field" data-field="costCode" onclick="openLov('costCode')">
+        <span class="field-label">Cost Code</span>
+        <div class="field-lov-value"><span class="field-lov-code" id="fv-costCode-code">100-100</span><span class="field-lov-desc" id="fv-costCode-desc">General Maintenance</span></div>
+        <span class="field-chevron">›</span>
+      </div>
+      <div class="caption"><b>Default rule (reversed 2026-07-16):</b> every LOV field shows code + description — not description-only. Applies to any reference-data lookup with a real searchable list (Department above, Cost Code, Assigned To below). Short fixed dropdowns (Status, Type, Priority) are a separate, badge/button-styled case, not a plain LOV row, and are unaffected by this rule either way.</div>
+
+      <div class="form-field" data-field="assignedTo" onclick="openLov('assignedTo')">
+        <span class="field-label">Assigned To</span>
+        <div class="field-lov-value"><span class="field-lov-code" id="fv-assignedTo-code">BCAMPBELL</span><span class="field-lov-desc" id="fv-assignedTo-desc">Bruce Campbell</span></div>
+        <span class="field-chevron">›</span>
+      </div>
+      <div class="caption"><b>Identifier fields</b> (employee ID, part number, asset number, WO number) show code + description too — same visual result as the general LOV rule above now, though the underlying reason is different: the code IS the record's real identifier here, not a lookup being made more visible.</div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-card-header"><span class="section-card-title">Text, number, currency, date, time</span></div>
+      <div class="form-field" data-field="udf01" onclick="this.querySelector('textarea').focus()">
+        <span class="field-label">User Defined Field 01</span>
+        <textarea class="field-inline-input" id="fv-udf01" rows="1" maxlength="255" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus(this)" onblur="onInlineBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"></textarea>
+      </div>
+      <div class="caption"><b>Inline text (≤255 chars):</b> tap directly into the row and edit right there — no popup at all. A floating blue checkmark appears above the keyboard; tapping it (or Enter, or tapping away) commits the value and marks the form dirty. Wraps to as many lines as needed to show the full value (bug fix 2026-07-16 — was a single-line input that clipped/lost text past one line; try pasting a long 255-char value with mixed word lengths and spacing to confirm it all stays visible). This supersedes the single-line edit sheet for plain text — the sheet is still used for currency/number below, just not for text.</div>
+
+      <div class="form-field" data-field="equipmentValue" onclick="openEdit('equipmentValue','Equipment Value','currency')">
+        <span class="field-label">Equipment Value</span>
+        <span class="field-value" id="fv-equipmentValue">$50,000.00</span>
+        <span class="field-chevron">›</span>
+      </div>
+      <div class="caption"><b>Currency:</b> every currency field displays a $ symbol with thousands separators and 2 decimals, formatted on render — never a bare number. Raw entry (no $) is fine while editing; formatting is applied on display.</div>
+
+      <div class="form-field" data-field="fullLoadAmps" onclick="openEdit('fullLoadAmps','Full Load Amps','number')">
+        <span class="field-label">Full Load Amps</span>
+        <span class="field-value" id="fv-fullLoadAmps">50</span>
+        <span class="field-chevron">›</span>
+      </div>
+      <div class="caption"><b>Number:</b> plain numeric entry, no currency formatting, no code/description pairing.</div>
+
+      <div class="form-field required" data-field="commissionDate" onclick="openDate('commissionDate','Commission Date')">
+        <span class="field-label">Commission Date</span>
+        <span class="field-value" id="fv-commissionDate">Jul 20, 2021</span>
+        <span class="field-chevron">›</span>
+      </div>
+      <div class="form-field" data-field="udd01" onclick="openDate('udd01','User Defined Date 01')">
+        <span class="field-label">User Defined Date 01</span>
+        <span class="field-value" id="fv-udd01">Mar 3, 2026</span>
+        <span class="field-chevron">›</span>
+      </div>
+      <div class="caption"><b>Date:</b> always the custom calendar sheet (month grid, today ring, selected-day fill) — never the native <code>&lt;input type=date&gt;</code>. Commission Date is required (no Clear); User Defined Date 01 is not (Clear shown).</div>
+      <div class="caption"><b>Container required-field-count badge (added 2026-07-16):</b> a section-card or field-group whose header still has an unfilled required field inside shows a small orange count badge there — e.g. this card's header would show "1" if Commission Date were empty. Recounts on every field change and disappears entirely once every required field inside is populated; not visible right now since Commission Date already has a value.</div>
+
+      <div class="form-field" data-field="lastServiceDateTime" onclick="openDateTime('lastServiceDateTime','Last Service Date/Time')">
+        <span class="field-label">Last Service Date/Time</span>
+        <span class="field-value" id="fv-lastServiceDateTime">Jul 10, 2026 · 2:30 PM</span>
+        <span class="field-chevron">›</span>
+      </div>
+      <div class="caption"><b>Date/Time:</b> same custom calendar sheet as Date, plus a native <code>&lt;input type=time&gt;</code> row below the grid for the time portion. Unlike Date alone (tap a day → auto-save-and-close), tapping a day here only marks it selected; an explicit Save commits date and time together, since the time value is still pending confirmation. Time portion follows the Time Only rule below (24-hour, Inter).</div>
+
+      <div class="form-field required" data-field="startTime">
+        <span class="field-label">Start Time</span>
+        <input class="time-input" type="time" lang="en-GB" id="fv-startTime" value="08:00" data-required="true" onchange="setFieldValue(this, this.value)">
+      </div>
+      <div class="caption"><b>Time Only (added 2026-07-21 — first field of this type in the app; locked here, then corrected on Book Labor's Start/End Time, which had shipped the wrong font before this rule existed):</b> a native <code>&lt;input type=time&gt;</code> row, same <code>.time-input</code> class the Date/Time field above uses for its time portion — no date paired, no popup/sheet at all, tapping it opens the OS's own time picker directly (a real scroll wheel on iOS/Android; desktop shows its own platform spinner). Two rules that don't fall out automatically from "reuse the native input": <b>Inter, not mono</b> — a time-of-day value isn't a code, so it takes the same font as any other plain field value, not <code>--font-mono</code>. <b>24-hour "military" time only, never AM/PM</b> — a deliberate business rule, not locale-driven (unlike dates, see below) — every Time Only input still carries <code>lang="en-GB"</code> as a best-effort hint, but verified live that it does <b>not</b> reliably work: modern Chrome renders time-input chrome off the browser's own UI language, not the page's <code>lang</code> attribute, so the native picker still showed AM/PM in testing. Accepted as a platform limitation (same category as the scroll-wheel-vs-spinner difference above) — the stored value and every bit of the app's own rendered text stay 24-hour regardless; only the native picker's own transient edit chrome is outside our control. Real devices should instead follow the OS's own 24-hour setting, which most EAM deployments enforce for technicians.</div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-card-header"><span class="section-card-title">Checkbox</span></div>
+      <div class="form-field" data-field="outOfService" onclick="toggleCheckbox(this)">
+        <span class="field-label">Out of Service</span>
+        <div class="field-checkbox" id="fv-outOfService-box"></div>
+      </div>
+      <div class="caption"><b>Checkbox:</b> the entire row is the tap target, not just the small box — confirmed as suboptimal UX to require tapping the tiny box specifically.</div>
+
+      <div class="form-field protected">
+        <span class="field-label">Asset</span>
+        <span class="field-value muted">00067333</span>
+        <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <div class="caption"><b>Protected:</b> gray-tinted row, muted value, lock icon instead of chevron, not tappable. Used for system-derived or inherited fields the user can't change from this screen.</div>
+      <div class="caption"><b>Required (overlay rule, not a separate type):</b> orange left-bar, combines with any field type above — see Commission Date in the section above for a live example.</div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-card-header"><span class="section-card-title">Long-text</span></div>
+      <div class="form-field" data-field="longNote" onclick="openTextEditor('longNote','Edit Note')">
+        <span class="field-label">Long Note</span>
+        <span class="field-value muted" id="fv-longNote">Tap to add…</span>
+        <span class="field-chevron">›</span>
+      </div>
+      <div class="caption"><b>Long-text:</b> full-height text editor sheet, not a cramped inline input. Closing with unsaved edits swaps the close button for a red "Discard unsaved changes" pill; typing again dismisses the warning. No Clear button here — select all and delete instead.</div>
+    </div>
+
+    <!-- Collapsible (§5.2 "collapsed except the first section") — conformance
+         audit 2026-07-16 found this rendering as a plain always-expanded
+         .section-card, same gap as Equipment; same .rv-section/.rv-toggle-row/
+         .rv-collapse component WO Record View already uses correctly. -->
+    <div class="rv-section">
+      <div class="rv-toggle-row" onclick="rvToggle('comments')">
+        <div class="rv-toggle-left">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="rv-toggle-title">Comments</span>
+        </div>
+        <div class="rv-toggle-right">
+          <span class="rv-badge" id="commentsBadgeCount">${COMMENTS_DATA.length}</span>
+          <svg class="rv-chev" id="rv-chev-comments" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="rv-collapse" id="rv-comments"><div id="recordCommentsMount"></div></div>
+    </div>
+    <div class="caption"><b>Comments (revised 2026-07-16):</b> Record View shows only the latest 3, newest last. Below the third, a "View all comments" link (same row style as Add comment) opens the dedicated Comments tab, which shows every comment and has its own Plus in the header to add one — otherwise the exact same design (long-text editor, permission-gated ellipsis for Edit/Delete/Copy).</div>
+
+    <div class="rv-section">
+      <div class="rv-toggle-row" onclick="rvToggle('documents')">
+        <div class="rv-toggle-left">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="rv-toggle-title">Documents</span>
+        </div>
+        <div class="rv-toggle-right">
+          <span class="rv-badge" id="documentsBadgeCount">${DOCUMENTS_DATA.length}</span>
+          <svg class="rv-chev" id="rv-chev-documents" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="rv-collapse" id="rv-documents"><div id="recordDocumentsMount"></div></div>
+    </div>
+    <div class="caption"><b>Documents (added 2026-07-16 — was missing from this file despite being locked, §7.2 "Comments and Documents sections are ALWAYS present on every standard record view"):</b> shows all documents inline, no truncation (unlike Comments). Same add-affordance-on-top pattern. Also has its own dedicated tab with a header Plus, for consistency with Comments — though with everything already shown inline here, the tab is mostly for parity/muscle-memory rather than solving a length problem the way the Comments tab does.</div>
+
+  </div><!-- /tab-content[record] -->
+
+  <!-- List/Detail content demo (§8.2) — Tab 1/2/3 each render the shared
+       shell with their own dummy dataset, proving the mechanism is
+       reusable, not specific to one dataset. Mount points only — filled by
+       TAB_RENDERERS via the shared goToTab dispatch. -->
+  <div class="tab-content" data-tab="comments"></div>
+  <div class="tab-content" data-tab="documents"></div>
+  <div class="tab-content" data-tab="tab1"></div>
+  <div class="tab-content" data-tab="tab2"></div>
+  <div class="tab-content" data-tab="tab3"></div>
+
+  </div>
+
+  <!-- ── SHEETS (shared component markup — behavior lives in eam-shared.js) ── -->
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <div class="bottom-sheet" id="lovSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="lovSheetTitle">Select value</div>
+      <button class="sheet-clear-btn" id="lovClearBtn" onclick="clearLov()">Clear</button>
+    </div>
+    <div class="lov-search-row" id="lovSearchRow">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input class="lov-search-input" id="lovSearchInput" placeholder="Search" oninput="filterLovOptions(this.value)">
+    </div>
+    <div class="sheet-body" id="lovSheetBody"></div>
+  </div>
+
+  <div class="bottom-sheet" id="dataspySheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Select dataspy</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sheet-body" id="dataspySheetBody"></div>
+  </div>
+
+  <!-- Insert Mode (§9.1–§9.3) — triggered by the List/Detail header's Plus. -->
+  <div class="insert-mode-sheet" id="insertModeSheet">
+    <div class="insert-mode-handle-row" id="insertModeHandle"><div class="sheet-handle"></div></div>
+    <div class="insert-mode-header">
+      <button class="sheet-close" onclick="closeInsertMode()">✕</button>
+      <div class="insert-mode-title">Create</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="insert-mode-body">
+      <!-- No Organization pill here (locked 2026-07-16) — this is the
+           List/Detail (child-tab) Insert Mode variant, and a child record
+           inherits its parent's org. Org only appears on the Record View
+           insert variant (not built/demonstrated in this file yet), and
+           there it's editable + required, not this protected treatment. -->
+      <div class="section-card">
+      <div class="equip-attrs">
+        <div class="attr-item" data-field="insertType" onclick="openLov('insertType')">
+          <span class="attr-label">Type</span>
+          <div class="attr-value">
+            <span class="attr-badge" id="fv-insertType-badge" style="background:#F46600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span>
+            <span class="attr-text" id="fv-insertType-desc">Corrective Maintenance</span>
+          </div>
+        </div>
+        <div class="attr-item" data-field="insertStatus" onclick="openLov('insertStatus')">
+          <span class="attr-label">Status</span>
+          <div class="attr-value">
+            <span class="attr-badge" id="fv-insertStatus-badge" style="background:#00AA14"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg></span>
+            <span class="attr-text" id="fv-insertStatus-desc">Operational</span>
+          </div>
+        </div>
+      </div>
+      </div>
+
+      <div class="section-card">
+        <div class="form-field" data-field="insertDescription" onclick="openTextEditor('insertDescription','Description')">
+          <span class="field-label">Description</span>
+          <span class="field-value muted" id="fv-insertDescription">Tap to add…</span>
+          <span class="field-chevron">›</span>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="form-field required" data-field="insertPriority" onclick="openLov('insertPriority')">
+          <span class="field-label">Priority</span>
+          <div class="field-lov-value"><span class="field-lov-desc muted" id="fv-insertPriority-desc"></span></div>
+          <span class="field-chevron">›</span>
+        </div>
+        <div class="form-field" data-field="insertLocation" onclick="openLov('insertLocation')">
+          <span class="field-label">Location</span>
+          <div class="field-lov-value"><span class="field-lov-desc muted" id="fv-insertLocation-desc"></span></div>
+          <span class="field-chevron">›</span>
+        </div>
+      </div>
+      <div class="caption" style="margin:-4px 12px 0;"><b>Fields container:</b> one flat container, no sub-groups — required fields (Priority) surface at the top, other visible fields (Location) render beneath. Real precedence comes from Screen Designer per record type; this demo just orders the two example fields that way.</div>
+
+      <div class="section-card">
+        <div class="section-card-header"><span class="section-card-title">Comments</span></div>
+        <div id="insertCommentsList">
+          <div class="comment-add-row" onclick="openTextEditor('__insertComment','Add Comment',(t)=>addComment(t,'insertCommentsList'))">
+            <span class="comment-add-plus">+</span> Add comment
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-card-header"><span class="section-card-title">Documents</span></div>
+        <div class="comment-add-row" onclick="showToast('Attach document — coming soon')">
+          <span class="comment-add-plus">+</span> Add document
+        </div>
+      </div>
+      <div class="caption" style="margin:-4px 12px 16px;"><b>Comments and Documents:</b> always the same components as Record View's own sections (§7.2) — never reinvented per screen. Whether a given screen's Insert Mode includes either is a per-screen design decision; this generic demo includes both.</div>
+    </div>
+    <div class="insert-mode-footer">
+      <button class="insert-save-btn" id="insertSaveBtn" onclick="saveInsertRecord()">Create</button>
+    </div>
+  </div>
+
+  <div class="bottom-sheet" id="editSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="editSheetTitle">Edit field</div>
+      <button class="sheet-clear-btn" id="editClearBtn" onclick="clearEdit()">Clear</button>
+    </div>
+    <div class="edit-input-wrap"><input class="edit-input" id="editSheetInput" type="text" oninput="sanitizeCurrencyInput(this)"></div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveEdit()">Save</button></div>
+  </div>
+
+  <div class="bottom-sheet" id="dateSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="dateSheetTitle">Select date</div>
+      <button class="sheet-clear-btn" id="dateClearBtn" onclick="clearDate()">Clear</button>
+    </div>
+    <div class="sheet-body">
+      <div class="cal-header">
+        <button class="cal-nav-btn" onclick="calNavMonth(-1)">‹</button>
+        <span class="cal-month-label" id="calMonthLabel">July 2026</span>
+        <button class="cal-nav-btn" onclick="calNavMonth(1)">›</button>
+      </div>
+      <div class="cal-weekdays"><span class="cal-weekday">Sun</span><span class="cal-weekday">Mon</span><span class="cal-weekday">Tue</span><span class="cal-weekday">Wed</span><span class="cal-weekday">Thu</span><span class="cal-weekday">Fri</span><span class="cal-weekday">Sat</span></div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+  </div>
+
+  <div class="bottom-sheet" id="dateTimeSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="dateTimeSheetTitle">Select date &amp; time</div>
+      <button class="sheet-clear-btn" id="dateTimeClearBtn" onclick="clearDateTime()">Clear</button>
+    </div>
+    <div class="sheet-body">
+      <div class="cal-header">
+        <button class="cal-nav-btn" onclick="calNavMonthDT(-1)">‹</button>
+        <span class="cal-month-label" id="calMonthLabelDT">July 2026</span>
+        <button class="cal-nav-btn" onclick="calNavMonthDT(1)">›</button>
+      </div>
+      <div class="cal-weekdays"><span class="cal-weekday">Sun</span><span class="cal-weekday">Mon</span><span class="cal-weekday">Tue</span><span class="cal-weekday">Wed</span><span class="cal-weekday">Thu</span><span class="cal-weekday">Fri</span><span class="cal-weekday">Sat</span></div>
+      <div class="cal-grid" id="calGridDT"></div>
+      <div class="form-field">
+        <span class="field-label">Time</span>
+        <input class="time-input" type="time" lang="en-GB" id="dateTimeInput" value="14:30">
+      </div>
+    </div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveDateTime()">Save</button></div>
+  </div>
+
+  <div class="bottom-sheet text-editor-sheet" id="textEditorSheet">
+    <div class="text-editor-header">
+      <div class="text-editor-left">
+        <button class="text-editor-close" id="textEditorCloseBtn" onclick="textEditorCloseTap()">✕</button>
+        <button class="text-editor-discard" id="textEditorDiscard" onclick="textEditorConfirmDiscard()">Discard unsaved changes</button>
+      </div>
+      <div class="text-editor-title" id="textEditorTitle">Edit</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="text-editor-body"><textarea class="text-editor-textarea" id="textEditorTextarea" oninput="textEditorInputChanged()" placeholder="Type here…"></textarea></div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveTextEditor()">Save</button></div>
+  </div>
+
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-modal">
+      <div class="confirm-message" id="confirmMessage">Are you sure?</div>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="confirm-btn confirm-danger" id="confirmDangerBtn" onclick="confirmDangerAction()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-sheet" id="commentActionsSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Comment Actions</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sheet-body" id="commentActionsBody"></div>
+  </div>
+
+  <button class="inline-confirm-btn" id="inlineConfirmBtn" tabindex="-1">
+    <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+</div>
+
+<script src="shared/eam-shared.js"></script>
+<script>
+/* ── screen-specific config — everything below is data/wiring only;
+   all behavior comes from shared/eam-shared.js. ── */
+const TAB_ICON = '<svg width="16" height="16" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/></svg>';
+const TABS = [
+  { key: 'record', name: 'Record View', icon: TAB_ICON },
+  { key: 'comments', name: 'Comments', icon: TAB_ICON },
+  { key: 'documents', name: 'Documents', icon: TAB_ICON },
+  { key: 'tab1', name: 'Tab 1', icon: TAB_ICON },
+  { key: 'tab2', name: 'Tab 2', icon: TAB_ICON },
+  { key: 'tab3', name: 'Tab 3', icon: TAB_ICON },
+];
+const LIST_DETAIL_TABS = {
+  // Sample List A — the plain baseline case: 3 fields (headline/subline/one
+  // attribute row), none status/type/org, demonstrating the standard's
+  // default rendering with nothing special going on.
+  tab1: {
+    label: 'Sample List A', sortLabel: 'Date',
+    dataspies: [ { key: 'all', name: 'All Records' }, { key: 'recent', name: 'Recently Added' } ],
+    fieldDefs: [ {key:'title',label:'Title'}, {key:'note',label:'Note'}, {key:'date',label:'Date'} ],
+    rows: [
+      { ds: ['all','recent'], fields: [ {label:'Title', value:'Sample Record 001'}, {label:'Note', value:'Demonstrates the standard card anatomy — headline + subline + attribute rows, no icons'}, {label:'Date', value:'07/20/2026'} ] },
+      { ds: ['all','recent'], fields: [ {label:'Title', value:'Sample Record 002'}, {label:'Note', value:'Second dataspy-visible row, same tab'}, {label:'Date', value:'07/18/2026'} ] },
+      { ds: ['all'],          fields: [ {label:'Title', value:'Sample Record 003'}, {label:'Note', value:'Only visible under "All Records" — not in the Recently Added dataspy'}, {label:'Date', value:'02/02/2026'} ] },
+      { ds: ['all'],          fields: [ {label:'Title', value:'Sample Record 004'}, {label:'Note', value:'A fourth row, to show the list scroll/gap rhythm at more than three rows'}, {label:'Date', value:'01/09/2026'} ] },
+    ],
+  },
+  // Sample List B — a status-type field in slot 1 (pill headline) plus an
+  // Organization field within the first 6 columns (carved to the corner
+  // badge, §8.3), the two "special" cases the plain-fields tab doesn't show.
+  tab2: {
+    label: 'Sample List B', sortLabel: 'Name',
+    dataspies: [ { key: 'all', name: 'All Records' } ],
+    fieldDefs: [ {key:'status',label:'Status'}, {key:'title',label:'Title'}, {key:'note',label:'Note'}, {key:'org',label:'Organization'} ],
+    rows: [
+      { ds: ['all'], fields: [ {label:'Status', value:'Ready',   type:'status', color:'var(--green)'},  {label:'Title', value:'Sample Record 101'}, {label:'Note', value:'A tab with a single dataspy — the ds-bar still works, just with one option'}, {label:'Organization', value:'FBPP', type:'org'} ] },
+      { ds: ['all'], fields: [ {label:'Status', value:'Pending', type:'status', color:'var(--orange)'}, {label:'Title', value:'Sample Record 102'}, {label:'Note', value:'Second row, single dataspy'},                                                    {label:'Organization', value:'FBPP', type:'org'} ] },
+      { ds: ['all'], fields: [ {label:'Status', value:'Ready',   type:'status', color:'var(--green)'},  {label:'Title', value:'Sample Record 103'}, {label:'Note', value:'Third row, single dataspy — a different Organization than the rows above'},   {label:'Organization', value:'ORG2', type:'org'} ] },
+    ],
+  },
+  // Sample List C — a type-like (coloured-text, not pill) field, plain
+  // uncoloured Priority text (matches §6.7's "Priority never gets colour"
+  // rule generically), and rows with fewer than 5 fields to demonstrate
+  // the card collapsing rather than padding with placeholders.
+  tab3: {
+    label: 'Sample List C', sortLabel: 'Priority',
+    dataspies: [ { key: 'all', name: 'All Records' }, { key: 'flagged', name: 'Flagged Only' } ],
+    fieldDefs: [ {key:'title',label:'Title'}, {key:'category',label:'Category'}, {key:'note',label:'Note'}, {key:'priority',label:'Priority'} ],
+    rows: [
+      { ds: ['all','flagged'], fields: [ {label:'Title', value:'Sample Record 201'}, {label:'Category', value:'Flagged', type:'type', color:'var(--red)'}, {label:'Note', value:'Flagged row shown in both dataspies'} ] },
+      { ds: ['all'],           fields: [ {label:'Title', value:'Sample Record 202'}, {label:'Note', value:"Card collapses to 2 fields — this row's dataspy has no 3rd/4th/5th column configured"} ] },
+      { ds: ['all','flagged'], fields: [ {label:'Title', value:'Sample Record 203'}, {label:'Category', value:'Flagged', type:'type', color:'var(--red)'}, {label:'Note', value:'Another flagged row'}, {label:'Priority', value:'High'} ] },
+      { ds: ['all'],           fields: [ {label:'Title', value:'Sample Record 204'}, {label:'Note', value:'Plain row, default dataspy only'}, {label:'Priority', value:'Low'} ] },
+      { ds: ['all'],           fields: [ {label:'Title', value:'Sample Record 205'}, {label:'Note', value:'Fifth row, to exercise scrolling within the demo'}, {label:'Priority', value:'Medium'} ] },
+    ],
+  },
+};
+const TAB_RENDERERS = {
+  comments: () => renderCommentsTabContent(),
+  documents: () => renderDocumentsTabContent(),
+  tab1: () => renderListDetailShell('tab1'),
+  tab2: () => renderListDetailShell('tab2'),
+  tab3: () => renderListDetailShell('tab3'),
+  // no 'record' entry — that tab's content is static, pre-rendered HTML above
+  // (its Comments/Documents mounts are refreshed directly, not through this dispatch).
+};
+// Comments/Documents get Plus (add) but not the generic List/Detail Search —
+// D8/D9 (2026-07-16) only asked for an add affordance on these tabs, not a
+// text filter over the list.
+const TABS_WITH_PLUS = new Set(['comments','documents','tab1','tab2','tab3']); // tab1/2/3 unconditional here (generic demo, no real base-EAM screen to check Plus visibility against) — see §8's content-driven rule for how real screens should decide this instead.
+const TABS_WITH_SEARCH = new Set(['tab1','tab2','tab3']);
+// Comments/Documents tabs' own Plus creates a comment/document directly,
+// not Insert Mode — onListDetailPlusTap() checks this map first (§8.1,
+// extended 2026-07-16 for D8/D9).
+const TAB_PLUS_HANDLERS = {
+  comments: () => openTextEditor('__comment', 'Add Comment', (t) => addCommentToData(t)),
+  documents: () => showToast('Attach document — coming soon'),
+};
+
+/* ── Comments/Documents — config only; rendering lives in eam-shared.js's
+   generalized data-driven pattern (§7.2/§8, generalized 2026-07-16 once
+   Equipment needed the same excerpt+tab behavior — was duplicated locally
+   here before that). Single source of truth for both the Record View
+   "latest 3" excerpt and the dedicated tab's full list. ── */
+// Current logged-in user, for new comments' author + the "(You)" suffix
+// (§7.2, revised 2026-07-16) — comment author is always the full user
+// description, never an abbreviation.
+const CURRENT_USER_NAME = 'Bruce Campbell';
+let commentIdSeq = 2;
+let COMMENTS_DATA = [
+  { id: 'c1', mine: false, author: 'Juan Rodriguez', time: 'May 19 · 09:12', text: 'Bearing replaced and alignment verified. Vibration reading back within tolerance.' },
+  { id: 'c2', mine: true, author: CURRENT_USER_NAME, time: 'May 19 · 10:47', text: 'Ordered replacement bearing — ETA 3 days, tagged for follow-up on next PM visit.' },
+];
+const COMMENTS_EXCERPT_MOUNT = 'recordCommentsMount';
+const COMMENTS_EXCERPT_LIMIT = 3;
+const COMMENTS_TAB_KEY = 'comments';
+const COMMENTS_BADGE_ID = 'commentsBadgeCount';
+
+const DOCUMENTS_DATA = [
+  { icon: 'pdf', name: 'Sample_Spec_Sheet.pdf', meta: 'PDF · 640 KB · Jul 2021' },
+  { icon: 'pdf', name: 'Install_Certificate.pdf', meta: 'PDF · 210 KB · Jul 2021' },
+];
+const DOC_ICON_SVG = { pdf: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' };
+const DOCUMENTS_EXCERPT_MOUNT = 'recordDocumentsMount';
+const DOCUMENTS_TAB_KEY = 'documents';
+const DOCUMENTS_BADGE_ID = 'documentsBadgeCount';
+
+const LOV_DATA = {
+  department: [{code:'ENG',desc:'Engineering'},{code:'WATER',desc:'Water Utility'},{code:'MAINT',desc:'Maintenance'}],
+  costCode: [{code:'100-100',desc:'General Maintenance'},{code:'100-200',desc:'Capital Repair'}],
+  assignedTo: [{code:'BCAMPBELL',desc:'Bruce Campbell'},{code:'JRODRIGUEZ',desc:'Juan Rodriguez'}],
+  organization: [{code:'FBPP',desc:'Field-Based Plant & Production'},{code:'ORG1',desc:'Corporate'},{code:'ORG2',desc:'US Industrial'}],
+  __status: [{code:'OPERATIONAL',desc:'Operational'},{code:'DOWN',desc:'Down'},{code:'STANDBY',desc:'Standby'}],
+  type: [{code:'BK',desc:'Breakdown'},{code:'CAL',desc:'Calibration'},{code:'CM',desc:'Corrective Maintenance'},{code:'INS',desc:'Inspection'},{code:'MOD',desc:'Modification'},{code:'PM',desc:'Preventive Maintenance'}],
+  priority: [{code:'LOW',desc:'Low'},{code:'MEDIUM',desc:'Medium'},{code:'HIGH',desc:'High'},{code:'CRITICAL',desc:'Critical'}],
+  insertOrganization: [{code:'FBPP',desc:'Field-Based Plant & Production'},{code:'ORG1',desc:'Corporate'},{code:'ORG2',desc:'US Industrial'}],
+  insertType: [{code:'BK',desc:'Breakdown'},{code:'CAL',desc:'Calibration'},{code:'CM',desc:'Corrective Maintenance'},{code:'INS',desc:'Inspection'},{code:'MOD',desc:'Modification'},{code:'PM',desc:'Preventive Maintenance'}],
+  insertStatus: [{code:'OPERATIONAL',desc:'Operational'},{code:'DOWN',desc:'Down'},{code:'STANDBY',desc:'Standby'}],
+  insertPriority: [{code:'LOW',desc:'Low'},{code:'MEDIUM',desc:'Medium'},{code:'HIGH',desc:'High'},{code:'CRITICAL',desc:'Critical'}],
+  insertLocation: [{code:'BLDG-A',desc:'Building A'},{code:'BLDG-B',desc:'Building B'}],
+};
+const LOV_CURRENT = {
+  department:'ENG', costCode:'100-100', assignedTo:'BCAMPBELL', organization:'ORG1', __status:'OPERATIONAL', type:'PM', priority:'MEDIUM',
+  insertOrganization:'ORG1', insertType:'CM', insertStatus:'OPERATIONAL', insertPriority:'', insertLocation:'',
+};
+const LOV_TITLES = { __status: 'Operational Status', organization: 'Organization', type: 'Type', priority: 'Priority', insertOrganization: 'Organization', insertType: 'Type', insertStatus: 'Status', insertPriority: 'Priority' };
+const NO_SEARCH_LOVS = new Set(['__status', 'type', 'priority', 'insertType', 'insertStatus', 'insertPriority']);
+// 'type'/'priority' removed 2026-07-16 — Header Fields membership no
+// longer implies required on its own; required-ness is per-field (system
+// design / Screen Designer), marked via the ordinary 'required' class on
+// the attr-item instead (Type below; Priority isn't required in this demo).
+const ALWAYS_REQUIRED_LOVS = new Set(['__status', 'insertType', 'insertStatus', 'insertPriority']);
+const TYPE_META = {
+  BK:  { color: '#E24B4A', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
+  CAL: { color: '#007B87', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>' },
+  CM:  { color: '#F46600', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>' },
+  INS: { color: '#9933FF', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' },
+  MOD: { color: '#6F7480', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>' },
+  PM:  { color: '#00AA14', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg>' },
+};
+const PRIORITY_META = {
+  LOW:      { color: '#00AA14', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="2" fill="white" stroke="none"/></svg>' },
+  MEDIUM:   { color: '#F46600', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg>' },
+  HIGH:     { color: '#E24B4A', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="5,15 12,8 19,15"/></svg>' },
+  CRITICAL: { color: '#E24B4A', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-7 7 7 7 0 01-7-7c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>' },
+};
+const STATUS_META = {
+  OPERATIONAL: { color: '#00AA14', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>' },
+  DOWN:        { color: '#E24B4A', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' },
+  STANDBY:     { color: '#F46600', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12,7 12,12 15,15"/></svg>' },
+};
+const BADGE_LOV_META = { type: TYPE_META, priority: PRIORITY_META, insertType: TYPE_META, insertStatus: STATUS_META };
+const ORG_STYLE_LOVS = new Set(['organization', 'insertOrganization']);
+
+/* ── init ── */
+currentTab = 'record';
+renderTabRail();
+renderCommentsExcerptMount();
+renderDocumentsExcerptMount();
+['comments','documents','tab1','tab2','tab3'].forEach(k => {
+  document.querySelector(`.tab-content[data-tab="${k}"]`).innerHTML = TAB_RENDERERS[k]();
+});
+initSharedApp({ contentSelector: '.content' });
+</script>
+</body>
+</html>

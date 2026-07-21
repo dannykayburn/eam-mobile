@@ -155,7 +155,7 @@ The selected direction is Industrial Neutral: dark slate chrome with light body 
 
 - eam-book-labor-prototype-v2.html — Book Labor prototype
 
-- eam-wo-closing-prototype-v1.html — WO Closing prototype
+- eam-wo-closing-prototype-v2.html — WO Closing prototype
 
 - eam-wo-list-prototype-v5_1.html — WO List + Search prototype
 

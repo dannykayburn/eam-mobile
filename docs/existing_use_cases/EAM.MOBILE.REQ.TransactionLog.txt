@@ -1,0 +1,82 @@
+
+CHANGE HISTORY
+Rev.DateAuthorChange Reference125-Jul-2024Brett RainesRefreshed for 12.2225-Jul-2024Brett RainesSG-11273: Add a design decision that all LOTO related records will be read only in the transaction log323-Aug-2024Brett RainesSG-12519: Add design decision that All Equipment MEC Calibrations will be Read Only in the transaction log.
+REVIEWS
+Rev.DateReviewed ByTitle309-Sep-2024Jacqueline JohnsonPeer Reviewer
+
+
+1.0 Brief Description 
+This usecase describes how the user can view the transaction log. i.e. records which failed to sync to the server, during upload and/or download
+2.0 Expected End User
+Mobile Administrator, Mobile user.
+3.0 Exceptions to Standard Model
+None
+4.0 Entry Points
+User selects Transaction Log screen from the menu from Settings.
+5.0 Oracle Forms Functionality
+None
+6.0 Basic Flow Assumptions
+* At least one failed transaction exists during ‘upload’
+7.0 Basic Flow
+1. User selects the Transaction Log screen from the settings menu.
+2. This screen will be split into 2, with the left side specifying the time of the last sync on the top, along with screen(s) where the error was found. The specific record and field details, like the Key field(s) and the field causing the error will be displayed for each highlighted record
+3. On the right side, there will be a more detailed layout of the record/panel itself. In some cases, this will not be displayed, and then a text will display saying “This type of transaction cannot be modified here”. The user cannot ‘save’ these types of records.
+a. In other cases where the record CAN be modified, selecting the transaction log record will display the error on top of the panel. The user will have the option to fix this error/field from here and save it (if the field is editable).
+Exception: The Work Order Status field will be protected if the selected Work Order is associated to a Workflow event that is ‘Started’ – ‘S’.
+The Option Help icon will display next to the Status field. When status field is pressed the system will display the Workflow summary information via a popup. The user can acknowledge this window by pressing the ‘OK’ button.
+
+b. If the error is fixed, and record saved, the upload will be successful, and the log record will be removed from this screen.
+4. The user can also delete the transaction log record. While deletion, the system will ask for confirmation:
+“By deleting this transaction, your changes will not be uploaded to the server”. 
+If the transaction log record is deleted, then the changes will not be uploaded to the server, and the user will have to create/modify the record again from the source screen. 
+
+8.0 Alternate Flows
+8.1 No transaction log records exist
+If no records exist on this screen, then a text will appear saying:
+
+“No Transactions” 
+
+Along with the date and time of the ‘Last Sync’
+
+8.2 Error occurs during download
+If an error occurs during download, then a “Download Failed” flag will appear on the top right-hand side of the screen. This will be a link, upon selecting will open the read only ‘Sync Error Log’ popup listing the Grid, Date/Time and the nature of the error. 
+
+If no error occurs during download, then there will no transaction log records of this nature. 
+
+8.3 User Deletes Start/Stop Transaction
+If a user deletes a Start or Stop transaction, to book labor, it must be deleted from the end, i.e. only the last Start or Stop transaction that was recorded can be deleted. Otherwise, the system will raise an error:
+Delete Triggered Error: “This transaction cannot be deleted because a later transaction depends on it.”
+
+8.4 User Selects Nonconformity Transaction
+If a user selects the transaction for a nonconformity or a nonconformity observation, the system protects all data. Only delete of this transaction will be allowed.  
+
+
+9.0 Shared Alternate Flows
+None
+10.0 Design Decisions
+* Last Sync Time is updated after the sync is fully completed.
+* LOTO related records will NOT be updateable in the Transaction Log.
+* All Equipment MEC Calibration records will be Read Only (unable to delete or update). If changes are needed, a sync must be performed and the record updated in Base EAM.
+11.0 Supplemental Requirements
+None
+12.0 Lookup Definitions
+None
+13.0 Grid Definitions: 
+        None
+14.0 Additional Information
+        None
+
+Transaction LogHxGN EAM
+
+
+
+Confidential©2022. All Rights Reserved. Hexagon®Page 1 of 5
+
+
+HxGN EAMEAM.MOBILE.REQ.
+TransactionLog
+
+
+
+Confidential©2022. All Rights Reserved. Hexagon®Page 1 of 5
+

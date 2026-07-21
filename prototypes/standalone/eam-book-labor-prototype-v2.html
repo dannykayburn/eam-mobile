@@ -6,532 +6,411 @@
 <title>HxGN EAM Mobile — Book Labor (Step 4)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-shared.css">
+<!--
+  WO WORKFLOW — STEP 4: BOOK LABOR (rebuilt 2026-07-16 onto shared/eam-
+  shared.css + shared/eam-shared.js, per docs/EAM-REBUILD-Strategy-and-
+  Execution-Plan-v1.md). See docs/design-decisions-v3-1.md §14, §18. This
+  file only adds Book-Labor-specific data/markup/behavior — the protected-
+  identity header (§8.1), step rail + bottom bar chrome (§14.2–§14.7,
+  shared since Activity Checklist's rebuild), sheet/field-row primitives,
+  confirm modal, and the generic outlined/insert-save buttons all come
+  from the shared files.
+
+  [1] §8.1 protected-identity header, same as Steps 2–3. Ellipsis's
+      screen-specific slot carries Print Work Order + Comments/Documents
+      (§14.8 — reachable from any step, unconditionally).
+  [2] Bottom bar is auto-ready here (§14.7 — no gate); the chrome is
+      shared, this screen just never locks it.
+  [3] Step-rail timer pill shows STOPPED here (gray, no pulse) — §18.2:
+      the WO timer stops when Book Labor is reached. New `.timer-pill.
+      stopped`/`.timer-dot.stopped` modifiers added to eam-shared.css for
+      this (2nd real state of the shared component, purple/running being
+      the 1st on Steps 2–3).
+  [4] Add Labor / Add by Crew Save buttons reuse the shared `.insert-save-
+      btn` gray→green pattern (identical to this screen's own local
+      version, just under the shared name) instead of overriding `.btn-
+      save` like Issue Parts did. The Correction sheet's always-ready red
+      Save reuses a new `.insert-save-btn.danger-ready` modifier, also
+      added to eam-shared.css — first real consumer.
+  [5] Type of Hours / Employee "cycle on tap" LOV interaction stays local,
+      unchanged from before — this screen's own established demo stand-in
+      for a real LOV sheet, not the shared per-field openLov() pattern and
+      not worth rebuilding into one for a prototype-only interaction.
+
+  Overhaul pass, 2026-07-21 (design-decisions-v3-1.md §18.7 — see that
+  section for the locked rationale on each):
+  [6] Employee/Crew now source from data/employees.js + data/crews.js
+      (EAM_EMPLOYEES/EAM_CREWS) instead of local arrays; the booked-labor
+      list itself seeds from data/wo-19257.js's new `labor` array via
+      renderSeedLabor(), not hardcoded HTML — first real screen wired to
+      Phase 0.6's data files beyond Custom Fields.
+  [7] Circular initials avatar removed everywhere on this screen (labor
+      rows, Add Labor's Employee/Crew picker cards, Add by Crew member
+      rows) — the hours pill on each labor row stays.
+  [8] Screen title "Book Labor" and section label "Booked labor" removed
+      — both were redundant with the step rail's own step-name and the
+      identity header, and this screen never needed them to orient the
+      technician.
+  [9] Add Labor promoted to the shared `.btn-contained` (2nd real
+      consumer after Issue Parts' near-identical local `.btn-quick-issue-
+      all`) and stretched full-width, matching the labor-list card above
+      it — it's the only real action on this screen now that Add by Crew
+      isn't reachable from here.
+  [10] Department/Trade rows (Add Labor sheet) now show code +
+      description, matching the app-wide plain-LOV-field default (§3.4)
+      — had drifted to description-only pre-dating that default being
+      locked. The labor detail grid stays description-only, unchanged —
+      §3.4 has a SEPARATE locked rule specifically for detail grids
+      ("description only... applied to Equipment and all 5 WO workflow
+      standalones"); §18.3's own text claiming a "Description (CODE)"
+      format for this screen was stale and never actually implemented,
+      not a real exception — flagged rather than "fixed" into a new
+      contradiction.
+  [11] Dates switched to plain MM/DD/YYYY (isoToDisplay() changed
+      app-wide, §3.4) — was spelled-month ("May 19, 2026").
+  [12] Timer Stopped banner restyled onto the same heading+message shell
+      as `.sync-error-banner` (no shared equivalent exists for this exact
+      banner, but the structural pattern now matches) — dropped the
+      icon-in-a-circle layout.
+-->
 <style>
-/*
-  DESIGN SYSTEM DECISIONS LOCKED IN THIS VERSION (v2):
+/* Content needs extra bottom padding to clear the bottom bar (screen-
+   specific; the Standard Model's plain .content has no bottom bar). */
+.content { padding: 0 0 calc(var(--bar-height) + 16px); }
+.sheet-body::-webkit-scrollbar { display: none; }
 
-  [1] No Edit action in expanded row — Correction is the only action on a booked record.
-
-  [2] LOV field pattern — Description-first layout:
-      Code is rendered as a small muted mono label above the description.
-      Description is the primary text at body weight.
-      Applies to: every editable LOV row across all forms.
-      Pattern:
-        .field-lov-value  → container (right-aligned, flex-col)
-        .field-lov-code   → monospace, 11px, gray-4 (the code)
-        .field-lov-desc   → 14px/500, body colour (the description)
-
-  [3] Time entry mode toggle removed — Start/End time is the only mode.
-      Screen Designer will make this configurable in a future cycle.
-
-  [4] Save button state — locked (gray, no pointer) until all required fields
-      have values; transitions to green (ready) when satisfied.
-      Driven by checkSheetReady(sheetId) called on every field change.
-      Required fields must carry data-required="true" and data-value="" updated
-      by JS when a value is set.
-
-  [5] Field value colour rule:
-      — Body colour (var(--octave-black) / white in dark) for ALL pre-filled
-        and user-selected values. No purple on field values.
-      — Purple is reserved for: active step pill, selected radio/checkbox,
-        section badges, qty badges, and focus states only.
-      — .field-value class: body colour by default.
-      — .field-value.muted: gray-3 for empty/placeholder state.
-
-  [6] Add by Crew — Crew selector pill at top (like Store selector on Issue Parts).
-      Defaults from activity if crew is set. Changing it reloads the member list.
-*/
-
-:root {
-  --font-sans: "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
-  --octave-black:   #1A1A1F;
-  --gray-5:         #3E4047;
-  --gray-4:         #6F7480;
-  --gray-3:         #B2B8C4;
-  --gray-2:         #CBD0D8;
-  --gray-1:         #E7EBF2;
-  --white:          #FFFFFF;
-  --purple:         #9933FF;
-  --orange:         #F46600;
-  --green:          #00AA14;
-  --red:            #E24B4A;
-  --teal:           #007B87;
-  --bg-page:        #F5F6F8;
-  --bg-card:        #FFFFFF;
-  --bg-nav:         #1A1A1F;
-  --bg-section:     #F0F2F5;
-  --border:         #E7EBF2;
-  --border-strong:  #CBD0D8;
-  --nav-height:     52px;
-  --bar-height:     72px;
-  --sheet-radius:   20px;
-}
-[data-theme="dark"] {
-  --bg-page:        #1A1A1F;
-  --bg-card:        #26252B;
-  --bg-nav:         #111114;
-  --bg-section:     #302F33;
-  --border:         #3E4047;
-  --border-strong:  #4A4C55;
-  --gray-1:         #2A2930;
-  --gray-2:         #3E4047;
-  --gray-3:         #6F7480;
-  --gray-4:         #B2B8C4;
-}
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; }
-body {
-  font-family: var(--font-sans);
-  background: var(--bg-page);
-  color: var(--octave-black);
-  -webkit-font-smoothing: antialiased;
-  overflow: hidden;
-  transition: background 0.2s, color 0.2s;
-}
-[data-theme="dark"] body { color: var(--white); }
-.app {
-  display: flex; flex-direction: column;
-  height: 100vh; max-width: 430px;
-  margin: 0 auto; position: relative;
-  background: var(--bg-page);
-  box-shadow: 0 0 40px rgba(0,0,0,0.18);
-}
-
-/* ── NAV ── */
-.nav {
-  height: var(--nav-height); background: var(--bg-nav);
-  display: flex; align-items: center; padding: 0 12px; gap: 8px;
-  flex-shrink: 0; z-index: 100;
-}
-.nav-back { width:32px; height:32px; display:flex; align-items:center; justify-content:center; color:var(--white); background:none; border:none; cursor:pointer; flex-shrink:0; }
-.nav-logo { width:28px; height:28px; background:var(--teal); border-radius:4px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.nav-logo svg { width:18px; height:18px; fill:white; }
-.nav-title { flex:1; font-family:var(--font-mono); font-size:12px; font-weight:500; color:rgba(255,255,255,0.85); line-height:1.3; min-width:0; }
-.nav-title span { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:rgba(255,255,255,0.5); font-size:11px; }
-.nav-actions { display:flex; align-items:center; gap:4px; flex-shrink:0; }
-.nav-icon-btn { width:32px; height:32px; display:flex; align-items:center; justify-content:center; color:var(--white); background:none; border:none; cursor:pointer; border-radius:6px; transition:background 0.15s; position:relative; }
-.nav-icon-btn:hover { background:rgba(255,255,255,0.1); }
-.sync-badge { position:absolute; top:4px; right:4px; width:7px; height:7px; background:var(--green); border-radius:50%; border:1.5px solid var(--bg-nav); }
-.theme-toggle { font-size:11px; font-weight:600; color:rgba(255,255,255,0.7); background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:100px; padding:3px 10px; cursor:pointer; white-space:nowrap; font-family:var(--font-sans); }
-.theme-toggle:hover { background:rgba(255,255,255,0.15); color:white; }
-.prototype-label { font-size:10px; font-weight:700; letter-spacing:0.5px; color:rgba(255,165,0,0.9); white-space:nowrap; }
-
-/* ── WO BLOCK ── */
-.wo-block { background:var(--bg-nav); border-bottom:1px solid rgba(255,255,255,0.06); padding:6px 14px 8px; flex-shrink:0; cursor:pointer; }
-.wo-block-inner { display:flex; align-items:center; gap:8px; }
-.wo-number { font-family:var(--font-mono); font-size:12px; font-weight:600; color:rgba(255,255,255,0.55); white-space:nowrap; }
-.wo-divider { color:rgba(255,255,255,0.2); font-size:11px; }
-.wo-desc { font-size:13px; font-weight:600; color:rgba(255,255,255,0.9); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; }
-.wo-chips { display:flex; gap:4px; flex-shrink:0; }
-.chip { font-size:10px; font-weight:700; letter-spacing:0.3px; padding:2px 7px; border-radius:100px; border:1px solid; white-space:nowrap; }
-.chip-type { color:var(--gray-3); border-color:var(--gray-5); }
-.chip-priority { color:var(--orange); border-color:rgba(244,102,0,0.4); }
-.chip-dept { color:#42b2ea; border-color:rgba(66,178,234,0.35); }
-.wo-block-handle { display:flex; justify-content:center; padding-top:4px; }
-.handle-bar { width:32px; height:3px; background:rgba(255,255,255,0.15); border-radius:100px; }
-
-/* ── STEP RAIL ── */
-.step-rail { background:var(--bg-card); border-bottom:1px solid var(--border); padding:0 14px; flex-shrink:0; cursor:pointer; transition:background 0.15s; }
-[data-theme="dark"] .step-rail { background:var(--bg-section); }
-.step-rail:hover { background:var(--bg-section); }
-.step-rail-collapsed { height:48px; display:flex; align-items:center; gap:10px; }
-.step-pill { font-family:var(--font-mono); font-size:11px; font-weight:600; color:var(--purple); background:rgba(153,51,255,0.1); border:1px solid rgba(153,51,255,0.25); padding:2px 8px; border-radius:100px; white-space:nowrap; flex-shrink:0; }
-.timer-pill { font-family:var(--font-mono); font-size:11px; font-weight:600; color:var(--gray-4); background:rgba(110,116,128,0.1); border:1px solid rgba(110,116,128,0.2); padding:2px 8px; border-radius:100px; white-space:nowrap; flex-shrink:0; display:flex; align-items:center; gap:4px; }
-.timer-dot { width:6px; height:6px; border-radius:50%; background:var(--gray-4); flex-shrink:0; }
-.step-name { font-size:13px; font-weight:600; color:var(--octave-black); flex:1; }
-[data-theme="dark"] .step-name { color:var(--white); }
-.step-segments { display:flex; gap:3px; flex-shrink:0; }
-.seg { width:28px; height:5px; border-radius:100px; }
-.seg-done { background:var(--green); }
-.seg-active { background:var(--purple); }
-.seg-future { background:var(--gray-2); }
-[data-theme="dark"] .seg-future { background:var(--gray-5); }
-.step-chevron { color:var(--gray-4); flex-shrink:0; transition:transform 0.2s; }
-.step-map { display:none; padding:10px 0 12px; border-top:1px solid var(--border); }
-.step-map.open { display:block; }
-.step-map-item { display:flex; align-items:center; gap:10px; padding:6px 14px; cursor:pointer; border-radius:4px; margin:0 6px; transition:background 0.1s; }
-.step-map-item:hover { background:var(--bg-section); }
-.step-map-icon { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:10px; font-weight:700; }
-.smi-done { background:var(--green); color:white; }
-.smi-active { background:var(--purple); color:white; }
-.smi-locked { background:none; border:2px solid var(--gray-3); color:var(--gray-3); }
-.step-map-label { flex:1; font-size:13px; font-weight:500; color:var(--octave-black); }
-[data-theme="dark"] .step-map-label { color:rgba(255,255,255,0.85); }
-.step-map-label.active-label { color:var(--purple); font-weight:700; }
-.step-map-footer { font-size:11px; color:var(--gray-4); padding:6px 20px 0; font-family:var(--font-mono); }
-
-/* ── CONTENT ── */
-.content { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:0 0 calc(var(--bar-height) + 16px); }
-.content::-webkit-scrollbar { display:none; }
-
-/* ── TIMER BANNER ── */
+/* ── TIMER STOPPED BANNER (§18.1/§18.2) — restyled 2026-07-21, simplified
+   same day (no step-rail timer pill anymore, no message line), then
+   de-purpled the same day again: plain neutral card instead of a purple-
+   tinted background, black/white heading and value instead of purple —
+   only the small clock icon keeps its purple stroke as a single accent
+   touch. Matches §3.4's own "purple reserved for step pill/section
+   badges/focus states — never field values" rule, which the all-purple
+   version had actually been violating the whole time. ──────────────── */
 .timer-banner {
-  margin:12px 12px 0;
-  background:rgba(153,51,255,0.05); border:1px solid rgba(153,51,255,0.2);
-  border-radius:10px; padding:10px 14px;
-  display:flex; align-items:center; gap:10px;
+  margin: 12px 12px 0;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
 }
-.timer-banner-icon { width:36px; height:36px; border-radius:50%; background:rgba(153,51,255,0.1); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.timer-banner-info { flex:1; min-width:0; }
-.timer-banner-value { font-family:var(--font-mono); font-size:22px; font-weight:700; color:var(--purple); line-height:1.1; }
-.timer-banner-label { font-size:11px; color:var(--gray-4); margin-top:1px; }
-.timer-banner-meta { font-family:var(--font-mono); font-size:11px; color:var(--gray-4); text-align:right; flex-shrink:0; }
+.timer-banner-head { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: var(--octave-black); flex-shrink: 0; }
+[data-theme="dark"] .timer-banner-head { color: var(--white); }
+.timer-banner-head svg { flex-shrink: 0; }
+.timer-banner-value { font-family: var(--font-mono); font-size: 18px; font-weight: 700; color: var(--octave-black); flex-shrink: 0; }
+[data-theme="dark"] .timer-banner-value { color: var(--white); }
 
-/* ── SCREEN HEADER ── */
-.screen-header { padding:14px 16px 8px; display:flex; align-items:center; justify-content:space-between; }
-.screen-title { font-size:20px; font-weight:700; color:var(--octave-black); letter-spacing:-0.3px; }
-[data-theme="dark"] .screen-title { color:var(--white); }
-
-/* ── SECTION LABEL ── */
-.section-label { padding:0 16px 6px; font-size:11px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:var(--gray-4); font-family:var(--font-mono); }
-
-/* ── LABOR LIST ── */
-.labor-list { padding:0 12px; display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
-.labor-row { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
-.labor-row.correction-row { border-color:rgba(228,75,74,0.3); background:rgba(228,75,74,0.03); }
-[data-theme="dark"] .labor-row.correction-row { background:rgba(228,75,74,0.06); }
-.labor-row-header { padding:10px 12px; display:flex; align-items:center; gap:10px; cursor:pointer; }
-.labor-avatar { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:11px; font-weight:700; flex-shrink:0; }
-.la-purple { background:rgba(153,51,255,0.12); color:var(--purple); border:1px solid rgba(153,51,255,0.2); }
-.la-blue   { background:rgba(66,178,234,0.12); color:#42b2ea; border:1px solid rgba(66,178,234,0.2); }
-.la-green  { background:rgba(0,170,20,0.1); color:var(--green); border:1px solid rgba(0,170,20,0.2); }
-.la-orange { background:rgba(244,102,0,0.1); color:var(--orange); border:1px solid rgba(244,102,0,0.2); }
-.la-red    { background:rgba(228,75,74,0.1); color:var(--red); border:1px solid rgba(228,75,74,0.2); }
-.labor-row-info { flex:1; min-width:0; }
-.labor-row-name { font-size:13px; font-weight:600; color:var(--octave-black); }
-[data-theme="dark"] .labor-row-name { color:var(--white); }
-.labor-row-meta { font-family:var(--font-mono); font-size:11px; color:var(--gray-4); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.labor-hours-badge { font-family:var(--font-mono); font-size:12px; font-weight:700; padding:3px 9px; border-radius:100px; white-space:nowrap; flex-shrink:0; }
-.badge-green { background:rgba(0,170,20,0.1); color:var(--green); border:1px solid rgba(0,170,20,0.2); }
-.badge-red   { background:rgba(228,75,74,0.1); color:var(--red); border:1px solid rgba(228,75,74,0.2); }
-.labor-chevron { color:var(--gray-4); flex-shrink:0; transition:transform 0.2s; }
+/* ── LABOR LIST (§18.3) — no shared equivalent. ─────────────────────────  */
+.labor-list { padding: 0 12px; display: flex; flex-direction: column; gap: 6px; margin: 14px 0 10px; }
+.labor-row { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.labor-row.correction-row { border-color: rgba(228,75,74,0.3); background: rgba(228,75,74,0.03); }
+[data-theme="dark"] .labor-row.correction-row { background: rgba(228,75,74,0.06); }
+.labor-row-header { padding: 10px 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.labor-row-info { flex: 1; min-width: 0; }
+.labor-row-name { font-size: 14px; font-weight: 600; color: var(--octave-black); }
+[data-theme="dark"] .labor-row-name { color: var(--white); }
+.labor-row-code { font-family: var(--font-mono); font-size: 11px; color: var(--gray-4); margin-top: 1px; }
+.labor-row-meta { font-family: var(--font-mono); font-size: 11px; color: var(--gray-4); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.labor-hours-badge { font-family: var(--font-mono); font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 100px; white-space: nowrap; flex-shrink: 0; }
+.badge-green { background: rgba(0,170,20,0.1); color: var(--green); border: 1px solid rgba(0,170,20,0.2); }
+.badge-red   { background: rgba(228,75,74,0.1); color: var(--red); border: 1px solid rgba(228,75,74,0.2); }
+.labor-chevron { color: var(--gray-4); flex-shrink: 0; transition: transform 0.2s; }
 
 /* ── EXPANDED DETAIL ── */
-.labor-row-detail { display:none; background:var(--bg-section); border-top:1px solid var(--border); padding:10px 12px 12px; }
-[data-theme="dark"] .labor-row-detail { background:rgba(255,255,255,0.03); }
-.labor-row-detail.open { display:block; }
-.detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px 8px; margin-bottom:10px; font-size:12px; }
-.detail-label { color:var(--gray-4); padding:3px 0; }
-.detail-value { color:var(--octave-black); text-align:right; font-family:var(--font-mono); padding:3px 0; font-size:12px; }
-[data-theme="dark"] .detail-value { color:rgba(255,255,255,0.85); }
-.detail-value.green { color:var(--green); font-weight:600; }
-.detail-value.red   { color:var(--red);   font-weight:600; }
-.detail-actions { display:flex; gap:6px; padding-top:8px; border-top:1px solid var(--border); }
-/* [1] Only one action — Correction. No Edit button. */
-.detail-btn {
-  flex:1; height:32px; border-radius:100px;
-  border:1.5px solid var(--gray-2); background:var(--bg-card);
-  font-size:12px; font-weight:600; font-family:var(--font-sans);
-  color:var(--octave-black); cursor:pointer;
-  display:flex; align-items:center; justify-content:center; gap:5px;
-  transition:all 0.15s;
+.labor-row-detail { display: none; background: var(--bg-section); border-top: 1px solid var(--border); padding: 10px 12px 12px; }
+[data-theme="dark"] .labor-row-detail { background: rgba(255,255,255,0.03); }
+.labor-row-detail.open { display: block; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 8px; margin-bottom: 10px; font-size: 12px; }
+.detail-label { color: var(--gray-4); padding: 3px 0; }
+.detail-value { color: var(--octave-black); text-align: right; padding: 3px 0; font-size: 12px; }
+[data-theme="dark"] .detail-value { color: rgba(255,255,255,0.85); }
+.detail-value.mono  { font-family: var(--font-mono); }
+.detail-value.green { color: var(--green); font-weight: 600; font-family: var(--font-mono); }
+.detail-value.red   { color: var(--red);   font-weight: 600; font-family: var(--font-mono); }
+.detail-actions { display: flex; gap: 6px; padding-top: 8px; border-top: 1px solid var(--border); }
+/* Only one action — Correction. No Edit button (§18.3). Was a local
+   .detail-btn — converged onto the shared .row-action-btn 2026-07-21
+   (UI inventory pass), which unifies this with Issue Parts'/WO Closing's
+   equivalent per-row tertiary action buttons at one size (34px/13px). */
+.correction-note { display: flex; align-items: center; gap: 6px; background: rgba(228,75,74,0.06); border: 1px solid rgba(228,75,74,0.15); border-radius: 6px; padding: 6px 10px; margin-bottom: 8px; font-size: 11px; color: var(--red); font-family: var(--font-mono); }
+
+/* ── ADD BUTTON — promoted to the shared .btn-contained, full-width to
+   match the labor-list card above it (§18.7, 2026-07-21 — was centered/
+   fixed-width .btn-outlined). ── */
+.action-buttons { padding: 0 12px 10px; }
+
+/* ── FIELD-VALUE MODIFIERS — small local additions on top of the shared
+   .form-field/.field-value base (Hours/correction amount read as
+   computed values, not plain text). ─────────────────────────────────── */
+.field-value.green { color: var(--green); font-weight: 600; font-family: var(--font-mono); }
+.field-value.red   { color: var(--red);   font-weight: 600; font-family: var(--font-mono); }
+
+/* ── FORM SECTION LABEL / MINI SECTION LABEL — no shared equivalent. ──── */
+.form-section-label { padding: 14px 16px 6px; font-size: 14px; font-weight: 600; color: var(--octave-black); }
+[data-theme="dark"] .form-section-label { color: var(--white); }
+.mini-section-label { font-size: 14px; font-weight: 600; color: var(--octave-black); margin-bottom: 6px; }
+[data-theme="dark"] .mini-section-label { color: var(--white); }
+
+/* ── ADD LABOR SHEET REDESIGN (2026-07-16) — Type of Hours pill, double-
+   wide Employee/Crew picker cards, "Labor Details" section-card. ────── */
+.hours-type-row { padding: 14px 16px 4px; }
+.hours-type-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1.5px solid rgba(153,51,255,0.25);
+  background: rgba(153,51,255,0.08);
+  border-radius: 100px; padding: 8px 14px 8px 10px;
+  cursor: pointer; transition: all 0.15s;
+  font-family: var(--font-sans);
 }
-[data-theme="dark"] .detail-btn { border-color:var(--gray-5); background:rgba(255,255,255,0.05); color:rgba(255,255,255,0.85); }
-.detail-btn.danger { border-color:rgba(228,75,74,0.35); color:var(--red); background:rgba(228,75,74,0.04); }
-.detail-btn.danger:hover { background:rgba(228,75,74,0.1); border-color:var(--red); }
-.correction-note { display:flex; align-items:center; gap:6px; background:rgba(228,75,74,0.06); border:1px solid rgba(228,75,74,0.15); border-radius:6px; padding:6px 10px; margin-bottom:8px; font-size:11px; color:var(--red); font-family:var(--font-mono); }
+.hours-type-pill:hover { border-color: var(--purple); }
+.hours-type-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--purple); flex-shrink: 0; }
+.hours-type-desc { font-size: 13px; font-weight: 700; color: var(--purple); }
+.hours-type-chevron { color: var(--purple); flex-shrink: 0; }
+/* Colour-coded per type — same semantics as the checklist's toggle fill
+   colours (§16.4): Normal purple (neutral/default), Overtime orange,
+   Double time red, Standby gray. */
+.hours-type-pill.htp-orange { border-color: rgba(244,102,0,0.3); background: rgba(244,102,0,0.08); }
+.hours-type-pill.htp-orange .hours-type-dot { background: var(--orange); }
+.hours-type-pill.htp-orange .hours-type-desc, .hours-type-pill.htp-orange .hours-type-chevron { color: var(--orange); }
+.hours-type-pill.htp-red { border-color: rgba(228,75,74,0.3); background: rgba(228,75,74,0.08); }
+.hours-type-pill.htp-red .hours-type-dot { background: var(--red); }
+.hours-type-pill.htp-red .hours-type-desc, .hours-type-pill.htp-red .hours-type-chevron { color: var(--red); }
+.hours-type-pill.htp-gray { border-color: var(--border-strong); background: var(--bg-section); }
+.hours-type-pill.htp-gray .hours-type-dot { background: var(--gray-4); }
+.hours-type-pill.htp-gray .hours-type-desc, .hours-type-pill.htp-gray .hours-type-chevron { color: var(--gray-4); }
 
-/* ── ADD BUTTONS ── */
-.action-buttons { padding:0 12px 10px; display:flex; gap:8px; }
-.btn-outlined { flex:1; height:46px; border-radius:100px; border:1.5px solid var(--gray-5); background:transparent; color:var(--octave-black); font-size:13px; font-weight:600; font-family:var(--font-sans); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; transition:all 0.15s; }
-[data-theme="dark"] .btn-outlined { border-color:var(--gray-3); color:var(--white); }
-.btn-outlined:hover { border-color:#00ffff; color:#00ffff; }
+/* Employee/Crew Header Fields cells (§18.7, 2026-07-21 — replaced the
+   old standalone double-wide .picker-card component entirely, moved
+   into the shared .attr-item grid instead). .attr-item.protected is the
+   mutual-exclusion dimmed state (set on whichever of Employee/Crew
+   doesn't have a value, same treatment .form-field.protected uses
+   elsewhere); .attr-text-code is Employee's code line, stacked beneath
+   its description (§3.4 identifier-field exception — the code IS the
+   employee ID, same convention the labor row/Correction sheet already
+   use for Employee elsewhere on this screen). */
+.attr-item.protected { background: var(--bg-section); opacity: 0.6; cursor: default; }
+[data-theme="dark"] .attr-item.protected { background: rgba(255,255,255,0.03); }
+.attr-text-code { font-family: var(--font-mono); font-size: 10px; color: var(--gray-4); margin-top: 1px; }
 
-/* ── BOTTOM BAR ── */
-.bottom-bar { position:absolute; bottom:0; left:0; right:0; height:var(--bar-height); background:var(--bg-card); border-top:1px solid var(--border); padding:0 16px; display:flex; align-items:center; gap:10px; z-index:50; flex-shrink:0; }
-[data-theme="dark"] .bottom-bar { background:var(--octave-black); }
-.bar-pill { flex:1; height:48px; border-radius:100px; display:flex; align-items:center; justify-content:center; gap:8px; font-size:15px; font-weight:700; cursor:pointer; transition:all 0.2s; border:none; }
-.bar-pill-ready { background:var(--green); color:white; box-shadow:0 4px 16px rgba(0,170,20,0.25); }
-.bar-pill-ready:hover { background:#00c418; }
-.bar-meta { font-family:var(--font-mono); font-size:12px; font-weight:600; color:var(--gray-4); white-space:nowrap; flex-shrink:0; }
-
-/* ── OVERLAY / SHEET ── */
-.sheet-overlay { position:absolute; inset:0; background:rgba(0,0,0,0); z-index:200; pointer-events:none; transition:background 0.3s; }
-.sheet-overlay.open { background:rgba(0,0,0,0.5); pointer-events:all; }
-.bottom-sheet { position:absolute; bottom:0; left:0; right:0; background:var(--bg-card); border-radius:var(--sheet-radius) var(--sheet-radius) 0 0; transform:translateY(100%); transition:transform 0.3s cubic-bezier(0.32,0.72,0,1); z-index:201; max-height:90vh; display:flex; flex-direction:column; }
-[data-theme="dark"] .bottom-sheet { background:#26252B; }
-.bottom-sheet.open { transform:translateY(0); }
-.sheet-handle-row { display:flex; justify-content:center; padding:10px 0 4px; flex-shrink:0; }
-.sheet-handle { width:36px; height:4px; background:var(--gray-2); border-radius:100px; }
-[data-theme="dark"] .sheet-handle { background:var(--gray-5); }
-.sheet-header { padding:4px 16px 12px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); flex-shrink:0; }
-.sheet-title { font-size:17px; font-weight:700; color:var(--octave-black); }
-[data-theme="dark"] .sheet-title { color:var(--white); }
-.sheet-close { width:30px; height:30px; border-radius:50%; background:var(--bg-section); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--gray-4); }
-.sheet-close:hover { background:var(--gray-1); color:var(--octave-black); }
-[data-theme="dark"] .sheet-close:hover { background:var(--gray-5); color:white; }
-.sheet-body { flex:1; overflow-y:auto; }
-.sheet-body::-webkit-scrollbar { display:none; }
-.sheet-footer { padding:12px 16px 20px; border-top:1px solid var(--border); flex-shrink:0; }
-
-/* ── FORM SECTION LABEL ── */
-.form-section-label { padding:14px 16px 6px; font-size:11px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; color:var(--gray-4); font-family:var(--font-mono); }
-
-/* ── FORM FIELD (base) ── */
-.form-field { display:flex; align-items:center; padding:10px 16px; border-bottom:1px solid var(--border); position:relative; min-height:50px; }
-.form-field.required::before { content:''; position:absolute; left:0; top:8px; bottom:8px; width:3px; border-radius:0 100px 100px 0; background:var(--orange); }
-.form-field.protected { background:var(--bg-section); opacity:0.75; cursor:default; }
-.field-label { font-size:13px; color:var(--gray-4); width:110px; flex-shrink:0; }
-
-/* [5] Field value: body colour always. Purple only for active/focus states. */
-.field-value { flex:1; font-size:14px; font-weight:500; color:var(--octave-black); text-align:right; }
-[data-theme="dark"] .field-value { color:rgba(255,255,255,0.9); }
-.field-value.muted { color:var(--gray-3); font-style:italic; font-size:13px; }
-.field-value.green { color:var(--green); font-weight:600; font-family:var(--font-mono); }
-.field-value.red   { color:var(--red);   font-weight:600; font-family:var(--font-mono); }
-.field-chevron { margin-left:6px; color:var(--gray-3); flex-shrink:0; }
-.field-lock    { margin-left:6px; color:var(--gray-3); flex-shrink:0; }
-
-/* [2] LOV field description-first pattern
-   Right side of a LOV row: code small+muted above, description primary below.
-   Usage: <div class="field-lov-value"><span class="field-lov-code">N</span><span class="field-lov-desc">Normal</span></div>
-*/
-.field-lov-value { display:flex; flex-direction:column; align-items:flex-end; flex:1; gap:1px; }
-.field-lov-code  { font-family:var(--font-mono); font-size:11px; font-weight:600; color:var(--gray-4); line-height:1.2; }
-.field-lov-desc  { font-size:14px; font-weight:500; color:var(--octave-black); line-height:1.3; text-align:right; }
-[data-theme="dark"] .field-lov-desc { color:rgba(255,255,255,0.9); }
-.field-lov-desc.muted { color:var(--gray-3); font-style:italic; font-size:13px; }
-
-/* ── TIME INPUT ── */
-.time-input { background:none; border:none; outline:none; font-family:var(--font-mono); font-size:14px; font-weight:500; color:var(--octave-black); text-align:right; width:100%; cursor:pointer; }
-[data-theme="dark"] .time-input { color:rgba(255,255,255,0.9); }
-.time-input:focus { color:var(--purple); }
-
-/* [4] Save button — locked state (gray) and ready state (green).
-   JS sets data-ready="true" on .sheet-footer when all required fields have values.
-*/
-.btn-save {
-  width:100%; height:50px; border-radius:100px; border:none;
-  font-size:15px; font-weight:700; font-family:var(--font-sans);
-  cursor:not-allowed; transition:background 0.25s, color 0.25s, box-shadow 0.25s;
-  background:var(--gray-2); color:var(--gray-4);
-}
-[data-theme="dark"] .btn-save { background:var(--gray-5); color:var(--gray-3); }
-.btn-save.ready {
-  background:var(--green); color:white;
-  cursor:pointer;
-  box-shadow:0 4px 16px rgba(0,170,20,0.25);
-}
-.btn-save.ready:hover { background:#00c418; }
-.btn-save.danger-ready {
-  background:var(--red); color:white;
-  cursor:pointer;
-  box-shadow:0 4px 16px rgba(228,75,74,0.25);
-}
-.btn-save.danger-ready:hover { background:#ff6060; }
+/* Start/End (2026-07-21, unified with Date Worked/Hours Worked into one
+   2x2 Header Fields grid, retiring the old standalone big time-chip +
+   duration-connector treatment) reuse the shared .time-input class
+   directly (corrected same day — this used to be a local near-duplicate,
+   `.attr-time-input`, with the wrong font; deleted in favor of the one
+   shared class every Time Only field now uses). */
 
 /* ── CORRECTION SHEET ── */
-.correction-sheet-banner { background:rgba(228,75,74,0.06); border-bottom:1px solid rgba(228,75,74,0.15); padding:10px 16px; display:flex; align-items:flex-start; gap:8px; font-size:12px; color:var(--red); flex-shrink:0; }
+.correction-sheet-banner { background: rgba(228,75,74,0.06); border-bottom: 1px solid rgba(228,75,74,0.15); padding: 10px 16px; display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--red); flex-shrink: 0; }
 
-/* ── CREW SELECTOR PILL (top of crew sheet, like store selector on parts) ── */
+/* ── CREW SELECTOR PILL (top of crew sheet, like the store selector on
+   Issue Parts, §18.5) — no shared equivalent yet, one consumer so far. ── */
 .crew-selector-bar {
-  padding:12px 16px; border-bottom:1px solid var(--border);
-  display:flex; align-items:center; gap:10px;
-  background:var(--bg-section);
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg-section);
 }
-.crew-selector-label { font-size:13px; color:var(--gray-4); flex-shrink:0; }
+.crew-selector-label { font-size: 13px; color: var(--gray-4); flex-shrink: 0; }
 .crew-selector-pill {
-  display:inline-flex; align-items:center; gap:5px;
-  background:var(--bg-card); border:1.5px solid var(--border-strong);
-  border-radius:100px; padding:5px 10px 5px 8px;
-  cursor:pointer; transition:all 0.15s;
-  font-family:var(--font-mono); font-size:12px; font-weight:600;
-  color:var(--octave-black); white-space:nowrap;
+  /* background matches .store-selector (Issue Parts) — §18.5 calls this
+     "same pattern as the store selector"; was var(--bg-card), which only
+     converged with .store-selector's var(--bg-section) in dark mode
+     (fixed 2026-07-21, UI inventory pass). */
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--bg-section); border: 1.5px solid var(--border-strong);
+  border-radius: 100px; padding: 5px 10px 5px 8px;
+  cursor: pointer; transition: all 0.15s;
+  font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+  color: var(--octave-black); white-space: nowrap;
 }
-[data-theme="dark"] .crew-selector-pill { background:var(--bg-section); border-color:var(--gray-5); color:var(--white); }
-.crew-selector-pill:hover { border-color:var(--purple); color:var(--purple); }
-.crew-selector-pill svg:first-child { color:var(--purple); }
+[data-theme="dark"] .crew-selector-pill { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
+.crew-selector-pill:hover { border-color: var(--purple); color: var(--purple); }
+.crew-selector-pill svg:first-child { color: var(--purple); }
 
 /* ── CREW MEMBER ROWS ── */
-.crew-member-row { display:flex; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid var(--border); }
-.crew-avatar { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:11px; font-weight:700; flex-shrink:0; }
-.crew-row-info { flex:1; min-width:0; }
-.crew-row-name { font-size:13px; font-weight:600; color:var(--octave-black); }
-[data-theme="dark"] .crew-row-name { color:var(--white); }
-.crew-row-sub { font-size:11px; color:var(--gray-4); font-family:var(--font-mono); }
-.crew-include-toggle { width:44px; height:26px; border-radius:100px; border:none; cursor:pointer; position:relative; transition:background 0.2s; flex-shrink:0; }
-.crew-include-toggle.on  { background:var(--green); }
-.crew-include-toggle.off { background:var(--gray-2); }
-[data-theme="dark"] .crew-include-toggle.off { background:var(--gray-5); }
-.toggle-knob { position:absolute; top:3px; width:20px; height:20px; background:white; border-radius:50%; transition:left 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.2); }
-.toggle-knob.on  { left:21px; }
-.toggle-knob.off { left:3px; }
+.crew-member-row { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+.crew-row-info { flex: 1; min-width: 0; }
+.crew-row-name { font-size: 13px; font-weight: 600; color: var(--octave-black); }
+[data-theme="dark"] .crew-row-name { color: var(--white); }
+.crew-row-sub { font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); }
+.crew-include-toggle { width: 44px; height: 26px; border-radius: 100px; border: none; cursor: pointer; position: relative; transition: background 0.2s; flex-shrink: 0; }
+.crew-include-toggle.on  { background: var(--green); }
+.crew-include-toggle.off { background: var(--gray-2); }
+[data-theme="dark"] .crew-include-toggle.off { background: var(--gray-5); }
+.toggle-knob { position: absolute; top: 3px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.toggle-knob.on  { left: 21px; }
+.toggle-knob.off { left: 3px; }
 
-/* ── CORRECTION STEPPER ── */
-.step-btn { width:32px; height:32px; border-radius:50%; border:1.5px solid var(--gray-2); background:none; color:var(--purple); font-size:18px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.15s; flex-shrink:0; }
-[data-theme="dark"] .step-btn { border-color:var(--gray-5); }
-.step-btn:hover { background:rgba(153,51,255,0.1); border-color:var(--purple); }
-.step-btn.red-step { color:var(--red); border-color:rgba(228,75,74,0.3); }
-.step-btn.red-step:hover { background:rgba(228,75,74,0.1); border-color:var(--red); }
+/* ── CORRECTION STEPPER (§18.6) — no shared equivalent. ────────────────  */
+.step-btn { width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--gray-2); background: none; color: var(--purple); font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
+[data-theme="dark"] .step-btn { border-color: var(--gray-5); }
+.step-btn:hover { background: rgba(153,51,255,0.1); border-color: var(--purple); }
+.step-btn.red-step { color: var(--red); border-color: rgba(228,75,74,0.3); }
+.step-btn.red-step:hover { background: rgba(228,75,74,0.1); border-color: var(--red); }
 
-/* ── TOAST ── */
-.toast { position:absolute; bottom:calc(var(--bar-height) + 10px); left:50%; transform:translateX(-50%) translateY(20px); background:rgba(26,26,31,0.95); color:white; padding:9px 16px; border-radius:100px; font-size:13px; font-weight:600; white-space:nowrap; display:flex; align-items:center; gap:7px; opacity:0; transition:all 0.25s; z-index:300; pointer-events:none; box-shadow:0 4px 20px rgba(0,0,0,0.3); }
-.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+/* Toast sits above the bottom bar on this screen (screen-specific override
+   — the shared default assumes no bottom chrome). */
+.toast { bottom: calc(var(--bar-height) + 10px); }
 </style>
 </head>
 <body>
+
+<!-- Prototype-only theme preview — real app theme lives in User Settings,
+     not in-screen chrome. See design-decisions-v3-1.md §20. -->
+<div class="proto-theme-bar">
+  <span class="proto-theme-label">Preview theme</span>
+  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+  <!-- Demo-only WO Workflow selector (§11-13, 2026-07-22) — see
+       eam-wo-record-view-prototype-v1.html's copy of this button for the
+       full note; cycleDemoWo() in eam-shared.js is the shared mechanism. -->
+  <button class="theme-toggle" id="demoWoToggle" onclick="cycleDemoWo()">📋 WO 19257</button>
+</div>
+
 <div class="app" id="app">
 
-  <!-- NAV -->
-  <header class="nav">
-    <button class="nav-back" aria-label="Back">
-      <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
-    <div class="nav-logo">
-      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
-    </div>
-    <div class="nav-title">
-      19257 — Pump Cavitating; lost head
-      <span>WO# 19257 · Activity 10 · TECH</span>
-    </div>
-    <div class="nav-actions">
-      <span class="prototype-label">PROTOTYPE</span>
-      <button class="nav-icon-btn" title="Sync status">
-        <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0114-5.2M20 12a8 8 0 01-14 5.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 7l2-2-2-2M8 17l-2 2 2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span class="sync-badge"></span>
+  <header class="nav" onclick="scrollFormToTop()">
+    <div class="nav-left">
+      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation(); navBack()">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <button class="theme-toggle" id="themeToggle">☀ Light</button>
+      <span class="prototype-label">PROTOTYPE</span>
+    </div>
+    <div class="nav-title">Work Orders</div>
+    <div class="nav-actions">
+      <span id="syncCtrl"></span>
     </div>
   </header>
 
-  <!-- WO BLOCK -->
-  <div class="wo-block">
-    <div class="wo-block-inner">
-      <span class="wo-number">19257</span>
-      <span class="wo-divider">·</span>
-      <span class="wo-desc">Pump Cavitating; lost head</span>
-      <div class="wo-chips">
-        <span class="chip chip-type">CORR MAINT</span>
-        <span class="chip chip-priority">P4-HIGH</span>
-        <span class="chip chip-dept">WATER</span>
+  <!-- ── DETAIL HEADER (§8.1) — protected identity + ellipsis, no status,
+       no pin, no Plus (Add Labor/Add by Crew are already this step's own
+       add-affordances). Screen-specific ellipsis slot carries Print Work
+       Order + Comments/Documents (§14.8 — reachable from any step). ── -->
+  <div class="rec-header" id="recHeader" onclick="scrollFormToTop()">
+    <div class="rec-id-row">
+      <div class="rec-id-text">
+        <span class="rec-num" id="recNum">19257</span>
+        <span class="rec-desc protected" id="recDesc">Pump Cavitating; lost head</span>
+      </div>
+      <div class="rec-header-actions">
+        <button class="rec-ellipsis-btn" id="recEllipsisBtn" onclick="event.stopPropagation(); toggleRecActionsMenu()" aria-label="More actions">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+        </button>
+        <div class="rec-actions-menu" id="recActionsMenu">
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyLink()">Copy Link</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyRecord()">Copy</div>
+            <div class="rec-actions-item danger" onclick="recDeleteRecord()">Delete</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group" id="recActionsScreenSpecific">
+            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Printing work order — coming soon')">Print Work Order</div>
+            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Opening Comments — coming soon')">Comments (3)</div>
+            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Opening Documents — coming soon')">Documents (4)</div>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="wo-block-handle"><div class="handle-bar"></div></div>
   </div>
 
-  <!-- STEP RAIL -->
+  <!-- ── STEP RAIL (§14.2/§14.3) — chrome + toggle are shared. No timer
+       pill here (removed 2026-07-21) — the stopped time now lives only
+       in the Timer Stopped banner below, showing it in both places was
+       redundant once that banner existed. ── -->
   <div class="step-rail" id="stepRail">
     <div class="step-rail-collapsed">
-      <div class="step-pill">4 of 5</div>
       <div class="step-name">Book Labor</div>
-      <div class="timer-pill">
-        <div class="timer-dot"></div>
-        <span>01:23:47</span>
+      <div class="step-rail-right">
+        <svg class="step-chevron" id="stepChevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
-      <div class="step-segments">
-        <div class="seg seg-done"></div>
-        <div class="seg seg-done"></div>
-        <div class="seg seg-done"></div>
-        <div class="seg seg-active"></div>
-        <div class="seg seg-future"></div>
-      </div>
-      <svg class="step-chevron" id="stepChevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="step-segments">
+      <div class="seg seg-done"></div>
+      <div class="seg seg-done"></div>
+      <div class="seg seg-done"></div>
+      <div class="seg seg-active"></div>
+      <div class="seg seg-future"></div>
     </div>
     <div class="step-map" id="stepMap">
       <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
       <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">Activity Checklist</span></div>
       <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">Issue Parts</span></div>
-      <div class="step-map-item"><div class="step-map-icon smi-active">4</div><span class="step-map-label active-label">Book Labor</span></div>
+      <div class="step-map-item active"><div class="step-map-icon smi-active">4</div><span class="step-map-label active-label">Book Labor</span></div>
       <div class="step-map-item"><div class="step-map-icon smi-locked">5</div><span class="step-map-label">WO Closing</span></div>
-      <div class="step-map-footer">Admin configured · Corrective Maintenance WO type</div>
+      <div class="step-map-footer">WO.WORKFLOW.01 - Corrective Maintenance Execution</div>
     </div>
   </div>
 
-  <!-- CONTENT -->
+  <!-- ── SCROLLABLE CONTENT ─────────────────────────────────────────── -->
   <div class="content">
 
-    <!-- Timer banner -->
-    <div class="timer-banner">
-      <div class="timer-banner-icon">
-        <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="#9933FF" stroke-width="2"/><path d="M12 7v5l3 3" stroke="#9933FF" stroke-width="2" stroke-linecap="round"/></svg>
+    <!-- Timer Stopped banner (§18.1/§18.2) — restyled 2026-07-21 onto the
+         .sync-error-banner-style heading+message shell, no icon circle. -->
+    <!-- Only shown when arriving via the guided workflow's own "Next
+         Step" hand-off (§18.7, 2026-07-21) — a freeflow visit (step map,
+         direct link, WO List) never had a timer "just stop," so this
+         banner has nothing true to say. Visibility set at init by
+         applyArrivalState(), not hardcoded — see that function. -->
+    <div class="timer-banner" id="timerBanner" style="display:none;">
+      <div class="timer-banner-head">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="#9933FF" stroke-width="2"/><path d="M12 7v5l3 3" stroke="#9933FF" stroke-width="2" stroke-linecap="round"/></svg>
+        Timer Stopped
       </div>
-      <div class="timer-banner-info">
-        <div class="timer-banner-value">01:23:47</div>
-        <div class="timer-banner-label">Timer stopped — time loaded into labor booking</div>
-      </div>
-      <div class="timer-banner-meta">08:00<br>→ 09:23</div>
+      <div class="timer-banner-value" id="timerBannerValue">01:23:47</div>
     </div>
 
-    <!-- Screen header -->
-    <div class="screen-header">
-      <div class="screen-title">Book Labor</div>
-      <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray-4);" id="recordCount">1 record</span>
-    </div>
-
-    <div class="section-label">Booked labor</div>
-
-    <div class="labor-list" id="laborList">
-      <!-- Row 0: BCAMPBELL — timer-populated -->
-      <div class="labor-row" id="laborRow0">
-        <div class="labor-row-header" onclick="toggleRow(0)">
-          <div class="labor-avatar la-purple">BC</div>
-          <div class="labor-row-info">
-            <!-- [2a] Description primary, code secondary -->
-            <div class="labor-row-name">Brian Campbell <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray-4);font-weight:400;">BCAMPBELL</span></div>
-            <!-- [2c] Date and trade only — no time range -->
-            <div class="labor-row-meta">May 19, 2026 · Technician (TECH)</div>
-          </div>
-          <span class="labor-hours-badge badge-green">1h 23m</span>
-          <svg class="labor-chevron" id="chev0" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-        <div class="labor-row-detail" id="detail0">
-          <div class="detail-grid">
-            <div class="detail-label">Type of hours</div><div class="detail-value">Normal (N)</div>
-            <!-- [2b] Department and Trade with descriptions -->
-            <div class="detail-label">Department</div><div class="detail-value">Maintenance (MAINT)</div>
-            <div class="detail-label">Trade</div><div class="detail-value">Technician (TECH)</div>
-            <div class="detail-label">Start time</div><div class="detail-value">08:00</div>
-            <div class="detail-label">End time</div><div class="detail-value">09:23</div>
-            <div class="detail-label">Hours</div><div class="detail-value green">1h 23m</div>
-          </div>
-          <!-- [1] Correction only — no Edit -->
-          <div class="detail-actions">
-            <button class="detail-btn danger" onclick="openCorrectionSheet(0)">
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-              Create correction
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- Booked labor list — seeded from data/wo-19257.js's `labor` array via
+         renderSeedLabor() at init, not hardcoded HTML (§18.7). No screen
+         title / section label above it — redundant with the step rail's
+         own step-name and the identity header (§18.7, 2026-07-21). -->
+    <div class="labor-list" id="laborList"></div>
 
     <div class="action-buttons">
-      <button class="btn-outlined" onclick="openAddLaborSheet()">
-        <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      <button class="btn-contained" onclick="openAddLaborSheet()">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
         Add labor
-      </button>
-      <button class="btn-outlined" onclick="openCrewSheet()">
-        <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3.27-3.95M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Add by crew
       </button>
     </div>
 
-    <!-- Summary cards -->
+    <!-- Summary cards — 5 metrics now (§18.7, 2026-07-21): Trades removed
+         (an Activity only ever has one, so it was always trivially "1");
+         added WO Est. Hours (fixed, from the Activity, not derived from
+         booked labor), WO Regular Hours, WO OT Hours (both real sums by
+         Type of Hours). Flex-wrap instead of a fixed single row so 5
+         cards reflow to 3-then-2 instead of squeezing. -->
     <div style="margin:4px 12px 12px;padding:10px 14px;background:var(--bg-section);border-radius:8px;border:1px solid var(--border);">
-      <div style="font-size:11px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;font-family:var(--font-mono);color:var(--gray-4);margin-bottom:6px;">Activity summary</div>
-      <div style="display:flex;gap:6px;">
-        <div style="flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;">
+      <div class="mini-section-label">Activity summary</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        <div style="flex:1 1 30%;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;">
           <div style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--purple);" id="totalHoursDisplay">1h 23m</div>
           <div style="font-size:11px;color:var(--gray-4);margin-top:1px;">Total hours</div>
         </div>
-        <div style="flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;">
-          <div style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--green);" id="techsDisplay">1</div>
-          <div style="font-size:11px;color:var(--gray-4);margin-top:1px;">Technicians</div>
-        </div>
-        <div style="flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;">
+        <div style="flex:1 1 30%;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;">
           <div style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:#42b2ea;" id="entriesDisplay">1</div>
           <div style="font-size:11px;color:var(--gray-4);margin-top:1px;">Entries</div>
+        </div>
+        <div style="flex:1 1 30%;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;">
+          <div style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--gray-4);" id="estHoursDisplay">2h 30m</div>
+          <div style="font-size:11px;color:var(--gray-4);margin-top:1px;">WO Est. hours</div>
+        </div>
+        <div style="flex:1 1 30%;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;">
+          <div style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--green);" id="regularHoursDisplay">1h 23m</div>
+          <div style="font-size:11px;color:var(--gray-4);margin-top:1px;">WO regular hours</div>
+        </div>
+        <div style="flex:1 1 30%;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;">
+          <div style="font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--orange);" id="otHoursDisplay">0m</div>
+          <div style="font-size:11px;color:var(--gray-4);margin-top:1px;">WO OT hours</div>
         </div>
       </div>
     </div>
 
   </div><!-- /content -->
 
-  <!-- BOTTOM BAR -->
+  <!-- ── BOTTOM BAR — auto-ready, no gate (§14.7). Chrome is shared. ──── -->
   <div class="bottom-bar">
     <span class="bar-meta">Auto-ready</span>
-    <button class="bar-pill bar-pill-ready" onclick="showToast('Moving to WO Closing…','✓')">
+    <button class="bar-pill bar-pill-ready" onclick="sessionStorage.setItem('eamArrivedViaNextStep','true'); window.location.href=WO_STEP_FILES.closing;">
       <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Next: WO Closing
     </button>
@@ -539,119 +418,128 @@ body {
 
   <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
 
-  <!-- ══ ADD LABOR SHEET ══
-    [3] No time mode toggle — Start/End time only.
-    [4] Save button locked until required fields populated.
-    [5] Field values body colour — not purple.
-    [2] LOV rows use description-first pattern.
-  -->
+  <!-- ══ ADD LABOR SHEET (§18.4) ══ -->
   <div class="bottom-sheet" id="addLaborSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <div class="sheet-title">Add Labor</div>
       <button class="sheet-close" onclick="closeAllSheets()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+      <div class="sheet-title">Add Labor</div>
+      <div style="width:30px;flex-shrink:0;"></div>
     </div>
     <div class="sheet-body">
-      <div class="form-section-label">Labor details</div>
 
-      <div class="form-field protected">
-        <span class="field-label">Activity</span>
-        <div class="field-lov-value">
-          <span class="field-lov-code">10</span>
-          <span class="field-lov-desc">Inspect &amp; repair pump assembly</span>
+      <!-- Type of Hours — pill, top-left. Cycle-on-tap demo LOV (§18.4,
+           local — see file header note); colour-coded per type. -->
+      <div class="hours-type-row">
+        <button class="hours-type-pill" id="addTypeOfHoursPill" onclick="openLov('typeOfHours')" data-required="true" data-value="N" data-field="typeOfHours">
+          <span class="hours-type-dot" id="addTypeOfHoursDot"></span>
+          <span class="hours-type-desc" id="addTypeOfHoursLov">Normal</span>
+          <svg class="hours-type-chevron" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <!-- Header Fields (§5.2) — reorganized 2026-07-21: Employee/Crew
+           moved in from their old standalone double-wide picker cards
+           (mutually exclusive — picking one clears + protects the other
+           and derives Department/Trade from it, still manually editable
+           in Labor Details below; both start cleared and optional,
+           neither required) alongside Date Worked/Hours Worked/Start
+           Time/End Time, all as one 2x2x3 grid sitting directly under
+           the Type of Hours pill — this is the Standard Model's own
+           Header Fields box, not a bespoke section, so it goes where
+           Header Fields always goes: right below the top pill selector.
+           No "Time" label above this anymore — it's not a distinct
+           section, just more Header Fields cells. Employee keeps its
+           code shown beneath the description (§3.4 identifier-field
+           exception — the code IS the employee ID); Crew stays
+           description-only, matching the generic Header Fields default. -->
+      <div class="section-card">
+        <div class="equip-attrs">
+          <div class="attr-item" id="addEmployeeLov" data-field="employee" data-value="" onclick="openEmployeeLov()">
+            <span class="attr-label">Employee</span>
+            <div class="attr-value">
+              <div style="display:flex;flex-direction:column;align-items:flex-end;">
+                <span class="attr-text muted" id="fv-employee-desc">Select employee</span>
+                <span class="attr-text-code" id="fv-employee-code" style="display:none;"></span>
+              </div>
+            </div>
+          </div>
+          <div class="attr-item" id="addCrewCard" data-field="crew" data-value="" onclick="openCrewLov()">
+            <span class="attr-label">Crew</span>
+            <div class="attr-value"><span class="attr-text muted" id="fv-crew-desc">Select crew</span></div>
+          </div>
+          <div class="attr-item required" id="addStartDatePill" data-field="startDate" data-required="true" data-value="2026-05-19" onclick="openDate('startDate','Date Worked')">
+            <span class="attr-label">Date Worked</span>
+            <div class="attr-value"><span class="attr-text" id="fv-startDate">05/19/2026</span></div>
+          </div>
+          <div class="attr-item required" id="addHoursWorkedField" data-field="hoursWorked" data-required="true" data-value="1.38" onclick="openEdit('hoursWorked','Hours Worked','number')">
+            <span class="attr-label">Hours Worked</span>
+            <div class="attr-value"><span class="attr-text" id="fv-hoursWorked">1.38</span></div>
+          </div>
+          <div class="attr-item required">
+            <span class="attr-label">Start Time</span>
+            <div class="attr-value"><input class="time-input" type="time" lang="en-GB" value="08:00" id="addStartTime" data-required="true" data-value="08:00" onchange="recalcHours(); setFieldValue(this, this.value); checkAddReady();"></div>
+          </div>
+          <div class="attr-item required">
+            <span class="attr-label">End Time</span>
+            <div class="attr-value"><input class="time-input" type="time" lang="en-GB" value="09:23" id="addEndTime" data-required="true" data-value="09:23" onchange="recalcHours(); setFieldValue(this, this.value); checkAddReady();"></div>
+          </div>
         </div>
-        <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </div>
 
-      <!-- [2] Type of Hours — description primary, code secondary -->
-      <div class="form-field required" onclick="cycleTypeOfHours()" style="cursor:pointer;" data-required="true" data-value="N">
-        <span class="field-label">Type of hours</span>
-        <div class="field-lov-value" id="addTypeOfHoursLov">
-          <span class="field-lov-code">N</span>
-          <span class="field-lov-desc">Normal</span>
+      <!-- Labor Details — collapsible, delivered collapsed (§7.2 pattern).
+           Moved to the bottom 2026-07-21 (was directly under Employee/
+           Crew, which have since moved up into Header Fields above).
+           Activity stays protected; Department/Trade are manually cycle-
+           editable and get overwritten whenever Employee or Crew above is
+           (re)picked. -->
+      <div class="fg-section">
+        <div class="fg-toggle-row" onclick="toggleFg(this)">
+          <span class="fg-toggle-title">Labor Details</span>
+          <svg class="fg-chev" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-
-      <!-- [2] Employee — description primary -->
-      <div class="form-field required" onclick="cycleEmployee()" style="cursor:pointer;" data-required="true" data-value="">
-        <span class="field-label">Employee</span>
-        <div class="field-lov-value" id="addEmployeeLov">
-          <span class="field-lov-code" id="addEmpCode" style="display:none;"></span>
-          <span class="field-lov-desc muted" id="addEmpDesc">Select employee</span>
+        <div class="fg-collapse">
+          <div class="form-field protected" data-field="activity">
+            <span class="field-label">Activity</span>
+            <div class="field-lov-value">
+              <span class="field-lov-code" id="addActivityCode">10</span>
+              <span class="field-lov-desc">Inspect &amp; repair pump assembly</span>
+            </div>
+            <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <div class="form-field required" id="addDeptField" onclick="cycleDepartment()" style="cursor:pointer;" data-required="true" data-value="MAINT">
+            <span class="field-label">Department</span>
+            <div class="field-lov-value">
+              <span class="field-lov-code" id="addDeptCode">MAINT</span>
+              <span class="field-lov-desc" id="addDeptValue">Maintenance</span>
+            </div>
+            <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="form-field required" id="addTradeField" onclick="cycleTrade()" style="cursor:pointer;" data-required="true" data-value="TECH">
+            <span class="field-label">Trade</span>
+            <div class="field-lov-value">
+              <span class="field-lov-code" id="addTradeCode">TECH</span>
+              <span class="field-lov-desc" id="addTradeValue">Technician</span>
+            </div>
+            <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
         </div>
-        <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-
-      <!-- [2] Crew — description primary, optional -->
-      <div class="form-field" style="cursor:pointer;">
-        <span class="field-label">Crew</span>
-        <div class="field-lov-value">
-          <span class="field-lov-code">BLUE</span>
-          <span class="field-lov-desc">Blue Shift</span>
-        </div>
-        <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-
-      <!-- [2] Department -->
-      <div class="form-field required" style="cursor:pointer;" data-required="true" data-value="MAINT">
-        <span class="field-label">Department</span>
-        <div class="field-lov-value">
-          <span class="field-lov-code">MAINT</span>
-          <span class="field-lov-desc">Maintenance</span>
-        </div>
-        <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-
-      <!-- [2] Trade -->
-      <div class="form-field required" style="cursor:pointer;" data-required="true" data-value="TECH">
-        <span class="field-label">Trade</span>
-        <div class="field-lov-value">
-          <span class="field-lov-code">TECH</span>
-          <span class="field-lov-desc">Technician</span>
-        </div>
-        <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-
-      <div class="form-section-label">Time</div>
-
-      <!-- [2] Start date -->
-      <div class="form-field required" data-required="true" data-value="2026-05-19">
-        <span class="field-label">Start date</span>
-        <div class="field-lov-value">
-          <span class="field-lov-desc">May 19, 2026</span>
-        </div>
-        <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-
-      <!-- [3] Start/End time only — no toggle -->
-      <div class="form-field required" data-required="true" data-value="08:00">
-        <span class="field-label">Start time</span>
-        <input class="time-input" type="time" value="08:00" id="addStartTime" onchange="recalcHours(); setFieldValue(this.closest('.form-field'), this.value); checkAddReady();">
-      </div>
-      <div class="form-field required" data-required="true" data-value="09:23">
-        <span class="field-label">End time</span>
-        <input class="time-input" type="time" value="09:23" id="addEndTime" onchange="recalcHours(); setFieldValue(this.closest('.form-field'), this.value); checkAddReady();">
-      </div>
-      <div class="form-field protected">
-        <span class="field-label">Hours</span>
-        <span class="field-value green" id="calcHoursDisplay">1h 23m</span>
-        <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </div>
       <div style="height:8px;"></div>
     </div>
-    <!-- [4] Save locked until ready -->
+    <!-- Save locked until ready — reuses the shared gray→green button. -->
     <div class="sheet-footer" id="addLaborFooter">
-      <button class="btn-save" id="addSaveBtn" onclick="saveAddLabor()">Save</button>
+      <button class="insert-save-btn" id="addSaveBtn" onclick="saveAddLabor()">Save</button>
     </div>
   </div>
 
-  <!-- ══ CORRECTION SHEET ══ -->
+  <!-- ══ CORRECTION SHEET (§18.6) ══ -->
   <div class="bottom-sheet" id="correctionSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <div class="sheet-title">Create Correction</div>
       <button class="sheet-close" onclick="closeAllSheets()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+      <div class="sheet-title">Create Correction</div>
+      <div style="width:30px;flex-shrink:0;"></div>
     </div>
     <div class="correction-sheet-banner">
       <svg width="15" height="15" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#E24B4A" stroke-width="2" stroke-linecap="round"/></svg>
@@ -659,14 +547,14 @@ body {
     </div>
     <div class="sheet-body">
       <div class="form-section-label">Correcting entry for</div>
-      <div class="form-field protected">
+      <div class="form-field protected" data-field="employee">
         <span class="field-label">Employee</span>
-        <div class="field-lov-value"><span class="field-lov-code" id="corrEmpCode">BCAMPBELL</span><span class="field-lov-desc" id="corrEmpDesc">Brian Campbell</span></div>
+        <div class="field-lov-value"><span class="field-lov-code" id="corrEmpCode">BCAMPBELL</span><span class="field-lov-desc" id="corrEmpDesc">Bruce Campbell</span></div>
         <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </div>
       <div class="form-field protected">
         <span class="field-label">Original date</span>
-        <div class="field-lov-value"><span class="field-lov-desc">May 19, 2026</span></div>
+        <div class="field-lov-value"><span class="field-lov-desc">05/19/2026</span></div>
         <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </div>
       <div class="form-field protected">
@@ -700,23 +588,23 @@ body {
       </div>
       <div style="height:8px;"></div>
     </div>
-    <!-- [4] Correction save — always ready (amount is defaulted) -->
+    <!-- Correction save — always ready (amount is defaulted); reuses the
+         shared danger-ready variant. -->
     <div class="sheet-footer">
-      <button class="btn-save danger-ready" onclick="saveCorrection()">Save correction</button>
+      <button class="insert-save-btn danger-ready" onclick="saveCorrection()">Save correction</button>
     </div>
   </div>
 
-  <!-- ══ ADD BY CREW SHEET ══
-    [6] Crew selector pill at top — defaults from activity; changing it reloads members.
-  -->
+  <!-- ══ ADD BY CREW SHEET (§18.5) ══ -->
   <div class="bottom-sheet" id="crewSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <div class="sheet-title">Add Labor by Crew</div>
       <button class="sheet-close" onclick="closeAllSheets()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+      <div class="sheet-title">Add Labor by Crew</div>
+      <div style="width:30px;flex-shrink:0;"></div>
     </div>
 
-    <!-- [6] Crew selector — top of sheet, above member list -->
+    <!-- Crew selector — top of sheet, above member list (§18.5) -->
     <div class="crew-selector-bar">
       <span class="crew-selector-label">Crew</span>
       <button class="crew-selector-pill" id="crewSelectorPill" onclick="cycleCrew()">
@@ -731,7 +619,6 @@ body {
       <div id="crewMemberList">
         <!-- BCAMPBELL — already booked, locked off -->
         <div class="crew-member-row">
-          <div class="crew-avatar la-purple">BC</div>
           <div class="crew-row-info">
             <div class="crew-row-name">BCAMPBELL</div>
             <div class="crew-row-sub">TECH · MAINT · already booked</div>
@@ -739,7 +626,6 @@ body {
           <button class="crew-include-toggle off" style="opacity:0.35;cursor:not-allowed;" disabled><div class="toggle-knob off"></div></button>
         </div>
         <div class="crew-member-row">
-          <div class="crew-avatar la-blue">JR</div>
           <div class="crew-row-info">
             <div class="crew-row-name">JRODRIGUEZ</div>
             <div class="crew-row-sub">TECH · MAINT</div>
@@ -747,7 +633,6 @@ body {
           <button class="crew-include-toggle on" id="ct1" onclick="toggleCrew(1)"><div class="toggle-knob on" id="ck1"></div></button>
         </div>
         <div class="crew-member-row">
-          <div class="crew-avatar la-green">MK</div>
           <div class="crew-row-info">
             <div class="crew-row-name">MKUMAR</div>
             <div class="crew-row-sub">MECH · MAINT</div>
@@ -755,7 +640,6 @@ body {
           <button class="crew-include-toggle on" id="ct2" onclick="toggleCrew(2)"><div class="toggle-knob on" id="ck2"></div></button>
         </div>
         <div class="crew-member-row">
-          <div class="crew-avatar la-orange">TP</div>
           <div class="crew-row-info">
             <div class="crew-row-name">TPATEL</div>
             <div class="crew-row-sub">ELEC · MAINT</div>
@@ -766,27 +650,25 @@ body {
 
       <div class="form-section-label">Shared time details</div>
 
-      <!-- [2] Type of hours LOV -->
       <div class="form-field required" data-required="true" data-value="N">
         <span class="field-label">Type of hours</span>
         <div class="field-lov-value">
-          <span class="field-lov-code">N</span>
           <span class="field-lov-desc">Normal</span>
         </div>
         <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
       <div class="form-field required" data-required="true" data-value="2026-05-19">
         <span class="field-label">Start date</span>
-        <div class="field-lov-value"><span class="field-lov-desc">May 19, 2026</span></div>
+        <div class="field-lov-value"><span class="field-lov-desc">05/19/2026</span></div>
         <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
       <div class="form-field required" data-required="true" data-value="08:00">
         <span class="field-label">Start time</span>
-        <input class="time-input" type="time" value="08:00" onchange="setFieldValue(this.closest('.form-field'),this.value); checkCrewReady();">
+        <input class="time-input" type="time" lang="en-GB" value="08:00" onchange="setFieldValue(this.closest('.form-field'),this.value); checkCrewReady();">
       </div>
       <div class="form-field required" data-required="true" data-value="09:23">
         <span class="field-label">End time</span>
-        <input class="time-input" type="time" value="09:23" onchange="setFieldValue(this.closest('.form-field'),this.value); checkCrewReady();">
+        <input class="time-input" type="time" lang="en-GB" value="09:23" onchange="setFieldValue(this.closest('.form-field'),this.value); checkCrewReady();">
       </div>
       <div class="form-field protected">
         <span class="field-label">Hours each</span>
@@ -800,33 +682,114 @@ body {
       </div>
       <div style="height:8px;"></div>
     </div>
-    <!-- [4] Crew save — ready when at least 1 member selected + time fields set -->
+    <!-- Crew save — ready when at least 1 member selected + time fields
+         set; reuses the shared gray→green button. -->
     <div class="sheet-footer">
-      <button class="btn-save ready" id="crewSaveBtn" onclick="saveCrewLabor()">Book labor for crew</button>
+      <button class="insert-save-btn ready" id="crewSaveBtn" onclick="saveCrewLabor()">Book labor for crew</button>
     </div>
   </div>
 
-  <div class="toast" id="toast"><span id="toastIcon">✓</span><span id="toastMsg">Saved</span></div>
+  <!-- ── LOV SHEET (shared component markup, §18.7 2026-07-21 — first use
+       on this screen) — Employee/Crew/Type of Hours all open this same
+       search sheet every other screen uses, nested above Add Labor same
+       as the date/edit sheets below. ── -->
+  <div class="bottom-sheet" id="lovSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="lovSheetTitle">Select value</div>
+      <button class="sheet-clear-btn" id="lovClearBtn" onclick="clearLov()">Clear</button>
+    </div>
+    <div class="lov-search-row" id="lovSearchRow">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input class="lov-search-input" id="lovSearchInput" placeholder="Search" oninput="filterLovOptions(this.value)">
+    </div>
+    <div class="sheet-body" id="lovSheetBody"></div>
+  </div>
+
+  <!-- ── EDIT SHEET (shared component markup, §18.7 2026-07-21 — first
+       use on this screen) — Hours Worked opens this same numeric-edit
+       sheet every other screen uses, nested above Add Labor same as the
+       date sheet below. ── -->
+  <div class="bottom-sheet" id="editSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="editSheetTitle">Edit field</div>
+      <button class="sheet-clear-btn" id="editClearBtn" onclick="clearEdit()">Clear</button>
+    </div>
+    <div class="edit-input-wrap"><input class="edit-input" id="editSheetInput" type="text" oninput="sanitizeCurrencyInput(this)"></div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveEdit()">Save</button></div>
+  </div>
+
+  <!-- ── DATE SHEET (shared component markup — behavior lives in
+       eam-shared.js) — the Add Labor sheet's date pill opens this same
+       calendar every other screen uses. ── -->
+  <div class="bottom-sheet" id="dateSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="dateSheetTitle">Select date</div>
+      <button class="sheet-clear-btn" id="dateClearBtn" onclick="clearDate()">Clear</button>
+    </div>
+    <div class="sheet-body">
+      <div class="cal-header">
+        <button class="cal-nav-btn" onclick="calNavMonth(-1)">‹</button>
+        <span class="cal-month-label" id="calMonthLabel">July 2026</span>
+        <button class="cal-nav-btn" onclick="calNavMonth(1)">›</button>
+      </div>
+      <div class="cal-weekdays"><span class="cal-weekday">Sun</span><span class="cal-weekday">Mon</span><span class="cal-weekday">Tue</span><span class="cal-weekday">Wed</span><span class="cal-weekday">Thu</span><span class="cal-weekday">Fri</span><span class="cal-weekday">Sat</span></div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+  <!-- Centered confirmation modal — destructive actions (Delete etc.),
+       markup only; behavior lives in eam-shared.js. -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-modal">
+      <div class="confirm-message" id="confirmMessage">Are you sure?</div>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="confirm-btn confirm-danger" id="confirmDangerBtn" onclick="confirmDangerAction()">Delete</button>
+      </div>
+    </div>
+  </div>
 
 </div><!-- /app -->
 
+<script src="../../data/employees.js"></script>
+<script src="../../data/crews.js"></script>
+<script src="../../data/crew_employees.js"></script>
+<script src="../../data/wo-19257.js"></script>
+<script src="../../data/wo-19831.js"></script>
+<script src="../../data/wo-20450.js"></script>
+<script src="../../data/wotype.js"></script>
+<script src="../../data/wo-workflow.js"></script>
+<script src="../../data/wo-workflow-steps.js"></script>
+<script src="shared/eam-shared.js"></script>
 <script>
-// ── THEME
-document.getElementById('themeToggle').addEventListener('click', () => {
-  const dark = document.documentElement.hasAttribute('data-theme');
-  if (dark) { document.documentElement.removeAttribute('data-theme'); document.getElementById('themeToggle').textContent = '☀ Light'; }
-  else       { document.documentElement.setAttribute('data-theme','dark'); document.getElementById('themeToggle').textContent = '◑ Dark'; }
-});
+/* ── screen-specific config/behavior — chrome (nav, header, step rail,
+   confirm modal, toast, theme toggle) comes from eam-shared.js. ── */
 
-// ── STEP RAIL
-document.getElementById('stepRail').addEventListener('click', () => {
-  const map = document.getElementById('stepMap');
-  const ch  = document.getElementById('stepChevron');
-  const open = map.classList.toggle('open');
-  ch.style.transform = open ? 'rotate(180deg)' : '';
-});
+// Fixed demo "today" for correction/crew-booking saves that don't have
+// their own date picker (§18.7, 2026-07-21) — kept as one named constant
+// instead of the literal repeated inline.
+const DEMO_LABOR_DATE_ISO = '2026-05-19';
 
-// ── LABOR ROW EXPAND
+// The stopped WO timer's start/end (§18.2/§18.4) — named once so the
+// Timer Stopped banner's elapsed display and the Add Labor sheet's
+// pre-filled Start/End times are an explicit, shared source, not just
+// two literals that happen to match.
+const STOPPED_TIMER_START = '08:00';
+const STOPPED_TIMER_END = '09:23';
+
+function navBack() {
+  showToast('← Back to Issue Parts');
+}
+
+// ── LABOR ROW EXPAND ──────────────────────────────────────────────────────
 function toggleRow(idx) {
   const d = document.getElementById('detail'+idx);
   const c = document.getElementById('chev'+idx);
@@ -835,23 +798,94 @@ function toggleRow(idx) {
   c.style.transform = open ? 'rotate(180deg)' : '';
 }
 
-// ── SHEETS
+// ── SHEETS ──────────────────────────────────────────────────────────────
 function openSheet(id) {
   document.getElementById('sheetOverlay').classList.add('open');
   document.getElementById(id).classList.add('open');
 }
 function closeAllSheets() {
+  // Date/Edit/LOV sheets nest above whichever main sheet opened them
+  // (same overlay, later in DOM so they paint on top) — closing one
+  // should only dismiss itself, not the parent underneath. Mirrors Issue
+  // Parts' separate nested-LOV-overlay solution, just via one context-
+  // aware function instead of a second overlay. Edit/LOV sheets added
+  // §18.7, 2026-07-21 (Hours Worked and Employee/Crew/Type of Hours,
+  // first use of the shared numeric-edit and LOV-search sheets on this
+  // screen) — same nesting rule as the date sheet already had.
+  for (const id of ['dateSheet', 'editSheet', 'lovSheet']) {
+    const nested = document.getElementById(id);
+    if (nested.classList.contains('open')) {
+      nested.classList.remove('open');
+      return;
+    }
+  }
   document.getElementById('sheetOverlay').classList.remove('open');
   ['addLaborSheet','correctionSheet','crewSheet'].forEach(id => document.getElementById(id).classList.remove('open'));
 }
 
-function openAddLaborSheet() {
-  // Reset employee field to empty
-  document.getElementById('addEmpCode').style.display = 'none';
-  document.getElementById('addEmpDesc').textContent = 'Select employee';
-  document.getElementById('addEmpDesc').classList.add('muted');
-  const empField = document.getElementById('addEmpCode').closest('[data-required]');
-  if (empField) empField.setAttribute('data-value','');
+// Date field re-sync (§18.4) — the shared calendar sheet writes the
+// picked date into #fv-{key} and calls this optional per-key hook
+// afterward (same pattern as LOV_ON_SELECT), so this screen's own
+// data-value/data-required gating (checkAddReady/isSheetReady — a
+// different mechanism from the Standard Model's, see file header note)
+// stays in sync with whatever the calendar just picked.
+const DATE_ON_SELECT = {
+  startDate: () => {
+    document.getElementById('addStartDatePill').setAttribute('data-value', activeDateSelectedIso);
+    checkAddReady();
+  }
+};
+
+function openAddLaborSheet(prefillCurrentUser) {
+  // Launch state (§18.4): Employee and Crew both cleared and optional,
+  // neither protected, Department/Trade back to their neutral defaults —
+  // a fresh entry every time this sheet opens.
+  const empCodeEl = document.getElementById('fv-employee-code');
+  empCodeEl.textContent = '';
+  empCodeEl.style.display = 'none';
+  document.getElementById('fv-employee-desc').textContent = 'Select employee';
+  document.getElementById('fv-employee-desc').classList.add('muted');
+  LOV_CURRENT.employee = '';
+  const empCard = document.getElementById('addEmployeeLov');
+  empCard.setAttribute('data-value', '');
+  setPickerCardProtected(empCard, false);
+
+  document.getElementById('fv-crew-desc').textContent = 'Select crew';
+  document.getElementById('fv-crew-desc').classList.add('muted');
+  LOV_CURRENT.crew = '';
+  const crewCard = document.getElementById('addCrewCard');
+  crewCard.setAttribute('data-value', '');
+  setPickerCardProtected(crewCard, false);
+
+  deptIdx = 0; tradeIdx = 0;
+  applyDept(departments[0]);
+  applyTrade(trades[0]);
+
+  // Timer-stop hand-off only (§18.2/§18.7): the technician who just
+  // stopped their own WO timer is booking their own time, not picking
+  // from a list — default Employee to the current logged-on user
+  // (BCAMPBELL, stays first in employees[]) instead of leaving it empty.
+  if (prefillCurrentUser) {
+    const current = employees[0];
+    LOV_CURRENT.employee = current.code;
+    empCard.setAttribute('data-value', current.code);
+    empCodeEl.textContent = current.code;
+    empCodeEl.style.display = '';
+    document.getElementById('fv-employee-desc').textContent = current.desc;
+    document.getElementById('fv-employee-desc').classList.remove('muted');
+    onEmployeeLovSelected();
+  }
+
+  // Pre-fill Start/End from the stopped WO timer (§18.2) — real on arrival
+  // from the previous step, not just a static default.
+  const startEl = document.getElementById('addStartTime');
+  const endEl = document.getElementById('addEndTime');
+  startEl.value = STOPPED_TIMER_START;
+  endEl.value = STOPPED_TIMER_END;
+  setFieldValue(startEl, STOPPED_TIMER_START);
+  setFieldValue(endEl, STOPPED_TIMER_END);
+  recalcHours();
+
   checkAddReady();
   openSheet('addLaborSheet');
 }
@@ -859,6 +893,7 @@ function openAddLaborSheet() {
 function openCorrectionSheet(idx) {
   corrHoursMin = 83;
   updateCorrDisplay();
+  applyCodeVisibility('employee', document.getElementById('corrEmpCode'));
   openSheet('correctionSheet');
 }
 function openCrewSheet() {
@@ -866,8 +901,9 @@ function openCrewSheet() {
   openSheet('crewSheet');
 }
 
-// ── [4] REQUIRED FIELD READINESS
-// Each required field carries data-required="true" and data-value (empty = not set).
+// ── REQUIRED FIELD READINESS ────────────────────────────────────────────
+// Each required field carries data-required="true" and data-value (empty
+// = not set).
 function setFieldValue(el, val) {
   if (el) el.setAttribute('data-value', val || '');
 }
@@ -890,59 +926,250 @@ function checkCrewReady() {
   else btn.classList.remove('ready');
 }
 
-// ── [2] TYPE OF HOURS CYCLE (demo LOV interaction)
+// ── LOV CODE VISIBILITY — description-only default, single source of
+// truth checked at the field row and on every value update. Employee is
+// the only identifier-type field in this screen (the code IS the
+// employee ID); everything else stays description-only regardless of
+// value. ───────────────────────────────────────────────────────────────
+const CODE_VISIBLE_FIELDS = new Set(['employee']);
+function applyCodeVisibility(key, codeEl) {
+  if (!codeEl) return;
+  codeEl.style.display = (CODE_VISIBLE_FIELDS.has(key) && codeEl.textContent) ? '' : 'none';
+}
+
+// ── TYPE OF HOURS — real LOV search sheet (§18.7, 2026-07-21 — was
+// "cycle on tap," a deliberate demo stand-in per this file's original
+// header note; upgraded to the shared openLov()/selectLov() pattern like
+// Employee/Crew below). Pill stays colour-coded per type (§16.4-style
+// semantics: Normal purple, Overtime orange, Double time red, Standby
+// gray); LOV_ON_SELECT.typeOfHours (below, once employees/crews/hourTypes
+// all exist) re-applies the pill's text/colour after a pick, since
+// selectLov()'s generic branch only knows how to write a plain fv-{key}-
+// desc span, not a colour-coded pill. ────
 const hourTypes = [
-  { code:'N', desc:'Normal' },
-  { code:'OT', desc:'Overtime' },
-  { code:'DT', desc:'Double time' },
-  { code:'ST', desc:'Standby' },
+  { code:'N', desc:'Normal', color:'purple' },
+  { code:'OT', desc:'Overtime', color:'orange' },
+  { code:'DT', desc:'Double time', color:'red' },
+  { code:'ST', desc:'Standby', color:'gray' },
 ];
-let hourTypeIdx = 0;
-function cycleTypeOfHours() {
-  hourTypeIdx = (hourTypeIdx + 1) % hourTypes.length;
-  const t = hourTypes[hourTypeIdx];
-  const lov = document.getElementById('addTypeOfHoursLov');
-  lov.children[0].textContent = t.code;
-  lov.children[1].textContent = t.desc;
-  const field = lov.closest('[data-required]');
-  if (field) { field.setAttribute('data-value', t.code); checkAddReady(); }
+function applyTypeOfHours(code) {
+  const t = hourTypes.find(x => x.code === code) || hourTypes[0];
+  document.getElementById('addTypeOfHoursLov').textContent = t.desc;
+  const pill = document.getElementById('addTypeOfHoursPill');
+  pill.className = 'hours-type-pill' + (t.color !== 'purple' ? ' htp-' + t.color : '');
+  pill.setAttribute('data-value', t.code);
+  checkAddReady();
 }
 
-// ── [2] EMPLOYEE CYCLE (demo LOV — real app would open a search)
-const employees = [
-  { code:'BCAMPBELL', desc:'Brian Campbell' },
-  { code:'JRODRIGUEZ', desc:'Juan Rodriguez' },
-  { code:'MKUMAR', desc:'Meera Kumar' },
-  { code:'TPATEL', desc:'Tariq Patel' },
-];
-let empIdx = -1;
-function cycleEmployee() {
-  empIdx = (empIdx + 1) % employees.length;
-  const e = employees[empIdx];
-  const codeEl = document.getElementById('addEmpCode');
-  const descEl = document.getElementById('addEmpDesc');
-  codeEl.textContent = e.code;
-  codeEl.style.display = '';
-  descEl.textContent = e.desc;
-  descEl.classList.remove('muted');
-  const field = codeEl.closest('[data-required]');
-  if (field) { field.setAttribute('data-value', e.code); checkAddReady(); }
+// ── EMPLOYEE / CREW — real LOV search sheet (§18.7, 2026-07-21 — was
+// "cycle on tap," see file header note history). Still mutually
+// exclusive (picking one clears + protects the other and derives
+// Department/Trade from it, still manually cycle-editable below); both
+// start cleared and optional. "Current user" (Bruce Campbell — same
+// identity used app-wide, e.g. CURRENT_USER_NAME on the other WO-
+// workflow screens) stays first in the employees list so it's the first
+// result the search list shows. Sourced from data/employees.js
+// (EAM_EMPLOYEES) via a small property-name adapter (name→desc) so
+// `e.desc` usages below don't need to change. ──
+const employees = EAM_EMPLOYEES.map(e => ({ code: e.code, desc: e.name, dept: e.dept, trade: e.trade }));
+// Sourced from data/crews.js (EAM_CREWS) via the same kind of property-
+// name adapter (name→desc, memberCodes→members) so the rest of this
+// file's existing `c.desc`/`c.members` usages don't need to change.
+// Declared here (not down by the Add-by-Crew sheet's own cycleCrew()
+// that actually consumes it) because LOV_DATA below needs it too, and
+// a const used before its declaration line runs is a TDZ ReferenceError
+// — found and fixed 2026-07-21 (this exact bug: `crews` used to sit
+// after LOV_DATA, which silently broke this screen's entire init from
+// that point on, LOV_DATA/LOV_CURRENT/departments/trades/renderSeedLabor/
+// initSharedApp included, until fixed).
+const crews = EAM_CREWS.map(c => ({ code: c.code, desc: c.name, dept: c.dept, trade: c.trade, members: c.memberCodes }));
+function openEmployeeLov() {
+  if (document.getElementById('addEmployeeLov').classList.contains('protected')) {
+    showToast('Crew is set for this entry — close and reopen to start over');
+    return;
+  }
+  openLov('employee');
+}
+// Runs after selectLov() has already written the picked employee's own
+// fv-employee-code/-desc (generic branch) — this just handles the extra
+// mutual-exclusion + derived-field side effects.
+function onEmployeeLovSelected() {
+  const e = employees.find(x => x.code === LOV_CURRENT.employee);
+  document.getElementById('addEmployeeLov').setAttribute('data-value', LOV_CURRENT.employee);
+  const crewCard = document.getElementById('addCrewCard');
+  setPickerCardProtected(crewCard, true);
+  LOV_CURRENT.crew = '';
+  crewCard.setAttribute('data-value', '');
+  document.getElementById('fv-crew-desc').textContent = 'None';
+  document.getElementById('fv-crew-desc').classList.add('muted');
+  if (e) applyDerivedDeptTrade(e.dept, e.trade);
+  checkAddReady();
 }
 
-// ── HOURS RECALC
+function openCrewLov() {
+  const crewCard = document.getElementById('addCrewCard');
+  if (crewCard.classList.contains('protected')) {
+    showToast('Employee is set for this entry — close and reopen to start over');
+    return;
+  }
+  openLov('crew');
+}
+function onCrewLovSelected() {
+  const c = crews.find(x => x.code === LOV_CURRENT.crew);
+  document.getElementById('addCrewCard').setAttribute('data-value', LOV_CURRENT.crew);
+  const empCard = document.getElementById('addEmployeeLov');
+  setPickerCardProtected(empCard, true);
+  LOV_CURRENT.employee = '';
+  empCard.setAttribute('data-value', '');
+  document.getElementById('fv-employee-desc').textContent = 'None';
+  document.getElementById('fv-employee-desc').classList.add('muted');
+  const empCodeEl = document.getElementById('fv-employee-code');
+  if (empCodeEl) { empCodeEl.textContent = ''; empCodeEl.style.display = 'none'; }
+  if (c) applyDerivedDeptTrade(c.dept, c.trade);
+  checkAddReady();
+}
+
+// Header Fields LOV data — Employee/Crew/Type of Hours all real search
+// sheets now (§18.7, 2026-07-21). Placed here, after employees/crews/
+// hourTypes all exist, since these are plain objects built from them.
+const LOV_DATA = {
+  employee: employees.map(e => ({ code: e.code, desc: e.desc })),
+  crew: crews.map(c => ({ code: c.code, desc: c.desc })),
+  typeOfHours: hourTypes.map(t => ({ code: t.code, desc: t.desc })),
+};
+const LOV_CURRENT = { employee: '', crew: '', typeOfHours: 'N' };
+const LOV_TITLES = { employee: 'Employee', crew: 'Crew', typeOfHours: 'Type of Hours' };
+const FIELD_LABELS = { employee: 'Employee', crew: 'Crew', typeOfHours: 'Type of Hours' };
+// Type of Hours has no .required CSS class (it's a colour-coded pill, not
+// a plain .form-field row) — isRequiredField() checks that class, so
+// without this it would incorrectly show Clear on a field that must
+// always have a value. Same treatment __status already gets.
+const ALWAYS_REQUIRED_LOVS = new Set(['typeOfHours']);
+// Short fixed enumeration, same category as Type/Priority elsewhere —
+// search bar adds nothing for a 4-option list.
+const NO_SEARCH_LOVS = new Set(['typeOfHours']);
+const LOV_ON_SELECT = {
+  employee: () => onEmployeeLovSelected(),
+  crew: () => onCrewLovSelected(),
+  typeOfHours: () => applyTypeOfHours(LOV_CURRENT.typeOfHours),
+};
+
+// Toggles the dimmed .protected look on an Employee/Crew Header Fields
+// cell (§18.7, 2026-07-21 — simplified from the old picker-card version,
+// which swapped a trailing chevron for a lock icon; plain .attr-item
+// cells have no chevron slot at all, so there's nothing to swap, just
+// the dimmed state itself).
+function setPickerCardProtected(cardEl, isProtected) {
+  cardEl.classList.toggle('protected', isProtected);
+}
+
+// Toggles the dimmed .protected look on an Employee/Crew Header Fields
+// cell (§18.7, 2026-07-21 — simplified from the old picker-card version,
+// which swapped a trailing chevron for a lock icon; plain .attr-item
+// cells have no chevron slot at all, so there's nothing to swap, just
+// the dimmed state itself).
+function setPickerCardProtected(cardEl, isProtected) {
+  cardEl.classList.toggle('protected', isProtected);
+}
+
+// Department/Trade — manually cycle-editable (demo LOV), overwritten
+// whenever Employee or Crew above is (re)picked.
+const departments = [
+  { code:'MAINT', desc:'Maintenance' },
+  { code:'WATER', desc:'Water Utilities' },
+  { code:'ELEC', desc:'Electrical' },
+  { code:'ENG', desc:'Engineering' },
+];
+const trades = [
+  { code:'TECH', desc:'Technician' },
+  { code:'MECH', desc:'Mechanic' },
+  { code:'ELEC', desc:'Electrician' },
+  { code:'INSP', desc:'Inspector' },
+];
+let deptIdx = 0, tradeIdx = 0;
+function cycleDepartment() {
+  deptIdx = (deptIdx + 1) % departments.length;
+  applyDept(departments[deptIdx]);
+  checkAddReady();
+}
+function cycleTrade() {
+  tradeIdx = (tradeIdx + 1) % trades.length;
+  applyTrade(trades[tradeIdx]);
+  checkAddReady();
+}
+function applyDept(d) {
+  document.getElementById('addDeptValue').textContent = d.desc;
+  document.getElementById('addDeptCode').textContent = d.code;
+  document.getElementById('addDeptField').setAttribute('data-value', d.code);
+}
+function applyTrade(t) {
+  document.getElementById('addTradeValue').textContent = t.desc;
+  document.getElementById('addTradeCode').textContent = t.code;
+  document.getElementById('addTradeField').setAttribute('data-value', t.code);
+}
+function applyDerivedDeptTrade(deptCode, tradeCode) {
+  const d = departments.find(x => x.code === deptCode);
+  const t = trades.find(x => x.code === tradeCode);
+  if (d) { deptIdx = departments.indexOf(d); applyDept(d); }
+  if (t) { tradeIdx = trades.indexOf(t); applyTrade(t); }
+}
+
+// ── HOURS RECALC ──────────────────────────────────────────────────────────
+function diffMinutesWrapped(startTime, endTime) {
+  const [sh,sm] = startTime.split(':').map(Number);
+  const [eh,em] = endTime.split(':').map(Number);
+  let diff = (eh*60+em)-(sh*60+sm);
+  if (diff < 0) diff += 1440;
+  return diff;
+}
+// Signed minutes → "1h 23m" / "−1h 23m" (corrections are negative). Single
+// formatter for every hours display on this screen (labor rows, detail
+// grid, Activity Summary) — §18.7, 2026-07-21.
+function minsToHM(mins) {
+  const sign = mins < 0 ? '−' : '';
+  const abs = Math.abs(mins);
+  const h = Math.floor(abs/60), m = abs%60;
+  return sign + (h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`);
+}
+function decimalHoursFromMinutes(mins) {
+  return (mins/60).toFixed(2);
+}
+function minutesFromDecimalHours(dec) {
+  return Math.round(parseFloat(dec || '0') * 60);
+}
+function addMinutesToTime(time, mins) {
+  const [h,m] = time.split(':').map(Number);
+  const total = (((h*60+m+mins) % 1440) + 1440) % 1440;
+  const eh = Math.floor(total/60), em = total%60;
+  return String(eh).padStart(2,'0') + ':' + String(em).padStart(2,'0');
+}
+// Start/End → Hours Worked. Runs on every Start/End change (§18.4/§18.7).
 function recalcHours() {
   const s = document.getElementById('addStartTime').value;
   const e = document.getElementById('addEndTime').value;
   if (!s || !e) return;
-  const [sh,sm] = s.split(':').map(Number);
-  const [eh,em] = e.split(':').map(Number);
-  let diff = (eh*60+em)-(sh*60+sm);
-  if (diff < 0) diff += 1440;
-  const h = Math.floor(diff/60), m = diff%60;
-  document.getElementById('calcHoursDisplay').textContent = h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
+  const mins = diffMinutesWrapped(s, e);
+  const dec = decimalHoursFromMinutes(mins);
+  document.getElementById('fv-hoursWorked').textContent = dec;
+  document.getElementById('addHoursWorkedField').setAttribute('data-value', dec);
 }
+// Hours Worked → End Time, Start held fixed (§18.7, 2026-07-21 — real
+// system behavior: editing Hours Worked directly recomputes End Time,
+// never Start). Wired via the shared EDIT_ON_SAVE hook after saveEdit()
+// writes the new value into #fv-hoursWorked.
+function recalcEndFromHours() {
+  const startEl = document.getElementById('addStartTime');
+  const dec = document.getElementById('fv-hoursWorked').textContent;
+  const mins = minutesFromDecimalHours(dec);
+  const newEnd = addMinutesToTime(startEl.value, mins);
+  const endEl = document.getElementById('addEndTime');
+  endEl.value = newEnd;
+  setFieldValue(endEl, newEnd);
+  checkAddReady();
+}
+const EDIT_ON_SAVE = { hoursWorked: () => recalcEndFromHours() };
 
-// ── CORRECTION STEPPER
+// ── CORRECTION STEPPER (§18.6) ────────────────────────────────────────────
 // Tap = 1 minute. Hold 3s → switches to 15-minute steps, repeating every 150ms.
 let corrHoursMin = 83;
 let corrHoldTimer = null;
@@ -977,22 +1204,22 @@ function stopCorrHold() {
   corrRepeatTimer = null;
 }
 
-// ── [6] CREW SELECTOR CYCLE (demo — real app opens search/LOV)
-const crews = [
-  { code:'BLUE', desc:'Blue Shift', members:['BCAMPBELL','JRODRIGUEZ','MKUMAR','TPATEL'] },
-  { code:'RED',  desc:'Red Shift',  members:['DSMITH','RFERNANDEZ','ONWOSU'] },
-];
+// ── CREW SELECTOR CYCLE (Add by Crew sheet only — §18.5; the Header
+// Fields Crew field above uses the real LOV sheet instead, see
+// openCrewLov()) — dept/trade here are each crew's own representative
+// default for the Add Labor sheet's Department/Trade derivation (§18.4
+// note above) — crews are mixed-trade groups in reality, this is a
+// prototype simplification, not a per-member breakdown. `crews` itself
+// is declared earlier (with `employees`) since LOV_DATA needs it too. ──
 let crewIdx = 0;
 function cycleCrew() {
   crewIdx = (crewIdx + 1) % crews.length;
   const c = crews[crewIdx];
   document.getElementById('crewSelectorLabel').textContent = `${c.code} — ${c.desc}`;
   document.getElementById('crewMembersLabel').textContent = `${c.desc} members`;
-  const avatarColors = ['la-purple','la-blue','la-green','la-orange'];
   const list = document.getElementById('crewMemberList');
   list.innerHTML = c.members.map((name, i) => `
     <div class="crew-member-row">
-      <div class="crew-avatar ${avatarColors[i % avatarColors.length]}">${name.slice(0,2)}</div>
       <div class="crew-row-info">
         <div class="crew-row-name">${name}</div>
         <div class="crew-row-sub">TECH · MAINT</div>
@@ -1005,7 +1232,7 @@ function cycleCrew() {
   checkCrewReady();
 }
 
-// ── CREW TOGGLES
+// ── CREW TOGGLES ──────────────────────────────────────────────────────────
 const crewState = [false, true, true, false];
 function toggleCrew(idx) {
   crewState[idx] = !crewState[idx];
@@ -1030,59 +1257,93 @@ function updateCrewSummary() {
   document.getElementById('crewSelectionSummary').textContent = `${sel} crew member${sel!==1?'s':''} selected · ${sel}h ${sel*23}m total`;
 }
 
-// ── SAVE ACTIONS
+// ── SAVE ACTIONS ──────────────────────────────────────────────────────────
+// Reads the sheet's actual current field values (§18.7, 2026-07-21 fix —
+// previously booked a hardcoded demo row regardless of what was entered).
 function saveAddLabor() {
   if (!document.getElementById('addSaveBtn').classList.contains('ready')) return;
-  const empCode = document.getElementById('addEmpCode').textContent || 'JRODRIGUEZ';
-  const empIdx2 = employees.findIndex(e => e.code === empCode);
-  const fullName = empIdx2 >= 0 ? employees[empIdx2].code : empCode;
-  addLaborRow(fullName, 'May 19, 2026', '10:00', '11:30', '1h 30m', 'N', 'Normal', 'MAINT', 'TECH', false);
+  // Employee/Crew are mutually exclusive (§18.7). Booking against a Crew
+  // isn't one row for the crew itself — the real system books labor
+  // against every employee currently assigned to that crew, one row
+  // each (data/crew_employees.js, §18.7 2026-07-22). Booking against a
+  // single Employee stays a single row, as before.
+  const empCode = document.getElementById('fv-employee-code').textContent;
+  const crewCode = document.getElementById('addCrewCard').getAttribute('data-value');
+  const dateIso = document.getElementById('addStartDatePill').getAttribute('data-value');
+  const start = document.getElementById('addStartTime').value;
+  const end = document.getElementById('addEndTime').value;
+  const typeCode = document.getElementById('addTypeOfHoursPill').getAttribute('data-value');
+  const typeDesc = document.getElementById('addTypeOfHoursLov').textContent;
+  const mins = diffMinutesWrapped(start, end);
+  let bookedNames;
+  if (crewCode) {
+    const memberCodes = EAM_CREW_EMPLOYEES.filter(ce => ce.crewCode === crewCode).map(ce => ce.employeeCode);
+    memberCodes.forEach(code => {
+      const emp = employees.find(e => e.code === code);
+      addLaborRow(code, isoToDisplay(dateIso), start, end, mins, typeCode, typeDesc, emp.dept, emp.trade, false);
+    });
+    bookedNames = memberCodes.map(code => empNames[code] || code).join(', ');
+  } else {
+    const who = empCode || 'JRODRIGUEZ';
+    const dept = document.getElementById('addDeptField').getAttribute('data-value');
+    const trade = document.getElementById('addTradeField').getAttribute('data-value');
+    addLaborRow(who, isoToDisplay(dateIso), start, end, mins, typeCode, typeDesc, dept, trade, false);
+    bookedNames = empNames[who] || who;
+  }
   updateSummary();
   closeAllSheets();
-  showToast(`Labor booked for ${fullName}`, '✓');
+  showToast(`Labor booked for ${bookedNames}`);
 }
 function saveCorrection() {
-  addLaborRow('BCAMPBELL', 'May 19, 2026', '—', '—', '−1h 23m', 'N', 'Normal', 'MAINT', 'TECH', true);
+  addLaborRow('BCAMPBELL', isoToDisplay(DEMO_LABOR_DATE_ISO), '—', '—', -83, 'N', 'Normal', 'MAINT', 'TECH', true);
   updateSummary();
   closeAllSheets();
-  showToast('Correction record saved', '↩');
+  showToast('Correction record saved');
 }
 function saveCrewLabor() {
   if (!document.getElementById('crewSaveBtn').classList.contains('ready')) return;
-  addLaborRow('JRODRIGUEZ', 'May 19, 2026', '08:00', '09:23', '1h 23m', 'N', 'Normal', 'MAINT', 'TECH', false);
-  addLaborRow('MKUMAR',     'May 19, 2026', '08:00', '09:23', '1h 23m', 'N', 'Normal', 'MAINT', 'MECH', false);
+  addLaborRow('JRODRIGUEZ', isoToDisplay(DEMO_LABOR_DATE_ISO), '08:00', '09:23', 83, 'N', 'Normal', 'MAINT', 'TECH', false);
+  addLaborRow('MKUMAR',     isoToDisplay(DEMO_LABOR_DATE_ISO), '08:00', '09:23', 83, 'N', 'Normal', 'MAINT', 'MECH', false);
   updateSummary();
   closeAllSheets();
-  showToast('Labor booked for 2 crew members', '✓');
+  showToast('Labor booked for 2 crew members');
 }
 
-// employee full names lookup for display
-const empNames = { BCAMPBELL:'Brian Campbell', JRODRIGUEZ:'Juan Rodriguez', MKUMAR:'Meera Kumar', TPATEL:'Tariq Patel', DSMITH:'Derek Smith', RFERNANDEZ:'Rosa Fernandez', ONWOSU:'Oba Nwosu' };
+// Employee + crew name lookup for display — derived from data/employees.js
+// and data/crews.js (§18.7 2026-07-21/22), not a separate hardcoded map.
+// Merged so addLaborRow's single `name` param resolves either kind of code.
+const empNames = Object.fromEntries([
+  ...EAM_EMPLOYEES.map(e => [e.code, e.name]),
+  ...EAM_CREWS.map(c => [c.code, c.name]),
+]);
 const deptNames  = { MAINT:'Maintenance', WATER:'Water Utilities', ELEC:'Electrical', ENG:'Engineering' };
-const tradeNames = { TECH:'Technician', MECH:'Mechanic', ELEC:'Electrician', INSP:'Inspector' };
+const tradeNames = { TECH:'Technician', 'TECH-II':'Technician II', MECH:'Mechanic', ELEC:'Electrician', INSP:'Inspector' };
 
-// [1] addLaborRow — description-first name, date+trade meta, Correction only
-const avatarCycle = ['la-purple','la-blue','la-green','la-orange'];
-function addLaborRow(name, date, start, end, hours, typeCode, typeDesc, dept, trade, isCorr) {
+// addLaborRow — description-first name (code stacked beneath, §18.7),
+// date+trade meta, Correction only (§18.3). No avatar (§18.7, 2026-07-21
+// — removed everywhere on this screen). `mins` is signed (negative for
+// corrections) — carried on `data-minutes`/`data-type-code` so
+// updateSummary() can bucket Regular/OT hours without re-parsing text.
+function addLaborRow(name, date, start, end, mins, typeCode, typeDesc, dept, trade, isCorr) {
   const idx = document.querySelectorAll('.labor-row').length;
-  const initials = name.slice(0,2);
-  const avatarClass = isCorr ? 'la-red' : avatarCycle[idx % avatarCycle.length];
   const fullName = empNames[name] || name;
   const tradeFull = tradeNames[trade] || trade;
   const deptFull  = deptNames[dept]  || dept;
-  // [2a] Description first in row name; [2c] date + trade only in meta
-  const nameHtml = `${fullName} <span style="font-family:var(--font-mono);font-size:11px;color:var(--gray-4);font-weight:400;">${name}</span>`;
-  const metaStr  = `${date} · ${tradeFull} (${trade})`;
+  const hours = minsToHM(mins);
+  const metaStr  = `${date} · ${tradeFull}`;
   const corrNote = isCorr ? `<div class="correction-note"><svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#E24B4A" stroke-width="2" stroke-linecap="round"/></svg>Correction — reverses original booking</div>` : '';
   const hoursClass = isCorr ? 'red' : 'green';
   const div = document.createElement('div');
   div.className = 'labor-row' + (isCorr ? ' correction-row' : '');
   div.id = 'laborRow'+idx;
+  div.setAttribute('data-trade', trade);
+  div.setAttribute('data-minutes', mins);
+  div.setAttribute('data-type-code', typeCode);
   div.innerHTML = `
     <div class="labor-row-header" onclick="toggleRow(${idx})">
-      <div class="labor-avatar ${avatarClass}">${initials}</div>
       <div class="labor-row-info">
-        <div class="labor-row-name">${nameHtml}</div>
+        <div class="labor-row-name">${fullName}</div>
+        <div class="labor-row-code">${name}</div>
         <div class="labor-row-meta">${metaStr}</div>
       </div>
       <span class="labor-hours-badge badge-${isCorr?'red':'green'}">${hours}</span>
@@ -1091,15 +1352,15 @@ function addLaborRow(name, date, start, end, hours, typeCode, typeDesc, dept, tr
     <div class="labor-row-detail" id="detail${idx}">
       ${corrNote}
       <div class="detail-grid">
-        <div class="detail-label">Type of hours</div><div class="detail-value">${typeDesc} (${typeCode})</div>
-        <div class="detail-label">Department</div><div class="detail-value">${deptFull} (${dept})</div>
-        <div class="detail-label">Trade</div><div class="detail-value">${tradeFull} (${trade})</div>
-        <div class="detail-label">Start time</div><div class="detail-value">${start}</div>
-        <div class="detail-label">End time</div><div class="detail-value">${end}</div>
+        <div class="detail-label">Type of hours</div><div class="detail-value">${typeDesc}</div>
+        <div class="detail-label">Department</div><div class="detail-value">${deptFull}</div>
+        <div class="detail-label">Trade</div><div class="detail-value">${tradeFull}</div>
+        <div class="detail-label">Start time</div><div class="detail-value mono">${start}</div>
+        <div class="detail-label">End time</div><div class="detail-value mono">${end}</div>
         <div class="detail-label">Hours</div><div class="detail-value ${hoursClass}">${hours}</div>
       </div>
       ${!isCorr ? `<div class="detail-actions">
-        <button class="detail-btn danger" onclick="openCorrectionSheet(${idx})">
+        <button class="row-action-btn danger" onclick="openCorrectionSheet(${idx})">
           <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           Create correction
         </button>
@@ -1108,35 +1369,82 @@ function addLaborRow(name, date, start, end, hours, typeCode, typeDesc, dept, tr
   document.getElementById('laborList').appendChild(div);
 }
 
-// ── SUMMARY
+// Seeds the labor list from data/wo-19257.js's `labor` array (§18.7,
+// 2026-07-21) instead of hardcoded HTML — this screen's first real
+// consumer of Phase 0.6 data beyond Custom Fields.
+function renderSeedLabor() {
+  (WO_19257.labor || []).forEach(entry => {
+    const mins = entry.isCorrection ? -83 : diffMinutesWrapped(entry.startTime, entry.endTime);
+    addLaborRow(entry.employeeCode, isoToDisplay(entry.date), entry.startTime, entry.endTime, mins, entry.typeOfHoursCode, entry.typeOfHoursDesc, entry.deptCode, entry.tradeCode, entry.isCorrection);
+  });
+}
+
+// ── SUMMARY ────────────────────────────────────────────────────────────
+// WO Est. Hours — the Activity's own planned/estimated hours (invented;
+// no real Activity data model with an Estimated Hours field exists yet
+// anywhere in this app — see §18.7, 2026-07-21). Fixed, not derived from
+// booked labor at all — that's the point of showing it alongside what's
+// actually been booked.
+const WO_EST_HOURS_MINS = 150; // 2h 30m
+
 function updateSummary() {
-  const allRows   = document.querySelectorAll('.labor-row');
-  const corrRows  = document.querySelectorAll('.labor-row.correction-row');
-  const total = allRows.length;
-  document.getElementById('recordCount').textContent = `${total} record${total!==1?'s':''}`;
-  const names = new Set();
-  document.querySelectorAll('.labor-row:not(.correction-row) .labor-row-name').forEach(el => names.add(el.textContent));
-  document.getElementById('techsDisplay').textContent = names.size;
-  document.getElementById('entriesDisplay').textContent = total;
-  const posRows = total - corrRows.length;
-  const mins = posRows * 83;
-  const h = Math.floor(mins/60), m = mins%60;
-  document.getElementById('totalHoursDisplay').textContent = h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
+  const allRows = document.querySelectorAll('.labor-row');
+  // Total/Regular/OT are all real sums over each row's signed minutes
+  // (§18.7, 2026-07-21 — Total was previously a hardcoded 83-min-per-row
+  // placeholder that ignored what was actually booked). Corrections carry
+  // negative minutes and the same typeCode as the entry they reverse, so
+  // they net out of whichever bucket they belong to automatically.
+  // Removed the "Trades" metric this same session: an Activity only ever
+  // has one trade, so it was always trivially 1.
+  let totalMins = 0, regularMins = 0, otMins = 0;
+  allRows.forEach(el => {
+    const mins = parseInt(el.getAttribute('data-minutes'), 10) || 0;
+    const typeCode = el.getAttribute('data-type-code');
+    totalMins += mins;
+    if (typeCode === 'N') regularMins += mins;
+    if (typeCode === 'OT') otMins += mins;
+  });
+  document.getElementById('entriesDisplay').textContent = allRows.length;
+  document.getElementById('totalHoursDisplay').textContent = minsToHM(totalMins);
+  document.getElementById('estHoursDisplay').textContent = minsToHM(WO_EST_HOURS_MINS);
+  document.getElementById('regularHoursDisplay').textContent = minsToHM(regularMins);
+  document.getElementById('otHoursDisplay').textContent = minsToHM(otMins);
 }
 
-// ── TOAST
-let toastTimer;
-function showToast(msg, icon) {
-  const t = document.getElementById('toast');
-  document.getElementById('toastMsg').textContent = msg;
-  document.getElementById('toastIcon').textContent = icon || '✓';
-  t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+/* Demo-WO workflow hook (design-decisions-v3-1.md §11-13, added
+   2026-07-22) — called by cycleDemoWo() (eam-shared.js) and once at init. */
+function onDemoWoChanged() {
+  const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
+  applyDemoWoIdentity();
+  renderStepRail(resolveWoWorkflow(jobType), 'booklabor');
 }
 
-// ── INIT: Add Labor save button starts locked
+/* ── init ── */
+renderSeedLabor();
+updateSummary();
 checkAddReady();
+applyCodeVisibility('activity', document.getElementById('addActivityCode'));
+applyCodeVisibility('employee', document.getElementById('corrEmpCode'));
+onDemoWoChanged();
+initSharedApp({ contentSelector: '.content' });
+
+// Timer Stopped banner + Add Labor auto-open only apply on a real guided-
+// workflow hand-off — the technician tapping "Next: Book Labor" on Issue
+// Parts, where a WO timer genuinely just stopped. A freeflow visit (step
+// map, direct link, WO List row tap) has no such event, so neither should
+// appear (§18.7, 2026-07-21). Consume-once sessionStorage flag, same
+// pattern as navigateToNewRecord()'s eamNewWoRecord/eamNewEquipRecord
+// hand-off (eam-shared.js) — set by Issue Parts' Next button before it
+// navigates here for real (first real inter-screen navigation edge in
+// these standalones; every other "Next" button elsewhere is still a
+// toast stub).
+function applyArrivalState() {
+  const arrivedViaNextStep = sessionStorage.getItem('eamArrivedViaNextStep') === 'true';
+  if (arrivedViaNextStep) sessionStorage.removeItem('eamArrivedViaNextStep');
+  document.getElementById('timerBanner').style.display = arrivedViaNextStep ? '' : 'none';
+  if (arrivedViaNextStep) openAddLaborSheet(true);
+}
+applyArrivalState();
 </script>
 </body>
 </html>
