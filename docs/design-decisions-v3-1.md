@@ -508,7 +508,7 @@ the same → Syncing; discard or retry every remaining item → Synced.
 - Hydration progress section: four bars showing Today's WOs / Site assets / Lookup tables / Historical docs
 - Removed: bottom sync row from bar area — all sync communication goes through the icon + panel; the bottom bar (§14.5–§14.7) stays dedicated to progression only
 
-## 4.5 Sync Status Screen (locked 2026-07-20 — nav model, protections, trouble-field surfacing, progress scope)
+## 4.5 Sync Status Screen (locked 2026-07-20 — nav model, protections, progress scope; field-level detail removed 2026-07-22)
 
 Drill-down from the sync panel (§4.4.2), reached via the Review action on
 a failed outbox item. Error-triage only — the panel's own 4-bar hydration
@@ -525,17 +525,27 @@ progress (§4.4.2) stays there; this screen doesn't duplicate it.
   there's no separate "insert-mode error" view to build) — with an error
   banner added on top.
 - Each list card shows entity type, key field(s)/record identifier, and
-  the error, tiered: the server's specific message if one was returned;
-  else the specific field(s) if the failure is a mapped field-validation
-  error; else a generic fallback by failure class. Still-queued/offline
-  items are not errors and don't appear on this screen — it's failures
-  only.
-- **Trouble-field surfacing: banner + inline highlight.** Opening a
-  record from this screen shows a top error banner listing the offending
-  field(s) as tap-to-jump links, and the field itself gets a red
-  left-bar accent + inline message — a new `.form-field.error` (and
-  `.attr-item.error`) variant, same visual mechanism as the existing
-  orange `.required` left-bar accent (§3.4/§5.2), not a separate system.
+  the error: the server's specific general message if one was returned,
+  else a generic fallback ("Server rejected this change — no further
+  detail available."). No field-level tier — see the removed-feature note
+  below. Still-queued/offline items are not errors and don't appear on
+  this screen — it's failures only.
+- **Field-level trouble surfacing — removed 2026-07-22, confirmed not
+  technically feasible.** Originally specified (and built, 2026-07-20) as
+  a banner listing offending field(s) as tap-to-jump links, plus a red
+  left-bar accent + inline message on the field itself
+  (`.form-field.error`/`.attr-item.error`, same mechanism as the
+  `.required` left-bar accent) — see §21 for the full original spec,
+  kept for the record. **Confirmed this session: real server responses
+  never return which field caused a rejection** — only whether one
+  occurred, and sometimes a general message. There was never a real
+  "which field" for the app to receive, so the entire flow this enabled
+  (field highlighting, tap-to-jump, `clearFieldSyncError()` clearing the
+  flag on edit, Retry gated until the flagged field clears) is gone. The
+  original idea was sound given the assumption behind it; the assumption
+  turned out to be wrong. What's left is the single flow that was always
+  correct for "no further detail given" (tier 3 below) — that's now the
+  *only* flow, not one of three.
 - **Protection rules — all four carried over from legacy Transaction
   Log, effective now:** WO Status is protected while its workflow is
   Started (Help-icon popup explains why, same as legacy); LOTO and
@@ -544,64 +554,54 @@ progress (§4.4.2) stays there; this screen doesn't duplicate it.
   labor transactions are deletable only from the end (deleting an earlier
   one errors: "This transaction cannot be deleted because a later
   transaction depends on it."); nonconformity/nonconformity-observation
-  transactions are delete-only, no field edits allowed.
+  transactions are delete-only, no field edits allowed. Untouched by the
+  field-level removal above — a different mechanism (transaction-type
+  protection, not field validation) — currently undemoed now that the
+  prototype's seed data is down to 2 items (neither carries one of these
+  4 protection values), not removed from the code.
 - Delete (discard) always confirms first (reuse shared `openConfirm()`,
   §3.4) warning that the change will not be uploaded and will need to be
   redone from the source screen.
 - Empty state: "No Transactions" + Last Sync date/time, same as legacy.
-- **Record-view behavior when opened from this screen (locked 2026-07-20):**
-  - Editing a flagged field clears its own trouble state immediately —
-    the red left-bar accent, its inline message, and its chip in the
-    banner all disappear the moment the value changes, unconditionally
-    (no re-validation against the server; this app has no client-side
-    validation engine anywhere else either, so this doesn't invent one).
-    Wired into every field-mutation entry point (LOV select/clear, edit
-    sheet save/clear, date/date-time select/clear, inline text blur,
-    checkbox toggle) — one shared `clearFieldSyncError(key)`, not a
-    per-field-type reimplementation.
-  - **One flagged field at a time, by design (revised 2026-07-20).** The
-    server rejects and responds per-request, not as a compiled multi-
-    field validation list — so an outbox item's `fields` array holds at
-    most one entry in practice, not a set the UI needs to manage. Kept as
-    an array for shape-flexibility, not because multiple simultaneous
-    field errors are an expected case.
-  - The banner gained a **Retry / Discard** action row (2026-07-20,
-    refined same day) — same two-button pill layout as the Sync Status
-    Screen's own cards (`.sync-card-actions`/`.sync-card-btn`, promoted
-    to `eam-shared.css` when the banner became its 2nd consumer — "ensure
-    behavior is consistent on sync screen and other screens" applies to
-    this pair everywhere it appears, not just here):
-    - **Retry is protected until the flagged field is fixed.** Tapping it
-      early does nothing except show a toast — "Almost there — correct
-      the flagged field, then retry this sync." — rather than
-      re-reporting the exact same failure it just showed. Once the field
-      clears (or for a tier-3 item that never had one to begin with),
-      Retry switches from its plain/neutral look to the same green
-      "unblocked" look `.insert-save-btn.ready` uses elsewhere — signals
-      "go ahead," not "already succeeded" (that's what the green
-      *banner* state means, a separate signal).
-    - Unblocked Retry: 3 banner states — red "Didn't sync" → orange
-      "Retry queued" if offline, or → briefly orange then green "Synced"
-      if online, removing the item from the outbox data so the panel/
-      full screen won't show it again. "Online" is a hand-flipped demo
-      toggle (`DEMO_ONLINE`, defaults off) next to the theme toggle —
-      this prototype has no real connectivity to detect.
-    - **Discard is never gated on the field** — the technician can always
-      give up on a queued change, fixed or not. Reuses the exact same
-      `deleteSyncItem()` the Sync Status Screen's own Discard calls: same
-      confirm copy, same `'Discard'` danger label, same delete-from-end
-      check for a Start/Stop pair.
+- **Record-view behavior when opened from this screen, simplified
+  2026-07-22:**
+  - The banner has a **Retry / Discard** action row — same two-button
+    pill layout as the Sync Status Screen's own cards
+    (`.sync-card-actions`/`.sync-card-btn`, shared between both since the
+    banner is its 2nd consumer). **Retry is always available now** — the
+    old "protected until the flagged field is fixed" gate is gone along
+    with field-level detail itself; tapping it always attempts (queues if
+    offline, resolves if online), never re-reports a failure first.
+  - 3 banner states — red "Didn't sync" → orange "Retry queued" if
+    offline, or → briefly orange then green "Synced" if online, removing
+    the item from the outbox data so the panel/full screen won't show it
+    again. "Online" is a hand-flipped demo toggle (`DEMO_ONLINE`, defaults
+    off, persisted across navigation — §4.4.1) next to the theme toggle —
+    this prototype has no real connectivity to detect.
+  - **Discard is never gated** — the technician can always give up on a
+    queued change. Reuses the exact same `deleteSyncItem()` the Sync
+    Status Screen's own Discard calls: same confirm copy, same
+    `'Discard'` danger label, same delete-from-end check for a Start/Stop
+    pair.
   - The Sync Status Screen's own card list picked up the identical
-    Retry-gating + ready/not-ready styling (same `SYNC_RETRY_BLOCKED_MSG`
-    toast, same green-once-unblocked look) and its own online/offline
-    toggle, so the rule reads the same regardless of which surface a
-    technician retries from.
+    always-ready Retry styling and its own online/offline toggle, so the
+    rule reads the same regardless of which surface a technician retries
+    from.
   - `navBack()` returns to the Sync Status Screen (not the screen's
     normal back target) when the record was opened via this review flow
     — a plain sessionStorage flag (`eamSyncReturnUrl`), consumed once.
     Decided over adding a persistent "back to sync" affordance on the
     record itself, since the ordinary back button already existed and
     just needed to point somewhere useful.
+- **Demo data reduced from 8 error items to 2, same session** — enough to
+  demo the two shapes left once field-level detail was removed: a
+  not-yet-synced local record (`wo-local-insert`), and a synced record
+  with no further detail given (`wo-19257-nodetail`). The other 6 (a
+  server-message example, an Equipment error, and the 4 items that only
+  existed to demo transaction-type protections) were removed from
+  `SYNC_DEMO_ITEMS` — the protection mechanism itself is untouched (see
+  above), just currently undemoed. The 2 queued (not error) items are
+  unaffected.
 
 Open question, not decided: since this app is a greenfield bridge between
 DUX (fully online) and legacy Mobile (a different offline model), does it
@@ -2576,6 +2576,27 @@ never means "closed" and red is never used for a normal lifecycle state.
 `STATUS_CLASS_MAP = { WAPPR: 'st-standby', RELEASED: 'st-operational',
 CLOSE: 'st-standby' }`.
 
+**Revised 2026-07-22 (later same session, user direction) — Work Request
+pulled into its own 4th tier, orange.** Superseded: the paragraph above's
+"both before (Work Request) and after (Closed) render the same neutral
+outline" no longer holds for Work Request specifically. Mirrors a
+parallel fix made the same session to WO List's own status pill
+(`eam-wo-list-prototype-v5_1.html`'s `.pill-orange`, §8.3/§6.7) — that
+screen's `WAPPR` code is labeled "Waiting approval" there (a different
+demo vocabulary than this screen's "Work Request," same underlying
+system-status code) and got pulled out of its outline tier into a solid
+orange fill; the user asked for the same treatment here, on the header
+status button. Closed is unaffected — still neutral/outline, still not
+green, per the paragraph above. New 4th tier added to the shared
+`.rec-status-btn` component (`eam-shared.css`): `st-waiting` (solid
+`#F46600`, no dark-theme override needed — a solid fill, same as
+`st-operational`/`st-down`). `STATUS_CLASS_MAP` here is now `{ WAPPR:
+'st-waiting', RELEASED: 'st-operational', CLOSE: 'st-standby' }`. Not
+extended to Equipment Record View's own `STATUS_CLASS_MAP` (Operational/
+Down/Standby, no Work-Request-equivalent code exists there) — this is a
+WO-specific status-vocabulary change, not a rule about the shared
+`.rec-status-btn` component's available tiers in general.
+
 ## 15.5 Equipment — Equipment Lookup (Search + Structure)
 
 Superseded 2026-07-20 — Equipment is now a real editable field, not a
@@ -3459,6 +3480,7 @@ its original section with a note attached.
 | **WO Closing status banner: Option A** — from/to status shown as small mono chips squeezed beside the icon in the same row as the title/sub-text; to chip tappable, banner background/icon colour/sub-text all retinted per selected status. | §19.2/§19.8 "Status banner: Option D" (2026-07-16) — controls moved to their own row below a simplified single-line title, Inter instead of mono, bigger solid-fill button instead of a chip, protected/unprotected states added. |
 | **WO Closing status control, Free Form case** — swap to an entirely different component (Record View's own status-forefront header, §5 "Header rev. 2") instead of the banner. | §15.4 (2026-07-16) — one control either way (§19.2 Option D); Free Form vs. Not Free Form now just toggles that same control's protected/unprotected state. |
 | **Protected status control (Record View header button + WO Closing's "to" pill) — old treatment**: button/pill disabled entirely, fill colour grayed to `var(--bg-section)`/`var(--gray-4)`, chevron hidden outright, tap did nothing (Record View) or silently no-op'd (WO Closing). WO Closing's "to" pill also had its own independent colour set (green/gray/**orange**) instead of the header's. | §15.4/§19.2 (2026-07-22) — colour always shows now (protected or not); chevron swaps to a lock icon instead of disappearing; tap shows a toast explaining why instead of doing nothing. Colour vocabulary unified with the header's `STATUS_CLASS_MAP` (On Hold orange→red); "from" pill's fixed unrelated blue→green (Released's colour). |
+| **Sync Status Screen — field-level trouble surfacing** (locked 2026-07-20, built same day). Full original spec, kept for the record: opening a flagged record showed a top error banner listing the offending field(s) as tap-to-jump links (`scrollToField()`); the flagged field itself got a red left-bar accent + inline message below it (`.form-field.error`/`.attr-item.error` + `.field-error-msg`, same mechanism as the `.required` left-bar accent); editing the flagged field cleared its own trouble state immediately and unconditionally, wired into every field-mutation entry point in `eam-shared.js` (`clearFieldSyncError(key)` — LOV select/clear, edit sheet save/clear, date/date-time select/clear, inline text blur, checkbox toggle); an outbox item's `fields` array held `[{key,label,message}]`, "one flagged field at a time, by design" (the server rejects per-request, not as a compiled list); Retry was protected/gated until the flagged field cleared, showing "Almost there — correct the flagged field, then retry this sync." (`SYNC_RETRY_BLOCKED_MSG`) if tapped early, turning green (`.sync-card-btn.ready`) only once unblocked — same gating on both the banner and the Sync Status Screen's own card list. | §4.5 (2026-07-22) — **confirmed not technically feasible**, not a design change of preference: real server responses never return which field caused a rejection, only whether one occurred and sometimes a general message. The entire flow above assumed a capability the server doesn't have. Removed in full — data shape (`fields` on `SYNC_DEMO_ITEMS`), the two CSS variants, `clearFieldSyncError()`/`scrollToField()` and all ~10 call sites, and the Retry-gating on both surfaces. What remains is tier-3 ("no further detail given") as the *only* flow, not one of three — see §4.5's current text. The idea itself wasn't wrong given the assumption behind it; flagged here specifically so a future session with real field-level error data from the actual server doesn't have to reinvent this from scratch. |
 | **WO List Detailed card — bespoke WO-only anatomy** (§6.5, 2026-07-16) — WO number+status row, description headline, equipment sub-line, type+priority row, location·org·due meta row; hardcoded to WO's specific fields, exempt from the generic child-tab card. | §8.3 "List Search Screen standard" (2026-07-20) — one card standard for WO List/Search and every child tab, no exceptions; WO's fields now just populate that generic card via its own dataspy column order. |
 | **WO List table anatomy — bespoke 5-column layout** (§6.6, 2026-07-16) — chevron+type badge+description, WO number, priority, status, org; fixed columns, no others shown. | §8.3 "List Search Screen standard" (2026-07-20) — List mode now shows every field available on the dataspy (tiered by online/offline), not a fixed column set. |
 | **WO due-date urgency treatment** (§6.8) — Today/Tomorrow got emphasis styling, later dates rendered neutral. | §8.3 (2026-07-20) — every date field, including Due Date, renders plain `MM/DD/YYYY` everywhere, no relative/urgency formatting, so a screen builder never has to write date-math logic for a field they didn't hand-pick. |

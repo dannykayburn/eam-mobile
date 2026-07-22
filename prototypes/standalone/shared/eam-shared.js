@@ -723,27 +723,24 @@ function closeHyperlinkPopup(id) {
    `const` — delete/retry mutate this array in place so both consumers
    stay in sync without a re-fetch.
    Item shape: { id, entity, recordLabel, sub, timestamp, state
-   ('error'|'queued'), errorMessage (tier-1 specific server text, or
-   null), fields ([{key,label,message}], tier-2 mapped field errors, or
-   [] when there's nothing more specific than a generic fallback — tier
-   3), protection (null|'locked-workflow'|'readonly'|'delete-only'|
+   ('error'|'queued'), errorMessage (a general server message, or null —
+   there is no field-level variant; real server responses never returned
+   which field caused a rejection, only whether one occurred and
+   sometimes a general message, see design-decisions-v3-1.md §4.5),
+   protection (null|'locked-workflow'|'readonly'|'delete-only'|
    'delete-from-end'), openUrl, newRecord ({storageKey, record}, only for
    a not-yet-synced local record — see openSyncErrorRecord below),
-   sequenceGroup/sequenceOrder (only for 'delete-from-end' items). ══════ */
+   sequenceGroup/sequenceOrder (only for 'delete-from-end' items).
+   Reduced to 2 error items 2026-07-22 (was 8) — just enough to demo the
+   two real shapes left once field-level detail was removed: a not-yet-
+   synced local record, and a synced record with no further detail
+   given. The 4 items that only existed to demo transaction-type
+   protections (readonly/delete-only/delete-from-end) were removed along
+   with them — that mechanism is untouched in the code (§4.5), just
+   currently undemoed; add a row back here if it needs exercising again. ══ */
 let SYNC_DEMO_ITEMS = [
-  { id: 'wo-19257-priority', entity: 'Work Order', recordLabel: 'WO 19257', sub: 'Pump Cavitating; lost head',
-    timestamp: '2:11 PM', state: 'error', protection: null,
-    errorMessage: "Priority code 'URG' is not valid for this Organization.",
-    fields: [{ key: 'priority', label: 'Priority', message: 'Value rejected by server — pick a valid priority for this Organization.' }],
-    openUrl: 'eam-wo-record-view-prototype-v1.html' },
-  { id: 'eq-00067333-criticality', entity: 'Equipment', recordLabel: 'Equipment 00067333', sub: 'Pump, Centrifugal',
-    timestamp: '2:09 PM', state: 'error', protection: null,
-    errorMessage: null, fields: [],
-    openUrl: 'eam-equipment-record-view-prototype-v1.html' },
   { id: 'wo-local-insert', entity: 'Work Order', recordLabel: 'WO (not yet synced)', sub: 'Handrail corrosion — Bay 4',
-    timestamp: '2:14 PM', state: 'error', protection: null,
-    errorMessage: null,
-    fields: [{ key: 'department', label: 'Department', message: "Required field 'Department' was missing when received by the server." }],
+    timestamp: '2:14 PM', state: 'error', protection: null, errorMessage: null,
     openUrl: 'eam-wo-record-view-prototype-v1.html',
     newRecord: { storageKey: 'eamNewWoRecord', record: {
       number: '(new)', desc: 'Handrail corrosion — Bay 4',
@@ -755,27 +752,13 @@ let SYNC_DEMO_ITEMS = [
       type: { code: 'CM', desc: 'Corrective Maintenance' },
       priority: { code: 'MEDIUM', desc: 'Medium' },
     } } },
-  { id: 'wo-19257-status', entity: 'Work Order', recordLabel: 'WO 19257', sub: 'Pump Cavitating; lost head',
-    timestamp: '1:52 PM', state: 'error', protection: 'locked-workflow',
-    errorMessage: null, fields: [], openUrl: 'eam-wo-record-view-prototype-v1.html' },
-  { id: 'loto-00067333', entity: 'Equipment LOTO', recordLabel: 'LOTO — Equipment 00067333', sub: 'Pump, Centrifugal',
-    timestamp: '1:40 PM', state: 'error', protection: 'readonly',
-    errorMessage: null, fields: [], openUrl: null },
-  { id: 'nc-4471', entity: 'Nonconformity', recordLabel: 'NC-4471', sub: 'Observed during PM inspection',
-    timestamp: '1:35 PM', state: 'error', protection: 'delete-only',
-    errorMessage: null, fields: [], openUrl: null },
-  { id: 'labor-start-19257', entity: 'Labor', recordLabel: 'Labor Start — WO 19257', sub: 'Bruce Campbell',
-    timestamp: '11:02 AM', state: 'error', protection: 'delete-from-end',
-    sequenceGroup: 'labor-19257', sequenceOrder: 1,
-    errorMessage: null, fields: [], openUrl: null },
-  { id: 'labor-stop-19257', entity: 'Labor', recordLabel: 'Labor Stop — WO 19257', sub: 'Bruce Campbell',
-    timestamp: '11:47 AM', state: 'error', protection: 'delete-from-end',
-    sequenceGroup: 'labor-19257', sequenceOrder: 2,
-    errorMessage: null, fields: [], openUrl: null },
+  { id: 'wo-19257-nodetail', entity: 'Work Order', recordLabel: 'WO 19257', sub: 'Pump Cavitating; lost head',
+    timestamp: '2:11 PM', state: 'error', protection: null, errorMessage: null,
+    openUrl: 'eam-wo-record-view-prototype-v1.html' },
   { id: 'parts-return-19257', entity: 'Issue Parts', recordLabel: 'Return — WO 19257', sub: 'Awaiting connection',
-    timestamp: '2:16 PM', state: 'queued', protection: null, errorMessage: null, fields: [], openUrl: null },
+    timestamp: '2:16 PM', state: 'queued', protection: null, errorMessage: null, openUrl: null },
   { id: 'labor-correction-19257', entity: 'Labor', recordLabel: 'Correction — WO 19257', sub: 'Awaiting connection',
-    timestamp: '2:17 PM', state: 'queued', protection: null, errorMessage: null, fields: [], openUrl: null },
+    timestamp: '2:17 PM', state: 'queued', protection: null, errorMessage: null, openUrl: null },
 ];
 /* Persisted across navigation (added 2026-07-22) — same "resets on every
    screen load" problem theme/DEMO_WO had, but this one has no manual
@@ -799,7 +782,6 @@ function resetSyncDemoState() {
 }
 function syncErrorTierText(item) {
   if (item.errorMessage) return item.errorMessage;
-  if (item.fields.length) return item.fields.map(f => f.message).join(' ');
   return 'Server rejected this change — no further detail available.';
 }
 // Four states, not five (§4.4.1, revised 2026-07-21) — Pending was dropped
@@ -870,7 +852,7 @@ function openSyncErrorRecord(item) {
   // its own (bug fix, 2026-07-20) — syncErrorTierText() already supplies
   // the generic fallback, so the banner must never silently skip showing
   // just because there was nothing more specific to say.
-  sessionStorage.setItem('eamSyncErrorContext', JSON.stringify({ itemId: item.id, message: syncErrorTierText(item), fields: item.fields }));
+  sessionStorage.setItem('eamSyncErrorContext', JSON.stringify({ itemId: item.id, message: syncErrorTierText(item) }));
   // Lets navBack() on the record view send the technician back to this
   // review flow instead of wherever it defaults to otherwise (§4.5,
   // 2026-07-20) — consumed once, same lifetime as eamSyncErrorContext.
@@ -893,18 +875,13 @@ function deleteSyncItem(id, onDone) {
     if (onDone) onDone();
   }, 'Discard');
 }
-// Same gating + online/offline resolution as retryFromBanner() (§4.5,
-// 2026-07-20 refinement) — this is the Retry button's OTHER surface (the
-// sync panel's pending rows, and the Sync Status Screen's own card list),
-// reading straight off the item's own `fields` rather than
-// SYNC_ERROR_ACTIVE since there's no open record/banner here. Pending
-// (queued, not failed) items always have an empty `fields` array, so
-// they're never gated by this — only failed items with an outstanding
-// field are.
+// Same online/offline resolution as retryFromBanner() — this is the
+// Retry button's OTHER surface (the sync panel's pending rows, and the
+// Sync Status Screen's own card list). Always attempts now (the field-
+// level gate is gone along with field-level detail itself, §4.5).
 function retrySyncItem(id) {
   const item = SYNC_DEMO_ITEMS.find(i => i.id === id);
   if (!item) return;
-  if (item.fields && item.fields.length > 0) { showToast(SYNC_RETRY_BLOCKED_MSG); return; }
   if (!DEMO_ONLINE) {
     showToast('Retry queued — will attempt again once back online');
     return;
@@ -999,14 +976,19 @@ function initDemoOnlineToggle() {
   if (btn) btn.textContent = DEMO_ONLINE ? '🌐 Online' : '🌐 Offline';
 }
 
-/* ── Sync error banner + inline field flag (§4.5) — a Record View opts in
-   by including an empty #syncErrorBanner container near the top of its
-   content and calling applySyncErrorBanner() once on load. Consume-once
-   from sessionStorage, same pattern as navigateToNewRecord()'s handoff.
-   SYNC_ERROR_ACTIVE is the live in-memory version of that same context —
-   status starts 'error' and moves to 'pending'/'synced' via retryFromBanner()
-   below, and its `fields` array shrinks as clearFieldSyncError() runs, so
-   renderSyncBanner() always reflects exactly what's still outstanding. ── */
+/* ── Sync error banner (§4.5, simplified 2026-07-22 — field-level detail
+   removed, see design-decisions-v3-1.md §4.5 for why) — a Record View
+   opts in by including an empty #syncErrorBanner container near the top
+   of its content and calling applySyncErrorBanner() once on load.
+   Consume-once from sessionStorage, same pattern as
+   navigateToNewRecord()'s handoff. SYNC_ERROR_ACTIVE is the live
+   in-memory version of that same context — status starts 'error' and
+   moves to 'pending'/'synced' via retryFromBanner() below. No more
+   per-field tracking: real server responses never returned which field
+   caused a rejection, only whether one occurred and (sometimes) a
+   general message — so there was never a real "which field" to flag,
+   scroll to, or clear. This banner is now the only shape: a general
+   message (or the generic fallback) and an always-available Retry. ── */
 let SYNC_ERROR_ACTIVE = null;
 function applySyncErrorBanner() {
   const raw = sessionStorage.getItem('eamSyncErrorContext');
@@ -1019,18 +1001,8 @@ function applySyncErrorBanner() {
   }
   sessionStorage.removeItem('eamSyncErrorContext');
   const ctx = JSON.parse(raw);
-  SYNC_ERROR_ACTIVE = { itemId: ctx.itemId, status: 'error', message: ctx.message, fields: ctx.fields || [] };
+  SYNC_ERROR_ACTIVE = { itemId: ctx.itemId, status: 'error', message: ctx.message };
   renderSyncBanner();
-  SYNC_ERROR_ACTIVE.fields.forEach(f => {
-    const row = document.querySelector(`[data-field="${f.key}"]`);
-    if (!row) return;
-    row.classList.add('error');
-    const msg = document.createElement('div');
-    msg.className = 'field-error-msg';
-    msg.setAttribute('data-field-msg', f.key);
-    msg.textContent = f.message;
-    row.insertAdjacentElement('afterend', msg);
-  });
 }
 function renderSyncBanner() {
   const banner = document.getElementById('syncErrorBanner');
@@ -1055,39 +1027,25 @@ function renderSyncBanner() {
       <div class="sync-error-banner-msg">Will attempt again once you’re back online.</div>`;
     return;
   }
-  const fieldLinks = s.fields.map(f => `<button class="sync-error-field-link" onclick="scrollToField('${f.key}')">${f.label}</button>`).join('');
-  const retryReady = s.fields.length === 0;
   banner.innerHTML = `
     <div class="sync-error-banner-head">
       <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M12 9v4M12 16.5h.01M10.3 3.9L2.7 17a1.8 1.8 0 001.5 2.7h15.6a1.8 1.8 0 001.5-2.7L13.7 3.9a1.8 1.8 0 00-3.4 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>Didn’t sync</span>
     </div>
     <div class="sync-error-banner-msg">${s.message}</div>
-    ${fieldLinks ? `<div class="sync-error-banner-fields">${fieldLinks}</div>` : ''}
     <div class="sync-card-actions">
-      <button class="sync-card-btn${retryReady ? ' ready' : ''}" onclick="retryFromBanner()">Retry</button>
+      <button class="sync-card-btn ready" onclick="retryFromBanner()">Retry</button>
       <button class="sync-card-btn danger" onclick="discardFromBanner()">Discard</button>
     </div>`;
 }
-// Single shared copy for "Retry tapped while a field is still flagged" —
-// same wording wherever a Retry button can be gated (banner + Sync
-// Status Screen card list, §4.5, 2026-07-20) so the two surfaces never
-// say something different for the same situation. Assumes exactly one
-// outstanding field, per this app's server contract (one rejection per
-// response, not a compiled list) — deliberately not pluralized.
-const SYNC_RETRY_BLOCKED_MSG = 'Almost there — correct the flagged field, then retry this sync.';
 /* Retry from the banner itself — the ask this responds to (2026-07-20):
    give the technician a way to re-attempt without leaving the record to
-   go find the item in the Sync Status Screen again. Protected/gated
-   (2026-07-20 refinement) until every flagged field has been fixed —
-   tapping it early just explains why instead of attempting anything, so
-   Retry can never re-report the exact same failure it just showed.
-   Offline queues (matches the panel's own queued language); online
-   actually resolves — always succeeds once unblocked, or for a tier-3
-   item that had no fields to begin with. */
+   go find the item in the Sync Status Screen again. Always available now
+   (the 2026-07-20 "protected until the flagged field clears" gate is
+   gone along with field-level detail itself, §4.5) — offline queues
+   (matches the panel's own queued language), online always resolves. */
 function retryFromBanner() {
   if (!SYNC_ERROR_ACTIVE) return;
-  if (SYNC_ERROR_ACTIVE.fields.length > 0) { showToast(SYNC_RETRY_BLOCKED_MSG); return; }
   if (!DEMO_ONLINE) {
     SYNC_ERROR_ACTIVE.status = 'pending';
     renderSyncBanner();
@@ -1118,28 +1076,6 @@ function discardFromBanner() {
     renderSyncBanner();
   });
 }
-/* Called from every field-mutation entry point (selectLov, saveEdit,
-   selectDate, etc., §4.5) — "the reasons disappear once the value is
-   updated," unconditionally, with no validation engine re-checking
-   whether the new value actually satisfies the server. Matches this
-   app's existing scope (no client-side validation exists anywhere else
-   either) rather than a half-built check. */
-function clearFieldSyncError(key) {
-  if (!SYNC_ERROR_ACTIVE) return;
-  const idx = SYNC_ERROR_ACTIVE.fields.findIndex(f => f.key === key);
-  if (idx === -1) return;
-  SYNC_ERROR_ACTIVE.fields.splice(idx, 1);
-  const row = document.querySelector(`[data-field="${key}"]`);
-  if (row) row.classList.remove('error');
-  const msg = document.querySelector(`[data-field-msg="${key}"]`);
-  if (msg) msg.remove();
-  renderSyncBanner();
-}
-function scrollToField(key) {
-  const row = document.querySelector(`[data-field="${key}"]`);
-  if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
-
 function updateInsertSaveGate() {
   const btn = document.getElementById('insertSaveBtn');
   if (!btn) return;
@@ -1605,7 +1541,6 @@ function renderRefCard(key) {
 function selectLov(code, desc) {
   const key = activeLovKey;
   LOV_CURRENT[key] = code;
-  clearFieldSyncError(key);
   if (typeof REF_CARD_FIELDS !== 'undefined' && REF_CARD_FIELDS[key]) {
     renderRefCard(key);
     closeAllSheets();
@@ -1673,7 +1608,6 @@ function selectLov(code, desc) {
 function clearLov() {
   const key = activeLovKey;
   LOV_CURRENT[key] = '';
-  clearFieldSyncError(key);
   const codeEl = document.getElementById(`fv-${key}-code`);
   const descEl = document.getElementById(`fv-${key}-desc`);
   if (codeEl) { codeEl.textContent = ''; codeEl.style.display = 'none'; }
@@ -1722,7 +1656,6 @@ function saveEdit() {
   const el = document.getElementById('fv-'+activeEditKey);
   el.textContent = activeEditType === 'currency' ? formatCurrency(val) : val;
   el.classList.remove('muted');
-  clearFieldSyncError(activeEditKey);
   closeAllSheets();
   showToast('Saved');
   updateRequiredBadges();
@@ -1736,7 +1669,6 @@ function clearEdit() {
   const el = document.getElementById('fv-'+activeEditKey);
   el.textContent = '';
   el.classList.add('muted');
-  clearFieldSyncError(activeEditKey);
   closeAllSheets();
   showToast('Cleared');
   updateRequiredBadges();
@@ -1815,7 +1747,6 @@ function selectDate(iso) {
   const el = document.getElementById('fv-'+activeDateKey);
   el.textContent = isoToDisplay(iso);
   el.classList.remove('muted');
-  clearFieldSyncError(activeDateKey);
   closeAllSheets();
   showToast('Saved');
   updateRequiredBadges();
@@ -1827,7 +1758,6 @@ function clearDate() {
   const el = document.getElementById('fv-'+activeDateKey);
   el.textContent = '';
   el.classList.add('muted');
-  clearFieldSyncError(activeDateKey);
   closeAllSheets();
   showToast('Cleared');
   updateRequiredBadges();
@@ -1875,7 +1805,6 @@ function saveDateTime() {
   // 'en-US' defaults to 12-hour otherwise even with hour:'2-digit'.
   el.textContent = `${dt.toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'})} · ${dt.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false})}`;
   el.classList.remove('muted');
-  clearFieldSyncError(activeDateTimeKey);
   closeAllSheets();
   showToast('Saved');
 }
@@ -1883,7 +1812,6 @@ function clearDateTime() {
   const el = document.getElementById('fv-'+activeDateTimeKey);
   el.textContent = '';
   el.classList.add('muted');
-  clearFieldSyncError(activeDateTimeKey);
   closeAllSheets();
   showToast('Cleared');
 }
@@ -1898,10 +1826,6 @@ function onInlineFocus() {
 function onInlineBlur(el) {
   const btn = document.getElementById('inlineConfirmBtn');
   if (btn) btn.classList.remove('show');
-  // el is optional (callers already pass `this`, previously ignored here —
-  // needed now to know which field to clear, §4.5, 2026-07-20).
-  const row = el && el.closest('.form-field');
-  if (row && row.dataset.field) clearFieldSyncError(row.dataset.field);
   showToast('Saved');
   updateRequiredBadges();
 }
@@ -1924,7 +1848,6 @@ function toggleCheckbox(row) {
   const box = row.querySelector('.field-checkbox');
   const checked = box.classList.toggle('checked');
   box.innerHTML = checked ? '<svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>' : '';
-  if (row.dataset.field) clearFieldSyncError(row.dataset.field);
 }
 // Every container is collapsible (design-decisions-v3-1.md §3.4) —
 // promoted here 2026-07-22 on its 2nd real consumer (see eam-shared.css's

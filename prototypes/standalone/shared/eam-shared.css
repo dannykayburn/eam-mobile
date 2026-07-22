@@ -197,6 +197,15 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    longer borrows a 3rd status hue. Works on the rec-header's fixed dark
    background regardless of the app's own light/dark toggle. */
 .rec-status-btn.st-standby{background:none;border:1.5px solid rgba(255,255,255,.35);}
+/* Waiting/pending fill, added 2026-07-22 (user direction) — a 4th tier,
+   distinct from st-standby above: WO Record View's Work Request status
+   (WAPPR) specifically, mirroring the same code's "Waiting approval"
+   fix already applied to WO List's own status pill (eam-wo-list-
+   prototype-v5_1.html's .pill-orange). Not a reversal of st-standby's
+   own 2026-07-22 note above — Closed still stays neutral/outlined,
+   only WAPPR moves to its own tier. Same #F46600 as the rest of the
+   app's Orange instrument. */
+.rec-status-btn.st-waiting{background:#F46600;}
 /* Protected status (§15.4 Not Free Form, redesigned 2026-07-22) — the
    status fill colour must always show, protected or not (a status button
    that goes gray tells the technician nothing about the WO's actual
@@ -597,16 +606,6 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .form-field:last-child{border-bottom:none;}
 .form-field:hover{background:var(--bg-section);}
 .form-field.required::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
-/* Sync error variant (§4.5, 2026-07-20) — same left-bar mechanism as
-   .required above. Both are red now (palette pass, 2026-07-22 — .required
-   used to be orange, giving each state its own hue; red now means "this
-   needs your attention" uniformly, one of the app's only 3 real color
-   instruments). Own full ::before rule (not just a background override)
-   since a field can be sync-flagged without also being .required —
-   declared after .required so it still wins if both were ever present,
-   though in practice a field can't fail to sync a value it was never
-   given. */
-.form-field.error::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
 .form-field.protected{background:var(--bg-section);opacity:.75;cursor:default;}
 [data-theme="dark"] .form-field.protected{background:rgba(255,255,255,.03);}
 .field-label{font-size:13px;color:var(--gray-4);width:128px;flex-shrink:0;line-height:1.35;}
@@ -776,8 +775,6 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    .form-field.required row gets (was orange — palette pass, 2026-07-22,
    see .form-field.required above) — just on this cell instead. */
 .attr-item.required::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
-/* Sync error variant — see .form-field.error above, same reasoning. */
-.attr-item.error::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
 .attr-label{font-size:13px;color:var(--gray-4);}
 .attr-value{display:flex;align-items:center;gap:6px;}
 .attr-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;flex-shrink:0;}
@@ -1124,19 +1121,20 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .doc-arrow{color:var(--gray-4);flex-shrink:0;}
 
 /* ══════════════════════════════════════════════════════════════════════
-   SYNC ERROR BANNER + INLINE FIELD FLAG (§4.5, 2026-07-20) — rendered by
-   eam-shared.js's applySyncErrorBanner() on any Record View that opts in
-   (2 real consumers: WO, Equipment). The .form-field.error/.attr-item.error
-   left-bar rules live above, next to their .required counterparts.
+   SYNC ERROR BANNER (§4.5) — rendered by eam-shared.js's
+   applySyncErrorBanner() on any Record View that opts in (2 real
+   consumers: WO, Equipment). Simplified 2026-07-22: no more per-field
+   detail (see design-decisions-v3-1.md §4.5) — real server responses
+   never returned which field caused a rejection, so the inline .form-
+   field.error/.attr-item.error left-bar rules and the field-link/field-
+   error-msg CSS that used to live here are gone along with the JS that
+   drove them.
    ══════════════════════════════════════════════════════════════════════ */
 .sync-error-banner{display:none;margin:12px 12px 0;background:rgba(228,75,74,.08);border:1px solid rgba(228,75,74,.3);border-radius:10px;padding:12px 14px;}
 .sync-error-banner.show{display:block;}
 .sync-error-banner-head{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--red);}
 .sync-error-banner-head svg{flex-shrink:0;}
 .sync-error-banner-msg{font-size:12.5px;color:var(--gray-4);margin-top:4px;line-height:1.4;}
-.sync-error-banner-fields{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;}
-.sync-error-field-link{font-size:11px;font-weight:600;color:var(--red);background:rgba(228,75,74,.1);border:1px solid rgba(228,75,74,.3);border-radius:100px;padding:4px 10px;cursor:pointer;font-family:var(--font-sans);}
-.sync-error-field-link:hover{background:rgba(228,75,74,.18);}
 /* Two-button action row (2026-07-20) — promoted here from the Sync Status
    Screen's card list, its 1st consumer, when the banner became its 2nd:
    same Retry/Discard pair, same visual language, in both places (locked —
@@ -1145,11 +1143,10 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .sync-card-btn{flex:1;text-align:center;font-size:12.5px;font-weight:700;padding:9px 0;border-radius:8px;background:var(--bg-section);color:var(--octave-black);cursor:pointer;border:none;font-family:var(--font-sans);}
 [data-theme="dark"] .sync-card-btn{color:rgba(255,255,255,.9);}
 .sync-card-btn.danger{color:var(--red);}
-/* Retry only earns this once its item has no outstanding flagged fields —
-   same green "unblocked, go ahead" language as .insert-save-btn.ready,
-   not yet a claim of success (state-synced/green banner is the actual
-   success signal). Until then Retry keeps the plain/neutral look above,
-   which doubles as its own "not ready yet" cue. */
+/* Retry is always .ready now (2026-07-22) — the old "protected until the
+   flagged field clears" gate went away with field-level detail itself,
+   so there's no "not ready yet" state left to distinguish from this one.
+   Same green "go ahead" language as .insert-save-btn.ready. */
 .sync-card-btn.ready{background:var(--green);color:#fff;}
 /* Pending/synced states (§4.5, 2026-07-20). Pending was tinted orange —
    corrected 2026-07-22 (§23): "retry submitted, still resolving" is the
@@ -1161,11 +1158,6 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .sync-error-banner.state-pending .sync-error-banner-head{color:var(--gray-4);}
 .sync-error-banner.state-synced{background:rgba(0,170,20,.08);border-color:rgba(0,170,20,.3);}
 .sync-error-banner.state-synced .sync-error-banner-head{color:var(--green);}
-/* Inline per-field message, inserted as a sibling right after the flagged
-   .form-field/.attr-item row. grid-column:1/-1 keeps it from landing in
-   the 2nd column when the row lives inside .equip-attrs' 2-col grid. */
-.field-error-msg{font-size:11.5px;font-weight:600;color:var(--red);background:rgba(228,75,74,.05);padding:6px 14px;line-height:1.35;}
-.equip-attrs .field-error-msg{grid-column:1/-1;border-top:1px solid var(--border);}
 
 /* ══════════════════════════════════════════════════════════════════════
    SELECTOR PILL (Phase 2b consolidation, 2026-07-22) — the mono-code
