@@ -23,13 +23,20 @@
 /* ══════════════════════════════════════════════════════════════════════
    THEME TOGGLE + TOAST + SHEET PRIMITIVES
    ══════════════════════════════════════════════════════════════════════ */
+/* Theme now persists across navigation (added 2026-07-22) — each screen's
+   <head> has a tiny inline script (before the stylesheet link, so it runs
+   before first paint — no flash of the wrong theme) that reads the same
+   'eamTheme' localStorage key and applies data-theme immediately. This
+   function just needs to sync the button's own label to whatever that
+   inline script already set, and persist future clicks. */
 function initThemeToggle() {
   const btn = document.getElementById('themeToggle');
   if (!btn) return;
+  btn.textContent = document.documentElement.hasAttribute('data-theme') ? '◑ Dark' : '☀ Light';
   btn.addEventListener('click', () => {
     const dark = document.documentElement.hasAttribute('data-theme');
-    if (dark) { document.documentElement.removeAttribute('data-theme'); btn.textContent = '☀ Light'; }
-    else { document.documentElement.setAttribute('data-theme', 'dark'); btn.textContent = '◑ Dark'; }
+    if (dark) { document.documentElement.removeAttribute('data-theme'); localStorage.setItem('eamTheme', 'light'); btn.textContent = '☀ Light'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); localStorage.setItem('eamTheme', 'dark'); btn.textContent = '◑ Dark'; }
   });
 }
 function showToast(msg) {
