@@ -92,13 +92,22 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    List (2nd) had already satisfied this file's own "promote on 2nd real
    consumer" rule but never actually moved, and had drifted z-index (5 vs.
    50) as a result. Standardized on 50, matching .bottom-bar's z-index — the
-   two are peers (persistent bottom chrome) and should sit in the same layer. */
-.bottom-nav{position:absolute;left:0;right:0;bottom:0;height:58px;background:color-mix(in srgb, var(--bg-nav) 96%, transparent);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);display:flex;align-items:center;justify-content:center;gap:14px;flex-shrink:0;border-top:1px solid rgba(255,255,255,.08);z-index:50;}
+   two are peers (persistent bottom chrome) and should sit in the same layer.
+   "Glass" pass (2026-07-22, user direction) — explored a genuinely
+   translucent bar (42% opaque, prototypes/standalone/mockups/bottom-nav-
+   glass-options.html Option C) but reverted the opacity same day: white
+   icons/labels lost contrast with the app's mostly-white content
+   bleeding through underneath. Background is back to near-solid (96%
+   opaque, matching the pre-glass baseline) — the heavier 28px/220% blur/
+   saturate, brighter specular top edge, and stronger active-item
+   highlight from the glass exploration are kept (icons/pill affordance
+   unaffected by the opacity revert). */
+.bottom-nav{position:absolute;left:0;right:0;bottom:0;height:58px;background:color-mix(in srgb, var(--bg-nav) 96%, transparent);backdrop-filter:blur(28px) saturate(220%);-webkit-backdrop-filter:blur(28px) saturate(220%);display:flex;align-items:center;justify-content:center;gap:14px;flex-shrink:0;border-top:1px solid rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.15);z-index:50;}
 .bottom-nav.hidden{display:none;}
 .bottom-nav-item{width:84px;display:flex;flex-direction:column;align-items:center;gap:2px;color:rgba(255,255,255,.5);background:none;border:none;border-radius:100px;font-family:var(--font-sans);font-size:10.5px;font-weight:600;padding:7px 0;cursor:pointer;}
 .bottom-nav-item svg{width:20px;height:20px;}
-.bottom-nav-item.active{color:#fff;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.22);}
-[data-theme="dark"] .bottom-nav-item.active{background:rgba(255,255,255,.16);}
+.bottom-nav-item.active{color:#fff;background:rgba(255,255,255,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.25);}
+[data-theme="dark"] .bottom-nav-item.active{background:rgba(255,255,255,.2);}
 .bottom-nav-badge{position:absolute;top:-5px;right:-7px;min-width:15px;height:15px;background:var(--red);color:white;font-size:9px;font-weight:700;border-radius:100px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
 /* Promoted from Home/WO List's own local <style> blocks (2026-07-22,
    Notifications badge fix) — .bottom-nav-badge is positioned absolute
