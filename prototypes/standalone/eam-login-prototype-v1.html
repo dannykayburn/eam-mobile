@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HxGN EAM Mobile — Login v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-shared.css">
+<!--
+  LOGIN SCREEN — new 2026-07-22, session riff (unplanned in
+  design-decisions-v3-1.md; this is pure app-entry chrome, not part of
+  the WO workflow or Home's own content). Modeled on the real Attune EAM
+  desktop login screen's brand identity (dark panel + magenta/purple
+  swoosh + "Attune EAM" wordmark, light panel + Octave logo + fields),
+  re-laid-out top/bottom for a phone frame instead of left/right. Reuses
+  eam-shared.css only for the `.app` phone-frame shell and showToast() —
+  everything else here (hero/card split, brand mark, loading overlay) is
+  genuinely one-off screen chrome with a single consumer, so it stays
+  local rather than promoted.
+
+  BCAMPBELL/•••••••• are pre-filled per direction ("bake in BCAMPBELL and
+  PW") — fields stay live inputs, not readonly/disabled, so this still
+  looks and behaves like a real login form. Log In plays a ~2s branded
+  loading take-over (logo pulse + swoosh drift + progress bar) before
+  handing off to Home — a fixed timer, no real auth exists to wait on.
+
+  2026-07-22 follow-up: swapped the hand-drawn swoosh/mark placeholders
+  for the real brand artifacts in docs/Octave_articfacts/. The Octave
+  mark uses "Octave Logos/Octave_logo_primary_rgb_white.svg" directly
+  (true vector transparency, no processing needed) — white-only asset,
+  recolored to ink via CSS filter:invert(1) for the light card, used
+  as-is on the dark loading overlay. The swoosh wanted "Octave Arch
+  Pink.png", but that source file turned out to have an OPAQUE WHITE
+  background baked in (confirmed via canvas pixel read, alpha=255 at
+  every corner) rather than real transparency — laid directly over the
+  dark hero it painted a white rectangle over most of the panel. Rather
+  than hand-fake a replacement, cut a real transparent derivative from
+  the source file itself: `octave-arch-pink-cutout.png` (this folder),
+  generated once via a PowerShell/System.Drawing script that sets each
+  pixel's alpha to 255-min(R,G,B) — a standard white-matte knockout
+  (fully transparent where the source was pure white, fully opaque on
+  saturated arch color, smooth falloff on the anti-aliased edges between).
+  Kept as a local derivative here rather than overwriting/duplicating
+  into docs/Octave_articfacts/, which stays the untouched source-of-truth
+  brand folder. If a real pre-cut transparent export ever shows up there,
+  switch this file back to it and delete the local cutout.
+  2026-07-22 2nd follow-up: real "Attune EAM" wordmark showed up in
+  docs/Octave_articfacts/ ("Attune EAM-web (1).svg") — swapped in for
+  the plain-text placeholder above (clean vector, already the right
+  magenta #FF33D2, transparent background, no processing needed like
+  the arch PNG required). Also repositioned the arch per direction —
+  now anchored to the bottom of the hero so it reads as emerging out of
+  the top of the white card/pane rather than floating in the upper dark
+  area, with the wordmark moved up to the now-open top of the hero to
+  make room.
+-->
+<style>
+body{background:#0E0D12;}
+.app{background:#0E0D12;}
+
+/* ── HERO (dark) PANEL ── */
+.login-hero{position:relative;flex:0 0 auto;height:34%;min-height:230px;background:#141218;overflow:hidden;}
+.login-hero-inner{position:absolute;inset:0;padding:28px 26px 0;z-index:2;}
+.login-brand{display:block;width:150px;height:auto;}
+.login-swoosh{position:absolute;left:0;right:0;bottom:10%;width:100%;max-width:none;z-index:1;animation:swooshDrift 9s ease-in-out infinite;transform-origin:60% 100%;}
+
+@keyframes swooshDrift{
+  0%{transform:translate(0,0) rotate(0deg);}
+  50%{transform:translate(-1.5%,1.5%) rotate(-2deg);}
+  100%{transform:translate(0,0) rotate(0deg);}
+}
+
+/* ── CARD (light) PANEL — overlaps the hero like a pulled-up sheet ── */
+.login-card{flex:1;min-height:0;background:#EDEFF6;border-radius:30px 30px 0 0;margin-top:-26px;position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;padding:40px 30px 34px;box-shadow:0 -8px 24px rgba(0,0,0,.12);}
+.login-mark{margin-bottom:34px;}
+/* Real asset is white-only (docs/Octave_articfacts/Octave Logos) — inverted to ink for this light card. */
+.login-mark img{height:42px;width:auto;display:block;filter:invert(1);}
+
+.login-form{width:100%;display:flex;flex-direction:column;gap:14px;}
+.login-input{width:100%;height:52px;border-radius:14px;border:none;background:#fff;padding:0 18px;font-family:'Inter',sans-serif;font-size:15px;font-weight:500;color:#1A1A1F;box-shadow:0 1px 2px rgba(0,0,0,.06);outline:none;box-sizing:border-box;}
+.login-input::placeholder{color:#9AA0AC;}
+.login-input:focus{box-shadow:0 0 0 2px #1A1A1F;}
+
+.login-btn{width:100%;height:52px;margin-top:10px;border-radius:14px;border:none;background:#1A1A1F;color:#fff;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;}
+.login-btn:active{transform:scale(.98);}
+.login-btn:disabled{opacity:.6;cursor:default;}
+
+.login-forgot{display:block;text-align:center;margin-top:16px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:#3E5FE0;cursor:pointer;background:none;border:none;}
+
+/* ── LOADING TAKE-OVER ── */
+.login-loading{position:absolute;inset:0;z-index:20;background:#141218;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .35s;overflow:hidden;}
+.login-loading.show{opacity:1;pointer-events:auto;}
+.login-loading.fading{opacity:0;}
+.loading-swoosh{position:absolute;right:-35%;top:-15%;width:160%;max-width:none;animation:swooshDrift 2.6s ease-in-out infinite,swooshSpin 6s linear infinite;transform-origin:60% 30%;opacity:.9;}
+@keyframes swooshSpin{from{filter:hue-rotate(0deg);}to{filter:hue-rotate(18deg);}}
+.loading-mark-wrap{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:14px;}
+.loading-mark-wrap img{height:56px;width:auto;display:block;animation:loginPulse 1.3s ease-in-out infinite;}
+@keyframes loginPulse{
+  0%{transform:scale(.88);opacity:.7;}
+  50%{transform:scale(1.06);opacity:1;}
+  100%{transform:scale(.88);opacity:.7;}
+}
+.loading-bar-track{position:relative;z-index:2;width:140px;height:4px;border-radius:100px;background:rgba(255,255,255,.18);margin-top:26px;overflow:hidden;}
+.loading-bar-fill{height:100%;width:0%;border-radius:100px;background:linear-gradient(90deg,#FF2FA0,#9B4DFF);}
+.login-loading.show .loading-bar-fill{animation:barFill 1.7s ease-out forwards;}
+@keyframes barFill{from{width:0%;}to{width:100%;}}
+.loading-status{position:relative;z-index:2;margin-top:12px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:rgba(255,255,255,.6);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="login-hero">
+    <img class="login-swoosh" src="octave-arch-pink-cutout.png" alt="">
+    <div class="login-hero-inner">
+      <img class="login-brand" src="../../docs/Octave_articfacts/Attune%20EAM-web%20(1).svg" alt="Attune EAM">
+    </div>
+  </div>
+
+  <div class="login-card">
+    <div class="login-mark">
+      <img src="../../docs/Octave_articfacts/Octave%20Logos/Octave_logo_primary_rgb_white.svg" alt="Octave">
+    </div>
+
+    <div class="login-form">
+      <input class="login-input" id="loginUser" type="text" value="BCAMPBELL" placeholder="User ID">
+      <input class="login-input" id="loginPass" type="password" value="password123" placeholder="Password">
+      <button class="login-btn" id="loginBtn" onclick="startLogin()">Log In</button>
+      <button class="login-forgot" onclick="showToast('Coming soon')">Forgot Password</button>
+    </div>
+  </div>
+
+  <div class="login-loading" id="loginLoading">
+    <img class="loading-swoosh" src="octave-arch-pink-cutout.png" alt="" style="opacity:.55;">
+    <div class="loading-mark-wrap">
+      <img src="../../docs/Octave_articfacts/Octave%20Logos/Octave_logo_primary_rgb_white.svg" alt="Octave">
+    </div>
+    <div class="loading-bar-track"><div class="loading-bar-fill"></div></div>
+    <div class="loading-status">Signing in…</div>
+  </div>
+
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+</div>
+
+<script src="shared/eam-shared.js"></script>
+<script>
+function startLogin() {
+  const btn = document.getElementById('loginBtn');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  // Reset affordance for the sync demo data (added 2026-07-22) — a fresh
+  // login is this app's one real, always-present "start the demo over"
+  // moment, so resolving errors during a walkthrough doesn't strand a
+  // later run with nothing left to demo. Theme is deliberately untouched
+  // (see resetSyncDemoState() in eam-shared.js) — it's a real preference,
+  // not demo progress, and survives a fresh login same as it survives
+  // navigation.
+  resetSyncDemoState();
+  const overlay = document.getElementById('loginLoading');
+  overlay.classList.add('show');
+  setTimeout(() => {
+    overlay.classList.add('fading');
+    setTimeout(() => { location.href = 'eam-home-screen-prototype-v1.html'; }, 380);
+  }, 1750);
+}
+</script>
+</body>
+</html>

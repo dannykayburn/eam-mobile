@@ -777,6 +777,26 @@ let SYNC_DEMO_ITEMS = [
   { id: 'labor-correction-19257', entity: 'Labor', recordLabel: 'Correction — WO 19257', sub: 'Awaiting connection',
     timestamp: '2:17 PM', state: 'queued', protection: null, errorMessage: null, fields: [], openUrl: null },
 ];
+/* Persisted across navigation (added 2026-07-22) — same "resets on every
+   screen load" problem theme/DEMO_WO had, but this one has no manual
+   reset control: the reset affordance is logging in again
+   (resetSyncDemoState() below, called from eam-login-prototype-v1.html's
+   startLogin()), matching how a real app would re-sync on a fresh
+   session rather than adding demo-only UI chrome. */
+(function () {
+  const saved = localStorage.getItem('eamSyncItems');
+  if (saved) { try { SYNC_DEMO_ITEMS = JSON.parse(saved); } catch (e) {} }
+})();
+function persistSyncItems() { localStorage.setItem('eamSyncItems', JSON.stringify(SYNC_DEMO_ITEMS)); }
+/* Reset affordance — clears persisted sync state so the next load falls
+   back to this file's own hardcoded seed above (2 errors, offline).
+   Deliberately does NOT touch 'eamTheme' — theme is a real user
+   preference, not demo progress, and should survive a fresh login same
+   as it survives navigation. */
+function resetSyncDemoState() {
+  localStorage.removeItem('eamSyncItems');
+  localStorage.removeItem('eamSyncOnline');
+}
 function syncErrorTierText(item) {
   if (item.errorMessage) return item.errorMessage;
   if (item.fields.length) return item.fields.map(f => f.message).join(' ');
@@ -867,6 +887,7 @@ function deleteSyncItem(id, onDone) {
   }
   openConfirm('By deleting this transaction, your changes will not be uploaded to the server. You’ll need to redo this from the source screen.', () => {
     SYNC_DEMO_ITEMS = SYNC_DEMO_ITEMS.filter(i => i.id !== id);
+    persistSyncItems();
     showToast('Transaction discarded');
     renderSyncControl();
     if (onDone) onDone();
@@ -891,6 +912,7 @@ function retrySyncItem(id) {
   showToast('Retrying…');
   setTimeout(() => {
     SYNC_DEMO_ITEMS = SYNC_DEMO_ITEMS.filter(i => i.id !== id);
+    persistSyncItems();
     showToast('Synced');
     renderSyncControl();
     if (typeof renderSyncStatusScreen === 'function') renderSyncStatusScreen();
@@ -958,8 +980,16 @@ function reviewSyncItem(id) {
    and-succeeds. Defaults false — the whole outbox/error premise is that
    the technician was offline when these were queued. ── */
 let DEMO_ONLINE = false;
+// Restored the same way as SYNC_DEMO_ITEMS above (separate IIFE since
+// DEMO_ONLINE isn't declared yet at that point in the file — let's TDZ
+// would throw if this ran any earlier).
+(function () {
+  const saved = localStorage.getItem('eamSyncOnline');
+  if (saved !== null) DEMO_ONLINE = saved === 'true';
+})();
 function toggleDemoOnline() {
   DEMO_ONLINE = !DEMO_ONLINE;
+  localStorage.setItem('eamSyncOnline', String(DEMO_ONLINE));
   const btn = document.getElementById('onlineToggle');
   if (btn) btn.textContent = DEMO_ONLINE ? '🌐 Online' : '🌐 Offline';
   renderSyncControl();
@@ -1071,6 +1101,7 @@ function retryFromBanner() {
     SYNC_ERROR_ACTIVE.status = 'synced';
     renderSyncBanner();
     SYNC_DEMO_ITEMS = SYNC_DEMO_ITEMS.filter(i => i.id !== SYNC_ERROR_ACTIVE.itemId);
+    persistSyncItems();
     renderSyncControl();
     showToast('Synced');
   }, 900);
