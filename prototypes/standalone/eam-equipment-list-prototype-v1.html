@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HxGN EAM Mobile — Equipment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-shared.css">
+<style>
+  /* Real pull-up sheet motion (2026-07-22, home-nav wiring pass) — this
+     screen is only ever reached "pulled up" from Home (no tab-root of its
+     own), and the .app frame already matches Home's exactly (verified:
+     both 375×778 at a 375-wide viewport) — what was missing was the sheet
+     *feel* itself. Rounded top corners + a slide-up-from-bottom entrance
+     on load, reusing the same transform/easing every other sheet in this
+     app already uses (.bottom-sheet, § shared CSS) rather than inventing
+     a new motion curve. A plain @keyframes animation-on-load, not a JS
+     classList-toggle-next-frame (the usual .bottom-sheet.open pattern) —
+     tried that first, but it depends on a requestAnimationFrame actually
+     firing, which this session's own automated preview tab never did
+     (confirmed: the class only landed once triggered manually), so it's
+     not something to depend on for something that must always play.
+     Screen-local for now — the only other full-page "reads like a
+     pull-up" screen is this one; if a 2nd one shows up, promote
+     .pullup-app to eam-shared.css instead of copying this block again. */
+  @keyframes eamPullUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+  .app.pullup-app{border-radius:var(--sheet-radius) var(--sheet-radius) 0 0;animation:eamPullUp .32s cubic-bezier(.32,.72,0,1) both;}
+</style>
+<!--
+  EQUIPMENT SEARCH LIST (2026-07-22, 2nd correction pass) — this is the
+  general "tap a Home tile → its parent screen's Search List screen, pre-
+  run to that tile's dataspy" pattern (here: the "Equipment" tile → "All
+  Equipment"), same idea as WO List already is for the WO-related tiles.
+
+  Real, separate, revisitable page — NOT an in-page popup on Home (that
+  was tried and reverted the same day: it can't be "returned to" with
+  preserved dataspy/filters from a real page navigation to Equipment
+  Record View, since a real page load tears down whatever JS/DOM state
+  Home was holding. A static multi-page prototype needs this to be an
+  actual page for "back" to work at all).
+
+  Still presented LIKE a pull-up though, per direction: no bottom-nav (it
+  has no tab-root entry point — only reachable via Home's Equipment tile),
+  and the header's leading control is an ✕ close (→ Home), not a back
+  arrow or avatar — closing this screen is conceptually dismissing an
+  overlay, not "going back" through a stack. Equipment Record View's own
+  back arrow returns HERE (not to Home directly) — see its own navBack().
+  **Extended 2026-07-22 (home-nav wiring pass):** the .app frame was
+  already pixel-identical to Home's, but a plain flat page swap didn't
+  *feel* like a pull-up at all — added real sheet motion (rounded top
+  corners + slide-up entrance, see the <style> block above) on user
+  direction, same size/ratio as before, now with the actual pulled-up-
+  over-Home affordance.
+
+  Copies eam-wo-list-prototype-v5_1.html's §8.3 card pattern
+  (renderStdCard()) — deliberately MINIMAL beyond that:
+  - The dataspy bar is still a label, not a real switcher/sheet (tapping
+    it is still a "coming soon" stub) — but it's no longer always static:
+    a Home tile/favorite can now pre-run this screen to a 2nd dataspy
+    ("Centrifugal Pumps", ?spy=pumps, filtering by category) via the same
+    URL-param convention WO List uses (§24 rule 2). There's still no real
+    filter state to persist across a visit to Record View and back —
+    when real filtering lands here, it needs that treatment too.
+  - No search, filter chips, sort, or List/Detail mode toggle.
+  - No Insert Mode entry point here (Equipment's only Create is still
+    Home's Create bar, unchanged).
+  - Tapping a card always opens the one hardcoded demo Equipment record
+    (00067333) — there's no real per-record `?id=` routing anywhere in
+    this app yet (a known, pre-existing limitation, not new here).
+  Card fields deliberately avoid the §8.3 "tinted" status/type treatment
+  entirely (plain text only) — this app's new locked palette treats
+  color as 3 fixed instruments, not a per-field decoration, and Equipment
+  has no color-coded status field in its current data model anyway.
+-->
+</head>
+<body>
+
+<div class="proto-theme-bar">
+  <span class="proto-theme-label">Preview theme</span>
+  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+</div>
+
+<div class="app pullup-app" id="app">
+
+  <!-- Drag handle — same .sheet-handle-row/.sheet-handle the sync panel's
+       bottom sheet already uses, borrowed here to read as a pull-up. -->
+  <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+
+  <header class="nav" onclick="scrollFormToTop()">
+    <div class="nav-left">
+      <!-- ✕ close, not a back-arrow/avatar — this screen is dismissed
+           back to Home, not "gone back through" (see header note). -->
+      <button class="nav-back" onclick="event.stopPropagation();location.href='eam-home-screen-prototype-v1.html'" aria-label="Close">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <span class="prototype-label">PROTOTYPE</span>
+    </div>
+    <div class="nav-title">Equipment</div>
+    <div class="nav-actions"><span id="syncCtrl"></span></div>
+  </header>
+
+  <div class="ds-bar" onclick="showToast('Dataspy switcher — coming soon')">
+    <div class="ds-icon-w"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke-linecap="round"/></svg></div>
+    <span class="ds-name" id="dsName">All Equipment</span>
+    <svg class="ds-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+
+  <div class="content" id="listContent"></div>
+
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <!-- Sync panel (§4.4.2) — same shared shell every screen carries. -->
+  <div class="bottom-sheet" id="syncPanelSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Sync Status</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sync-panel-state" id="syncPanelStateLabel"></div>
+    <div class="sheet-body" id="syncPanelList"></div>
+    <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
+  </div>
+
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+</div>
+
+<script src="../../data/equipment.js"></script>
+<script src="shared/eam-shared.js"></script>
+<script>
+function goEquipmentRecord() {
+  // No per-record routing exists anywhere in this app yet (a pre-existing
+  // limitation, not introduced here) — every card opens the one hardcoded
+  // demo record the Equipment Record View screen already renders.
+  location.href = 'eam-equipment-record-view-prototype-v1.html';
+}
+// 2nd real dataspy (2026-07-22, home-nav wiring pass) — Home's Pumps
+// tile/favorite pre-run here via sessionStorage's 'eamPendingSpy',
+// consume-once (§24 rule 2; NOT a ?spy= query string — npx serve's
+// clean-URL redirect strips query strings on navigation, confirmed live
+// this session — see eam-home-screen-prototype-v1.html's goToScreen()).
+// Still no real switcher sheet (tapping the ds-bar stays a "coming soon"
+// stub) — just an entry-point pre-run, same minimal scope as before.
+const EQUIP_DS = {
+  all:   { name: 'All Equipment',      filter: () => true },
+  pumps: { name: 'Centrifugal Pumps',  filter: e => e.category === 'CENTRIFUGAL' },
+};
+function renderEquipmentList() {
+  const pendingSpy = sessionStorage.getItem('eamPendingSpy');
+  if (pendingSpy) sessionStorage.removeItem('eamPendingSpy');
+  const ds = EQUIP_DS[pendingSpy] || EQUIP_DS.all;
+  document.getElementById('dsName').textContent = ds.name;
+  const rows = Object.values(EAM_EQUIPMENT).filter(ds.filter).map(e => renderStdCard([
+    { type: 'text', value: e.desc },
+    { type: 'text', value: e.assetId },
+    { type: 'org', value: e.organization },
+    { type: 'text', label: 'Class', value: e.class },
+    { type: 'text', label: 'Category', value: e.category },
+    { type: 'text', label: 'Assigned To', value: e.assignedTo },
+  ]).replace('<div class="ld-card">', '<div class="ld-card" onclick="goEquipmentRecord()">'));
+  document.getElementById('listContent').innerHTML = rows.join('') || `<div style="padding:40px 20px;text-align:center;color:var(--text-faint);font-size:14px;">No equipment found for this dataspy</div>`;
+}
+renderEquipmentList();
+initSharedApp({ contentSelector: '.content' });
+</script>
+</body>
+</html>

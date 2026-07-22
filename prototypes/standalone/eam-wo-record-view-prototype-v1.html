@@ -50,35 +50,14 @@
 
 /* ── Equipment selector — its own large standalone container above the
    Header Fields grid (§5.2 D2 "WO Record View exception"), not a 2-per-
-   row cell. WO-specific, no shared equivalent.
-
-   Reverted 2026-07-20 (4th pass, user feedback: "liked it better before,
-   with the class icon and the other fields protected underneath"). The
-   record-card anatomy (headline/subline/attr-rows) tried earlier this
-   session is now the shared `.equip-card` promoted into eam-shared.css
-   for WO Insert Mode's own Equipment field (§15.5/§9.3) — deliberately
-   NOT reused here anymore, so this screen doesn't fight that other,
-   actively-in-progress consumer over the same class name. Renamed local
-   to `.equip-summary-card` and restored the original pre-redesign icon +
-   desc/code/type layout, with Class/Category now shown as ordinary
-   protected `.form-field` rows underneath (reusing the exact same
-   protected/lock-icon convention already used elsewhere on this screen,
-   e.g. the Activity Edit popup's Date/Code1/Code2) instead of folded into
-   the card itself. Record View and Insert Mode's Equipment fields now
-   deliberately look different — flagged as a real, visible divergence,
-   not an oversight; worth a conscious call later on whether to converge. ── */
-.equip-summary-card { margin: 12px 12px 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; cursor: pointer; transition: background .15s; position: relative; }
-.equip-summary-card:hover { background: var(--bg-section); }
-.equip-summary-main { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
-.equip-summary-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--bg-section); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--teal); }
-.equip-summary-info { flex: 1; min-width: 0; }
-.equip-summary-desc { font-size: 15px; font-weight: 700; color: var(--octave-black); line-height: 1.2; }
-[data-theme="dark"] .equip-summary-desc { color: var(--white); }
-.equip-summary-meta { font-family: var(--font-mono); font-size: 13px; color: var(--gray-4); margin-top: 2px; letter-spacing: .3px; }
-.equip-summary-type { font-size: 12px; font-weight: 600; color: var(--purple); margin-top: 3px; }
-.equip-summary-chevron { color: var(--gray-4); flex-shrink: 0; }
-.equip-summary-card.empty .equip-summary-desc { color: var(--gray-4); font-weight: 600; }
-.equip-summary-card.empty::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 100px 100px 0; background: var(--orange); }
+   row cell. WO-specific mount position; the card itself is now the
+   shared `.equip-summary-card` in eam-shared.css (converged with WO
+   Insert Mode's own Equipment field 2026-07-22 — punch-list item, see
+   that file's comment for the full history of the two diverging and
+   re-converging). This mount carries its own margin (the shared class
+   is margin:0, since Insert Mode's copy sits inside a .section-card
+   that already provides its own spacing). ── */
+#equipCardMount { margin: 12px 12px 0; }
 
 /* ── Equipment Lookup sheet — Search + Structure tabs (§15.5).
 
@@ -118,33 +97,105 @@
    (named "Equipment LOV" per user direction, converged with WO Insert
    Mode — see docs/component-library.md). Was local here only. ── */
 
-/* ── Activities — single-select radio list (§15.2), WO-specific. ── */
-.act-item { display: flex; align-items: flex-start; gap: 11px; padding: 11px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s; }
+/* ── Activities — single-select radio list (§15.2), WO-specific.
+   Rebuilt this pass (locked "Option A" from the palette exploration):
+   - Radio is vertically centered on the row (align-items:center, no
+     manual margin-top offset — that offset only ever worked for one
+     specific line count and broke as soon as the note became optional).
+   - "Activity 10" shrinks to a bulky standalone mono number (.act-num-big)
+     — was a small caption line with the word "Activity" in front of it.
+   - Selection reads via black/white weight+fill, not purple — purple is
+     no longer a UI-state accent on this screen (palette pass). The
+     checkmark SVG had "white" hardcoded as its own stroke attribute
+     (not currentColor), which broke in dark mode once the selected fill
+     became white there instead of black — fixed to stroke="currentColor"
+     in renderActivitiesListHTML() below, paired with the dark-mode
+     override here.
+   - Trade/Start Date render as a 2-cell grid-cell block (.meta-grid-a),
+     matching the Type/Priority badge-row's own shape one section up.
+     Trade shows code+description, same convention as any LOV field;
+     Start Date is plain. Task Plan/Material List were dropped from
+     this card 2026-07-22 (punch-list item) — this screen ships with
+     just Trade + Start Date; a user can add either back via SD. The
+     note (act.name) is the only optional line — collapses with no gap
+     when absent (.has-note only adds the block's top margin when a
+     note is actually present). ── */
+.act-item { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s; position: relative; }
 .act-item:last-child { border-bottom: none; }
 .act-item:hover { background: var(--bg-section); }
-.act-item.selected { background: rgba(153,51,255,.06); }
-[data-theme="dark"] .act-item.selected { background: rgba(153,51,255,.1); }
-.act-radio { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--border-strong); background: var(--bg-section); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; transition: all .15s; }
-.act-item.selected .act-radio { border-color: var(--purple); background: var(--purple); }
+.act-item.selected { background: var(--bg-section); }
+.act-item.selected::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--octave-black); }
+[data-theme="dark"] .act-item.selected::before { background: var(--white); }
+.act-radio { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--border-strong); background: var(--bg-section); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .15s; }
+.act-item.selected .act-radio { border-color: var(--octave-black); background: var(--octave-black); }
+[data-theme="dark"] .act-item.selected .act-radio { border-color: var(--white); background: var(--white); }
 .act-radio svg { display: none; color: white; }
 .act-item.selected .act-radio svg { display: block; }
+[data-theme="dark"] .act-item.selected .act-radio svg { color: var(--octave-black); }
+.act-num-big { font-size: 22px; font-weight: 700; font-family: var(--font-mono); color: var(--octave-black); flex-shrink: 0; width: 32px; text-align: center; }
+[data-theme="dark"] .act-num-big { color: rgba(255,255,255,.9); }
 .act-info { flex: 1; min-width: 0; }
-.act-num { font-size: 10px; font-family: var(--font-mono); color: var(--gray-4); margin-bottom: 2px; }
-.act-name { font-size: 13px; font-weight: 600; color: var(--octave-black); margin-bottom: 5px; }
+.act-name { font-size: 13px; font-weight: 600; color: var(--octave-black); line-height: 1.35; }
 [data-theme="dark"] .act-name { color: rgba(255,255,255,.9); }
-.act-discipline { font-size: 11px; color: var(--purple); font-weight: 600; margin-bottom: 5px; }
-.act-meta-row { font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); display: flex; gap: 10px; flex-wrap: wrap; }
+.act-item.selected .act-name { font-weight: 700; }
+.act-meta-block { margin-top: 0; }
+.has-note .act-meta-block { margin-top: 7px; }
+/* ── Numeric/Integer field, inline (2026-07-23) — first example of this
+   field type in a Header Fields grid cell (People Required/Estimated
+   Hours on the Activity popup). No popup/edit-sheet at all, unlike the
+   Standard Model's own Number/Currency example (§5.2, which still opens
+   openEdit()'s sheet) — types directly in the cell like Note's inline
+   text field does, just left-aligned/mono-weight to match .attr-text
+   instead of right-aligned like .field-inline-input. type="text" +
+   inputmode="numeric" (not type="number") is deliberate: it still raises
+   the device's digits-only NUMBERS keypad but skips the browser's own
+   spinner arrows/scientific-notation quirks that type="number" carries
+   (same "native input, but the plain version" reasoning as Time Only,
+   §3.4) — the oninput handler strips anything non-digit as a fallback
+   for browsers/pointer input that don't honor inputmode. Same treatment
+   should apply to Currency once a grid cell needs one; screen-local for
+   now (only 1 real consumer), promote to eam-shared.css on a 2nd. */
+.attr-text-input { font-size: 14px; font-weight: 600; color: var(--octave-black); font-family: var(--font-sans); border: none; background: none; outline: none; padding: 0; width: 100%; text-align: left; }
+[data-theme="dark"] .attr-text-input { color: rgba(255,255,255,.9); }
+.attr-text-input::placeholder { color: var(--gray-3); font-weight: 500; }
+/* Same-day follow-up (2026-07-23): the grid cell's own onclick now
+   explicitly focuses its <input> — tapping the LABEL (or anywhere else in
+   the cell) puts the field into edit mode, not just the exact input box.
+   Real fix, not cosmetic: a plain <input> only focuses itself where it's
+   actually painted, so the label/padding around it were dead taps before
+   this. Activity's own number field converts to the same inline-input
+   pattern here too (was still the old openEdit()-popup shape) — its
+   trailing chevron is gone since there's no popup left for it to imply. */
+.act-num-big-input { font-size: 22px; font-weight: 700; font-family: var(--font-mono); color: var(--octave-black); flex: 1; width: auto; text-align: right; border: none; background: none; outline: none; padding: 0; }
+[data-theme="dark"] .act-num-big-input { color: rgba(255,255,255,.9); }
+.meta-grid-a { display: flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.meta-cell-a { flex: 1 1 50%; padding: 7px 10px; border-left: 1px solid var(--border); border-top: 1px solid var(--border); }
+.meta-cell-a:nth-child(odd) { border-left: none; }
+.meta-cell-a:nth-child(-n+2) { border-top: none; }
+.meta-cell-label { font-size: 10px; color: var(--gray-4); display: block; margin-bottom: 3px; }
+.trade-code { font-size: 10px; color: var(--gray-4); font-family: var(--font-mono); display: block; }
+.trade-desc { font-size: 12px; font-weight: 600; color: var(--octave-black); }
+[data-theme="dark"] .trade-desc { color: rgba(255,255,255,.9); }
+.date-val { font-size: 12px; font-weight: 600; color: var(--octave-black); font-family: var(--font-mono); }
+[data-theme="dark"] .date-val { color: rgba(255,255,255,.9); }
 
 /* If no activities exist (§15.2) — not exercised by this file's demo data
-   (2 seeded activities), kept for the documented empty-state case. */
-.activity-add-row { display: flex; align-items: center; gap: 8px; padding: 11px 14px; cursor: pointer; color: var(--purple); font-size: 13px; font-weight: 600; transition: background .15s; }
-.activity-add-row:hover { background: var(--bg-section); }
+   (2 seeded activities), kept for the documented empty-state case. Was
+   its own local .activity-add-row (purple text, a real §23 miss no
+   per-screen grep ever caught since Activities' 2026-07-22 palette pass
+   only touched the populated-list view, not this unreachable empty
+   state) — consolidated onto the shared .comment-add-row (Phase 2b,
+   2026-07-22): identical structure (flex row, comment-add-plus icon,
+   border-bottom, bg-section hover), no reason for a separate class. */
 
 /* Icon buttons in a .rv-toggle-row's right side (Edit/Plus, both bumped up
    from the old 28px text-glyph "+" — real icons now, sized to match the
    session's other bumped icon buttons, e.g. the header's pin/ellipsis). */
-.rv-icon-btn { background: none; border: none; color: var(--purple); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; transition: background .15s; flex-shrink: 0; }
-.rv-icon-btn:hover { background: rgba(153,51,255,.1); }
+/* Was purple — same "no color outside the 3 instruments" rule as
+   everything else on this screen (palette pass, 2026-07-22). */
+.rv-icon-btn { background: none; border: none; color: var(--gray-4); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; transition: background .15s; flex-shrink: 0; }
+.rv-icon-btn:hover { background: var(--bg-section); color: var(--octave-black); }
+[data-theme="dark"] .rv-icon-btn:hover { color: var(--white); }
 </style>
 </head>
 <body>
@@ -250,7 +301,6 @@
       <div class="step-map-item"><div class="step-map-icon smi-locked">3</div><span class="step-map-label">Issue Parts</span></div>
       <div class="step-map-item"><div class="step-map-icon smi-locked">4</div><span class="step-map-label">Book Labor</span></div>
       <div class="step-map-item"><div class="step-map-icon smi-locked">5</div><span class="step-map-label">WO Closing</span></div>
-      <div class="step-map-footer">WO.WORKFLOW.01 - Corrective Maintenance Execution</div>
     </div>
   </div>
 
@@ -268,6 +318,23 @@
 
   <!-- ── SHEETS (shared component markup — behavior lives in eam-shared.js) ── -->
   <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <!-- Sync panel (§4.4.2) — opened from the sync icon in the header
+       above. Content rendered by openSyncPanel() in eam-shared.js
+       (shared markup, same shell every screen carries). Review navigates
+       to eam-sync-status-prototype-v1.html. Fixes a real crash: openSheet()
+       previously found no #syncPanelSheet on this screen at all. -->
+  <div class="bottom-sheet" id="syncPanelSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Sync Status</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sync-panel-state" id="syncPanelStateLabel"></div>
+    <div class="sheet-body" id="syncPanelList"></div>
+    <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
+  </div>
 
   <div class="bottom-sheet" id="lovSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
@@ -378,42 +445,143 @@
     </div>
   </div>
 
-  <!-- ACTIVITY EDIT POPUP — non-standard, unique to Activities on WO
-       Record View (§15.2). Also the hyperlinked-popup shell, but this one
-       edits rather than just views. -->
+  <!-- ACTIVITY INSERT/UPDATE MODE POPUP — non-standard, unique to
+       Activities on WO Record View (§15.2). Built out 2026-07-22 from the
+       full real-desktop Activity field set (Trade/Start Date/End Date/
+       People Required/Estimated Hours/Assignment Status required; Task
+       Plan/Material List/Multiple Trades/Hours Remaining/Scheduled Hours/
+       Hired Labor/Supplier/Labor Type/Completed all optional, grouped in
+       one collapsible "Additional Details" container — delivered
+       collapsed every time this popup opens). Shares the same hyperlink-
+       popup shell + WO Insert Mode's "required grid up top, flat fields
+       in containers below" split; the grid reuses the real shared
+       .equip-attrs/.attr-item component verbatim (no hand-rolled CSS).
+       Serves BOTH Insert (Add Activity — openActivityAddPopup) and
+       Update (Edit Activity — openActivityEditPopup) modes; Activity's
+       own AUTOINCR-defaulted number is editable here (can be changed
+       before saving), not locked — the only thing that changes between
+       the two modes is which one pre-fills real data vs. next-available
+       defaults, and the title/footer verb. -->
   <div class="hyperlink-popup" id="activityEditPopup">
     <div class="insert-mode-header">
       <button class="sheet-close" onclick="closeHyperlinkPopup('activityEditPopup')">✕</button>
-      <div class="insert-mode-title">Edit Activity</div>
+      <div class="insert-mode-title" id="activityEditTitle">Edit Activity</div>
       <div style="width:30px;flex-shrink:0;"></div>
     </div>
     <div class="insert-mode-body">
+      <div class="form-field required" data-field="activityNumber" onclick="this.querySelector('input').focus()">
+        <span class="field-label">Activity</span>
+        <input class="act-num-big-input" id="fv-activityNumber" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,''); markDirty();">
+      </div>
+
       <div class="section-card">
-        <div class="form-field" style="align-items:flex-start;" onclick="this.querySelector('textarea').focus()">
-          <span class="field-label">Name</span>
+        <div class="form-field stacked" onclick="this.querySelector('textarea').focus()">
+          <span class="field-label">Note</span>
           <textarea class="field-inline-input" id="activityEditName" rows="1" maxlength="255" oninput="updateInlineFieldLayout(this)"></textarea>
         </div>
       </div>
+
       <div class="section-card">
-        <div class="section-card-header"><span class="section-card-title">Discipline</span></div>
-        <div style="display:flex;gap:8px;padding:12px 14px;flex-wrap:wrap;" id="activityEditDisciplineChips"></div>
+        <div class="equip-attrs">
+          <div class="attr-item full-width required" data-field="activityTrade" onclick="openLov('activityTrade')">
+            <span class="attr-label">Trade</span>
+            <div class="attr-value">
+              <div style="display:flex;flex-direction:column;align-items:flex-start;">
+                <span class="attr-text" id="fv-activityTrade-desc"></span>
+                <span id="fv-activityTrade-code" style="display:none;font-family:var(--font-mono);font-size:10px;color:var(--gray-4);margin-top:1px;"></span>
+              </div>
+            </div>
+          </div>
+          <div class="attr-item required" data-field="activityStartDate" onclick="openDate('activityStartDate','Start Date')">
+            <span class="attr-label">Start Date</span>
+            <div class="attr-value"><span class="attr-text" id="fv-activityStartDate"></span></div>
+          </div>
+          <div class="attr-item required" data-field="activityEndDate" onclick="openDate('activityEndDate','End Date')">
+            <span class="attr-label">End Date</span>
+            <div class="attr-value"><span class="attr-text" id="fv-activityEndDate"></span></div>
+          </div>
+          <div class="attr-item required" data-field="activityPeopleRequired" onclick="this.querySelector('input').focus()">
+            <span class="attr-label">People Required</span>
+            <div class="attr-value"><input class="attr-text-input" id="fv-activityPeopleRequired" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,''); markDirty();"></div>
+          </div>
+          <div class="attr-item required" data-field="activityEstimatedHours" onclick="this.querySelector('input').focus()">
+            <span class="attr-label">Estimated Hours</span>
+            <div class="attr-value"><input class="attr-text-input" id="fv-activityEstimatedHours" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,''); markDirty();"></div>
+          </div>
+          <div class="attr-item" data-field="activityTaskPlan" onclick="openLov('activityTaskPlan')">
+            <span class="attr-label">Task Plan</span>
+            <div class="attr-value">
+              <div style="display:flex;flex-direction:column;align-items:flex-start;">
+                <span class="attr-text" id="fv-activityTaskPlan-desc"></span>
+                <span id="fv-activityTaskPlan-code" style="display:none;font-family:var(--font-mono);font-size:10px;color:var(--gray-4);margin-top:1px;"></span>
+              </div>
+            </div>
+          </div>
+          <div class="attr-item" data-field="activityMaterialList" onclick="openLov('activityMaterialList')">
+            <span class="attr-label">Material List</span>
+            <div class="attr-value">
+              <div style="display:flex;flex-direction:column;align-items:flex-start;">
+                <span class="attr-text" id="fv-activityMaterialList-desc"></span>
+                <span id="fv-activityMaterialList-code" style="display:none;font-family:var(--font-mono);font-size:10px;color:var(--gray-4);margin-top:1px;"></span>
+              </div>
+            </div>
+          </div>
+          <div class="attr-item full-width required" data-field="activityStatus" onclick="openLov('activityStatus')">
+            <span class="attr-label">Assignment Status</span>
+            <div class="attr-value"><span class="attr-text" id="fv-activityStatus-desc"></span></div>
+          </div>
+        </div>
       </div>
-      <div class="section-card">
-        <div class="form-field protected">
-          <span class="field-label">Date</span>
-          <span class="field-value muted" id="activityEditDate"></span>
-          <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+
+      <div class="section-card collapsed" id="activityMoreCard">
+        <div class="section-card-header" onclick="toggleSectionCard(this)">
+          <span class="section-card-title">Additional Details</span>
+          <svg class="section-card-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <div class="form-field protected">
-          <span class="field-label">Code 1</span>
-          <span class="field-value muted" id="activityEditCode1"></span>
-          <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <div class="section-card-body">
+          <div class="form-field" data-field="activityMultipleTrades" onclick="toggleCheckbox(this)">
+            <span class="field-label">Multiple Trades</span>
+            <div class="field-checkbox"></div>
+          </div>
+          <div class="form-field" data-field="activityHoursRemaining" onclick="openEdit('activityHoursRemaining','Hours Remaining','number')">
+            <span class="field-label">Hours Remaining</span>
+            <span class="field-value" id="fv-activityHoursRemaining"></span>
+            <span class="field-chevron">›</span>
+          </div>
+          <div class="form-field protected" data-field="activityScheduledHours">
+            <span class="field-label">Scheduled Hours</span>
+            <span class="field-value muted" id="fv-activityScheduledHours"></span>
+            <span class="field-lock"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          </div>
+          <div class="form-field" data-field="activityHiredLabor" onclick="toggleCheckbox(this); onActivityHiredLaborToggled()">
+            <span class="field-label">Hired Labor</span>
+            <div class="field-checkbox"></div>
+          </div>
+          <div class="form-field protected" data-field="activitySupplier" id="activitySupplierField" onclick="onActivityProtectedFieldTap('activitySupplier','Supplier')">
+            <span class="field-label">Supplier</span>
+            <span class="field-value muted" id="fv-activitySupplier">—</span>
+            <span class="field-chevron" style="display:none;">›</span>
+            <span class="field-lock"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          </div>
+          <div class="form-field protected" data-field="activityLaborType" id="activityLaborTypeField" onclick="onActivityProtectedFieldTap('activityLaborType','Labor Type')">
+            <span class="field-label">Labor Type</span>
+            <span class="field-value muted" id="fv-activityLaborType">—</span>
+            <span class="field-chevron" style="display:none;">›</span>
+            <span class="field-lock"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+          </div>
+          <div class="form-field" data-field="activityCompleted" onclick="toggleCheckbox(this)">
+            <span class="field-label">Completed</span>
+            <div class="field-checkbox"></div>
+          </div>
         </div>
-        <div class="form-field protected" id="activityEditCode2Row">
-          <span class="field-label">Code 2</span>
-          <span class="field-value muted" id="activityEditCode2"></span>
-          <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+
+      <div class="section-card collapsed" id="activityCommentsCard">
+        <div class="section-card-header" onclick="toggleSectionCard(this)">
+          <span class="section-card-title">Activity Comments</span>
+          <svg class="section-card-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
+        <div class="section-card-body" id="activityCommentsBody"></div>
       </div>
     </div>
     <div class="insert-mode-footer">
@@ -441,19 +609,26 @@
    all behavior comes from shared/eam-shared.js. ── */
 
 /* WO icon language (§14.7 note, ported from eam-wo-list-prototype-v5_1.html) —
-   same icon+colour pairs Type/Priority use everywhere else in the app. */
+   same icon shapes Type/Priority use everywhere else in the app. Palette
+   pass, 2026-07-22: no more per-code `color` — every badge is outlined/
+   monochrome by default (icon shape alone carries the specific meaning),
+   except Priority CRITICAL, which keeps the one deliberate red exception
+   (`critical:true`, read by fieldRowBadgeAttr() below and eam-shared.js's
+   renderColorBadge()). Icon SVGs use stroke/fill="currentColor" (was a
+   hardcoded "white", back when every badge had a saturated color fill
+   behind it) so they pick up whichever badge class's `color` applies. */
 const TYPE_META = {
-  BK:  { color: '#E24B4A', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
-  CAL: { color: '#007B87', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>' },
-  CM:  { color: '#F46600', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>' },
-  BREAKDOWN: { color: '#E24B4A', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
-  PM:  { color: '#00AA14', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg>' },
+  BK:  { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
+  CAL: { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>' },
+  CM:  { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>' },
+  BREAKDOWN: { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
+  PM:  { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg>' },
 };
 const PRIORITY_META = {
-  LOW:      { color: '#00AA14', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="2" fill="white" stroke="none"/></svg>' },
-  MEDIUM:   { color: '#F46600', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg>' },
-  HIGH:     { color: '#E24B4A', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="5,15 12,8 19,15"/></svg>' },
-  CRITICAL: { color: '#E24B4A', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-7 7 7 7 0 01-7-7c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>' },
+  LOW:      { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>' },
+  MEDIUM:   { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg>' },
+  HIGH:     { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="5,15 12,8 19,15"/></svg>' },
+  CRITICAL: { critical: true, icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-7 7 7 7 0 01-7-7c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>' },
 };
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -499,19 +674,45 @@ const RECORD = NEW_RECORD ? {
   reportedBy: { code: 'DKILBURN', desc: 'Danny Kilburn' },
   dateReported: '2025-11-07',
   problemCode: { code: 'MECH', desc: 'Mechanical' },
-  type: { code: 'CM', desc: 'Corrective Maintenance' },
+  type: { code: 'BREAKDOWN', desc: 'Breakdown' },
   priority: { code: 'HIGH', desc: 'High' },
   equipment: { code: '00067333', desc: 'Pump, Centrifugal', class: 'Pump', category: 'Centrifugal', type: 'Asset' },
   selectedActivity: null, // set below, once ACTIVITIES exists — §15.2: auto-selected only when exactly one activity exists.
 };
+// Activity Insert/Update Mode's own LOV domains (§15.2, built out
+// 2026-07-22) — small fixed lists, same reason __status/type/priority
+// skip search below.
+const ACTIVITY_TRADE_OPTIONS = [
+  { code: 'TECH', desc: 'Technician' },
+  { code: 'MECH', desc: 'Mechanical' },
+  { code: 'ELEC', desc: 'Electrical' },
+  { code: 'PLUMB', desc: 'Plumbing' },
+];
+const ACTIVITY_STATUS_OPTIONS = [
+  { code: 'UNFIN', desc: 'Unfinished' },
+  { code: 'INPROG', desc: 'In Progress' },
+  { code: 'COMP', desc: 'Completed' },
+];
+const ACTIVITY_TASK_PLAN_OPTIONS = [
+  { code: '0001-DEFAULT', desc: 'Default Task Plan' },
+  { code: 'TP-PUMP-01', desc: 'Pump Overhaul Task Plan' },
+];
+const ACTIVITY_MATERIAL_LIST_OPTIONS = [
+  { code: 'ML-STD-01', desc: 'Standard Parts List' },
+  { code: 'ML-PUMP-01', desc: 'Pump Rebuild Kit' },
+];
 const LOV_DATA = {
-  __status: [{code:'RELEASED',desc:'Released'},{code:'IN_PROGRESS',desc:'In Progress'},{code:'COMPLETED',desc:'Completed'},{code:'HOLD',desc:'On Hold'}],
+  __status: [{code:'WAPPR',desc:'Work Request'},{code:'RELEASED',desc:'Released'},{code:'CLOSE',desc:'Closed'}],
   type: [{code:'CM',desc:'Corrective Maintenance'},{code:'PM',desc:'Preventive Maintenance'},{code:'BREAKDOWN',desc:'Breakdown'}],
   priority: [{code:'LOW',desc:'Low'},{code:'MEDIUM',desc:'Medium'},{code:'HIGH',desc:'High'},{code:'CRITICAL',desc:'Critical'}],
   department: [{code:'WATER',desc:'Water Utility'},{code:'MAINT',desc:'Maintenance'},{code:'OPS',desc:'Operations'}],
   assignedTo: [{code:'BCAMPBELL',desc:'Bruce Campbell'},{code:'JRODRIGUEZ',desc:'Juan Rodriguez'},{code:'MKUMAR',desc:'Meera Kumar'}],
   reportedBy: [{code:'DKILBURN',desc:'Danny Kilburn'},{code:'RSMITH',desc:'Rachel Smith'},{code:'PJONES',desc:'Pat Jones'}],
   problemCode: [{code:'MECH',desc:'Mechanical'},{code:'ELEC',desc:'Electrical'},{code:'HYDRAULIC',desc:'Hydraulic'}],
+  activityTrade: ACTIVITY_TRADE_OPTIONS,
+  activityStatus: ACTIVITY_STATUS_OPTIONS,
+  activityTaskPlan: ACTIVITY_TASK_PLAN_OPTIONS,
+  activityMaterialList: ACTIVITY_MATERIAL_LIST_OPTIONS,
 };
 const FIELD_LABELS = {
   department: 'Department', assignedTo: 'Assigned To', reportedBy: 'Reported By',
@@ -522,12 +723,15 @@ const LOV_CURRENT = {
   reportedBy: RECORD.reportedBy.code, problemCode: RECORD.problemCode.code,
   type: RECORD.type.code, priority: RECORD.priority.code,
   __status: (NEW_RECORD && NEW_RECORD.status && NEW_RECORD.status.code) || 'RELEASED',
+  activityTrade: '', activityStatus: '', activityTaskPlan: '', activityMaterialList: '',
 };
 const LOV_TITLES = {
   department: 'Department', assignedTo: 'Assigned To', reportedBy: 'Reported By',
   problemCode: 'Problem Code', type: 'Type', priority: 'Priority', __status: 'Status',
+  activityTrade: 'Trade', activityStatus: 'Assignment Status',
+  activityTaskPlan: 'Task Plan', activityMaterialList: 'Material List',
 };
-const NO_SEARCH_LOVS = new Set(['__status', 'type', 'priority']);
+const NO_SEARCH_LOVS = new Set(['__status', 'type', 'priority', 'activityTrade', 'activityStatus', 'activityTaskPlan', 'activityMaterialList']);
 // Only __status is listed here — it drives the header status button, which
 // has no data-field element to carry a 'required' class on. Every other
 // required field (Department, Problem Code, Type below) is marked via the
@@ -539,7 +743,14 @@ const BADGE_LOV_META = { type: TYPE_META, priority: PRIORITY_META };
 // screen-provided map lets eam-shared.js's selectLov() drive the same 3
 // fill colours off different codes (§15.4 "Status fill colour" — hardcoded
 // stand-in; real system should be data-driven from reference-data config).
-const STATUS_CLASS_MAP = { RELEASED: 'st-operational', IN_PROGRESS: 'st-standby', COMPLETED: 'st-operational', HOLD: 'st-down' };
+// Locked 2026-07-22 (punch-list item — status colour was undefined for
+// Work Request): pre-delivered statuses are kept to exactly the 3 real
+// system statuses (Work Request/Released/Closed) — a customer's own user
+// statuses nest under one of these three, which is what actually carries
+// the colour. Green is reserved for "live/active work" only (Released) —
+// both before (Work Request) and after (Closed) render neutral/outlined,
+// so green never means "closed" (see design-decisions-v3-1.md §15.4).
+const STATUS_CLASS_MAP = { WAPPR: 'st-standby', RELEASED: 'st-operational', CLOSE: 'st-standby' };
 // Custom Fields (§22) gating values — not user-visible/editable fields
 // on this screen (no design decision yet to add a Class picker here),
 // just what selects this WO's Custom Fields set from data/custom_field_
@@ -584,10 +795,28 @@ const DOC_ICON_SVG = {
 const DOCUMENTS_EXCERPT_MOUNT = 'rv-documents';
 const DOCUMENTS_BADGE_ID = 'documentsBadgeCount';
 
+// Activity 10's discipline corrected Technician → Mechanical (the
+// activity IS a bearing replacement — a mechanical task); Activity 20
+// has no note (name: ''), the one deliberately-optional field, so the
+// row's graceful collapse-when-null actually gets exercised, not just
+// theorized about. Dates are ISO now, formatted through isoToDisplay()
+// at render time — matches every other date on this app instead of a
+// hand-typed spelled-month string. Full field set (People Required/
+// Estimated Hours/Task Plan/Material List/Assignment Status/etc.) added
+// 2026-07-22 once the Activity Insert/Update Mode popup below was built
+// out to capture them — supersedes the 2026-07-22 punch-list note that
+// had dropped Task Plan/Material List down to "Trade + Start Date only";
+// the act-item summary CARD is unchanged (still just Trade + Start Date),
+// only the edit/add POPUP now captures the fuller set, off-by-default
+// for the two fields (taskPlan/materialList) that were dropped.
 const ACTIVITIES = NEW_RECORD ? [] : [
-  { id: '10', num: 'Activity 10', name: 'Pump overhaul — bearing replacement', discipline: 'Technician', date: 'Nov 7, 2025', code1: 'PUMP-OVERHESTI', code2: 'DIS-PUMP-REPAIR' },
-  { id: '20', num: 'Activity 20', name: 'Post-repair inspection and run test', discipline: 'Technician', date: 'Nov 7, 2025', code1: 'PUMP-INSPECT', code2: null },
+  { id: '10', num: 'Activity 10', name: 'Pump overhaul — bearing replacement', discipline: 'Mechanical', date: '2025-11-07', endDate: '2025-11-07', peopleRequired: 2, estimatedHours: 6, assignmentStatus: 'In Progress', taskPlan: '', materialList: '', multipleTrades: false, hoursRemaining: 3, scheduledHours: 6, hiredLabor: false, supplier: '', laborType: '', completed: false, comments: [] },
+  { id: '20', num: 'Activity 20', name: '', discipline: 'Technician', date: '2025-11-07', endDate: '2025-11-07', peopleRequired: 1, estimatedHours: 2, assignmentStatus: 'Unfinished', taskPlan: '', materialList: '', multipleTrades: false, hoursRemaining: 2, scheduledHours: 2, hiredLabor: false, supplier: '', laborType: '', completed: false, comments: [] },
 ];
+// Trade cell needs a code alongside discipline's own description — derived
+// from ACTIVITY_TRADE_OPTIONS (the popup's own Trade LOV domain) rather
+// than a 2nd hand-typed map, so the card and the popup can never drift.
+const DISCIPLINE_CODE = Object.fromEntries(ACTIVITY_TRADE_OPTIONS.map(o => [o.desc, o.code]));
 // §15.2: exactly one activity auto-selects at load (nothing else for the
 // technician to choose between); two or more leaves nothing selected, so
 // the bottom bar starts locked and the choice is explicit. A brand-new WO
@@ -614,12 +843,15 @@ if (NEW_RECORD) {
    ═══════════════════════════════════════════════════════════════════════ */
 function navBack() {
   // Opened from the Sync Status Screen's review flow (§4.5, 2026-07-20)?
-  // Send the technician back there instead of the generic WO list stub —
-  // consume-once, same lifetime as eamSyncErrorContext.
+  // Send the technician back there instead of the WO list — consume-once,
+  // same lifetime as eamSyncErrorContext.
   const returnUrl = sessionStorage.getItem('eamSyncReturnUrl');
   if (returnUrl) { sessionStorage.removeItem('eamSyncReturnUrl'); location.href = returnUrl; return; }
   autosaveIfDirty();
-  showToast('← Back to WO list');
+  // Real navigation (2026-07-22 nav pass) — was a toast stub. WO Record
+  // View is a true Record View, so back means "the WO list," not a
+  // workflow-step's previous step.
+  location.href = 'eam-wo-list-prototype-v5_1.html';
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -632,7 +864,7 @@ function navBack() {
 function fieldRowBadgeAttr(key, metaMap, required, fullWidth) {
   const v = RECORD[key];
   const meta = metaMap[v.code];
-  const badge = meta ? `<span class="attr-badge" id="fv-${key}-badge" style="background:${meta.color}">${meta.icon}</span>` : `<span class="attr-badge" id="fv-${key}-badge"></span>`;
+  const badge = meta ? `<span class="attr-badge${meta.critical ? ' attr-badge-critical' : ' attr-badge-outline'}" id="fv-${key}-badge">${meta.icon}</span>` : `<span class="attr-badge attr-badge-outline" id="fv-${key}-badge"></span>`;
   return `<div class="attr-item${fullWidth ? ' full-width' : ''}${required ? ' required' : ''}" data-field="${key}" onclick="openLov('${key}')">
     <span class="attr-label">${FIELD_LABELS[key]}</span>
     <div class="attr-value">${badge}<span class="attr-text" id="fv-${key}-desc">${v.desc}</span></div>
@@ -654,18 +886,18 @@ function selectActivity(id) {
   updateStartGate();
 }
 function renderActivitiesListHTML() {
-  if (!ACTIVITIES.length) return `<div class="activity-add-row" onclick="showToast('Create activity — coming soon')"><span class="comment-add-plus">+</span> Add Activity</div>`;
+  if (!ACTIVITIES.length) return `<div class="comment-add-row" onclick="showToast('Create activity — coming soon')"><span class="comment-add-plus">+</span> Add Activity</div>`;
   return ACTIVITIES.map(a => `
-    <div class="act-item${a.id===RECORD.selectedActivity?' selected':''}" id="act${a.id}" onclick="selectActivity('${a.id}')" data-act="${a.id}">
-      <div class="act-radio"><svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="act-item${a.id===RECORD.selectedActivity?' selected':''}${a.name ? ' has-note' : ''}" id="act${a.id}" onclick="selectActivity('${a.id}')" data-act="${a.id}">
+      <div class="act-radio"><svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="act-num-big">${a.id}</div>
       <div class="act-info">
-        <div class="act-num">${a.num}</div>
-        <div class="act-name">${a.name}</div>
-        <div class="act-discipline">${a.discipline}</div>
-        <div class="act-meta-row">
-          <span>${a.date}</span>
-          <span>${a.code1}</span>
-          ${a.code2 ? `<span>${a.code2}</span>` : ''}
+        ${a.name ? `<div class="act-name">${a.name}</div>` : ''}
+        <div class="act-meta-block">
+          <div class="meta-grid-a">
+            <div class="meta-cell-a"><span class="meta-cell-label">Trade</span><span class="trade-code">${DISCIPLINE_CODE[a.discipline] || ''}</span><span class="trade-desc">${a.discipline}</span></div>
+            <div class="meta-cell-a"><span class="meta-cell-label">Start Date</span><span class="date-val">${isoToDisplay(a.date)}</span></div>
+          </div>
         </div>
       </div>
     </div>
@@ -673,49 +905,206 @@ function renderActivitiesListHTML() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   ACTIVITY EDIT POPUP — non-standard, unique to Activities on WO Record
-   View (§15.2). Edits the currently *selected* activity (RECORD.
-   selectedActivity), not a generic per-row action — there's no shared
-   component for this (it isn't the Standard Model's field-row pattern,
-   since an activity is an item inside the ACTIVITIES array, not a flat
-   RECORD-keyed field). Name + Discipline are editable; Date/Code1/Code2
-   stay protected/read-only in this pass — this popup exists to prove the
-   "hyperlinked popup" shell can host a real edit form, not to build every
-   Activity field's edit behavior.
+   ACTIVITY INSERT/UPDATE MODE — non-standard, unique to Activities on WO
+   Record View (§15.2). Built out 2026-07-22 (previously just a bare-bones
+   Name/Discipline/Date edit popup, and Insert Mode didn't exist at all —
+   "Add activity" was a toast stub). No shared component for this: an
+   activity is an item inside the ACTIVITIES array, not a flat RECORD-
+   keyed field, so it can't just reuse RECORD[key]-based helpers directly
+   — instead it leans on the SAME generic openLov/openEdit/openDate/
+   toggleCheckbox helpers eam-shared.js already provides for flat fields,
+   just pointed at scratch keys (LOV_CURRENT.activityTrade, RECORD.
+   activityStartDate/activityEndDate) that exist only while this popup is
+   open, then read back into the real ACTIVITIES array item on Save. Both
+   modes share one popup + one activityDraft reference:
+     - openActivityAddPopup() — Insert Mode, next AUTOINCR number
+       (existing max + 10, or 10 if none), everything else blank/default.
+     - openActivityEditPopup() — Update Mode, edits RECORD.selectedActivity.
    ═══════════════════════════════════════════════════════════════════════ */
-const DISCIPLINE_OPTIONS = ['Technician', 'Mechanical', 'Electrical', 'Plumbing'];
 let activeEditingActivityId = null;
+let isNewActivity = false;
+let activityDraft = null;
+
+// Plain local-date ISO string ("sysdate"), not toISOString() — that
+// shifts to UTC first, which silently shows yesterday's date for anyone
+// west of UTC in the evening. Same y/m/d-component approach isoToDisplay()
+// already trusts elsewhere.
+function todayIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function openActivityAddPopup() {
+  isNewActivity = true;
+  activeEditingActivityId = null;
+  const nextNum = ACTIVITIES.length ? Math.max(...ACTIVITIES.map(a => parseInt(a.id, 10))) + 10 : 10;
+  const today = todayIso();
+  activityDraft = {
+    id: String(nextNum), num: 'Activity ' + nextNum, name: '', discipline: '', date: today, endDate: today,
+    peopleRequired: 1, estimatedHours: 1, assignmentStatus: 'Unfinished', taskPlan: '', materialList: '',
+    multipleTrades: false, hoursRemaining: '', scheduledHours: '', hiredLabor: false, supplier: '', laborType: '',
+    completed: false, comments: [],
+  };
+  document.getElementById('activityEditTitle').textContent = 'Add Activity';
+  populateActivityPopup(activityDraft);
+  openHyperlinkPopup('activityEditPopup');
+}
 function openActivityEditPopup() {
   const id = RECORD.selectedActivity;
   if (!id) { showToast('Select an activity to edit'); return; }
+  isNewActivity = false;
   activeEditingActivityId = id;
-  const act = ACTIVITIES.find(a => a.id === id);
-  const nameInput = document.getElementById('activityEditName');
-  nameInput.value = act.name;
-  document.getElementById('activityEditDisciplineChips').innerHTML = DISCIPLINE_OPTIONS.map(d => `
-    <button class="mode-btn${d===act.discipline?' active':''}" style="flex:none;padding:8px 14px;" onclick="selectActivityDiscipline('${d}')">${d}</button>`).join('');
-  document.getElementById('activityEditDate').textContent = act.date;
-  document.getElementById('activityEditCode1').textContent = act.code1;
-  const code2Row = document.getElementById('activityEditCode2Row');
-  if (act.code2) { code2Row.style.display = ''; document.getElementById('activityEditCode2').textContent = act.code2; }
-  else { code2Row.style.display = 'none'; }
+  activityDraft = ACTIVITIES.find(a => a.id === id);
+  document.getElementById('activityEditTitle').textContent = 'Edit Activity';
+  populateActivityPopup(activityDraft);
   openHyperlinkPopup('activityEditPopup');
-  setTimeout(() => autoGrow(nameInput), 50);
 }
-function selectActivityDiscipline(discipline) {
-  const act = ACTIVITIES.find(a => a.id === activeEditingActivityId);
-  if (act) act.discipline = discipline;
-  document.querySelectorAll('#activityEditDisciplineChips .mode-btn').forEach(b => b.classList.toggle('active', b.textContent === discipline));
+// Shared population routine — Insert and Update mode both render through
+// this, so a field added here automatically works for both. "Additional
+// Details" and "Activity Comments" are reset collapsed on every open
+// (delivered collapsed), regardless of how they were left last time.
+function populateActivityPopup(act) {
+  document.getElementById('fv-activityNumber').value = act.id;
+
+  const nameInput = document.getElementById('activityEditName');
+  nameInput.value = act.name || '';
+  setTimeout(() => autoGrow(nameInput), 50);
+
+  const tradeCode = DISCIPLINE_CODE[act.discipline] || '';
+  LOV_CURRENT.activityTrade = tradeCode;
+  setLovCellText('activityTrade', tradeCode, act.discipline);
+
+  RECORD.activityStartDate = act.date || '';
+  RECORD.activityEndDate = act.endDate || '';
+  document.getElementById('fv-activityStartDate').textContent = act.date ? isoToDisplay(act.date) : '';
+  document.getElementById('fv-activityEndDate').textContent = act.endDate ? isoToDisplay(act.endDate) : '';
+
+  document.getElementById('fv-activityPeopleRequired').value = act.peopleRequired ?? '';
+  document.getElementById('fv-activityEstimatedHours').value = act.estimatedHours ?? '';
+
+  LOV_CURRENT.activityTaskPlan = act.taskPlan || '';
+  const tpOpt = ACTIVITY_TASK_PLAN_OPTIONS.find(o => o.code === act.taskPlan);
+  setLovCellText('activityTaskPlan', act.taskPlan || '', tpOpt ? tpOpt.desc : 'Select…');
+
+  LOV_CURRENT.activityMaterialList = act.materialList || '';
+  const mlOpt = ACTIVITY_MATERIAL_LIST_OPTIONS.find(o => o.code === act.materialList);
+  setLovCellText('activityMaterialList', act.materialList || '', mlOpt ? mlOpt.desc : 'Select…');
+
+  const statusOpt = ACTIVITY_STATUS_OPTIONS.find(o => o.desc === act.assignmentStatus);
+  LOV_CURRENT.activityStatus = statusOpt ? statusOpt.code : 'UNFIN';
+  document.getElementById('fv-activityStatus-desc').textContent = act.assignmentStatus || 'Unfinished';
+
+  document.getElementById('activityMoreCard').classList.add('collapsed');
+  document.getElementById('activityCommentsCard').classList.add('collapsed');
+  setActivityChecked('activityMultipleTrades', act.multipleTrades);
+  document.getElementById('fv-activityHoursRemaining').textContent = act.hoursRemaining ?? '';
+  document.getElementById('fv-activityScheduledHours').textContent = act.scheduledHours ?? '';
+  setActivityChecked('activityHiredLabor', act.hiredLabor);
+  document.getElementById('fv-activitySupplier').textContent = act.supplier || '—';
+  document.getElementById('fv-activityLaborType').textContent = act.laborType || '—';
+  setActivityFieldProtected('activitySupplier', !act.hiredLabor);
+  setActivityFieldProtected('activityLaborType', !act.hiredLabor);
+  setActivityChecked('activityCompleted', act.completed);
+
+  document.getElementById('activityCommentsBody').innerHTML = renderActivityCommentsHTML(act);
+}
+// Small helper for the LOV grid cells that show code (mono, small) above
+// description — Trade/Task Plan/Material List all use this same shape.
+function setLovCellText(key, code, desc) {
+  const descEl = document.getElementById(`fv-${key}-desc`);
+  const codeEl = document.getElementById(`fv-${key}-code`);
+  descEl.textContent = desc || 'Select…';
+  descEl.classList.toggle('muted', !desc);
+  if (codeEl) { codeEl.textContent = code; codeEl.style.display = code ? '' : 'none'; }
+}
+function isActivityChecked(field) {
+  const box = document.querySelector(`#activityEditPopup [data-field="${field}"] .field-checkbox`);
+  return !!box && box.classList.contains('checked');
+}
+function setActivityChecked(field, val) {
+  const box = document.querySelector(`#activityEditPopup [data-field="${field}"] .field-checkbox`);
+  if (!box) return;
+  box.classList.toggle('checked', !!val);
+  box.innerHTML = val ? '<svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>' : '';
+}
+// Hired Labor unlocks Supplier/Labor Type — same mutual-unlock shape as
+// Book Labor's own Employee/Crew protect (§18.7), just a checkbox instead
+// of an LOV pick driving it.
+function onActivityHiredLaborToggled() {
+  const on = isActivityChecked('activityHiredLabor');
+  setActivityFieldProtected('activitySupplier', !on);
+  setActivityFieldProtected('activityLaborType', !on);
+}
+function setActivityFieldProtected(field, isProtected) {
+  const row = document.getElementById(field + 'Field');
+  row.classList.toggle('protected', isProtected);
+  const val = document.getElementById('fv-' + field);
+  const chev = row.querySelector('.field-chevron');
+  const lock = row.querySelector('.field-lock');
+  chev.style.display = isProtected ? 'none' : '';
+  lock.style.display = isProtected ? 'flex' : 'none';
+  if (isProtected && (!val.textContent || val.textContent === 'Select…')) val.textContent = '—';
+  if (!isProtected && val.textContent === '—') val.textContent = 'Select…';
+  val.classList.toggle('muted', isProtected || val.textContent === 'Select…');
+}
+function onActivityProtectedFieldTap(field, label) {
+  if (document.getElementById(field + 'Field').classList.contains('protected')) return;
+  openEdit(field, label, 'text');
+}
+function renderActivityCommentsHTML(act) {
+  const rows = (act.comments || []).map(c => `
+    <div class="comment-item"><div class="comment-header"><span class="comment-author">${c.author}</span><span class="comment-time">${c.time}</span></div><p class="comment-text">${c.text}</p></div>`).join('');
+  return `<div class="comment-add-row" onclick="openTextEditor('__activityComment','Add Comment',(t)=>addActivityComment(t))"><span class="comment-add-plus">+</span> Add comment</div>${rows || '<div class="field-caption">No comments yet.</div>'}`;
+}
+function addActivityComment(text) {
+  if (!text.trim() || !activityDraft) return;
+  activityDraft.comments = activityDraft.comments || [];
+  const now = new Date();
+  activityDraft.comments.push({
+    author: CURRENT_USER_NAME + ' (You)',
+    time: `${now.toLocaleDateString('en-US',{month:'short',day:'numeric'})} · ${now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}`,
+    text,
+  });
+  document.getElementById('activityCommentsBody').innerHTML = renderActivityCommentsHTML(activityDraft);
+  markDirty();
 }
 function saveActivityEdit() {
-  const act = ACTIVITIES.find(a => a.id === activeEditingActivityId);
-  if (act) {
-    act.name = document.getElementById('activityEditName').value;
-    markDirty();
+  const tradeCode = LOV_CURRENT.activityTrade;
+  const tradeOpt = ACTIVITY_TRADE_OPTIONS.find(o => o.code === tradeCode);
+  const supplierVal = document.getElementById('fv-activitySupplier').textContent;
+  const laborTypeVal = document.getElementById('fv-activityLaborType').textContent;
+  const data = {
+    id: document.getElementById('fv-activityNumber').value.trim(),
+    num: 'Activity ' + document.getElementById('fv-activityNumber').value.trim(),
+    name: document.getElementById('activityEditName').value,
+    discipline: tradeOpt ? tradeOpt.desc : '',
+    date: RECORD.activityStartDate || '',
+    endDate: RECORD.activityEndDate || '',
+    peopleRequired: document.getElementById('fv-activityPeopleRequired').value,
+    estimatedHours: document.getElementById('fv-activityEstimatedHours').value,
+    assignmentStatus: document.getElementById('fv-activityStatus-desc').textContent,
+    taskPlan: LOV_CURRENT.activityTaskPlan || '',
+    materialList: LOV_CURRENT.activityMaterialList || '',
+    multipleTrades: isActivityChecked('activityMultipleTrades'),
+    hoursRemaining: document.getElementById('fv-activityHoursRemaining').textContent,
+    scheduledHours: document.getElementById('fv-activityScheduledHours').textContent,
+    hiredLabor: isActivityChecked('activityHiredLabor'),
+    supplier: supplierVal === '—' ? '' : supplierVal,
+    laborType: laborTypeVal === '—' ? '' : laborTypeVal,
+    completed: isActivityChecked('activityCompleted'),
+    comments: (activityDraft && activityDraft.comments) || [],
+  };
+  if (isNewActivity) {
+    ACTIVITIES.push(data);
+    RECORD.selectedActivity = data.id;
+  } else {
+    const idx = ACTIVITIES.findIndex(a => a.id === activeEditingActivityId);
+    if (idx !== -1) ACTIVITIES[idx] = data;
   }
+  markDirty();
   closeHyperlinkPopup('activityEditPopup');
   document.getElementById('rv-activities').innerHTML = renderActivitiesListHTML();
-  showToast('Activity updated');
+  updateStartGate();
+  showToast(isNewActivity ? 'Activity added' : 'Activity updated');
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -736,30 +1125,12 @@ function saveActivityEdit() {
    (Insert Mode's empty state) has no class either, so the same rule
    applies there — no icon on that state either.
    ═══════════════════════════════════════════════════════════════════════ */
-const EQUIP_ICON_SVG = '<svg width="20" height="20" fill="none" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
-const EQUIP_CLASS_ICONS = { Pump: EQUIP_ICON_SVG, Motor: EQUIP_ICON_SVG, Compressor: EQUIP_ICON_SVG, Blower: EQUIP_ICON_SVG };
+// EQUIP_ICON_SVG/EQUIP_CLASS_ICONS and the card markup itself now live in
+// eam-shared.js's equipSummaryCardHTML() (2026-07-22 convergence with WO
+// Insert Mode, see eam-shared.css's comment) — this is just the RECORD-
+// field glue equipSummaryCardHTML() itself doesn't know about.
 function renderEquipCard() {
-  const e = RECORD.equipment;
-  if (!e) {
-    return `<div class="equip-summary-card empty" onclick="openEquipmentLookup('equipment')">
-      <div class="equip-summary-main">
-        <div class="equip-summary-info"><div class="equip-summary-desc">Tap to select equipment</div></div>
-        <svg class="equip-summary-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>`;
-  }
-  const classIcon = EQUIP_CLASS_ICONS[e.class];
-  return `<div class="equip-summary-card" onclick="openEquipmentLookup('equipment')">
-    <div class="equip-summary-main">
-      ${classIcon ? `<div class="equip-summary-icon">${classIcon}</div>` : ''}
-      <div class="equip-summary-info">
-        <div class="equip-summary-desc">${e.desc}</div>
-        <div class="equip-summary-meta">${e.code}</div>
-        <div class="equip-summary-type">${e.type}</div>
-      </div>
-      <svg class="equip-summary-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </div>
-  </div>`;
+  return equipSummaryCardHTML(RECORD.equipment, 'Tap to select equipment', "openEquipmentLookup('equipment')");
 }
 // Equipment LOV glue (§15.5, promoted 2026-07-21 — see eam-shared.js's
 // openEquipmentLookup()/commitEquipmentSelection()): this screen's
@@ -903,7 +1274,7 @@ function renderRecordViewTab() {
             <button class="rv-icon-btn" onclick="event.stopPropagation(); openActivityEditPopup()" aria-label="Edit selected activity" title="Edit selected activity">
               <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
             </button>
-            <button class="rv-icon-btn" onclick="event.stopPropagation(); showToast('Create activity — coming soon')" aria-label="Add activity" title="Add activity">
+            <button class="rv-icon-btn" onclick="event.stopPropagation(); openActivityAddPopup()" aria-label="Add activity" title="Add activity">
               <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
             </button>
             <svg class="rv-chev open" id="rv-chev-activities" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -952,7 +1323,23 @@ renderDocumentsExcerptMount();
 updateStartGate();
 applySyncErrorBanner();
 initDemoOnlineToggle();
+// Consume-once hand-off from WO List's real openWO() (2026-07-22, nav-bug
+// fix), same pattern as eamNewWoRecord/eamSyncReturnUrl — picks which of
+// the 3 demo WOs (cycleDemoWo()'s own set) this visit should land on
+// instead of always defaulting to 19257.
+const OPEN_DEMO_WO = sessionStorage.getItem('eamOpenDemoWo');
+if (OPEN_DEMO_WO) {
+  sessionStorage.removeItem('eamOpenDemoWo');
+  DEMO_WO = OPEN_DEMO_WO;
+  const demoWoBtn = document.getElementById('demoWoToggle');
+  if (demoWoBtn) demoWoBtn.textContent = '📋 WO ' + DEMO_WO;
+}
 onDemoWoChanged();
+// Arrived here via the step rail's Reference-group Comments/Documents
+// shortcut from one of the other 4 workflow screens (§14.2, 2026-07-22)?
+// Expand + scroll to that section — consume-once, same pattern as
+// eamSyncReturnUrl/eamArrivedViaNextStep elsewhere in this app.
+consumeJumpToSection();
 initSharedApp({ contentSelector: '.content' });
 </script>
 </body>

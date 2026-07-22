@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pill Color Options — Editable vs. Protected</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  PILL COLOR OPTIONS — editable vs. protected (2026-07-22, punch-list
+  circle-back item). Issue Parts' store-selector pill and Book Labor's
+  Add Labor Employee/Crew Header Fields cells are both "pill-shaped
+  fields that sometimes lock" — right now both just go gray+dimmed when
+  protected (Issue Parts' store pill has an explicit .protected state;
+  Book Labor's attr-item.protected is the identical mechanism). Gray on
+  "protected" reads fine; gray/white on "editable" doesn't clearly say
+  "you can tap this." Four options below, same two real components
+  (store-selector pill, Employee attr-item cell), both states each:
+
+  A — Current (baseline, no change): white/outline both states, only
+      the trailing chevron vs. lock icon differs.
+  B — Purple accent on editable only (a deliberate reuse of purple even
+      though §23 retired it as a general UI-state accent — the pitch
+      here is narrowly "this one still-open, still-tappable affordance
+      earns the exception," not a broad rollback of §23).
+  C — Green outline on editable (reuses the app's existing "live/
+      active" instrument, §23/§15.4's WO status lock — same language as
+      "this field is currently active/open for editing").
+  D — Solid ink fill on editable (same treatment as .btn-contained/
+      Add Labor's own Save button — "editable" reads as a real primary
+      action, not just a passive display row).
+
+  All four keep protected exactly as-is (gray fill, dimmed, lock icon) —
+  only the editable state's color changes across options.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --purple:#9933FF; --green:#00AA14; --red:#E24B4A;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-nav:#1A1A1F; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+[data-theme="dark"]{
+  --bg-page:#1A1A1F; --bg-card:#26252B; --bg-nav:#111114; --bg-section:#302F33; --border:#3E4047; --border-strong:#4A4C55;
+  --gray-1:#2A2930; --gray-2:#3E4047; --gray-3:#6F7480; --gray-4:#B2B8C4; --octave-black:#1A1A1F;
+}
+[data-theme="dark"] body{color:var(--white);}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--octave-black);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:520px;width:100%;color:#fff;font-size:12px;line-height:1.55;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;}
+.legend b{color:#fff;}
+.theme-row{display:flex;gap:8px;margin-bottom:16px;}
+.theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:5px 12px;cursor:pointer;}
+.wrap{max-width:520px;width:100%;display:flex;flex-direction:column;gap:14px;}
+.opt-card{background:var(--bg-page);border-radius:14px;padding:16px;}
+.opt-title{font-size:13px;font-weight:700;color:var(--octave-black);margin-bottom:2px;}
+[data-theme="dark"] .opt-title{color:var(--white);}
+.opt-sub{font-size:11px;color:var(--gray-4);margin-bottom:12px;}
+.row{display:flex;gap:10px;align-items:center;margin-bottom:8px;}
+.row-label{font-size:11px;color:var(--gray-4);width:64px;flex-shrink:0;}
+
+/* ── Base pill shapes (unchanged across all 4 options) ── */
+.pill{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:100px;font-size:13px;font-weight:600;background:var(--bg-card);border:1.5px solid var(--border-strong);color:var(--octave-black);cursor:pointer;transition:all .15s;}
+[data-theme="dark"] .pill{color:var(--white);}
+.cell{padding:12px 14px;border-radius:10px;background:var(--bg-card);border:1px solid var(--border);display:flex;flex-direction:column;gap:6px;min-width:150px;}
+.cell-label{font-size:13px;color:var(--gray-4);}
+.cell-value{font-size:14px;font-weight:600;color:var(--octave-black);display:flex;align-items:center;justify-content:space-between;gap:6px;}
+[data-theme="dark"] .cell-value{color:rgba(255,255,255,.9);}
+
+/* Protected (identical in all 4 options) */
+.protected{background:var(--bg-section);opacity:.75;cursor:default;}
+[data-theme="dark"] .protected{opacity:.6;}
+
+/* A — current: no extra rule needed, base styles already are this. */
+
+/* B — purple accent, editable only */
+.optB .pill.editable{border-color:var(--purple);color:var(--purple);}
+.optB .cell.editable{border-color:var(--purple);}
+.optB .cell.editable .cell-value{color:var(--purple);}
+
+/* C — green outline, editable only */
+.optC .pill.editable{border-color:var(--green);color:var(--green);}
+.optC .cell.editable{border-color:var(--green);}
+.optC .cell.editable .cell-value{color:var(--green);}
+
+/* D — solid ink fill, editable only */
+.optD .pill.editable{background:var(--octave-black);border-color:var(--octave-black);color:#fff;}
+[data-theme="dark"] .optD .pill.editable{background:#fff;border-color:#fff;color:var(--octave-black);}
+.optD .cell.editable{background:var(--octave-black);border-color:var(--octave-black);}
+.optD .cell.editable .cell-label{color:rgba(255,255,255,.6);}
+.optD .cell.editable .cell-value{color:#fff;}
+[data-theme="dark"] .optD .cell.editable{background:#fff;border-color:#fff;}
+[data-theme="dark"] .optD .cell.editable .cell-label{color:rgba(0,0,0,.5);}
+[data-theme="dark"] .optD .cell.editable .cell-value{color:var(--octave-black);}
+
+.icon{flex-shrink:0;display:flex;}
+</style>
+</head>
+<body>
+<div class="theme-row">
+  <button class="theme-toggle" onclick="document.documentElement.removeAttribute('data-theme')">☀ Light</button>
+  <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme','dark')">🌙 Dark</button>
+</div>
+<div class="legend">
+  Same two real fields (Issue Parts' store-selector pill, Book Labor's
+  Employee Header Fields cell) shown Editable vs. Protected across 4
+  color treatments. Only the <b>editable</b> state's color changes
+  option to option — protected stays identical (gray fill, dimmed,
+  lock icon) in all 4, matching every other protected field in the app.
+</div>
+<div class="wrap">
+
+  <div class="opt-card optA">
+    <div class="opt-title">A — Current (no change)</div>
+    <div class="opt-sub">Outline/white both states — only chevron vs. lock differs.</div>
+    <div class="row"><span class="row-label">Editable</span>
+      <button class="pill editable">IND-MAIN <svg class="icon" width="11" height="11" fill="none" viewBox="0 0 24 24" style="color:var(--gray-4)"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="cell editable" style="flex:1;"><span class="cell-label">Employee</span><span class="cell-value">Select employee</span></div>
+    </div>
+    <div class="row"><span class="row-label">Protected</span>
+      <div class="pill protected">IND-MAIN <svg class="icon" width="11" height="11" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div class="cell protected" style="flex:1;"><span class="cell-label">Crew</span><span class="cell-value">None</span></div>
+    </div>
+  </div>
+
+  <div class="opt-card optB">
+    <div class="opt-title">B — Purple accent (editable only)</div>
+    <div class="opt-sub">Reuses purple narrowly for this one still-open affordance — not a rollback of §23's general retirement of purple.</div>
+    <div class="row"><span class="row-label">Editable</span>
+      <button class="pill editable">IND-MAIN <svg class="icon" width="11" height="11" fill="none" viewBox="0 0 24 24" style="color:var(--purple)"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="cell editable" style="flex:1;"><span class="cell-label">Employee</span><span class="cell-value">Select employee</span></div>
+    </div>
+    <div class="row"><span class="row-label">Protected</span>
+      <div class="pill protected">IND-MAIN <svg class="icon" width="11" height="11" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div class="cell protected" style="flex:1;"><span class="cell-label">Crew</span><span class="cell-value">None</span></div>
+    </div>
+  </div>
+
+  <div class="opt-card optC">
+    <div class="opt-title">C — Green outline (editable only)</div>
+    <div class="opt-sub">Reuses the app's existing "live/active" instrument (WO status green) — reads as "open for input" using a color already in the vocabulary.</div>
+    <div class="row"><span class="row-label">Editable</span>
+      <button class="pill editable">IND-MAIN <svg class="icon" width="11" height="11" fill="none" viewBox="0 0 24 24" style="color:var(--green)"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="cell editable" style="flex:1;"><span class="cell-label">Employee</span><span class="cell-value">Select employee</span></div>
+    </div>
+    <div class="row"><span class="row-label">Protected</span>
+      <div class="pill protected">IND-MAIN <svg class="icon" width="11" height="11" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div class="cell protected" style="flex:1;"><span class="cell-label">Crew</span><span class="cell-value">None</span></div>
+    </div>
+  </div>
+
+  <div class="opt-card optD">
+    <div class="opt-title">D — Solid ink fill (editable only)</div>
+    <div class="opt-sub">Same treatment as .btn-contained/Add Labor's own Save — editable reads as a real primary action, not a passive row.</div>
+    <div class="row"><span class="row-label">Editable</span>
+      <button class="pill editable">IND-MAIN <svg class="icon" width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="cell editable" style="flex:1;"><span class="cell-label">Employee</span><span class="cell-value">Select employee</span></div>
+    </div>
+    <div class="row"><span class="row-label">Protected</span>
+      <div class="pill protected">IND-MAIN <svg class="icon" width="11" height="11" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div class="cell protected" style="flex:1;"><span class="cell-label">Crew</span><span class="cell-value">None</span></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

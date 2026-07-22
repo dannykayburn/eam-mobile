@@ -124,14 +124,6 @@ body{
 .nav-avatar{width:30px;height:30px;border-radius:50%;overflow:hidden;background:var(--gray-5);color:var(--white);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;flex-shrink:0;font-family:var(--font-sans);padding:0;}
 .nav-avatar-img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
 .nav-avatar-initials{width:100%;height:100%;align-items:center;justify-content:center;}
-/* Bottom nav bar (§4.2) — .bottom-nav/.bottom-nav-item/.bottom-nav-badge
-   promoted to eam-shared.css 2026-07-21 (UI inventory pass): this was the
-   2nd consumer (after Home), already past this file's own "promote on
-   2nd real consumer" rule but never actually moved — fixed there instead
-   of re-duplicated here. Removing this local copy also resolves a
-   z-index drift the two hand-copies had picked up (5 in Home vs. 50
-   here) — the shared version now standardizes on 50. */
-.nav-icon-wrap{position:relative;display:flex;}
 /* Was flex:1 + font-mono — two bugs, fixed 2026-07-16: flex:1 only
    centers within the leftover space between nav-back/nav-avatar and
    nav-actions, which aren't equal widths, so it read as off-center
@@ -145,20 +137,17 @@ body{
 .nav-title{position:absolute;left:0;right:0;text-align:center;font-family:var(--font-sans);font-size:14px;font-weight:700;
   color:var(--white);pointer-events:none;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.nav-back{background:none;border:none;cursor:pointer;display:flex;
-  align-items:center;justify-content:center;width:32px;height:32px;
-  color:var(--white);border-radius:8px;transition:background 0.15s;flex-shrink:0;}
-.nav-back:hover{background:rgba(255,255,255,0.1);}
+/* .nav-back/.nav-icon-btn now come from eam-shared.css only (Phase 2b,
+   2026-07-22) — this local copy had drifted (8px radius vs the shared
+   file's 6px) before this pass promoted the hover/radius treatment up
+   to the shared source instead of leaving two copies to keep in sync. */
 .nav-left{display:flex;align-items:center;gap:6px;flex-shrink:0;}
 .nav-actions{display:flex;align-items:center;gap:4px;flex-shrink:0;}
-.nav-icon-btn{width:32px;height:32px;border-radius:8px;background:none;border:none;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;
-  transition:background 0.15s;flex-shrink:0;color:var(--white);}
-.nav-icon-btn:hover{background:rgba(255,255,255,0.1);}
-.prototype-label{font-size:9px;font-weight:700;letter-spacing:0.4px;
-  color:rgba(255,165,0,0.9);white-space:nowrap;font-family:var(--font-sans);
-  text-transform:uppercase;display:none;}
-@media(min-width:390px){.prototype-label{display:inline;}}
+/* .prototype-label now comes from eam-shared.css only (2026-07-22) — this
+   local copy's orange never got promoted/fixed when the rest of the app's
+   orange did, and was the fuller of the two definitions besides (had
+   properties the shared copy lacked) — promoted up instead of just
+   patched here. */
 .theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;
   color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.08);
   border:1px solid rgba(255,255,255,0.15);border-radius:100px;padding:3px 9px;
@@ -175,7 +164,12 @@ body{
   gap:11px;cursor:pointer;flex-shrink:0;
   transition:border-color 0.18s,box-shadow 0.18s;
   box-shadow:0 1px 3px rgba(0,0,0,0.05);}
-.ds-bar:hover{border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-soft),0 2px 8px rgba(0,0,0,0.08);}
+/* Was purple — this file hand-copies .ds-bar/.sort-btn/.ld-card, which
+   also exist in eam-shared.css; that shared copy went monochrome in the
+   2026-07-22 palette pass, so this local one is corrected to match and
+   stop silently overriding it (same bug found + fixed the same session
+   on Equipment's Structure Details tree — see that file's own note). */
+.ds-bar:hover{border-color:var(--gray-3);box-shadow:0 2px 8px rgba(0,0,0,0.08);}
 [data-theme="dark"] .ds-bar{box-shadow:0 1px 6px rgba(0,0,0,0.2);}
 .ds-icon-w{width:34px;height:34px;border-radius:9px;background:var(--bg-section);
   display:flex;align-items:center;justify-content:center;flex-shrink:0;
@@ -202,7 +196,8 @@ body{
 .sort-btn{display:flex;align-items:center;gap:5px;font-size:12px;
   font-weight:600;color:var(--text-muted);background:none;border:none;cursor:pointer;
   padding:4px 8px;border-radius:8px;font-family:var(--font-sans);transition:all 0.15s;}
-.sort-btn:hover{color:var(--purple);background:var(--purple-soft);}
+.sort-btn:hover{color:var(--octave-black);background:var(--bg-section);}
+[data-theme="dark"] .sort-btn:hover{color:var(--white);}
 
 /* ── WO LIST ──────────────────────────────────────────── */
 .wo-list{flex:1;overflow-y:auto;padding:4px 14px 78px;}
@@ -212,18 +207,42 @@ body{
    generic card + all-fields table, local copy of shared/eam-shared.css's
    own .ld-card/.ld-table rules (see the file-header note above for why
    this file copies rather than links). WO's own first-6 dataspy columns:
-   Status (pill headline), Description (subline), WO Number/Priority/Due
+   Status (pill headline), Description (subline), WO Number/Type/Due
    Date (attribute rows), Organization (carved to the corner badge — see
-   §6.5). Superseded 2026-07-20: the old wo-card, card-prefixed,
+   §6.5). Type replaced Priority here 2026-07-22 (punch-list item).
+   Superseded 2026-07-20: the old wo-card, card-prefixed,
    list-table, and lt-prefixed rules this replaced (bespoke WO-only
    anatomy, §6.5/§6.6) — see design-decisions-v3-1.md §21. ── */
 .ld-card{display:block;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:0 12px 10px;cursor:pointer;transition:border-color .15s;}
-.ld-card:hover{border-color:var(--purple);}
+.ld-card:hover{border-color:var(--gray-3);}
 .ld-card:active{transform:scale(0.985);}
 .ld-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
 .ld-card-headline{font-size:15px;font-weight:700;color:var(--text-body);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.ld-card-headline.pill{display:inline-block;font-size:12px;font-weight:700;color:#fff;padding:4px 10px;border-radius:100px;-webkit-line-clamp:unset;}
-.ld-card-subline{font-size:13px;font-weight:700;color:var(--text-muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ld-card-headline.pill{display:inline-block;font-size:12px;font-weight:700;padding:4px 10px;border-radius:100px;-webkit-line-clamp:unset;}
+/* Status pill fill/outline tiers (§23) — green=operational/completed,
+   red=down (unused by this file's demo data yet, kept for real statuses
+   that need it), outline=standby/waiting. Shared by the card headline
+   pill and the table-mode pill below. */
+.pill-green{background:var(--green);color:#fff;}
+.pill-red{background:var(--red);color:#fff;}
+.pill-outline{background:none;border:1.5px solid var(--border-strong);color:var(--octave-black);}
+[data-theme="dark"] .pill-outline{color:var(--white);}
+/* .ld-card-headline's own `color` above is equal (1-class) specificity to
+   the bare tier rules just above — currently wins only because these
+   happen to sit later in the file; found genuinely broken by that same
+   tie the other way round in eam-shared.css/Sample Screen (2026-07-22),
+   so hardening here too rather than relying on source-order luck. */
+.ld-card-headline.pill-green{color:#fff;}
+.ld-card-headline.pill-red{color:#fff;}
+.ld-card-headline.pill-outline{color:var(--octave-black);}
+[data-theme="dark"] .ld-card-headline.pill-outline{color:var(--white);}
+/* Was --text-muted (gray) — a real inconsistency, not a deliberate "muted
+   subline" choice: this same field (Description) already renders in
+   ink (--text-body) everywhere else on this screen (List mode's table
+   cell, .field-value on any other card) — only the Detailed card's
+   slot-2 subline was left gray. Bold ink now, matching the rest of the
+   palette (user report, 2026-07-22). */
+.ld-card-subline{font-size:13px;font-weight:700;color:var(--text-body);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 /* No separate font-weight for .tinted — slot 2 is bold either way now (2026-07-20, matches eam-shared.css). */
 .ld-card-org{display:inline-flex;align-items:center;padding:5px 11px;border-radius:999px;font-family:var(--font-sans);font-size:12px;font-weight:600;flex-shrink:0;white-space:nowrap;margin-top:1px;background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);}
 .ld-card-attrs{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
@@ -252,9 +271,9 @@ body{
 .ld-table td{padding:9px 14px;color:var(--text-body);white-space:nowrap;border-bottom:1px solid var(--border);}
 .ld-table tbody tr{cursor:pointer;}
 .ld-table tbody tr:last-child td{border-bottom:none;}
-.ld-table tbody tr.child-row{background:rgba(153,51,255,0.035);}
-[data-theme="dark"] .ld-table tbody tr.child-row{background:rgba(153,51,255,0.06);}
-.ld-table-pill{display:inline-block;font-size:11px;font-weight:700;color:#fff;padding:3px 9px;border-radius:100px;}
+.ld-table tbody tr.child-row{background:rgba(0,0,0,0.035);}
+[data-theme="dark"] .ld-table tbody tr.child-row{background:rgba(255,255,255,0.06);}
+.ld-table-pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:100px;}
 /* Chevron + child-row tint (§6.9) — legitimately WO-only, no other
    current List Search Screen consumer has a parent/child concept. */
 .ld-chev{width:20px;height:20px;border-radius:6px;background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;vertical-align:-4px;margin-right:4px;transition:transform 0.18s,background 0.15s;color:var(--text-muted);}
@@ -265,8 +284,10 @@ body{
 /* Favorite star, dataspy selector sheet (§8.3). */
 .ds-fav-star{width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--gray-3);padding:0;}
 .ds-fav-star svg{width:16px;height:16px;fill:none;stroke:currentColor;}
-.ds-fav-star.favorited{color:var(--orange);}
-.ds-fav-star.favorited svg{fill:var(--orange);}
+.ds-fav-star.favorited{color:var(--octave-black);}
+.ds-fav-star.favorited svg{fill:var(--octave-black);}
+[data-theme="dark"] .ds-fav-star.favorited{color:var(--white);}
+[data-theme="dark"] .ds-fav-star.favorited svg{fill:var(--white);}
 
 /* ── SEARCH ───────────────────────────────────────────── */
 .s-wrap{padding:12px 14px 6px;flex-shrink:0;}
@@ -278,7 +299,8 @@ body{
   transition:border-color 0.15s,box-shadow 0.15s;
   box-shadow:0 1px 3px rgba(0,0,0,0.05);}
 .s-inp::placeholder{color:var(--text-faint);}
-.s-inp:focus{border-color:var(--purple);box-shadow:0 0 0 3px var(--purple-soft);}
+.s-inp:focus{border-color:var(--octave-black);}
+[data-theme="dark"] .s-inp:focus{border-color:var(--white);}
 .s-ico{position:absolute;left:15px;pointer-events:none;}
 .s-clr{position:absolute;right:12px;width:28px;height:28px;border-radius:50%;
   background:var(--gray-3);border:none;cursor:pointer;display:none;
@@ -297,12 +319,13 @@ body{
   font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;
   white-space:nowrap;transition:all 0.15s;flex-shrink:0;font-family:var(--font-sans);
   box-shadow:0 1px 2px rgba(0,0,0,0.04);}
-.chip:hover{border-color:var(--purple);color:var(--purple);}
-.chip.active{border-color:var(--purple);background:var(--purple-soft);color:var(--purple);
-  box-shadow:0 0 0 2px var(--purple-glow);}
-.chip-badge{background:var(--purple);color:#fff;font-size:9px;font-weight:800;
+.chip:hover{border-color:var(--gray-3);}
+.chip.active{border-color:var(--octave-black);background:var(--bg-section);color:var(--octave-black);font-weight:700;}
+[data-theme="dark"] .chip.active{border-color:var(--white);color:var(--white);}
+.chip-badge{background:var(--octave-black);color:#fff;font-size:9px;font-weight:800;
   width:17px;height:17px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;}
+[data-theme="dark"] .chip-badge{background:var(--white);color:var(--octave-black);}
 .s-rhdr{padding:2px 16px 6px;display:flex;align-items:center;
   justify-content:space-between;flex-shrink:0;}
 .s-rc{font-size:12px;color:var(--text-muted);font-family:var(--font-mono);}
@@ -337,18 +360,21 @@ body{
 .lov-check{width:24px;height:24px;border-radius:50%;display:flex;
   align-items:center;justify-content:center;flex-shrink:0;
   border:2px solid var(--border-strong);transition:all 0.15s;}
-.lov-check.on{border-color:var(--purple);background:var(--purple);}
+.lov-check.on{border-color:var(--octave-black);background:var(--octave-black);}
+[data-theme="dark"] .lov-check.on{border-color:var(--white);background:var(--white);}
 .sh-sr{padding:10px 16px;flex-shrink:0;}
 .sh-sw{position:relative;}
 .sh-sw .ic{position:absolute;left:13px;top:50%;transform:translateY(-50%);pointer-events:none;}
 .sh-si{width:100%;height:42px;border-radius:100px;border:1.5px solid var(--border-strong);
   background:var(--bg-section);font-family:var(--font-sans);font-size:14px;color:var(--text-body);
   padding:0 14px 0 38px;outline:none;transition:border-color 0.15s;}
-.sh-si:focus{border-color:var(--purple);}
+.sh-si:focus{border-color:var(--octave-black);}
+[data-theme="dark"] .sh-si:focus{border-color:var(--white);}
 .sh-cr-row{padding:0 16px 6px;display:flex;justify-content:flex-end;}
 .sh-cb{background:none;border:none;font-size:13px;font-weight:600;
   color:var(--text-muted);cursor:pointer;font-family:var(--font-sans);}
-.sh-cb:hover{color:var(--purple);}
+.sh-cb:hover{color:var(--octave-black);}
+[data-theme="dark"] .sh-cb:hover{color:var(--white);}
 .sh-list{overflow-y:auto;flex:1;}
 .sh-list::-webkit-scrollbar{display:none;}
 .sh-row{display:flex;align-items:center;gap:12px;padding:13px 16px;
@@ -356,22 +382,27 @@ body{
 .sh-row:hover{background:var(--bg-section);}
 .sh-row:last-child{border-bottom:none;}
 .sh-ri{width:36px;height:36px;border-radius:10px;display:flex;
-  align-items:center;justify-content:center;flex-shrink:0;}
+  align-items:center;justify-content:center;flex-shrink:0;
+  background:var(--bg-section);color:var(--gray-4);border:1.5px solid var(--border-strong);}
 .sh-rb{flex:1;}
 .sh-rn{font-size:14px;font-weight:600;color:var(--text-body);}
 .sh-rc{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-top:2px;}
 .sh-radio{width:24px;height:24px;border-radius:50%;border:2px solid var(--border-strong);
   flex-shrink:0;display:flex;align-items:center;justify-content:center;
   transition:all 0.15s;}
-.sh-radio.on{border-color:var(--purple);background:var(--purple);}
+.sh-radio.on{border-color:var(--octave-black);background:var(--octave-black);}
+[data-theme="dark"] .sh-radio.on{border-color:var(--white);background:var(--white);}
 .sh-radio.on::after{content:'';width:9px;height:9px;border-radius:50%;background:#fff;}
+[data-theme="dark"] .sh-radio.on::after{background:var(--octave-black);}
 .sh-apply{margin:12px 16px 16px;height:52px;border-radius:100px;
-  background:var(--purple);color:#fff;border:none;font-size:15px;font-weight:700;
+  background:var(--octave-black);color:#fff;border:none;font-size:15px;font-weight:700;
   cursor:pointer;font-family:var(--font-sans);flex-shrink:0;width:calc(100% - 32px);
   transition:background 0.15s,box-shadow 0.15s;
-  box-shadow:0 4px 16px rgba(153,51,255,0.30);
+  box-shadow:0 4px 16px rgba(0,0,0,0.20);
   display:flex;align-items:center;justify-content:center;gap:8px;}
-.sh-apply:hover{background:#7a28cc;box-shadow:0 6px 20px rgba(153,51,255,0.40);}
+.sh-apply:hover{background:#111114;box-shadow:0 6px 20px rgba(0,0,0,0.28);}
+[data-theme="dark"] .sh-apply{background:rgba(255,255,255,0.12);}
+[data-theme="dark"] .sh-apply:hover{background:rgba(255,255,255,0.18);}
 
 /* ── EMPTY ────────────────────────────────────────────── */
 .empty{flex:1;display:flex;flex-direction:column;align-items:center;
@@ -635,17 +666,20 @@ body{
     </div>
 
     <!-- Filter chips — dataspy-driven, the same 6 fields the card uses
-         (§8.3/§6.11): Status/Priority/Organization keep a real multi-
-         select sheet (CD-driven, unchanged mechanism); Description/WO
-         number/Due date are toast stubs — no multi-select LOV makes sense
-         for free text/an identifier/a date, so there's nothing to build
-         yet, same "coming soon" precedent already used for Sort. All 6
-         still show, uniformly — no field-type exclusions per instruction. -->
+         (§8.3/§6.11): Status/Type/Organization keep a real multi-select
+         sheet (CD-driven, unchanged mechanism); Description/WO number/
+         Due date are toast stubs — no multi-select LOV makes sense for
+         free text/an identifier/a date, so there's nothing to build yet,
+         same "coming soon" precedent already used for Sort. All 6 still
+         show, uniformly — no field-type exclusions per instruction. Type
+         replaced Priority here 2026-07-22 (punch-list item), reusing the
+         exact same chip-sheet mechanism Priority had, just repointed at
+         TM's Type codes instead of PRI's priority codes. -->
     <div class="chips" id="chipsRow">
       <div class="chip" id="cStatus" onclick="openCS('status')">Status</div>
       <div class="chip" onclick="showT2('Description filter — coming soon')">Description</div>
       <div class="chip" onclick="showT2('WO number filter — coming soon')">WO number</div>
-      <div class="chip" id="cPriority" onclick="openCS('priority')">Priority</div>
+      <div class="chip" id="cType" onclick="openCS('type')">Type</div>
       <div class="chip" onclick="showT2('Due date filter — coming soon')">Due date</div>
       <div class="chip" id="cOrg" onclick="openCS('org')">Organization</div>
     </div>
@@ -694,7 +728,7 @@ body{
        (WO List, id="s1", and Search, id="s2"), sits outside both so
        toggling between them never hides/re-renders it. -->
   <nav class="bottom-nav">
-    <button class="bottom-nav-item" onclick="showToast('Home — coming soon')">
+    <button class="bottom-nav-item" onclick="location.href='eam-home-screen-prototype-v1.html'">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg>
       Home
     </button>
@@ -702,10 +736,10 @@ body{
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-tool"/></svg>
       Work
     </button>
-    <button class="bottom-nav-item" onclick="showToast('Notifications — coming soon')">
+    <button class="bottom-nav-item" onclick="location.href='eam-notifications-prototype-v1.html'">
       <span class="nav-icon-wrap">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-        <span class="bottom-nav-badge">3</span>
+        <span class="bottom-nav-badge" id="notifBadge" style="display:none;">0</span>
       </span>
       Notifications
     </button>
@@ -717,6 +751,23 @@ body{
        pattern (identical across every consumer, e.g. eam-wo-record-view-
        prototype-v1.html) — behavior comes entirely from eam-shared.js. ── -->
   <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <!-- Sync panel (§4.4.2) — opened from the sync icon in the header
+       above. Content rendered by openSyncPanel() in eam-shared.js
+       (shared markup, same shell every screen carries). Review navigates
+       to eam-sync-status-prototype-v1.html. Fixes a real crash: openSheet()
+       previously found no #syncPanelSheet on this screen at all. -->
+  <div class="bottom-sheet" id="syncPanelSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Sync Status</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sync-panel-state" id="syncPanelStateLabel"></div>
+    <div class="sheet-body" id="syncPanelList"></div>
+    <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
+  </div>
 
   <div class="bottom-sheet" id="lovSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
@@ -840,10 +891,9 @@ body{
       </div>
 
       <div class="section-card">
-        <div class="form-field" data-field="insertDescription" onclick="openTextEditor('insertDescription','Description')">
+        <div class="form-field stacked" data-field="insertDescription" onclick="this.querySelector('textarea').focus()">
           <span class="field-label">Description</span>
-          <span class="field-value muted" id="fv-insertDescription">Tap to add…</span>
-          <span class="field-chevron">›</span>
+          <textarea class="field-inline-input" id="fv-insertDescription" rows="1" maxlength="255" placeholder="Tap to add…" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus()" onblur="onInlineBlur(this)"></textarea>
         </div>
       </div>
 
@@ -937,6 +987,7 @@ body{
 
 </div><!-- /app -->
 
+<script src="../../data/notifications.js"></script>
 <script src="shared/eam-shared.js"></script>
 <script>
 /* ══ THEME (canonical toggle — defaults light per standalone convention) ══ */
@@ -979,37 +1030,50 @@ const SVGS={
 /* ══ LIST SEARCH SCREEN STANDARD (§8.3) — local copy of
    shared/eam-shared.js's own renderStdCard/renderStdTable, same
    convention as this file's other locally-copied shared components. ══ */
+// Status is the only field that ever keeps colour (§23 — a real
+// instrument), and only as the pill-fill/outline treatment below, never
+// as tinted text — so there's no more generic "tinted field" concept
+// here at all (Type's old text-tint died with its colour, above).
 function renderStdCard(fields) {
   const first6 = fields.slice(0, 6);
   const orgIdx = first6.findIndex(f => f.type === 'org');
   const org = orgIdx > -1 ? first6[orgIdx] : null;
   const body = first6.filter((f, i) => i !== orgIdx).slice(0, 5);
   const [head, sub, ...attrs] = body;
-  const tinted = f => f && (f.type === 'status' || f.type === 'type');
   let html = '<div class="ld-card-top">';
   if (head) {
     html += head.type === 'status'
-      ? `<span class="ld-card-headline pill" style="background:${head.color};">${head.value}</span>`
+      ? `<span class="ld-card-headline pill pill-${head.tier}">${head.value}</span>`
       : `<div class="ld-card-headline">${head.value}</div>`;
   }
   if (org) html += `<span class="ld-card-org">${org.value}</span>`;
   html += '</div>';
-  if (sub) html += `<div class="ld-card-subline${tinted(sub) ? ' tinted' : ''}"${tinted(sub) ? ` style="color:${sub.color};"` : ''}>${sub.value}</div>`;
+  if (sub) html += `<div class="ld-card-subline">${sub.value}</div>`;
   if (attrs.length) {
     html += '<div class="ld-card-attrs">' + attrs.map(f => `
-      <div class="ld-card-attr-row"><span class="field-label">${f.label}</span><span class="field-value${tinted(f) ? ' tinted' : ''}"${tinted(f) ? ` style="color:${f.color};"` : ''}>${f.value}</span></div>`).join('') + '</div>';
+      <div class="ld-card-attr-row"><span class="field-label">${f.label}</span><span class="field-value">${f.value}</span></div>`).join('') + '</div>';
   }
   return html;
 }
 
 /* ══ DATA ════════════════════════════════════════════════ */
+// Type dropped its per-code colour (§23 supersedes §6.7's "Type and
+// Status both keep colour on this screen" — Type isn't one of the 3
+// instruments, same TYPE_META fix already applied on WO Record View/
+// WO List's own Insert Mode below). Name only now, no icon either —
+// this screen never rendered a Type icon, just the tinted text §6.7
+// used to call for.
 const TM={
-  BK: {color:'#E24B4A',name:'Breakdown'},
-  CAL:{color:'#007B87',name:'Calibration'},
-  CM: {color:'#F46600',name:'Corrective maint'},
-  INS:{color:'#9933FF',name:'Inspection'},
-  MOD:{color:'#6F7480',name:'Modification'},
-  PM: {color:'#00AA14',name:'Preventive maint'},
+  BK: {name:'Breakdown'},
+  CAL:{name:'Calibration'},
+  CM: {name:'Corrective maint'},
+  INS:{name:'Inspection'},
+  MOD:{name:'Modification'},
+  PM: {name:'Preventive maint'},
+  // Added 2026-07-22 (punch-list item) — real WO Type for WO 20450, the
+  // §11 fallback demo (no configured workflow). Matches data/wotype.js's
+  // own ROUT ("Routine Maintenance") description.
+  ROUT:{name:'Routine maint'},
 };
 // Description text only, no colour, no icon — priority is not one of the
 // two fields (Type, Status) that keep colour on this screen (§6.7).
@@ -1019,17 +1083,27 @@ const PRI={
   '4':{label:'High'},
   '5':{label:'Critical'},
 };
+// Status keeps colour (it's a real §23 instrument) but now reads off the
+// same 3-tier fill vocabulary as WO Record View's header status pill
+// (STATUS_CLASS_MAP: operational/completed=green, standby=outlined,
+// down=red) instead of its own 4-way orange/green/gray hex scheme.
+// WAPPR/WMATL (this screen's own "waiting on something" statuses, not in
+// the canonical 4) map to the standby/outlined tier — no down/red status
+// exists in this file's demo data yet, but statusPillStyle() supports it.
 const STI={
-  RELEASED:{color:'#00AA14',label:'Released'},
-  WAPPR:   {color:'#F46600',label:'Waiting approval'},
-  WMATL:   {color:'#F46600',label:'Waiting materials'},
-  COMP:    {color:'#6F7480',label:'Completed'},
+  RELEASED:{tier:'green',  label:'Released'},
+  WAPPR:   {tier:'outline',label:'Waiting approval'},
+  WMATL:   {tier:'outline',label:'Waiting materials'},
+  COMP:    {tier:'green',  label:'Completed'},
 };
 
 // desc is the WO's own problem/work description — the card headline's
 // subline slot, since Status now occupies slot 1 as the pill headline
 // (§6.5: WO's first-6 dataspy columns are Status, Description, WO
-// Number, Priority, Due Date, Organization). due is now a plain
+// Number, Type, Due Date, Organization — Type replaced Priority
+// 2026-07-22, punch-list item; List mode's own woAllFields() still shows
+// Priority too, since it deliberately shows every available field). due
+// is now a plain
 // MM/DD/YYYY date (§8.3, superseded 2026-07-20 — was "Today"/"Tomorrow"/
 // "Thu 26" with urgency tinting, see §21); TODAY below anchors which
 // concrete date the old relative labels map to.
@@ -1044,6 +1118,13 @@ const WOS=[
   {id:'WO-19205',desc:'Scheduled calibration verification',             eq:'Pressure Transmitter Bank',ec:'PIC-201',   tp:'CAL',pr:'2',st:'WMATL',  loc:'PROCESS-1A',  org:'ORG2',due:'07/24/2026',isP:false,pid:null},
   {id:'WO-19187',desc:'Seal leaking, needs replacement',                eq:'Boiler Feed Pump',        ec:'BFP-2',      tp:'CM',pr:'4',st:'RELEASED',loc:'BOILER-ROOM', org:'FBPP',due:'07/23/2026',isP:false,pid:null},
   {id:'WO-19173',desc:'Annual safety inspection due',                   eq:'Safety Valve',            ec:'SV-101',     tp:'INS',pr:'3',st:'WAPPR',  loc:'VESSEL-V3',   org:'ORG2',due:'07/23/2026',isP:false,pid:null},
+  // WO-19831/WO-20450 added 2026-07-22 (punch-list item) — the other 2
+  // demo WOs with real backing data (data/wo-19831.js, data/wo-20450.js)
+  // now have real rows here too, not just 19257 — so "My Assigned WOs"
+  // (DSF.ds1 below) can show exactly the 3 known-good identities, and
+  // each opens as itself via openWO()'s literal-number match.
+  {id:'WO-19831',desc:'General inspection request',                     eq:'Pump, Centrifugal',       ec:'PUMP-C-0045',tp:'PM',pr:'2',st:'RELEASED',loc:'PUMP-HOUSE-3',org:'FBPP', due:'07/22/2026',isP:false,pid:null},
+  {id:'WO-20450',desc:'Replace batteries in lobby TV remote',            eq:'Building A — Main Lobby', ec:'BLDG-A',     tp:'ROUT',pr:'2',st:'RELEASED',loc:'MAIN-LOBBY', org:'FBPP', due:'07/25/2026',isP:false,pid:null},
 ];
 function dueSortKey(w) { return w.due; } // already MM/DD/YYYY — string-sortable within one year
 WOS.sort((a, b) => dueSortKey(a).localeCompare(dueSortKey(b)));
@@ -1059,11 +1140,22 @@ const DS=[
   {id:'ds6',name:'Waiting Approval'},
   {id:'ds7',name:'All Open WOs'},
   {id:'ds8',name:'Preventive Maintenance'},
+  // ds9/ds10 added 2026-07-22 — Home's own tiles (Corrective WO's, My
+  // Closed WO's/Last Week's Work) needed a real dataspy to pre-run to
+  // (§24 rule 2); neither existed yet, so these fill the gap the same
+  // way ds1-8 already cover the rest of Home's WO tiles.
+  {id:'ds9',name:'Corrective Maintenance'},
+  {id:'ds10',name:'Closed WOs'},
 ];
+// ds1 narrowed 2026-07-22 (punch-list item) — was every WO in the demo
+// set; now just the 3 WOs with real backing Record View data (§24 rule 3,
+// eam-shared.js's DEMO_WO_JOBTYPES), so every card here is guaranteed to
+// open as itself and show the correct workflow, not the generic fallback.
 const DSF={
-  ds1:()=>true, ds2:w=>w.due===TODAY, ds3:w=>['4','5'].includes(w.pr),
+  ds1:w=>['WO-19257','WO-19831','WO-20450'].includes(w.id), ds2:w=>w.due===TODAY, ds3:w=>['4','5'].includes(w.pr),
   ds4:w=>w.org==='FBPP', ds5:w=>w.tp==='BK', ds6:w=>w.st==='WAPPR',
   ds7:w=>w.st!=='COMP', ds8:w=>w.tp==='PM',
+  ds9:w=>w.tp==='CM', ds10:w=>w.st==='COMP',
 };
 /* Favorite dataspies (§8.3, revised 2026-07-20) — persisted to
    localStorage, not just an in-memory Set, specifically so favoriting a
@@ -1096,12 +1188,15 @@ function toggleFavDS(id){
   openDS();
 }
 
+// §23: these quick-filter rows are navigation shortcuts, same category as
+// Home's tiles/favorites — icon shape distinguishes them, no per-row hue
+// (dropped the `color`/`bg` fields entirely, same fix as Home's tiles).
 const CD={
   status:{title:'Dataspy by status',rows:[
-    {code:'RELEASED',name:'Released',              svg:'send',     color:'#00AA14',bg:'rgba(0,170,20,0.12)'},
-    {code:'WAPPR',   name:'Waiting approval',       svg:'clock',    color:'#F46600',bg:'rgba(244,102,0,0.12)'},
-    {code:'WMATL',   name:'Waiting materials',      svg:'pkg',      color:'#007B87',bg:'rgba(0,123,135,0.12)'},
-    {code:'COMP',    name:'Completed',              svg:'circ_chk', color:'#9933FF',bg:'rgba(153,51,255,0.12)'},
+    {code:'RELEASED',name:'Released',              svg:'send'},
+    {code:'WAPPR',   name:'Waiting approval',       svg:'clock'},
+    {code:'WMATL',   name:'Waiting materials',      svg:'pkg'},
+    {code:'COMP',    name:'Completed',              svg:'circ_chk'},
   ]},
   // Organization — the app's own 3 real org codes (same set every other
   // org LOV in the app offers: Equipment's header pill, Sample Screen/
@@ -1110,15 +1205,21 @@ const CD={
   // Problem-Code/Trade values from other screens, not real Organization
   // codes; w.org itself was wrong the same way (see the WOS array above).
   org:{title:'Dataspy by organization',rows:[
-    {code:'FBPP',name:'Field-Based Plant & Production',svg:'bldg', color:'#42B2EA',bg:'rgba(66,178,234,0.12)'},
-    {code:'ORG1',name:'Corporate',                      svg:'sett', color:'#007B87',bg:'rgba(0,123,135,0.12)'},
-    {code:'ORG2',name:'US Industrial',                  svg:'adjust',color:'#9933FF',bg:'rgba(153,51,255,0.12)'},
+    {code:'FBPP',name:'Field-Based Plant & Production',svg:'bldg'},
+    {code:'ORG1',name:'Corporate',                      svg:'sett'},
+    {code:'ORG2',name:'US Industrial',                  svg:'adjust'},
   ]},
-  priority:{title:'Dataspy by priority',rows:[
-    {code:'2',name:'2 — Low',     svg:'pri_lo',  color:'#00AA14',bg:'rgba(0,170,20,0.12)'},
-    {code:'3',name:'3 — Medium',  svg:'pri_med', color:'#F46600',bg:'rgba(244,102,0,0.12)'},
-    {code:'4',name:'4 — High',    svg:'pri_hi',  color:'#E24B4A',bg:'rgba(228,75,74,0.12)'},
-    {code:'5',name:'5 — Critical',svg:'pri_crit',color:'#E24B4A',bg:'rgba(228,75,74,0.16)'},
+  // Replaced the priority row 2026-07-22 (punch-list item) — Type took
+  // Priority's spot as one of the 6 dataspy fields, so its quick-filter
+  // sheet moved with it, same mechanism, sourced from TM instead of PRI.
+  type:{title:'Dataspy by type',rows:[
+    {code:'BK', name:TM.BK.name, svg:'alert'},
+    {code:'PM', name:TM.PM.name, svg:'calchk'},
+    {code:'CM', name:TM.CM.name, svg:'adjust'},
+    {code:'CAL',name:TM.CAL.name,svg:'clock'},
+    {code:'INS',name:TM.INS.name,svg:'eye'},
+    {code:'MOD',name:TM.MOD.name,svg:'sett'},
+    {code:'ROUT',name:TM.ROUT.name,svg:'send'},
   ]},
 };
 
@@ -1142,7 +1243,7 @@ function sFilt(){
   if(sv)wos=wos.filter(w=>w.id.toLowerCase().includes(sv)||w.eq.toLowerCase().includes(sv)||w.ec.toLowerCase().includes(sv));
   if(cf.status?.length)  wos=wos.filter(w=>cf.status.includes(w.st));
   if(cf.org?.length)     wos=wos.filter(w=>cf.org.includes(w.org));
-  if(cf.priority?.length)wos=wos.filter(w=>cf.priority.includes(w.pr));
+  if(cf.type?.length)     wos=wos.filter(w=>cf.type.includes(w.tp));
   return wos;
 }
 
@@ -1152,13 +1253,13 @@ function sFilt(){
    WO dataspy, for List mode (§8.3's "all locally-available fields"). ══ */
 function woNum(id){ return id.replace('WO-',''); }
 function woCardFields(w){
-  const pr=PRI[w.pr]||PRI['3'];
+  const tm=TM[w.tp]||TM.CM;
   const st=STI[w.st]||STI.WAPPR;
   return [
-    {label:'Status',      value:st.label, type:'status', color:st.color},
+    {label:'Status',      value:st.label, type:'status', tier:st.tier},
     {label:'Description', value:w.desc},
     {label:'WO number',   value:woNum(w.id)},
-    {label:'Priority',    value:pr.label},
+    {label:'Type',        value:tm.name},
     {label:'Due date',    value:w.due},
     {label:'Organization',value:w.org, type:'org'},
   ];
@@ -1170,8 +1271,8 @@ function woAllFields(w){
   return [
     {label:'WO number',     value:woNum(w.id)},
     {label:'Description',   value:w.desc},
-    {label:'Status',        value:st.label, type:'status', color:st.color},
-    {label:'Type',          value:tm.name,  type:'type',   color:tm.color},
+    {label:'Status',        value:st.label, type:'status', tier:st.tier},
+    {label:'Type',          value:tm.name},
     {label:'Priority',      value:pr.label},
     {label:'Due date',      value:w.due},
     {label:'Location',      value:w.loc},
@@ -1201,10 +1302,9 @@ function tRow(w,isChild){
     ?`<button class="ld-chev${ex?' open':''}" id="chev-${w.id}" onclick="event.stopPropagation();toggleP('${w.id}')">${SVGS.chevR}</button>`
     :`<span class="ld-chev-ph"></span>`;
   let h=`<tr class="${isChild?'child-row':''}" onclick="openWO('${w.id}')">${fields.map((f,i)=>{
-    const tinted=f.type==='status'||f.type==='type';
-    if(f.type==='status')return`<td><span class="ld-table-pill" style="background:${f.color};">${f.value}</span></td>`;
+    if(f.type==='status')return`<td><span class="ld-table-pill pill-${f.tier}">${f.value}</span></td>`;
     const val=i===1?chevBtn+f.value:f.value; // chevron sits in front of Description, col index 1
-    return`<td${tinted?` style="color:${f.color};font-weight:600;"`:''}>${val}</td>`;
+    return`<td>${val}</td>`;
   }).join('')}</tr>`;
   if(hk&&ex)ck.forEach(c=>{h+=tRow(c,true);});
   return h;
@@ -1296,10 +1396,11 @@ function closeSearch(){document.getElementById('s2').classList.remove('active');
 function onSearch(v){sv=v.toLowerCase();document.getElementById('sClr').classList.toggle('vis',v.length>0);refS2();}
 function clearSearch(){document.getElementById('sInp').value='';sv='';document.getElementById('sClr').classList.remove('vis');refS2();}
 
-/* ══ CHIP SHEET (§6.11 — Status/Priority/Organization only; the other 3
-   dataspy-driven chips are toast stubs, wired directly in their markup) ══ */
-const CID={status:'cStatus',org:'cOrg',priority:'cPriority'};
-const CLB={status:'Status',org:'Organization',priority:'Priority'};
+/* ══ CHIP SHEET (§6.11 — Status/Type/Organization only; the other 3
+   dataspy-driven chips are toast stubs, wired directly in their markup).
+   Type replaced Priority here 2026-07-22 (punch-list item). ══ */
+const CID={status:'cStatus',org:'cOrg',type:'cType'};
+const CLB={status:'Status',org:'Organization',type:'Type'};
 
 function openCS(k){
   ack=k;csel=Object.fromEntries((cf[k]||[]).map(v=>[v,true]));
@@ -1311,7 +1412,7 @@ function openCS(k){
 function renderCSRows(rows){
   document.getElementById('csList').innerHTML=rows.map(r=>`
     <div class="sh-row" onclick="togCS('${r.code}')">
-      <div class="sh-ri" style="background:${r.bg};color:${r.color}">
+      <div class="sh-ri">
         ${SVGS[r.svg]||''}
       </div>
       <div class="sh-rb"><div class="sh-rn">${r.name}</div></div>
@@ -1336,7 +1437,33 @@ function applyCS(){
 function closeCS(){document.getElementById('csOv').classList.remove('open');}
 function csOvTap(e){if(e.target===document.getElementById('csOv'))closeCS();}
 
-function openWO(id){showT1('Opening '+id+' →');}
+// Real navigation (2026-07-22, nav-bug fix; extended same day — punch-
+// list item, real type-based routing). This file only has real backing
+// Record View data for 3 WOs (eam-shared.js's DEMO_WO_JOBTYPES: 19257=
+// BRKD, 19831=PM, 20450=ROUT) — every other row in WOS is list-card-only
+// demo data with no Record View detail behind it. Those 3 numbers open
+// as themselves. For everything else, route by the row's own Type (tp)
+// instead of always falling back to 20450 regardless of type — that was
+// the actual bug: clicking a real PM- or Breakdown-typed WO from the
+// list rendered as WO 20450's Free-Form/no-rail identity, so the step
+// rail and Start Work bar looked "missing" from PM/Breakdown flows
+// entirely. BK maps to the BRKD demo identity (19257); PM maps to the PM
+// demo identity (19831); every other Type (CM/CAL/INS/MOD/ROUT — no
+// configured workflow exists for any of them, data/wo-workflow.js) still
+// falls back to 20450, per §11's own fallback rule.
+const TYPE_TO_DEMO_WO = { BK: '19257', PM: '19831' };
+function openWO(id){
+  const num = woNum(id);
+  let demoWo;
+  if (num === '19257' || num === '19831' || num === '20450') {
+    demoWo = num;
+  } else {
+    const w = WOS.find(x => woNum(x.id) === num);
+    demoWo = (w && TYPE_TO_DEMO_WO[w.tp]) || '20450';
+  }
+  sessionStorage.setItem('eamOpenDemoWo', demoWo);
+  location.href = 'eam-wo-record-view-prototype-v1.html';
+}
 
 function showToast(msg){showT1(msg);}
 function showT1(msg){document.getElementById('t1m').textContent=msg;const el=document.getElementById('t1');el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2400);}
@@ -1352,15 +1479,15 @@ function showT2(msg){document.getElementById('t2m').textContent=msg;const el=doc
    Record View it lands on afterward.
    ═══════════════════════════════════════════════════════════════════════ */
 const TYPE_META = {
-  CM: { color: '#F46600', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>' },
-  PM: { color: '#00AA14', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg>' },
-  BREAKDOWN: { color: '#E24B4A', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
+  CM: { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>' },
+  PM: { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg>' },
+  BREAKDOWN: { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
 };
 const INSERT_STATUS_META = {
-  RELEASED:    { color: '#00AA14', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>' },
-  IN_PROGRESS: { color: '#F46600', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>' },
-  COMPLETED:   { color: '#00AA14', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>' },
-  HOLD:        { color: '#E24B4A', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
+  RELEASED:    { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>' },
+  IN_PROGRESS: { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>' },
+  COMPLETED:   { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>' },
+  HOLD:        { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
 };
 // Equipment reference field's own picker list (§15.5 simplification — a
 // flat searchable list, not the full Search+Structure lookup popup) —
@@ -1398,11 +1525,11 @@ let RECORD = {};
 const NO_SEARCH_LOVS = new Set(['insertOrganization', 'insertType', 'insertStatus']);
 const ORG_STYLE_LOVS = new Set(['insertOrganization']);
 const BADGE_LOV_META = { insertType: TYPE_META, insertStatus: INSERT_STATUS_META };
-const REF_CARD_FIELDS = { insertEquipment: { mountId: 'insertEquipMount', attrs: ['class','category','type'], emptyLabel: 'Tap to select equipment', useEquipmentLookup: true } };
+const REF_CARD_FIELDS = { insertEquipment: { mountId: 'insertEquipMount', emptyLabel: 'Tap to select equipment', useEquipmentLookup: true } };
 
 function renderInsertBadge(key, meta) {
   const opt = meta[LOV_CURRENT[key]];
-  document.getElementById(`fv-${key}-badge`).outerHTML = renderColorBadge(opt).replace('class="attr-badge"', `class="attr-badge" id="fv-${key}-badge"`);
+  document.getElementById(`fv-${key}-badge`).outerHTML = renderColorBadge(opt).replace('<span ', `<span id="fv-${key}-badge" `);
   document.getElementById(`fv-${key}-desc`).textContent = (LOV_DATA[key].find(o => o.code === LOV_CURRENT[key]) || {}).desc || '';
 }
 function initInsertModeDefaults() {
@@ -1426,7 +1553,7 @@ function saveInsertRecord() {
   localStorage.setItem('eamNextWoNumber', String(parseInt(woNumber, 10) + 1));
   const record = {
     number: woNumber,
-    desc: document.getElementById('fv-insertDescription').classList.contains('muted') ? '' : document.getElementById('fv-insertDescription').textContent,
+    desc: document.getElementById('fv-insertDescription').value,
     department: opt('insertDepartment'), assignedTo: opt('insertAssignedTo'), reportedBy: opt('insertReportedBy'),
     dateReported: RECORD.insertDateReported || '', problemCode: opt('insertProblemCode'),
     type: opt('insertType'), status: opt('insertStatus'), priority: opt('insertPriority'),
@@ -1440,6 +1567,18 @@ function saveInsertRecord() {
   navigateToNewRecord('eam-wo-record-view-prototype-v1.html', 'eamNewWoRecord', record);
 }
 
+// Pre-run to a Home tile/favorite's dataspy (§24 rule 2) — handed off via
+// sessionStorage, consume-once, same convention as eamNewWoRecord/
+// eamSyncReturnUrl (NOT a ?spy= query string — npx serve's clean-URL
+// redirect strips query strings on navigation, confirmed live this
+// session; see the matching comment in eam-home-screen-prototype-v1.html).
+// Falls back to the default ds1 if absent/unknown.
+(function applyPendingSpy(){
+  const spy=sessionStorage.getItem('eamPendingSpy');
+  if(spy)sessionStorage.removeItem('eamPendingSpy');
+  const d=DS.find(x=>x.id===spy);
+  if(d){curDS=d.id;document.getElementById('dsName').textContent=d.name;}
+})();
 refS1();
 initInsertModeDefaults();
 initSharedApp();

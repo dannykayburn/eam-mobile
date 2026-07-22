@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EAM Screen Designer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.x/dist/tabler-icons.min.css" rel="stylesheet">
+<style>
+  :root {
+    --oct-black: #1A1A1F;
+    --oct-slate: #2C2D35;
+    --oct-teal: #007B87;
+    --oct-teal-light: #E1F5EE;
+    --oct-teal-mid: #0F6E56;
+    --oct-aqua: #00C5D4;
+    --oct-purple: #6B4EFF;
+    --oct-purple-light: #EEEDFE;
+    --oct-green: #28A745;
+    --oct-green-light: #EAF3DE;
+    --oct-amber: #F59E0B;
+    --oct-amber-light: #FAEEDA;
+    --oct-red: #DC3545;
+    --oct-red-light: #FCEBEB;
+    --oct-gray-50: #F8F9FA;
+    --oct-gray-100: #F1EFE8;
+    --oct-gray-200: #E2E0D8;
+    --oct-gray-300: #D3D1C7;
+    --oct-gray-400: #B4B2A9;
+    --oct-gray-500: #888780;
+    --oct-gray-600: #5F5E5A;
+    --oct-gray-700: #444441;
+    --oct-gray-800: #2C2C2A;
+    --font-main: 'DM Sans', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --shell-nav: 52px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-main); font-size: 13px; background: var(--oct-gray-50); color: var(--oct-gray-800); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+  /* ── TOP NAV ── */
+  .top-nav { height: var(--shell-nav); background: var(--oct-black); display: flex; align-items: center; padding: 0 16px; gap: 12px; flex-shrink: 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .top-nav .logo { display: flex; align-items: center; gap: 8px; color: #fff; font-weight: 600; font-size: 14px; }
+  .top-nav .logo .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--oct-aqua); }
+  .top-nav .nav-sep { width: 1px; height: 24px; background: rgba(255,255,255,0.12); margin: 0 4px; }
+  .top-nav .breadcrumb { display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.5); font-size: 12px; }
+  .top-nav .breadcrumb span { color: rgba(255,255,255,0.9); }
+  .top-nav .spacer { flex: 1; }
+  .top-nav .nav-btn { background: none; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.8); border-radius: 6px; padding: 5px 12px; font-size: 12px; font-family: var(--font-main); cursor: pointer; display: flex; align-items: center; gap: 6px; transition: border-color 0.15s, background 0.15s; }
+  .top-nav .nav-btn:hover { border-color: var(--oct-aqua); color: #fff; }
+  .top-nav .nav-btn.primary { background: var(--oct-teal); border-color: var(--oct-teal); color: #fff; }
+  .top-nav .nav-btn.primary:hover { background: var(--oct-teal-mid); }
+
+  /* ── CONTEXT BAR ── */
+  .context-bar { display: flex; align-items: center; gap: 12px; padding: 10px 20px; background: #fff; border-bottom: 1px solid var(--oct-gray-200); flex-shrink: 0; flex-wrap: wrap; }
+  .context-chip { font-size: 12px; background: var(--oct-gray-100); padding: 5px 12px; border-radius: 20px; color: var(--oct-gray-700); display: flex; gap: 6px; align-items: center; }
+  .context-chip b { color: var(--oct-gray-800); font-weight: 700; }
+  .context-chip i { font-size: 13px; color: var(--oct-gray-500); }
+  .link-btn { font-size: 12px; color: var(--oct-teal); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+  .link-btn:hover { text-decoration: underline; }
+  .ctx-spacer { flex: 1; }
+
+  .fallback-banner { background: var(--oct-amber-light); color: #B45309; font-size: 12px; padding: 8px 20px; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+  .fallback-banner b { font-weight: 700; }
+  .fallback-banner.equip { background: var(--oct-teal-light); color: var(--oct-teal-mid); }
+
+  /* ── LEFT TAB PANE (nav + step order/visibility/required) ── */
+  .tab-pane { width: 268px; background: #fff; border-right: 1px solid var(--oct-gray-200); flex-shrink: 0; display: flex; flex-direction: column; overflow-y: auto; }
+  .tp-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--oct-gray-400); padding: 14px 16px 6px; }
+  .tp-nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 16px; cursor: pointer; font-size: 12.5px; color: var(--oct-gray-600); transition: background .12s; }
+  .tp-nav-item:hover { background: var(--oct-gray-50); }
+  .tp-nav-item.active { background: var(--oct-teal-light); color: var(--oct-teal-mid); font-weight: 600; }
+  .tp-nav-item i:first-child { font-size: 14px; width: 16px; text-align: center; flex-shrink: 0; }
+  .step-num-badge { width: 16px; height: 16px; border-radius: 50%; background: var(--oct-teal); color: #fff; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .step-hidden-icon { font-size: 12px; color: var(--oct-gray-400); }
+  .not-step-icon { font-size: 12px; color: var(--oct-gray-300); }
+
+  /* ── CANVAS ── */
+  .main-body { flex: 1; display: flex; overflow: hidden; position: relative; }
+  .canvas-toolbar { display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: #fff; border-bottom: 1px solid var(--oct-gray-200); flex-shrink: 0; }
+  .canvas-toolbar .tb-label { font-size: 12px; font-weight: 600; color: var(--oct-gray-600); margin-right: 4px; }
+  .tb-btn { display: flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--oct-gray-300); background: #fff; font-size: 12px; font-family: var(--font-main); color: var(--oct-gray-700); cursor: pointer; transition: all 0.15s; }
+  .tb-btn:hover { border-color: var(--oct-teal); color: var(--oct-teal); background: var(--oct-teal-light); }
+  .tb-btn i { font-size: 14px; }
+  .tb-spacer { flex: 1; }
+  .tb-hint { font-size: 11px; color: var(--oct-gray-400); display: flex; align-items: center; gap: 4px; }
+
+  .canvas-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+  .designer-canvas { flex: 1; display: flex; justify-content: center; padding: 28px; }
+
+  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 24px; text-align: center; color: var(--oct-gray-400); gap: 8px; margin: auto; }
+  .empty-state i { font-size: 34px; color: var(--oct-gray-300); }
+  .empty-state p { font-size: 13px; max-width: 320px; }
+
+  /* Mobile shell preview */
+  .mobile-shell { width: 340px; background: #fff; border-radius: 24px; overflow: hidden; border: 8px solid var(--oct-gray-800); box-shadow: 0 8px 32px rgba(0,0,0,0.18); flex-shrink: 0; height: fit-content; }
+  .mob-nav { background: var(--oct-black); padding: 10px 14px; display: flex; align-items: center; gap: 8px; }
+  .mob-nav-back { color: rgba(255,255,255,0.7); font-size: 16px; }
+  .mob-nav-title { color: #fff; font-size: 11px; font-weight: 600; flex: 1; font-family: var(--font-mono); }
+  .mob-locked-header { background: var(--oct-gray-100); padding: 7px 14px; font-size: 10px; color: var(--oct-gray-500); display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--oct-gray-200); }
+  .mob-locked-header i { font-size: 11px; }
+  .mob-step-rail { background: var(--oct-slate); padding: 8px 14px; display: flex; align-items: center; gap: 8px; }
+  .mob-step-pill { background: var(--oct-teal); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; font-family: var(--font-mono); }
+  .mob-step-name { color: rgba(255,255,255,0.7); font-size: 10px; flex: 1; }
+  .mob-step-bar { display: flex; gap: 2px; }
+  .mob-seg { height: 3px; width: 13px; border-radius: 2px; }
+  .mob-seg.done { background: var(--oct-green); }
+  .mob-seg.active { background: var(--oct-teal); }
+  .mob-seg.future { background: rgba(255,255,255,0.2); }
+
+  .mob-form { padding: 10px 14px 4px; min-height: 120px; }
+  .mob-section-hdr { font-size: 11px; font-weight: 700; color: var(--oct-gray-600); text-transform: uppercase; letter-spacing: 0.05em; margin: 12px 0 6px; padding-bottom: 5px; border-bottom: 1px solid var(--oct-gray-200); display: flex; align-items: center; gap: 6px; }
+  .mob-section-hdr:first-child { margin-top: 2px; }
+  .mob-section-hdr .csh-name { flex: 1; }
+  .mob-section-hdr .csh-del { font-size: 12px; color: var(--oct-gray-300); cursor: pointer; visibility: hidden; }
+  .mob-section-hdr:hover .csh-del { visibility: visible; }
+  .mob-section-hdr .csh-del:hover { color: var(--oct-red); }
+
+  .mob-field { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--oct-gray-100); gap: 8px; cursor: grab; position: relative; user-select: none; }
+  .mob-field.dragging { opacity: .35; }
+  .mob-field.dragover-top { box-shadow: inset 0 2px 0 var(--oct-teal); }
+  .mob-field.dragover-bottom { box-shadow: inset 0 -2px 0 var(--oct-teal); }
+  .mob-field-req-bar { width: 3px; align-self: stretch; border-radius: 2px; background: transparent; flex-shrink: 0; }
+  .mob-field-req-bar.req { background: var(--oct-red); }
+  .mob-field-req-bar.prot { background: var(--oct-amber); }
+  .mob-field-label { font-size: 11px; color: var(--oct-gray-500); flex: 1; }
+  .mob-field-value { font-size: 11px; color: var(--oct-gray-800); }
+  .mob-field-chevron { font-size: 13px; color: var(--oct-gray-300); }
+  .mob-field-lock { font-size: 11px; color: var(--oct-gray-400); }
+  .mob-field.na-field { opacity: .5; padding: 4px 0; }
+  .mob-field.na-field .mob-field-label { text-decoration: line-through; }
+  .mob-field.na-field .mob-field-value { font-size: 9px; color: var(--oct-gray-400); font-style: italic; }
+  .mob-field .req-star { color: var(--oct-red); margin-left: 2px; }
+
+  .mob-section-hdr .csh-layout-toggle { font-size: 12px; color: var(--oct-gray-300); cursor: pointer; visibility: hidden; margin-right: 2px; }
+  .mob-section-hdr:hover .csh-layout-toggle { visibility: visible; }
+  .mob-section-hdr .csh-layout-toggle:hover { color: var(--oct-teal); }
+
+  .mob-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 2px 0 10px; }
+  .mob-grid-cell { position: relative; display: flex; flex-direction: column; gap: 3px; border: 1px solid var(--oct-gray-200); border-radius: 7px; padding: 8px 14px 8px 12px; cursor: grab; background: #fff; }
+  .mob-grid-cell.dragging { opacity: .35; }
+  .mob-grid-cell.dragover-top { box-shadow: inset 0 2px 0 var(--oct-teal); }
+  .mob-grid-cell.dragover-bottom { box-shadow: inset 0 -2px 0 var(--oct-teal); }
+  .mob-grid-cell .mob-field-req-bar { position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; }
+  .mob-grid-cell .mob-field-label { font-size: 10px; }
+  .mob-grid-cell .mob-field-value { font-size: 11.5px; color: var(--oct-gray-800); }
+  .grid-resize-handle { position: absolute; right: -5px; top: 0; bottom: 0; width: 11px; cursor: ew-resize; z-index: 2; }
+  .grid-resize-handle::after { content: ''; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 3px; height: 16px; background: var(--oct-gray-300); border-radius: 2px; transition: background .15s; }
+  .mob-grid-cell:hover .grid-resize-handle::after, .grid-resize-handle:hover::after { background: var(--oct-teal); }
+  .grid-empty-hint { grid-column: span 2; padding: 10px 0; font-size: 10px; color: var(--oct-gray-300); font-style: italic; }
+
+  .mob-save-btn { margin: 14px 14px 12px; background: var(--oct-black); color: #fff; border: none; border-radius: 50px; padding: 12px; width: calc(100% - 28px); font-size: 13px; font-weight: 600; font-family: var(--font-main); text-align: center; }
+
+  /* ── FIELD CONTEXT MENU ── */
+  .field-ctx-menu { position: fixed; min-width: 230px; background: #fff; border: 1px solid var(--oct-gray-300); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); z-index: 300; padding: 6px 0; font-size: 12.5px; }
+  .fcm-hdr { padding: 8px 14px 6px; font-weight: 700; color: var(--oct-gray-800); border-bottom: 1px solid var(--oct-gray-100); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
+  .fcm-hdr span { font-size: 10px; color: var(--oct-gray-400); font-family: var(--font-mono); font-weight: 400; }
+  .fcm-item { padding: 7px 14px; display: flex; align-items: center; gap: 9px; cursor: pointer; color: var(--oct-gray-700); }
+  .fcm-item:hover { background: var(--oct-gray-50); }
+  .fcm-item .chk { width: 13px; text-align: center; color: var(--oct-teal); font-size: 12px; flex-shrink: 0; }
+  .fcm-sep { height: 1px; background: var(--oct-gray-100); margin: 5px 0; }
+
+  /* ── WORKFLOW STEP CONTROLS (rendered inside .tab-pane) ── */
+  .wfp-block { padding: 12px 16px 16px; border-top: 1px solid var(--oct-gray-200); }
+  .wfp-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--oct-gray-500); margin-bottom: 8px; }
+  .wfp-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--oct-gray-200); border-radius: 8px; background: var(--oct-gray-50); }
+  .wfp-row .lbl { font-size: 12.5px; font-weight: 600; color: var(--oct-gray-800); }
+  .wfp-row .desc { font-size: 11px; color: var(--oct-gray-500); margin-top: 2px; }
+  .wfp-note { font-size: 10.5px; color: var(--oct-gray-400); margin-top: 6px; display: flex; gap: 5px; align-items: flex-start; line-height: 1.4; }
+  .wfp-note i { font-size: 12px; margin-top: 1px; flex-shrink: 0; }
+  .wfp-select { width: 100%; border: 1px solid var(--oct-gray-300); border-radius: 6px; padding: 7px 9px; font-size: 12px; font-family: var(--font-main); color: var(--oct-gray-800); background: #fff; margin-top: 6px; }
+
+  .wfp-pinned-step { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1.5px dashed var(--oct-gray-300); border-radius: 8px; margin-bottom: 8px; background: var(--oct-gray-50); }
+  .wfp-step-row { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--oct-gray-200); border-radius: 8px; margin-bottom: 8px; background: #fff; cursor: grab; transition: opacity .15s, border-color .15s; }
+  .wfp-step-row.dim { opacity: .45; }
+  .wfp-step-row.dragging { opacity: .3; }
+  .wfp-step-row.dragover-top { box-shadow: inset 0 2px 0 var(--oct-teal); }
+  .wfp-step-row.dragover-bottom { box-shadow: inset 0 -2px 0 var(--oct-teal); }
+  .wfp-drag { color: var(--oct-gray-300); font-size: 15px; flex-shrink: 0; }
+  .wfp-step-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; background: var(--oct-teal-light); color: var(--oct-teal-mid); }
+  .wfp-step-body { flex: 1; min-width: 0; }
+  .wfp-step-name { font-size: 12.5px; font-weight: 600; color: var(--oct-gray-800); }
+  .wfp-step-tag { font-size: 10px; color: var(--oct-gray-400); }
+  .wfp-step-controls { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .wfp-mini { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .wfp-mini label { font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--oct-gray-400); letter-spacing: .04em; }
+  .wfp-step-gear { font-size: 14px; color: var(--oct-gray-400); cursor: pointer; margin-right: 2px; }
+  .wfp-step-gear:hover { color: var(--oct-teal); }
+  .wfp-step-settings { margin: -4px 0 8px 42px; padding: 10px 12px; background: var(--oct-gray-50); border: 1px solid var(--oct-gray-200); border-radius: 8px; }
+
+  .toggle { position: relative; width: 34px; height: 19px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-track { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--oct-gray-300); border-radius: 20px; cursor: pointer; transition: background 0.2s; }
+  .toggle-track::before { content: ''; position: absolute; left: 3px; top: 3px; width: 13px; height: 13px; border-radius: 50%; background: #fff; transition: transform 0.2s; }
+  .toggle input:checked + .toggle-track { background: var(--oct-teal); }
+  .toggle input:checked + .toggle-track::before { transform: translateX(15px); }
+  .toggle input:disabled + .toggle-track { opacity: .4; cursor: not-allowed; }
+  .toggle.purple input:checked + .toggle-track { background: var(--oct-purple); }
+
+  /* ── ENTRY MODAL ── */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 400; }
+  .modal { background: #fff; border-radius: 14px; width: 560px; max-height: 88vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+  .modal-hdr { padding: 18px 22px; border-bottom: 1px solid var(--oct-gray-200); display: flex; align-items: center; gap: 10px; }
+  .modal-hdr h3 { font-size: 16px; font-weight: 700; color: var(--oct-gray-800); flex: 1; }
+  .modal-hdr .close { font-size: 18px; color: var(--oct-gray-400); cursor: pointer; }
+  .modal-body { padding: 20px 22px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 18px; }
+  .modal-body p.lead { font-size: 12.5px; color: var(--oct-gray-500); line-height: 1.5; margin-top: -6px; }
+  .modal-footer { padding: 14px 22px; border-top: 1px solid var(--oct-gray-200); display: flex; justify-content: flex-end; gap: 8px; align-items: center; }
+  .modal-footer .footer-hint { font-size: 11px; color: var(--oct-gray-400); margin-right: auto; }
+  .btn { padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font-main); border: 1px solid transparent; transition: all 0.15s; }
+  .btn-cancel { background: #fff; border-color: var(--oct-gray-300); color: var(--oct-gray-600); }
+  .btn-cancel:hover { background: var(--oct-gray-50); }
+  .btn-primary { background: var(--oct-teal); color: #fff; border-color: var(--oct-teal); }
+  .btn-primary:hover { background: var(--oct-teal-mid); }
+  .btn-primary:disabled { background: var(--oct-gray-300); border-color: var(--oct-gray-300); cursor: not-allowed; }
+  .btn-outline { background: #fff; border-color: var(--oct-gray-300); color: var(--oct-gray-700); }
+  .btn-outline:hover { border-color: var(--oct-teal); color: var(--oct-teal); }
+
+  .field-group { display: flex; flex-direction: column; gap: 6px; }
+  .field-group label.fl { font-size: 11px; font-weight: 700; color: var(--oct-gray-600); letter-spacing: 0.02em; text-transform: uppercase; }
+  .form-select { border: 1px solid var(--oct-gray-300); border-radius: 6px; padding: 8px 10px; font-size: 13px; font-family: var(--font-main); color: var(--oct-gray-800); background: #fff; outline: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23888780' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+  .form-select:focus { border-color: var(--oct-teal); box-shadow: 0 0 0 3px rgba(0,123,135,0.1); }
+  .form-input { border: 1px solid var(--oct-gray-300); border-radius: 6px; padding: 8px 10px; font-size: 13px; font-family: var(--font-main); color: var(--oct-gray-800); background: #fff; outline: none; }
+  .form-input:focus { border-color: var(--oct-teal); box-shadow: 0 0 0 3px rgba(0,123,135,0.1); }
+
+  .base-screen-pills { display: flex; gap: 10px; }
+  .bs-pill { flex: 1; padding: 14px 10px; border: 1.5px solid var(--oct-gray-300); border-radius: 10px; text-align: center; cursor: pointer; transition: all .15s; }
+  .bs-pill i { font-size: 20px; display: block; margin-bottom: 6px; color: var(--oct-gray-500); }
+  .bs-pill .bsp-name { font-size: 12.5px; font-weight: 600; color: var(--oct-gray-700); }
+  .bs-pill .bsp-sub { font-size: 10px; color: var(--oct-gray-400); margin-top: 2px; }
+  .bs-pill.selected { border-color: var(--oct-teal); background: var(--oct-teal-light); }
+  .bs-pill.selected i, .bs-pill.selected .bsp-name { color: var(--oct-teal-mid); }
+
+  .form-section-hdr { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--oct-gray-500); padding-top: 4px; border-top: 1px solid var(--oct-gray-200); margin-top: 4px; padding-top: 14px; display: flex; align-items: center; gap: 6px; }
+
+  .dual-listbox { display: flex; align-items: center; gap: 10px; }
+  .listbox-col { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+  .listbox-col .lb-label { font-size: 10px; font-weight: 700; color: var(--oct-gray-500); text-transform: uppercase; letter-spacing: .04em; }
+  .listbox { height: 130px; border: 1px solid var(--oct-gray-300); border-radius: 6px; background: #fff; overflow-y: auto; transition: background .12s, border-color .12s; }
+  .listbox.dragover { background: var(--oct-teal-light); border-color: var(--oct-teal); }
+  .listbox-item { padding: 7px 10px; font-size: 12px; cursor: grab; color: var(--oct-gray-700); }
+  .listbox-item:hover { background: var(--oct-gray-50); }
+  .listbox-item.selected { background: var(--oct-teal-light); color: var(--oct-teal-mid); font-weight: 600; }
+  .listbox-item.dragging { opacity: .35; }
+  .listbox-arrows { display: flex; flex-direction: column; gap: 6px; padding-top: 18px; }
+  .arrow-btn { width: 30px; height: 26px; border: 1px solid var(--oct-gray-300); border-radius: 6px; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--oct-gray-600); transition: all .15s; }
+  .arrow-btn:hover { border-color: var(--oct-teal); color: var(--oct-teal); background: var(--oct-teal-light); }
+  .listbox-empty { padding: 14px 10px; font-size: 11px; color: var(--oct-gray-400); text-align: center; }
+
+  .criteria-hint { font-size: 11px; color: var(--oct-gray-500); margin-top: 2px; display: flex; align-items: center; gap: 5px; }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--oct-gray-800); color: #fff; padding: 9px 18px; border-radius: 8px; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 8px; z-index: 500; animation: toastIn 0.2s ease; }
+  @keyframes toastIn { from { opacity:0; transform: translateX(-50%) translateY(8px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+
+  ::-webkit-scrollbar { width: 5px; height:5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--oct-gray-300); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--oct-gray-400); }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="top-nav">
+  <div class="logo"><div class="dot"></div> HxGN EAM</div>
+  <div class="nav-sep"></div>
+  <div class="breadcrumb">Admin &nbsp;/&nbsp; <span>Screen Designer</span></div>
+  <div class="spacer"></div>
+  <button class="nav-btn" onclick="showToast('Layout reverted to last save', 'ti-rotate')"><i class="ti ti-rotate"></i> Reset</button>
+  <button class="nav-btn primary" onclick="saveLayout()"><i class="ti ti-device-floppy"></i> Save</button>
+</nav>
+
+<!-- CONTEXT BAR -->
+<div class="context-bar" id="contextBar"></div>
+
+<!-- FALLBACK / MODE BANNER -->
+<div id="modeBanner"></div>
+
+<!-- MAIN BODY -->
+<div class="main-body">
+
+  <!-- Left pane: tab navigation + step order/visibility/required -->
+  <div class="tab-pane" id="tabPane"></div>
+
+  <div class="canvas-scroll">
+    <div class="canvas-toolbar" id="canvasToolbar">
+      <span class="tb-label" id="canvasToolbarLabel">Record View</span>
+      <button class="tb-btn" onclick="openNewContainerModal()"><i class="ti ti-square-plus"></i> New Container</button>
+      <button class="tb-btn" onclick="openAddFieldModal()"><i class="ti ti-playlist-add"></i> Add Field</button>
+      <div class="tb-spacer"></div>
+      <div class="tb-hint"><i class="ti ti-drag-drop" style="font-size:14px"></i> Drag to reorder &nbsp;·&nbsp; Right-click a field for properties</div>
+    </div>
+    <div class="designer-canvas" id="designerCanvas"></div>
+  </div>
+
+</div>
+
+<!-- ══ ENTRY MODAL ══ -->
+<div class="modal-overlay" id="entryModalOverlay" style="display:none">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div style="width:34px;height:34px;border-radius:8px;background:var(--oct-teal-light);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--oct-teal-mid)"><i class="ti ti-layout-2"></i></div>
+      <h3>Screen Designer</h3>
+      <div class="close" onclick="closeEntryModal(true)"><i class="ti ti-x"></i></div>
+    </div>
+    <div class="modal-body">
+      <p class="lead">Select the base screen to configure. Then select the user group(s) to save layouts to — click Advanced to save to multiple groups (and, for Work Orders, multiple WO Types) at once.</p>
+
+      <div class="field-group">
+        <label class="fl">Base Screen</label>
+        <div class="base-screen-pills">
+          <div class="bs-pill" id="bsPillWo" onclick="setBaseScreen('wo')">
+            <i class="ti ti-file-description"></i>
+            <div class="bsp-name">Work Order</div>
+            <div class="bsp-sub">WSJOBS</div>
+          </div>
+          <div class="bs-pill" id="bsPillEquip" onclick="setBaseScreen('equip')">
+            <i class="ti ti-settings"></i>
+            <div class="bsp-name">Equipment</div>
+            <div class="bsp-sub">EQUIPMENT</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-group" id="woTypeFieldGroup">
+        <label class="fl">WO Type</label>
+        <select class="form-select" id="woTypeSelect" onchange="onWoTypeChange()"></select>
+        <div class="criteria-hint" id="woTypeHint"></div>
+      </div>
+
+      <div class="form-section-hdr"><i class="ti ti-users" style="font-size:12px"></i> Group Save Details</div>
+
+      <div class="field-group">
+        <label class="fl">Copy from Group</label>
+        <select class="form-select" id="copyFromGroupSelect"></select>
+      </div>
+
+      <div class="dual-listbox">
+        <div class="listbox-col">
+          <div class="lb-label">Available Group(s)</div>
+          <div class="listbox" id="availGroupsBox"></div>
+        </div>
+        <div class="listbox-arrows">
+          <button class="arrow-btn" title="Move all right" onclick="moveAllGroups('right')"><i class="ti ti-chevrons-right"></i></button>
+          <button class="arrow-btn" title="Move selected right" onclick="moveSelectedGroups('right')"><i class="ti ti-chevron-right"></i></button>
+          <button class="arrow-btn" title="Move selected left" onclick="moveSelectedGroups('left')"><i class="ti ti-chevron-left"></i></button>
+          <button class="arrow-btn" title="Move all left" onclick="moveAllGroups('left')"><i class="ti ti-chevrons-left"></i></button>
+        </div>
+        <div class="listbox-col">
+          <div class="lb-label">Save to Group(s)</div>
+          <div class="listbox" id="saveGroupsBox"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <span class="footer-hint" id="entryModalHint"></span>
+      <button class="btn btn-outline" onclick="showToast('Advanced save-to-group options — not modeled further in this prototype', 'ti-stack-2')">Advanced</button>
+      <button class="btn btn-cancel" onclick="closeEntryModal(true)">Cancel</button>
+      <button class="btn btn-primary" id="entryContinueBtn" onclick="applyEntryModal()">Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ NEW CONTAINER MODAL ══ -->
+<div class="modal-overlay" id="newContainerModalOverlay" style="display:none">
+  <div class="modal" style="width:420px">
+    <div class="modal-hdr">
+      <h3>New Container</h3>
+      <div class="close" onclick="closeNewContainerModal()"><i class="ti ti-x"></i></div>
+    </div>
+    <div class="modal-body">
+      <p class="lead" style="margin-top:0">Creates a new named field grouping on this screen. Drag fields into it — matches the app's own Container / section-header pattern (§3.3.1).</p>
+      <div class="field-group">
+        <label class="fl">Container Name</label>
+        <input class="form-input" type="text" id="newContainerNameInput" placeholder="e.g. Downtime Details">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeNewContainerModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="addNewContainer()">Add Container</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADD FIELD MODAL ══ -->
+<div class="modal-overlay" id="addFieldModalOverlay" style="display:none">
+  <div class="modal" style="width:440px">
+    <div class="modal-hdr">
+      <h3>Add Field</h3>
+      <div class="close" onclick="closeAddFieldModal()"><i class="ti ti-x"></i></div>
+    </div>
+    <div class="modal-body">
+      <p class="lead" style="margin-top:0">Fields available on this entity that aren't on the screen yet. Click to add — lands in the last container, then drag to place it.</p>
+      <div id="addFieldList" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeAddFieldModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer"></div>
+
+<script>
+/* ═══════════════════════════ DATA ═══════════════════════════ */
+
+const WO_TYPES = [
+  {code:'BK', name:'Breakdown'},
+  {code:'CM', name:'Corrective Maintenance'},
+  {code:'PM', name:'Preventive Maintenance'},
+  {code:'CAL', name:'Calibration'},
+  {code:'INS', name:'Inspection'},
+  {code:'MOD', name:'Modification'},
+  {code:'ROUT', name:'Routine Maintenance'}
+];
+
+const GROUPS = ['CUST-FULL','CUST-LITE','DCOPS','DK','DW-CONT','TECH','SUPV'];
+
+// Completion Status Entity (§12) status domains — which entity's status values
+// the Start Work / Completion Status pickers below draw from.
+const EVST_STATUSES = [
+  {code:'WAPPR', desc:'Work Request'},
+  {code:'RELEASED', desc:'Released'},
+  {code:'INPROG', desc:'In Progress'},
+  {code:'CLOSE', desc:'Closed'}
+];
+const AAST_STATUSES = [
+  {code:'NOTSTARTED', desc:'Not Started'},
+  {code:'INPROG', desc:'In Progress'},
+  {code:'COMPLETE', desc:'Complete'}
+];
+function statusListForEntity(entity){ return entity === 'activity' ? AAST_STATUSES : EVST_STATUSES; }
+
+// step id -> display meta. Order here is fixed catalog order; actual sequence is state.stepOrder.
+const STEP_META = {
+  recordview: {label:'WO Record View', icon:'ti-file-description', tab:'recordview'},
+  checklist:  {label:'Activity Checklist', icon:'ti-clipboard-check', tab:'checklist'},
+  parts:      {label:'Issue / Return Parts', icon:'ti-box-multiple', tab:'parts'},
+  booklabor:  {label:'Book Labor', icon:'ti-clock-hour-4', tab:'booklabor'},
+  closing:    {label:'WO Closing', icon:'ti-circle-check', tab:'closing'}
+};
+
+const WO_TABS = [
+  {id:'recordview', label:'Record View', step:true, icon:'ti-file-description'},
+  {id:'comments', label:'Comments', step:false, icon:'ti-message-circle'},
+  {id:'activities', label:'Activities', step:false, icon:'ti-list-check'},
+  {id:'booklabor', label:'Book Labor', step:true, icon:'ti-clock-hour-4'},
+  {id:'closing', label:'Closing', step:true, icon:'ti-circle-check'},
+  {id:'parts', label:'Parts', step:true, icon:'ti-box-multiple'},
+  {id:'costsummary', label:'Cost Summary', step:false, icon:'ti-report-money'},
+  {id:'checklist', label:'Checklist', step:true, icon:'ti-clipboard-check'},
+  {id:'workflowapproval', label:'Workflow Approval', step:false, icon:'ti-stamp'}
+];
+
+const EQUIP_TABS = [
+  {id:'eq-recordview', label:'Record View', step:false, icon:'ti-settings'},
+  {id:'eq-comments', label:'Comments', step:false, icon:'ti-message-circle'},
+  {id:'eq-documents', label:'Documents', step:false, icon:'ti-paperclip'},
+  {id:'eq-structure', label:'Structure', step:false, icon:'ti-hierarchy-3'}
+];
+
+function cloneFields(list){ return JSON.parse(JSON.stringify(list)); }
+
+const FIELD_TEMPLATE = {
+  recordview: [
+    {container:'Work Order Details', layout:'grid', fields:[
+      {name:'Type', api:'WSJOBS_TYPE', type:'lov', behavior:'req', span:1},
+      {name:'Department', api:'WSJOBS_DEPT', type:'lov', behavior:'req', span:1},
+      {name:'Class', api:'WSJOBS_CLASS', type:'lov', behavior:'opt', span:1},
+      {name:'Priority', api:'WSJOBS_PRI', type:'lov', behavior:'opt', span:1},
+      {name:'Trusted Vendor', api:'TRUSTED_VENDOR', type:'bool', behavior:'hid', span:1}
+    ]},
+    {container:'Activity', fields:[
+      {name:'Trade', api:'ACT_TRADE', type:'lov', behavior:'opt'},
+      {name:'Task Plan', api:'ACT_TASKPLAN', type:'lov', behavior:'opt'},
+      {name:'Material List', api:'ACT_MATLIST', type:'lov', behavior:'hid'}
+    ]},
+    {container:'Scheduling', fields:[
+      {name:'Sched. Start Date', api:'SCHED_START', type:'date', behavior:'prot'},
+      {name:'Sched. End Date', api:'SCHED_END', type:'date', behavior:'prot'},
+      {name:'Site Arrival Time', api:'SITE_ARR', type:'date', behavior:'opt'},
+      {name:'Date Completed', api:'DATE_COMPLETED', type:'date', behavior:'na'}
+    ]}
+  ],
+  checklist: [
+    {container:'Checklist Item', fields:[
+      {name:'Item Label', api:'CHK_LABEL', type:'text', behavior:'prot'},
+      {name:'Description', api:'CHK_DESC', type:'text', behavior:'prot'},
+      {name:'Answer Type', api:'CHK_ANSTYPE', type:'lov', behavior:'prot'},
+      {name:'Notes', api:'CHK_NOTES', type:'text', behavior:'opt'},
+      {name:'Flag for Follow-up', api:'CHK_FLAG', type:'bool', behavior:'opt'}
+    ]}
+  ],
+  parts: [
+    {container:'Header Fields', fields:[
+      {name:'Activity', api:'WSJOBS_ACT', type:'lov', behavior:'prot'},
+      {name:'Issue / Return', api:'TRANS_TYPE', type:'lov', behavior:'req'},
+      {name:'Department', api:'WSJOBS_DEPT', type:'lov', behavior:'req'},
+      {name:'Cost Code', api:'WSJOBS_COSTCODE', type:'lov', behavior:'opt'},
+      {name:'Store', api:'STOR_STORE', type:'lov', behavior:'req'},
+      {name:'Material List', api:'MAT_LIST', type:'lov', behavior:'hid'}
+    ]},
+    {container:'Part Details', fields:[
+      {name:'Part', api:'PART_CODE', type:'lov', behavior:'req'},
+      {name:'Bin', api:'PART_BIN', type:'lov', behavior:'req'},
+      {name:'Lot', api:'PART_LOT', type:'lov', behavior:'opt'},
+      {name:'Condition', api:'PART_COND', type:'lov', behavior:'opt'},
+      {name:'Available Qty', api:'AVAIL_QTY', type:'num', behavior:'prot'},
+      {name:'Transaction Qty', api:'TRANS_QTY', type:'num', behavior:'req'},
+      {name:'Return Condition', api:'RET_COND', type:'lov', behavior:'na'}
+    ]}
+  ],
+  booklabor: [
+    {container:'Labor Details', fields:[
+      {name:'Employee', api:'LAB_EMP', type:'lov', behavior:'req'},
+      {name:'Crew', api:'LAB_CREW', type:'lov', behavior:'opt'},
+      {name:'Date Worked', api:'LAB_DATE', type:'date', behavior:'req'},
+      {name:'Start Time', api:'LAB_START', type:'date', behavior:'req'},
+      {name:'End Time', api:'LAB_END', type:'date', behavior:'req'},
+      {name:'Hours Worked', api:'LAB_HOURS', type:'num', behavior:'prot'},
+      {name:'Type of Hours', api:'LAB_TYPE', type:'lov', behavior:'req'},
+      {name:'Trade', api:'LAB_TRADE', type:'lov', behavior:'opt'}
+    ]}
+  ],
+  closing: [
+    {container:'Closing Codes', fields:[
+      {name:'Problem', api:'CLS_PROB', type:'lov', behavior:'req'},
+      {name:'Failure', api:'CLS_FAIL', type:'lov', behavior:'req'},
+      {name:'Cause', api:'CLS_CAUSE', type:'lov', behavior:'req'},
+      {name:'Action', api:'CLS_ACT', type:'lov', behavior:'req'}
+    ]},
+    {container:'Closing', fields:[
+      {name:'Closing Comments', api:'CLS_COMMENTS', type:'text', behavior:'req'},
+      {name:'Date Completed', api:'DATE_COMPLETED', type:'date', behavior:'na'}
+    ]}
+  ],
+  'eq-recordview': [
+    {container:'Equipment Details', fields:[
+      {name:'Description', api:'EQ_DESC', type:'text', behavior:'req'},
+      {name:'Class', api:'EQ_CLASS', type:'lov', behavior:'req'},
+      {name:'Status', api:'EQ_STATUS', type:'lov', behavior:'prot'},
+      {name:'Manufacturer', api:'EQ_MFR', type:'text', behavior:'opt'},
+      {name:'Model', api:'EQ_MODEL', type:'text', behavior:'opt'}
+    ]}
+  ]
+};
+
+const AVAILABLE_FIELD_CANDIDATES = {
+  recordview: [
+    {name:'Supervisor', api:'WSJOBS_SUPV', type:'lov'},
+    {name:'Customer', api:'WSJOBS_CUST', type:'lov'},
+    {name:'PM Code', api:'WSJOBS_PMCODE', type:'text'}
+  ],
+  checklist: [
+    {name:'Severity', api:'CHK_SEV', type:'lov'},
+    {name:'Equipment', api:'CHK_EQUIP', type:'text'}
+  ],
+  parts: [
+    {name:'Asset ID', api:'WO_ASSET', type:'text'},
+    {name:'Requested By', api:'REQ_BY', type:'lov'}
+  ],
+  booklabor: [
+    {name:'Overtime Reason', api:'LAB_OT_REASON', type:'lov'},
+    {name:'Cost Code', api:'LAB_COSTCODE', type:'lov'}
+  ],
+  closing: [
+    {name:'Downtime (hrs)', api:'CLS_DOWNTIME', type:'num'},
+    {name:'Meter Reading', api:'CLS_METER', type:'num'}
+  ],
+  'eq-recordview': [
+    {name:'Serial Number', api:'EQ_SERIAL', type:'text'},
+    {name:'Location', api:'EQ_LOC', type:'lov'}
+  ]
+};
+
+const FIELD_TYPE_DOT = {text:'#007B87', lov:'#6B4EFF', num:'#F59E0B', bool:'#28A745', date:'#EC4899'};
+
+/* ═══════════════════════════ STATE ═══════════════════════════ */
+
+let state = {
+  baseScreen: null,
+  woType: 'BK',
+  copyFromGroup: 'DK',
+  groups: [],
+  activeTab: 'recordview',
+  freeForm: false,
+  completionEntity: 'wo', // 'wo' (EVST) | 'activity' (AAST) — §12, WO Type only, no Group dimension
+  startWorkStatus: 'INPROG', // status set on the completion entity when Start Work is tapped, §15.4
+  completionStatus: 'CLOSE', // status set on the completion entity when the workflow completes
+  bookLaborTimeEntryMode: 'startend', // 'startend' | 'direct' — §18.4, Book Labor-specific
+  stepOrder: ['checklist','parts','booklabor','closing'], // recordview is always pinned first
+  steps: {
+    checklist: {visible:true, required:true},
+    parts: {visible:true, required:false},
+    booklabor: {visible:true, required:true},
+    closing: {visible:true, required:true}
+  },
+  availGroups: GROUPS.slice()
+};
+
+let WORK_FIELDS = cloneFields(FIELD_TEMPLATE);
+let ctxMenuTarget = null; // {tabId, cIdx, fIdx}
+let dragField = null; // {cIdx, fIdx}
+let dragStep = null; // stepId
+let dragGroup = null; // group code
+let bookLaborSettingsOpen = false;
+
+// Pre-existing grid containers may start with an odd field count — balance them once at load.
+Object.values(WORK_FIELDS).forEach(tabData => {
+  if (Array.isArray(tabData)) tabData.forEach(section => { if (section.layout === 'grid') autoBalanceGrid(section); });
+});
+
+/* ═══════════════════════════ ENTRY MODAL ═══════════════════════════ */
+
+function openEntryModal(){
+  document.getElementById('entryModalOverlay').style.display = 'flex';
+  document.getElementById('bsPillWo').classList.toggle('selected', state.baseScreen !== 'equip');
+  document.getElementById('bsPillEquip').classList.toggle('selected', state.baseScreen === 'equip');
+  document.getElementById('woTypeFieldGroup').style.display = (state.baseScreen === 'equip') ? 'none' : 'flex';
+
+  const woSel = document.getElementById('woTypeSelect');
+  woSel.innerHTML = '<option value="none">None — Fallback (unmatched WO Types)</option>' +
+    WO_TYPES.map(t => `<option value="${t.code}">${t.code} — ${t.name}</option>`).join('');
+  woSel.value = state.woType || 'none';
+  onWoTypeChange();
+
+  const cfSel = document.getElementById('copyFromGroupSelect');
+  cfSel.innerHTML = GROUPS.map(g => `<option value="${g}" ${g===state.copyFromGroup?'selected':''}>${g}</option>`).join('');
+
+  renderGroupBoxes();
+  updateEntryContinueState();
+}
+
+function closeEntryModal(isCancel){
+  document.getElementById('entryModalOverlay').style.display = 'none';
+  if (isCancel && !state.baseScreen) {
+    // nothing configured yet — reopen so there's always a valid state to view
+    setTimeout(openEntryModal, 50);
+  }
+}
+
+function setBaseScreen(which){
+  document.getElementById('bsPillWo').classList.toggle('selected', which === 'wo');
+  document.getElementById('bsPillEquip').classList.toggle('selected', which === 'equip');
+  document.getElementById('woTypeFieldGroup').style.display = (which === 'equip') ? 'none' : 'flex';
+  entrySelectedBaseScreen = which;
+}
+let entrySelectedBaseScreen = 'wo';
+
+function onWoTypeChange(){
+  const val = document.getElementById('woTypeSelect').value;
+  const hint = document.getElementById('woTypeHint');
+  if (val === 'none') {
+    hint.innerHTML = '<i class="ti ti-info-circle"></i> Fallback — always renders the Standard Record View, always Free Form (§11). No guided steps to configure.';
+  } else {
+    hint.innerHTML = '<i class="ti ti-info-circle"></i> Extends this screen with Workflow Steps (visible / order / required), a Free Form flag, and status source — keyed to this WO Type × the group(s) you save to.';
+  }
+}
+
+function renderGroupBoxes(){
+  const availBox = document.getElementById('availGroupsBox');
+  const saveBox = document.getElementById('saveGroupsBox');
+  availBox.innerHTML = state.availGroups.length ? state.availGroups.map(g => `<div class="listbox-item" draggable="true" data-g="${g}" onclick="toggleGroupSel(this)" ondblclick="moveGroupItem('${g}', true)" title="Double-click to move to Save to Group(s)">${g}</div>`).join('') : '<div class="listbox-empty">All groups selected</div>';
+  saveBox.innerHTML = state.groups.length ? state.groups.map(g => `<div class="listbox-item" draggable="true" data-g="${g}" onclick="toggleGroupSel(this)" ondblclick="moveGroupItem('${g}', false)" title="Double-click to move back to Available Group(s)">${g}</div>`).join('') : '<div class="listbox-empty">Drag groups here, or use the arrows</div>';
+  wireGroupDrag();
+}
+
+function toggleGroupSel(el){ el.classList.toggle('selected'); }
+
+function moveGroupItem(g, fromAvail){
+  if (fromAvail) {
+    state.availGroups = state.availGroups.filter(x => x !== g);
+    state.groups.push(g);
+  } else {
+    state.groups = state.groups.filter(x => x !== g);
+    state.availGroups.push(g);
+  }
+  renderGroupBoxes();
+  updateEntryContinueState();
+}
+
+function wireGroupDrag(){
+  document.querySelectorAll('#availGroupsBox .listbox-item, #saveGroupsBox .listbox-item').forEach(item => {
+    item.addEventListener('dragstart', () => { dragGroup = item.dataset.g; item.classList.add('dragging'); });
+    item.addEventListener('dragend', () => item.classList.remove('dragging'));
+  });
+  ['availGroupsBox', 'saveGroupsBox'].forEach(id => {
+    const box = document.getElementById(id);
+    box.addEventListener('dragover', e => { e.preventDefault(); box.classList.add('dragover'); });
+    box.addEventListener('dragleave', () => box.classList.remove('dragover'));
+    box.addEventListener('drop', e => {
+      e.preventDefault();
+      box.classList.remove('dragover');
+      if (!dragGroup) return;
+      const toSave = id === 'saveGroupsBox';
+      state.availGroups = state.availGroups.filter(g => g !== dragGroup);
+      state.groups = state.groups.filter(g => g !== dragGroup);
+      (toSave ? state.groups : state.availGroups).push(dragGroup);
+      dragGroup = null;
+      renderGroupBoxes();
+      updateEntryContinueState();
+    });
+  });
+}
+
+function moveSelectedGroups(dir){
+  const fromId = dir === 'right' ? 'availGroupsBox' : 'saveGroupsBox';
+  const selected = [...document.getElementById(fromId).querySelectorAll('.listbox-item.selected')].map(e => e.dataset.g);
+  if (!selected.length) { showToast('Select group(s) first', 'ti-info-circle'); return; }
+  if (dir === 'right') {
+    state.availGroups = state.availGroups.filter(g => !selected.includes(g));
+    state.groups = state.groups.concat(selected);
+  } else {
+    state.groups = state.groups.filter(g => !selected.includes(g));
+    state.availGroups = state.availGroups.concat(selected);
+  }
+  renderGroupBoxes();
+  updateEntryContinueState();
+}
+
+function moveAllGroups(dir){
+  if (dir === 'right') { state.groups = state.groups.concat(state.availGroups); state.availGroups = []; }
+  else { state.availGroups = state.availGroups.concat(state.groups); state.groups = []; }
+  renderGroupBoxes();
+  updateEntryContinueState();
+}
+
+function updateEntryContinueState(){
+  const btn = document.getElementById('entryContinueBtn');
+  const hint = document.getElementById('entryModalHint');
+  const ok = state.groups.length > 0;
+  btn.disabled = !ok;
+  hint.textContent = ok ? '' : 'Move at least one group to "Save to Group(s)" to continue';
+}
+
+function applyEntryModal(){
+  if (!state.groups.length) return;
+  state.baseScreen = entrySelectedBaseScreen;
+  state.copyFromGroup = document.getElementById('copyFromGroupSelect').value;
+  if (state.baseScreen === 'wo') {
+    state.woType = document.getElementById('woTypeSelect').value;
+    state.activeTab = 'recordview';
+  } else {
+    state.woType = null;
+    state.activeTab = 'eq-recordview';
+  }
+  document.getElementById('entryModalOverlay').style.display = 'none';
+  showToast('Layout loaded — copied from Group: ' + state.copyFromGroup, 'ti-copy');
+  refreshShell();
+}
+
+/* ═══════════════════════════ SHELL ═══════════════════════════ */
+
+function refreshShell(){
+  renderContextBar();
+  renderModeBanner();
+  renderTabPane();
+  switchTab(state.activeTab);
+}
+
+function currentTabDefs(){ return state.baseScreen === 'equip' ? EQUIP_TABS : WO_TABS; }
+
+function woTypeName(code){ const t = WO_TYPES.find(x=>x.code===code); return t ? (t.code+' — '+t.name) : 'None (Fallback)'; }
+
+function renderContextBar(){
+  const bar = document.getElementById('contextBar');
+  const bsChip = state.baseScreen === 'equip'
+    ? `<div class="context-chip"><i class="ti ti-settings"></i> Base Screen: <b>Equipment</b></div>`
+    : `<div class="context-chip"><i class="ti ti-file-description"></i> Base Screen: <b>Work Order</b></div>`;
+  const woChip = state.baseScreen === 'wo'
+    ? `<div class="context-chip"><i class="ti ti-tag"></i> WO Type: <b>${woTypeName(state.woType)}</b></div>` : '';
+  const grpChip = `<div class="context-chip"><i class="ti ti-users"></i> Group(s): <b>${state.groups.join(', ')}</b></div>`;
+
+  bar.innerHTML = bsChip + woChip + grpChip +
+    `<div class="link-btn" onclick="openEntryModal()"><i class="ti ti-adjustments-horizontal"></i> Change Screen / Group(s)</div>` +
+    `<div class="ctx-spacer"></div>`;
+}
+
+function renderModeBanner(){
+  const el = document.getElementById('modeBanner');
+  if (state.baseScreen === 'wo' && state.woType === 'none') {
+    el.innerHTML = `<div class="fallback-banner"><i class="ti ti-alert-triangle"></i> <span><b>Fallback screen.</b> No matching WO Workflow header for this WO Type — renders the plain Standard Record View, always Free Form. Hardcoded, not configurable (§11).</span></div>`;
+  } else if (state.baseScreen === 'equip') {
+    el.innerHTML = `<div class="fallback-banner equip"><i class="ti ti-info-circle"></i> <span>Equipment is a plain Standard Record View — no WO Type / workflow concept applies here (§10).</span></div>`;
+  } else {
+    el.innerHTML = '';
+  }
+}
+
+function navItemHtml(t){
+  return `<div class="tp-nav-item ${t.id===state.activeTab?'active':''}" onclick="switchTab('${t.id}')">
+    <i class="ti ${t.icon}"></i> ${t.label}
+  </div>`;
+}
+
+function renderTabPane(){
+  const pane = document.getElementById('tabPane');
+  const defs = currentTabDefs();
+  const showSteps = state.baseScreen === 'wo' && state.woType !== 'none';
+  let html = '';
+
+  if (showSteps) {
+    const recordviewTab = defs.find(t => t.id === 'recordview');
+    const otherTabs = defs.filter(t => !t.step);
+    html += `<div class="tp-section-label">Guided Workflow Steps</div>
+      <div class="wfp-pinned-step" style="margin:0 16px 8px">
+        <i class="ti ti-lock wfp-drag" style="cursor:default"></i>
+        <div class="wfp-step-icon"><i class="ti ${recordviewTab.icon}"></i></div>
+        <div class="wfp-step-body" style="cursor:pointer" onclick="switchTab('${recordviewTab.id}')">
+          <div class="wfp-step-name">${recordviewTab.label}</div>
+          <div class="wfp-step-tag">Always step 1 — not togglable</div>
+        </div>
+      </div>
+      <div id="tpStepRows" style="padding:0 16px"></div>
+      <div class="tp-section-label">Other Tabs (not step-governed)</div>`;
+    otherTabs.forEach(t => { html += navItemHtml(t); });
+  } else {
+    // No guided workflow at all (fallback, or Equipment) — every tab is just a plain nav item.
+    html += `<div class="tp-section-label">Tabs</div>`;
+    defs.forEach(t => { html += navItemHtml(t); });
+  }
+
+  pane.innerHTML = html;
+
+  if (showSteps) {
+    renderStepRows();
+    renderWorkflowSettingsBlock();
+  }
+}
+
+function renderWorkflowSettingsBlock(){
+  const pane = document.getElementById('tabPane');
+  const block = document.createElement('div');
+  block.className = 'wfp-block';
+  const statuses = statusListForEntity(state.completionEntity);
+  const entityLabel = state.completionEntity === 'activity' ? 'Activities (AAST)' : 'Work Orders (EVST)';
+  block.innerHTML = `
+    <div class="wfp-section-label">Free Form (§12 — WO Type × Group)</div>
+    <div class="wfp-row" style="margin-bottom:14px">
+      <div>
+        <div class="lbl">Free Form Workflow</div>
+        <div class="desc">${state.freeForm ? 'Jump freely; status stays editable.' : 'Strictly linear; status locks mid-workflow.'}</div>
+      </div>
+      <label class="toggle purple"><input type="checkbox" ${state.freeForm?'checked':''} onchange="setFreeForm(this.checked)"><div class="toggle-track"></div></label>
+    </div>
+
+    <div class="wfp-section-label">Completion Status Entity (§12 — WO Type only)</div>
+    <select class="wfp-select" onchange="setCompletionEntity(this.value)">
+      <option value="wo" ${state.completionEntity==='wo'?'selected':''}>Work Orders (EVST)</option>
+      <option value="activity" ${state.completionEntity==='activity'?'selected':''}>Activities (AAST)</option>
+    </select>
+    <div class="wfp-note"><i class="ti ti-info-circle"></i> Applies to every group viewing ${woTypeName(state.woType)}, not just ${state.groups.join(', ')} — drives which status domain the 2 fields below pick from.</div>
+
+    <div class="wfp-section-label" style="margin-top:14px">Start Work Status</div>
+    <select class="wfp-select" onchange="setStartWorkStatus(this.value)">
+      ${statuses.map(s => `<option value="${s.code}" ${state.startWorkStatus===s.code?'selected':''}>${s.desc}</option>`).join('')}
+    </select>
+    <div class="wfp-note"><i class="ti ti-info-circle"></i> Status set on ${entityLabel} when the technician taps Start Work (§15.4).</div>
+
+    <div class="wfp-section-label" style="margin-top:14px">Completion Status</div>
+    <select class="wfp-select" onchange="setCompletionStatus(this.value)">
+      ${statuses.map(s => `<option value="${s.code}" ${state.completionStatus===s.code?'selected':''}>${s.desc}</option>`).join('')}
+    </select>
+    <div class="wfp-note"><i class="ti ti-info-circle"></i> Status set on ${entityLabel} when the workflow completes.${state.completionEntity==='activity' ? ' WO Closing\'s field set is unchanged either way — an Activity-driven completion may eventually want its own standalone Activities tab as the real closing surface instead (not built, §20).' : ''}</div>
+  `;
+  pane.appendChild(block);
+}
+
+function refreshWorkflowSettingsBlock(){
+  const pane = document.getElementById('tabPane');
+  const old = pane.querySelector('.wfp-block');
+  if (old) old.remove();
+  renderWorkflowSettingsBlock();
+}
+
+function switchTab(tabId){
+  state.activeTab = tabId;
+  renderTabPane();
+  renderCanvas();
+}
+
+/* ═══════════════════════════ CANVAS / EMULATOR ═══════════════════════════ */
+
+function tabLabel(tabId){
+  const t = currentTabDefs().find(x => x.id === tabId);
+  return t ? t.label : tabId;
+}
+
+function renderCanvas(){
+  document.getElementById('canvasToolbarLabel').textContent = tabLabel(state.activeTab);
+  const canvas = document.getElementById('designerCanvas');
+  const data = WORK_FIELDS[state.activeTab];
+
+  if (!data) {
+    canvas.innerHTML = `<div class="empty-state"><i class="ti ti-layout-2"></i><p>Field layout for "${tabLabel(state.activeTab)}" isn't modeled in this prototype — it would render with the exact same emulator, containers, and right-click property menu shown on the other tabs.</p></div>`;
+    return;
+  }
+
+  const isWoStepTab = state.baseScreen === 'wo' && ['recordview','checklist','parts','booklabor','closing'].includes(state.activeTab);
+  const showRail = isWoStepTab && state.woType !== 'none';
+
+  let railHtml = '';
+  if (showRail) {
+    const stepId = state.activeTab === 'recordview' ? 'recordview' : Object.keys(STEP_META).find(k => STEP_META[k].tab === state.activeTab);
+    const order = ['recordview'].concat(state.stepOrder.filter(s => state.steps[s].visible));
+    const total = order.length;
+    const pos = order.indexOf(stepId) + 1;
+    let segs = '';
+    for (let i=1;i<=total;i++) segs += `<div class="mob-seg ${i<pos?'done':(i===pos?'active':'future')}"></div>`;
+    railHtml = `<div class="mob-step-rail">
+      <span class="mob-step-pill">${pos} of ${total}</span>
+      <span class="mob-step-name">${tabLabel(state.activeTab)}</span>
+      <div class="mob-step-bar">${segs}</div>
+    </div>`;
+  }
+
+  const lockedHeader = (state.activeTab === 'recordview' || state.activeTab === 'eq-recordview')
+    ? `<div class="mob-locked-header"><i class="ti ti-lock"></i> Identity header (icon / number / description / status / pin) — locked out of Screen Designer, §5.3</div>` : '';
+
+  let bodyHtml = '';
+  data.forEach((section, cIdx) => {
+    const isGrid = section.layout === 'grid';
+    bodyHtml += `<div class="mob-section-hdr" data-cidx="${cIdx}">
+        <span class="csh-name">${section.container}</span>
+        <i class="ti ${isGrid?'ti-list':'ti-layout-grid'} csh-layout-toggle" title="Switch to ${isGrid?'list':'grid'} layout" onclick="toggleContainerLayout(${cIdx})"></i>
+        <i class="ti ti-x csh-del" title="Remove container" onclick="removeContainer(${cIdx})"></i>
+      </div>`;
+    if (isGrid) {
+      bodyHtml += renderGridBody(cIdx, section);
+    } else {
+      section.fields.forEach((f, fIdx) => { bodyHtml += renderFieldRow(cIdx, fIdx, f); });
+      if (!section.fields.length) {
+        bodyHtml += `<div style="padding:10px 0;font-size:10px;color:var(--oct-gray-300);font-style:italic">Empty container — drag a field here</div>`;
+      }
+    }
+  });
+
+  canvas.innerHTML = `<div class="mobile-shell" id="mobileShell">
+    <div class="mob-nav">
+      <i class="ti ti-chevron-left mob-nav-back"></i>
+      <div class="mob-nav-title">${state.baseScreen==='wo' ? 'WO#19257 · Pump Cavitating' : 'EQ-4421 · Boiler Feed Pump'}</div>
+      <i class="ti ti-dots-vertical" style="color:rgba(255,255,255,0.4);font-size:14px"></i>
+    </div>
+    ${lockedHeader}
+    ${railHtml}
+    <div class="mob-form" id="mobForm">${bodyHtml}</div>
+    <div class="mob-save-btn">Save</div>
+  </div>`;
+
+  wireFieldDragEvents();
+}
+
+function behaviorMeta(b){
+  switch(b){
+    case 'req': return {bar:'req', star:true, lock:false, na:false, tag:''};
+    case 'prot': return {bar:'prot', star:false, lock:true, na:false, tag:''};
+    case 'hid': return {bar:'', star:false, lock:false, na:false, tag:'(hidden)'};
+    case 'na': return {bar:'', star:false, lock:false, na:true, tag:''};
+    default: return {bar:'', star:false, lock:false, na:false, tag:''};
+  }
+}
+
+function renderFieldRow(cIdx, fIdx, f){
+  const bm = behaviorMeta(f.behavior);
+  if (bm.na) {
+    return `<div class="mob-field na-field" draggable="true" data-cidx="${cIdx}" data-fidx="${fIdx}"
+        oncontextmenu="showFieldMenu(event, ${cIdx}, ${fIdx})">
+      <div class="mob-field-req-bar"></div>
+      <div class="mob-field-label">${f.name}</div>
+      <div class="mob-field-value">Not Available</div>
+    </div>`;
+  }
+  const opacity = f.behavior === 'hid' ? 'opacity:0.4' : '';
+  return `<div class="mob-field" style="${opacity}" draggable="true" data-cidx="${cIdx}" data-fidx="${fIdx}"
+      oncontextmenu="showFieldMenu(event, ${cIdx}, ${fIdx})">
+    <div class="mob-field-req-bar ${bm.bar}"></div>
+    <div class="mob-field-label">${f.name}${bm.star?'<span class="req-star">*</span>':''}</div>
+    <div class="mob-field-value">${fieldSampleValue(f)}</div>
+    ${bm.lock ? '<i class="mob-field-lock ti ti-lock"></i>' : '<i class="mob-field-chevron ti ti-chevron-right"></i>'}
+  </div>`;
+}
+
+function fieldSampleValue(f){
+  if (f.behavior === 'hid') return '';
+  const samples = {lov:'Select…', text:'—', num:'0', bool:'', date:'—'};
+  return samples[f.type] || '—';
+}
+
+/* ═══════════════════════════ FIELD GRID SECTION ═══════════════════════════ */
+
+function renderGridBody(cIdx, section){
+  let html = `<div class="mob-grid" data-cidx="${cIdx}">`;
+  section.fields.forEach((f, fIdx) => { html += renderGridCell(cIdx, fIdx, f); });
+  html += '</div>';
+  if (!section.fields.length) html += '<div class="grid-empty-hint">Empty grid — drag a field here</div>';
+  return html;
+}
+
+function renderGridCell(cIdx, fIdx, f){
+  const bm = behaviorMeta(f.behavior);
+  const span = f.span || 1;
+  return `<div class="mob-grid-cell" style="grid-column:span ${span}" draggable="true" data-cidx="${cIdx}" data-fidx="${fIdx}"
+      oncontextmenu="showFieldMenu(event, ${cIdx}, ${fIdx})">
+    <div class="mob-field-req-bar ${bm.bar}"></div>
+    <div class="mob-field-label">${f.name}${bm.star?'<span class="req-star">*</span>':''}</div>
+    <div class="mob-field-value">${bm.na ? 'Not Available' : fieldSampleValue(f)}</div>
+    <div class="grid-resize-handle" title="Drag to stretch to full width" onmousedown="startGridResize(event, ${cIdx}, ${fIdx})" ondragstart="event.stopPropagation();return false;"></div>
+  </div>`;
+}
+
+function toggleContainerLayout(cIdx){
+  const section = WORK_FIELDS[state.activeTab][cIdx];
+  section.layout = section.layout === 'grid' ? 'list' : 'grid';
+  if (section.layout === 'grid') {
+    section.fields.forEach(f => { if (!f.span) f.span = 1; });
+    autoBalanceGrid(section);
+  }
+  renderCanvas();
+  showToast('Container "' + section.container + '" switched to ' + (section.layout === 'grid' ? 'Grid' : 'List') + ' layout', 'ti-layout-grid');
+}
+
+// Auto-widens a lone trailing field so it never dangles alone in the last row.
+function autoBalanceGrid(section){
+  if (!section || section.layout !== 'grid' || !section.fields.length) return;
+  let nextCol = 0;
+  section.fields.forEach(f => {
+    const span = f.span || 1;
+    nextCol = span >= 2 ? 0 : (nextCol === 0 ? 1 : 0);
+  });
+  if (nextCol === 1) {
+    const last = section.fields[section.fields.length - 1];
+    if ((last.span || 1) === 1) last.span = 2;
+  }
+}
+
+function setFieldSpan(cIdx, fIdx, span){
+  const section = WORK_FIELDS[state.activeTab][cIdx];
+  section.fields[fIdx].span = span;
+  autoBalanceGrid(section);
+  renderCanvas();
+}
+
+function startGridResize(e, cIdx, fIdx){
+  e.preventDefault();
+  e.stopPropagation();
+  const startX = e.clientX;
+  const field = WORK_FIELDS[state.activeTab][cIdx].fields[fIdx];
+  const startSpan = field.span || 1;
+  let resolved = false;
+  function onMove(ev){
+    if (resolved) return;
+    const dx = ev.clientX - startX;
+    if (dx > 45 && startSpan === 1) { resolved = true; setFieldSpan(cIdx, fIdx, 2); cleanup(); }
+    else if (dx < -45 && startSpan === 2) { resolved = true; setFieldSpan(cIdx, fIdx, 1); cleanup(); }
+  }
+  function cleanup(){ document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
+  function onUp(){ cleanup(); }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+/* Drag reorder for fields (list rows and grid cells share the same mechanism) */
+function wireFieldDragEvents(){
+  const rows = document.querySelectorAll('#mobForm .mob-field, #mobForm .mob-grid-cell');
+  rows.forEach(row => {
+    row.addEventListener('dragstart', e => {
+      dragField = {cIdx: +row.dataset.cidx, fIdx: +row.dataset.fidx};
+      row.classList.add('dragging');
+    });
+    row.addEventListener('dragend', () => row.classList.remove('dragging'));
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      const rect = row.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height/2;
+      row.classList.toggle('dragover-top', before);
+      row.classList.toggle('dragover-bottom', !before);
+    });
+    row.addEventListener('dragleave', () => { row.classList.remove('dragover-top','dragover-bottom'); });
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      row.classList.remove('dragover-top','dragover-bottom');
+      if (!dragField) return;
+      const targetCIdx = +row.dataset.cidx, targetFIdx = +row.dataset.fidx;
+      const rect = row.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height/2;
+      moveField(dragField.cIdx, dragField.fIdx, targetCIdx, targetFIdx, before);
+      dragField = null;
+    });
+  });
+}
+
+function moveField(fromC, fromF, toC, toF, before){
+  const data = WORK_FIELDS[state.activeTab];
+  const [item] = data[fromC].fields.splice(fromF, 1);
+  // recompute target index if same container and removal shifted indices
+  if (fromC === toC && fromF < toF) toF -= 1;
+  let insertAt = before ? toF : toF + 1;
+  if (data[toC].layout === 'grid' && !item.span) item.span = 1;
+  data[toC].fields.splice(insertAt, 0, item);
+  if (data[fromC].layout === 'grid') autoBalanceGrid(data[fromC]);
+  if (data[toC].layout === 'grid') autoBalanceGrid(data[toC]);
+  renderCanvas();
+  showToast('Field reordered', 'ti-arrows-sort');
+}
+
+function removeContainer(cIdx){
+  const data = WORK_FIELDS[state.activeTab];
+  if (data[cIdx].fields.length) {
+    showToast('Move or remove fields out of this container first', 'ti-alert-triangle');
+    return;
+  }
+  data.splice(cIdx, 1);
+  renderCanvas();
+}
+
+/* ═══════════════════════════ FIELD CONTEXT MENU ═══════════════════════════ */
+
+function showFieldMenu(e, cIdx, fIdx){
+  e.preventDefault();
+  hideFieldMenu();
+  const data = WORK_FIELDS[state.activeTab];
+  const f = data[cIdx].fields[fIdx];
+  ctxMenuTarget = {cIdx, fIdx};
+
+  const options = [
+    {key:'req', label:'Required'},
+    {key:'prot', label:'Protected'},
+    {key:'opt', label:'Optional (Default)'},
+    {key:'hid', label:'Hidden'},
+    {key:'na', label:'Not Available'}
+  ];
+
+  const menu = document.createElement('div');
+  menu.className = 'field-ctx-menu';
+  menu.id = 'fieldCtxMenu';
+  menu.innerHTML = `
+    <div class="fcm-hdr">${f.name} <span>${f.api}</span></div>
+    ${options.map(o => `<div class="fcm-item" onclick="setFieldBehavior('${o.key}')"><span class="chk">${f.behavior===o.key?'<i class=\"ti ti-check\"></i>':''}</span> ${o.label}</div>`).join('')}
+    <div class="fcm-sep"></div>
+    <div class="fcm-item" onclick="stubFieldAction('Edit Field Names')"><span class="chk"></span> Edit Field Names</div>
+    <div class="fcm-item" onclick="stubFieldAction('View Field Details')"><span class="chk"></span> View Field Details</div>
+    <div class="fcm-sep"></div>
+    <div class="fcm-item" onclick="stubFieldAction('Set Default Value')"><span class="chk"></span> Set Default Value</div>
+    <div class="fcm-item" onclick="stubFieldAction('Clear Default Value')"><span class="chk"></span> Clear Default Value</div>
+    <div class="fcm-item" onclick="stubFieldAction('Clear Default Values for All Fields')"><span class="chk"></span> Clear Default Values for All Fields</div>
+    <div class="fcm-sep"></div>
+    <div class="fcm-item" onclick="stubFieldAction('Define Dropdown Filter')"><span class="chk"></span> Define Dropdown Filter</div>
+    <div class="fcm-item" onclick="stubFieldAction('Clear Dropdown Filter')"><span class="chk"></span> Clear Dropdown Filter</div>
+  `;
+  document.body.appendChild(menu);
+  const x = Math.min(e.clientX, window.innerWidth - 250);
+  const y = Math.min(e.clientY, window.innerHeight - menu.offsetHeight - 320);
+  menu.style.left = x + 'px';
+  menu.style.top = Math.max(10, Math.min(e.clientY, window.innerHeight - 20)) + 'px';
+  // clamp after measuring actual height
+  requestAnimationFrame(() => {
+    const h = menu.offsetHeight;
+    if (e.clientY + h > window.innerHeight) menu.style.top = Math.max(10, window.innerHeight - h - 10) + 'px';
+  });
+}
+
+function hideFieldMenu(){
+  const m = document.getElementById('fieldCtxMenu');
+  if (m) m.remove();
+}
+
+document.addEventListener('click', hideFieldMenu);
+document.addEventListener('scroll', hideFieldMenu, true);
+window.addEventListener('resize', hideFieldMenu);
+
+function setFieldBehavior(key){
+  if (!ctxMenuTarget) return;
+  const data = WORK_FIELDS[state.activeTab];
+  data[ctxMenuTarget.cIdx].fields[ctxMenuTarget.fIdx].behavior = key;
+  hideFieldMenu();
+  renderCanvas();
+}
+
+function stubFieldAction(label){
+  hideFieldMenu();
+  showToast(label + ' — not modeled in this prototype', 'ti-info-circle');
+}
+
+/* ═══════════════════════════ NEW CONTAINER / ADD FIELD ═══════════════════════════ */
+
+function openNewContainerModal(){
+  document.getElementById('newContainerNameInput').value = '';
+  document.getElementById('newContainerModalOverlay').style.display = 'flex';
+}
+function closeNewContainerModal(){ document.getElementById('newContainerModalOverlay').style.display = 'none'; }
+function addNewContainer(){
+  const name = document.getElementById('newContainerNameInput').value.trim();
+  if (!name) { showToast('Enter a container name', 'ti-alert-triangle'); return; }
+  if (!WORK_FIELDS[state.activeTab]) WORK_FIELDS[state.activeTab] = [];
+  WORK_FIELDS[state.activeTab].push({container: name, fields: []});
+  closeNewContainerModal();
+  renderCanvas();
+  showToast('Container added: ' + name, 'ti-square-plus');
+}
+
+function openAddFieldModal(){
+  const list = document.getElementById('addFieldList');
+  const candidates = AVAILABLE_FIELD_CANDIDATES[state.activeTab] || [];
+  list.innerHTML = candidates.length ? candidates.map((f, i) => `
+    <div class="listbox-item" style="border:1px solid var(--oct-gray-200);border-radius:6px;display:flex;align-items:center;gap:8px;cursor:pointer" onclick="addFieldToScreen(${i})">
+      <span style="width:8px;height:8px;border-radius:50%;background:${FIELD_TYPE_DOT[f.type]};flex-shrink:0"></span>
+      <span style="flex:1">${f.name}</span>
+      <span style="font-family:var(--font-mono);font-size:10px;color:var(--oct-gray-400)">${f.api}</span>
+      <i class="ti ti-plus" style="color:var(--oct-teal)"></i>
+    </div>`).join('') : '<div class="listbox-empty">No un-placed fields left for this entity</div>';
+  document.getElementById('addFieldModalOverlay').style.display = 'flex';
+}
+function closeAddFieldModal(){ document.getElementById('addFieldModalOverlay').style.display = 'none'; }
+function addFieldToScreen(i){
+  const candidates = AVAILABLE_FIELD_CANDIDATES[state.activeTab];
+  const f = candidates.splice(i, 1)[0];
+  const data = WORK_FIELDS[state.activeTab];
+  if (!data.length) data.push({container:'General', fields:[]});
+  const target = data[data.length - 1];
+  const newField = {name:f.name, api:f.api, type:f.type, behavior:'opt'};
+  if (target.layout === 'grid') newField.span = 1;
+  target.fields.push(newField);
+  if (target.layout === 'grid') autoBalanceGrid(target);
+  closeAddFieldModal();
+  renderCanvas();
+  showToast(f.name + ' added to screen', 'ti-circle-check');
+}
+
+/* ═══════════════════════════ WORKFLOW STEP ROWS (left pane) ═══════════════════════════ */
+
+function renderStepRows(){
+  const el = document.getElementById('tpStepRows');
+  if (!el) return;
+  el.innerHTML = state.stepOrder.map((stepId, idx) => {
+    const s = state.steps[stepId];
+    const meta = STEP_META[stepId];
+    const active = meta.tab === state.activeTab;
+    const hasSettings = stepId === 'booklabor';
+    let rowHtml = `<div class="wfp-step-row ${s.visible?'':'dim'} ${active?'active':''}" draggable="true" data-step="${stepId}" style="${active?'border-color:var(--oct-teal)':''}">
+      <i class="ti ti-grip-vertical wfp-drag"></i>
+      <div class="wfp-step-icon"><i class="ti ${meta.icon}"></i></div>
+      <div class="wfp-step-body" style="cursor:pointer" onclick="switchTab('${meta.tab}')">
+        <div class="wfp-step-name">${meta.label}</div>
+        <div class="wfp-step-tag">${s.visible ? 'Step ' + (idx+2) : 'Not in this workflow'}</div>
+      </div>
+      <div class="wfp-step-controls">
+        ${hasSettings ? `<i class="ti ti-settings wfp-step-gear" title="Step-specific settings" onclick="toggleBookLaborSettings(event)"></i>` : ''}
+        <div class="wfp-mini"><label>Vis</label><label class="toggle"><input type="checkbox" ${s.visible?'checked':''} onchange="toggleStepVisible('${stepId}', this.checked)"><div class="toggle-track"></div></label></div>
+        <div class="wfp-mini"><label>Req</label><label class="toggle"><input type="checkbox" ${s.required?'checked':''} ${s.visible?'':'disabled'} onchange="toggleStepRequired('${stepId}', this.checked)"><div class="toggle-track"></div></label></div>
+      </div>
+    </div>`;
+    if (hasSettings && bookLaborSettingsOpen) {
+      rowHtml += `<div class="wfp-step-settings">
+        <div class="wfp-section-label" style="padding-top:0">Time Entry Mode</div>
+        <select class="wfp-select" onchange="setBookLaborTimeEntryMode(this.value)">
+          <option value="startend" ${state.bookLaborTimeEntryMode==='startend'?'selected':''}>Start / End Time</option>
+          <option value="direct" ${state.bookLaborTimeEntryMode==='direct'?'selected':''}>Direct Hours Entry</option>
+        </select>
+        <div class="wfp-note"><i class="ti ti-info-circle"></i> §18.4 — was hardcoded to Start/End only; now a real per-step flag.</div>
+      </div>`;
+    }
+    return rowHtml;
+  }).join('');
+  wireStepDragEvents();
+}
+
+function toggleStepVisible(stepId, val){
+  state.steps[stepId].visible = val;
+  if (!val) state.steps[stepId].required = false;
+  renderTabPane();
+  renderCanvas();
+}
+
+function toggleStepRequired(stepId, val){
+  state.steps[stepId].required = val;
+}
+
+function toggleBookLaborSettings(e){
+  e.stopPropagation();
+  bookLaborSettingsOpen = !bookLaborSettingsOpen;
+  renderStepRows();
+}
+
+function setBookLaborTimeEntryMode(val){
+  state.bookLaborTimeEntryMode = val;
+  showToast('Book Labor Time Entry Mode: ' + (val === 'direct' ? 'Direct Hours Entry' : 'Start / End Time'), 'ti-clock-hour-4');
+}
+
+function setFreeForm(val){
+  state.freeForm = val;
+  refreshWorkflowSettingsBlock();
+  showToast('Free Form: ' + (val ? 'Yes' : 'No') + ' for ' + woTypeName(state.woType) + ' × ' + state.groups.join(', '), 'ti-route');
+}
+
+function setCompletionEntity(val){
+  state.completionEntity = val;
+  const defaults = val === 'activity' ? {start:'INPROG', complete:'COMPLETE'} : {start:'INPROG', complete:'CLOSE'};
+  state.startWorkStatus = defaults.start;
+  state.completionStatus = defaults.complete;
+  refreshWorkflowSettingsBlock();
+  showToast('Completion Status Entity: ' + (val === 'activity' ? 'Activities (AAST)' : 'Work Orders (EVST)'), 'ti-replace');
+}
+
+function setStartWorkStatus(val){ state.startWorkStatus = val; }
+function setCompletionStatus(val){ state.completionStatus = val; }
+
+function wireStepDragEvents(){
+  const rows = document.querySelectorAll('#wfpStepRows .wfp-step-row');
+  rows.forEach(row => {
+    row.addEventListener('dragstart', () => { dragStep = row.dataset.step; row.classList.add('dragging'); });
+    row.addEventListener('dragend', () => row.classList.remove('dragging'));
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      const rect = row.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height/2;
+      row.classList.toggle('dragover-top', before);
+      row.classList.toggle('dragover-bottom', !before);
+    });
+    row.addEventListener('dragleave', () => row.classList.remove('dragover-top','dragover-bottom'));
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      row.classList.remove('dragover-top','dragover-bottom');
+      if (!dragStep || dragStep === row.dataset.step) return;
+      const rect = row.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height/2;
+      moveStep(dragStep, row.dataset.step, before);
+      dragStep = null;
+    });
+  });
+}
+
+function moveStep(fromId, toId, before){
+  const order = state.stepOrder;
+  const fromIdx = order.indexOf(fromId);
+  order.splice(fromIdx, 1);
+  let toIdx = order.indexOf(toId);
+  order.splice(before ? toIdx : toIdx + 1, 0, fromId);
+  renderTabPane();
+  renderCanvas();
+  showToast('Step reordered', 'ti-arrows-sort');
+}
+
+/* ═══════════════════════════ SAVE / TOAST ═══════════════════════════ */
+
+function saveLayout(){
+  const summary = state.baseScreen === 'wo'
+    ? `Saved: Work Order · WO Type ${woTypeName(state.woType)} · Group(s) ${state.groups.join(', ')}`
+    : `Saved: Equipment · Group(s) ${state.groups.join(', ')}`;
+  showToast(summary, 'ti-device-floppy');
+}
+
+function showToast(msg, icon){
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<i class="ti ${icon}" style="font-size:15px;color:var(--oct-aqua)"></i> ${msg}`;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 2800);
+}
+
+/* ═══════════════════════════ INIT ═══════════════════════════ */
+openEntryModal();
+</script>
+</body>
+</html>

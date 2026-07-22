@@ -32,7 +32,15 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 
 /* ── NAV BAR ── */
 .nav{height:var(--nav-height);background:var(--bg-nav);display:flex;align-items:center;justify-content:space-between;padding:0 12px;gap:8px;flex-shrink:0;position:relative;}
-.nav-back{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--white);background:none;border:none;}
+/* Cursor/radius/hover/transition/flex-shrink added 2026-07-22 (Phase 2b) —
+   WO List's own local hand-copy of this class had quietly grown all 5
+   (a real, sensible hover affordance every nav-bar icon button should
+   have, matching .nav-icon-btn's own hover treatment right below) but
+   never promoted them back here, so every other consumer's back button
+   had no hover feedback at all. Promoted up rather than deleting WO
+   List's copy and losing the improvement. */
+.nav-back{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--white);background:none;border:none;border-radius:6px;cursor:pointer;transition:background .15s;flex-shrink:0;}
+.nav-back:hover{background:rgba(255,255,255,.1);}
 /* Top-left slot toggle (§4.2, promoted from eam-home-screen-prototype-v1.html
    2026-07-16) — .nav-back above is what a record-open screen always shows;
    .nav-avatar is what a browsing-tier screen (a tab root — Home, and WO
@@ -67,7 +75,17 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    content, so it can go quieter than anything user-facing without
    losing its job of just being glanceable. */
 .nav-left{display:flex;align-items:center;gap:6px;flex-shrink:0;}
-.prototype-label{font-size:9px;font-weight:700;letter-spacing:.4px;color:rgba(255,165,0,.9);}
+/* Was rgba(255,165,0,.9) — a raw "web orange" never tied to var(--orange)
+   or any hex this session's greps ever targeted, so it survived every
+   purple/orange sweep undetected (found 2026-07-22, user report: "header
+   still showing prototype... in older colors"). It's a dev watermark,
+   not content, so neutral gray now, not a 2nd orange fix. Missing
+   white-space/font-family/text-transform/responsive-hide properties
+   promoted up from WO List's own fuller local copy, which had grown all
+   4 without ever being promoted back — same "local copy improved, never
+   synced" pattern as .nav-back (Phase 2b, same session). */
+.prototype-label{font-size:9px;font-weight:700;letter-spacing:.4px;color:var(--gray-4);white-space:nowrap;font-family:var(--font-sans);text-transform:uppercase;display:none;}
+@media(min-width:390px){.prototype-label{display:inline;}}
 .nav-actions{display:flex;align-items:center;gap:4px;flex-shrink:0;}
 /* Bottom nav (Home/Work/Notifications, §4.2/§4.3) — promoted here from two
    hand-copies (UI inventory pass, 2026-07-21): Home (1st consumer) and WO
@@ -82,6 +100,20 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .bottom-nav-item.active{color:#fff;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.22);}
 [data-theme="dark"] .bottom-nav-item.active{background:rgba(255,255,255,.16);}
 .bottom-nav-badge{position:absolute;top:-5px;right:-7px;min-width:15px;height:15px;background:var(--red);color:white;font-size:9px;font-weight:700;border-radius:100px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
+/* Promoted from Home/WO List's own local <style> blocks (2026-07-22,
+   Notifications badge fix) — .bottom-nav-badge is positioned absolute
+   relative to its nearest positioned ancestor, and this wrapper is that
+   ancestor. It was never actually shared despite 2 real consumers
+   already (the "promote on 2nd consumer" rule missed it); a 3rd
+   consumer (Notifications) built without it entirely, and its badge flew
+   to the corner of the whole nav bar instead of sitting on the bell icon
+   — same root cause the two existing consumers had just never hit,
+   since both already carried this rule locally. Icon+badge share this
+   tight wrapper sized to the icon itself, not the button (which is wider
+   than its icon whenever the label — e.g. "Notifications" — is the long
+   one), so the badge overlaps the icon's own corner instead of drifting
+   toward the button's outer edge. */
+.nav-icon-wrap{position:relative;display:flex;}
 .nav-icon-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--white);background:none;border:none;cursor:pointer;border-radius:6px;transition:background .15s;position:relative;}
 .nav-icon-btn:hover{background:rgba(255,255,255,.1);}
 @keyframes syncSpin{to{transform:rotate(360deg);}}
@@ -105,7 +137,10 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .sync-ctrl-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;background:rgba(255,255,255,.03);border:1px solid transparent;cursor:pointer;font-family:var(--font-sans);white-space:nowrap;}
 .sync-ctrl-pill svg{flex-shrink:0;}
 .sync-ctrl-label{font-size:11px;font-weight:600;white-space:nowrap;}
-.sync-ctrl-pill.state-syncing{border-color:#B388FF;color:#B388FF;}
+/* Was light purple (#B388FF) — corrected 2026-07-22 (§23): syncing is
+   "in progress," the same neutral-not-a-hue language the status pill's
+   own in-progress state now uses, not a 4th color. */
+.sync-ctrl-pill.state-syncing{border-color:var(--gray-3);color:var(--gray-4);}
 .sync-ctrl-pill.state-syncing svg{animation:syncSpin 1.1s linear infinite;}
 .sync-ctrl-pill.state-offline{border-color:var(--gray-2);color:var(--gray-2);}
 .sync-ctrl-pill.state-error{border-color:#FF8785;color:#FF8785;}
@@ -148,7 +183,11 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .rec-status-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:8px;font-size:15px;font-weight:700;color:white;cursor:pointer;border:none;font-family:var(--font-sans);}
 .rec-status-btn.st-operational{background:var(--green);}
 .rec-status-btn.st-down{background:var(--red);}
-.rec-status-btn.st-standby{background:var(--orange);}
+/* Standby/"in progress" — outlined, not orange-filled (palette pass,
+   2026-07-22): this state is neutral/in-motion, not a warning, so it no
+   longer borrows a 3rd status hue. Works on the rec-header's fixed dark
+   background regardless of the app's own light/dark toggle. */
+.rec-status-btn.st-standby{background:none;border:1.5px solid rgba(255,255,255,.35);}
 /* Protected status (§15.4 Not Free Form, redesigned 2026-07-22) — the
    status fill colour must always show, protected or not (a status button
    that goes gray tells the technician nothing about the WO's actual
@@ -168,7 +207,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .rec-pin-btn:hover,.rec-ellipsis-btn:hover{background:rgba(255,255,255,.1);color:white;}
 .rec-pin-btn svg,.rec-ellipsis-btn svg{width:18px;height:18px;}
 .rec-pin-btn .pin-fill{display:none;}
-.rec-pin-btn.pinned{color:var(--purple);}
+.rec-pin-btn.pinned{color:#fff;}
 .rec-pin-btn.pinned .pin-outline{display:none;}
 .rec-pin-btn.pinned .pin-fill{display:block;}
 .rec-ellipsis-btn.hidden{display:none;}
@@ -189,14 +228,27 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 
 /* ── TAB / STEP RAIL — generalized: no sequence/gating for record tabs,
    segmented progress + timer pill for WO workflow steps (§14.2–§14.3
-   layer their own step-pill markup on top of this same rail). Default
-   wash is purple; a Not Free Form WO workflow substitutes Octave Yellow
-   everywhere below via .rail-not-free-form (§15.4/§3.2.2) — added at the
-   .tab-rail level, not a second copy of every rule. ── */
-.tab-rail{background:rgba(153,51,255,.12);border-bottom:1px solid rgba(153,51,255,.25);padding:0 14px;flex-shrink:0;cursor:pointer;transition:background .15s;}
-.tab-rail:hover{background:rgba(153,51,255,.18);}
-.tab-rail.rail-not-free-form{background:rgba(255,245,0,.12);border-bottom-color:rgba(255,245,0,.25);}
-.tab-rail.rail-not-free-form:hover{background:rgba(255,245,0,.18);}
+   layer their own step-pill markup on top of this same rail).
+   .rail-not-free-form (§15.4/§3.2.2) used to substitute an Octave Yellow
+   wash everywhere below — removed 2026-07-22 (user direction: "the
+   yellow is not looking good at all," keep the rail visually consistent
+   regardless of Free Form state). The class still gets added at the
+   .tab-rail/.step-rail level (other logic may key off its presence) but
+   carries no visual override anymore — flagged in design-decisions-v3-1.md
+   §15.4 to revisit later, not a permanent design call. ── */
+/* Palette pass, 2026-07-22: the resting wash used to be a persistent
+   purple tint (not hover-only) with a bottom-border-only edge; now a
+   plain neutral surface with a full outline (grows to wrap the expanded
+   map too, since the map is a child of .tab-rail — one border rule
+   covers both states). Outline color was briefly solid ink/black — user
+   feedback: "not digging the rigid black outline" — settled on
+   var(--border-strong), the same "make it visible without a hue" token
+   already used for every outlined icon/chip this pass. Left/right
+   padding bumped 14px→16px to match .rec-id-row/.rec-status-row-inner's
+   own 16px — was sitting 2px further left than the header content
+   above it, a real (if small) misalignment, not a redesign. */
+.tab-rail{background:var(--bg-section);border:1px solid var(--border-strong);padding:0 16px;flex-shrink:0;cursor:pointer;transition:border-color .15s;}
+.tab-rail:hover{border-color:var(--gray-3);}
 /* Bug fix 2026-07-16: was padding-bottom:8px alone (no padding-top) — since
    align-items:center centers within the padded content box, the asymmetric
    padding pushed the icon/name/chevron visibly above true vertical center
@@ -204,8 +256,10 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    8px total breathing-room budget originally added below the wash) so the
    row is actually centered, not just centered-within-its-own-padding-box. */
 .tab-rail-collapsed{height:56px;display:flex;align-items:center;gap:10px;padding-top:4px;padding-bottom:4px;}
-.tab-rail-icon{color:var(--purple);flex-shrink:0;display:flex;}
-.rail-not-free-form .tab-rail-icon{color:#8a8500;}
+/* .tab-rail-icon removed, 2026-07-22 — a leading glyph naming "the
+   current tab" was redundant right next to the tab's own name text;
+   dropped rather than recolored. initTabRail()/renderTabRail() (eam-
+   shared.js) and every screen's markup no longer reference #tabRailIcon. */
 .tab-rail-name{font-size:14px;font-weight:700;color:var(--octave-black);flex:1;}
 [data-theme="dark"] .tab-rail-name{color:var(--white);}
 .tab-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
@@ -215,13 +269,15 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .tab-map-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-radius:4px;margin:0 6px;transition:background .1s;color:var(--gray-4);}
 .tab-map-item:hover{background:var(--bg-section);}
 [data-theme="dark"] .tab-map-item:hover{background:rgba(255,255,255,.05);}
-.tab-map-item.active{background:rgba(153,51,255,.06);color:var(--purple);}
-.rail-not-free-form .tab-map-item.active{background:rgba(255,245,0,.06);color:#8a8500;}
+/* Was a purple wash + purple bold text — now neutral wash + bold ink
+   text, same "weight signals current, not hue" rule as everywhere else. */
+.tab-map-item.active{background:var(--bg-section);color:var(--octave-black);}
+[data-theme="dark"] .tab-map-item.active{color:var(--white);}
 .tab-map-icon{width:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
 .tab-map-label{flex:1;font-size:13px;font-weight:500;color:var(--octave-black);}
 [data-theme="dark"] .tab-map-label{color:rgba(255,255,255,.85);}
-.tab-map-item.active .tab-map-label{color:var(--purple);font-weight:700;}
-.rail-not-free-form .tab-map-item.active .tab-map-label{color:#8a8500;}
+.tab-map-item.active .tab-map-label{color:var(--octave-black);font-weight:700;}
+[data-theme="dark"] .tab-map-item.active .tab-map-label{color:var(--white);}
 .tab-map-chevron{color:var(--gray-3);flex-shrink:0;}
 
 .content{flex:1;overflow-y:auto;padding:0 0 30px;}
@@ -237,8 +293,10 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    their own step-pill/step-name/step-map contents and their own bottom-
    bar gating logic (readiness rule differs per step, §14.7) — only the
    chrome and the expand/collapse toggle are shared. ── */
-.step-rail{background:rgba(153,51,255,.12);border-bottom:1px solid rgba(153,51,255,.25);padding:0 14px;flex-shrink:0;cursor:pointer;transition:background .15s;}
-.step-rail:hover{background:rgba(153,51,255,.18);}
+/* Same outline/alignment/no-wash conversion as .tab-rail above — see its
+   comment for the full reasoning (border-strong, not black; 16px not 14px). */
+.step-rail{background:var(--bg-section);border:1px solid var(--border-strong);padding:0 16px;flex-shrink:0;cursor:pointer;transition:border-color .15s;}
+.step-rail:hover{border-color:var(--gray-3);}
 .step-rail.expanded{padding-bottom:14px;}
 /* Symmetric top/bottom padding (same centering fix as .tab-rail-collapsed,
    §3.4 2026-07-16) — an unconditional padding-bottom alone would push the
@@ -253,7 +311,6 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    pill now lives in .step-rail-right instead, beside the chevron, so
    simple flex order does the layout with no absolute positioning. ── */
 .step-rail-collapsed{height:var(--step-rail-h);display:flex;align-items:center;gap:8px;padding-top:4px;padding-bottom:4px;}
-.step-pill{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--purple);background:rgba(153,51,255,.1);border:1px solid rgba(153,51,255,.25);padding:2px 8px;border-radius:100px;white-space:nowrap;flex-shrink:0;}
 .step-name{flex:1;text-align:left;font-size:13px;font-weight:600;color:var(--octave-black);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 [data-theme="dark"] .step-name{color:var(--white);}
 .step-rail-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
@@ -279,7 +336,8 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .step-segments{display:flex;gap:4px;padding:0 0 10px;}
 .seg{flex:1;height:7px;border-radius:100px;}
 .seg-done{background:var(--green);}
-.seg-active{background:var(--purple);}
+.seg-active{background:var(--octave-black);}
+[data-theme="dark"] .seg-active{background:var(--white);}
 .seg-future{background:var(--gray-2);}
 [data-theme="dark"] .seg-future{background:var(--gray-5);}
 .step-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
@@ -288,28 +346,37 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .step-map-item{display:flex;align-items:center;gap:10px;padding:6px 14px;cursor:pointer;transition:background .1s;border-radius:4px;margin:0 6px;}
 .step-map-item:hover{background:var(--bg-section);}
 [data-theme="dark"] .step-map-item:hover{background:rgba(255,255,255,.05);}
-.step-map-item.active{background:rgba(153,51,255,.06);}
+.step-map-item.active{background:var(--bg-section);}
 .step-map-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:700;}
 .smi-done{background:var(--green);color:white;}
-.smi-active{background:var(--purple);color:white;}
+.smi-active{background:var(--octave-black);color:var(--white);}
+[data-theme="dark"] .smi-active{background:var(--white);color:var(--octave-black);}
 .smi-locked{background:none;border:2px solid var(--gray-3);color:var(--gray-3);}
 .step-map-label{flex:1;font-size:13px;font-weight:500;color:var(--octave-black);}
 [data-theme="dark"] .step-map-label{color:rgba(255,255,255,.85);}
-.step-map-label.active-label{color:var(--purple);font-weight:700;}
-.step-map-footer{font-size:11px;color:var(--gray-4);padding:6px 20px 0;font-family:var(--font-mono);}
+.step-map-label.active-label{color:var(--octave-black);font-weight:700;}
+[data-theme="dark"] .step-map-label.active-label{color:var(--white);}
+/* Reference group (§14.2, added 2026-07-22) — always pinned after the
+   last numbered step; holds screens/sections reachable outside the
+   sequential workflow (Comments, Documents — both still owned by WO
+   Record View, this is just a shortcut to them — plus a dummy Equipment
+   stub). Plain icon, not the numbered done/active/locked badge — these
+   rows aren't sequence-gated, so they shouldn't look sequence-gated, and
+   they stay tappable even when .rail-not-free-form is set (no gating
+   logic references that class at all, by construction — see
+   jumpToRvSection()/jumpToEquipmentStub() in eam-shared.js). Replaces the
+   old static ".step-map-footer" WO-workflow-code line entirely (removed,
+   not replaced — see renderStepRail()). */
+.step-map-group-label{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--gray-4);padding:14px 20px 6px;margin-top:4px;border-top:1px solid var(--border);}
+.step-map-ref-icon{width:22px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--gray-4);}
 
-/* Not Free Form variant (design-decisions-v3-1.md §15.4/§3.2.2, added
-   2026-07-22 alongside the real WOTYPE-driven Free Form flag, §11-13) —
-   same Octave Yellow formula already locked for .tab-rail above, applied
-   to .step-rail's own purple touchpoints (rail wash, active segment,
-   active step-map row/icon/label). Applied via renderStepRail() in
-   eam-shared.js, not a per-screen class. */
-.step-rail.rail-not-free-form{background:rgba(255,245,0,.12);border-bottom-color:rgba(255,245,0,.25);}
-.step-rail.rail-not-free-form:hover{background:rgba(255,245,0,.18);}
-.rail-not-free-form .seg-active{background:#FFF500;}
-.rail-not-free-form .step-map-item.active{background:rgba(255,245,0,.06);}
-.rail-not-free-form .smi-active{background:#FFF500;color:#3a3800;}
-.rail-not-free-form .step-map-label.active-label{color:#8a8500;}
+/* Not Free Form variant (design-decisions-v3-1.md §15.4/§3.2.2) — used to
+   substitute an Octave Yellow wash for .step-rail's own ink touchpoints
+   (active segment, active step-map row/icon/label). Removed 2026-07-22
+   (user direction — the yellow read badly, kept for consistency's sake
+   rather than redesigned right now; flagged in design-decisions-v3-1.md
+   §15.4 to revisit). .rail-not-free-form is still applied by
+   renderStepRail() (eam-shared.js), just carries no visual effect. */
 
 /* ── STEP TIMER PANEL (2026-07-16) — expanded-rail-only, large timer +
    Pause/Stop, first child of .step-map so it sits above the step list.
@@ -323,7 +390,8 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .step-timer-actions{display:flex;gap:8px;}
 .step-timer-btn{flex:1;height:38px;border-radius:100px;border:1.5px solid var(--gray-2);background:none;color:var(--octave-black);font-size:13px;font-weight:600;font-family:var(--font-sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;}
 [data-theme="dark"] .step-timer-btn{border-color:var(--gray-5);color:var(--white);}
-.step-timer-btn:hover{border-color:var(--purple);color:var(--purple);}
+.step-timer-btn:hover{border-color:var(--octave-black);color:var(--octave-black);}
+[data-theme="dark"] .step-timer-btn:hover{border-color:var(--white);color:var(--white);}
 .step-timer-btn.danger{border-color:rgba(228,75,74,.35);background:rgba(228,75,74,.06);color:var(--red);}
 .step-timer-btn.danger:hover{background:rgba(228,75,74,.12);border-color:var(--red);}
 
@@ -352,8 +420,6 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    file (old versions/eam-full-prototype-v1_30JUN.html) for every gated
    step but never carried into this shared component during the rebuild;
    restored 2026-07-16 per the conformance audit, same values reused. */
-.bar-meta{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--gray-4);white-space:nowrap;flex-shrink:0;}
-[data-theme="dark"] .bar-meta{color:rgba(255,255,255,.6);}
 .bar-pill{flex:1;height:48px;border-radius:100px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;font-weight:700;font-family:var(--font-sans);cursor:pointer;transition:all .2s;border:none;}
 .bar-pill-locked{background:var(--gray-2);color:var(--gray-4);cursor:not-allowed;}
 [data-theme="dark"] .bar-pill-locked{background:var(--gray-5);color:var(--gray-3);}
@@ -388,7 +454,12 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    inside that container is populated. Orange-tinted to match the
    required-field left-bar accent — this is a "still needs attention"
    signal, not a neutral label. */
-.required-count-badge{font-family:var(--font-mono);font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px;background:rgba(244,102,0,.12);color:var(--orange);border:1px solid rgba(244,102,0,.3);flex-shrink:0;}
+/* Outline square, not filled pill (palette pass, 2026-07-22 — locked
+   after comparing 4 options): red is one of this app's only 3 real
+   color instruments (status/sync/required), so it stays red, but no
+   longer competes as a filled colored surface the way every other
+   icon/chip on a rebuilt screen no longer does either. */
+.required-count-badge{font-family:var(--font-mono);font-size:10px;font-weight:700;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:6px;background:none;color:var(--red);border:1.5px solid var(--red);flex-shrink:0;}
 
 /* ── Collapsible section with icon + count badge (§7.2) — Comments and
    Documents specifically; every other field group uses .fg-* above. ── */
@@ -400,7 +471,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .rv-toggle-title{font-size:14px;font-weight:600;color:var(--octave-black);}
 [data-theme="dark"] .rv-toggle-title{color:var(--white);}
 .rv-toggle-right{display:flex;align-items:center;gap:8px;}
-.rv-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:100px;font-family:var(--font-mono);background:var(--bg-section);color:var(--gray-4);border:1px solid var(--border);}
+.rv-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:100px;font-family:var(--font-mono);background:none;color:var(--gray-4);border:1.5px solid var(--border-strong);}
 .rv-chev{color:var(--gray-4);transition:transform .2s;flex-shrink:0;}
 .rv-chev.open{transform:rotate(180deg);}
 .rv-collapse{display:none;border-top:1px solid var(--border);}
@@ -410,8 +481,9 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    toggle, plain-text rows, inline live-filter search. Config-driven; swap
    only the data, never re-derive this markup per tab. ── */
 .ds-bar{margin:12px 12px 0;background:var(--bg-card);border:1.5px solid var(--border);border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:11px;cursor:pointer;transition:border-color .15s;}
-.ds-bar:hover{border-color:var(--purple);}
-.ds-icon-w{width:30px;height:30px;border-radius:8px;background:rgba(153,51,255,.1);color:var(--purple);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ds-bar:hover{border-color:var(--gray-3);}
+.ds-icon-w{width:30px;height:30px;border-radius:8px;background:none;border:1.5px solid var(--border-strong);color:var(--octave-black);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+[data-theme="dark"] .ds-icon-w{color:rgba(255,255,255,.9);}
 .ds-body{flex:1;min-width:0;}
 .ds-name{font-size:13px;font-weight:700;color:var(--octave-black);}
 [data-theme="dark"] .ds-name{color:rgba(255,255,255,.9);}
@@ -419,8 +491,10 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 /* Favorite star, dataspy selector sheet (§8.3, dropped the bar's live count the same day). */
 .ds-fav-star{width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--gray-3);padding:0;}
 .ds-fav-star svg{width:16px;height:16px;fill:none;stroke:currentColor;}
-.ds-fav-star.favorited{color:var(--orange);}
-.ds-fav-star.favorited svg{fill:var(--orange);}
+.ds-fav-star.favorited{color:var(--octave-black);}
+.ds-fav-star.favorited svg{fill:var(--octave-black);}
+[data-theme="dark"] .ds-fav-star.favorited{color:var(--white);}
+[data-theme="dark"] .ds-fav-star.favorited svg{fill:var(--white);}
 /* Dataspy selector sheet (§8.3, revised 2026-07-20) — description is the
    only text in the row now (no sub-line, no count), so it gets a bigger
    size to actually fill the row instead of reading like a dense generic
@@ -430,9 +504,11 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 /* Filter chip row — dataspy-driven, same 6 fields as the card (§8.3), no per-type exclusions. */
 .filter-chip-row{display:flex;gap:8px;padding:10px 12px 0;overflow-x:auto;}
 .filter-chip{flex-shrink:0;font-size:12px;font-weight:600;color:var(--gray-4);background:var(--bg-card);border:1px solid var(--border);border-radius:100px;padding:6px 13px;cursor:pointer;font-family:var(--font-sans);white-space:nowrap;transition:all .15s;}
-.filter-chip:hover{border-color:var(--purple);}
-.filter-chip.active{color:var(--purple);border-color:var(--purple);background:rgba(153,51,255,.08);}
-.chip-count{display:inline-block;background:var(--purple);color:#fff;border-radius:100px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:2px;}
+.filter-chip:hover{border-color:var(--gray-3);}
+.filter-chip.active{color:var(--octave-black);border-color:var(--octave-black);background:var(--bg-section);font-weight:700;}
+[data-theme="dark"] .filter-chip.active{color:var(--white);border-color:var(--white);}
+.chip-count{display:inline-block;background:var(--octave-black);color:#fff;border-radius:100px;font-size:10px;font-weight:700;padding:1px 6px;margin-left:2px;}
+[data-theme="dark"] .chip-count{background:var(--white);color:var(--octave-black);}
 .mode-tog{margin:10px 12px 0;display:flex;background:var(--bg-section);border-radius:11px;padding:3px;border:1px solid var(--border);}
 .mode-btn{flex:1;text-align:center;padding:7px 0;border-radius:9px;font-size:12px;font-weight:600;color:var(--gray-4);background:none;border:none;cursor:pointer;font-family:var(--font-sans);transition:all .15s;}
 .mode-btn.active{background:var(--bg-card);color:var(--octave-black);box-shadow:0 1px 3px rgba(0,0,0,.1);}
@@ -440,7 +516,8 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .res-row{padding:10px 16px 4px;display:flex;align-items:center;justify-content:space-between;}
 .res-count{font-size:12px;color:var(--gray-4);}
 .sort-btn{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--gray-4);background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:8px;font-family:var(--font-sans);transition:all .15s;}
-.sort-btn:hover{color:var(--purple);background:rgba(153,51,255,.08);}
+.sort-btn:hover{color:var(--octave-black);background:var(--bg-section);}
+[data-theme="dark"] .sort-btn:hover{color:var(--white);}
 .ld-card-wrap.filtered-out{display:none;}
 /* All-fields table — List mode (§8.3): every field the dataspy exposes, not the curated 6. */
 .ld-table-wrap{overflow-x:auto;margin:10px 12px 0;border:1px solid var(--border);border-radius:10px;}
@@ -450,7 +527,18 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 [data-theme="dark"] .ld-table td{color:rgba(255,255,255,.9);}
 .ld-table tbody tr:last-child td{border-bottom:none;}
 .ld-table tbody tr.filtered-out{display:none;}
-.ld-table-pill{display:inline-block;font-size:11px;font-weight:700;color:#fff;padding:3px 9px;border-radius:100px;}
+.ld-table-pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:100px;}
+/* Status pill fill/outline tiers (§23) — green=operational/completed,
+   red=down, outline=standby/waiting. Shared by both this table pill (no
+   competing color rule on .ld-table-pill itself, so the bare 1-class
+   version below is enough) and the card headline pill (§8.3's other
+   slot-1 status treatment, further down) — promoted here from WO List's
+   own local copy, 2026-07-22, once the Sample Screen's own demo rows
+   became a real 2nd consumer. */
+.pill-green{background:var(--green);color:#fff;}
+.pill-red{background:var(--red);color:#fff;}
+.pill-outline{background:none;border:1.5px solid var(--border-strong);color:var(--octave-black);}
+[data-theme="dark"] .pill-outline{color:var(--white);}
 .ld-table-empty{padding:20px;text-align:center;color:var(--gray-4);font-size:13px;}
 .plain-list{padding:6px 12px 0;display:flex;flex-direction:column;gap:8px;}
 .plain-row{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .15s;}
@@ -462,7 +550,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .plain-row-trailing{font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--octave-black);flex-shrink:0;text-align:right;white-space:nowrap;}
 [data-theme="dark"] .plain-row-trailing{color:rgba(255,255,255,.9);}
 .plain-row.filtered-out{display:none;}
-.ld-search-bar{margin:12px 12px 0;background:var(--bg-card);border:1.5px solid var(--purple);border-radius:14px;padding:9px 12px;display:flex;align-items:center;gap:9px;}
+.ld-search-bar{margin:12px 12px 0;background:var(--bg-card);border:1.5px solid var(--border-strong);border-radius:14px;padding:9px 12px;display:flex;align-items:center;gap:9px;}
 .ld-search-bar svg{color:var(--gray-4);flex-shrink:0;}
 .ld-search-input{flex:1;border:none;background:none;outline:none;font-family:var(--font-sans);font-size:13px;color:var(--octave-black);min-width:0;}
 [data-theme="dark"] .ld-search-input{color:white;}
@@ -470,26 +558,45 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .ld-search-close:hover{background:var(--gray-1);color:var(--octave-black);}
 [data-theme="dark"] .ld-search-close:hover{background:var(--gray-5);color:white;}
 /* Optional aggregate-footer variant (e.g. Costs tab) — reuse the shell, add this. */
-.cost-summary{margin:4px 12px 0;background:rgba(153,51,255,.06);border:1px solid rgba(153,51,255,.18);border-radius:10px;padding:10px 14px;}
+.cost-summary{margin:4px 12px 0;background:var(--bg-section);border:1px solid var(--border);border-radius:10px;padding:10px 14px;}
 .cost-summary-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:13px;color:var(--gray-4);}
-.cost-summary-row.total{border-top:1px solid rgba(153,51,255,.18);margin-top:4px;padding-top:8px;font-weight:700;color:var(--octave-black);}
+.cost-summary-row.total{border-top:1px solid var(--border-strong);margin-top:4px;padding-top:8px;font-weight:700;color:var(--octave-black);}
+[data-theme="dark"] .cost-summary-row.total{color:var(--white);}
 
 .section-card{margin:12px 12px 0;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
 .section-card-header{padding:10px 14px 8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .section-card-title{font-size:14px;font-weight:600;color:var(--octave-black);}
 [data-theme="dark"] .section-card-title{color:var(--white);}
 .section-card-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:100px;font-family:var(--font-mono);background:var(--bg-section);color:var(--gray-4);border:1px solid var(--border);}
+/* ── Every container is collapsible (design-decisions-v3-1.md §3.4) —
+   promoted here 2026-07-22 on its 2nd real consumer (WO Record View's
+   Activity Insert/Update Mode popup; WO Closing was the first, now
+   pointed at this shared copy instead of its own local duplicate).
+   Header is the tap target (screen wires onclick="toggleSectionCard(this)"
+   on its own .section-card-header), chevron rotates -90deg when
+   collapsed, body display:none. Works for .attach-card too (WO Closing's
+   own attachment container shares the same collapse shape). */
+.section-card-header{cursor:pointer;}
+.section-card-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
+.section-card.collapsed .section-card-chevron,
+.attach-card.collapsed .section-card-chevron{transform:rotate(-90deg);}
+.section-card.collapsed .section-card-body,
+.attach-card.collapsed .section-card-body{display:none;}
 
 /* ── Form field row — editable / protected / required, §3.4 ── */
 .form-field{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);position:relative;min-height:48px;cursor:pointer;transition:background .12s;}
 .form-field:last-child{border-bottom:none;}
 .form-field:hover{background:var(--bg-section);}
-.form-field.required::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--orange);}
+.form-field.required::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
 /* Sync error variant (§4.5, 2026-07-20) — same left-bar mechanism as
-   .required above, red instead of orange, for a field flagged by
-   applySyncErrorBanner(). Own full ::before rule (not just a background
-   override) since a field can be sync-flagged without also being
-   .required — declared after .required so it wins when both are present. */
+   .required above. Both are red now (palette pass, 2026-07-22 — .required
+   used to be orange, giving each state its own hue; red now means "this
+   needs your attention" uniformly, one of the app's only 3 real color
+   instruments). Own full ::before rule (not just a background override)
+   since a field can be sync-flagged without also being .required —
+   declared after .required so it still wins if both were ever present,
+   though in practice a field can't fail to sync a value it was never
+   given. */
 .form-field.error::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
 .form-field.protected{background:var(--bg-section);opacity:.75;cursor:default;}
 [data-theme="dark"] .form-field.protected{background:rgba(255,255,255,.03);}
@@ -509,19 +616,40 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    values past the stacked threshold were clipping/losing text instead of
    wrapping to show everything. Textarea + JS auto-grow (reuses the
    header's own autoGrow()) lets it wrap to as many lines as a 255-char
-   value needs. */
+   value needs.
+   'stacked' is now the PERMANENT shape for this field type (2026-07-23,
+   screen design standard — was conditional on length>24, toggled on by
+   updateInlineFieldLayout() only once text got long). Every standalone
+   free-text field (Notes/Description/UDF01-style) that is NOT inside a
+   collapsible container is always this taller shape: label on its own
+   line, cursor starts left-aligned underneath it (not right-justified
+   mid-line), value spans full width and wraps. Markup carries the
+   'stacked' class directly so it's correct on first render, not just
+   after an input event. Does NOT apply to: genuine multi-line textareas
+   (Comments/Closing Comments — a different component entirely), or a
+   same-shaped field that happens to live inside a real collapsible
+   container (chevron + toggleSectionCard header) — no real instance of
+   that 2nd case exists yet, but if one shows up it should stay the old
+   compact single-line-until-long shape, not this one. */
 .field-inline-input{flex:1;border:none;background:none;outline:none;resize:none;overflow:hidden;text-align:right;font-size:14px;font-weight:500;color:var(--octave-black);font-family:var(--font-sans);padding:0;min-width:0;line-height:1.35;word-break:break-word;}
 [data-theme="dark"] .field-inline-input{color:var(--white);}
 .form-field.stacked{flex-direction:column;align-items:flex-start;gap:4px;}
 .form-field.stacked .field-label{width:auto;}
 .form-field.stacked .field-inline-input{width:100%;text-align:left;}
 .field-inline-input::placeholder{color:var(--gray-3);}
-.inline-confirm-btn{position:absolute;right:16px;bottom:56px;width:52px;height:52px;border-radius:50%;background:#3B82F6;box-shadow:0 4px 14px rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:250;border:none;cursor:pointer;}
+/* Was blue #3B82F6 — corrected 2026-07-22 (§23), found during the Sample
+   Screen sweep: an arbitrary decorative hue never caught by any earlier
+   purple/orange grep. Same "go ahead" green as .insert-save-btn.ready —
+   this FAB only ever shows once there's something to confirm, so it's
+   inherently always in the "ready" state, not a 4th CTA colour. */
+.inline-confirm-btn{position:absolute;right:16px;bottom:56px;width:52px;height:52px;border-radius:50%;background:var(--green);box-shadow:0 4px 14px rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:250;border:none;cursor:pointer;}
 .inline-confirm-btn.show{display:flex;}
 .field-checkbox{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--gray-3);background:var(--bg-card);display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;margin-left:auto;}
 [data-theme="dark"] .field-checkbox{border-color:var(--gray-5);background:var(--bg-section);}
-.field-checkbox.checked{background:var(--purple);border-color:var(--purple);}
-.field-checkbox svg{display:none;}
+.field-checkbox.checked{background:var(--octave-black);border-color:var(--octave-black);}
+[data-theme="dark"] .field-checkbox.checked{background:var(--white);border-color:var(--white);}
+.field-checkbox svg{display:none;color:#fff;}
+[data-theme="dark"] .field-checkbox svg{color:var(--octave-black);}
 .field-checkbox.checked svg{display:block;}
 
 /* ── Organization pill (§9.3) — the one field that isn't a .form-field row.
@@ -529,8 +657,18 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    inner, opposite the status button (§5.2/§9.3, 2026-07-16) — no longer a
    standalone section-card. Insert Mode's pill (§9.3, required/editable)
    is the one remaining standalone use of the base size. ── */
-.org-pill{position:relative;display:inline-flex;align-items:center;gap:8px;background:var(--bg-section);border:1px solid var(--border);border-radius:999px;padding:9px 15px;cursor:pointer;font-family:var(--font-sans);transition:border-color .15s,background .15s;}
-.org-pill:hover{border-color:var(--purple);}
+/* Editable fill — Option D, 2026-07-22 (pill-colour circle-back,
+   user-picked): solid ink fill instead of the outline/gray-section
+   look, same treatment as .btn-contained. Pills only — protected pills
+   (.protected below, always paired with .in-header on every live
+   screen) explicitly keep their existing look untouched, per direct
+   instruction; LOV-shaped fields (.attr-item, .form-field) are not
+   pills and were not touched either. */
+.org-pill{position:relative;display:inline-flex;align-items:center;gap:8px;background:var(--octave-black);border:1px solid var(--octave-black);border-radius:999px;padding:9px 15px;cursor:pointer;font-family:var(--font-sans);color:#fff;transition:border-color .15s,background .15s,opacity .15s;}
+[data-theme="dark"] .org-pill{background:var(--white);border-color:var(--white);color:var(--octave-black);}
+.org-pill .field-value{color:#fff;}
+[data-theme="dark"] .org-pill .field-value{color:var(--octave-black);}
+.org-pill:hover{opacity:.85;}
 .org-pill svg{color:var(--gray-4);flex-shrink:0;}
 .org-pill-chevron{color:var(--gray-4);}
 /* No required marker on pills, ever (locked 2026-07-16) — a pill is
@@ -567,14 +705,29 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    dataspy's own column order. Rendered via renderStdCard() in
    eam-shared.js — screens supply an ordered field array, not markup. ── */
 .ld-card{display:block;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:0 12px 10px;cursor:pointer;transition:border-color .15s;}
-.ld-card:hover{border-color:var(--purple);}
+.ld-card:hover{border-color:var(--gray-3);}
 .ld-card:active{transform:scale(0.985);}
 .ld-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
 /* Slot 1 — headline: bold, no label. */
 .ld-card-headline{font-size:15px;font-weight:700;color:var(--octave-black);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 [data-theme="dark"] .ld-card-headline{color:rgba(255,255,255,.9);}
 /* Status-type override — pill fill, headline weight/position. Never used in slots 3-5. */
-.ld-card-headline.pill{display:inline-block;font-size:12px;font-weight:700;color:#fff;padding:4px 10px;border-radius:100px;-webkit-line-clamp:unset;}
+/* No hardcoded color:#fff — WO List's own pill-green/pill-red/pill-outline
+   tier classes (§23) decide text color per status; a hardcoded white here
+   silently beat those with equal specificity (2 classes vs. 1), the exact
+   same "local copy vs. shared source" bug found elsewhere this session,
+   just inverted (shared file was the stale one this time). */
+.ld-card-headline.pill{display:inline-block;font-size:12px;font-weight:700;padding:4px 10px;border-radius:100px;-webkit-line-clamp:unset;}
+/* .ld-card-headline's own `color` above is 1 class, same specificity as
+   the bare .pill-green/.pill-red/.pill-outline rules — found live, losing
+   that tie made every status pill's text invisible-on-fill regardless of
+   source order. Compounding with .ld-card-headline (2 classes) here
+   guarantees these win on the card; .ld-table-pill needs no equivalent
+   since it never had a competing color rule to begin with. */
+.ld-card-headline.pill-green{color:#fff;}
+.ld-card-headline.pill-red{color:#fff;}
+.ld-card-headline.pill-outline{color:var(--octave-black);}
+[data-theme="dark"] .ld-card-headline.pill-outline{color:var(--white);}
 /* Slot 2 — subline: muted, no label, single line. */
 .ld-card-subline{font-size:13px;font-weight:700;color:var(--gray-4);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 /* Type/status-type override — coloured plain text, never a pill here.
@@ -610,14 +763,23 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 /* Required marker (§5.2, 2026-07-16 policy change) — Header Fields
    membership no longer implies required; a given field's required-ness
    comes from the standard model (system design or Screen Designer), same
-   as any other field, so it gets the identical orange left-bar a
-   .form-field.required row gets — just on this cell instead. */
-.attr-item.required::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--orange);}
+   as any other field, so it gets the identical red left-bar a
+   .form-field.required row gets (was orange — palette pass, 2026-07-22,
+   see .form-field.required above) — just on this cell instead. */
+.attr-item.required::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
 /* Sync error variant — see .form-field.error above, same reasoning. */
 .attr-item.error::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
 .attr-label{font-size:13px;color:var(--gray-4);}
 .attr-value{display:flex;align-items:center;gap:6px;}
 .attr-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;flex-shrink:0;}
+/* Outline (not gray/color-filled) and critical-red-exception variants
+   (palette pass, 2026-07-22) — used by renderColorBadge() (eam-shared.js)
+   and any screen-local badge renderer (e.g. WO Record View's
+   fieldRowBadgeAttr()). Icon SVGs must use stroke/fill="currentColor",
+   not a hardcoded "white", so they pick up this class's `color`. */
+.attr-badge-outline{border:1.5px solid var(--border-strong);color:var(--octave-black);}
+[data-theme="dark"] .attr-badge-outline{color:rgba(255,255,255,.9);}
+.attr-badge-critical{background:var(--red);border-color:var(--red);color:#fff;}
 /* §5.2: no configured colour → omit the badge entirely and left-align —
    renderColorBadge() (eam-shared.js) still emits an empty span when meta
    is falsy, so this needs to hide itself; :empty removing it from the
@@ -661,28 +823,34 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .insert-save-btn.danger-ready{background:var(--red);color:white;cursor:pointer;box-shadow:0 4px 16px rgba(228,75,74,.25);}
 .insert-save-btn.danger-ready:hover{background:#ff6060;}
 
-/* ── REFERENCE CARD FIELD (§15.5, promoted 2026-07-20 for Insert Mode —
-   2 real consumers: WO List's own Create, Home's WO-entity Create) —
-   compact headline/subline/attrs card for a field whose value is a small
-   record (e.g. WO Insert Mode's Equipment field), not a plain code+desc
-   row. Ported verbatim from eam-wo-record-view-prototype-v1.html's
-   .equip-card, minus the QR-scan affordance (Insert Mode's own lighter-
-   surface simplification — no .equip-field-row/.equip-scan-btn here).
-   Rendering lives in eam-shared.js's renderRefCard(); selection reuses
-   the existing openLov()/selectLov() sheet, see REF_CARD_FIELDS there. ── */
-.equip-card{margin:0;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px 40px 12px 14px;cursor:pointer;transition:background .15s;position:relative;}
-.equip-card:hover{background:var(--bg-section);}
-.equip-card-headline{font-size:15px;font-weight:700;color:var(--octave-black);line-height:1.25;}
-[data-theme="dark"] .equip-card-headline{color:var(--white);}
-.equip-card-subline{font-family:var(--font-mono);font-size:11px;color:var(--gray-4);margin-top:2px;letter-spacing:.3px;}
-.equip-card-attrs{margin-top:8px;display:flex;flex-direction:column;gap:4px;}
-.equip-card-attr-row{display:flex;justify-content:space-between;gap:10px;font-size:12px;}
-.equip-card-attr-row .field-label{color:var(--gray-4);}
-.equip-card-attr-row .field-value{color:var(--octave-black);font-weight:600;text-align:right;}
-[data-theme="dark"] .equip-card-attr-row .field-value{color:rgba(255,255,255,.9);}
-.equip-card-chevron{position:absolute;top:16px;right:14px;color:var(--gray-4);}
-.equip-card.empty .equip-card-headline{color:var(--gray-4);font-weight:600;}
-.equip-card.empty::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--orange);}
+/* ── EQUIPMENT SUMMARY CARD (§15.5, converged 2026-07-22 — punch-list
+   item) — icon + desc/code/type card for a field whose value is an
+   Equipment reference: WO Record View's own Equipment field AND WO
+   Insert Mode's Equipment field (WO List's own Create, Home's WO-entity
+   Create) now all render this exact same card. Previously WO Insert
+   Mode used a differently-shaped `.equip-card` (headline/subline/attrs
+   table) — an earlier iteration of WO Record View's own Equipment
+   display that WO Record View itself had already moved off of; Insert
+   Mode never got the memo, so the two screens visibly diverged ("a
+   previous design," per the user's own description). `.equip-card` is
+   now gone — promoted here verbatim from eam-wo-record-view-prototype-
+   v1.html, the one real remaining consumer's own prior local copy.
+   Rendering lives in eam-shared.js's equipSummaryCardHTML(), called by
+   both renderEquipCard() (WO Record View, plain RECORD field) and
+   renderRefCard() (Insert Mode, REF_CARD_FIELDS); selection reuses the
+   existing openLov()/selectLov()/openEquipmentLookup() sheet either way. ── */
+.equip-summary-card{margin:0;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:background .15s;position:relative;}
+.equip-summary-card:hover{background:var(--bg-section);}
+.equip-summary-main{display:flex;align-items:center;gap:12px;padding:12px 14px;}
+.equip-summary-icon{width:40px;height:40px;border-radius:10px;background:none;border:1.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--gray-4);}
+.equip-summary-info{flex:1;min-width:0;}
+.equip-summary-desc{font-size:15px;font-weight:700;color:var(--octave-black);line-height:1.2;}
+[data-theme="dark"] .equip-summary-desc{color:var(--white);}
+.equip-summary-meta{font-family:var(--font-mono);font-size:13px;color:var(--gray-4);margin-top:2px;letter-spacing:.3px;}
+.equip-summary-type{font-size:12px;font-weight:600;color:var(--gray-4);margin-top:3px;}
+.equip-summary-chevron{color:var(--gray-4);flex-shrink:0;}
+.equip-summary-card.empty .equip-summary-desc{color:var(--gray-4);font-weight:600;}
+.equip-summary-card.empty::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
 
 /* ── HYPERLINKED POPUP (added 2026-07-16) — a full-screen sheet that slides
    up from the bottom to show a record reached by tapping a "link" field
@@ -697,7 +865,17 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    id — openHyperlinkPopup('someId')/closeHyperlinkPopup('someId') work on
    any element with this class, same pattern as the LOV sheet being one
    reusable element keyed by activeLovKey. */
-.hyperlink-popup{position:absolute;inset:0;background:var(--bg-page);transform:translateY(100%);transition:transform .32s cubic-bezier(.32,.72,0,1);z-index:220;display:flex;flex-direction:column;}
+/* z-index 200 (was 220 until 2026-07-22) — same bug class already
+   documented on .insert-mode-sheet above: a hyperlinked popup is a
+   full-screen form too, and once WO Record View's Activity popup started
+   opening real openLov()/openDate()/openEdit() sheets (.bottom-sheet,
+   z-index 201) from inside itself, 220 silently buried every one of them
+   behind the still-open popup — tapping Trade/Start Date/etc. looked
+   completely dead even though the sheet WAS opening underneath. 200 sits
+   just below .bottom-sheet (201) so those sheets render on top, and still
+   above .insert-mode-sheet (199) so Insert Mode's own Equipment lookup
+   (which reuses this same class) keeps working unchanged. */
+.hyperlink-popup{position:absolute;inset:0;background:var(--bg-page);transform:translateY(100%);transition:transform .32s cubic-bezier(.32,.72,0,1);z-index:200;display:flex;flex-direction:column;}
 .hyperlink-popup.open{transform:translateY(0);}
 /* ── Equipment LOV (named 2026-07-21, promoted from WO Record View — the
    user's own call, "we want what's on the WO Record View equipment lookup
@@ -711,31 +889,40 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .tree-node { position: relative; }
 .tree-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: background 0.15s; border: 1px solid var(--border); background: var(--bg-card); margin-bottom: 8px; }
 .tree-row:hover { background: var(--bg-section); }
-.tree-row.current { border-color: var(--purple); background: rgba(153,51,255,0.06); }
-[data-theme="dark"] .tree-row.current { background: rgba(153,51,255,0.1); }
-.tree-row.focused { border-color: var(--orange); }
+/* Was purple (current) / orange (focused) — same "no color outside the
+   3 instruments" rule; both are just browsing-position indicators, not
+   required/status/sync, so both go ink/neutral, not a 4th/5th hue. */
+.tree-row.current { border-color: var(--octave-black); background: var(--bg-section); }
+[data-theme="dark"] .tree-row.current { border-color: var(--white); }
+.tree-row.focused { border-color: var(--gray-3); }
 .tree-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-section); color: var(--gray-4); }
-.tree-row.current .tree-icon { background: rgba(153,51,255,0.15); color: var(--purple); }
+.tree-row.current .tree-icon { background: var(--bg-card); color: var(--octave-black); }
+[data-theme="dark"] .tree-row.current .tree-icon { color: var(--white); }
 .tree-body { flex: 1; min-width: 0; }
 .tree-type { font-size: 10px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: var(--gray-4); font-family: var(--font-mono); margin-bottom: 1px; }
 .tree-desc { font-size: 13px; font-weight: 600; color: var(--octave-black); }
 [data-theme="dark"] .tree-desc { color: rgba(255,255,255,0.9); }
-.tree-row.current .tree-desc { color: var(--purple); }
+.tree-row.current .tree-desc { font-weight: 700; }
 .tree-code { font-family: var(--font-mono); font-size: 11px; color: var(--gray-4); margin-top: 1px; }
-.tree-here { font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--purple); background: rgba(153,51,255,0.1); border: 1px solid rgba(153,51,255,0.25); padding: 2px 7px; border-radius: 100px; flex-shrink: 0; }
+.tree-here { font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--octave-black); background: none; border: 1px solid var(--border-strong); padding: 2px 7px; border-radius: 100px; flex-shrink: 0; }
+[data-theme="dark"] .tree-here { color: var(--white); }
 .tree-guide { position: absolute; left: -14px; top: -8px; bottom: 24px; width: 14px; border-left: 2px solid var(--border-strong); border-bottom: 2px solid var(--border-strong); border-radius: 0 0 0 8px; }
 .tree-caret { width: 26px; height: 26px; border-radius: 6px; border: none; background: none; color: var(--gray-4); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: transform .15s; }
 .tree-caret.expanded { transform: rotate(90deg); }
-.tree-select-btn { font-size: 11px; font-weight: 600; color: white; background: var(--purple); border: none; border-radius: 100px; padding: 5px 12px; flex-shrink: 0; }
+/* Was purple — this is a confirm/primary action ("select this node"),
+   same green-fill language as every other primary CTA in the app
+   (.insert-save-btn.ready, .bar-pill-ready), not a "current state" hue. */
+.tree-select-btn { font-size: 11px; font-weight: 600; color: white; background: var(--green); border: none; border-radius: 100px; padding: 5px 12px; flex-shrink: 0; }
 .equip-search-scan-btn { flex-shrink: 0; background: none; border: none; color: var(--gray-4); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px; transition: color .15s; }
-.equip-search-scan-btn:hover { color: var(--purple); }
+.equip-search-scan-btn:hover { color: var(--octave-black); }
+[data-theme="dark"] .equip-search-scan-btn:hover { color: var(--white); }
 .qr-scan-overlay { position: absolute; inset: 0; background: #0b0b0d; z-index: 230; display: flex; flex-direction: column; transform: translateY(100%); transition: transform .3s cubic-bezier(.32,.72,0,1); }
 .qr-scan-overlay.open { transform: translateY(0); }
 .qr-scan-header { display: flex; justify-content: flex-end; padding: 14px; flex-shrink: 0; }
 .qr-scan-close { background: rgba(255,255,255,.12); border: none; color: white; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; line-height: 1; }
 .qr-scan-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 0 30px; }
 .qr-scan-reticle { width: 220px; height: 220px; position: relative; }
-.qr-scan-reticle::before, .qr-scan-reticle::after { content: ''; position: absolute; width: 36px; height: 36px; border: 4px solid var(--purple); border-radius: 16px; }
+.qr-scan-reticle::before, .qr-scan-reticle::after { content: ''; position: absolute; width: 36px; height: 36px; border: 4px solid var(--white); border-radius: 16px; }
 .qr-scan-reticle::before { top: 0; left: 0; border-right: none; border-bottom: none; }
 .qr-scan-reticle::after { bottom: 0; right: 0; border-left: none; border-top: none; }
 .qr-scan-hint { color: rgba(255,255,255,.75); font-size: 14px; text-align: center; }
@@ -776,13 +963,14 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .lov-option{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;}
 .lov-option:last-child{border-bottom:none;}
 .lov-option:hover{background:var(--bg-section);}
-.lov-option.selected{background:rgba(153,51,255,.05);}
+.lov-option.selected{background:var(--bg-section);}
 .lov-option-texts{flex:1;}
 .lov-option-desc{font-size:14px;font-weight:500;color:var(--octave-black);}
 [data-theme="dark"] .lov-option-desc{color:rgba(255,255,255,.9);}
 .lov-option-code{font-family:var(--font-mono);font-size:11px;color:var(--gray-4);margin-top:1px;}
 .lov-check{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid var(--border-strong);}
-.lov-check.checked{background:var(--purple);border-color:var(--purple);}
+.lov-check.checked{background:var(--octave-black);border-color:var(--octave-black);}
+[data-theme="dark"] .lov-check.checked{background:var(--white);border-color:var(--white);}
 .edit-input-wrap{padding:16px;}
 .edit-input{width:100%;background:var(--bg-section);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--font-sans);font-size:15px;color:var(--octave-black);outline:none;}
 [data-theme="dark"] .edit-input{color:var(--white);color-scheme:dark;}
@@ -795,7 +983,13 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    pair centers the same way a plain text label already did by default. */
 .btn-outlined{width:100%;height:46px;border-radius:100px;border:1.5px solid var(--gray-5);background:none;font-size:14px;font-weight:700;font-family:var(--font-sans);cursor:pointer;color:var(--octave-black);transition:border-color .15s,color .15s;display:flex;align-items:center;justify-content:center;gap:7px;}
 [data-theme="dark"] .btn-outlined{border-color:var(--white);color:var(--white);}
-.btn-outlined:hover{border-color:#00FFFF;color:#00FFFF;}
+/* Was a stray bright cyan #00FFFF — corrected 2026-07-22 (§23), found
+   during the Sample Screen sweep. Never purple/orange so no earlier grep
+   this session ever caught it, despite being live on 3 real screens (WO
+   Closing/Book Labor/Issue Parts Cancel-type buttons). Plain background
+   tint on hover, matching every other outlined-button/row hover in the
+   app (e.g. .sh-close:hover, .ld-card:hover) — no hue change at all. */
+.btn-outlined:hover{background:var(--bg-section);}
 
 /* ── Primary contained button (§17.14's "Octave Black contained, primary
    action" pattern) — generalized 2026-07-21, 2nd real consumer (Book
@@ -816,7 +1010,8 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    replacements for what were screen-local .issued-state/.danger variants. */
 .row-action-btn{flex:1;height:34px;border-radius:100px;border:1.5px solid var(--gray-2);background:var(--bg-card);color:var(--octave-black);font-size:13px;font-weight:600;font-family:var(--font-sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .15s;}
 [data-theme="dark"] .row-action-btn{border-color:var(--gray-5);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.85);}
-.row-action-btn:hover{border-color:var(--purple);color:var(--purple);}
+.row-action-btn:hover{border-color:var(--octave-black);color:var(--octave-black);}
+[data-theme="dark"] .row-action-btn:hover{border-color:var(--white);color:var(--white);}
 .row-action-btn.success{border-color:rgba(0,170,20,0.35);color:var(--green);background:rgba(0,170,20,0.06);}
 .row-action-btn.danger{border-color:rgba(228,75,74,0.35);color:var(--red);background:rgba(228,75,74,0.04);}
 .row-action-btn.danger:hover{background:rgba(228,75,74,0.1);border-color:var(--red);}
@@ -832,8 +1027,10 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:13px;border-radius:50%;cursor:pointer;color:var(--octave-black);}
 [data-theme="dark"] .cal-day{color:var(--white);}
 .cal-day.other-month{color:var(--gray-3);}
-.cal-day.today{border:1.5px solid var(--purple);}
-.cal-day.selected{background:var(--purple);color:white;}
+.cal-day.today{border:1.5px solid var(--octave-black);}
+[data-theme="dark"] .cal-day.today{border-color:var(--white);}
+.cal-day.selected{background:var(--octave-black);color:white;}
+[data-theme="dark"] .cal-day.selected{background:var(--white);color:var(--octave-black);}
 /* Time Only field (§3.4/§5.2, locked 2026-07-21) — Inter, not mono
    (corrected same day; a time-of-day value isn't a code, so it follows
    the same font rule as any other plain field value). Every Time Only
@@ -849,7 +1046,8 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    Screen's "Start Time" field for the full rule. */
 .time-input{background:none;border:none;outline:none;font-family:var(--font-sans);color:var(--octave-black);text-align:right;width:100%;cursor:pointer;position:relative;}
 [data-theme="dark"] .time-input{color:rgba(255,255,255,.9);}
-.time-input:focus{color:var(--purple);}
+.time-input:focus{color:var(--octave-black);}
+[data-theme="dark"] .time-input:focus{color:var(--white);}
 /* Tap-anywhere-opens-the-picker (regression fixed 2026-07-21): Chromium
    only treats the tiny built-in calendar/clock glyph as the trigger for
    the full picker overlay — tapping the digits themselves just focuses
@@ -883,7 +1081,8 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 [data-theme="dark"] .text-editor-textarea{color:var(--white);}
 .toast{position:absolute;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(26,26,31,.95);color:white;padding:9px 16px;border-radius:100px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;opacity:0;transition:all .25s;z-index:300;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-.comment-add-row{display:flex;align-items:center;gap:6px;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;color:var(--purple);font-size:13px;font-weight:600;}
+.comment-add-row{display:flex;align-items:center;gap:6px;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;color:var(--octave-black);font-size:13px;font-weight:600;}
+[data-theme="dark"] .comment-add-row{color:var(--white);}
 .comment-add-row:hover{background:var(--bg-section);}
 .comment-add-plus{font-size:15px;font-weight:700;line-height:1;}
 .comment-item{padding:11px 14px;border-bottom:1px solid var(--border);}
@@ -905,9 +1104,10 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .doc-item{display:flex;align-items:center;gap:11px;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;}
 .doc-item:last-child{border-bottom:none;}
 .doc-item:hover{background:var(--bg-section);}
-.doc-icon{width:32px;height:32px;border-radius:7px;background:var(--bg-section);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--gray-4);}
-.doc-icon.pdf{color:var(--red);}
-.doc-icon.img{color:var(--purple);}
+/* Outlined, not gray-filled, and icon shape alone tells pdf apart from
+   image now — was a gray fill + red(pdf)/purple(img) color pair, neither
+   of which is one of the 3 real color instruments. */
+.doc-icon{width:32px;height:32px;border-radius:7px;background:none;border:1.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--gray-4);}
 .doc-info{flex:1;min-width:0;}
 .doc-name{font-size:13px;font-weight:500;color:var(--octave-black);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 [data-theme="dark"] .doc-name{color:rgba(255,255,255,.9);}
@@ -942,11 +1142,14 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    success signal). Until then Retry keeps the plain/neutral look above,
    which doubles as its own "not ready yet" cue. */
 .sync-card-btn.ready{background:var(--green);color:#fff;}
-/* Pending/synced states (§4.5, 2026-07-20) — same banner shell, tinted
-   orange/green instead of red, driven by SYNC_ERROR_ACTIVE.status via
-   renderSyncBanner() (eam-shared.js). */
-.sync-error-banner.state-pending{background:rgba(244,102,0,.08);border-color:rgba(244,102,0,.3);}
-.sync-error-banner.state-pending .sync-error-banner-head{color:var(--orange);}
+/* Pending/synced states (§4.5, 2026-07-20). Pending was tinted orange —
+   corrected 2026-07-22 (§23): "retry submitted, still resolving" is the
+   same neutral "in progress" language as .sync-ctrl-pill.state-syncing/
+   .sync-item-dot.queued (fixed the same session), not its own 3rd hue.
+   Synced stays green — a real claim of success, the one case here that
+   is a §23 instrument. */
+.sync-error-banner.state-pending{background:var(--bg-section);border-color:var(--border-strong);}
+.sync-error-banner.state-pending .sync-error-banner-head{color:var(--gray-4);}
 .sync-error-banner.state-synced{background:rgba(0,170,20,.08);border-color:rgba(0,170,20,.3);}
 .sync-error-banner.state-synced .sync-error-banner-head{color:var(--green);}
 /* Inline per-field message, inserted as a sibling right after the flagged
@@ -954,6 +1157,40 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    the 2nd column when the row lives inside .equip-attrs' 2-col grid. */
 .field-error-msg{font-size:11.5px;font-weight:600;color:var(--red);background:rgba(228,75,74,.05);padding:6px 14px;line-height:1.35;}
 .equip-attrs .field-error-msg{grid-column:1/-1;border-top:1px solid var(--border);}
+
+/* ══════════════════════════════════════════════════════════════════════
+   SELECTOR PILL (Phase 2b consolidation, 2026-07-22) — the mono-code
+   "pick a Store/Crew/etc." pill Issue Parts (.store-selector) and Book
+   Labor (.crew-selector-pill) each hand-rolled identically (§18.5 already
+   called them "the same pattern," but the CSS itself stayed duplicated
+   until now). Each file keeps its own class name in markup (too many
+   onclick/JS references to rename risk-free for a styling-only
+   consolidation) and its own file-specific variants (Issue Parts'
+   .protected/.sheet-store-row scoping) — only the shared visual base
+   moves here, addressed to both selectors at once.
+   ══════════════════════════════════════════════════════════════════════ */
+/* Editable fill — Option D, 2026-07-22 (pill-colour circle-back,
+   user-picked): solid ink fill instead of the outline/gray-section
+   look, same treatment as .btn-contained/.org-pill's editable state.
+   .store-selector.protected (Issue Parts, screen-local, below) is
+   explicitly restored to its original outline look — pills only,
+   protected states untouched. */
+.store-selector,.crew-selector-pill{display:inline-flex;align-items:center;gap:5px;background:var(--octave-black);border:1.5px solid var(--octave-black);border-radius:100px;padding:5px 10px 5px 8px;cursor:pointer;transition:all .15s;font-family:var(--font-mono);font-size:12px;font-weight:600;color:#fff;white-space:nowrap;}
+[data-theme="dark"] .store-selector,[data-theme="dark"] .crew-selector-pill{background:var(--white);border-color:var(--white);color:var(--octave-black);}
+.store-selector:hover,.crew-selector-pill:hover{opacity:.85;}
+.store-selector svg:first-child,.crew-selector-pill svg:first-child{color:currentColor;opacity:.75;}
+
+/* Positive/negative tint-pill treatment (Phase 2b consolidation) — Book
+   Labor's .badge-green/.badge-red (hours-type indicator) and Issue Parts'
+   .qty-badge-issued were the same light-wash-tint recipe hand-copied
+   twice (Issue Parts' own outline-only .qty-badge-planned has no 2nd
+   consumer yet, so it stays local per the "generalize on 2nd consumer"
+   rule — only the genuinely-duplicated green/red tints move here). Each
+   file keeps its own base `.labor-hours-badge`/`.qty-badge` sizing local
+   (real, if minor, padding difference — 3px 9px vs 2px 7px — not forced
+   identical just to finish a consolidation). */
+.badge-green,.qty-badge-issued{background:rgba(0,170,20,.1);color:var(--green);border:1px solid rgba(0,170,20,.2);}
+.badge-red{background:rgba(228,75,74,.1);color:var(--red);border:1px solid rgba(228,75,74,.2);}
 
 /* ══════════════════════════════════════════════════════════════════════
    SYNC PANEL (§4.4.2) — bottom sheet opened from the sync icon (any
@@ -964,7 +1201,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    ══════════════════════════════════════════════════════════════════════ */
 .sync-panel-state{padding:2px 16px 12px;font-size:12.5px;font-weight:600;text-align:center;}
 .sync-panel-state.state-error{color:var(--red);}
-.sync-panel-state.state-syncing{color:var(--purple);}
+.sync-panel-state.state-syncing{color:var(--gray-4);}
 .sync-panel-state.state-offline{color:var(--gray-4);}
 .sync-panel-state.state-synced{color:var(--green);}
 .sync-panel-section-label{padding:12px 14px 4px;font-size:11px;font-weight:700;color:var(--gray-4);text-transform:uppercase;letter-spacing:.4px;}
@@ -972,16 +1209,22 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .sync-item-row:last-child{border-bottom:none;}
 .sync-item-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--gray-3);}
 .sync-item-dot.ok{background:var(--green);}
-.sync-item-dot.queued{background:var(--orange);}
+/* Was orange — corrected 2026-07-22 (§23): queued is "waiting," the same
+   neutral-gray language the panel-level state text already uses for
+   Offline/Syncing (.sync-panel-state.state-syncing/.state-offline), not
+   its own 3rd hue. Explicit rather than just falling through to the base
+   rule above, since they happen to match today but mean different things. */
+.sync-item-dot.queued{background:var(--gray-3);}
 .sync-item-dot.error{background:var(--red);}
 .sync-item-info{flex:1;min-width:0;}
 .sync-item-name{font-size:13px;font-weight:600;color:var(--octave-black);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 [data-theme="dark"] .sync-item-name{color:rgba(255,255,255,.9);}
 .sync-item-meta{font-size:11px;color:var(--gray-4);font-family:var(--font-mono);margin-top:1px;}
-.sync-item-action{font-size:12px;font-weight:700;color:var(--purple);background:none;border:none;cursor:pointer;padding:6px 8px;flex-shrink:0;font-family:var(--font-sans);}
+.sync-item-action{font-size:12px;font-weight:700;color:var(--octave-black);background:none;border:none;cursor:pointer;padding:6px 8px;flex-shrink:0;font-family:var(--font-sans);}
+[data-theme="dark"] .sync-item-action{color:var(--white);}
 .sync-panel-hydrate{padding:6px 14px 14px;}
 .sync-hydrate-row{padding:7px 0;}
 .sync-hydrate-label{font-size:12px;color:var(--gray-4);margin-bottom:5px;display:flex;justify-content:space-between;}
 .sync-hydrate-track{height:6px;border-radius:100px;background:var(--bg-section);overflow:hidden;}
-.sync-hydrate-fill{height:100%;background:var(--purple);border-radius:100px;}
+.sync-hydrate-fill{height:100%;background:var(--gray-4);border-radius:100px;}
 .sync-panel-empty{padding:24px 16px 20px;text-align:center;font-size:13px;color:var(--gray-4);}

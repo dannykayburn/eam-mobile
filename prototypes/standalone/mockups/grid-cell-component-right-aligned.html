@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Grid-Cell Component — Left vs. Right Aligned</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  GRID-CELL COMPONENT — left (current/locked) vs. right-aligned values
+  (2026-07-22, scratchpad, self-contained). Renamed per user direction:
+  this is "the grid-cell component" going forward, not "Header Fields
+  section" — label above value, bordered cells in a row, 2+ per row.
+  Real consumers so far: Type/Priority (icon badge + text) and the
+  Activities' Trade/Start Date/Task Plan/Material List cells (plain
+  value or code+description stack).
+
+  This shows the SAME real content both ways, stacked for direct
+  comparison — not the abstract Trade/Date placeholder from the earlier
+  justification demo. Left version is what's actually locked in
+  wo-record-view-final-option-a.html right now; right version is the
+  requested "what if values sat on the right" alternative, applied to
+  both cell shapes this component actually has (icon-badge cells and
+  code+description-stack cells).
+-->
+<style>
+:root{
+  --ink:#1A1A1F; --ink-soft:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --border:#E7EBF2; --border-strong:#CBD0D8; --bg-card:#FFFFFF;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--ink);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:390px;width:100%;color:#fff;font-size:12px;line-height:1.55;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;}
+.legend b{color:#fff;}
+.wrap{max-width:390px;width:100%;}
+.opt-label{color:#fff;font-size:13px;font-weight:700;margin:20px 2px 6px;}
+.opt-label:first-of-type{margin-top:4px;}
+.opt-sub{color:var(--gray-3);font-size:11px;margin:-2px 2px 8px;display:block;}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.ident{font-family:var(--font-mono);letter-spacing:.2px;font-weight:600;}
+
+/* ── Grid-cell component — shared shell for both alignments ── */
+.grid-row{display:flex;}
+.grid-row + .grid-row{border-top:1px solid var(--border);}
+.gcell{flex:1;padding:10px 14px;position:relative;}
+.gcell + .gcell{border-left:1px solid var(--border);}
+.gcell-label{font-size:11px;color:var(--gray-4);display:block;margin-bottom:5px;}
+
+/* Icon-badge cell (Type/Priority) */
+.gcell-badge-val{display:flex;align-items:center;gap:7px;}
+.badge-chip{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:none;border:1.5px solid var(--border-strong);color:var(--ink);}
+.badge-text{font-size:13px;font-weight:600;color:var(--ink);}
+.gcell.right .gcell-badge-val{justify-content:flex-end;}
+.gcell.right .badge-text{text-align:right;}
+
+/* Code+description-stack cell (Trade/Task Plan/Material List) */
+.trade-code{font-size:10px;color:var(--gray-4);display:block;}
+.trade-desc{font-size:12px;font-weight:600;color:var(--ink);}
+.date-val{font-size:12px;font-weight:600;color:var(--ink);}
+/* text-align set on the CELL (block container), not on trade-desc/
+   date-val themselves — those are inline <span>s, and text-align has
+   no effect when set directly on an inline element (only on the block
+   box containing it). This one rule correctly right-aligns every child
+   here, including badge-text's wrapped 2nd line. */
+.gcell.right{text-align:right;}
+</style>
+</head>
+<body>
+
+<div class="legend">
+  <b>Grid-cell component — left (locked) vs. right-aligned values.</b> Same real content both ways: the Type/Priority icon-badge cells, and the Activities' Trade/Start Date/Task Plan/Material List cells (plain value + code-above-description stack). Left is what's live in the final Option A screen right now.
+</div>
+
+<div class="wrap">
+
+  <div class="opt-label">Type / Priority — currently left</div>
+  <div class="card">
+    <div class="grid-row">
+      <div class="gcell">
+        <span class="gcell-label">Type</span>
+        <div class="gcell-badge-val"><span class="badge-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span><span class="badge-text">Corrective Maintenance</span></div>
+      </div>
+      <div class="gcell">
+        <span class="gcell-label">Priority</span>
+        <div class="gcell-badge-val"><span class="badge-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="5,15 12,8 19,15"/></svg></span><span class="badge-text">High</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="opt-label">Type / Priority — values right-aligned</div>
+  <div class="card">
+    <div class="grid-row">
+      <div class="gcell right">
+        <span class="gcell-label">Type</span>
+        <div class="gcell-badge-val"><span class="badge-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span><span class="badge-text">Corrective Maintenance</span></div>
+      </div>
+      <div class="gcell right">
+        <span class="gcell-label">Priority</span>
+        <div class="gcell-badge-val"><span class="badge-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="5,15 12,8 19,15"/></svg></span><span class="badge-text">High</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="opt-label">Trade / Task Plan grid — currently left</div>
+  <div class="card">
+    <div class="grid-row">
+      <div class="gcell"><span class="gcell-label">Trade</span><span class="trade-code ident">MECH</span><span class="trade-desc">Mechanical</span></div>
+      <div class="gcell"><span class="gcell-label">Start Date</span><span class="date-val ident">11/07/2025</span></div>
+    </div>
+    <div class="grid-row">
+      <div class="gcell"><span class="gcell-label">Task Plan</span><span class="trade-code ident">PUMP-OVERHESTI</span><span class="trade-desc">Pump Overhaul — Standard Task</span></div>
+      <div class="gcell"><span class="gcell-label">Material List</span><span class="trade-code ident">DIS-PUMP-REPAIR</span><span class="trade-desc">Discharge Pump Repair Kit</span></div>
+    </div>
+  </div>
+
+  <div class="opt-label">Trade / Task Plan grid — values right-aligned</div>
+  <div class="card">
+    <div class="grid-row">
+      <div class="gcell right"><span class="gcell-label">Trade</span><span class="trade-code ident">MECH</span><span class="trade-desc">Mechanical</span></div>
+      <div class="gcell right"><span class="gcell-label">Start Date</span><span class="date-val ident">11/07/2025</span></div>
+    </div>
+    <div class="grid-row">
+      <div class="gcell right"><span class="gcell-label">Task Plan</span><span class="trade-code ident">PUMP-OVERHESTI</span><span class="trade-desc">Pump Overhaul — Standard Task</span></div>
+      <div class="gcell right"><span class="gcell-label">Material List</span><span class="trade-code ident">DIS-PUMP-REPAIR</span><span class="trade-desc">Discharge Pump Repair Kit</span></div>
+    </div>
+  </div>
+
+  <div style="height:20px;"></div>
+</div>
+
+</body>
+</html>

@@ -79,8 +79,12 @@ body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--ink);d
 .status-btn.neutral{background:none;border:1.5px solid rgba(255,255,255,.35);color:#fff;}
 .org-pill{margin-left:auto;display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:7px;background:none;color:var(--gray-2);font-size:12px;border:1.5px solid rgba(255,255,255,.35);}
 
-.step-rail{background:var(--bg-card);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;}
-.step-name{font-size:13px;font-weight:600;color:var(--ink);}
+/* Title centered via absolute positioning, not flex space-between —
+   matches the real app's rule (§14.2): the name stays centered
+   regardless of what's in the left/right slots, rather than drifting
+   left just because the right side (chevron) is narrower. */
+.step-rail{position:relative;background:var(--bg-card);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:flex-end;}
+.step-name{position:absolute;left:14px;right:14px;text-align:center;font-size:13px;font-weight:600;color:var(--ink);pointer-events:none;}
 .step-chev{color:var(--gray-4);}
 .step-segments{display:flex;gap:4px;padding:0 14px 10px;}
 .seg{flex:1;height:3px;border-radius:2px;background:var(--gray-2);}

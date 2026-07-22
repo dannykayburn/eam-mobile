@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Field Value Justification — Design Standard Check</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  FIELD VALUE JUSTIFICATION — answering "is there a design standard for
+  label-left/value-right?" (2026-07-22, scratchpad, self-contained).
+
+  Short answer: yes, already locked in the real app, not new. eam-shared.
+  css already sets `.field-label{width:128px}` (fixed, left) +
+  `.field-value{flex:1;text-align:right}` / `.field-lov-desc{text-align:
+  right}` — that's the Standard Model row (§5.2/5.3). This file just makes
+  it visible/provable, including the one case where the difference
+  actually matters: a value long enough to wrap to 2 lines. Single-word
+  values (most of our demo data) never show the gap between "the value
+  BLOCK sits on the right" (already true either way, from flex space-
+  between) and "the TEXT inside it is right-aligned" (only true with
+  text-align:right) — this demo forces a wrap so you can see it.
+
+  ALSO shown: the Header Fields grid cell (`.attr-item`/Type-Priority/
+  Trade-Task Plan cells) is a DIFFERENT, separate standard — label ABOVE
+  value, not beside it, and the value is left-aligned, not right. That's
+  not an inconsistency; it's a different component shape (row vs. grid
+  cell) with its own already-correct convention. Row 3 below shows why
+  right-aligning a grid cell would look wrong (it fights the label's own
+  left edge right above it).
+-->
+<style>
+:root{
+  --ink:#1A1A1F; --gray-4:#6F7480; --border:#E7EBF2; --border-strong:#CBD0D8; --bg-card:#FFFFFF;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--ink);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:390px;width:100%;color:#fff;font-size:12px;line-height:1.55;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;}
+.legend b{color:#fff;}
+.wrap{max-width:390px;width:100%;}
+.opt-label{color:#fff;font-size:13px;font-weight:700;margin:20px 2px 6px;}
+.opt-label:first-of-type{margin-top:4px;}
+.opt-sub{color:var(--gray-3,#B2B8C4);font-size:11px;margin:-2px 2px 8px;display:block;}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.ident{font-family:var(--font-mono);letter-spacing:.2px;font-weight:600;}
+
+/* ── Row component (label left / value right) — the real, already-
+   locked eam-shared.css convention, reproduced verbatim. ── */
+.field-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 14px;border-top:1px solid var(--border);}
+.field-row:first-child{border-top:none;}
+.field-label{font-size:13px;color:var(--gray-4);width:110px;flex-shrink:0;line-height:1.35;padding-top:1px;}
+.field-value{flex:1;font-size:14px;font-weight:500;color:var(--ink);text-align:right;line-height:1.35;}
+.field-value.no-right{text-align:left;}
+.field-lov-value{display:flex;flex-direction:column;align-items:flex-end;flex:1;gap:1px;}
+.field-lov-code{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--gray-4);line-height:1.2;text-align:right;}
+.field-lov-desc{font-size:14px;font-weight:500;color:var(--ink);line-height:1.35;text-align:right;}
+
+/* ── Grid-cell component (label above / value below, left-aligned) —
+   the OTHER real standard, used for Type/Priority/Trade cells. ── */
+.attr-grid{display:flex;}
+.attr-item{flex:1;padding:10px 14px;}
+.attr-item + .attr-item{border-left:1px solid var(--border);}
+.attr-label{font-size:11px;color:var(--gray-4);display:block;margin-bottom:4px;}
+.attr-value{font-size:13px;font-weight:600;color:var(--ink);}
+.attr-value.right-forced{text-align:right;}
+</style>
+</head>
+<body>
+
+<div class="legend">
+  <b>Is there a standard? Yes — already locked, just hard to see with short values.</b> eam-shared.css's real `.field-row` component is label-left (fixed width) / value-right (<code>text-align:right</code>), for both plain values and the code-above-description LOV stack. That's what Work Order Details already uses. The gap only shows up when a value wraps to 2 lines — Row 2 below forces that to prove it. Row 3 shows the OTHER standard (Header Fields grid cells: label above, value left) — a different component, not an inconsistency, and right-aligning it (bottom variant) looks wrong on purpose.
+</div>
+
+<div class="wrap">
+
+  <div class="opt-label">1 — Short values (what we've been looking at)</div>
+  <span class="opt-sub">value block sits right either way — text-align doesn't visibly matter yet</span>
+  <div class="card">
+    <div class="field-row">
+      <span class="field-label">Department</span>
+      <div class="field-lov-value">
+        <span class="field-lov-code ident">WATER</span>
+        <span class="field-lov-desc">Water Utility</span>
+      </div>
+    </div>
+    <div class="field-row">
+      <span class="field-label">Date Reported</span>
+      <span class="field-value ident">11/07/2025</span>
+    </div>
+  </div>
+
+  <div class="opt-label">2 — A value long enough to wrap (the real test)</div>
+  <span class="opt-sub">left column: text-align:right (locked standard) — right column: left-aligned text, for comparison</span>
+  <div class="card">
+    <div class="field-row">
+      <span class="field-label">Assigned To</span>
+      <div class="field-lov-value">
+        <span class="field-lov-code ident">JRODRIGUEZ</span>
+        <span class="field-lov-desc">Juan Alejandro Rodriguez-Fernandez</span>
+      </div>
+    </div>
+    <div class="field-row">
+      <span class="field-label">Problem Code</span>
+      <span class="field-value">Mechanical — Bearing and Seal Failure, Discharge Side</span>
+    </div>
+  </div>
+  <div class="card" style="margin-top:8px;">
+    <div class="field-row">
+      <span class="field-label">Assigned To</span>
+      <div class="field-lov-value" style="align-items:flex-start;">
+        <span class="field-lov-code ident" style="text-align:left;">JRODRIGUEZ</span>
+        <span class="field-lov-desc no-right" style="text-align:left;">Juan Alejandro Rodriguez-Fernandez</span>
+      </div>
+    </div>
+    <div class="field-row">
+      <span class="field-label">Problem Code</span>
+      <span class="field-value no-right">Mechanical — Bearing and Seal Failure, Discharge Side</span>
+    </div>
+  </div>
+
+  <div class="opt-label">3 — Grid-cell component (Type/Priority/Trade cells)</div>
+  <span class="opt-sub">a different, already-correct standard: label above, value LEFT — not the same component as above</span>
+  <div class="card">
+    <div class="attr-grid">
+      <div class="attr-item"><span class="attr-label">Trade</span><span class="attr-value">Mechanical</span></div>
+      <div class="attr-item"><span class="attr-label">Start Date</span><span class="attr-value">11/07/2025</span></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:8px;">
+    <div class="attr-grid">
+      <div class="attr-item"><span class="attr-label">Trade</span><span class="attr-value right-forced">Mechanical</span></div>
+      <div class="attr-item"><span class="attr-label">Start Date</span><span class="attr-value right-forced">11/07/2025</span></div>
+    </div>
+  </div>
+  <span class="opt-sub">↑ forcing right-align here fights the label sitting directly above-left — this is why grid cells stay left-aligned, by design, not by omission.</span>
+
+  <div style="height:20px;"></div>
+</div>
+
+</body>
+</html>

@@ -181,11 +181,48 @@ rows in a real deployment.
 
 ---
 
+## Notification Card
+
+**Built 2026-07-22**, `eam-notifications-prototype-v1.html` — single
+consumer so far, named here anyway since "notification" is exactly the
+kind of word that invites reinvention later without a name to check
+against. An icon-in-circle (type-based, monochrome-outlined per §23, no
+per-type hue) + subject/body/reference row, in a `.notif-card` shell
+(screen-local, same `.ld-card`-adjacent shape as the rest of the app's
+card components but not actually the same class — this one has no status
+pill, no org badge, and a per-row dismiss control none of the `.ld-card`
+family has).
+
+**Reference row (revised 2026-07-22, user direction):** `{date} · {time}
+| Work Order {number}` — the record number stays mono (identifier), the
+surrounding words don't. `time` sources from `data/notifications.js` in
+this app's actual numeric-date standard (§3.4), not Comments' older
+spelled-month convention.
+
+**Read/unread is ink weight + a fill dot, never a color** (§23 — it's not
+one of the 3 instruments): unread = bold subject + filled dot; read =
+normal weight, no dot. Tapping a card marks it read and, if it carries a
+`wo`, navigates to that Work Order via the exact same §24 rule 3 demo-WO
+fallback `eam-wo-list-prototype-v5_1.html`'s `openWO()` already
+established. The per-card ✕ dismiss is gated behind the shared
+`openConfirm()` modal, same as every other confirm-before-destructive
+action in this app — its message explicitly says the source record is
+unaffected, since a technician's first guess at what "dismiss" does to a
+*notification* card could reasonably be "this deletes something real."
+
+See `design-decisions-v3-1.md` §25 for the full write-up, including the
+real R5MAILEVENTS-modeled data (`data/notifications.js`) and the flagged
+read/unread persistence gap (that table has no such column in the real
+schema).
+
+---
+
 ## Index
 
 | Component | Screens | Status |
 |---|---|---|
 | Equipment LOV | WO Record View, WO Insert Mode | Converged 2026-07-21 — one shared picker, both screens (§7.4/§15.5) |
 | Equipment ID Badge | Activity Checklist | Built, read-only, deliberately separate from the LOV (§16) |
+| Notification Card | Notifications | Built 2026-07-22 (§25); single consumer so far |
 | Activity Selector (rows = Activity Rows) | WO Record View | Built (§15.2); cross-screen hand-off undefined |
 | Booked Labor List (rows = Labor Rows) | Book Labor | Built (§18.3/§18.6); correction sheet content hardcoded |

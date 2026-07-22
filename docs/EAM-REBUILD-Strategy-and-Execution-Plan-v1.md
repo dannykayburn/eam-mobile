@@ -367,3 +367,74 @@ forward. Two concrete moves:
   (generalized to `toggleActionsMenu(id)`/`closeActionsMenu(id)` rather
   than a third bespoke function). Keep doing that by default, not just
   when it's convenient.
+
+## 8. Session 2026-07-22 — Screen Designer: how it can actually run, given the real base EAM admin framework
+
+**Not a design question — a technical/architecture one, dev-owned.**
+Prompted by building `eam-screen-designer-v1.html` (`prototypes/
+standalone/base screens/`), a real interactive Screen Designer prototype
+per design-decisions-v3-1.md §10–§13: live drag-and-drop dual-listbox
+group picker, a right-click field-property menu, drag-to-reorder fields,
+and a live mobile-device emulator preview. The real base EAM admin UI
+runs on a much older server-rendered framework that can't natively host
+any of that — and definitely can't render the mobile app's own UI inline,
+since that's a separate rendering target entirely. The question: what's
+a reasonable way to actually ship this, given the admin entry point is
+just a menu item inside that legacy framework?
+
+### 8.1 Shape: strangler-fig, not an embed
+
+Don't retrofit modern drag-and-drop/live-preview into the legacy
+framework itself. Treat Screen Designer as its own small, independently
+deployed modern web app; the legacy menu item is just a launcher
+(`window.open`) into a new browser window/tab, not an iframe embedded in
+the legacy page. Embedding modern rich UI inside decades-old page chrome
+invites CSS/JS global-scope collisions (jQuery version clashes, z-index
+wars) for no benefit — a separate window sidesteps all of it, and matches
+what was actually asked for ("opens this in an outside browser window").
+
+### 8.2 The live mobile emulator: reuse the real screens, don't mock them
+
+The biggest risk in the current prototype is exactly the thing that makes
+it demoable: `.mob-field`/`.mob-grid` in `eam-screen-designer-v1.html` is
+a **hand-built mockup renderer** — it will silently drift from whatever
+the real mobile screens actually look like as they keep evolving. Don't
+carry that mockup into the real build. Instead:
+
+- The "emulator" panel is a real `<iframe>`, phone-viewport-sized, `src`
+  pointed at the actual mobile screen file (e.g.
+  `eam-wo-record-view-prototype-v1.html?designerMode=true&woType=BK&
+  group=DK`).
+- `eam-shared.js` gains a small `designerMode` branch: when the query
+  param is present, it adds the right-click/drag affordances directly
+  onto the screen's own real rendered DOM (no parallel markup to
+  maintain), and `postMessage`s layout changes up to the parent Screen
+  Designer window instead of saving locally.
+- **This is the same parent↔iframe scripting mechanism §7.2 already
+  flagged as needing a throwaway proof-of-concept** for the mobile app's
+  own compiled shell — same-origin `http://localhost:port` (or whatever
+  the real deployed origin is) makes this safe the same way it made
+  Option A safe there. Worth validating once and getting transferable
+  learnings for both use cases, rather than proving it twice.
+
+### 8.3 Two things dev actually has to build, not UI decisions
+
+- **Session/auth hand-off.** The new window needs the existing EAM
+  session passed through (URL token, `postMessage`, or a shared-domain
+  SSO cookie) — not a second login prompt.
+- **A real JSON API in front of `R5PAGELAYOUT` and the new WO Workflow
+  header/steps tables** (§12) for the new app to call. It can't use the
+  legacy framework's server-side postback forms — this is real backend
+  surface area, not something the frontend can work around.
+
+### 8.4 Trade-off
+
+Two tech stacks to maintain instead of one, and a session hand-off
+contract to get right once. Weighed against the alternative — building
+rich drag-and-drop and a live-updating preview inside a framework that
+wasn't built for either — this is very likely still the cheaper, lower-
+risk path. **Recommendation: build a throwaway 2-piece proof-of-concept
+(a stub legacy-style launcher page + the iframe/`designerMode`/
+`postMessage` contract against one real screen) before committing the
+rest of Screen Designer to this shape** — same "prove it before depending
+on it" discipline §7.2 already used for the mobile app's compiled shell.

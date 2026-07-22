@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Step Rail + Tab Rail — Monochrome Conversion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  STEP RAIL + TAB RAIL — MONOCHROME CONVERSION (2026-07-22, Phase 3 of the
+  app-wide nav/palette rollout, scratchpad, self-contained). Requested
+  before Phase 2's real eam-shared.css edit lands, so the two most
+  structurally complex shared components get a look first.
+
+  WHAT'S CONVERTED (purple → black/white weight, same rule as everywhere
+  else this session):
+  - Rail resting background: was a persistent purple wash
+    (rgba(153,51,255,.12), even at rest, not just on hover) — now a plain
+    neutral raised surface (--bg-section), no hue. Hover darkens the
+    border, not the fill.
+  - Tab rail's leading icon: was purple — now plain --gray-4, same as
+    every other structural icon (it's an identifying glyph, not a
+    "selected" state).
+  - Tab map's active row + label: was purple bg wash + purple bold text —
+    now --bg-section wash + bold ink text (weight communicates "current,"
+    not hue).
+  - Step segments' active segment: was purple — now ink (black/white).
+  - Step map's active step badge + label: was purple — now ink.
+  - Timer/Pause-Stop button hover: was purple border+text — now ink.
+
+  WHAT'S DELIBERATELY *NOT* CONVERTED (out of scope for "retire purple"):
+  - Done segments/step badges stay GREEN — that's a pre-existing,
+    unrelated "completed" convention, never flagged as a problem, and
+    green isn't purple.
+  - The Octave Yellow ".rail-not-free-form" swap (workflow-locked state)
+    is untouched — different semantic (a config lock, not a UI-state
+    accent), not shown in this mockup at all to keep it focused.
+  - The timer pill's green stays as-is (pre-existing, not purple, not
+    raised as an issue).
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --green:#00AA14; --red:#E24B4A;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-nav:#1A1A1F; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+[data-theme="dark"]{
+  --bg-page:#1A1A1F; --bg-card:#26252B; --bg-nav:#111114; --bg-section:#302F33; --border:#3E4047; --border-strong:#4A4C55;
+  --gray-1:#2A2930; --gray-2:#3E4047; --gray-3:#6F7480; --gray-4:#B2B8C4;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--octave-black);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:390px;width:100%;color:#fff;font-size:12px;line-height:1.55;margin-bottom:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;}
+.legend b{color:#fff;}
+.theme-row{display:flex;gap:8px;margin-bottom:14px;}
+.theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:5px 12px;cursor:pointer;}
+.wrap{max-width:390px;width:100%;background:var(--bg-page);border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.opt-label{font-size:12px;font-weight:700;color:var(--octave-black);background:var(--bg-page);padding:14px 14px 6px;}
+[data-theme="dark"] .opt-label{color:var(--white);}
+
+/* ── Tab rail ── */
+.tab-rail{background:var(--bg-section);border-bottom:1px solid var(--border);padding:0 14px;flex-shrink:0;cursor:pointer;transition:border-color .15s;}
+.tab-rail:hover{border-bottom-color:var(--border-strong);}
+.tab-rail.expanded{padding-bottom:14px;}
+.tab-rail-collapsed{height:56px;display:flex;align-items:center;gap:10px;}
+.tab-rail-icon{color:var(--gray-4);flex-shrink:0;display:flex;}
+.tab-rail-name{font-size:14px;font-weight:700;color:var(--octave-black);flex:1;}
+[data-theme="dark"] .tab-rail-name{color:var(--white);}
+.tab-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
+.tab-rail.expanded .tab-chevron{transform:rotate(180deg);}
+.tab-map{display:none;background:var(--bg-card);padding:8px 0 12px;border-top:1px solid var(--border);}
+.tab-rail.expanded .tab-map{display:block;}
+.tab-map-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-radius:4px;margin:0 6px;transition:background .1s;color:var(--gray-4);}
+.tab-map-item:hover{background:var(--bg-section);}
+.tab-map-item.active{background:var(--bg-section);color:var(--octave-black);}
+[data-theme="dark"] .tab-map-item.active{color:var(--white);}
+.tab-map-icon{width:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.tab-map-label{flex:1;font-size:13px;font-weight:500;color:var(--octave-black);}
+[data-theme="dark"] .tab-map-label{color:rgba(255,255,255,.85);}
+.tab-map-item.active .tab-map-label{color:var(--octave-black);font-weight:700;}
+[data-theme="dark"] .tab-map-item.active .tab-map-label{color:var(--white);}
+.tab-map-chevron{color:var(--gray-3);flex-shrink:0;}
+
+/* ── Step rail ── */
+.step-rail{background:var(--bg-section);border-bottom:1px solid var(--border);padding:0 14px;flex-shrink:0;cursor:pointer;transition:border-color .15s;}
+.step-rail:hover{border-bottom-color:var(--border-strong);}
+.step-rail.expanded{padding-bottom:14px;}
+.step-rail-collapsed{height:52px;display:flex;align-items:center;gap:8px;}
+.step-name{flex:1;text-align:left;font-size:13px;font-weight:600;color:var(--octave-black);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+[data-theme="dark"] .step-name{color:var(--white);}
+.step-rail-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.timer-pill{display:flex;align-items:center;gap:5px;background:rgba(0,170,20,.1);border:1px solid rgba(0,170,20,.3);border-radius:100px;padding:2px 8px;flex-shrink:0;}
+.timer-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:timerPulse 1.4s ease-in-out infinite;}
+.timer-pill span{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--green);}
+@keyframes timerPulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+.step-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
+.step-rail.expanded .step-chevron{transform:rotate(180deg);}
+.step-segments{display:flex;gap:4px;padding:0 14px 10px;}
+.seg{flex:1;height:3px;border-radius:2px;background:var(--gray-2);}
+.seg-done{background:var(--green);}
+.seg-active{background:var(--octave-black);}
+[data-theme="dark"] .seg-active{background:var(--white);}
+.step-map{display:none;background:var(--bg-card);padding:10px 0 12px;border-top:1px solid var(--border);}
+.step-rail.expanded .step-map{display:block;}
+.step-map-item{display:flex;align-items:center;gap:10px;padding:6px 14px;cursor:pointer;transition:background .1s;border-radius:4px;margin:0 6px;}
+.step-map-item:hover{background:var(--bg-section);}
+.step-map-item.active{background:var(--bg-section);}
+.step-map-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:700;}
+.smi-done{background:var(--green);color:white;}
+.smi-active{background:var(--octave-black);color:var(--white);}
+[data-theme="dark"] .smi-active{background:var(--white);color:var(--octave-black);}
+.smi-locked{background:none;border:2px solid var(--gray-3);color:var(--gray-3);}
+.step-map-label{flex:1;font-size:13px;font-weight:500;color:var(--octave-black);}
+[data-theme="dark"] .step-map-label{color:rgba(255,255,255,.85);}
+.step-map-label.active-label{color:var(--octave-black);font-weight:700;}
+[data-theme="dark"] .step-map-label.active-label{color:var(--white);}
+.step-map-footer{font-size:11px;color:var(--gray-4);padding:6px 20px 0;font-family:var(--font-mono);}
+.step-timer-panel{margin:0 0 10px;padding:14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.step-timer-value{text-align:center;font-family:var(--font-mono);font-size:26px;font-weight:700;color:var(--octave-black);margin-bottom:10px;}
+[data-theme="dark"] .step-timer-value{color:var(--white);}
+.step-timer-actions{display:flex;gap:8px;}
+.step-timer-btn{flex:1;height:38px;border-radius:100px;border:1.5px solid var(--gray-2);background:none;color:var(--octave-black);font-size:13px;font-weight:600;font-family:var(--font-sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;}
+[data-theme="dark"] .step-timer-btn{border-color:var(--gray-5);color:var(--white);}
+.step-timer-btn:hover{border-color:var(--octave-black);color:var(--octave-black);}
+[data-theme="dark"] .step-timer-btn:hover{border-color:var(--white);color:var(--white);}
+.step-timer-btn.danger{border-color:rgba(228,75,74,.35);background:rgba(228,75,74,.06);color:var(--red);}
+.step-timer-btn.danger:hover{background:rgba(228,75,74,.12);border-color:var(--red);}
+</style>
+</head>
+<body>
+
+<div class="legend">
+  <b>Step Rail + Tab Rail — monochrome conversion.</b> Purple retired from both rails: the resting wash (was a persistent purple tint, not hover-only) is now a plain neutral surface; the active segment/step-badge/tab-map row/leading icon are now black (white in dark mode) instead of purple. Green "done" stays green — that's a pre-existing, separate convention, never flagged as an issue. Tap either rail below to expand/collapse; use the theme buttons to check both modes.
+</div>
+
+<div class="theme-row">
+  <button class="theme-toggle" onclick="document.documentElement.removeAttribute('data-theme')">☀ Light</button>
+  <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme','dark')">◑ Dark</button>
+</div>
+
+<div class="wrap">
+
+  <div class="opt-label">Tab rail — collapsed</div>
+  <div class="tab-rail" id="railA" onclick="toggle('railA')">
+    <div class="tab-rail-collapsed">
+      <span class="tab-rail-icon"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke-linecap="round"/></svg></span>
+      <span class="tab-rail-name">Overview</span>
+      <svg class="tab-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+
+  <div class="opt-label">Tab rail — expanded (Structure is active)</div>
+  <div class="tab-rail expanded" id="railB" onclick="toggle('railB')">
+    <div class="tab-rail-collapsed">
+      <span class="tab-rail-icon"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke-linecap="round"/></svg></span>
+      <span class="tab-rail-name">Structure</span>
+      <svg class="tab-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="tab-map">
+      <div class="tab-map-item" onclick="event.stopPropagation()"><span class="tab-map-icon">○</span><span class="tab-map-label">Overview</span></div>
+      <div class="tab-map-item active" onclick="event.stopPropagation()"><span class="tab-map-icon">●</span><span class="tab-map-label">Structure</span></div>
+      <div class="tab-map-item" onclick="event.stopPropagation()"><span class="tab-map-icon">○</span><span class="tab-map-label">Costs</span></div>
+      <div class="tab-map-item" onclick="event.stopPropagation()"><span class="tab-map-icon">○</span><span class="tab-map-label">Comments</span></div>
+    </div>
+  </div>
+
+  <div style="height:12px;"></div>
+
+  <div class="opt-label">Step rail — collapsed (running timer)</div>
+  <div class="step-rail" id="railC" onclick="toggle('railC')">
+    <div class="step-rail-collapsed">
+      <span class="step-name">Activity Checklist</span>
+      <div class="step-rail-right">
+        <div class="timer-pill"><span class="timer-dot"></span><span>04:12</span></div>
+        <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="step-segments">
+      <div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div>
+    </div>
+  </div>
+
+  <div class="opt-label">Step rail — expanded, with timer panel</div>
+  <div class="step-rail expanded" id="railD" onclick="toggle('railD')">
+    <div class="step-rail-collapsed">
+      <span class="step-name">Activity Checklist</span>
+      <div class="step-rail-right">
+        <div class="timer-pill"><span class="timer-dot"></span><span>04:12</span></div>
+        <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="step-segments">
+      <div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div>
+    </div>
+    <div class="step-map">
+      <div class="step-timer-panel" onclick="event.stopPropagation()">
+        <div class="step-timer-value">04:12</div>
+        <div class="step-timer-actions">
+          <button class="step-timer-btn">⏸ Pause</button>
+          <button class="step-timer-btn danger">⏹ Stop</button>
+        </div>
+      </div>
+      <div class="step-map-item" onclick="event.stopPropagation()"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
+      <div class="step-map-item active" onclick="event.stopPropagation()"><div class="step-map-icon smi-active">2</div><span class="step-map-label active-label">Activity Checklist</span></div>
+      <div class="step-map-item" onclick="event.stopPropagation()"><div class="step-map-icon smi-locked">3</div><span class="step-map-label">Issue Parts</span></div>
+      <div class="step-map-item" onclick="event.stopPropagation()"><div class="step-map-icon smi-locked">4</div><span class="step-map-label">Book Labor</span></div>
+      <div class="step-map-item" onclick="event.stopPropagation()"><div class="step-map-icon smi-locked">5</div><span class="step-map-label">WO Closing</span></div>
+      <div class="step-map-footer">WO.WORKFLOW.01 - Corrective Maintenance Execution</div>
+    </div>
+  </div>
+
+  <div style="height:16px;"></div>
+</div>
+
+<script>
+function toggle(id){document.getElementById(id).classList.toggle('expanded');}
+</script>
+</body>
+</html>

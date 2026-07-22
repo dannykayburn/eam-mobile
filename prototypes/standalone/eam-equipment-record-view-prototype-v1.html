@@ -32,28 +32,18 @@
       different field set, not just show/hide of a fixed one.
 -->
 <style>
-/* ── STRUCTURE DETAILS TREE — page-specific, no shared component exists
-   for this (tree content is explicitly untouched by the §8.2 List/Detail
-   shell rewrite — see design-decisions-v3-1.md §7.3). ── */
-.tree-wrap { padding: 12px; }
-.tree-node { position: relative; }
-.tree-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: background 0.15s; border: 1px solid var(--border); background: var(--bg-card); margin-bottom: 8px; }
-.tree-row:hover { background: var(--bg-section); }
-.tree-row.current { border-color: var(--purple); background: rgba(153,51,255,0.06); }
-[data-theme="dark"] .tree-row.current { background: rgba(153,51,255,0.1); }
-.tree-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-section); color: var(--gray-4); }
-.tree-row.current .tree-icon { background: rgba(153,51,255,0.15); color: var(--purple); }
-.tree-body { flex: 1; min-width: 0; }
-.tree-type { font-size: 10px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: var(--gray-4); font-family: var(--font-mono); margin-bottom: 1px; }
-.tree-desc { font-size: 13px; font-weight: 600; color: var(--octave-black); }
-[data-theme="dark"] .tree-desc { color: rgba(255,255,255,0.9); }
-.tree-row.current .tree-desc { color: var(--purple); }
-.tree-code { font-family: var(--font-mono); font-size: 11px; color: var(--gray-4); margin-top: 1px; }
-.tree-here { font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--purple); background: rgba(153,51,255,0.1); border: 1px solid rgba(153,51,255,0.25); padding: 2px 7px; border-radius: 100px; flex-shrink: 0; }
+/* Structure Details tree CSS — was a full local duplicate of the shared
+   tree component here (tree-wrap through tree-guide), predating the
+   2026-07-21 "Equipment LOV" convergence that promoted it to
+   eam-shared.css. Never cleaned up when that happened — same values, so
+   it silently just doubled up harmlessly until the palette pass changed
+   the shared version and this stale local copy (later in source order)
+   kept winning. Removed 2026-07-22, found via live testing, not the
+   original duplication sweep. Only .tree-indent-1/-2/-3 are still local
+   (no shared equivalent existed for those, unrelated to the palette). */
 .tree-indent-1 { margin-left: 20px; }
 .tree-indent-2 { margin-left: 40px; }
 .tree-indent-3 { margin-left: 60px; }
-.tree-guide { position: absolute; left: -14px; top: -8px; bottom: 24px; width: 14px; border-left: 2px solid var(--border-strong); border-bottom: 2px solid var(--border-strong); border-radius: 0 0 0 8px; }
 </style>
 </head>
 <body>
@@ -159,7 +149,6 @@
 
   <div class="tab-rail" id="tabRail">
     <div class="tab-rail-collapsed">
-      <span class="tab-rail-icon" id="tabRailIcon"></span>
       <div class="tab-rail-name" id="tabRailName">Record View</div>
       <svg class="tab-chevron" id="tabChevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
@@ -182,6 +171,23 @@
 
   <!-- ── SHEETS (shared component markup — behavior lives in eam-shared.js) ── -->
   <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <!-- Sync panel (§4.4.2) — opened from the sync icon in the header
+       above. Content rendered by openSyncPanel() in eam-shared.js
+       (shared markup, same shell every screen carries). Review navigates
+       to eam-sync-status-prototype-v1.html. Fixes a real crash: openSheet()
+       previously found no #syncPanelSheet on this screen at all. -->
+  <div class="bottom-sheet" id="syncPanelSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Sync Status</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sync-panel-state" id="syncPanelStateLabel"></div>
+    <div class="sheet-body" id="syncPanelList"></div>
+    <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
+  </div>
 
   <div class="bottom-sheet" id="lovSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
@@ -632,12 +638,18 @@ const TAB_PLUS_HANDLERS = {
    ═══════════════════════════════════════════════════════════════════════ */
 function navBack() {
   // Opened from the Sync Status Screen's review flow (§4.5, 2026-07-20)?
-  // Send the technician back there instead of the generic Equipment list
-  // stub — consume-once, same lifetime as eamSyncErrorContext.
+  // Send the technician back there instead of the Search List screen —
+  // consume-once, same lifetime as eamSyncErrorContext.
   const returnUrl = sessionStorage.getItem('eamSyncReturnUrl');
   if (returnUrl) { sessionStorage.removeItem('eamSyncReturnUrl'); location.href = returnUrl; return; }
   autosaveIfDirty();
-  showToast('← Back to Equipment list');
+  // Real navigation (2026-07-22, 2nd correction pass) — Record View's back
+  // ALWAYS returns to the entity's Search List screen (maintaining dataspy/
+  // filters — there's no real filter state yet to actually preserve, but
+  // the navigation target itself is the locked rule), never straight to
+  // Home. eam-equipment-list-prototype-v1.html is that screen for
+  // Equipment, same role eam-wo-list-prototype-v5_1.html plays for WO.
+  location.href = 'eam-equipment-list-prototype-v1.html';
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -745,7 +757,7 @@ function renderRecordViewTab() {
         ` : `
         <div class="form-field"><span class="field-label">MTBF</span><span class="field-value">4,200 hrs</span></div>
         <div class="form-field"><span class="field-label">MTTR</span><span class="field-value">3.5 hrs</span></div>
-        <div class="form-field"><span class="field-label">Availability</span><span class="field-value" style="color:var(--green);font-weight:700;">98.2%</span></div>
+        <div class="form-field"><span class="field-label">Availability</span><span class="field-value">98.2%</span></div>
         <div class="form-field"><span class="field-label">Last Failure Date</span><span class="field-value">May 19, 2026</span></div>
         `}
       </div>
@@ -822,7 +834,7 @@ function renderDeprTab() {
       <div class="form-field"><span class="field-label">Method</span><span class="field-value">Straight-line</span></div>
       <div class="form-field"><span class="field-label">Useful Life</span><span class="field-value">15 years</span></div>
       <div class="form-field"><span class="field-label">Salvage Value</span><span class="field-value">$5,000.00</span></div>
-      <div class="form-field"><span class="field-label">Current Book Value</span><span class="field-value" style="color:var(--green);font-weight:700;">$38,000.00</span></div>
+      <div class="form-field"><span class="field-label">Current Book Value</span><span class="field-value">$38,000.00</span></div>
     </div>`;
   return renderListDetailShell('depr', methodCard);
 }

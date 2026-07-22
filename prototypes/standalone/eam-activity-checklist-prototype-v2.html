@@ -101,14 +101,29 @@
 .stepper-head { position: sticky; top: 0; z-index: 5; padding: 10px 16px 8px; background: var(--bg-card); border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .stepper-head-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
 .stepper-head-left { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
-.stepper-group-name { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.stepper-group-name.g-safety { color: #854F0B; } .stepper-group-name.g-main { color: #6600CC; } .stepper-group-name.g-close { color: #007A0D; }
-[data-theme="dark"] .stepper-group-name.g-safety { color: #FAC775; } [data-theme="dark"] .stepper-group-name.g-main { color: #CC77FF; } [data-theme="dark"] .stepper-group-name.g-close { color: #5DCAA5; }
+/* Was a 3-way colored-text scheme per group (brown/purple/green for
+   Safety/Main/Closing) — raw hex never tied to var(--purple)/var(--orange),
+   so it survived every earlier purple/orange grep undetected. Found
+   2026-07-22 (user report: checklist progress bar area "outdated from
+   our new palette" — this label sits directly above the progress bar in
+   the same sticky header). A group name isn't one of the 3 colour
+   instruments any more than Type was elsewhere — plain ink now. */
+.stepper-group-name { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--octave-black); }
+[data-theme="dark"] .stepper-group-name { color: rgba(255,255,255,.9); }
 /* Plain muted text, not a pill/badge — a second competing pill here
    read as cluttered. Mono — a position/count, same family as every
    other count/number in the app. */
 .stepper-item-count { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--gray-4); white-space: nowrap; }
-.view-all-btn { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: var(--gray-4); background: var(--bg-section); border: 1px solid var(--border); border-radius: 100px; padding: 5px 11px; cursor: pointer; flex-shrink: 0; }
+/* "Buttered up" 2026-07-22 (user direction) — was a flat muted-gray pill
+   (gray-4 text, thin --border) that read as barely-there next to
+   everything else in this header; ink text + a stronger border/hover/
+   active give it real presence as a tappable control, matching the
+   weight-not-hue language the rest of the app uses for "this is a real
+   button, not decoration." */
+.view-all-btn { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: var(--octave-black); background: var(--bg-section); border: 1.5px solid var(--border-strong); border-radius: 100px; padding: 6px 13px; cursor: pointer; flex-shrink: 0; transition: background .15s, border-color .15s; }
+[data-theme="dark"] .view-all-btn { color: var(--white); }
+.view-all-btn:hover { background: var(--border-strong); }
+.view-all-btn:active { transform: scale(0.96); }
 .stepper-progress-bar { height: 4px; border-radius: 100px; background: var(--gray-1); overflow: hidden; }
 [data-theme="dark"] .stepper-progress-bar { background: var(--gray-5); }
 .stepper-progress-fill { height: 100%; background: var(--green); transition: width .3s; }
@@ -120,14 +135,20 @@
 [data-theme="dark"] .focus-label { color: var(--white); }
 /* Required — same shape/font as the org corner-badge pill (§8.3's
    .ld-card-org). Orange, beside the item description, not a "*". */
-.focus-req-tag { flex-shrink: 0; margin-top: 2px; display: inline-flex; align-items: center; font-family: var(--font-sans); font-size: 11px; font-weight: 600; color: var(--orange); background: rgba(244,102,0,.1); border: 1px solid rgba(244,102,0,.3); border-radius: 999px; padding: 4px 9px; }
+/* Was orange fill — required is red now (§23), and outlined not filled,
+   matching the required-count-badge's own locked treatment. */
+.focus-req-tag { flex-shrink: 0; margin-top: 2px; display: inline-flex; align-items: center; font-family: var(--font-sans); font-size: 11px; font-weight: 600; color: var(--red); background: none; border: 1px solid var(--red); border-radius: 999px; padding: 4px 9px; }
 /* Dynamic checklist items — an item's answer can insert new items right
    after it (syncDynamicChildren()). This tag marks a dynamically-added
    item's provenance; the hint marks the trigger item itself. Purple —
    this app's existing "linked/extra content" language. */
-.focus-dynamic-tag { display: flex; align-items: center; gap: 6px; margin: 0 16px 6px; font-size: 11px; font-weight: 600; color: var(--purple); }
+/* Was purple — this is an informational marker ("this item appeared
+   from a previous answer"), not one of the 3 color instruments (§23),
+   so ink, not a hue. */
+.focus-dynamic-tag { display: flex; align-items: center; gap: 6px; margin: 0 16px 6px; font-size: 11px; font-weight: 600; color: var(--octave-black); }
+[data-theme="dark"] .focus-dynamic-tag { color: var(--white); }
 .focus-dynamic-hint { display: flex; align-items: center; gap: 6px; margin: 8px 16px 0; font-size: 11.5px; color: var(--gray-4); }
-.focus-dynamic-tag svg, .focus-dynamic-hint svg { color: var(--purple); flex-shrink: 0; }
+.focus-dynamic-tag svg, .focus-dynamic-hint svg { color: var(--gray-4); flex-shrink: 0; }
 
 .focus-control { padding: 18px 16px; }
 .f-toggle { display: flex; flex-direction: column; gap: 10px; }
@@ -135,7 +156,13 @@
 [data-theme="dark"] .f-opt { border-color: var(--gray-5); color: var(--white); background: var(--bg-section); }
 .f-opt.sel-green  { background: var(--green);  border-color: var(--green);  color: #fff; }
 .f-opt.sel-red    { background: var(--red);    border-color: var(--red);    color: #fff; }
-.f-opt.sel-orange { background: var(--orange); border-color: var(--orange); color: #fff; }
+/* Renamed in meaning, not in class name (avoids touching every option
+   array/dotClass() mapping that references 'sel-orange'/'done-orange') —
+   "Minor"/"Adjusted" now share the exact same red as "Fail"/"Major"/
+   "Critical". Collapses a 3-tier green/orange/red severity scale to
+   2-tier green/red (§23 — orange is retired, and the option's own text
+   label already conveys the specific degree). */
+.f-opt.sel-orange { background: var(--red); border-color: var(--red); color: #fff; }
 .f-opt.sel-gray   { background: var(--gray-4); border-color: var(--gray-4); color: #fff; }
 
 .f-chk { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 22px 0; border-radius: 10px; border: 2px solid var(--gray-2); background: var(--bg-page); cursor: pointer; }
@@ -151,7 +178,8 @@
 .f-num-row { display: flex; align-items: center; gap: 12px; justify-content: center; }
 .f-num-in { width: 150px; background: var(--bg-page); border: 2px solid var(--gray-2); border-radius: 10px; padding: 16px 14px; font-size: 22px; font-weight: 700; color: var(--octave-black); font-family: var(--font-mono); text-align: center; outline: none; }
 [data-theme="dark"] .f-num-in { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
-.f-num-in:focus { border-color: var(--purple); }
+.f-num-in:focus { border-color: var(--octave-black); }
+[data-theme="dark"] .f-num-in:focus { border-color: var(--white); }
 /* Number fields — no native spinner arrows (design-decisions-v3-1.md §15). */
 .f-num-in::-webkit-outer-spin-button, .f-num-in::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .f-num-in { -moz-appearance: textfield; }
@@ -163,9 +191,12 @@
 /* Follow-up — full-width, deliberately loud, not one of several small
    competing pills. Create Follow-up WO is hidden entirely (not just
    disabled) until Follow-up is flagged, so it never reads as dead. */
-.followup-btn-lg { margin: 12px 12px 0; display: flex; align-items: center; justify-content: center; gap: 8px; width: calc(100% - 24px); padding: 13px 0; border-radius: 10px; border: 1.5px solid var(--orange); background: var(--bg-card); color: var(--orange); font-size: 14px; font-weight: 700; cursor: pointer; transition: all .15s; font-family: var(--font-sans); }
-.followup-btn-lg:hover { background: rgba(244,102,0,.08); }
-.followup-btn-lg.on { background: var(--orange); color: #fff; }
+/* Was orange — a flagged follow-up is a "needs attention" case, same
+   family as required/sync-error (§23: "red covers... both 'needs your
+   attention' states" — extended here to a 3rd case, same reasoning). */
+.followup-btn-lg { margin: 12px 12px 0; display: flex; align-items: center; justify-content: center; gap: 8px; width: calc(100% - 24px); padding: 13px 0; border-radius: 10px; border: 1.5px solid var(--red); background: var(--bg-card); color: var(--red); font-size: 14px; font-weight: 700; cursor: pointer; transition: all .15s; font-family: var(--font-sans); }
+.followup-btn-lg:hover { background: rgba(228,75,74,.08); }
+.followup-btn-lg.on { background: var(--red); color: #fff; }
 [data-theme="dark"] .followup-btn-lg { background: var(--bg-section); }
 .create-fu-wo-btn { margin: 10px 12px 0; width: calc(100% - 24px); animation: fuBtnIn .2s ease; }
 @keyframes fuBtnIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
@@ -185,7 +216,8 @@
 .prompt-bar { position: absolute; bottom: 0; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border); padding: 10px 16px 16px; flex-shrink: 0; z-index: 51; display: none; }
 [data-theme="dark"] .prompt-bar { background: var(--octave-black); }
 .prompt-bar.show { display: block; }
-.prompt-question { font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: var(--gray-4); text-align: center; margin-bottom: 8px; }
+.prompt-question { font-family: var(--font-sans); font-size: 16px; font-weight: 700; color: var(--octave-black); text-align: center; margin-bottom: 10px; }
+[data-theme="dark"] .prompt-question { color: var(--white); }
 .prompt-seg { display: flex; border-radius: 100px; overflow: hidden; border: 1px solid var(--border); }
 .prompt-seg-btn { flex: 1; height: 48px; border: none; font-size: 15px; font-weight: 700; cursor: pointer; font-family: var(--font-sans); background: var(--bg-section); color: var(--octave-black); }
 [data-theme="dark"] .prompt-seg-btn { background: var(--gray-5); color: var(--white); }
@@ -204,7 +236,7 @@
 .ov-group-hdr { padding: 7px 16px; font-size: 12px; font-weight: 700; color: var(--gray-4); background: var(--bg-section); }
 .ov-row { display: flex; align-items: center; gap: 10px; padding: 11px 16px; border-bottom: 1px solid var(--border); background: var(--bg-card); cursor: pointer; }
 .ov-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-2); flex-shrink: 0; }
-.ov-status-dot.green { background: var(--green); } .ov-status-dot.red { background: var(--red); } .ov-status-dot.orange { background: var(--orange); }
+.ov-status-dot.green { background: var(--green); } .ov-status-dot.red { background: var(--red); } .ov-status-dot.orange { background: var(--red); }
 .ov-label { flex: 1; font-size: 13.5px; font-weight: 500; color: var(--octave-black); }
 [data-theme="dark"] .ov-label { color: rgba(255,255,255,0.9); }
 .ov-close-btn { width: 30px; height: 30px; border-radius: 50%; background: var(--bg-section); border: none; display: flex; align-items: center; justify-content: center; color: var(--gray-4); cursor: pointer; }
@@ -214,7 +246,7 @@
    icon, italic, non-interactive) previews an as-yet-untriggered branch,
    and disappears once real items replace it. */
 .ov-row-indent { padding-left: 40px; background: var(--bg-page); }
-.ov-dynamic-icon, .ov-branch-cue, .ov-ghost-icon { display: flex; flex-shrink: 0; color: var(--purple); }
+.ov-dynamic-icon, .ov-branch-cue, .ov-ghost-icon { display: flex; flex-shrink: 0; color: var(--gray-4); }
 .ov-ghost-icon { color: var(--gray-4); }
 .ov-row-ghost { cursor: default; }
 .ov-label-ghost { font-style: italic; font-weight: 400; color: var(--gray-4); }
@@ -276,10 +308,11 @@
             <div class="rec-actions-item danger" onclick="recDeleteRecord()">Delete</div>
           </div>
           <div class="rec-actions-divider"></div>
+          <!-- Comments(3)/Documents(4) removed 2026-07-22 — superseded by
+               the step rail's "Reference" group (§14.8/§23), which does
+               the same job with a real jump-to instead of a toast stub. -->
           <div class="rec-actions-group" id="recActionsScreenSpecific">
             <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Printing work order — coming soon')">Print Work Order</div>
-            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Opening Comments — coming soon')">Comments (3)</div>
-            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Opening Documents — coming soon')">Documents (4)</div>
           </div>
         </div>
       </div>
@@ -327,7 +360,6 @@
       <div class="step-map-item"><div class="step-map-icon smi-locked">3</div><span class="step-map-label">Issue Parts</span></div>
       <div class="step-map-item"><div class="step-map-icon smi-locked">4</div><span class="step-map-label">Book Labor</span></div>
       <div class="step-map-item"><div class="step-map-icon smi-locked">5</div><span class="step-map-label">WO Closing</span></div>
-      <div class="step-map-footer">WO.WORKFLOW.01 - Corrective Maintenance Execution</div>
     </div>
   </div>
 
@@ -373,6 +405,23 @@
   <!-- ── Shared Comments/Documents sheets (§7.2) — reused verbatim from
        Equipment/WO Record View; behavior lives entirely in eam-shared.js. ── -->
   <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <!-- Sync panel (§4.4.2) — opened from the sync icon in the header
+       above. Content rendered by openSyncPanel() in eam-shared.js
+       (shared markup, same shell every screen carries). Review navigates
+       to eam-sync-status-prototype-v1.html. Fixes a real crash: openSheet()
+       previously found no #syncPanelSheet on this screen at all. -->
+  <div class="bottom-sheet" id="syncPanelSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Sync Status</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sync-panel-state" id="syncPanelStateLabel"></div>
+    <div class="sheet-body" id="syncPanelList"></div>
+    <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
+  </div>
 
   <div class="bottom-sheet text-editor-sheet" id="textEditorSheet">
     <div class="text-editor-header">
@@ -437,8 +486,10 @@
 /* ── screen-specific config/behavior — chrome (nav, header, step rail,
    confirm modal, toast, theme toggle) comes from eam-shared.js. ── */
 
+// Real navigation (2026-07-22 nav pass) — was a toast stub. This is a
+// workflow step, not a Record View, so back means the previous step.
 function navBack() {
-  showToast('← Back to WO Record View');
+  location.href = 'eam-wo-record-view-prototype-v1.html';
 }
 
 /* ─── TIMER — auto-started on WO Record View "Start Work"; keeps running
@@ -602,6 +653,13 @@ function renderFocus() {
     <div class="section-card"><div class="focus-control">${controlHtml(it)}</div></div>
     ${it.dynamicRules ? `<div class="focus-dynamic-hint">${BRANCH_ICON}<span>This response may add follow-up items to the checklist</span></div>` : ''}
 
+    <div class="section-card">
+      <div class="form-field stacked" data-field="itemNotes" onclick="this.querySelector('textarea').focus()">
+        <span class="field-label">Notes</span>
+        <textarea class="field-inline-input" id="fv-itemNotes" rows="1" maxlength="255" placeholder="Add a note…" oninput="updateInlineFieldLayout(this); setNote(this)" onfocus="onInlineFocus()" onblur="onInlineBlur(this)">${it.note}</textarea>
+      </div>
+    </div>
+
     <button class="followup-btn-lg ${it.followup?'on':''}" onclick="toggleFollowup()">
       <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 22V15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       ${it.followup ? 'Flagged for Follow-up' : 'Flag for Follow-up'}
@@ -611,13 +669,6 @@ function renderFocus() {
       <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
       Create Follow-up WO
     </button>` : ''}
-
-    <div class="section-card">
-      <div class="form-field" data-field="itemNotes" onclick="this.querySelector('textarea').focus()">
-        <span class="field-label">Notes</span>
-        <textarea class="field-inline-input" id="fv-itemNotes" rows="1" maxlength="255" placeholder="Add a note…" oninput="updateInlineFieldLayout(this); setNote(this)" onfocus="onInlineFocus()" onblur="onInlineBlur(this)">${it.note}</textarea>
-      </div>
-    </div>
 
     ${it.equipId ? `<div class="section-card">
       <div class="form-field protected" data-field="equipment">
@@ -656,6 +707,11 @@ function renderFocus() {
     <div style="height:16px;"></div>`;
 
   document.getElementById('focusWrap').innerHTML = html;
+  // Notes is always the tall/stacked shape now (§3.4) — pre-existing
+  // multi-line notes need their height set once on render, not just after
+  // the next keystroke, or a long note would render clipped until typed in.
+  const notesEl = document.getElementById('fv-itemNotes');
+  if (notesEl) autoGrow(notesEl);
 
   // Rebind the shared record-level Comments/Documents data to this item.
   COMMENTS_DATA = it.comments;
@@ -694,7 +750,7 @@ function updateFooter() {
 function renderPromptBar() {
   const includesIssueParts = !CURRENT_WORKFLOW || CURRENT_WORKFLOW.steps.includes('issueparts');
   document.getElementById('promptBar').innerHTML = includesIssueParts
-    ? `<div class="prompt-question">Did you need to issue parts?</div>
+    ? `<div class="prompt-question">Do you need to issue parts?</div>
        <div class="prompt-seg">
          <button class="prompt-seg-btn yes" onclick="promptAnswer(true)">Yes</button>
          <div class="prompt-seg-divider"></div>
@@ -733,7 +789,7 @@ function openOverview() {
       ${it.dynamic ? `<span class="ov-dynamic-icon" title="Added dynamically">${BRANCH_ICON}</span>` : ''}
       <span class="ov-status-dot ${dotClass(it).replace('done-','')}"></span>
       <span class="ov-label">${idx+1} — ${it.label}</span>
-      ${it.required ? '<span style="color:var(--orange);font-weight:700;font-size:12px;">*</span>' : ''}
+      ${it.required ? '<span style="color:var(--red);font-weight:700;font-size:12px;">*</span>' : ''}
       ${it.dynamicRules ? `<span class="ov-branch-cue" title="May add follow-up items">${BRANCH_ICON}</span>` : ''}
     </div>`;
     // Ghost placeholder — previews an as-yet-untriggered branch. Only

@@ -53,26 +53,17 @@
 #lovOverlay { z-index: 210; }
 #lovSheet { z-index: 211; }
 
-.store-selector {
-  display: flex; align-items: center; gap: 5px;
-  background: var(--bg-section);
-  border: 1.5px solid var(--border-strong);
-  border-radius: 100px;
-  padding: 5px 10px 5px 8px;
-  cursor: pointer;
-  transition: all 0.15s;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--octave-black);
-  white-space: nowrap;
-}
-[data-theme="dark"] .store-selector { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
-.store-selector:hover { border-color: var(--purple); color: var(--purple); }
-.store-selector svg:first-child { color: var(--purple); }
+/* Base pill styling (background/border/font/etc.) now lives in
+   eam-shared.css's shared "SELECTOR PILL" block (Phase 2b, 2026-07-22) —
+   this file just keeps its own protected/scoped variants below. */
 /* Protected variant — Return sheet (§17.8): store can't change on a
-   return, same pill component, lock icon instead of chevron, no hover. */
-.store-selector.protected { cursor: default; opacity: 0.75; }
+   return, same pill component, lock icon instead of chevron, no hover.
+   Explicitly restores the pre-fill outline look (2026-07-22 pill-colour
+   pass gave the base .store-selector a solid ink fill for editable —
+   protected pills were directly excluded from that, so this now spells
+   out the original colors instead of just dimming the new fill). */
+.store-selector.protected { cursor: default; opacity: 0.75; background: var(--bg-section); border-color: var(--border-strong); color: var(--octave-black); }
+[data-theme="dark"] .store-selector.protected { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
 .store-selector.protected:hover { border-color: var(--border-strong); color: var(--octave-black); }
 [data-theme="dark"] .store-selector.protected:hover { color: var(--white); }
 
@@ -101,16 +92,17 @@
 /* ─── PARTS SUMMARY BAR ──────────────────────────────────────────────────  */
 .parts-summary {
   margin: 0 12px 12px;
-  background: rgba(153,51,255,0.07);
-  border: 1px solid rgba(153,51,255,0.18);
+  background: var(--bg-section);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 14px;
   display: flex; align-items: center; gap: 10px;
 }
 .summary-stat { display: flex; flex-direction: column; align-items: center; flex: 1; }
-.summary-stat-val { font-family: var(--font-mono); font-size: 22px; font-weight: 700; color: var(--purple); line-height: 1.1; }
+.summary-stat-val { font-family: var(--font-mono); font-size: 22px; font-weight: 700; color: var(--octave-black); line-height: 1.1; }
+[data-theme="dark"] .summary-stat-val { color: var(--white); }
 .summary-stat-label { font-size: 11px; color: var(--gray-4); font-weight: 500; margin-top: 1px; }
-.summary-divider { width: 1px; height: 32px; background: rgba(153,51,255,0.2); }
+.summary-divider { width: 1px; height: 32px; background: var(--border-strong); }
 .issued-val { color: var(--green) !important; }
 
 /* ─── SECTION LABEL ──────────────────────────────────────────────────────  */
@@ -130,15 +122,20 @@
 .part-status-bar.issued { background: var(--green); }
 
 .part-main { flex: 1; min-width: 0; }
-.part-number { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--purple); margin-bottom: 2px; }
+.part-number { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--octave-black); margin-bottom: 2px; }
+[data-theme="dark"] .part-number { color: var(--white); }
 .part-desc { font-size: 14px; font-weight: 600; color: var(--octave-black); margin-bottom: 4px; line-height: 1.3; }
 [data-theme="dark"] .part-desc { color: var(--white); }
 .part-meta-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .part-meta { font-family: var(--font-mono); font-size: 11px; color: var(--gray-4); display: flex; align-items: center; gap: 3px; }
 .part-meta-label { color: var(--gray-3); }
 .qty-badge { font-family: var(--font-mono); font-size: 12px; font-weight: 700; padding: 2px 7px; border-radius: 100px; flex-shrink: 0; }
-.qty-badge-planned { background: rgba(153,51,255,0.1); color: var(--purple); }
-.qty-badge-issued  { background: rgba(0,170,20,0.12); color: var(--green); }
+.qty-badge-planned { background: none; border: 1px solid var(--border-strong); color: var(--octave-black); }
+[data-theme="dark"] .qty-badge-planned { color: var(--white); }
+/* .qty-badge-issued tint now lives in eam-shared.css's shared block
+   (Phase 2b, 2026-07-22) — was the same green-tint recipe as Book
+   Labor's .badge-green, just at a slightly different opacity (.12 vs
+   .1); unified on the shared value. */
 
 .part-card-footer { padding: 0 12px 10px 25px; display: flex; gap: 8px; align-items: center; }
 /* Tertiary action pill (§17.14) */
@@ -158,13 +155,14 @@
 /* ─── QTY INPUT ROW (stepper — distinct from the Standard Model's plain
    numeric field, §17.10) ──────────────────────────────────────────────── */
 .qty-row { display: flex; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--border); gap: 10px; position: relative; min-height: 46px; }
-.qty-row.required::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 100px 100px 0; background: var(--orange); }
+.qty-row.required::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 100px 100px 0; background: var(--red); }
 .qty-label { font-size: 13px; color: var(--gray-4); flex: 1; }
 .qty-stepper { display: flex; align-items: center; gap: 0; background: var(--bg-section); border-radius: 8px; border: 1.5px solid var(--border-strong); overflow: hidden; }
 [data-theme="dark"] .qty-stepper { border-color: var(--gray-5); background: var(--bg-section); }
-.qty-step-btn { width: 36px; height: 36px; border: none; background: none; font-size: 18px; font-weight: 700; color: var(--purple); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; }
-.qty-step-btn:hover { background: rgba(153,51,255,0.1); }
-.qty-step-btn:active { background: rgba(153,51,255,0.2); }
+.qty-step-btn { width: 36px; height: 36px; border: none; background: none; font-size: 18px; font-weight: 700; color: var(--octave-black); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; }
+[data-theme="dark"] .qty-step-btn { color: var(--white); }
+.qty-step-btn:hover { background: var(--bg-section); }
+.qty-step-btn:active { background: var(--border-strong); }
 .qty-val { font-family: var(--font-mono); font-size: 15px; font-weight: 700; color: var(--octave-black); width: 44px; text-align: center; }
 [data-theme="dark"] .qty-val { color: var(--white); }
 .qty-uom { font-family: var(--font-mono); font-size: 11px; color: var(--gray-4); margin-left: 2px; }
@@ -187,8 +185,9 @@
   transition: background 0.15s;
 }
 [data-theme="dark"] .part-search-block { background: rgba(255,255,255,0.03); }
-.part-search-block:hover { background: rgba(153,51,255,0.06); }
-.part-search-icon { width: 40px; height: 40px; border-radius: 50%; background: rgba(153,51,255,0.1); border: 1.5px solid rgba(153,51,255,0.25); display: flex; align-items: center; justify-content: center; color: var(--purple); }
+.part-search-block:hover { background: var(--bg-section); }
+.part-search-icon { width: 40px; height: 40px; border-radius: 50%; background: none; border: 1.5px solid var(--border-strong); display: flex; align-items: center; justify-content: center; color: var(--octave-black); }
+[data-theme="dark"] .part-search-icon { color: var(--white); }
 .part-search-label { font-size: 14px; font-weight: 700; color: var(--octave-black); }
 [data-theme="dark"] .part-search-label { color: var(--white); }
 .part-search-hint { font-size: 12px; color: var(--gray-4); font-family: var(--font-mono); text-align: center; padding: 0 16px 10px; }
@@ -209,8 +208,9 @@
 
 /* Part detail header in sheet — replaces the Part LOV row, not shown twice
    (§17.8/§17.9). No shared equivalent. */
-.sheet-part-header { background: rgba(153,51,255,0.06); border-bottom: 1px solid rgba(153,51,255,0.15); padding: 12px 16px; }
-.sheet-part-num { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--purple); margin-bottom: 3px; }
+.sheet-part-header { background: var(--bg-section); border-bottom: 1px solid var(--border); padding: 12px 16px; }
+.sheet-part-num { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--octave-black); margin-bottom: 3px; }
+[data-theme="dark"] .sheet-part-num { color: var(--white); }
 .sheet-part-desc { font-size: 15px; font-weight: 700; color: var(--octave-black); line-height: 1.3; }
 [data-theme="dark"] .sheet-part-desc { color: var(--white); }
 
@@ -255,6 +255,26 @@
 [data-theme="dark"] .confirm-row-qty { color: var(--white); }
 .confirm-warning-title { display: block; font-size: 13px; font-weight: 700; color: var(--octave-black); margin-bottom: 2px; }
 [data-theme="dark"] .confirm-warning-title { color: var(--white); }
+/* Added 2026-07-22, palette pass — this whole confirm-sheet row used to
+   be built from inline styles with color:var(--octave-black)/var(--purple)
+   baked in, which (a) was colored mono (purple part number/qty buttons,
+   the exact anti-pattern §23 retires) and (b) being inline, silently beat
+   .confirm-row-qty's own dark-mode override above — the qty number was
+   actually unreadable (dark-on-dark) in dark mode before this. Real bug,
+   not just a palette tweak. */
+.confirm-part-num { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--octave-black); margin-bottom: 2px; }
+[data-theme="dark"] .confirm-part-num { color: var(--white); }
+.confirm-qty-btn { width: 32px; height: 34px; border: none; background: none; font-size: 17px; font-weight: 700; color: var(--octave-black); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .1s; }
+[data-theme="dark"] .confirm-qty-btn { color: var(--white); }
+.confirm-qty-btn:hover { background: var(--bg-card); }
+[data-theme="dark"] .confirm-qty-btn:hover { background: rgba(255,255,255,.08); }
+/* Was a purple flash on change — ink instead (§23: emphasis is weight,
+   not a hue), and a class toggle instead of inline style so it actually
+   respects the current theme (an inline color set from JS can't). */
+.qty-flash { color: var(--octave-black) !important; }
+[data-theme="dark"] .qty-flash { color: var(--white) !important; }
+.confirm-warning-box { background: rgba(228,75,74,0.07); border: 1px solid rgba(228,75,74,0.2); border-radius: 8px; padding: 10px 12px; margin: 12px 0 4px; display: flex; align-items: flex-start; gap: 8px; }
+.confirm-warning-icon { flex-shrink: 0; margin-top: 1px; color: var(--red); }
 [data-theme="dark"] .confirm-stepper { border-color: var(--gray-5) !important; background: var(--bg-section) !important; }
 </style>
 </head>
@@ -295,7 +315,8 @@
   <!-- ── DETAIL HEADER (§8.1) — protected identity + ellipsis, no status,
        no pin, no Plus (this step already has Add Parts/Quick Issue All as
        its own add-affordance). Screen-specific ellipsis slot carries Print
-       Work Order + Comments/Documents (§14.8 — reachable from any step). ── -->
+       Work Order only — Comments/Documents moved to the step rail's
+       Reference group, §14.8/§23, 2026-07-22. ── -->
   <div class="rec-header" id="recHeader" onclick="scrollFormToTop()">
     <div class="rec-id-row">
       <div class="rec-id-text">
@@ -316,10 +337,10 @@
             <div class="rec-actions-item danger" onclick="recDeleteRecord()">Delete</div>
           </div>
           <div class="rec-actions-divider"></div>
+          <!-- Comments(3)/Documents(4) removed 2026-07-22 — superseded by
+               the step rail's "Reference" group (§14.8/§23). -->
           <div class="rec-actions-group" id="recActionsScreenSpecific">
             <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Printing work order — coming soon')">Print Work Order</div>
-            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Opening Comments — coming soon')">Comments (3)</div>
-            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Opening Documents — coming soon')">Documents (4)</div>
           </div>
         </div>
       </div>
@@ -366,7 +387,6 @@
       <div class="step-map-item active"><div class="step-map-icon smi-active">3</div><span class="step-map-label active-label">Issue Parts</span></div>
       <div class="step-map-item"><div class="step-map-icon smi-locked">4</div><span class="step-map-label">Book Labor</span></div>
       <div class="step-map-item"><div class="step-map-icon smi-locked">5</div><span class="step-map-label">WO Closing</span></div>
-      <div class="step-map-footer">WO.WORKFLOW.01 - Corrective Maintenance Execution</div>
     </div>
   </div>
 
@@ -377,9 +397,8 @@
     <div class="screen-header">
       <div class="screen-title">Issue Parts</div>
       <button class="store-selector" id="storeSelectorBtn" onclick="openLovField('store')">
-        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 22V12h6v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span id="activeStore">IND-MAIN</span>
-        <svg width="11" height="11" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;color:var(--gray-4)"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg width="11" height="11" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;color:currentColor;opacity:.75;"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     </div>
 
@@ -425,7 +444,7 @@
           </div>
         </div>
         <div class="part-card-footer">
-          <button class="row-action-btn" data-part="1" onclick="openSheet(1)">
+          <button class="row-action-btn" data-part="1" onclick="openIssueSheet(1)">
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
             Quick Issue/Return
           </button>
@@ -450,7 +469,7 @@
           </div>
         </div>
         <div class="part-card-footer">
-          <button class="row-action-btn" data-part="2" onclick="openSheet(2)">
+          <button class="row-action-btn" data-part="2" onclick="openIssueSheet(2)">
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
             Quick Issue/Return
           </button>
@@ -475,7 +494,7 @@
           </div>
         </div>
         <div class="part-card-footer">
-          <button class="row-action-btn" data-part="3" onclick="openSheet(3)">
+          <button class="row-action-btn" data-part="3" onclick="openIssueSheet(3)">
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
             Quick Issue/Return
           </button>
@@ -500,7 +519,7 @@
           </div>
         </div>
         <div class="part-card-footer">
-          <button class="row-action-btn" data-part="4" onclick="openSheet(4)">
+          <button class="row-action-btn" data-part="4" onclick="openIssueSheet(4)">
             <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
             Quick Issue/Return
           </button>
@@ -537,7 +556,6 @@
        are gated on it, §18.7) — same sessionStorage pattern as
        navigateToNewRecord()'s Insert Mode hand-off. -->
   <div class="bottom-bar">
-    <span class="bar-meta">Auto-ready</span>
     <button class="bar-pill bar-pill-ready" id="nextBtn" onclick="sessionStorage.setItem('eamArrivedViaNextStep','true'); window.location.href='eam-book-labor-prototype-v2.html';">
       <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Next: Book Labor
@@ -546,6 +564,26 @@
 
   <!-- ── SHEET OVERLAY ───────────────────────────────────────────────── -->
   <div class="sheet-overlay" id="sheetOverlay" onclick="closeAnySheet()"></div>
+
+  <!-- Sync panel (§4.4.2) — opened from the sync icon in the header
+       above. Content rendered by openSyncPanel() in eam-shared.js
+       (shared markup, same shell every screen carries). Review navigates
+       to eam-sync-status-prototype-v1.html. Fixes a real crash: this
+       screen's own local openSheet(partId) used to shadow the shared
+       openSheet(id), so opening the sync panel called this screen's part-
+       issue logic instead — renamed to openIssueSheet() to stop the
+       collision, and #syncPanelSheet itself was also missing. -->
+  <div class="bottom-sheet" id="syncPanelSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Sync Status</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sync-panel-state" id="syncPanelStateLabel"></div>
+    <div class="sheet-body" id="syncPanelList"></div>
+    <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
+  </div>
 
   <!-- ── ISSUE/RETURN SHEET (§17.8/§17.9) ─────────────────────────────── -->
   <div class="bottom-sheet" id="issueSheet">
@@ -655,8 +693,10 @@
 /* ── screen-specific config/behavior — chrome (nav, header, step rail,
    confirm modal, toast, theme toggle) comes from eam-shared.js. ── */
 
+// Real navigation (2026-07-22 nav pass) — was a toast stub. This is a
+// workflow step, not a Record View, so back means the previous step.
 function navBack() {
-  showToast('← Back to Activity Checklist');
+  location.href = 'eam-activity-checklist-prototype-v2.html';
 }
 
 // ─── TIMER — keeps running through Steps 2-4 (§6.2, §12.2). Engine
@@ -741,7 +781,7 @@ function setSegActive(mode) {
   document.getElementById('segReturn').className = mode === secondMode ? 'seg-btn active-alt' : 'seg-btn';
 }
 
-function openSheet(partId) {
+function openIssueSheet(partId) {
   currentPartId = partId;
   currentMode = 'ISSUE';
   adHocSelectedPartId = null;
@@ -775,6 +815,10 @@ function closeAnySheet() {
 function closeSheet() {
   document.getElementById('sheetOverlay').classList.remove('open');
   document.getElementById('issueSheet').classList.remove('open');
+  // Also close the sync panel (shared markup, opened via the shared
+  // openSheet()) — this screen's overlay-tap-to-dismiss was local-only
+  // and never touched it, which would've left it visually stuck open.
+  document.getElementById('syncPanelSheet')?.classList.remove('open');
   currentPartId = null;
 }
 
@@ -795,12 +839,11 @@ function setMode(mode) {
 // on Return — the store a part is being returned to isn't a free choice,
 // it's wherever it was issued from.
 function renderStorePill(protectedStore) {
-  const building = `<svg width="12" height="12" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 22V12h6v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-  const chev = `<svg width="11" height="11" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;color:var(--gray-4)"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const chev = `<svg width="11" height="11" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;color:currentColor;opacity:.75;"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   const lock = `<svg width="11" height="11" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
   const pill = protectedStore
-    ? `<div class="store-selector protected">${building}<span>${activeStoreCode}</span>${lock}</div>`
-    : `<button class="store-selector" onclick="openLovField('store')">${building}<span>${activeStoreCode}</span>${chev}</button>`;
+    ? `<div class="store-selector protected"><span>${activeStoreCode}</span>${lock}</div>`
+    : `<button class="store-selector" onclick="openLovField('store')"><span>${activeStoreCode}</span>${chev}</button>`;
   return `<div class="sheet-store-row"><span class="field-label">Store</span>${pill}</div>`;
 }
 
@@ -1192,7 +1235,7 @@ function markPartIssued(id, qty, uom) {
   bar.classList.add('issued');
   btn.classList.add('success');
   btn.innerHTML = `<svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Issued · Return?`;
-  btn.onclick = () => { openSheet(id); setMode('RETURN'); };
+  btn.onclick = () => { openIssueSheet(id); setMode('RETURN'); };
   badge.className = 'qty-badge qty-badge-issued';
   badge.textContent = `${qty} ${uom} ✓`;
 }
@@ -1208,7 +1251,7 @@ function unmarkPart(id) {
   bar.classList.remove('issued');
   btn.classList.remove('success');
   btn.innerHTML = `<svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg> Quick Issue/Return`;
-  btn.onclick = () => openSheet(id);
+  btn.onclick = () => openIssueSheet(id);
   badge.className = 'qty-badge qty-badge-planned';
   badge.textContent = `${p.qty} ${p.uom}`;
   txnQty[id] = p.qty;
@@ -1230,28 +1273,22 @@ function confirmQuickIssueAll() {
     return `
       <div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border);">
         <div style="flex:1;min-width:0;">
-          <div style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--purple);margin-bottom:2px;">${p.num}</div>
+          <div class="confirm-part-num">${p.num}</div>
           <div class="confirm-row-desc">${p.desc}</div>
           <div style="font-size:12px;color:var(--gray-4);font-family:var(--font-mono);margin-top:2px;">Bin ${p.bin} · ${p.avail} ${p.uom} avail.</div>
         </div>
         <div style="display:flex;align-items:center;gap:0;background:var(--bg-section);border-radius:8px;border:1.5px solid var(--border-strong);overflow:hidden;flex-shrink:0;" class="confirm-stepper">
-          <button
-            onclick="adjustConfirmQty(${id},-1)"
-            style="width:32px;height:34px;border:none;background:none;font-size:17px;font-weight:700;color:var(--purple);cursor:pointer;display:flex;align-items:center;justify-content:center;"
-            onmouseenter="this.style.background='rgba(153,51,255,0.1)'" onmouseleave="this.style.background='none'">−</button>
-          <span id="cqty_${id}" style="font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--octave-black);width:36px;text-align:center;" class="confirm-row-qty">${qty}</span>
-          <button
-            onclick="adjustConfirmQty(${id},1)"
-            style="width:32px;height:34px;border:none;background:none;font-size:17px;font-weight:700;color:var(--purple);cursor:pointer;display:flex;align-items:center;justify-content:center;"
-            onmouseenter="this.style.background='rgba(153,51,255,0.1)'" onmouseleave="this.style.background='none'">+</button>
+          <button onclick="adjustConfirmQty(${id},-1)" class="confirm-qty-btn">−</button>
+          <span id="cqty_${id}" style="font-family:var(--font-mono);font-size:14px;font-weight:700;width:36px;text-align:center;" class="confirm-row-qty">${qty}</span>
+          <button onclick="adjustConfirmQty(${id},1)" class="confirm-qty-btn">+</button>
         </div>
         <div style="font-family:var(--font-mono);font-size:12px;color:var(--gray-4);width:22px;flex-shrink:0;">${p.uom}</div>
       </div>`;
   }).join('');
 
   document.getElementById('confirmBody').innerHTML = `
-    <div style="background:rgba(244,102,0,0.07);border:1px solid rgba(244,102,0,0.2);border-radius:8px;padding:10px 12px;margin:12px 0 4px;display:flex;align-items:flex-start;gap:8px;">
-      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#F46600" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div class="confirm-warning-box">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" class="confirm-warning-icon"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <div style="font-size:13px;color:var(--gray-4);line-height:1.45;">
         <strong class="confirm-warning-title">Verify quantities before issuing</strong>
         Adjust any quantity if needed, then tap Issue All to confirm.
@@ -1271,9 +1308,8 @@ function adjustConfirmQty(id, delta) {
   const el = document.getElementById('cqty_' + id);
   if (el) {
     el.textContent = confirmQty[id];
-    // Flash purple briefly to signal change
-    el.style.color = 'var(--purple)';
-    setTimeout(() => { el.style.color = ''; }, 400);
+    el.classList.add('qty-flash');
+    setTimeout(() => el.classList.remove('qty-flash'), 400);
   }
 }
 

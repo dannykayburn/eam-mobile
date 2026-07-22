@@ -27,7 +27,7 @@
 <div class="app" id="app">
   <header class="nav" onclick="scrollFormToTop()">
     <div class="nav-left">
-      <button class="nav-back" onclick="event.stopPropagation()"><svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button class="nav-back" onclick="event.stopPropagation();navBack()"><svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       <span class="prototype-label">PROTOTYPE</span>
     </div>
     <div class="nav-title">Sample Standard Screen</div>
@@ -127,7 +127,6 @@
 
   <div class="tab-rail" id="tabRail">
     <div class="tab-rail-collapsed">
-      <span class="tab-rail-icon" id="tabRailIcon"></span>
       <div class="tab-rail-name" id="tabRailName">Record View</div>
       <svg class="tab-chevron" id="tabChevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
@@ -147,14 +146,14 @@
         <div class="attr-item required" data-field="type" onclick="openLov('type')">
           <span class="attr-label">Type</span>
           <div class="attr-value">
-            <span class="attr-badge" id="fv-type-badge" style="background:#00AA14"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg></span>
+            <span class="attr-badge attr-badge-outline" id="fv-type-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg></span>
             <span class="attr-text" id="fv-type-desc">Preventive Maintenance</span>
           </div>
         </div>
         <div class="attr-item" data-field="priority" onclick="openLov('priority')">
           <span class="attr-label">Priority</span>
           <div class="attr-value">
-            <span class="attr-badge" id="fv-priority-badge" style="background:#F46600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg></span>
+            <span class="attr-badge attr-badge-outline" id="fv-priority-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg></span>
             <span class="attr-text" id="fv-priority-desc">Medium</span>
           </div>
         </div>
@@ -166,7 +165,7 @@
         </div>
       </div>
       <div class="caption"><b>Header Fields / Non-nullable Fields (revised 2026-07-16):</b> holds fields the standard model surfaces prominently, not just a fixed Type/Priority pair — badge-style (Type/Priority) and plain-LOV-style (Department, added here to illustrate) fields both belong here. 2-per-row grid; an odd field out spans the full width of the row below, rather than leaving an empty cell (see Department above). No section title on this container — the fields just sit directly in the card. Plain-LOV items show description only, no code — Organization moved into the header above (opposite the status button, justified/sized to balance it, collapses with it on scroll) and is out of scope here. Real precedence/membership comes from Screen Designer per record type; this file demonstrates the layout rule with 3 example fields. <b>WO Record View exception, not shown here:</b> the Equipment field is its own large standalone container above this grid, not one of the 2-per-row cells — the other header fields stay consistent with this standard below it.</div>
-      <div class="caption"><b>Required marker (revised 2026-07-16):</b> membership in this box no longer implies required — whether a given field is required is the same per-field standard-model setting as anywhere else, so a required field here gets the identical orange left-bar a <code>.form-field.required</code> row gets, just on this cell instead. Type and Department are required in this demo (two markers); Priority isn't.</div>
+      <div class="caption"><b>Required marker (revised 2026-07-16):</b> membership in this box no longer implies required — whether a given field is required is the same per-field standard-model setting as anywhere else, so a required field here gets the identical red left-bar a <code>.form-field.required</code> row gets, just on this cell instead. Type and Department are required in this demo (two markers); Priority isn't.</div>
     </div>
 
     <div class="section-card">
@@ -188,11 +187,11 @@
 
     <div class="section-card">
       <div class="section-card-header"><span class="section-card-title">Text, number, currency, date, time</span></div>
-      <div class="form-field" data-field="udf01" onclick="this.querySelector('textarea').focus()">
+      <div class="form-field stacked" data-field="udf01" onclick="this.querySelector('textarea').focus()">
         <span class="field-label">User Defined Field 01</span>
         <textarea class="field-inline-input" id="fv-udf01" rows="1" maxlength="255" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus(this)" onblur="onInlineBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"></textarea>
       </div>
-      <div class="caption"><b>Inline text (≤255 chars):</b> tap directly into the row and edit right there — no popup at all. A floating blue checkmark appears above the keyboard; tapping it (or Enter, or tapping away) commits the value and marks the form dirty. Wraps to as many lines as needed to show the full value (bug fix 2026-07-16 — was a single-line input that clipped/lost text past one line; try pasting a long 255-char value with mixed word lengths and spacing to confirm it all stays visible). This supersedes the single-line edit sheet for plain text — the sheet is still used for currency/number below, just not for text.</div>
+      <div class="caption"><b>Inline text (≤255 chars):</b> tap directly into the row and edit right there — no popup at all. Label sits on its own line, cursor starts left-aligned underneath it (not right-justified mid-line), and the value spans the full row width, wrapping to as many lines as needed — this is the field's permanent shape (2026-07-23 — was conditional, only going tall once text passed 24 characters; now always this taller shape from the start). A floating green checkmark appears above the keyboard; tapping it (or Enter, or tapping away) commits the value and marks the form dirty. This is the standard for any standalone free-text field NOT inside a collapsible container (Activity Notes, Checklist Notes, Insert Mode Description, this UDF01) — a same-shaped field that ever ends up inside a real collapsible container, or an actual multi-line textarea like Comments/Closing Comments, is a different case and keeps its own shape. This supersedes the single-line edit sheet for plain text — the sheet is still used for currency/number below, just not for text.</div>
 
       <div class="form-field" data-field="equipmentValue" onclick="openEdit('equipmentValue','Equipment Value','currency')">
         <span class="field-label">Equipment Value</span>
@@ -219,7 +218,7 @@
         <span class="field-chevron">›</span>
       </div>
       <div class="caption"><b>Date:</b> always the custom calendar sheet (month grid, today ring, selected-day fill) — never the native <code>&lt;input type=date&gt;</code>. Commission Date is required (no Clear); User Defined Date 01 is not (Clear shown).</div>
-      <div class="caption"><b>Container required-field-count badge (added 2026-07-16):</b> a section-card or field-group whose header still has an unfilled required field inside shows a small orange count badge there — e.g. this card's header would show "1" if Commission Date were empty. Recounts on every field change and disappears entirely once every required field inside is populated; not visible right now since Commission Date already has a value.</div>
+      <div class="caption"><b>Container required-field-count badge (added 2026-07-16):</b> a section-card or field-group whose header still has an unfilled required field inside shows a small red-outlined count badge there — e.g. this card's header would show "1" if Commission Date were empty. Recounts on every field change and disappears entirely once every required field inside is populated; not visible right now since Commission Date already has a value.</div>
 
       <div class="form-field" data-field="lastServiceDateTime" onclick="openDateTime('lastServiceDateTime','Last Service Date/Time')">
         <span class="field-label">Last Service Date/Time</span>
@@ -249,7 +248,7 @@
         <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </div>
       <div class="caption"><b>Protected:</b> gray-tinted row, muted value, lock icon instead of chevron, not tappable. Used for system-derived or inherited fields the user can't change from this screen.</div>
-      <div class="caption"><b>Required (overlay rule, not a separate type):</b> orange left-bar, combines with any field type above — see Commission Date in the section above for a live example.</div>
+      <div class="caption"><b>Required (overlay rule, not a separate type):</b> red left-bar, combines with any field type above — see Commission Date in the section above for a live example.</div>
     </div>
 
     <div class="section-card">
@@ -313,6 +312,23 @@
   <!-- ── SHEETS (shared component markup — behavior lives in eam-shared.js) ── -->
   <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
 
+  <!-- Sync panel (§4.4.2) — opened from the sync icon in the header
+       above. Content rendered by openSyncPanel() in eam-shared.js
+       (shared markup, same shell every screen carries). Review navigates
+       to eam-sync-status-prototype-v1.html. Fixes a real crash: openSheet()
+       previously found no #syncPanelSheet on this screen at all. -->
+  <div class="bottom-sheet" id="syncPanelSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Sync Status</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sync-panel-state" id="syncPanelStateLabel"></div>
+    <div class="sheet-body" id="syncPanelList"></div>
+    <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
+  </div>
+
   <div class="bottom-sheet" id="lovSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
@@ -356,14 +372,14 @@
         <div class="attr-item" data-field="insertType" onclick="openLov('insertType')">
           <span class="attr-label">Type</span>
           <div class="attr-value">
-            <span class="attr-badge" id="fv-insertType-badge" style="background:#F46600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span>
+            <span class="attr-badge attr-badge-outline" id="fv-insertType-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span>
             <span class="attr-text" id="fv-insertType-desc">Corrective Maintenance</span>
           </div>
         </div>
         <div class="attr-item" data-field="insertStatus" onclick="openLov('insertStatus')">
           <span class="attr-label">Status</span>
           <div class="attr-value">
-            <span class="attr-badge" id="fv-insertStatus-badge" style="background:#00AA14"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg></span>
+            <span class="attr-badge attr-badge-outline" id="fv-insertStatus-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg></span>
             <span class="attr-text" id="fv-insertStatus-desc">Operational</span>
           </div>
         </div>
@@ -542,9 +558,9 @@ const LIST_DETAIL_TABS = {
     dataspies: [ { key: 'all', name: 'All Records' } ],
     fieldDefs: [ {key:'status',label:'Status'}, {key:'title',label:'Title'}, {key:'note',label:'Note'}, {key:'org',label:'Organization'} ],
     rows: [
-      { ds: ['all'], fields: [ {label:'Status', value:'Ready',   type:'status', color:'var(--green)'},  {label:'Title', value:'Sample Record 101'}, {label:'Note', value:'A tab with a single dataspy — the ds-bar still works, just with one option'}, {label:'Organization', value:'FBPP', type:'org'} ] },
-      { ds: ['all'], fields: [ {label:'Status', value:'Pending', type:'status', color:'var(--orange)'}, {label:'Title', value:'Sample Record 102'}, {label:'Note', value:'Second row, single dataspy'},                                                    {label:'Organization', value:'FBPP', type:'org'} ] },
-      { ds: ['all'], fields: [ {label:'Status', value:'Ready',   type:'status', color:'var(--green)'},  {label:'Title', value:'Sample Record 103'}, {label:'Note', value:'Third row, single dataspy — a different Organization than the rows above'},   {label:'Organization', value:'ORG2', type:'org'} ] },
+      { ds: ['all'], fields: [ {label:'Status', value:'Ready',   type:'status', tier:'green'},   {label:'Title', value:'Sample Record 101'}, {label:'Note', value:'A tab with a single dataspy — the ds-bar still works, just with one option'}, {label:'Organization', value:'FBPP', type:'org'} ] },
+      { ds: ['all'], fields: [ {label:'Status', value:'Pending', type:'status', tier:'outline'}, {label:'Title', value:'Sample Record 102'}, {label:'Note', value:'Second row, single dataspy'},                                                    {label:'Organization', value:'FBPP', type:'org'} ] },
+      { ds: ['all'], fields: [ {label:'Status', value:'Ready',   type:'status', tier:'green'},   {label:'Title', value:'Sample Record 103'}, {label:'Note', value:'Third row, single dataspy — a different Organization than the rows above'},   {label:'Organization', value:'ORG2', type:'org'} ] },
     ],
   },
   // Sample List C — a type-like (coloured-text, not pill) field, plain
@@ -639,24 +655,32 @@ const NO_SEARCH_LOVS = new Set(['__status', 'type', 'priority', 'insertType', 'i
 // design / Screen Designer), marked via the ordinary 'required' class on
 // the attr-item instead (Type below; Priority isn't required in this demo).
 const ALWAYS_REQUIRED_LOVS = new Set(['__status', 'insertType', 'insertStatus', 'insertPriority']);
+// §23 (2026-07-22) — colour dropped from every Type/Status badge here
+// (renderColorBadge() only ever reads `.critical`, never `.color` — this
+// map's colours were already dead data, just still visually "live" via
+// this canonical file's own never-updated static markup above). Icons
+// stroke="currentColor" everywhere so they always follow whichever
+// .attr-badge variant renders them. Priority Critical is the one real
+// exception (`critical:true`), same as WO Record View's PRIORITY_META —
+// copy this file's pattern, not the old per-code colour table.
 const TYPE_META = {
-  BK:  { color: '#E24B4A', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
-  CAL: { color: '#007B87', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>' },
-  CM:  { color: '#F46600', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>' },
-  INS: { color: '#9933FF', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' },
-  MOD: { color: '#6F7480', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>' },
-  PM:  { color: '#00AA14', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg>' },
+  BK:  { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
+  CAL: { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>' },
+  CM:  { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>' },
+  INS: { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' },
+  MOD: { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>' },
+  PM:  { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg>' },
 };
 const PRIORITY_META = {
-  LOW:      { color: '#00AA14', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="2" fill="white" stroke="none"/></svg>' },
-  MEDIUM:   { color: '#F46600', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg>' },
-  HIGH:     { color: '#E24B4A', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="5,15 12,8 19,15"/></svg>' },
-  CRITICAL: { color: '#E24B4A', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-7 7 7 7 0 01-7-7c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>' },
+  LOW:      { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>' },
+  MEDIUM:   { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg>' },
+  HIGH:     { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="5,15 12,8 19,15"/></svg>' },
+  CRITICAL: { critical: true, icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-7 7 7 7 0 01-7-7c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>' },
 };
 const STATUS_META = {
-  OPERATIONAL: { color: '#00AA14', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>' },
-  DOWN:        { color: '#E24B4A', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' },
-  STANDBY:     { color: '#F46600', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12,7 12,12 15,15"/></svg>' },
+  OPERATIONAL: { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>' },
+  DOWN:        { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' },
+  STANDBY:     { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12,7 12,12 15,15"/></svg>' },
 };
 const BADGE_LOV_META = { type: TYPE_META, priority: PRIORITY_META, insertType: TYPE_META, insertStatus: STATUS_META };
 const ORG_STYLE_LOVS = new Set(['organization', 'insertOrganization']);
@@ -669,6 +693,13 @@ renderDocumentsExcerptMount();
 ['comments','documents','tab1','tab2','tab3'].forEach(k => {
   document.querySelector(`.tab-content[data-tab="${k}"]`).innerHTML = TAB_RENDERERS[k]();
 });
+// Real navigation (2026-07-22 nav pass) — the back arrow was a complete
+// no-op before this (event.stopPropagation() only, no navBack() existed
+// anywhere in this file). This is a canonical reference file, not a real
+// entity screen, so back goes to Home like Sync Status's own fallback.
+function navBack() {
+  location.href = 'eam-home-screen-prototype-v1.html';
+}
 initSharedApp({ contentSelector: '.content' });
 </script>
 </body>

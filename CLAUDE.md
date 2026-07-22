@@ -11,10 +11,14 @@ avatar/profile menu, sync icon) that wraps around all of it. The nav shell's
 don't treat anything about Home's tile/chip choices as decided.
 
 ## START HERE next session
-Read `docs/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md` §7 before doing
-anything else. That's the live, current plan — what's already built, the
-compiled-app decision that needs a throwaway proof-of-concept first, and
-the shared-component discipline to follow going forward. Don't re-derive
+Read `docs/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md` §7–§8 before
+doing anything else. That's the live, current plan — what's already
+built, the compiled-app decision that needs a throwaway proof-of-concept
+first, the shared-component discipline to follow going forward, and (§8,
+2026-07-22) how Screen Designer specifically can run given the real base
+EAM admin framework — a separate app launched from a legacy menu item,
+its mobile-preview panel a real iframe against the actual screens in a
+new `designerMode`, not a hand-built mockup renderer. Don't re-derive
 a plan from scratch or re-run the conformance audit from §7/§8 below
 again — it already ran once (2026-07-16), its cross-cutting fixes are
 already applied, and its remaining findings are already logged as tracked
@@ -649,8 +653,705 @@ become a re-investigation every time it comes up.
   a-time flow has no "still scrolling, but already done" moment to
   interrupt the way a list does. See the header comment in the v2 file
   itself for the full before/after rationale.
-
-## Shared-file architecture
+- **App-wide palette + navigation rollout, started 2026-07-22 — see
+  design-decisions-v3-1.md §23/§24 for the locked rules, don't re-derive
+  them here.** Triggered by a user complaint that the color palette felt
+  "busy" (purple + orange + red + green + yellow, colored mono text) —
+  explored via a series of scratch mockups in `prototypes/standalone/
+  mockups/` (palette A–D, final options A/C, rail conversions) before
+  landing anything real. Locked outcome: color is exactly 3 instruments
+  (status/sync/required, §23) everywhere; purple is retired as a UI-state
+  accent (selection now reads via ink weight/fill, not hue); mono is
+  identifiers-only and never tinted; icons/chips are outlined not filled,
+  except Priority Critical's one deliberate red exception. Applied so far
+  to WO Record View (Type/Priority badges, equipment icon, required
+  badge, Activities section rebuilt to grid-cell "Option A" — Trade/Task
+  Plan/Material List/Start Date, note optional) and to the shared step
+  rail/tab rail components (`eam-shared.css`/`.js`) — outlined, no
+  persistent wash, 16px padding (was misaligned 2px vs. the header above
+  it), no leading `.tab-rail-icon`. **Not yet applied:** the rest of
+  Phase 2's purple sweep (dataspy bar, filter chips, LOV/tree/calendar
+  selection, sync panel internals) and the other 4 WO workflow screens'
+  own content — in progress, screen by screen, not a completed pass.
+  Real bugs found and fixed along the way, unrelated to the palette
+  itself: the sync icon crashed on 10 of 11 screens (missing
+  `#syncPanelSheet` markup — now added everywhere); Issue Parts' local
+  `openSheet(partId)` shadowed the shared `openSheet(id)` the sync panel
+  needs (renamed to `openIssueSheet`); no screen's back button actually
+  navigated anywhere (all toast stubs) — now real, per §24's rule.
+  **New file:** `eam-equipment-list-prototype-v1.html`, Equipment's
+  Search List screen (§24.1) — was briefly an in-page popup on Home,
+  reverted the same day (can't preserve state across a real page nav to
+  Record View and back, needs to be a real page). Home's "Equipment"
+  tile now does a real navigation there instead of its old "coming soon"
+  toast. **Step rail also gained a "Reference" group** (§14.8/§23) —
+  Comments/Documents (jump-to shortcuts to WO Record View's own sections,
+  cross-screen via `jumpToRvSection()`) + a dummy Equipment stub, always
+  pinned after the last numbered step, supersedes the old ellipsis-menu
+  mechanism (§21) — that mechanism's stubs are still sitting inert on
+  Checklist/Issue Parts/Book Labor, tracked as stale in §20, not yet
+  removed. **Also logged as backlog, not started:** a quick/dirty
+  Notifications screen, and Activity Insert/Update Mode (confirmed fully
+  unbuilt) — both deliberately deferred until this rollout finishes; see
+  the `project_deferred_screens_backlog` memory note.
+- **Per-screen rollout (Phase 5), started 2026-07-22 with Activity
+  Checklist** — its own local purple/orange (required tag, dynamic-item
+  tag/icons, numeric-input focus, severity toggle options, Flag-for-
+  Follow-up button, Overview status dots) converted per §23; removed its
+  now-stale Comments(3)/Documents(4) ellipsis entries (superseded by the
+  step rail's Reference group, see the bullet above). Surfaced 2 new
+  derived rules, now locked in design-decisions-v3-1.md §23.1: a 3-tier
+  green/orange/red severity scale collapses to 2-tier green/red (orange
+  retired, the option's text label already conveys degree); a "needs
+  follow-up" action uses red (a 3rd "needs attention" case, not a new
+  hue).
+- **Issue Parts done, 2026-07-22** — its local purple (store-selector,
+  parts-summary bar/divider, part number, planned-qty badge, required
+  left-bar, qty stepper buttons, part-search icon, sheet header/part-num)
+  converted per §23; the "verify quantities" warning callout goes from
+  orange to red (needs-attention). Removed its stale ellipsis Comments/
+  Documents entries too. **Real bug found + fixed, not just a palette
+  tweak:** the confirm-sheet's quantity number (`.confirm-row-qty`) had
+  an inline `style="color:var(--octave-black)"` that silently beat its
+  own class's dark-mode override — the number was actually unreadable
+  (dark text on a dark sheet) in dark mode before this pass, unrelated to
+  purple. Fixed by moving that value + the confirm-sheet's other inline-
+  colored bits (part number, +/- stepper buttons) onto real CSS classes
+  (`.confirm-part-num`, `.confirm-qty-btn`) instead.
+- **Book Labor done, 2026-07-22** — Type of Hours pill (Normal/Overtime
+  now share one plain outlined look, same severity-tier-collapse
+  reasoning as §23.1; Double time keeps red, same exception Priority's
+  Critical gets), crew-selector-pill, step-btn, the Timer Stopped
+  banner's icon (was the one deliberately-kept purple exception from an
+  earlier pass — retired now that purple is gone entirely, not just from
+  field values), and all 5 Activity Summary stat values (Total/Entries/
+  Est/Regular/OT hours — were purple/a rogue hardcoded `#42b2ea`
+  blue/gray/green/orange, one different decorative hue per stat; none of
+  the 5 are a real color instrument, so all 5 are plain ink now). Removed
+  its stale ellipsis Comments/Documents entries too. Next up: WO Closing.
+- **WO Closing done, 2026-07-22 — last of the 4 remaining workflow
+  screens, Phase 5 now complete.** Its own 4-color file-type icon scheme
+  (`.attach-type-photo`/`-pdf`/`-doc`/`-file`: purple/red/blue/gray) and
+  the 3-color attachment-source picker (`.source-option-icon`: Camera
+  purple, Photo library blue, File green) both converged to the same
+  monochrome-outlined treatment as the shared `.doc-icon` precedent
+  (icon shape carries the type, not a per-type hue) — this covers the
+  attachment row icon, the viewer sheet's header icon and its large
+  non-image placeholder, and the source-picker sheet's 3 rows. Required
+  markers (`.code-cell.required`, `.comments-area.required`) and
+  `.char-count.warn` orange→red; `.comments-textarea:focus` purple→
+  `border-strong` (no color instrument applies to a focus ring);
+  `.attach-add-btn-label` purple→ink. **Real bug fixed alongside the
+  CSS:** two JS `iconColors` hex maps (`renderAttachList()`,
+  `openViewer()`) were feeding those same 4 hex values into
+  `typeIconSvg()`'s inline `stroke` param, which would have kept the
+  icons colored even after the CSS classes went monochrome (the same
+  "inline style beats the class" pattern as Issue Parts' confirm-sheet
+  bug) — removed both maps, `typeIconSvg()` calls now pass `'currentColor'`
+  so the glyph always follows its container's ink color in either theme.
+  Removed its stale ellipsis Comments/Documents entries too (kept "Print
+  Work Order"). Verified live in both themes, no console errors — the
+  green Closed-status colors (`.status-pill.to.fill-onhold` uses
+  `var(--red)`, the closed-overlay/status-banner use hardcoded `#00AA14`/
+  `rgba(0,170,20,...)`) are untouched, that's the Status instrument, not
+  in scope for this pass. **Phase 5 (per-screen rollout of the 4
+  remaining WO workflow screens) is now closed** — all 5 WO workflow
+  screens plus WO Record View have been swept for §23. Next up: Phase 2b
+  (component consolidation, still pending) or the broader Phase 6
+  app-wide sweep (Equipment RV content pass, Home, WO List, Sync Status
+  Screen, Sample Screen/Card Standard reference files) per the original
+  master plan — no screen has been started yet, check with the user
+  before picking one.
+- **Phase 6 sweep started 2026-07-22 with Equipment Record View.** Turned
+  out nearly clean already (no purple/orange/hardcoded hex anywhere, no
+  filled non-instrument icon backgrounds, no stale ellipsis Comments/
+  Documents entries — Reference-group/tab-rail work earlier this session
+  already covered this file's chrome). **One real finding:** two field
+  values — Performance Details' Availability (98.2%) and Depreciation's
+  Current Book Value ($38,000.00) — were hardcoded `color:var(--green);
+  font-weight:700` inline, a "this number looks good" decorative tint
+  with no basis in the 3-instrument rule (not Status/Sync/Required),
+  same anti-pattern as Book Labor's old per-stat decorative hues. Fixed
+  by dropping the inline style entirely, matching their plain-ink
+  sibling fields (MTBF/MTTR/Last Failure Date; Method/Useful Life/
+  Salvage Value) exactly. Verified live, no console errors. Next up:
+  Home, WO List, Sync Status Screen, Sample Screen/Card Standard
+  reference files, per the original Phase 6 scope — none started yet.
+- **Phase 6 sweep continued 2026-07-22 with Home.** Its per-tile/per-
+  favorite decorative colour scheme — `SCREEN_META` (purple wrench for
+  WO, teal box for Equipment favorites), `HOME_TILES`' 4 more hardcoded
+  hex values (orange/green/teal/purple across the 6 tiles), and Insert
+  Mode's `ENTITY_FIELD_META` Type/Status option lists (orange/green/red
+  per Type or Status code) — all converged to the same monochrome-
+  outlined `.fav-chip-icon`/`.home-tile-sq` treatment already established
+  for `.attach-type-icon`/`.doc-icon` elsewhere: icon shape distinguishes
+  items, not hue. Confirmed `renderColorBadge()` (`eam-shared.js`) already
+  ignores `.color` entirely (reads only `.critical`) — so every one of
+  these hex values was already dead data before this pass, just still
+  visually live via each render function's own inline
+  `style="background:${x.color}22"`/`style="color:${x.color}"`, now
+  removed. **Real crash bug found + fixed, unrelated to colour:**
+  `renderEntityFields()`'s two `.outerHTML = renderColorBadge(...).replace
+  ('class="attr-badge"', ...)` calls silently failed to match once
+  `renderColorBadge()` started emitting a 2-word class
+  (`"attr-badge attr-badge-outline"`) — same exact bug already diagnosed
+  and fixed in `selectLov()` this session, just never carried over to
+  this file's own local copy. First render "succeeds" but drops the `id`
+  entirely, so the *second* time Insert Mode's entity fields render
+  (reopening Create after closing it once) throws `Cannot set properties
+  of null` and Insert Mode breaks. Fixed both call sites with the same
+  order-independent `.replace('<span ', ...)` pattern. **Found the
+  identical bug in `eam-wo-list-prototype-v5_1.html`'s
+  `renderInsertBadge()` while grepping for other occurrences of this
+  pattern — fixed there too** (same 1-line change, same crash-on-reopen
+  scenario), though WO List's own full palette sweep is still its own
+  pending Phase 6 turn, not done here. Also fixed a 2nd real bug: the
+  shared `ICO()` helper hardcoded `style="color:white"` on every badge
+  icon — invisible on the now-outlined (dark-on-transparent) badge in
+  light mode, the same "inline beats the class" pattern as this
+  session's other finds — removed, icons now inherit ink/white correctly
+  from whichever badge variant renders them. Verified live in both
+  themes, Insert Mode reopened twice with no crash, no console errors.
+  Next up: WO List, Sync Status Screen, Sample Screen/Card Standard
+  reference files.
+- **Phase 6 sweep continued 2026-07-22 with WO List — the biggest single
+  file in this pass, several real findings.** Straightforward monochrome
+  conversions: dataspy sheet's favorite star (orange→ink-fill, same
+  `.rec-pin-btn.pinned` fill-not-hue language, fixed in both this file's
+  local copy AND the shared `eam-shared.css` source — genuinely shared
+  component, not just a hand-copy), parent/child table-row tint (purple
+  wash→neutral black/white wash), and the whole sort/filter sheet's
+  selection language (`.chip`/`.lov-check`/`.sh-radio`/`.sh-si`/`.s-inp`
+  focus, all purple→ink-fill-or-border, matching the shared
+  `.filter-chip.active`/`.lov-check.checked` precedent exactly) plus the
+  `.sh-apply` CTA button (purple→`.btn-contained`'s black/white-12%
+  language). Dataspy-by-status/org/priority quick-filter sheet rows
+  (`CD`) dropped their per-row `color`/`bg` fields entirely — same
+  navigation-shortcut-not-instrument reasoning as Home's tiles, `.sh-ri`
+  icon containers now share that same monochrome-outlined base.
+  **Bigger, real content decision:** the card/table Status pill and List
+  mode's Type column had their own independent 4-way (RELEASED/WAPPR/
+  WMATL/COMP) and 6-way (BK/CAL/CM/INS/MOD/PM) hex-color schemes — this
+  predates §23 and was actually a locked decision (§6.7: "Type and
+  Status both keep colour on this screen"), but §23 is the later,
+  stricter, general rule and already retired Type's colour everywhere
+  else (WO Record View's TYPE_META, this file's own Insert Mode
+  TYPE_META) — so §6.7 loses here, flagged rather than silently
+  overridden. Fixed: Type lost its colour entirely (name-only, plain
+  text, no more `style="color:...` on table cells — this was actually
+  the original session's opening complaint, "colored mono text," still
+  alive in this one file); Status's `STI` map converted from 4 arbitrary
+  hex values to the same `tier` vocabulary as WO Record View's header
+  status pill (`STATUS_CLASS_MAP`: green=operational/completed,
+  outlined=standby/waiting, red=down — unused by this file's demo data
+  yet but supported) via new shared-in-file `.pill-green`/`.pill-red`/
+  `.pill-outline` classes on the card headline pill and table pill.
+  RELEASED/COMP→green, WAPPR/WMATL (this file's own "waiting on
+  something" statuses, not in the canonical 4)→outline. Also removed the
+  now-dead `tinted()` text-colour mechanism in `renderStdCard()` entirely
+  (status never actually rendered as a tinted sub/attr field given this
+  screen's own field ordering — always the headline pill — and type no
+  longer qualifies at all). **Real bugs found + fixed, unrelated to
+  which colours:** (1) same crash bug as Home's `renderEntityFields()` —
+  `renderInsertBadge()`'s `.replace('class="attr-badge"', ...)` had the
+  identical fragile-match failure, fixed with the same `<span `-based
+  replace; (2) `TYPE_META`/`INSERT_STATUS_META`'s icons hardcoded
+  `stroke="white"` — invisible on the outlined badge in light mode, same
+  fix as Home's `ICO()`, now `currentColor`, `color` fields dropped
+  (dead — `renderColorBadge()` only reads `.critical`); (3) **found while
+  verifying live, not in the initial grep:** `eam-shared.css`'s own
+  `.ld-card-headline.pill`/`.ld-table-pill` still hardcoded
+  `color:#fff` — a 2-class shared selector that kept beating this file's
+  new 1-class `.pill-outline` on specificity regardless of source order,
+  so the outline tier rendered white-on-transparent (invisible) until
+  the shared file's hardcoded color was removed too. Confirmed via grep
+  that WO List is the only real consumer of either shared selector today
+  (Sync Status Screen uses `.ld-card-headline` without `.pill`), so
+  fixing the shared source directly was safe. Removed the stale §6.7
+  comment's implication and added a note pointing to §23 as the
+  overriding rule. Verified live in both themes — card pills, table
+  pills, Type as plain text, favorite star, quick-filter sheet icons,
+  and Insert Mode's badges (reopened/re-rendered twice with no crash) —
+  no console errors. Next up: Sync Status Screen, Sample Screen/Card
+  Standard reference files.
+- **Phase 6 sweep continued 2026-07-22 with Sync Status Screen.** This
+  screen's own local CSS (protection labels, trouble chips, empty state)
+  was already fully converged — every real finding was in the shared
+  `eam-shared.css` this screen is the main consumer of, missed by the
+  earlier sync-control palette pass because they're one layer deeper
+  than what that pass touched: (1) `.sync-item-dot.queued` (the outbox
+  list's per-item dot, inside the sync panel) was still orange — the
+  panel-level `.sync-panel-state`/nav-level `.sync-ctrl-pill` states
+  already use neutral gray for "waiting" (Offline/Syncing), but this
+  one dot never got the same treatment; converged to `var(--gray-3)`,
+  explicit rather than just inheriting the base rule's identical value,
+  since they mean different things even though they match today. (2)
+  `.sync-error-banner.state-pending` (shown after tapping Retry while
+  still resolving) was tinted orange background+text — CLAUDE.md's own
+  2026-07-20 note called this a deliberate "3-state red/orange/green"
+  banner, but that predates §23; "still resolving" is the same neutral
+  language as (1), not its own hue, so it converged to
+  `var(--bg-section)`/`var(--gray-4)`. Left `.sync-ctrl-pill.state-error`'s
+  `#FF8785` (a lighter red, not `var(--red)`) alone — that's a deliberate
+  contrast tune for sitting on the dark nav bar (same category as
+  `.rec-pin-btn`'s white-based rgba tints), not a hue substitution, so
+  not in scope for this pass. Verified both fixes' computed colors in
+  both themes (temporary detached elements, since no visible queued/
+  pending item exists in this screen's current seeded state) — correct
+  neutral tones both themes, no console errors, sync panel still opens
+  cleanly. Next up: Sample Screen/Card Standard reference files.
+- **Phase 6 sweep finished 2026-07-22 with the Sample Screen + Card
+  Standard reference files — the original Phase 6 punch list (Home, WO
+  List, Sync Status Screen, Sample Screen/Card Standard) is now fully
+  closed.** `sample-screen-standard-model-prototype.html` turned out to
+  be the worst-converged file in the whole rollout — being the canonical
+  "copy this file's pattern" reference didn't make it immune, it just
+  meant nobody had touched its badge code since before §23 existed.
+  Fixed: `TYPE_META`/`PRIORITY_META`/`STATUS_META` dropped their dead
+  `color` fields and `stroke="white"`→`currentColor` (PRIORITY_META
+  gained the real `critical:true` on CRITICAL, matching WO Record View);
+  **its 4 header/Insert-Mode badges (`fv-type-badge` etc.) were 100%
+  static markup — no JS ever re-rendered them** (unlike Home/WO List's
+  equivalents), so they'd been permanently showing hardcoded
+  `style="background:#hex"` + white strokes this entire rollout, on the
+  one file every screen is told to copy from. Converted to
+  `attr-badge-outline` directly in the markup. **3 stale captions**
+  (§5.2's own required-marker/required-count-badge text) still said
+  "orange left-bar"/"orange count badge" — fixed to red, since captions
+  here are the copy-from-verbatim source of truth for every future
+  screen, not just decorative prose.
+  **Bigger finding:** 3 demo rows here (and 1 in
+  `eam-card-standard-prototype-v1.html`) are the *only* real consumers
+  anywhere in the app of `renderStdCard()`/`renderStdTable()`'s built-in
+  Status-pill handling (WO List has its own independent local copy,
+  already fixed on its own turn) — and that shared function still had
+  the pre-§23 raw-hex-inline-style version, plus a `type:'type'` tinted-
+  text branch matching Equipment's own `EQUIP_TYPE_COLOR` (see below).
+  Converged the shared `renderStdCard`/`renderStdTable` to the same
+  `pill-green`/`pill-red`/`pill-outline` tier vocabulary WO List already
+  established on its own local copy — promoted here to `eam-shared.css`
+  now that there's a real 2nd/3rd consumer. Updated both demo files'
+  data (`color:'var(--x)'`→`tier:'x'`).
+  **Real bug found + fixed while verifying live, not in any grep:** the
+  new `.pill-green`/`.pill-red`/`.pill-outline` classes and
+  `.ld-card-headline`'s own base `color` rule have equal (1-class)
+  specificity — whichever sits later in the file wins the tie, which is
+  pure source-order luck. In `eam-shared.css` the tie went the wrong
+  way (status pill text was invisible-on-fill); fixed by adding a
+  `.ld-card-headline.pill-green` (etc.) override at 2-class specificity
+  that wins unconditionally, not relying on order. **Applied the same
+  hardening to WO List's local copy too**, even though its own source
+  order happened to already work — that "happened to" is exactly the
+  kind of latent bug this session kept finding elsewhere, no reason to
+  leave the identical fragility in place just because it isn't broken
+  *yet*.
+  **Two more real cross-cutting bugs found doing a broader hardcoded-hex
+  sweep of `eam-shared.css`/`.js` while already in there** (neither
+  purple nor orange, so no earlier per-screen grep this session ever
+  would have caught them): `.inline-confirm-btn` (the floating checkmark
+  FAB shown while editing any inline text field — live on WO Record
+  View, Equipment RV, and this Sample Screen) was a hardcoded blue
+  `#3B82F6` with no basis in the 3-instrument system — converged to
+  `var(--green)`, matching `.insert-save-btn.ready`'s "go ahead" language
+  since the FAB is inherently always in a ready-to-confirm state whenever
+  it's shown. `.btn-outlined:hover` (live on WO Closing/Book Labor/Issue
+  Parts) was a stray bright cyan `#00FFFF` — clearly a leftover/mistake,
+  not a real design choice — converged to a plain `background:var(
+  --bg-section)` hover tint, matching every other outlined-element hover
+  in the app. Also removed `eam-shared.js`'s `EQUIP_TYPE_COLOR` (teal/
+  purple/orange/gray per structure-tree level: Location/Position/System/
+  Asset) — dead-in-spirit the same way Home's tile colours were (feeds
+  `equipCardFields()`/`equipTableFields()`'s Type field, which no longer
+  renders tinted text at all per the `renderStdCard` fix above). Verified
+  all of the above live across every affected screen (Sample Screen,
+  Card Standard, WO List, Equipment RV, WO Record View, Equipment List)
+  in both themes — no console errors anywhere, pills/badges render
+  correctly. **Phase 6 (Home/WO List/Sync Status Screen/Sample Screen)
+  is complete.** Phase 2b (component consolidation, §17) is the one
+  remaining item from the original master plan — not started.
+- **Phase 2b (component consolidation) done, 2026-07-22 — the last item
+  on the original master plan.** Worked through the 4 named duplicate
+  groups:
+  - **comment-add-row / activity-add-row / attach-add-row:** WO Record
+    View's `.activity-add-row` (its empty-Activities-list "+ Add
+    Activity" row) was structurally identical to the shared
+    `.comment-add-row` (same flex row, same `.comment-add-plus` icon,
+    same border-bottom/hover) — consolidated onto the shared class,
+    local CSS deleted. **Real bug caught in the process:**
+    `.activity-add-row` was still `color:var(--purple)` — a genuine §23
+    miss that survived the entire rollout because it's only reachable
+    when `ACTIVITIES` is empty, which this file's demo data never is, so
+    no live-render check ever exercised it. `.attach-add-row` (WO
+    Closing) stays separate — confirmed structurally different
+    (center-justified persistent footer button, border-top, icon+label
+    split into their own elements) rather than just a historical
+    variant, so not forced into the same class.
+  - **store-selector / crew-selector-pill:** confirmed byte-for-byte
+    identical (Book Labor's own comment already said "same pattern as
+    the store selector," §18.5) except `display:flex` vs `inline-flex`.
+    Promoted the shared visual base to a new `.store-selector,
+    .crew-selector-pill{...}` block in `eam-shared.css`; each file kept
+    its own class name in markup (too many onclick/JS references to
+    rename risk-free for a styling-only pass) and its own file-specific
+    variant (Issue Parts' `.protected`/`.sheet-store-row` scoping stayed
+    local, no 2nd consumer for those).
+  - **labor-hours-badge / qty-badge:** the *base* sizing genuinely
+    differs (3px/9px padding vs 2px/7px) and stayed local, but the
+    color-tint recipe was duplicated — Book Labor's `.badge-green`/
+    `.badge-red` and Issue Parts' `.qty-badge-issued` were the same
+    light-wash-tint treatment at slightly different opacities (.1 vs
+    .12). Promoted to a shared `.badge-green,.qty-badge-issued{...}` /
+    `.badge-red{...}` block, unified on one opacity. Issue Parts' own
+    `.qty-badge-planned` (outline, no fill) stays local — no 2nd
+    consumer.
+  - **rv-icon-btn / nav-icon-btn:** turned out to **not** be a duplicate
+    at all — confirmed structurally different (`.nav-icon-btn` is a
+    white-icon button for the permanently-dark nav bar; `.rv-icon-btn`
+    is a gray-to-ink button for icon buttons sitting in a light content
+    section, different surface entirely, different size too). No merge.
+    **Real bug found investigating this pair anyway:** WO List's own
+    local hand-copies of `.nav-back`/`.nav-icon-btn` (both genuinely
+    shared, app-wide `eam-shared.css` components) had drifted from the
+    shared source — 8px border-radius locally vs. the shared file's
+    6px — and WO List's local copy had actually grown a `:hover`
+    treatment for `.nav-back` that the shared version was missing
+    entirely, meaning every *other* screen's back button had no hover
+    feedback at all. Promoted the hover/radius up into `eam-shared.css`'s
+    `.nav-back` (benefits every screen now) and deleted WO List's now-
+    fully-redundant local duplicates outright, rather than just patching
+    them to match.
+  Verified every change live (WO List, Book Labor, Issue Parts, WO
+  Record View) in both themes — computed styles match expectations,
+  hover states work, no console errors. This closes out the entire
+  palette+consolidation master plan from this session.
+- **Post-rollout fix batch, 2026-07-22 (user-reported), 7 items.**
+  - **Home is now a deliberate, named exception to §23** — user direction
+    after seeing the rest of the app go monochrome. Restored real colour
+    on `.home-tile-sq`/`.fav-chip-icon` (`SCREEN_META`/`HOME_TILES`'
+    `color` fields + the inline `style="background:${x.color}22"`/
+    `color:${x.color}"` template logic, all removed during Phase 6, put
+    back exactly as they were) — also had to strip a `[data-theme="dark"]
+    .home-tile-sq{background-color:...!important}` rule the Phase 6 pass
+    added, which would've forced the neutral background back on in dark
+    mode and silently defeated the restored colour. See design-decisions-
+    v3-1.md §23 for the locked exception note.
+  - **Step rail's Octave-Yellow "Not Free Form" wash is gone** — user
+    call, "the yellow is not looking good at all," keep the rail visually
+    identical regardless of Free Form state rather than re-tune the hue.
+    Removed every `.rail-not-free-form` override in `eam-shared.css`
+    (tab-rail + step-rail backgrounds/borders, active-segment/step-map-
+    row/label colours) — the class is still applied by `renderStepRail()`
+    (other logic may key off its presence) but now carries zero visual
+    effect. Flagged, not resolved: design-decisions-v3-1.md §3.2.2/§15.4
+    now both note this needs a real answer later (Not Free Form has no
+    visual signal at all right now) — just not yellow, and not today.
+  - **Real navigation bug fixed: WO List's `openWO()` was a complete
+    toast stub** — no work order in the list ever actually opened, at
+    all, this whole time. Real backing Record View data only exists for
+    2 WO numbers (`DEMO_WO_JOBTYPES` in `eam-shared.js`: 19257, 19831).
+    New rule (design-decisions-v3-1.md §24 rule 3): those 2 open as
+    themselves; every other WO in the list opens as WO 20450 instead —
+    a pre-existing "dummy routine, always Free Form, no configured
+    workflow" demo WO (`data/wo-20450.js`) that was already built for
+    §11's fallback case but never wired to anything. Hand-off via a new
+    `eamOpenDemoWo` sessionStorage flag, consume-once, same pattern as
+    `eamNewWoRecord`/`eamSyncReturnUrl`. Verified live: WO-19257 opens
+    with its real configured workflow/step rail intact; any other WO
+    (tested WO-19244) opens as 20450, Free Form, no step rail.
+  - **Real cross-cutting bug fixed: `.prototype-label` was a raw "web
+    orange" (`rgba(255,165,0,.9)`)** — never tied to `var(--orange)` or
+    any hex any earlier grep this session targeted, so it survived every
+    purple/orange sweep undetected despite being visible on every single
+    screen's header. Converged to `var(--gray-4)` (it's a dev watermark,
+    not content). Also found WO List's own local copy of this class was
+    the *fuller* of the two definitions (had `white-space`/`font-family`/
+    `text-transform`/a responsive `display:none`+`@media` toggle the
+    shared copy lacked) — promoted all of that up to `eam-shared.css`
+    instead of just patching the color, then deleted WO List's now-fully-
+    redundant local copy. Same "local copy quietly improved, never
+    synced back" pattern as `.nav-back` in the Phase 2b pass above.
+  - **Real cross-cutting bug fixed: Activity Checklist's stepper header
+    had a live 3-colour group-name scheme** (`.stepper-group-name.g-
+    safety`/`.g-main`/`.g-close` — brown/purple/green raw hex, both
+    themes) sitting directly above the progress bar, dynamically applied
+    via `className = 'stepper-group-name g-' + it.group` — never caught
+    by any earlier grep since none of the hex values matched `var(
+    --purple)`/`var(--orange)`/known tokens. This, not the progress bar's
+    own fill (already correctly `var(--green)`, a legitimate kept
+    instrument), was what read as "outdated from our new palette."
+    Collapsed to one plain-ink rule, all 3 group modifiers now no-ops.
+  - **`.view-all-btn` (Activity Checklist) "buttered up" per user
+    request** — was a flat muted-gray pill (`--gray-4` text, thin
+    `--border`) that barely registered as a button next to everything
+    else in the header. Now bold ink text, `1.5px --border-strong`
+    border, a real hover (`background:var(--border-strong)`) and a tap-
+    scale `:active` state.
+  - **WO List's card Description subline was gray, should be ink** — a
+    real internal inconsistency, not a deliberate "muted subline" choice:
+    the same field already renders in ink everywhere else on this screen
+    (List mode's table cell, any `.field-value`) — only the Detailed
+    card's slot-2 subline was left on `--text-muted`. Fixed to
+    `--text-body` in WO List's own local `.ld-card-subline` only — the
+    shared `eam-shared.css` copy (Sample Screen/Card Standard/Equipment
+    List) still renders slot 2 muted per §8.3's own "muted subline" rule,
+    deliberately not generalized without the same complaint surfacing
+    elsewhere. See design-decisions-v3-1.md §8.3 for the flagged note.
+  Verified every item live (Home, Activity Checklist, WO List, WO Record
+  View) in both themes where applicable — no console errors anywhere.
+- **Notifications screen built, 2026-07-22** — `eam-notifications-
+  prototype-v1.html`, the "quick and dirty" screen deferred since the
+  nav/palette rollout began (see `project_deferred_screens_backlog`
+  memory). Bottom-nav's Notifications tab on Home and WO List now does a
+  real navigation here instead of a toast stub. Source data (`data/
+  notifications.js`, `EAM_NOTIFICATIONS`) is modeled on the real
+  R5MAILEVENTS table — the same log already driving this app's email +
+  push system, not a new backend concept; the one real gap (that table
+  has no read/unread column) is flagged, not solved, in design-decisions-
+  v3-1.md §25. Screen has grouped Today/Earlier cards, All/Unread filter
+  chips, mark-all-read, per-card dismiss (behind the shared confirm
+  modal), and tap-to-open-source-WO reusing WO List's own §24 rule 3
+  demo-WO fallback. One notification type, `comment_mention`, is a
+  forward reference — **@mention tagging in Comments is still not built
+  anywhere in this prototype** (circle-back item, not started this
+  session — see `project_comment_tagging_circleback` memory). Bottom-nav
+  badge promoted to a shared `updateNotifBadge()` in `eam-shared.js` on
+  its 2nd real consumer (Home + WO List), called from `initSharedApp()`;
+  both screens' old hardcoded static badge count is gone, replaced by the
+  real live unread count. Verified live in both themes — filter, mark-
+  all-read, dismiss, and tap-through-to-WO all confirmed working, no
+  console errors. See design-decisions-v3-1.md §25 and
+  `docs/component-library.md`'s Notification Card entry for the full
+  write-up.
+- **Notifications follow-up fix pass, 2026-07-22 (user-reported)** — 3
+  items: (1) a real cross-cutting bug, `.nav-icon-wrap` (the wrapper
+  `.bottom-nav-badge` positions against) was never actually promoted to
+  `eam-shared.css` despite already having 2 consumers before this screen
+  existed — both had quietly hand-copied it locally instead, so the gap
+  never surfaced until a 3rd screen was built without it and its badge
+  flew to the button's outer corner; fixed at the source, both local
+  copies deleted. (2) Mark all read moved out of the header into the
+  filter-chip row as a right-aligned pill (`.notif-mark-all-chip`,
+  `margin-left:auto` on the button, not on the shared row class), instead
+  of the header icon button from the first pass. (3) The per-card
+  reference row is now `{date} · {time} | Work Order {number}` — `time`
+  in `data/notifications.js` also moved off spelled-month onto this
+  app's actual numeric-date standard (§3.4). Full write-up: design-
+  decisions-v3-1.md §25's follow-up-pass bullet.
+- **Near-final punch-list pass, 2026-07-22.** User called the prototype
+  "very close" to done and worked through a punch list spanning WO
+  Record View, Checklist, Issue Parts, Book Labor, Insert Mode, and
+  Search screens. All items resolved except two left as open discussion
+  (below).
+  - **WO status colour locked** (design-decisions-v3-1.md §15.4) — the
+    pre-delivered status list is now exactly the 3 real system statuses
+    (Work Request/Released/Closed), not an arbitrary demo set; green is
+    reserved for Released only, Work Request and Closed both render
+    neutral outline, so green never means "closed." `STATUS_CLASS_MAP`
+    in `eam-wo-record-view-prototype-v1.html` updated accordingly.
+  - **Real bug found and fixed alongside this:** `applyDemoWoIdentity()`
+    (`eam-shared.js`) was overwriting the header's Type badge text with
+    `EAM_WOTYPE[jobType].desc` ("Breakdown Maintenance") — the internal
+    job-type/workflow-routing table's description, not the same thing
+    as the WO's own user-facing Type field. That's why Type showed
+    "Breakdown Maintenance" instead of the Type LOV's actual "Breakdown"
+    text. Fixed by leaving Type alone in that function; also corrected
+    demo WO 19257's own `RECORD.type` to `BREAKDOWN`/"Breakdown" (was
+    `CM`/"Corrective Maintenance," inconsistent with the WO's own
+    breakdown-scenario narrative).
+  - **Activities section simplified** — Task Plan and Material List
+    dropped from both the on-screen card and the Activity Edit popup;
+    ships with just Trade + Start Date, a user can add either field
+    back via SD.
+  - **Checklist:** Notes moved above the Flag for Follow-up button;
+    the Yes/No prompt bar's question reworded present-tense ("Do you
+    need to issue parts?") and restyled off the mono/uppercase/gray
+    caption treatment onto the same bold Inter styling as the item's
+    own focus label (`.prompt-question`).
+  - **Issue Parts:** the decorative building icon removed from the
+    store-selector pill everywhere on the screen (header + every sheet
+    row) — the functional chevron/lock affordance icons stay, since
+    they're the actual editable-vs-protected signal, now the subject
+    of its own open circle-back item (below).
+  - **Book Labor, 2 real bugs fixed:** (1) the Add Labor sheet's
+    Employee code line (`fv-employee-code`) was right-aligned
+    (`align-items:flex-end`) under the description, contradicting the
+    labor-row/Correction-sheet convention this same field is supposed
+    to match (left-aligned) — fixed to `flex-start`. (2) clearing
+    Employee or Crew via the LOV sheet's Clear button never re-enabled
+    (unprotected) the other field, because `clearLov()` (`eam-shared.js`)
+    had no hook mechanism at all on the clear path — `LOV_ON_SELECT`
+    existed for picks, nothing equivalent existed for clears. Added a
+    parallel `LOV_ON_CLEAR`/`runLovOnClearHook()`, same optional-object
+    shape, called from `clearLov()`; Book Labor wires
+    `onEmployeeLovCleared()`/`onCrewLovCleared()` through it.
+  - **"Auto-ready" footer label removed app-wide** (Book Labor, Issue
+    Parts), and WO Closing's dynamic "Comments required" bar-meta text
+    removed too, per explicit user direction — no bottom-bar status
+    text ships by default anywhere now (`.bar-meta` CSS deleted, now
+    fully unused). A future per-screen configurable version (same
+    style as the checklist's own "Do you need to issue parts?" prompt)
+    is expected later but wasn't built this pass.
+  - **Insert Mode Description field** (WO List's own Create, Home's
+    Create bar) converted from a popup-triggering `.form-field` (the
+    Notes-style `openTextEditor()` pattern) to the real standard inline
+    text field (`.field-inline-input` textarea, tap-to-focus, no
+    popup) — matches every other single-line text field in the app
+    (e.g. the Standard Model's own UDF01 example) instead of treating
+    every text field as a Notes field.
+  - **Insert Mode Equipment field converged onto WO Record View's own
+    card, 2nd Equipment LOV pass** — `.equip-card` (Insert Mode's
+    generic headline/subline/attrs table, actually an earlier iteration
+    of WO Record View's own Equipment display that WO Record View had
+    already moved off of) is gone; both screens now render the exact
+    same `.equip-summary-card` (icon + desc/code/type), via a new
+    shared `equipSummaryCardHTML()` helper in `eam-shared.js` that
+    `renderEquipCard()` (WO Record View) and `renderRefCard()` (Insert
+    Mode) both call. `EQUIP_ICON_SVG`/`EQUIP_CLASS_ICONS` promoted to
+    `eam-shared.js`; WO Record View's local duplicates removed. This
+    closes the "on-field display diverges" open item flagged in
+    design-decisions-v3-1.md's punch list during the original Equipment
+    LOV convergence (2026-07-21).
+  - **Pill colour, editable vs. protected — resolved same session.**
+    Mockup at `prototypes/standalone/mockups/pill-color-options-
+    editable-vs-protected.html` (4 options: current/no-change, purple
+    accent, green outline, solid ink fill). User picked **D — solid
+    ink fill**, with 2 explicit scope limits: **pills only** (LOV-
+    shaped fields like Book Labor's Employee/Crew Header Fields cells
+    are NOT pills and were left alone — the mockup's inclusion of them
+    was itself over-scoped) and **don't touch currently-protected org
+    pills**. Applied to the 3 real pill components' editable state
+    only: `.store-selector`/`.crew-selector-pill` (shared base,
+    `eam-shared.css`) and `.org-pill` — each now `background:var(
+    --octave-black);color:#fff` light / flipped dark, same recipe as
+    `.btn-contained`. Protected variants (`.store-selector.protected`
+    in Issue Parts, `.org-pill.protected` — always paired with
+    `.in-header` on every live screen) were explicitly rewritten to
+    spell out their pre-existing colors rather than just relying on
+    opacity dimming over the new fill, since dimming a black fill
+    reads completely differently than the original gray outline.
+    Verified live across every consumer (Issue Parts store pill +
+    Return-sheet protected variant, Book Labor's crew-selector-pill,
+    WO List/Home's editable org-pill, WO Record View/Equipment RV's
+    protected org-pill) in both themes — no console errors, protected
+    pills pixel-identical to before.
+  - **Search screens' quick filter dropdowns** — still an open
+    question the user asked outright (what's needed to build them,
+    what they should look like); answered in-conversation this
+    session, not yet built into any screen. Current state: 3 of WO
+    List's 6 filter chips (Status/Priority/Organization) already have
+    a real multi-select sheet, driven by each dataspy's own CD
+    (code/description) list; the other 3 (Description/WO number/Due
+    date) are deliberate "coming soon" stubs, since a multi-select
+    checklist doesn't fit free text/an identifier/a date — those need
+    their own UI shape (a text search input, and a date-range picker)
+    that hasn't been designed yet. Building a real one needs: (1) the
+    field's own value domain (a fixed CD list vs. free text vs. a date
+    range) to pick which of those 3 shapes applies, (2) for CD-driven
+    fields, the actual option list (already how Status/Priority/Org
+    work, and now Status/Type/Org — see the 2026-07-22 follow-up bullet
+    below); for the other 2 shapes, no new mechanism exists yet.
+- **WO flow routing fixed + Priority→Type swap, 2026-07-22 (2nd punch-
+  list pass, same day).** User reported the step rail/Start Work bar
+  "missing" from the PM and Routine WO flows (19831/20450), guessing the
+  demo-WO toggle was the cause. Verified live first: the toggle itself
+  works correctly (rail/bar render right for all 3 demo identities when
+  driven directly) — the real cause was `eam-wo-list-prototype-v5_1.
+  html`'s `openWO()`, which sent every non-19257/19831 WO in the list to
+  the 20450/ROUT identity regardless of that row's own Type, so any real
+  PM- or Breakdown-typed WO rendered as Free-Form/no-rail instead of its
+  correct workflow. Fixed with real Type-based routing (`TYPE_TO_DEMO_WO`):
+  BK→19257/BRKD, PM→19831/PM, everything else (CM/CAL/INS/MOD/ROUT, none
+  configured, `data/wo-workflow.js`)→20450/ROUT, still per §11's own
+  fallback rule — the 3 real WO numbers still open as themselves first.
+  Notifications' `openNotification()` was on the exact same old blanket-
+  20450 rule; rather than duplicate the Type lookup for a screen that
+  doesn't carry a Type to route on, it now just defaults to the
+  corrective (19257) flow instead, per direct instruction ("punching
+  into a WO from any other screen, just launch the corrective flow").
+  The Sync Status Screen's review flow already effectively did this
+  (opens each item's own `openUrl` directly, landing on WO Record View's
+  default 19257 state) — no change needed there.
+  **Also this pass:** WO List's `WOS` array gained real rows for WO-19831
+  and WO-20450 (previously only 19257 existed as a row, even though all
+  3 have real backing Record View data) — added so "My Assigned WOs"
+  (`DSF.ds1`, was `()=>true`, every WO) could be narrowed to exactly
+  these 3 known-good identities, guaranteed to open correctly. And per
+  direct instruction, **Priority was replaced by Type** as one of WO
+  List's 6 dataspy fields (card attribute row, filter chip, quick-filter
+  sheet) — reusing the exact same mechanism Priority had, just repointed
+  at `TM`'s Type codes instead of `PRI`'s priority codes (`CD.type`,
+  `CID`/`CLB` updated accordingly); List mode's own `woAllFields()` still
+  shows both Type and Priority, since it deliberately shows every
+  available field, not just the 6 highlighted ones. `TM` gained a new
+  `ROUT` entry ("Routine maint", matching `data/wotype.js`'s own
+  description) for WO 20450's own Type. Verified live end-to-end (no
+  console errors): a PM-typed row opens with the 4-step rail, a
+  Breakdown-typed row opens with the full 5-step rail, a CM/CAL/INS/MOD-
+  typed row still correctly falls back to no rail, the Type quick-filter
+  sheet opens/filters correctly, and "My Assigned WOs" shows exactly 3
+  cards. See design-decisions-v3-1.md §24 rule 3 for the full write-up.
+- **Screen Designer prototype started, 2026-07-22** —
+  `eam-screen-designer-v1.html` (`prototypes/standalone/base screens/`),
+  a real base-EAM-desktop-admin surface, separate track from the mobile
+  app files above (own self-contained visual system, not
+  `eam-shared.css`/`.js`) — replaces the earlier `eam-workflow-designer-
+  v1_1.html` exploratory mockup (kept in the same folder as reference,
+  not deleted) with a design that actually matches §10–§13's locked
+  model: an entry modal (Base Screen: Work Order/Equipment, WO Type
+  selector, Copy-from-Group + drag-and-drop-capable dual-listbox Save-to-
+  Group(s)) opening onto a live mobile-emulator canvas with a persistent
+  left pane that merges tab navigation with step management — draggable
+  Visible/Required step rows (WO Record View pinned first) plus Free
+  Form/Completion Status Entity/Start Work Status/Completion Status
+  settings when a real WO Type is active, a flat plain-nav tab list
+  otherwise (fallback WO Type or Equipment, matching §11's no-workflow
+  rule). Field-level editing is right-click (Required/Protected/Optional/
+  Hidden/Not Available + the same stubbed menu items real base EAM has),
+  drag-to-reorder, New Container, and Add Field. Also introduced a **Field
+  Grid Section** (§12/§13 has no doc section for this yet — flag if it
+  becomes real): any container can toggle List↔Grid layout; grid cells
+  drag-resize 1↔2 columns wide and auto-balance so a lone trailing field
+  never dangles alone in the last row. See design-decisions-v3-1.md §12
+  for the 3 resolved config fields this session added (Completion Status
+  Entity — renamed from "status source" — plus new Start Work Status and
+  Completion Status fields; Book Labor's Time Entry Mode) and §20 for
+  what was reviewed and explicitly deferred (old-mockup speculative step
+  options, checklist item authoring, filter-chip config). Verified live
+  via the browser preview tool at each step (group drag-and-drop, step
+  reorder/visibility renumbering, Completion Status Entity re-defaulting,
+  Book Labor's settings gear, grid auto-balance) — one real bug found and
+  fixed same session: step-tab badges didn't renumber when a step was
+  hidden (fixed by filtering to visible steps before computing position,
+  matching logic the mobile emulator's own step rail already used
+  correctly).
+- **Home nav wiring finished, 2026-07-22 — every Home tile/favorite now
+  navigates for real, closing out design-decisions-v3-1.md §24 rule 2
+  (previously built for the Equipment tile only).** New `goToScreen()`
+  helper in `eam-home-screen-prototype-v1.html` resolves every tile/
+  favorite tap to its parent screen + an optional pre-run dataspy. WO
+  List gained 2 new dataspies for tiles that had no real target yet:
+  **ds9 "Corrective Maintenance"** (Corrective WO's) and **ds10 "Closed
+  WOs"** (My Closed WO's, and — as its closest available proxy, since the
+  demo data has no real date-range dataspy — Last Week's Work too); My PM
+  WO's already matched ds8. Equipment List gained its 2nd dataspy,
+  **"Centrifugal Pumps,"** for the Pumps tile/favorite — still just a
+  pre-run target, the ds-bar itself stays a "coming soon" stub. Bottom
+  nav's Home↔Work stubs on both screens are real navigation now too. Full
+  write-up (including 2 real bugs found along the way — a `?spy=` query
+  string silently dropped by `npx serve`'s clean-URL redirect, and the
+  root cause: `serve.json`'s `cleanUrls:false` had been sitting one
+  directory below the actual served root since the 2026-07-20 root-serve
+  change, so the underlying clean-URL-then-404 bug was quietly back in
+  force app-wide — fixed by moving `serve.json` to the repo root):
+  design-decisions-v3-1.md §24.
+- **Equipment Search List's "pull-up" presentation got real sheet
+  motion, 2026-07-22 (user direction)** — rounded top corners + a
+  slide-up-from-bottom entrance on load, same size/ratio as before (the
+  `.app` frame already matched Home's exactly), just with the pulled-up-
+  over-Home feel a flat page swap never had. See design-decisions-v3-1.md
+  §24.1 for the full write-up, including why it's a plain CSS
+  `@keyframes` animation rather than the usual JS classList-toggle
+  pattern every other sheet in this app uses.
 - `prototypes/standalone/shared/eam-shared.css` and `eam-shared.js` hold
   every generic component's CSS/JS (headers, sheets, LOV/date/text-editor
   pickers, Comments/Documents, required-field badges, etc.) — loaded via

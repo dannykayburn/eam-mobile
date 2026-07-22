@@ -80,18 +80,10 @@
    — the shared default assumes no bottom chrome). */
 .toast { bottom: calc(var(--bar-height) + 10px); }
 
-/* ── Every container is collapsible (design-decisions-v3-1.md §3.4) — no
-   shared equivalent yet, this screen is the first real consumer. Header is
-   the tap target, chevron rotates -90deg when collapsed. Toggled via
-   toggleSectionCard(this), which flips 'collapsed' on the header's own
-   parent — works for both .section-card and .attach-card without needing
-   to know which. ── */
-.section-card-header { cursor: pointer; }
-.section-card-chevron { color: var(--gray-4); flex-shrink: 0; transition: transform 0.2s; }
-.section-card.collapsed .section-card-chevron,
-.attach-card.collapsed .section-card-chevron { transform: rotate(-90deg); }
-.section-card.collapsed .section-card-body,
-.attach-card.collapsed .section-card-body { display: none; }
+/* ── Every container is collapsible (design-decisions-v3-1.md §3.4) —
+   promoted to eam-shared.css 2026-07-22 once WO Record View's Activity
+   popup became a real 2nd consumer; this screen now uses that shared
+   copy (identical rules) instead of its own local one. ── */
 
 /* ── STATUS CHANGE CONTROL — Option D (design-decisions-v3-1.md §19.2,
    §15.4). No shared equivalent — this banner's from/to-status shape is
@@ -152,9 +144,9 @@
 .code-cell:hover:not(.field-locked) { background: var(--bg-section); }
 .code-cell.field-locked { opacity: 0.38; pointer-events: none; cursor: default; }
 /* Required marker — never shows while the cell is protected (field-locked);
-   appears the instant a cell unlocks, same orange-bar rule as .form-field.
+   appears the instant a cell unlocks, same red-bar rule as .form-field (§23).
    Toggled in lockstep with field-locked in refreshSequentialLocks(). */
-.code-cell.required::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 100px 100px 0; background: var(--orange); }
+.code-cell.required::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 100px 100px 0; background: var(--red); }
 /* Matches .field-label exactly (§3.4) — sentence case, not the ALL CAPS
    mini-eyebrow style this cell briefly had. */
 .code-cell-label { font-size: 13px; color: var(--gray-4); }
@@ -176,7 +168,7 @@
    equivalent — deliberately not the full-screen long-text editor other
    record types' Comments use. ── */
 .comments-area { padding: 10px 14px; position: relative; }
-.comments-area.required::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 100px 100px 0; background: var(--orange); }
+.comments-area.required::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 100px 100px 0; background: var(--red); }
 .comments-textarea {
   width: 100%; min-height: 96px;
   background: var(--bg-section); border: 1px solid var(--border); border-radius: 8px;
@@ -184,12 +176,15 @@
   resize: none; outline: none; line-height: 1.5; transition: border-color 0.15s;
 }
 [data-theme="dark"] .comments-textarea { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
-.comments-textarea:focus { border-color: var(--purple); }
+.comments-textarea:focus { border-color: var(--border-strong); }
 .comments-meta { display: flex; align-items: center; justify-content: space-between; padding: 5px 0 0; }
 .char-count { font-family: var(--font-mono); font-size: 11px; color: var(--gray-4); }
-.char-count.warn { color: var(--orange); }
+.char-count.warn { color: var(--red); }
 
-/* ── ATTACHMENTS (§19.6). No shared equivalent. ── */
+/* ── ATTACHMENTS (§19.6). No shared equivalent. ──
+   File-type icons are monochrome outlined (§23) — icon shape carries the
+   type distinction (camera/doc/generic-file glyph), not a per-type hue,
+   same resolution as the shared .doc-icon system. */
 .attach-empty { padding: 20px 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
 .attach-empty-icon { width: 44px; height: 44px; border-radius: 10px; background: var(--bg-section); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
 .attach-empty-text { font-size: 13px; color: var(--gray-4); line-height: 1.45; }
@@ -197,11 +192,7 @@
 .attach-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
 .attach-row:last-child { border-bottom: none; }
 .attach-row:hover { background: var(--bg-section); }
-.attach-type-icon { width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.attach-type-photo { background: rgba(153,51,255,0.1); color: var(--purple); border: 1px solid rgba(153,51,255,0.2); }
-.attach-type-pdf   { background: rgba(228,75,74,0.1);  color: var(--red);    border: 1px solid rgba(228,75,74,0.2); }
-.attach-type-doc   { background: rgba(66,178,234,0.1); color: #42b2ea;       border: 1px solid rgba(66,178,234,0.2); }
-.attach-type-file  { background: rgba(110,116,128,0.1);color: var(--gray-4); border: 1px solid rgba(110,116,128,0.2); }
+.attach-type-icon { width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-section); color: var(--gray-4); border: 1.5px solid var(--border-strong); }
 .attach-row-info { flex: 1; min-width: 0; }
 .attach-row-name { font-size: 14px; font-weight: 600; color: var(--octave-black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 [data-theme="dark"] .attach-row-name { color: rgba(255,255,255,0.9); }
@@ -211,13 +202,14 @@
 .attach-row-remove:hover { border-color: var(--red); color: var(--red); background: rgba(228,75,74,0.06); }
 .attach-add-row { display: flex; align-items: center; justify-content: center; padding: 10px 14px; gap: 6px; border-top: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
 .attach-add-row:hover { background: var(--bg-section); }
-.attach-add-btn-label { font-size: 13px; font-weight: 600; color: var(--purple); font-family: var(--font-sans); }
+.attach-add-btn-label { font-size: 13px; font-weight: 600; color: var(--octave-black); font-family: var(--font-sans); }
+[data-theme="dark"] .attach-add-btn-label { color: rgba(255,255,255,0.9); }
 
 /* Source picker sheet rows */
 .source-option { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
 .source-option:last-child { border-bottom: none; }
 .source-option:hover { background: var(--bg-section); }
-.source-option-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.source-option-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-section); color: var(--gray-4); border: 1.5px solid var(--border-strong); }
 .source-option-texts { flex: 1; }
 .source-option-title { font-size: 14px; font-weight: 600; color: var(--octave-black); }
 [data-theme="dark"] .source-option-title { color: rgba(255,255,255,0.9); }
@@ -226,14 +218,14 @@
 /* Attachment viewer sheet — its own 2-part header shape, distinct from the
    shared 3-part field-edit header. */
 .viewer-top-bar { padding: 12px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-.viewer-file-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.viewer-file-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-section); color: var(--gray-4); border: 1.5px solid var(--border-strong); }
 .viewer-info { flex: 1; min-width: 0; }
 .viewer-name { font-size: 14px; font-weight: 600; color: var(--octave-black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 [data-theme="dark"] .viewer-name { color: rgba(255,255,255,0.9); }
 .viewer-meta { font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); margin-top: 1px; }
 .viewer-body { flex: 1; display: flex; align-items: center; justify-content: center; background: var(--bg-section); flex-direction: column; gap: 12px; padding: 24px 16px; }
 [data-theme="dark"] .viewer-body { background: rgba(255,255,255,0.03); }
-.viewer-file-placeholder { width: 72px; height: 72px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.viewer-file-placeholder { width: 72px; height: 72px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: var(--bg-section); color: var(--gray-4); border: 1.5px solid var(--border-strong); }
 .viewer-file-label { font-size: 13px; color: var(--gray-4); text-align: center; }
 .viewer-footer { padding: 12px 16px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; }
 /* Was a local .viewer-action-btn — converged onto the shared
@@ -330,8 +322,6 @@
           <div class="rec-actions-divider"></div>
           <div class="rec-actions-group" id="recActionsScreenSpecific">
             <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Printing work order — coming soon')">Print Work Order</div>
-            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Opening Comments — coming soon')">Comments (3)</div>
-            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Opening Documents — coming soon')">Documents (4)</div>
           </div>
         </div>
       </div>
@@ -360,7 +350,6 @@
       <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">Issue Parts</span></div>
       <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">Book Labor</span></div>
       <div class="step-map-item active"><div class="step-map-icon smi-active">5</div><span class="step-map-label active-label">WO Closing</span></div>
-      <div class="step-map-footer">WO.WORKFLOW.01 - Corrective Maintenance Execution</div>
     </div>
   </div>
 
@@ -514,7 +503,7 @@
 
           <!-- Add button row — always visible at bottom -->
           <div class="attach-add-row" onclick="openSourcePicker()">
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="var(--purple)" stroke-width="2.5" stroke-linecap="round"/></svg>
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
             <span class="attach-add-btn-label">Add attachment</span>
           </div>
         </div>
@@ -525,7 +514,6 @@
 
   <!-- ── BOTTOM BAR — locked until Closing Comments has content (§19.8). -->
   <div class="bottom-bar">
-    <span class="bar-meta" id="closeBarMeta">Comments required</span>
     <button class="bar-pill bar-pill-locked" id="closeBtn" onclick="onCloseBarTap()">
       <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       Close Work Order
@@ -533,6 +521,23 @@
   </div>
 
   <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <!-- Sync panel (§4.4.2) — opened from the sync icon in the header
+       above. Content rendered by openSyncPanel() in eam-shared.js
+       (shared markup, same shell every screen carries). Review navigates
+       to eam-sync-status-prototype-v1.html. Fixes a real crash: openSheet()
+       previously found no #syncPanelSheet on this screen at all. -->
+  <div class="bottom-sheet" id="syncPanelSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Sync Status</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sync-panel-state" id="syncPanelStateLabel"></div>
+    <div class="sheet-body" id="syncPanelList"></div>
+    <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
+  </div>
 
   <!-- ══ STATUS PICKER SHEET — plain LOV sheet shape (§3.4), description-
        only rows (statuses are a system code, never code+description). ══ -->
@@ -645,8 +650,8 @@
     </div>
     <div class="sheet-body">
       <div class="source-option" onclick="addAttachment('camera')">
-        <div class="source-option-icon" style="background:rgba(153,51,255,0.1);border:1px solid rgba(153,51,255,0.2);">
-          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="#9933FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13" r="4" stroke="#9933FF" stroke-width="2"/></svg>
+        <div class="source-option-icon">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13" r="4" stroke="currentColor" stroke-width="2"/></svg>
         </div>
         <div class="source-option-texts">
           <div class="source-option-title">Camera</div>
@@ -655,8 +660,8 @@
         <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="var(--gray-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
       <div class="source-option" onclick="addAttachment('library')">
-        <div class="source-option-icon" style="background:rgba(66,178,234,0.1);border:1px solid rgba(66,178,234,0.2);">
-          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#42b2ea" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.5" stroke="#42b2ea" stroke-width="1.5"/><path d="M21 15l-5-5L5 21" stroke="#42b2ea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="source-option-icon">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <div class="source-option-texts">
           <div class="source-option-title">Photo library</div>
@@ -665,8 +670,8 @@
         <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="var(--gray-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
       <div class="source-option" onclick="addAttachment('file')">
-        <div class="source-option-icon" style="background:rgba(0,170,20,0.08);border:1px solid rgba(0,170,20,0.2);">
-          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="#00AA14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="#00AA14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="source-option-icon">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <div class="source-option-texts">
           <div class="source-option-title">File or document</div>
@@ -740,17 +745,14 @@
    confirm modal, toast, theme toggle, date/edit sheets) comes from
    eam-shared.js. ── */
 
+// Real navigation (2026-07-22 nav pass) — was a toast stub. This is a
+// workflow step, not a Record View, so back means the previous step.
 function navBack() {
-  showToast('← Back to Book Labor');
+  location.href = 'eam-book-labor-prototype-v2.html';
 }
 
-// ── SECTION CARDS — every container is collapsible (design-decisions-v3-1.md
-// §3.4). No shared equivalent yet — this screen is the first consumer.
-// Toggles 'collapsed' on the header's own parent, which works for both
-// .section-card and .attach-card without needing to know which.
-function toggleSectionCard(headerEl) {
-  headerEl.parentElement.classList.toggle('collapsed');
-}
+// toggleSectionCard() now lives in eam-shared.js (design-decisions-v3-1.md
+// §3.4) — promoted 2026-07-22, this screen was the first consumer.
 
 // ── SEQUENTIAL CODE STATE (§19.3) ──────────────────────────────────────
 // problem is pre-filled; failure/cause/action start empty + locked.
@@ -944,11 +946,6 @@ function checkBarReady() {
   const hasComments = document.getElementById('closingComments').value.trim().length > 0;
   const ready = hasComments || PM_COMMENTS_OPTIONAL;
   document.getElementById('closeBtn').className = 'bar-pill ' + (ready ? 'bar-pill-ready' : 'bar-pill-locked');
-  // §19.8 "Bar meta — status wording, not instruction": a state ("Comments
-  // required"), not an instruction ("Add closing comments") — the pill
-  // button's own label stays "Close Work Order" throughout; this is the
-  // only element that changes with readiness.
-  document.getElementById('closeBarMeta').textContent = ready ? '' : 'Comments required';
 }
 
 function onCloseBarTap() {
@@ -1081,10 +1078,8 @@ function renderAttachList() {
   empty.style.display = n === 0 ? '' : 'none';
 
   list.innerHTML = attachments.map((att, i) => {
-    const iconColors = { 'attach-type-photo':'#9933FF', 'attach-type-pdf':'#E24B4A', 'attach-type-doc':'#42b2ea', 'attach-type-file':'#6F7480' };
-    const ic = iconColors[att.iconClass] || '#6F7480';
     return `<div class="attach-row" onclick="openViewer(${i})">
-      <div class="attach-type-icon ${att.iconClass}">${typeIconSvg(att.mime, 18, ic)}</div>
+      <div class="attach-type-icon ${att.iconClass}">${typeIconSvg(att.mime, 18, 'currentColor')}</div>
       <div class="attach-row-info">
         <div class="attach-row-name">${att.name}</div>
         <div class="attach-row-meta">${att.label} · ${att.size} · ${att.addedAt}</div>
@@ -1100,11 +1095,8 @@ function renderAttachList() {
 function openViewer(idx) {
   viewingIdx = idx;
   const att = attachments[idx];
-  const iconColors = { 'attach-type-photo':'#9933FF', 'attach-type-pdf':'#E24B4A', 'attach-type-doc':'#42b2ea', 'attach-type-file':'#6F7480' };
-  const ic = iconColors[att.iconClass] || '#6F7480';
-
   document.getElementById('viewerIcon').className = 'viewer-file-icon ' + att.iconClass;
-  document.getElementById('viewerIcon').innerHTML = typeIconSvg(att.mime, 18, ic);
+  document.getElementById('viewerIcon').innerHTML = typeIconSvg(att.mime, 18, 'currentColor');
   document.getElementById('viewerName').textContent = att.name;
   document.getElementById('viewerMeta').textContent = `${att.label} · ${att.size} · Added ${att.addedAt}`;
 
@@ -1118,7 +1110,7 @@ function openViewer(idx) {
       <div class="viewer-file-label">Prototype — photo preview simulated</div>`;
   } else {
     body.innerHTML = `
-      <div class="viewer-file-placeholder ${att.iconClass}">${typeIconSvg(att.mime, 32, ic)}</div>
+      <div class="viewer-file-placeholder ${att.iconClass}">${typeIconSvg(att.mime, 32, 'currentColor')}</div>
       <div style="text-align:center;">
         <div style="font-size:14px;font-weight:600;color:var(--octave-black);">${att.name}</div>
         <div style="font-size:12px;color:var(--gray-4);margin-top:4px;font-family:var(--font-mono);">${att.size} · ${att.label}</div>

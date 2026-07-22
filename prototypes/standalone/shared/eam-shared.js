@@ -62,7 +62,9 @@ let currentTab = null;
 function renderTabRail() {
   const active = TABS.find(t => t.key === currentTab);
   if (!active) return;
-  document.getElementById('tabRailIcon').innerHTML = active.icon || '';
+  // No leading icon on the collapsed rail as of 2026-07-22 — was
+  // redundant right next to the tab's own name text; #tabRailIcon no
+  // longer exists in any screen's markup, so this doesn't try to set it.
   document.getElementById('tabRailName').textContent = active.name;
   document.getElementById('tabMap').innerHTML = TABS.map(t => `
     <div class="tab-map-item${t.key===currentTab?' active':''}" onclick="goToTab('${t.key}')">
@@ -162,10 +164,72 @@ function renderStepRail(workflow, activeStep) {
     if (i < activeIdx) return `<div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">${label}</span></div>`;
     if (i === activeIdx) return `<div class="step-map-item active"><div class="step-map-icon smi-active">${i + 1}</div><span class="step-map-label active-label">${label}</span></div>`;
     return `<div class="step-map-item"><div class="step-map-icon smi-locked">${i + 1}</div><span class="step-map-label">${label}</span></div>`;
-  }).join('') + `<div class="step-map-footer">WO.WORKFLOW.01 - Corrective Maintenance Execution</div>`;
+  }).join('') + STEP_MAP_REFERENCE_GROUP_HTML;
   if (seg) {
     seg.innerHTML = steps.map((s, i) => `<div class="seg ${i < activeIdx ? 'seg-done' : i === activeIdx ? 'seg-active' : 'seg-future'}"></div>`).join('');
   }
+}
+/* Reference group markup (§14.2, added 2026-07-22) — see the CSS comment
+   on .step-map-group-label for the full rationale. Comments/Documents
+   are owned by WO Record View only (never duplicated on the other 4
+   workflow screens) — jumpToRvSection() below handles both "already on
+   Record View, just jump" and "on a different step, navigate there and
+   jump after load" from the exact same call. Equipment is a real future
+   destination, stubbed for now. */
+const STEP_MAP_REFERENCE_GROUP_HTML = `
+  <div class="step-map-group-label">Reference</div>
+  <div class="step-map-item" onclick="jumpToRvSection('comments')">
+    <span class="step-map-ref-icon"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></span>
+    <span class="step-map-label">Comments</span>
+  </div>
+  <div class="step-map-item" onclick="jumpToRvSection('documents')">
+    <span class="step-map-ref-icon"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg></span>
+    <span class="step-map-label">Documents</span>
+  </div>
+  <div class="step-map-item" onclick="jumpToEquipmentStub()">
+    <span class="step-map-ref-icon"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke-linecap="round"/></svg></span>
+    <span class="step-map-label">Equipment</span>
+  </div>`;
+// Collapses whichever rail (step or tab) is present on this screen —
+// used after a Reference-group jump so the rail gets out of the way,
+// same as a real navigation implicitly would.
+function collapseCurrentRail() {
+  const rail = document.getElementById('stepRail') || document.getElementById('tabRail');
+  const map = document.getElementById('stepMap') || document.getElementById('tabMap');
+  const chev = document.getElementById('stepChevron') || document.getElementById('tabChevron');
+  if (rail) rail.classList.remove('expanded');
+  if (map) map.classList.remove('open');
+  if (chev) chev.style.transform = '';
+}
+// key is 'comments' or 'documents'. If this screen has that section
+// (WO Record View), expand + scroll to it in place. Otherwise, hand off
+// to WO Record View (the only screen that ever renders these) via a
+// consume-once flag, same pattern as eamSyncReturnUrl/
+// eamArrivedViaNextStep elsewhere in this app — see consumeJumpToSection().
+function jumpToRvSection(key) {
+  const el = document.getElementById('rv-' + key);
+  if (el) {
+    if (!el.classList.contains('open')) rvToggle(key);
+    collapseCurrentRail();
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+    return;
+  }
+  sessionStorage.setItem('eamJumpToSection', key);
+  location.href = 'eam-wo-record-view-prototype-v1.html';
+}
+function jumpToEquipmentStub() { showToast('Equipment — coming soon'); }
+// Called once at WO Record View's own init — consumes the flag
+// jumpToRvSection() sets when Comments/Documents are tapped from any of
+// the OTHER 4 workflow screens, so arriving here actually lands on the
+// right section instead of just the top of the record.
+function consumeJumpToSection() {
+  const key = sessionStorage.getItem('eamJumpToSection');
+  if (!key) return;
+  sessionStorage.removeItem('eamJumpToSection');
+  const el = document.getElementById('rv-' + key);
+  if (!el) return;
+  if (!el.classList.contains('open')) rvToggle(key);
+  setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
 }
 /* Identity text swap (added 2026-07-22, widening the demo-WO selector's
    scope per user request) — updates the visible WO#/description/Type
@@ -192,14 +256,15 @@ function applyDemoWoIdentity() {
   const descEl = document.getElementById('recDesc');
   if (rec && numEl) numEl.textContent = rec.woNumber;
   if (rec && descEl) descEl.textContent = rec.description;
-  // Only WO Record View has a Type badge field (fv-type-desc) — the other
-  // 4 screens' protected identity header has no field grid, so this is a
-  // no-op there.
-  const typeDesc = document.getElementById('fv-type-desc');
-  if (typeDesc) {
-    const wt = (typeof EAM_WOTYPE !== 'undefined' && EAM_WOTYPE[jobType]) || null;
-    typeDesc.textContent = wt ? wt.desc : jobType;
-  }
+  // Fixed 2026-07-22 (punch-list item): this used to also overwrite the
+  // Type badge (fv-type-desc) with EAM_WOTYPE[jobType].desc — e.g.
+  // "Breakdown Maintenance" for BRKD — but EAM_WOTYPE is the internal
+  // job-type/workflow-routing table, not the same thing as the WO's own
+  // user-facing Type field (LOV_DATA.type/RECORD.type, e.g. "Breakdown").
+  // The two are legitimately different fields; stomping one with the
+  // other produced a value that didn't match the Type LOV's own text.
+  // Type is left alone here now — it renders from each screen's own
+  // RECORD.type, same as every other demo-WO-swap-untouched deeper field.
 }
 /* Dev-only demo-WO selector (same pattern as the theme/online toggles) —
    this prototype has no real cross-screen ?wo= navigation yet (Phase 1,
@@ -453,20 +518,27 @@ function renderStdCard(fields) {
   const org = orgIdx > -1 ? first6[orgIdx] : null;
   const body = first6.filter((f, i) => i !== orgIdx).slice(0, 5);
   const [head, sub, ...attrs] = body;
-  const tinted = f => f && (f.type === 'status' || f.type === 'type');
+  // 'type' dropped 2026-07-22 (§23) — Type isn't one of the 3 colour
+  // instruments (see Equipment's own EQUIP_TYPE_COLOR fix, same session).
+  // Status keeps colour (it's a real instrument) but as a fill/outline
+  // pill tier (.pill-green/.pill-red/.pill-outline), same vocabulary as
+  // WO Record View's header status pill — never as tinted text, and only
+  // ever as the headline (status is always field 1 in every real
+  // consumer's data, so the old sub/attrs tinted-text branches were dead
+  // code, removed along with Type's).
   let html = '<div class="ld-card">';
   html += '<div class="ld-card-top">';
   if (head) {
     html += head.type === 'status'
-      ? `<span class="ld-card-headline pill" style="background:${head.color};">${head.value}</span>`
+      ? `<span class="ld-card-headline pill pill-${head.tier}">${head.value}</span>`
       : `<div class="ld-card-headline">${head.value}</div>`;
   }
   if (org) html += `<span class="ld-card-org">${org.value}</span>`;
   html += '</div>';
-  if (sub) html += `<div class="ld-card-subline${tinted(sub) ? ' tinted' : ''}"${tinted(sub) ? ` style="color:${sub.color};"` : ''}>${sub.value}</div>`;
+  if (sub) html += `<div class="ld-card-subline">${sub.value}</div>`;
   if (attrs.length) {
     html += '<div class="ld-card-attrs">' + attrs.map(f => `
-      <div class="ld-card-attr-row"><span class="field-label">${f.label}</span><span class="field-value${tinted(f) ? ' tinted' : ''}"${tinted(f) ? ` style="color:${f.color};"` : ''}>${f.value}</span></div>`).join('') + '</div>';
+      <div class="ld-card-attr-row"><span class="field-label">${f.label}</span><span class="field-value">${f.value}</span></div>`).join('') + '</div>';
   }
   html += '</div>';
   return html;
@@ -474,12 +546,11 @@ function renderStdCard(fields) {
 function renderStdTable(rowsOfFields, rowOnclick) {
   if (!rowsOfFields.length) return '<div class="ld-table-empty"></div>';
   const labels = rowsOfFields[0].map(f => f.label);
-  const tinted = f => f.type === 'status' || f.type === 'type';
   const onclickAttr = rowOnclick ? ` onclick="${rowOnclick.replace(/"/g, '&quot;')}"` : '';
   return `<div class="ld-table-wrap"><table class="ld-table"><thead><tr>${labels.map(l => `<th>${l}</th>`).join('')}</tr></thead><tbody>${
     rowsOfFields.map(fields => `<tr data-search="${fields.map(f => f.value).join(' ').toLowerCase()}"${onclickAttr}>${fields.map(f => f.type === 'status'
-      ? `<td><span class="ld-table-pill" style="background:${f.color};">${f.value}</span></td>`
-      : `<td${tinted(f) ? ` style="color:${f.color};font-weight:600;"` : ''}>${f.value}</td>`).join('')}</tr>`).join('')
+      ? `<td><span class="ld-table-pill pill-${f.tier}">${f.value}</span></td>`
+      : `<td>${f.value}</td>`).join('')}</tr>`).join('')
   }</tbody></table></div>`;
 }
 /* Filter chips + sort options are dataspy-driven off the same field list
@@ -740,6 +811,20 @@ function renderSyncControl() {
     return;
   }
   el.innerHTML = `<button class="sync-ctrl-pill state-${state}" title="Sync status: ${SYNC_LABELS[state]}" onclick="event.stopPropagation();openSyncPanel()">${SYNC_ICONS[state]}<span class="sync-ctrl-label">${SYNC_LABELS[state]}</span></button>`;
+}
+/* Bottom-nav Notifications badge (§25, 2026-07-22) — shared the moment it
+   had its 2nd real consumer (Home + WO List both load data/notifications.js
+   just for this count; the Notifications screen itself renders its own
+   count the same way via this same function). No-ops if either the badge
+   element or EAM_NOTIFICATIONS isn't present, same defensive pattern as
+   CURRENT_USER_NAME elsewhere in this file — a screen that hasn't loaded
+   data/notifications.js just shows no badge instead of erroring. */
+function updateNotifBadge() {
+  const el = document.getElementById('notifBadge');
+  if (!el || typeof EAM_NOTIFICATIONS === 'undefined') return;
+  const count = EAM_NOTIFICATIONS.filter(n => !n.read).length;
+  el.textContent = count;
+  el.style.display = count > 0 ? '' : 'none';
 }
 /* Only the last (highest sequenceOrder still present) item in a
    sequenceGroup may be deleted — legacy Transaction Log's Start/Stop
@@ -1131,8 +1216,13 @@ function updateRequiredBadges() {
    falling through to the generic code+description branch here, a real
    bug, not by design) — openLov() below checks isSystemCode explicitly so
    the description-only rule can't silently regress. ══ */
+// Outline by default, red-filled only for a meta entry explicitly flagged
+// `critical:true` (palette pass, 2026-07-22 — was an inline colored
+// background per meta entry; see .attr-badge-outline/.attr-badge-critical
+// in eam-shared.css). Screens whose own meta maps don't set `critical` on
+// anything simply always render the outline variant — no code color left.
 function renderColorBadge(meta) {
-  return meta ? `<span class="attr-badge" style="background:${meta.color}">${meta.icon}</span>` : `<span class="attr-badge"></span>`;
+  return meta ? `<span class="attr-badge${meta.critical ? ' attr-badge-critical' : ' attr-badge-outline'}">${meta.icon}</span>` : `<span class="attr-badge attr-badge-outline"></span>`;
 }
 let activeLovKey = null;
 function openLov(key) {
@@ -1170,6 +1260,16 @@ function filterLovOptions(query) {
 //   const LOV_ON_SELECT = { class: () => updateClassAttributesVisibility() };
 function runLovOnSelectHook(key) {
   if (typeof LOV_ON_SELECT !== 'undefined' && LOV_ON_SELECT[key]) LOV_ON_SELECT[key]();
+}
+// Clear-side counterpart (added 2026-07-22, punch-list fix) — LOV_ON_SELECT
+// already lets a screen react to a field being *picked* (Book Labor's own
+// Employee/Crew mutual-exclusion protect, e.g.); clearing a field via the
+// sheet's Clear button ran clearLov() with no equivalent hook at all, so
+// Book Labor's protect never got undone when the technician cleared
+// Employee or Crew. Same optional, screen-provided-object shape as
+// LOV_ON_SELECT — a no-op for every screen that doesn't define one.
+function runLovOnClearHook(key) {
+  if (typeof LOV_ON_CLEAR !== 'undefined' && LOV_ON_CLEAR[key]) LOV_ON_CLEAR[key]();
 }
 /* ══════════════════════════════════════════════════════════════════════
    EQUIPMENT LOV (§15.5) — named "Equipment LOV" 2026-07-21 per user
@@ -1236,7 +1336,6 @@ function treeAncestorIds(node) {
 let treeExpandedIds = new Set(treeAncestorIds(TREE_NODE_MAP.ast1).concat(['ast1']));
 let treeFocusedId = null;
 const EQUIP_SEARCH_DATASPY_NAME = 'All Equipment';
-const EQUIP_TYPE_COLOR = { Location: '#5F5E5A', Position: '#007B87', System: '#9933FF', Asset: '#F46600' };
 let equipSearchState = { mode: 'detailed', search: '' };
 let activeEquipLovKey = null;
 
@@ -1244,7 +1343,7 @@ function equipCardFields(o) {
   const f = [{ label: 'Description', value: o.desc }, { label: 'Code', value: o.code }];
   if (o.class) f.push({ label: 'Class', value: o.class });
   if (o.category) f.push({ label: 'Category', value: o.category });
-  f.push({ label: 'Type', value: o.type, type: 'type', color: EQUIP_TYPE_COLOR[o.type] || 'var(--gray-4)' });
+  f.push({ label: 'Type', value: o.type });
   return f;
 }
 // List mode needs a fixed column set (renderStdTable() takes its header
@@ -1255,7 +1354,7 @@ function equipTableFields(o) {
   return [
     { label: 'Description', value: o.desc }, { label: 'Code', value: o.code },
     { label: 'Class', value: o.class || '—' }, { label: 'Category', value: o.category || '—' },
-    { label: 'Type', value: o.type, type: 'type', color: EQUIP_TYPE_COLOR[o.type] || 'var(--gray-4)' },
+    { label: 'Type', value: o.type },
   ];
 }
 function equipmentLookupCurrent(key) {
@@ -1416,16 +1515,43 @@ function simulateQrScan() {
   const o = EQUIPMENT_LOOKUP_DATA[1];
   commitEquipmentSelection({ code: o.code, desc: o.desc, class: o.class, category: o.category, type: o.type }, 'scan');
 }
+/* ── EQUIPMENT SUMMARY CARD (§15.5) — icon + desc/code/type card, shared
+   by WO Record View's own Equipment field (a plain RECORD field, calls
+   this directly) and WO Insert Mode's Equipment field (a REF_CARD_FIELDS
+   key, via renderRefCard() below). Converged 2026-07-22 (punch-list
+   item) — Insert Mode used to render a differently-shaped card here;
+   now both surfaces are visually identical, same markup either way. */
+const EQUIP_ICON_SVG = '<svg width="20" height="20" fill="none" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const EQUIP_CLASS_ICONS = { Pump: EQUIP_ICON_SVG, Motor: EQUIP_ICON_SVG, Compressor: EQUIP_ICON_SVG, Blower: EQUIP_ICON_SVG };
+function equipSummaryCardHTML(e, emptyLabel, openFn) {
+  if (!e) {
+    return `<div class="equip-summary-card empty" onclick="${openFn}">
+      <div class="equip-summary-main">
+        <div class="equip-summary-info"><div class="equip-summary-desc">${emptyLabel || 'Tap to select equipment'}</div></div>
+        <svg class="equip-summary-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>`;
+  }
+  const classIcon = EQUIP_CLASS_ICONS[e.class];
+  return `<div class="equip-summary-card" onclick="${openFn}">
+    <div class="equip-summary-main">
+      ${classIcon ? `<div class="equip-summary-icon">${classIcon}</div>` : ''}
+      <div class="equip-summary-info">
+        <div class="equip-summary-desc">${e.desc}</div>
+        <div class="equip-summary-meta">${e.code}</div>
+        <div class="equip-summary-type">${e.type}</div>
+      </div>
+      <svg class="equip-summary-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+  </div>`;
+}
 /* ── REFERENCE CARD FIELDS (§15.5, promoted 2026-07-20) — a field whose
-   value is a small record rendered as a headline/subline/attrs card
-   (e.g. WO Insert Mode's Equipment field), not a plain code+desc row.
-   Screen provides:
-     REF_CARD_FIELDS = { key: { mountId, attrs: ['class','category','type'], emptyLabel } }
+   value is a small record (e.g. WO Insert Mode's Equipment field), not a
+   plain code+desc row. Screen provides:
+     REF_CARD_FIELDS = { key: { mountId, emptyLabel, useEquipmentLookup } }
    LOV_DATA[key] still drives the picker list (openLov()/filterLovOptions()
    need no changes — they only ever render code+desc); each option's full
-   object is looked up back out of LOV_DATA[key] by code after selection,
-   so screens can carry the extra attr fields directly on those same
-   option objects instead of a second parallel dataset. ── */
+   object is looked up back out of LOV_DATA[key] by code after selection. ── */
 function renderRefCard(key) {
   const cfg = REF_CARD_FIELDS[key];
   const mount = document.getElementById(cfg.mountId);
@@ -1436,20 +1562,7 @@ function renderRefCard(key) {
   const openFn = cfg.useEquipmentLookup ? `openEquipmentLookup('${key}')` : `openLov('${key}')`;
   const code = LOV_CURRENT[key];
   const opt = code ? LOV_DATA[key].find(o => o.code === code) : null;
-  if (!opt) {
-    mount.innerHTML = `<div class="equip-card empty" data-field="${key}" onclick="${openFn}">
-      <div class="equip-card-headline">${cfg.emptyLabel || 'Tap to select'}</div>
-      <svg class="equip-card-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </div>`;
-    return;
-  }
-  const attrs = (cfg.attrs || []).map(a => [a.charAt(0).toUpperCase() + a.slice(1), opt[a]]).filter(([, v]) => v);
-  mount.innerHTML = `<div class="equip-card" data-field="${key}" onclick="${openFn}">
-    <div class="equip-card-headline">${opt.desc}</div>
-    <div class="equip-card-subline">${opt.code}</div>
-    ${attrs.length ? `<div class="equip-card-attrs">${attrs.map(([label, v]) => `<div class="equip-card-attr-row"><span class="field-label">${label}</span><span class="field-value">${v}</span></div>`).join('')}</div>` : ''}
-    <svg class="equip-card-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </div>`;
+  mount.innerHTML = equipSummaryCardHTML(opt, cfg.emptyLabel, openFn);
 }
 function selectLov(code, desc) {
   const key = activeLovKey;
@@ -1494,7 +1607,13 @@ function selectLov(code, desc) {
   if (typeof BADGE_LOV_META !== 'undefined' && BADGE_LOV_META[key]) {
     const meta = BADGE_LOV_META[key][code];
     const badgeEl = document.getElementById(`fv-${key}-badge`);
-    badgeEl.outerHTML = renderColorBadge(meta).replace('class="attr-badge"', `class="attr-badge" id="fv-${key}-badge"`);
+    // Insert the id via a literal attribute, not a string .replace() on
+    // renderColorBadge()'s class list — that used to work only because
+    // the class was always the exact string "attr-badge"; it now also
+    // carries an outline/critical modifier, so a naive substring replace
+    // silently stops matching. Splice the id attribute in right after
+    // the tag name instead, order-independent of whatever classes follow.
+    badgeEl.outerHTML = renderColorBadge(meta).replace('<span ', `<span id="fv-${key}-badge" `);
     document.getElementById(`fv-${key}-desc`).textContent = desc;
     closeAllSheets();
     showToast('✓ ' + desc);
@@ -1523,6 +1642,7 @@ function clearLov() {
   if (descEl) { descEl.textContent = ''; descEl.classList.add('muted'); }
   closeAllSheets();
   showToast('Cleared');
+  runLovOnClearHook(key);
   updateRequiredBadges();
 }
 
@@ -1748,18 +1868,33 @@ function onInlineBlur(el) {
   updateRequiredBadges();
 }
 function updateInlineFieldLayout(input) {
-  input.closest('.form-field').classList.toggle('stacked', input.value.length > 24);
-  // Bug fix 2026-07-16: field-inline-input is a <textarea> now (was a
-  // single-line <input>, which cannot wrap — long values past 24 chars
-  // were clipping instead of wrapping to show the full 255-char value).
-  // Auto-grow height as it wraps, same technique as the header's autoGrow.
+  // Always stacked now (2026-07-23, screen design standard) — was
+  // conditional on length>24 (only grew tall once text got long). Every
+  // standalone free-text field (Notes/Description/UDF01-style, NOT one
+  // living inside a collapsible container, and not a genuine multi-line
+  // textarea like Comments/Closing Comments — those are a different
+  // component) is now unconditionally this taller shape: label on its
+  // own line, cursor starts left-aligned underneath it, text spans the
+  // full width and wraps down. The markup itself already carries the
+  // 'stacked' class for this reason (correct even before any input
+  // event fires); this just keeps it and grows the height as content
+  // changes, same autoGrow() technique as the header's own growth.
+  input.closest('.form-field').classList.add('stacked');
   autoGrow(input);
 }
 function toggleCheckbox(row) {
   const box = row.querySelector('.field-checkbox');
   const checked = box.classList.toggle('checked');
-  box.innerHTML = checked ? '<svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>' : '';
+  box.innerHTML = checked ? '<svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>' : '';
   if (row.dataset.field) clearFieldSyncError(row.dataset.field);
+}
+// Every container is collapsible (design-decisions-v3-1.md §3.4) —
+// promoted here 2026-07-22 on its 2nd real consumer (see eam-shared.css's
+// matching comment). Toggles 'collapsed' on the header's own parent,
+// which works for both .section-card and .attach-card without needing
+// to know which.
+function toggleSectionCard(headerEl) {
+  headerEl.parentElement.classList.toggle('collapsed');
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -2140,7 +2275,7 @@ function fieldRowCheckbox(key, label, checkIcon) {
   const v = RECORD[key];
   return `<div class="form-field" data-field="${key}" onclick="toggleCheckbox(this)">
     <span class="field-label">${label}</span>
-    <div class="field-checkbox${v ? ' checked' : ''}">${v ? (checkIcon || '<svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>') : ''}</div>
+    <div class="field-checkbox${v ? ' checked' : ''}">${v ? (checkIcon || '<svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>') : ''}</div>
   </div>`;
 }
 function fieldRowProtected(label, value, lockIcon) {
@@ -2273,6 +2408,7 @@ function initSharedApp(opts) {
   initHeaderMenuOutsideClick();
   initInsertModeDrag();
   renderSyncControl();
+  updateNotifBadge();
   // Pre-filled inline (≤255-char) fields need their height set on load too,
   // not just on input — a long value present at render time shouldn't sit
   // clipped until the user's first keystroke.

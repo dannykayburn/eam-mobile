@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Activity Insert/Update Mode — Pill, Refined</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  ACTIVITY INSERT/UPDATE MODE — pill direction, refined per feedback on
+  the first pass (2026-07-22, scratchpad, self-contained, NOT wired to
+  eam-shared.css/.js). Picked up from activity-insert-update-mode-
+  options.html's Option 2 (Trade as a top pill) and applied:
+
+  - Trade pill now shows CODE + DESCRIPTION (it's full-width now, so
+    there's room — was code-only to match the org-pill it borrowed
+    shape from, which never needs a description).
+  - Activity's own identifier is now EDITABLE, not locked — insert mode
+    still defaults it (next AUTOINCR value), but the user can change it
+    before saving, unlike the previous pass's padlock treatment (which
+    was based on update mode only). Tap affordance (chevron) replaces
+    the lock icon; the value opens the standard number-edit sheet.
+  - Note now sits directly under the pill, above the grid — it's the
+    one flat field important enough to see immediately, everything else
+    waits below the grid.
+  - Grid re-ordered per direction: Start Date, End Date, People
+    Required, Estimated Hours, Task Plan, Material List (3 required-
+    or-optional pairs), then Assignment Status as a double-wide
+    (full-width) row at the bottom — it's the one grid field whose
+    value (a status word, not a code+description or a date) doesn't
+    pair naturally with anything else here.
+  - Every other field (Multiple Trades, Hours Remaining, Scheduled
+    Hours, Hired Labor, Supplier, Labor Type, Completed) now lives in
+    ONE collapsible container, delivered collapsed by default — same
+    collapsible mechanism WO Closing already established (design-
+    decisions-v3-1.md §3.4: header is the tap target, chevron rotates
+    -90deg collapsed, body display:none). Tap "Additional Details"
+    below to expand it. Activity Comments stays its own separate
+    container (a comments log, not a field), same as the screenshot's
+    own bottom bar — collapsed by default too, consistent with every
+    other container on this screen.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --green:#00AA14; --red:#E24B4A;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+[data-theme="dark"]{
+  --bg-page:#1A1A1F; --bg-card:#26252B; --bg-section:#302F33; --border:#3E4047; --border-strong:#4A4C55;
+  --gray-1:#2A2930; --gray-2:#3E4047; --gray-3:#6F7480; --gray-4:#B2B8C4; --octave-black:#1A1A1F;
+}
+[data-theme="dark"] body{color:var(--white);}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--octave-black);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:390px;width:100%;color:#fff;font-size:12px;line-height:1.55;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;}
+.legend b{color:#fff;}
+.theme-row{display:flex;gap:8px;margin-bottom:16px;}
+.theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:5px 12px;cursor:pointer;}
+
+.sheet{max-width:390px;width:100%;background:var(--bg-page);border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);display:flex;flex-direction:column;}
+.sheet-header{padding:6px 16px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);background:var(--bg-card);}
+.sheet-close{width:30px;height:30px;border-radius:50%;background:var(--bg-section);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gray-4);flex-shrink:0;}
+.sheet-title{flex:1;text-align:center;font-size:17px;font-weight:700;color:var(--octave-black);}
+[data-theme="dark"] .sheet-title{color:var(--white);}
+.sheet-body{background:var(--bg-page);}
+.sheet-footer{padding:12px 16px 18px;border-top:1px solid var(--border);background:var(--bg-card);}
+
+/* ── Activity identifier — now EDITABLE (insert mode: defaulted, but
+   changeable), so it gets a tap chevron instead of a lock. ── */
+.act-id-row{padding:14px 16px 12px;display:flex;align-items:center;gap:10px;background:var(--bg-card);border-bottom:1px solid var(--border);cursor:pointer;}
+.act-id-label{font-size:13px;color:var(--gray-4);}
+.act-id-value{font-family:var(--font-mono);font-size:22px;font-weight:700;color:var(--octave-black);letter-spacing:.3px;}
+[data-theme="dark"] .act-id-value{color:var(--white);}
+.act-id-note{margin-left:auto;font-size:10.5px;color:var(--gray-3);text-align:right;line-height:1.3;max-width:150px;}
+.act-id-chevron{color:var(--gray-3);flex-shrink:0;}
+
+/* ── Trade pill — full-width, now shows code + description. ── */
+.trade-pill-wrap{padding:12px 16px 4px;}
+.trade-pill{width:100%;display:flex;align-items:center;gap:10px;background:var(--octave-black);border:1px solid var(--octave-black);border-radius:16px;padding:12px 16px;cursor:pointer;font-family:var(--font-sans);color:#fff;text-align:left;}
+[data-theme="dark"] .trade-pill{background:var(--white);border-color:var(--white);color:var(--octave-black);}
+.trade-pill-text{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;}
+.trade-pill-label{font-size:11.5px;opacity:.65;}
+.trade-pill-value{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.trade-pill-value .code{font-family:var(--font-mono);font-weight:600;}
+.trade-pill-value .sep{opacity:.55;margin:0 6px;font-weight:400;}
+.trade-pill svg{flex-shrink:0;color:inherit;opacity:.6;}
+
+/* ── Grid (equip-attrs equivalent). ── */
+.grid{margin:12px 12px 0;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;display:grid;grid-template-columns:1fr 1fr;overflow:hidden;}
+.cell{position:relative;padding:12px 14px;display:flex;flex-direction:column;gap:6px;border-right:1px solid var(--border);border-top:1px solid var(--border);cursor:pointer;}
+.cell:nth-child(2n){border-right:none;}
+.cell:nth-child(-n+2){border-top:none;}
+.cell.full{grid-column:1/-1;}
+.cell.required::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
+.cell-label{font-size:13px;color:var(--gray-4);}
+.cell-value{display:flex;align-items:center;gap:6px;}
+.cell-badge{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;border:1.5px solid var(--border-strong);color:var(--octave-black);flex-shrink:0;}
+[data-theme="dark"] .cell-badge{color:rgba(255,255,255,.9);}
+.cell-text{font-size:14px;font-weight:600;color:var(--octave-black);}
+[data-theme="dark"] .cell-text{color:rgba(255,255,255,.9);}
+.cell-text.muted{color:var(--gray-3);font-weight:500;}
+
+/* ── Section-card + form-field rows. ── */
+.section-card{margin:12px 12px 0;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.section-card-header{padding:10px 14px 8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;}
+.section-card-title{font-size:14px;font-weight:600;color:var(--octave-black);}
+[data-theme="dark"] .section-card-title{color:var(--white);}
+.section-card-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
+.section-card.collapsed .section-card-chevron{transform:rotate(-90deg);}
+.section-card.collapsed .section-card-body{display:none;}
+.form-field{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);position:relative;min-height:48px;cursor:pointer;}
+.form-field:last-child{border-bottom:none;}
+.form-field.required::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
+.form-field.protected{background:var(--bg-section);opacity:.75;cursor:default;}
+[data-theme="dark"] .form-field.protected{background:rgba(255,255,255,.03);}
+.field-label{font-size:13px;color:var(--gray-4);width:128px;flex-shrink:0;line-height:1.35;}
+.field-value{flex:1;font-size:14px;font-weight:500;color:var(--octave-black);text-align:right;}
+[data-theme="dark"] .field-value{color:rgba(255,255,255,.9);}
+.field-value.muted{color:var(--gray-3);}
+.field-inline-input{flex:1;border:none;background:none;outline:none;text-align:right;font-size:14px;font-weight:500;color:var(--octave-black);font-family:var(--font-sans);padding:0;}
+[data-theme="dark"] .field-inline-input{color:var(--white);}
+.field-inline-input::placeholder{color:var(--gray-3);}
+.field-chevron{margin-left:6px;color:var(--gray-3);flex-shrink:0;}
+.field-lock{margin-left:6px;color:var(--gray-3);flex-shrink:0;display:flex;}
+.field-checkbox{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--gray-3);background:var(--bg-card);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;cursor:pointer;}
+[data-theme="dark"] .field-checkbox{border-color:var(--gray-5);background:var(--bg-section);}
+.field-checkbox.checked{background:var(--octave-black);border-color:var(--octave-black);}
+[data-theme="dark"] .field-checkbox.checked{background:var(--white);border-color:var(--white);}
+.field-checkbox svg{display:none;color:#fff;}
+[data-theme="dark"] .field-checkbox svg{color:var(--octave-black);}
+.field-checkbox.checked svg{display:block;}
+
+.field-caption{padding:6px 14px 10px;font-size:11px;color:var(--gray-4);line-height:1.4;background:var(--bg-section);}
+.req-count-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:100px;border:1.5px solid var(--red);color:var(--red);font-size:10px;font-weight:700;padding:0 4px;margin-right:6px;}
+
+.save-btn{width:100%;height:50px;border-radius:100px;border:none;font-size:15px;font-weight:700;font-family:var(--font-sans);background:var(--green);color:#fff;cursor:pointer;}
+
+.spacer{height:8px;}
+</style>
+</head>
+<body>
+
+<div class="legend">
+  <b>Activity Insert/Update Mode — pill direction, refined.</b> Trade pill
+  now shows code + description (room for it now that it's full-width).
+  Activity's identifier is editable (insert mode defaults it, but it can
+  be changed — no more padlock). Note sits right under the pill. Grid
+  order: Start Date, End Date, People Required, Estimated Hours, Task
+  Plan, Material List, then Assignment Status full-width at the bottom.
+  Everything else (Multiple Trades, Hours Remaining, Scheduled Hours,
+  Hired Labor, Supplier, Labor Type, Completed) is in ONE collapsible
+  "Additional Details" container, collapsed by default — <b>tap its
+  header to expand</b>. Try <b>Hired Labor</b> once expanded — Supplier/
+  Labor Type unlock live.
+</div>
+
+<div class="theme-row">
+  <button class="theme-toggle" onclick="document.documentElement.removeAttribute('data-theme')">☀ Light</button>
+  <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme','dark')">◑ Dark</button>
+</div>
+
+<div class="sheet">
+  <div class="sheet-header">
+    <button class="sheet-close">✕</button>
+    <div class="sheet-title">Add Activity</div>
+    <div style="width:30px;flex-shrink:0;"></div>
+  </div>
+  <div class="sheet-body">
+
+    <div class="act-id-row">
+      <span class="act-id-label">Activity</span>
+      <span class="act-id-value">10</span>
+      <span class="act-id-note">Defaulted (next available) — can be changed</span>
+      <svg class="act-id-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <div class="trade-pill-wrap">
+      <button class="trade-pill">
+        <div class="trade-pill-text">
+          <span class="trade-pill-label">Trade</span>
+          <span class="trade-pill-value"><span class="code">INSTR</span><span class="sep">—</span>Instrumentation Repair</span>
+        </div>
+        <svg width="13" height="13" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <div class="section-card">
+      <div class="form-field" onclick="this.querySelector('input').focus()">
+        <span class="field-label">Note</span>
+        <input class="field-inline-input" placeholder="Tap to add…">
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="cell required">
+        <span class="cell-label">Start Date</span>
+        <div class="cell-value"><span class="cell-badge"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 9h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="cell-text">05/01/2026</span></div>
+      </div>
+      <div class="cell required">
+        <span class="cell-label">End Date</span>
+        <div class="cell-value"><span class="cell-badge"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 9h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="cell-text">05/01/2026</span></div>
+      </div>
+      <div class="cell required">
+        <span class="cell-label">People Required</span>
+        <div class="cell-value"><span class="cell-text">1</span></div>
+      </div>
+      <div class="cell required">
+        <span class="cell-label">Estimated Hours</span>
+        <div class="cell-value"><span class="cell-text">1</span></div>
+      </div>
+      <div class="cell">
+        <span class="cell-label">Task Plan</span>
+        <div class="cell-value"><span class="cell-text">0001-DEFAULT</span></div>
+      </div>
+      <div class="cell">
+        <span class="cell-label">Material List</span>
+        <div class="cell-value"><span class="cell-text muted">Select…</span></div>
+      </div>
+      <div class="cell full required">
+        <span class="cell-label">Assignment Status</span>
+        <div class="cell-value"><span class="cell-badge"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="cell-text">Unfinished</span></div>
+      </div>
+    </div>
+
+    <div class="section-card collapsed" id="moreCard">
+      <div class="section-card-header" onclick="toggleSection('moreCard')">
+        <span class="section-card-title">Additional Details</span>
+        <svg class="section-card-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="section-card-body">
+        <div class="form-field" onclick="toggleChk(this)">
+          <span class="field-label">Multiple Trades</span>
+          <div class="field-checkbox"><svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <div class="form-field">
+          <span class="field-label">Hours Remaining</span>
+          <span class="field-value">1</span>
+          <span class="field-chevron">›</span>
+        </div>
+        <div class="form-field protected">
+          <span class="field-label">Scheduled Hours</span>
+          <span class="field-value muted">1</span>
+          <span class="field-lock"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+        </div>
+        <div class="form-field" onclick="toggleHired(this)">
+          <span class="field-label">Hired Labor</span>
+          <div class="field-checkbox" id="hired-box"><svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <div class="form-field protected" id="fld-supplier">
+          <span class="field-label">Supplier</span>
+          <span class="field-value muted">—</span>
+          <span class="field-lock"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+        </div>
+        <div class="form-field protected" id="fld-labortype">
+          <span class="field-label">Labor Type</span>
+          <span class="field-value muted">—</span>
+          <span class="field-lock"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+        </div>
+        <div class="form-field" onclick="toggleChk(this)">
+          <span class="field-label">Completed</span>
+          <div class="field-checkbox"><svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card collapsed">
+      <div class="section-card-header" onclick="toggleSection(this.parentElement)">
+        <span class="section-card-title">Activity Comments</span>
+        <svg class="section-card-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="section-card-body">
+        <div class="field-caption">No comments yet.</div>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+  </div>
+  <div class="sheet-footer">
+    <button class="save-btn">Save</button>
+  </div>
+</div>
+
+<script>
+function toggleSection(elOrId){
+  const el = typeof elOrId === 'string' ? document.getElementById(elOrId) : elOrId;
+  el.classList.toggle('collapsed');
+}
+function toggleChk(row){
+  row.querySelector('.field-checkbox').classList.toggle('checked');
+}
+function toggleHired(row){
+  const box = row.querySelector('.field-checkbox');
+  box.classList.toggle('checked');
+  const on = box.classList.contains('checked');
+  ['supplier','labortype'].forEach(function(key){
+    const field = document.getElementById('fld-' + key);
+    field.classList.toggle('protected', !on);
+    const val = field.querySelector('.field-value');
+    const lock = field.querySelector('.field-lock');
+    if(on){
+      val.textContent = 'Select…';
+      lock.style.display = 'none';
+      field.style.cursor = 'pointer';
+      if(!field.querySelector('.field-chevron')){
+        const chev = document.createElement('span');
+        chev.className = 'field-chevron';
+        chev.textContent = '›';
+        field.appendChild(chev);
+      }
+    } else {
+      val.textContent = '—';
+      lock.style.display = 'flex';
+      const chev = field.querySelector('.field-chevron');
+      if(chev) chev.remove();
+    }
+  });
+}
+</script>
+</body>
+</html>

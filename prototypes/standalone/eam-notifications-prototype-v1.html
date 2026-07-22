@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HxGN EAM Mobile — Notifications</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-shared.css">
+<!--
+  NOTIFICATIONS SCREEN (v1, 2026-07-22) — the "quick and dirty" build
+  called out as deferred backlog during the app-wide nav/palette rollout
+  (see project_deferred_screens_backlog memory / CLAUDE.md). Bottom-nav's
+  "Notifications" tab (Home, WO List) was a toast stub until this pass —
+  both now do a real navigation here, same pattern as WO List's own "Work"
+  tab pointing at itself.
+
+  Source data (data/notifications.js, EAM_NOTIFICATIONS) is modeled on the
+  real R5MAILEVENTS table — the same log that already drives this app's
+  existing email + push notification system, not a new backend concept.
+  One real gap, flagged rather than solved here: that table has no read/
+  unread column in the real schema — `read` is invented client-side for
+  this prototype. See design-decisions-v3-1.md §25 for the full write-up,
+  including the `comment_mention` type, which is a forward reference to
+  @mention tagging in Comments — NOT built yet anywhere in this prototype
+  (circle-back item), modeled here anyway so this screen doesn't have to
+  wait on that feature landing first.
+
+  Tapping a notification with a `wo` opens 19257/19831/20450 as
+  themselves; anything else defaults to the corrective (19257) flow —
+  updated 2026-07-22 (punch-list item) from the old blanket "anything
+  else opens as 20450" rule, which made every other WO look Free-Form/
+  no-rail regardless of its real type. WO List's own openWO() does real
+  Type-based routing instead, since it has each row's Type to route on;
+  this screen doesn't, so it isn't worth building the same lookup twice.
+  Per §24 rule 3, the WO Record View back arrow returns to WO List, not
+  here — no special return-path override for this screen.
+
+  Screen-local only (single consumer): card/section-label/dismiss/mark-
+  all-read CSS below. Reused directly, no local re-definition: the shared
+  .filter-chip-row/.filter-chip (All/Unread), .bottom-nav, .nav-avatar,
+  .rec-actions-menu profile dropdown, sheet-overlay/syncPanelSheet,
+  confirm-overlay, and toast — all copied verbatim from Home/WO List's own
+  markup, behavior comes entirely from eam-shared.js.
+-->
+<style>
+  .notif-section-label{padding:14px 14px 6px;font-size:12px;font-weight:700;color:var(--octave-black);}
+  [data-theme="dark"] .notif-section-label{color:var(--white);}
+  .notif-card{display:flex;gap:11px;padding:13px 14px;margin:0 12px 8px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:border-color .15s;}
+  .notif-card:hover{border-color:var(--gray-3);}
+  .notif-card:active{transform:scale(.985);}
+  .notif-icon-wrap{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--gray-4);}
+  .notif-body{flex:1;min-width:0;}
+  .notif-top-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+  .notif-subject-wrap{display:flex;align-items:flex-start;gap:6px;min-width:0;}
+  .notif-dot{width:7px;height:7px;border-radius:50%;background:var(--octave-black);flex-shrink:0;margin-top:5px;}
+  [data-theme="dark"] .notif-dot{background:var(--white);}
+  .notif-subject{font-size:13.5px;font-weight:500;color:var(--text-body);line-height:1.35;}
+  .notif-card.unread .notif-subject{font-weight:700;color:var(--octave-black);}
+  [data-theme="dark"] .notif-card.unread .notif-subject{color:var(--white);}
+  .notif-text{font-size:12.5px;color:var(--gray-4);line-height:1.4;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .notif-meta{display:flex;align-items:center;gap:9px;margin-top:7px;font-size:11px;color:var(--text-faint);}
+  .notif-wo-link{font-family:var(--font-mono);font-weight:600;color:var(--gray-4);}
+  .notif-card.unread .notif-wo-link{color:var(--octave-black);}
+  [data-theme="dark"] .notif-card.unread .notif-wo-link{color:var(--white);}
+  .notif-dismiss{width:24px;height:24px;border-radius:50%;border:none;background:none;color:var(--text-faint);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:13px;}
+  .notif-dismiss:hover{background:var(--bg-section);color:var(--gray-4);}
+  /* 2nd pass, 2026-07-22 (user direction) — moved out of the header
+     entirely (the icon button there was a fix for the text label
+     colliding with .nav-title, but read poorly as its own thing) into
+     the same row as the All/Unread chips, pushed to the far right via
+     margin-left:auto on an otherwise-ordinary flex row — .filter-chip-row
+     is shared (WO List/Equipment List also use it for plain chip lists
+     with no trailing item), so the push lives on this button alone, not
+     on the shared row class. */
+  .notif-mark-all-chip{margin-left:auto;flex-shrink:0;display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--octave-black);background:var(--bg-card);border:1px solid var(--border);border-radius:100px;padding:6px 13px;cursor:pointer;font-family:var(--font-sans);white-space:nowrap;}
+  [data-theme="dark"] .notif-mark-all-chip{color:var(--white);}
+  .notif-mark-all-chip:hover{border-color:var(--gray-3);}
+  .notif-mark-all-chip:disabled{opacity:.4;cursor:default;}
+  .notif-mark-all-chip:disabled:hover{border-color:var(--border);}
+  .notif-empty{padding:70px 24px;text-align:center;}
+  .notif-empty-title{font-size:15px;font-weight:700;color:var(--octave-black);margin-bottom:6px;}
+  [data-theme="dark"] .notif-empty-title{color:var(--white);}
+  .notif-empty-sub{font-size:12.5px;color:var(--gray-4);}
+</style>
+</head>
+<body>
+
+<div class="proto-theme-bar">
+  <span class="proto-theme-label">Preview theme</span>
+  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+</div>
+
+<div class="app" id="app">
+
+  <header class="nav" onclick="scrollFormToTop()">
+    <div class="nav-left">
+      <button class="nav-avatar" onclick="event.stopPropagation();toggleProfileMenu()" aria-label="Profile">
+        <img class="nav-avatar-img" src="shared/img/bcampbell.jpg" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <span class="nav-avatar-initials" style="display:none;">BC</span>
+      </button>
+      <span class="prototype-label">PROTOTYPE</span>
+    </div>
+    <div class="rec-actions-menu anchor-left" id="profileMenu">
+      <div class="profile-menu-identity">
+        <span class="nav-avatar" style="cursor:default;">
+          <img class="nav-avatar-img" src="shared/img/bcampbell.jpg" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+          <span class="nav-avatar-initials" style="display:none;">BC</span>
+        </span>
+        <div>
+          <div class="profile-menu-name">Bruce Campbell</div>
+          <div class="profile-menu-org">Water Utility</div>
+        </div>
+      </div>
+      <div class="rec-actions-divider"></div>
+      <div class="rec-actions-item" onclick="closeProfileMenu();showToast('Settings — coming soon')">Settings</div>
+      <div class="rec-actions-divider"></div>
+      <div class="rec-actions-item danger" onclick="closeProfileMenu();showToast('Logged out — coming soon')">Log out</div>
+    </div>
+    <div class="nav-title">Notifications</div>
+    <div class="nav-actions">
+      <span id="syncCtrl"></span>
+    </div>
+  </header>
+
+  <div class="filter-chip-row">
+    <button class="filter-chip notif-filter-chip active" data-f="all" onclick="setNotifFilter('all')">All</button>
+    <button class="filter-chip notif-filter-chip" data-f="unread" onclick="setNotifFilter('unread')">Unread</button>
+    <button class="notif-mark-all-chip" id="markAllBtn" onclick="markAllRead()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12.5l4.5 4.5L15 8"/><path d="M11 12.5l3.5 3.5L22 8"/></svg>
+      Mark all read
+    </button>
+  </div>
+
+  <div class="content" id="notifContent">
+    <div id="notifList"></div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="bottom-nav-item" onclick="location.href='eam-home-screen-prototype-v1.html'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg>
+      Home
+    </button>
+    <button class="bottom-nav-item" onclick="location.href='eam-wo-list-prototype-v5_1.html'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0-1.4l-2.6-2.6a1 1 0 0 0-1.4 0L9.3 3.7a1 1 0 0 0 0 1.4l2.6 2.6a1 1 0 0 0 1.4 0l1.4-1.4z"/><path d="M8.5 8.5 3 20l1.5 1.5L15.5 15.5"/><path d="M17.3 11.3a1 1 0 0 0 0-1.4l-2.6-2.6a1 1 0 0 0-1.4 0l-1.4 1.4a1 1 0 0 0 0 1.4l2.6 2.6a1 1 0 0 0 1.4 0z"/></svg>
+      Work
+    </button>
+    <button class="bottom-nav-item active" onclick="showToast('Already on Notifications')">
+      <span class="nav-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        <span class="bottom-nav-badge" id="notifBadge" style="display:none;">0</span>
+      </span>
+      Notifications
+    </button>
+  </nav>
+
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <!-- Sync panel (§4.4.2) — same shared shell every screen carries. -->
+  <div class="bottom-sheet" id="syncPanelSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Sync Status</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sync-panel-state" id="syncPanelStateLabel"></div>
+    <div class="sheet-body" id="syncPanelList"></div>
+    <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
+  </div>
+
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-modal">
+      <div class="confirm-message" id="confirmMessage">Are you sure?</div>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="confirm-btn confirm-danger" id="confirmDangerBtn" onclick="confirmDangerAction()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+</div>
+
+<script src="../../data/notifications.js"></script>
+<script src="shared/eam-shared.js"></script>
+<script>
+const CURRENT_USER_NAME = 'Bruce Campbell';
+let notifFilter = 'all';
+
+function setNotifFilter(f) {
+  notifFilter = f;
+  document.querySelectorAll('.notif-filter-chip').forEach(c => c.classList.toggle('active', c.dataset.f === f));
+  renderNotifList();
+}
+
+function notifIcon(type) {
+  const icons = {
+    wo_assigned: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>',
+    wo_reassigned: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>',
+    wo_status: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.2 2.2 4.8-5"/></svg>',
+    comment_mention: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H9l-4 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/></svg>',
+    pm_due: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+    follow_up_created: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4h13l-3 4 3 4H5"/></svg>',
+  };
+  return icons[type] || icons.wo_status;
+}
+
+function notifGroup(n) {
+  return n.time.startsWith('07/22/2026') ? 'Today' : 'Earlier';
+}
+
+function notifCard(n) {
+  return `<div class="notif-card ${n.read ? '' : 'unread'}" onclick="openNotification('${n.id}')">
+    <div class="notif-icon-wrap">${notifIcon(n.type)}</div>
+    <div class="notif-body">
+      <div class="notif-top-row">
+        <div class="notif-subject-wrap">
+          ${n.read ? '' : '<span class="notif-dot"></span>'}
+          <span class="notif-subject">${n.subject}</span>
+        </div>
+        <button class="notif-dismiss" onclick="event.stopPropagation();confirmDismissNotif('${n.id}')" aria-label="Dismiss">✕</button>
+      </div>
+      <div class="notif-text">${n.body}</div>
+      <div class="notif-meta">
+        <span>${n.time}</span>
+        ${n.wo ? `<span class="notif-meta-sep">|</span><span>Work Order <span class="notif-wo-link">${n.wo}</span></span>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderNotifList() {
+  const rows = notifFilter === 'unread' ? EAM_NOTIFICATIONS.filter(n => !n.read) : EAM_NOTIFICATIONS;
+  const groups = { Today: [], Earlier: [] };
+  rows.forEach(n => groups[notifGroup(n)].push(n));
+  let html = '';
+  ['Today', 'Earlier'].forEach(g => {
+    if (!groups[g].length) return;
+    html += `<div class="notif-section-label">${g}</div>`;
+    groups[g].forEach(n => { html += notifCard(n); });
+  });
+  document.getElementById('notifList').innerHTML = html || `<div class="notif-empty"><div class="notif-empty-title">${notifFilter === 'unread' ? 'No unread notifications' : 'No notifications'}</div><div class="notif-empty-sub">You’re all caught up.</div></div>`;
+  const anyUnread = EAM_NOTIFICATIONS.some(n => !n.read);
+  document.getElementById('markAllBtn').disabled = !anyUnread;
+  updateNotifBadge();
+}
+
+// Punching into a WO from this screen (2026-07-22, punch-list item) —
+// 19257/19831/20450 open as themselves; any other WO number just opens
+// the corrective (BRKD/19257) flow rather than the Free-Form/no-rail
+// fallback. WO List's own openWO() does real Type-based routing since it
+// has each row's Type to route on; this screen doesn't carry that detail
+// on a notification, so it isn't worth building the same lookup twice —
+// defaulting to the full guided flow is the more useful "just works"
+// behavior for a secondary entry point like this one.
+function openNotification(id) {
+  const n = EAM_NOTIFICATIONS.find(x => x.id === id);
+  if (!n) return;
+  if (!n.read) { n.read = true; renderNotifList(); }
+  if (!n.wo) { showToast('No linked record for this notification'); return; }
+  const demoWo = ['19257', '19831', '20450'].includes(n.wo) ? n.wo : '19257';
+  sessionStorage.setItem('eamOpenDemoWo', demoWo);
+  location.href = 'eam-wo-record-view-prototype-v1.html';
+}
+
+function confirmDismissNotif(id) {
+  openConfirm('Dismiss this notification? This won’t affect the source record.', () => {
+    const idx = EAM_NOTIFICATIONS.findIndex(n => n.id === id);
+    if (idx > -1) EAM_NOTIFICATIONS.splice(idx, 1);
+    showToast('Notification dismissed');
+    renderNotifList();
+  }, 'Dismiss');
+}
+
+function markAllRead() {
+  EAM_NOTIFICATIONS.forEach(n => n.read = true);
+  renderNotifList();
+}
+
+renderNotifList();
+initSharedApp({ contentSelector: '.content' });
+</script>
+</body>
+</html>

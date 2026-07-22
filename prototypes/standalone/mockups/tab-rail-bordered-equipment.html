@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tab Rail — Bordered, Equipment's Real Tabs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  TAB RAIL — bordered outline, shown with Equipment's real tab list
+  (2026-07-22, riff on rails-monochrome-conversion.html). Only change
+  from that file: a full outline (was bottom-border only), thin/medium,
+  ink-colored (black light / white dark), that encloses the collapsed
+  bar AND grows to wrap the expanded tab map too — since the map is a
+  child of .tab-rail itself, one border rule on the outer element
+  covers both states with no extra markup. Nothing else about the tab
+  rail changes here — the Reference-group/Comments-Documents-Equipment
+  riff is step-rail-only (WO workflow screens); Equipment already has
+  real Comments/Documents/etc. tabs, not sections needing a "jump to"
+  shortcut, so it isn't affected by that part at all.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --purple:#9933FF;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-nav:#1A1A1F; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+[data-theme="dark"]{
+  --bg-page:#1A1A1F; --bg-card:#26252B; --bg-nav:#111114; --bg-section:#302F33; --border:#3E4047; --border-strong:#4A4C55;
+  --gray-1:#2A2930; --gray-2:#3E4047; --gray-3:#6F7480; --gray-4:#B2B8C4;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--octave-black);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:390px;width:100%;color:#fff;font-size:12px;line-height:1.55;margin-bottom:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;}
+.legend b{color:#fff;}
+.theme-row{display:flex;gap:8px;margin-bottom:14px;}
+.theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:5px 12px;cursor:pointer;}
+.wrap{max-width:390px;width:100%;background:var(--bg-page);border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.opt-label{font-size:12px;font-weight:700;color:var(--octave-black);background:var(--bg-page);padding:14px 14px 6px;}
+[data-theme="dark"] .opt-label{color:var(--white);}
+
+.nav{height:52px;background:var(--bg-nav);display:flex;align-items:center;justify-content:space-between;padding:0 12px;}
+.nav-left{display:flex;align-items:center;gap:8px;}
+.nav-back{background:none;border:none;color:#fff;padding:0;cursor:pointer;display:flex;}
+.proto-label{font-size:9px;font-weight:700;letter-spacing:.5px;color:var(--gray-3);text-transform:uppercase;}
+.nav-title{color:#fff;font-size:14px;font-weight:600;}
+.rec-header{background:var(--bg-nav);padding:14px 14px 12px;}
+.rec-num{font-family:var(--font-mono);font-size:20px;color:#fff;}
+.rec-desc{color:#fff;font-size:14px;font-weight:600;margin-top:2px;}
+
+/* ── Tab rail — outlined (NEW), everything else same as the previous
+   monochrome-conversion mockup. ── */
+.tab-rail{background:var(--bg-section);border:1.5px solid var(--octave-black);border-radius:0;padding:0 14px;flex-shrink:0;cursor:pointer;transition:border-color .15s;}
+[data-theme="dark"] .tab-rail{border-color:var(--white);}
+.tab-rail.expanded{padding-bottom:14px;}
+.tab-rail-collapsed{height:56px;display:flex;align-items:center;gap:10px;}
+.tab-rail-icon{color:var(--gray-4);flex-shrink:0;display:flex;}
+.tab-rail-name{font-size:14px;font-weight:700;color:var(--octave-black);flex:1;}
+[data-theme="dark"] .tab-rail-name{color:var(--white);}
+.tab-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
+.tab-rail.expanded .tab-chevron{transform:rotate(180deg);}
+.tab-map{display:none;background:var(--bg-card);padding:8px 0 12px;border-top:1px solid var(--border);}
+.tab-rail.expanded .tab-map{display:block;}
+.tab-map-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-radius:4px;margin:0 6px;transition:background .1s;color:var(--gray-4);}
+.tab-map-item:hover{background:var(--bg-section);}
+.tab-map-item.active{background:var(--bg-section);color:var(--octave-black);}
+[data-theme="dark"] .tab-map-item.active{color:var(--white);}
+.tab-map-icon{width:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.tab-map-label{flex:1;font-size:13px;font-weight:500;color:var(--octave-black);}
+[data-theme="dark"] .tab-map-label{color:rgba(255,255,255,.85);}
+.tab-map-item.active .tab-map-label{color:var(--octave-black);font-weight:700;}
+[data-theme="dark"] .tab-map-item.active .tab-map-label{color:var(--white);}
+
+.content{padding:12px;font-size:12px;color:var(--gray-4);}
+</style>
+</head>
+<body>
+
+<div class="legend">
+  <b>Tab Rail — bordered.</b> New: a full 1.5px ink outline (was bottom-border only) — encloses the collapsed bar and grows with it when expanded, since the tab map is a child of the same element. Shown here with Equipment Record View's real tab list (Record View / Comments / Documents / Structure Details / Costs). Unaffected by the step-rail Reference-group riff — Equipment already has real tabs for these, not sections.
+</div>
+
+<div class="theme-row">
+  <button class="theme-toggle" onclick="document.documentElement.removeAttribute('data-theme')">☀ Light</button>
+  <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme','dark')">◑ Dark</button>
+</div>
+
+<div class="wrap">
+  <header class="nav">
+    <div class="nav-left">
+      <button class="nav-back"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <span class="proto-label">PROTOTYPE</span>
+    </div>
+    <div class="nav-title">Equipment</div>
+  </header>
+  <div class="rec-header">
+    <div class="rec-num">00067333</div>
+    <div class="rec-desc">Pump, Centrifugal</div>
+  </div>
+
+  <div class="opt-label">Collapsed</div>
+  <div class="tab-rail" id="railA" onclick="toggle('railA')">
+    <div class="tab-rail-collapsed">
+      <span class="tab-rail-icon"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke-linecap="round"/></svg></span>
+      <span class="tab-rail-name">Record View</span>
+      <svg class="tab-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+
+  <div class="opt-label">Expanded — Record View active</div>
+  <div class="tab-rail expanded" id="railB" onclick="toggle('railB')">
+    <div class="tab-rail-collapsed">
+      <span class="tab-rail-icon"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke-linecap="round"/></svg></span>
+      <span class="tab-rail-name">Record View</span>
+      <svg class="tab-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="tab-map">
+      <div class="tab-map-item active" onclick="event.stopPropagation()"><span class="tab-map-icon">●</span><span class="tab-map-label">Record View</span></div>
+      <div class="tab-map-item" onclick="event.stopPropagation()"><span class="tab-map-icon">○</span><span class="tab-map-label">Comments</span></div>
+      <div class="tab-map-item" onclick="event.stopPropagation()"><span class="tab-map-icon">○</span><span class="tab-map-label">Documents</span></div>
+      <div class="tab-map-item" onclick="event.stopPropagation()"><span class="tab-map-icon">○</span><span class="tab-map-label">Structure Details</span></div>
+      <div class="tab-map-item" onclick="event.stopPropagation()"><span class="tab-map-icon">○</span><span class="tab-map-label">Costs</span></div>
+    </div>
+  </div>
+
+  <div class="content">Record View tab content would render here…</div>
+</div>
+
+<script>
+function toggle(id){document.getElementById(id).classList.toggle('expanded');}
+</script>
+</body>
+</html>

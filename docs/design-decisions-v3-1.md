@@ -97,14 +97,14 @@ All colours are from the Octave design system extended palette. Both light and d
 | **Orange** | #F46600 | Priority/urgency — Breakdown WO type bar, required field marker, follow-up active |
 | **Dark Green** | #00AA14 | Success/complete — bar ready state, sync synced, Pass/OK/Yes fill, available qty |
 | **Red** | #E24B4A | Fail/error/negative — Fail/Repair/No fill, sync error, NC flags |
-| **Octave Yellow** | #FFF500 | Step rail wash for Not Free Form WO workflows (see §3.2.2, §15.4) — replaces purple in that one context only |
+| **Octave Yellow** | #FFF500 | **Removed from the step rail 2026-07-22 (flagged to revisit, not a locked reversal)** — see the note under §3.2.2 below. |
 
 ### 3.2.2 Semantic usage
 
 | Semantic | Token |
 | --- | --- |
-| **Active / selected** | Purple (#9933FF) — except the step rail on a Not Free Form WO workflow, which uses Octave Yellow instead (see row below) |
-| **Step rail — Not Free Form WO workflow** | Octave Yellow (#FFF500) — see §15.4. Standard Record Views and Free Form work orders keep the purple wash; only the guided, Not Free Form WO step rail switches. |
+| **Active / selected** | This whole row (and the one below it) is stale — superseded by §23, which retired purple as a UI-state accent app-wide. Selection now reads via ink weight/fill, not hue. Don't treat this table as current for anything §23 already covers; it predates that pass and was never swept. |
+| **Step rail — Not Free Form WO workflow** | **Flagged to revisit, 2026-07-22 (user direction) — not a locked decision anymore.** The Octave Yellow wash (`.rail-not-free-form` in `eam-shared.css`) read badly in practice and was removed outright rather than re-tuned — the rail now looks identical regardless of Free Form/Not Free Form state. This is a real gap: Not Free Form workflows have *no visual signal at all* right now, only whatever the (currently inert, protected-status-only) behavioral difference implies. Needs a real answer later — just not yellow, and not today. |
 | **Positive answer** | Green (#00AA14) — Pass, OK, Yes, Good, confirmed checkbox |
 | **Negative answer** | Red (#E24B4A) — Fail, Repair Needed, No, Poor |
 | **Adjusted / warning** | Orange (#F46600) — Adjusted toggle, follow-up button active |
@@ -185,9 +185,10 @@ Revised mid-sweep: the first pass made these bold (700), uppercase, and muted gr
 | **Clear visibility — required OR empty hides it** | Clear is hidden for two independent reasons, either one is sufficient: the field is required (set by screen design or system design — clearing a required field to empty would contradict the requirement), or the field is already empty (nothing to clear). Shown only when a field is both not-required and currently populated. Applies to LOV, edit/currency/number, and date sheets — not to long-text (see below). |
 | **No Clear on textareas** | Long-text editors (and Comments, which reuses the same sheet) never get a Clear action — the user selects all and deletes manually instead, same as any native text editing. This is a deliberate exception to the "Clear on every sheet" rule above, not an oversight. |
 | **No custom keyboard-toolbar mock — reverted** | An earlier pass mocked a bottom bar (emoji + mic) to represent the native OS keyboard's own toolbar row. Removed after review: with no actual keyboard present on a desktop browser, the bar reads as a broken/floating custom control rather than "the keyboard's own row" — it looked worse than showing nothing. Dictation is entirely the device keyboard's job; nothing to build for it. |
-| **Inline text editing (≤255 characters)** | Short plain-text fields are edited directly in place — tap into the row, no popup/sheet at all. A floating blue circular checkmark appears above the keyboard (mimicking the iOS keyboard-accessory-view pattern); tapping it, pressing Enter, or tapping away all commit the value and mark the form dirty. This supersedes the single-line edit sheet for plain text specifically — that sheet is still used for currency and number types, just not text. Demonstrated on "User Defined Field 01" in `sample-screen-standard-model-prototype.html` ("Notes" was removed as a demo field — real Notes-type fields are textareas/long-text, not short inline text, so it was demonstrating the wrong pattern; UDF01 alone now covers this case). |
-| **Inline text: long values stack below the label, not squeezed beside it** | The row is normally label-left, value-right on one line. Past a length threshold (24 characters — a stable heuristic, not a live width measurement: measuring `scrollWidth` vs `clientWidth` would oscillate once the row switches layout, since the value suddenly has much more room and would "fit" again, flipping straight back), the row switches to a stacked layout — label on its own line, value below it, full width, left-aligned. Applies live while typing, not just after commit. |
-| **Tap anywhere in the row, not just the value/input** | Every editable field type must be openable/focusable by tapping anywhere in its row — the label side, not just the value side. Confirmed as a real gap for inline text fields specifically: the label span and the input were separate elements, and only the input itself was tappable. Fixed via an `onclick` on the row that focuses the input. LOV/edit/date sheet rows already had this right (`onclick` on the outer `.form-field`) since the whole row opens a sheet either way. |
+| **Inline text editing (≤255 characters)** | Short plain-text fields are edited directly in place — tap into the row, no popup/sheet at all. A floating green circular checkmark appears above the keyboard (mimicking the iOS keyboard-accessory-view pattern; colour corrected 2026-07-22 from an arbitrary blue to `var(--green)` — the FAB is only ever shown in a "ready to confirm" state, same language as `.insert-save-btn.ready`); tapping it, pressing Enter, or tapping away all commit the value and mark the form dirty. This supersedes the single-line edit sheet for plain text specifically — that sheet is still used for currency and number types on the Standard Model's own Number/Currency fields, just not text (a *different*, grid-cell-scoped Numeric/Integer field type below also skips the sheet, but that's Activity-specific so far, not a Standard Model change). Demonstrated on "User Defined Field 01" in `sample-screen-standard-model-prototype.html` ("Notes" was removed as a demo field — real Notes-type fields are textareas/long-text, not short inline text, so it was demonstrating the wrong pattern; UDF01 alone now covers this case). |
+| **Inline text: label above, cursor starts left-aligned beneath it — the field's permanent shape (revised 2026-07-23)** | Was conditional on a 24-character length threshold (the row switched to this stacked layout only once typed text got long, live while typing — a `scrollWidth`/`clientWidth` live-measurement was rejected at the time as prone to oscillating once the row's own available width changed). **Now permanent** for every standalone free-text field that is NOT inside a collapsible container: label always sits on its own line, the cursor starts left-aligned underneath it — never right-justified mid-line the way a short value used to sit — and the value spans the full row width, wrapping to as many lines as needed. The field is deliberately a bit taller than a plain LOV/date row as a result, by design, not a side-effect of long content. Two exclusions (no real instance of either yet, but the rule to follow if one shows up): a genuine multi-line textarea (Comments, Closing Comments — a different component already, unaffected either way) and a same-shaped field that ends up inside a real collapsible container (chevron + `toggleSectionCard` header) — that case should keep the old conditional/compact shape instead of this one. Applied 2026-07-23 to all 5 real consumers: WO Record View's Activity Note, WO List's and Home's Insert Mode Description, Activity Checklist's item Notes, and the canonical UDF01 example in `sample-screen-standard-model-prototype.html`. `updateInlineFieldLayout()` (`eam-shared.js`) no longer toggles `.stacked` conditionally on length — the class is now written directly into each field's own markup so it's correct on first render, not just after a keystroke; Activity Checklist additionally needed an explicit `autoGrow()` call right after each item's re-render, since a pre-existing multi-line note has to size correctly immediately, not only once the user types into it again. |
+| **Tap anywhere in the row, not just the value/input** | Every editable field type must be openable/focusable by tapping anywhere in its row — the label side, not just the value side. Confirmed as a real gap for inline text fields specifically: the label span and the input were separate elements, and only the input itself was tappable. Fixed via an `onclick` on the row that focuses the input. LOV/edit/date sheet rows already had this right (`onclick` on the outer `.form-field`) since the whole row opens a sheet either way. **Re-surfaced 2026-07-23 on a different field shape:** Activity's Header Fields grid cells (`.attr-item`, not `.form-field`) had the identical gap for the new Numeric/Integer inline field below — only the `<input>` itself was tappable, not the cell's label or padding. Same fix, same reasoning, just the grid-cell markup instead of a row (`onclick` added to each `.attr-item`, focusing its own `<input>`). |
+| **Numeric/Integer field — inline, no popup, digits-only keyboard (new field type, added 2026-07-23)** | Distinct from the Standard Model's existing Number field (currency/number cluster above), which still opens the edit sheet — this is the shape a plain numeric/integer count gets when it lives inside a Header Fields grid cell rather than a `.form-field` row: types directly in the cell, no sheet at all, same "no popup" philosophy as inline text but for digits. `type="text" inputmode="numeric" pattern="[0-9]*"` — deliberately not `type="number"`, to skip its native spinner arrows/scientific-notation quirks (same reasoning as the Time Only field's plain-native-input choice above) while still raising the device's digits-only NUMBERS keypad; an `oninput` handler strips any non-digit as a fallback for input that doesn't honor `inputmode`. First (and so far only) real consumer: Activity Insert/Update Mode's People Required and Estimated Hours grid cells, plus the Activity identifier field itself, which converted from the old popup-based number-edit sheet to this same inline shape and dropped its now-misleading trailing chevron — there's no sheet left for it to imply. Screen-local in `eam-wo-record-view-prototype-v1.html` for now (only 1 real consumer); promote to `eam-shared.css`/`.js` on a 2nd, and the same treatment should apply to Currency whenever a grid cell needs one. |
 | **Comments use the exact same long-text pattern** | Adding/inserting a comment and editing an existing long-text field are the identical UI pattern (full-screen editor, no Clear, discard-replaces-close). Comments added to the master field-type reference for this reason — it isn't a distinct field type, just the same long-text sheet opened from an "Add comment" row instead of an existing field row. |
 | **Comments: ellipsis menu (Edit / Delete / Copy), permission-driven** | Each comment has an ellipsis (`⋯`) next to its timestamp. Tapping it opens a menu styled like an LOV list (same row/divider styling) but with no selection indicator — these are actions, not a choice being made. Edit/Delete/Copy for the comment's own author; every other user sees Copy only. Edit reopens the exact same long-text editor used for adding a comment or editing any other long-text field, pre-filled with the current text, saving back in place. Delete requires confirmation (see "Centered confirmation modal" below) before removing the row. Copy uses the clipboard API where available, confirms via the standard bottom toast. |
 | **Centered confirmation modal (Delete etc.)** | Destructive actions get a centered dialog, not a bottom sheet — "Are you sure you want to delete the comment?" with Cancel / Delete. A reusable `openConfirm(message, onConfirm)` utility, not a one-off for Comments; use it anywhere a destructive action needs a confirm step. Distinct component from the bottom-sheet pattern used everywhere else in this app — sheets are for choosing a value or editing; this is for confirming a destructive action, and reads better centered. |
@@ -898,34 +899,25 @@ layout. See §21 for the retired bespoke version.
 
 ## 6.7 WO colour language
 
-This is the WO module's own value→colour table — the concrete instance
-of §8.3's generic "colour source for a status/type-like field" rule for
-this module, not a separate bespoke spec. It applies wherever Status or
-Type land: Status is §6.5's card headline (Organization's carve-out
-means Status is the field that ends up in slot 1); Type doesn't make
-the WO dataspy's first 6 columns per §6.5, so it surfaces only in List
-mode's all-fields table (§8.3), still coloured the same way. Icons stay
-retired entirely (§3.4 "No icons inside any pill or field"). Colour is
-reserved for exactly two dimensions, at two different intensities — Type
-gets "a touch," Status gets the one prominent, solid colour:
+Superseded 2026-07-22 — see §21 for the old table. §23 is now the
+governing rule: colour is reserved for exactly 3 instruments, and Type
+isn't one of them, so it lost its colour entirely here too (it had
+already lost it on WO Record View and this screen's own Insert Mode —
+this section was the stale holdout). Status is a real instrument, so it
+keeps colour, but now reads off the same 3-tier fill vocabulary as the
+header status pill (§4.4.1/`STATUS_CLASS_MAP`) instead of its own 4-way
+scheme:
 
 | Dimension | Mapping |
 | --- | --- |
-| **Type — Breakdown (BK)** | Red #E24B4A text |
-| **Type — Calibration (CAL)** | Teal #007B87 text |
-| **Type — Corrective maint (CM)** | Orange #F46600 text |
-| **Type — Inspection (INS)** | Purple #9933FF text |
-| **Type — Modification (MOD)** | Gray #6F7480 text |
-| **Type — Preventive maint (PM)** | Green #00AA14 text |
+| **Type — any value** | No colour — plain text, name only (matches TYPE_META everywhere else) |
 | **Priority** | No colour, any level — plain description text ("Low"/"Medium"/"High"/"Critical") |
-| **Status — Released** | Solid green #00AA14 pill, white text |
-| **Status — Waiting approval** | Solid orange #F46600 pill, white text |
-| **Status — Waiting materials** | Solid orange #F46600 pill, white text — merged with Waiting Approval; both read as "blocked on something," not distinguished by urgency |
-| **Status — Completed** | Solid gray #6F7480 pill, white text — deliberately not purple; a completed WO no longer needs to compete for attention |
+| **Status — Released, Completed** | Green fill pill, white text (`.pill-green` — "operational/completed" tier) |
+| **Status — Waiting approval, Waiting materials** | Outlined pill, ink text (`.pill-outline` — "standby/waiting" tier; this screen's own two "blocked on something" statuses, not in the canonical 4, both map here) |
+| **Status — (any future "down"/failed status)** | Red fill pill, white text (`.pill-red` — not populated by this screen's current demo data, supported for when one exists) |
 
-Type/status colour previously rendered as a 12% opacity tint behind an
-icon glyph; both the tint and the icon are gone — Type is now plain
-coloured text, Status is a solid fill.
+Icons were already retired before this pass (§3.4 "No icons inside any
+pill or field") and stay retired.
 
 ## 6.8 Due date treatment
 
@@ -1084,6 +1076,63 @@ Informed by (but needs restyling from) the legacy desktop tablet reference
 screenshot `Structure__Safety_WO.png`, which shows an indented tree with
 connector lines and a status dot per node — not Octave-styled and not
 mobile-vertical-optimized as-is.
+
+## 7.5 Equipment Photo — icon, preview pop-out, and edit (decided
+2026-07-22, not yet built)
+
+New named component, raised this session, not yet prototyped in either
+consumer. **Distinct from §4.3's user Avatar** — this is a photo of the
+physical asset, attached to the Equipment record itself, not the logged-in
+technician's own picture. The request that introduced this used "profile
+picture" language by analogy to §4.3, but the two are different data on
+different records — don't conflate them or reuse `.nav-avatar` markup for
+this.
+
+**Two consumers, one shared component:**
+- **WO Record View's Equipment LOV on-record icon** (§15.5's
+  `.equip-summary-card` icon slot — today the per-class icon from
+  `EQUIP_CLASS_ICONS`).
+- **Equipment Record View's own header** (§5.3's `.rec-id-row`). This adds
+  a new icon slot — `.rec-id-row` has none today — it doesn't converge an
+  existing duplicate. Exact placement/sizing within `.rec-id-row` is not
+  yet decided; tracked in §20.
+
+**Fallback order — same "real photo beats a generic fallback" pattern
+already locked for the nav Avatar (§4.3):** the equipment's own photo
+displays if one is on file. On WO Record View, absent a photo the icon
+falls back to the existing per-class-icon-or-nothing rule (§15.5)
+unchanged — no photo and no class icon means no icon at all, same as
+today. Equipment Record View's icon has no prior fallback of its own to
+drop back to; what it shows with neither a photo nor (whatever, if
+anything, ends up gating an icon there) is an open question, not answered
+here.
+
+**Populated state — tap opens a pop-out preview, not the Equipment
+Lookup sheet.** A full-image pop-out reusing §19.6's full-screen
+viewer-sheet shell (a real image here, not a coloured placeholder, since
+this is an actual per-record photo) with one action added: **Edit**,
+which opens the exact same attachment source-picker sheet Attachments
+already uses (§19.6 — Camera / Photo library / File or document) to take
+or choose a replacement photo; committing replaces the stored photo and
+updates the icon immediately. This is a new variant of the §19.6 viewer
+shell, not a verbatim reuse — the existing viewer's action is Remove,
+this one needs Edit instead. Whether Remove should also be offered here
+is open, not decided.
+
+**Empty state — tap goes straight to the source-picker, skipping the
+preview.** Nothing to preview yet, so tapping an icon with no photo set
+opens the same §19.6 source-picker sheet directly, to set a first photo —
+same shortcut logic as any other unset-required-field tap, just without
+an intermediate empty-preview step.
+
+**Tap-target carve-out, WO Record View specifically:** `.equip-summary-
+card` is currently one uniform tap target — tapping anywhere on the card
+opens the Equipment Lookup sheet (§15.5). This adds a second, smaller tap
+target: the icon itself, which now intercepts the tap for photo
+preview/edit instead. Tapping anywhere else on the card is unchanged.
+Same "separate controls so browsing one thing never collides with a
+different action" precedent already set by the Structure tab's
+text-vs-caret disambiguation (§15.5).
 
 # 8. Standard Model — Record View › Child Tabs
 
@@ -1460,23 +1509,43 @@ dashes — a 3-field record just renders a shorter card than a 5-field one.
 **Slot 1 — headline.** Bold, no label, top-left, up to 2 lines
 (`-webkit-line-clamp:2`) before truncating. Plain bold text by default;
 if the field's own EAM field metadata marks it status-type, it renders
-instead as a solid colour pill — same weight/treatment as a Status pill
-gets anywhere else in the app — sitting in the headline position rather
-than a plain bold string.
+instead as a pill — same headline-weight/position as before, but
+**superseded 2026-07-22 (§23):** no longer a generic "solid colour,"
+specifically one of 3 fill/outline tiers (`.pill-green`/`.pill-red`/
+`.pill-outline` in `eam-shared.css`, consumed by `renderStdCard()`/
+`renderStdTable()`) — green=operational/completed, red=down,
+outline=standby/waiting — matching the same vocabulary as the header
+status pill (§4.4.1) rather than a per-module hex table. Type-like
+fields never get this pill treatment; they were never status-type to
+begin with.
 
 **Slot 2 — subline.** Muted, no label, directly under slot 1, single
-line, ellipsis-truncated. Coloured plain text (not a pill) if the field
-is type/code-like per its metadata.
+line, ellipsis-truncated. **Superseded 2026-07-22 (§23):** no longer
+coloured text for type/code-like fields — Type isn't one of the 3 colour
+instruments, so it renders as plain text like everything else here now
+(this was actually dead in every real consumer already — status is
+always slot 1's field per every current dataspy's column order, and
+Type never lands in slot 2 either — but the rule itself was still
+wrong on paper until this pass). **WO List deviates from "muted" as of
+2026-07-22 (user report — its Description subline read gray while the
+same field renders in ink everywhere else on the same screen, List
+mode's table cell included):** its own local `.ld-card-subline` now
+uses `--text-body` (ink) instead of `--text-muted`. Not yet changed in
+the shared `eam-shared.css` copy (Sample Screen/Card Standard/Equipment
+List's own consumers still render slot 2 muted, per this section) —
+flagged here rather than silently generalized; revisit if the same
+complaint comes up on another screen.
 
 **Slots 3–5 — stacked label:value rows.** Each reuses `.field-label` /
 `.field-value` **exactly** — the identical 13px muted-label / 14px-500
 dark-value convention every Standard Model form row already uses
 elsewhere in record view (§5.2) — just without `.form-field`'s
 tap/border/hover/min-height chrome, since these rows are read-only, not
-editable. Status/type-like values here render as coloured text, same
-rule as slot 2 — **pills only ever appear in slot 1 (or the corner org
-badge)**, never in 3–5; a pill reads as headline-weight, and no
-`.field-value` anywhere else in the app carries pill styling.
+editable. Plain text always now (see slot 2's note — the old "status/
+type-like values render as coloured text" rule here is gone too) —
+**pills only ever appear in slot 1 (or the corner org badge)**, never in
+3–5; a pill reads as headline-weight, and no `.field-value` anywhere
+else in the app carries pill styling.
 
 **Dates — always plain `MM/DD/YYYY`, never relative or urgency-tinted,**
 regardless of which slot a date field lands in. Deliberate: this card
@@ -1855,7 +1924,13 @@ forward-referencing, e.g. §9.3).
   precedent in `EAM.ADMN.REQ.ScreenDesignerforDigitalWork` — Digital
   Work's own Screen Designer). Copy-from-Group / Save-to-Group(s), the
   latter multi-select so one save can push a layout to several groups at
-  once — same mechanism, not reinvented for mobile.
+  once — same mechanism, not reinvented for mobile. **Move mechanics,
+  2026-07-22:** the Available/Save-to dual-listbox supports three
+  equivalent ways to move a group across — the arrow buttons, drag-and-
+  drop, and (added 2026-07-22) double-click a group to move it straight
+  across without needing to select it first. All three are wired in
+  `eam-screen-designer-v1.html`'s `moveSelectedGroups()`/`wireGroupDrag()`/
+  `moveGroupItem()`.
 - **§5.3 header fully locked out of Screen Designer** (decided
   2026-07-15) — the identity icon/number/description, status button,
   pin, and ellipsis are never configurable here, matching how both
@@ -1945,8 +2020,11 @@ people to do 10,000 things depending on the use case"), never accidentally
 locked down by an absent config row.
 
 **Whether a single workflow can reuse the same step type more than once**
-(e.g. two Issue Parts steps) — carried over from the earliest framing,
-still genuinely open, not resolved this session. Flagged in §20.
+(e.g. two Issue Parts steps) — **resolved 2026-07-22 (user direction): out
+of scope for initial release.** Each of the 5 step types appears at most
+once per workflow; a WO Type that genuinely needs to revisit a step type
+mid-flow should use Free Form (§12) rather than the guided sequence.
+Revisit only if a concrete real-world case shows up post-release.
 
 # 12. WO Workflow — 3-tier data shape
 
@@ -1959,15 +2037,42 @@ getting Free Form access to a WO Type that's locked for technicians).
 That means the two don't share a grain, so they don't share a row. Three
 tiers, narrowest to broadest:
 
-1. **`WOTYPE`** (existing base table) — gains **one** column:
-   **status source** (WO header status vs. Activity assignment status,
-   §15.4 — which status the workflow's status controls actually
-   read/write: the WO's own header status, Released/Completed/Closed, or
-   the Activity's own per-activity status, Not Started/In Progress/
-   Complete, not-yet-built Activity Screen §20). Keyed by WO Type alone,
-   no User Group dimension — this is the only piece of the whole model
-   that's a single new column on `WOTYPE` directly rather than a new
-   table.
+1. **`WOTYPE`** (existing base table) — gains **three** columns, all keyed
+   by WO Type alone, no User Group dimension (same reasoning as before —
+   structural facts about the type, not per-viewer):
+   - **Completion Status Entity** (renamed 2026-07-22 from "status
+     source" — same concept, clearer name once two more fields joined it
+     below): which entity's status domain this WO Type's workflow reads/
+     writes — **Work Orders** (the `EVST` status domain) or **Activities**
+     (the `AAST` status domain: Not Started/In Progress/Complete,
+     not-yet-built Activity Screen §20).
+   - **`EVST` domain gained a 4th value, In Progress, same day** (Work
+     Request/Released/**In Progress**/Closed). Not a reversal of §15.4's
+     "WO status colour locked" 3-*system*-status rule (Work Request/
+     Released/Closed still stands, and still carries the colour) — In
+     Progress is a real *user* status nested under the Released system
+     status, per that same section's own nesting model, added specifically
+     so Start Work Status (below) has a value distinct from Released to
+     default to, matching §15.4's original "generically 'In Progress'"
+     framing instead of leaving it to reuse Released itself.
+   - **Start Work Status** (new 2026-07-22 — resolves the forward
+     dependency §15.4 flagged: *"WO Workflow Setup needs a field defining
+     what status the WO transitions to... once the technician taps Start
+     Work"*) — a specific status value, drawn from whichever domain
+     Completion Status Entity selects, set when Start Work is tapped on
+     WO Record View. Defaults to In Progress for either entity (`AAST` has its
+     own native In Progress value); re-defaults whenever Completion Status
+     Entity changes.
+   - **Completion Status** (new 2026-07-22) — same shape as Start Work
+     Status, but for the status set when the workflow completes.
+   - **Not a branch point for WO Closing's own field set.** Explicit
+     non-decision, so this doesn't get re-litigated later: WO Closing
+     (Closing Codes/Downtime/Comments/Attachments) renders identically
+     regardless of which entity is selected. If Completion Status Entity
+     is Activities, the *real* eventual answer is likely a standalone
+     Activities tab (§20, unbuilt) serving as that WO Type's actual
+     closing surface instead of WO Closing — flagged as a future scoping
+     option, not designed or built.
 2. **WO Workflow header** (new, genuinely net-new — base EAM has nothing
    like it) — keyed **WO Type × User Group**. Holds the **Free Form /
    Not Free Form flag** (Y/N) — §15.4's status-field-editability behavior
@@ -1975,10 +2080,18 @@ tiers, narrowest to broadest:
 3. **WO Workflow Steps** (new, child of #2) — keyed **WO Type × User
    Group × Step**. Holds, per step: **Visible** (does this step appear at
    all), **Sequence** (order), **Required** (§14.7-style bar-locking
-   behavior).
+   behavior). **Book Labor gains one more, step-specific column, 2026-
+   07-22: Time Entry Mode** (Start/End Time, the only mode built in any
+   prototype so far, vs. Direct Hours Entry) — resolves §18.4's own
+   forward reference (*"Direct hours mode is screen-designer configurable,
+   future cycle"*). No other step type has an equivalent field yet.
 
-Only #2 and #3 are genuinely new entities; #1 is a single column on a
-table that already exists.
+Only #2 and #3 are genuinely new entities; #1 is three columns on a table
+that already exists. Prototyped in `eam-screen-designer-v1.html`
+(`prototypes/standalone/base screens/`) — the left pane's Free Form
+toggle, Completion Status Entity/Start Work Status/Completion Status
+selects, and Book Labor's step-row gear icon (Time Entry Mode) map 1:1 to
+tiers 1–3 above.
 
 # 13. WO Workflow — Field Layout
 
@@ -2090,15 +2203,45 @@ repurposes the vacated left slot for the timer — sketch (C), replacing
 the 5 discrete segments with one continuous fill track, was not adopted
 and remains unchosen.
 
+**Palette pass, 2026-07-22 (§23) — wash retired, outline added, alignment
+fixed.** The rail's persistent purple-tint background (and step
+pill/segment-active/timer-hover purple touchpoints) are gone — see §23
+for the full rule. Concretely: `.step-rail`/`.tab-rail` now sit on a
+plain `--bg-section` surface with a full 1px `--border-strong` outline
+(grows to wrap the expanded map too, since the map is the rail's own
+child — one border rule covers both states). Outline color went through
+one revision: briefly solid ink/black, reverted same day per live
+feedback ("not digging the rigid black outline") to the same
+`--border-strong` token every outlined icon/chip this pass already uses.
+Left/right padding corrected 14px→16px — was sitting 2px left of the
+`.rec-id-row`/`.rec-status-row-inner` content directly above it, a real
+misalignment, not a style choice. `.tab-rail-icon` (the leading glyph
+naming "the current tab," redundant next to the tab's own name) is
+removed, not recolored. The now-dead `.step-pill` ("2 of 5," already
+removed from markup the same day per the note above) and
+`.step-map-footer` ("WO.WORKFLOW.01 - Corrective Maintenance Execution")
+CSS/markup are both deleted outright.
+
 ## 14.3 Step map (expanded)
 
 - Vertical timeline — all steps visible
 - Done steps: green filled circle with checkmark
-- Active step: purple filled circle, highlighted row background
+- Active step: ink (black light / white dark) filled circle, highlighted
+  row background — was purple, see §23 (2026-07-22)
 - Locked steps: gray bordered circle with step number
 - Admin-configurable: freely jumpable or strictly linear per WO type
-- Prototype: freely jumpable — any step tappable in expanded map
-- Footer note: "Admin configured · Corrective Maintenance WO type"
+- **As actually built (`initStepRail()`, eam-shared.js): numbered rows are
+  informational only, not tappable** — "freely jumpable" above was never
+  implemented; each step is its own file, not an in-page tab, so jumping
+  ahead isn't a same-page interaction the way it is for `.tab-rail`.
+- **Footer note removed 2026-07-22** (was "WO.WORKFLOW.01 - Corrective
+  Maintenance Execution" in the built version, not the spec's original
+  "Admin configured..." text — drifted at some point, now moot either
+  way) — replaced by nothing; see §14.8/§23 for what the map's new final
+  section (the "Reference" group: Comments, Documents, Equipment) holds
+  instead. That group's own rows ARE tappable, unlike the numbered steps
+  above them, and use a plain icon instead of a numbered badge on
+  purpose — see §14.8 for the full rule, not restated here.
 
 ## 14.4 WO identity block (collapsible)
 
@@ -2148,59 +2291,41 @@ technician from moving on.
 
 ## 14.8 Comments & Documents — reachable from any step, always
 
-Added 2026-07-16, revised same day. Unlike the 5 guided steps, Comments
-and Documents are not sequence items — they're persistent record-level
-content, so they don't belong in the step rail/step map at all, and they
-don't follow that rail's gating, locking, or the Free Form/Not Free Form
-flag (§15.4). **The technician can open either from any step, at any
-point in the workflow, unconditionally** — whether the WO is Free Form or
-Not Free Form, whether earlier steps are complete, regardless of anything
-the step bar (§14.7) is currently gated on.
+**Revised 2026-07-22 — mechanism changed, the underlying rule didn't.**
+Unlike the 5 guided steps, Comments and Documents are not sequence
+items — they're persistent record-level content owned by WO Record View
+alone, so they don't follow the step rail's gating, locking, or the Free
+Form/Not Free Form flag (§15.4). **The technician can reach either from
+any step, at any point in the workflow, unconditionally.** That rule is
+unchanged from the original 2026-07-16 version of this section (relocated
+to §21 — the *mechanism* it specified, an ellipsis-menu entry, is
+superseded).
 
-**Visual differentiation from the step rail (the "consider a visual
-indicator" ask) — via the ellipsis, not new nav-row icons.** First pass on
-this (same day) proposed two new persistent nav-row icons; superseded in
-favor of the ellipsis (⋯) instead, since one already exists on every step
-and already has an extensible slot built for exactly this kind of
-addition — reusing it beats adding new chrome:
-- **Step 1 (WO Record View)** uses the full §5.3 header — Comments and
-  Documents populate that header's existing **screen-specific action(s)**
-  group (§5.3's third menu group, `#recActionsScreenSpecific` —
-  already described generically as "an extensible slot each record type
-  populates itself," alongside things like WO's own "Print Work Order").
-  This is a WO-specific *use* of that generic slot, not a change to §5.3
-  itself — Equipment's own ellipsis is untouched, since Equipment already
-  reaches Comments/Documents via tabs (§8) and doesn't need this.
-- **Steps 2–5** use the §8.1 protected-identity header, whose
-  screen-specific ellipsis contents were explicitly left open ("likely
-  list-level actions... flagged as open"). For the WO workflow
-  specifically, that open slot is now filled: Comments and Documents,
-  same as Step 1.
-- Each menu item shows a trailing count (e.g. "Comments (3)") — the
-  count-badge role `.rv-badge` plays elsewhere, adapted to a menu-row
-  context since a dropdown item doesn't have room for a separate badge
-  element.
-- **Not** in the step map, still — that reasoning from the first pass
-  holds: adding them there would read as "step 6/7," implying they're
-  part of the sequence or that skipping them affects progress. The
-  ellipsis keeps them clearly filed as record-level actions, the same
-  paradigm every other ellipsis entry (Copy Link, Copy, Delete) already
-  uses — not a new UI concept invented for this.
+**New mechanism: the step rail's own expanded map, via a "Reference"
+group always pinned after the last numbered step** (§14.3). Reverses the
+original reasoning ("not in the step map — would read as step 6/7"): in
+practice, a numbered done/active/locked badge is what implied sequence
+membership, not the row's mere presence in the map. Giving Reference rows
+a plain icon instead of a numbered badge (§14.3) removes that implication
+without needing to keep Comments/Documents out of the rail entirely — and
+being inside the SAME already-familiar expand/collapse control the
+technician already uses for step navigation is more discoverable than a
+buried ellipsis entry.
+- **Comments** and **Documents** rows jump to those sections on WO
+  Record View: an in-page expand+scroll if already there, or a real
+  navigation there (then expand+scroll on load) from any of the other 4
+  steps — `jumpToRvSection()`/`consumeJumpToSection()` (eam-shared.js).
+  They render nowhere except WO Record View itself; every other step's
+  Reference row is a shortcut TO that content, not a duplicate of it.
+- **Equipment** is a 3rd row, a real future per-WO equipment screen,
+  stubbed as a toast for now (`jumpToEquipmentStub()`).
+- Not gated by `.rail-not-free-form` at all, by construction — no
+  gating logic references that class for these 3 rows.
 
-**Destination on tap:** the same dedicated Comments/Documents screens
-already locked for the Standard Model (§7.2/§8) — full list, add-on-top,
-Plus-adds-directly (not Insert Mode) — not a bottom sheet. Reuses the
-existing screen rather than inventing a variant that would duplicate it.
-
-**Built 2026-07-16, same day as this section, then rolled out to Steps
-2–4 as each was rebuilt:** Activity Checklist, Issue Parts, and Book
-Labor all carry Comments (3)/Documents (4) in their ellipsis's screen-
-specific slot, alongside Print Work Order — as toast stubs for now, since
-the dedicated Comments/Documents screens don't exist yet for either to
-link to. Step 1 (WO Record View) doesn't need this workaround — its
-Comments/Documents render fully inline on the page itself, so there's
-nothing to reach via the ellipsis there. Step 5 (WO Closing) still owes
-this once its own rebuild happens.
+**Stale, not yet cleaned up:** Activity Checklist, Issue Parts, and Book
+Labor still carry a Comments(3)/Documents(4) ellipsis-menu entry from the
+superseded mechanism (toast stubs, since the destination never existed).
+Tracked in §20 — remove once each screen's own rebuild pass reaches this.
 
 ## 14.9 Step timer panel (expanded) + Stop confirmation
 
@@ -2340,10 +2465,11 @@ WO-type workflow, whether the WO header status or the Activity's own
 assignment status is the status these controls read/write. This section
 covers editability of whichever one is selected, not which one it is.
 
-Follow-on configuration this implies, not yet designed as a screen: WO
-Workflow Setup needs a field defining what status the WO transitions to
-(generically "In Progress") once the technician taps **Start Work** on the
-Record View.
+**Resolved 2026-07-22** — see §12 tier 1's **Start Work Status** field.
+Not necessarily WO header status specifically — it's scoped to whichever
+entity Completion Status Entity selects for that WO Type (Work Orders'
+`EVST` domain or Activities' `AAST` domain), so an Activity-driven WO Type
+sets its Start Work Status on the Activity, not the WO header.
 
 **Not exempted by this flag:** Comments and Documents (§14.8) are
 reachable from any step regardless of Free Form/Not Free Form — that
@@ -2413,12 +2539,31 @@ already describes, not a separate flag.
 system the button's fill should be data-driven — whatever icon colour is
 defined on that status's user code in reference-data configuration — not a
 fixed enum baked into the app. **Generalized 2026-07-16** when WO Record
-View's rebuild needed it: WO's status codes (Released/In Progress/
-Completed/On Hold) aren't Equipment's, so `eam-shared.js`'s `selectLov()`
-now reads an optional screen-provided `STATUS_CLASS_MAP` (falling back to
-the original Operational/Down/Standby map if a screen doesn't define one)
-rather than hardcoding those 3 codes — still the same 3 fill colours/
-classes underneath, just not locked to one screen's code vocabulary.
+View's rebuild needed it: WO's status codes aren't Equipment's, so
+`eam-shared.js`'s `selectLov()` reads an optional screen-provided
+`STATUS_CLASS_MAP` (falling back to the original Operational/Down/Standby
+map if a screen doesn't define one) rather than hardcoding those 3 codes —
+still the same 3 fill colours/classes underneath, just not locked to one
+screen's code vocabulary.
+
+**WO status colour, locked 2026-07-22 (punch-list item — Work Request had
+no colour at all).** WO Record View's pre-delivered status list is now
+exactly the 3 real system statuses — Work Request, Released, Closed — not
+an arbitrary demo set (the old Released/In Progress/Completed/On Hold list
+is gone). A customer's own user statuses nest under one of these three via
+their own reference-data config; the system status is what actually
+carries the colour, so pre-delivered statuses stay consistent to just
+those three rather than inventing colours per user status. Industry
+convention is inconsistent here (Jira: blue=open/green=closed; GitHub:
+green=open/red=closed) and this app's own red is already reserved for
+"needs attention" (§23), which a normal Closed status is not — so neither
+precedent fit directly. Resolved instead by extending this screen's
+existing green=operational/outline=standby-and-neutral vocabulary: green
+is reserved for "live/active work" only (Released); both before (Work
+Request) and after (Closed) render the same neutral outline, so green
+never means "closed" and red is never used for a normal lifecycle state.
+`STATUS_CLASS_MAP = { WAPPR: 'st-standby', RELEASED: 'st-operational',
+CLOSE: 'st-standby' }`.
 
 ## 15.5 Equipment — Equipment Lookup (Search + Structure)
 
@@ -2459,6 +2604,13 @@ to select equipment" with the ordinary orange required-field left bar.
 different** — flagged here as a real, visible divergence between the two
 screens for the same conceptual field, not an oversight; worth a
 conscious call later on whether either should converge toward the other.
+
+**Icon is now also a photo slot, decided 2026-07-22 — see §7.5.** The
+icon in `.equip-summary-card` gains a second responsibility: showing the
+equipment's own photo (if one is on file) and, on tap, a preview/edit
+pop-out — a distinct, smaller tap target than the rest of the card, which
+still opens the picker below as before. Not yet built; §7.5 has the full
+spec, including the same component's Equipment Record View consumer.
 
 **Picker — two tabs in one full-screen sheet** (reuses the `.hyperlink-
 popup` shell, same shell Insert Mode uses, X-closes-not-back-arrow):
@@ -2979,7 +3131,7 @@ local — genuinely screen-specific, no 2nd consumer for either yet.
 
 ## 18.4 Add Labor sheet
 
-- Start/End time entry only — no time entry mode toggle (direct-hours mode is screen-designer configurable, future cycle)
+- Start/End time entry only in every prototype so far — **the "screen-designer configurable, future cycle" flag is resolved 2026-07-22**, see §12 tier 3's Book Labor Time Entry Mode field; Direct Hours Entry as an actual alternate form on this screen is still not built, only the config flag that would drive it
 - Start/end times pre-filled from the stopped WO timer
 - Required fields gate the Save button: gray + no-cursor until complete, green + ready when satisfied
 
@@ -3011,7 +3163,7 @@ local — genuinely screen-specific, no 2nd consumer for either yet.
 | Decision | Detail |
 | --- | --- |
 | **No Edit on labor records** | Correction is the only action. Immutable after booking. |
-| **No time entry mode toggle** | Start/End time only. Direct hours mode is screen-designer configurable (future cycle). |
+| **No time entry mode toggle (on this screen)** | Start/End time only, still. The config flag itself is resolved — §12 tier 3's Book Labor Time Entry Mode, 2026-07-22 — but Direct Hours Entry as an actual alternate form isn't built here yet. |
 | **Crew selector** | Pill at top of Add by Crew sheet, above member list. Defaults from activity. Changing reloads member list. |
 | **Correction stepper** | 1-minute tap. Hold 3s → 15-minute repeat at 150ms interval. Stops on pointerup/pointerleave. |
 | **Labor row display** | Description (full name) primary; code (employee ID) small + muted, stacked directly beneath it — not inline beside it (changed 2026-07-21, matching the app's own standard `.picker-card-value`/`.picker-card-code` stacking, `.labor-row-code`). Date + trade only in meta — no time range. |
@@ -3184,16 +3336,18 @@ A) — see §21.
 | Item | Detail |
 | --- | --- |
 | **Resolved 2026-07-22: single WO base function (`WSJOBS`), always — WO Type surfaced via Screen Designer + a new WO Workflow Steps table instead** | Was an open discussion (added 2026-07-22, flagged by the user). Real EAM precedent for a multi-`FUN_CODE` approach exists in this customer's data (`CCJOBS`/`TRJOBS`/`ZJ1000`/`WSJODC` all under `FUN_APPLICATION='WSJOBS'`) and was seriously considered, but rejected — it would've fragmented the WO List dataspy mechanism (§6.3/§8.3) across multiple functions' dataspy sets. Final answer stays on one function; full resolution in §11–§13. The dataspy-selector mechanism is therefore unaffected by any of this — there's still only ever one function's dataspy set. |
+| **Equipment Photo — icon/preview pop-out/edit, decided 2026-07-22, not built** | See §7.5 (new) and §15.5's cross-reference. Two consumers: WO Record View's Equipment LOV icon (`.equip-summary-card`, §15.5) and Equipment Record View's own header (`.rec-id-row`, §5.3 — which has no icon slot at all today). Open: exact placement/size for the new icon slot in Equipment RV's header; whether the photo's preview pop-out (a new variant of §19.6's viewer sheet, swapping the existing Remove action for an added Edit) should also keep Remove; what Equipment RV's icon shows when there's no photo, since — unlike WO Record View, which falls back to its existing per-class icon rule — it has no prior fallback to drop back to. |
 | **Unified prototype compile** | eam-wo-prototype-full-v1.html — all five steps in one navigable file. Assembly brief in EAM-HANDOFF-Book-Labor-and-WO-Closing.md. Dark mode default; canonical nav/WO block/step rail from the Issue Parts prototype; step-state-driven rail variations; end-to-end timer behaviour. |
 | **Date fields still show stale spelled-month literals on 3 screens** | `isoToDisplay()` changed app-wide 2026-07-21 to plain numeric format (§3.4), and Book Labor's own dates were updated to match — but `eam-wo-record-view-prototype-v1.html`, `eam-equipment-record-view-prototype-v1.html`, and `sample-screen-standard-model-prototype.html` all have hardcoded initial-render date text ("May 19, 2026" style) baked into their markup, not generated through `isoToDisplay()` at load — changing the function alone doesn't fix already-baked-in literals. Only actually re-picking a date via the shared calendar sheet on those screens will show the new format; everything else still reads stale until each file gets its own pass. **`eam-wo-closing-prototype-v2.html` fixed 2026-07-21** (dropped from this list) — also surfaced and fixed the actual reason re-picking a date wouldn't have helped there: shared `saveDateTime()` (`eam-shared.js`) rendered `month:'short'` instead of `isoToDisplay()`'s numeric format, a shared-file bug now fixed at the source (also corrects Sample Screen's date-time field, its only other consumer — Sample Screen's plain `openDate()` date field, listed above, is a separate, still-stale literal). |
 | **Date/time formatting is hardcoded to `en-US`, not actually locale-driven — flag for final-review accuracy** | Added 2026-07-21. `isoToDisplay()` and `saveDateTime()` both hardcode `'en-US'` today, producing MM/DD/YYYY dates and (now-corrected) 24-hour times for everyone regardless of who's logged in. The *real* rule: dates should follow the logged-in user's own locale (this app targets North America/Europe/Asia at minimum — DD/MM/YYYY and YYYY/MM/DD are real cases), while time-of-day stays a fixed 24-hour business rule regardless of locale (see the row above — that part is deliberate, not a gap). No per-user locale/session concept exists anywhere in this prototype to actually drive the date-format switch. Needs a real pass before treating any screen's current MM/DD/YYYY rendering as the final, locked behavior for every user. |
-| **Activity Screen** | Timer, task plan reference, assignment status. Ref: Activity_Selector.png. |
+| **Activity Screen** | Timer, task plan reference, assignment status. Ref: Activity_Selector.png. A future standalone Activities tab — flagged 2026-07-22 alongside §12's Completion Status Entity work — could double as the real closing surface for Activity-driven WO Types, instead of WO Closing; not designed, not built. |
+| **Screen Designer riff, 2026-07-22 — items considered and explicitly deferred, not built** | Reviewed against `eam-screen-designer-v1.html` (base screens): (1) per-step "allow skip with reason," a "jump target" dropdown, "repeat allowed," and admin-only internal per-step notes — all speculative UI from the earliest workflow-designer mockup (`eam-workflow-designer-v1_1.html`), never promoted into this doc as real requirements, and still not adopted; (2) checklist item authoring (the 17 item types, §16.3, and dynamic branching rules, §16.5) is Task Plan/Digital Work content, a different admin surface than Screen Designer's field-layout scope — don't conflate the two; (3) the List Search 4-filter-chip config (§10's own separate named sub-scope) is unrelated to WO step configuration and wasn't touched this pass. None of the three are being tracked as "to build" — noted here only so they aren't re-derived from scratch if revisited. |
 | **Per-row sync affordance (WO List)** | Map the 3 offline-search row states (stub / hydrated / ephemeral) onto the existing 4-state sync control language at row level. Specified in the offline search architecture; not yet in the v5.1 prototype. |
 | **Index freshness caption (WO List)** | "Results as of <time>" caption when offline. Specified; not yet in the v5.1 prototype. |
 | **Bin pre-fill from stock list** | Selecting a bin in the bin stock list pre-fills the Bin LOV. Specified in §17.11; not yet prototyped. |
 | **WO Insert Mode** | Built 2026-07-20. Two entry points: WO List's own Create (+), single org pill (§9.3 point 1); Home's Create bar with the WO entity selected (§9.4). Both build a real WO record and hand off via `navigateToNewRecord()` — see the new §9.3 "Built 2026-07-20" note below. Equipment's empty-state behavior is per §15.5 (renders as an unset required record-card, no auto-open) — but Insert Mode's own Equipment field is a lighter flat searchable list (new shared `.equip-card`/`renderRefCard()`/`REF_CARD_FIELDS` component in `eam-shared.css`/`.js`), **not** the full Equipment Lookup sheet's Search+Structure tabs/QR scan — a deliberate simplification, since Insert Mode is creating a record, not browsing an existing hierarchy. |
 | **Equipment Insert Mode** | Built 2026-07-20, reachable only via Home's Create bar with the Equipment entity selected (§9.4) — no dedicated Equipment List/Search screen exists yet (separate, larger scope, not built this pass), so there's no second, already-entity-scoped entry point the way WO List gives WO. Lands on Equipment Record View via the same sessionStorage hand-off; that screen also blanks its non-Record-View tabs (Events/PM/Depreciation/Meters/Warranties/Parts Associated/Costs) and the two hardcoded Performance Details/Depreciation Method cards for a freshly-created record — a brand-new asset has no history on any of them. |
-| **Equipment field — converged onto one "Equipment LOV," 2026-07-21 (user direction)** | Resolved. Was tracked here as 3 divergent implementations (WO RV's full Search+Structure picker, Insert Mode's lighter generic LOV, Checklist's read-only badge). By explicit user call: WO Insert Mode is now converged onto WO Record View's full Search+Structure two-tab picker (promoted to `eam-shared.css`/`.js`, `useEquipmentLookup` flag on `REF_CARD_FIELDS`), named **Equipment LOV**; the Checklist badge stays deliberately separate, named **Equipment ID Badge**, not part of this convergence. On-field display (`.equip-summary-card` vs `.equip-card`) was explicitly out of scope for this decision and remains its own open question. See `docs/component-library.md`'s Equipment LOV entry. |
+| **Equipment field — converged onto one "Equipment LOV," 2026-07-21 (user direction)** | Resolved. Was tracked here as 3 divergent implementations (WO RV's full Search+Structure picker, Insert Mode's lighter generic LOV, Checklist's read-only badge). By explicit user call: WO Insert Mode is now converged onto WO Record View's full Search+Structure two-tab picker (promoted to `eam-shared.css`/`.js`, `useEquipmentLookup` flag on `REF_CARD_FIELDS`), named **Equipment LOV**; the Checklist badge stays deliberately separate, named **Equipment ID Badge**, not part of this convergence. On-field display (`.equip-summary-card` vs `.equip-card`) was explicitly out of scope for this decision and flagged as its own open question — **resolved 2026-07-22** (2nd punch-list pass, user direction): Insert Mode's `.equip-card` is gone, `renderRefCard()` now renders the exact same `.equip-summary-card` markup as WO Record View via a shared `equipSummaryCardHTML()` helper in `eam-shared.js`. See `docs/component-library.md`'s Equipment LOV entry. |
 | **Naming drift: "Activity Row"/"Labor Row" vs. "Part Card" for the same conceptual thing** | Added 2026-07-21, surfaced while naming the Activity Selector's individual rows. The app has no single term for "a multi-field record inside a selectable/expandable list" — WO Record View's Activity Selector calls its entries Activity Rows, Book Labor calls its equivalent a Labor Row, Issue Parts calls its equivalent a Part Card. Not fixed — flagged for whenever this naming gets standardized. See `docs/component-library.md`'s Activity Selector entry. |
 | **Insert Mode post-save navigation — built 2026-07-20** | §9.2's "After Save" rule is now real for WO and Equipment: `navigateToNewRecord(url, storageKey, record)` (new, `eam-shared.js`) writes the entered record to `sessionStorage` and navigates to the plain record-view URL (no query string — see §9.5's note on why `?new=1` doesn't survive this project's `npx serve` clean-URL redirect). Both WO Record View and Equipment Record View read that stored record once on load, immediately removing it (consume-once), and build `RECORD` from it (with this app's existing `{code:'',desc:''}` unset shape for anything not entered) instead of their hardcoded demo record — same screen, Standard Update Mode, no special "just created" state, per the locked rule. Still stubbed: every *other* List/Detail Plus's Insert Mode (§9.1 standard 2) — this row only covers the two Record View inserts. |
 | **Standard Update Mode** | Update flows for equipment and other non-workflow records — the standard (non-guided) record view pattern. In progress — see §5.1. |
@@ -3236,6 +3390,11 @@ A) — see §21.
 | **Booked Labor List has no defined sort/grouping rule** | Added 2026-07-21. Rows render in pure insertion order (seed data, then anything booked/corrected after). Fine at today's scale (1-2 rows); flag if this list is ever expected to hold more in a real deployment — chronological or by-employee would be the obvious real-app choice but isn't specified anywhere. See `docs/component-library.md`'s Booked Labor List entry. |
 | **Date-selector calendar popup — font should be revisited to be all Inter** | Added 2026-07-22. `.cal-month-label` and `.cal-weekday` in `eam-shared.css` still use `font-family:var(--font-mono)`; flagged for a later pass to bring them onto the app's standard Inter font, consistent with everything else. No other change requested alongside this — noted only, not fixed this round. |
 
+**Below added 2026-07-22, app-wide palette + nav rollout pass (§23–§25).**
+
+| **Stale ellipsis Comments/Documents entries** | Activity Checklist, Issue Parts, and Book Labor still carry a Comments(3)/Documents(4) toast-stub entry in their ellipsis menu — the mechanism §14.8 originally specified, now superseded by the step rail's Reference group (§14.8, §21). Remove once each screen's own rebuild pass reaches this; not urgent (they're inert stubs, not broken), just stale. |
+| **Search List screen dataspy/filter persistence — not built** | §24's locked rule is that a Record View's back button always returns to the entity's Search List screen "maintaining the user's dataspy and persisting any filters." There is no real filter/dataspy state anywhere yet (WO List's dataspy switcher and Equipment List's dataspy bar are both still static stubs), so there's nothing to persist today — the navigation *target* is correct and built; the persistence *mechanism* is a real task for whenever filtering is actually built on these screens. |
+
 **Below added 2026-07-16, full conformance audit (5 parallel reviews — canonical files, WO workflow, WO List/Search, Home, doc structure) plus a cross-cutting fix pass.** Items that were shared-component or canonical-file bugs, or the same bug pattern recurring across ≥2 files, were fixed directly that same session (see the file-level comments they left behind, e.g. `.org-pill.required` in `eam-shared.css`, the `.rv-section` Comments/Documents wiring in both canonical files, `.bar-meta` restored on 4 WO-workflow bottom bars, the reversed sheet headers in Book Labor/WO Closing). Everything below is genuinely per-screen and was deliberately left alone this pass.
 
 | **WO Record View — missing Notes section** | §15.1 lists "Notes — renamed from 'Description'. Free text field from WO record" as part of the screen's section order; no such field exists anywhere in `eam-wo-record-view-prototype-v1.html`. |
@@ -3248,7 +3407,7 @@ A) — see §21.
 | **Doc structure — Insert Mode shell duplicated (§3.4 vs. §9.2)** | §3.4's Component Patterns table re-narrates the same full-screen/✕/swipe-to-dismiss/footer rule §9.2 already owns as the canonical spec. Should be a cross-reference, not a restatement. |
 | **Doc structure — nav-bar title centering lives in §5.2, not §4.2** | The "Nav bar — centered screen title" decision sits inside §5.2 (Standard Record View) with no cross-reference from §4.2 (Navigation Bar), even though §4.2 explicitly scopes itself to global chrome. A reader looking in the section named "Navigation Bar" won't find it. |
 | **Doc structure — dangling reference, "§5.2 D2's WO exception"** | §5.2 has no lettered/numbered sub-items; likely a leftover from an earlier private numbering scheme. |
-| **Doc structure — inline "Open:" notes invisible from §20** | §9.4 ("which entities populate the Screen/entity pill's option list — not yet resolved") and §12 ("whether a single workflow can reuse the same step type more than once") are real open questions that never surface in this punch list. Either give them their own rows here, or establish (and verify) that inline "Open:" notes are sub-items of an already-tracked row. |
+| **Doc structure — inline "Open:" notes invisible from §20** | §9.4 ("which entities populate the Screen/entity pill's option list — not yet resolved") is a real open question that never surfaces in this punch list. Either give it its own row here, or establish (and verify) that inline "Open:" notes are sub-items of an already-tracked row. (§12's own inline open note, "reuse the same step type more than once," is resolved as of 2026-07-22 — see §11/§12 — no longer an example of this problem.) |
 | **Doc structure — §3.4 has grown past its own scope** | ~57 rows mixing generic chrome (buttons, sheets, toasts) with field-type rules that overlap §5.2's own separate table, with no cross-check between the two. Split candidate for a future pass. |
 | **Doc polish — a couple of stale illustrative examples** | §7.2's Comments example still describes seed data ("User Description," "You") that predates the later "full name + (You) suffix" revision; the sample file's actual seed data already follows the newer rule. §9.3's narrative paragraph about the sample file's Insert Mode still says it includes an Organization pill; the file correctly omits it per the section's own point 1 (List/Detail insert never gets one), just via an inline code comment rather than an updated paragraph. Low-priority text-only fixes. |
 
@@ -3275,6 +3434,8 @@ its original section with a note attached.
 | **Search screen filter chips — fixed row** (§6.11, pre-2026-07-20) — always exactly Type · Status · Department · Priority, hardcoded regardless of dataspy. | §8.3 (2026-07-20) — filter chips (and sort options) are dataspy-driven: the same 6 fields the card surfaces, all of them uniformly. |
 | **Dataspy bar — live record count** (§6.3, pre-2026-07-20) — bar and selector sheet both showed a live count next to the dataspy name. | §8.3 (2026-07-20) — dropped entirely; one less number to keep accurate across sync tiers for marginal scanning value. |
 | **"WO Workflow Setup" — a bespoke 3-screen base-EAM admin entity** (§11–§13, original framing) — a dedicated setup screen with its own **Steps** tab (per-WO-type step sequence, reuse-same-step-type question, Free Form flag) and its own **Screen Designer** tab (one tab covering all 5 steps, no base-screen picker, status-source choice) — a parallel structure invented from scratch alongside real EAM admin surfaces. | §11–§13 (2026-07-22, final) — no new admin screen at all; Screen Designer (§10) itself gains a WO Type selector. See the row below for the intermediate step in between. |
+| **WO colour language — Type tinted, Status 4-way hex** (§6.7, pre-2026-07-22) — Type was a 6-way hex-per-code text tint (Breakdown red #E24B4A, Calibration teal #007B87, Corrective maint orange #F46600, Inspection purple #9933FF, Modification gray #6F7480, Preventive maint green #00AA14); Status was a 4-way hex-per-code solid pill (Released green #00AA14, Waiting approval/materials both orange #F46600, Completed gray #6F7480, white text throughout). | §6.7/§23 (2026-07-22, Phase 6 palette sweep) — Type loses colour entirely (not one of the 3 instruments); Status converges onto the app-wide 3-tier fill vocabulary (green/outlined/red) instead of its own scheme. |
+| **Comments & Documents reachable via an ellipsis-menu entry** (§14.8, 2026-07-16) — Step 1 used §5.3's screen-specific action group, Steps 2–5 used §8.1's open ellipsis slot; each menu row showed a trailing count. Reasoning at the time: keeping them out of the step map avoided implying they were sequence steps ("step 6/7"). | §14.8/§23 (2026-07-22) — a "Reference" group inside the step rail's own expanded map, always pinned after the last numbered step, using a plain icon (not a numbered badge) specifically so it doesn't carry that "step 6/7" implication. More discoverable than a buried ellipsis entry, same already-familiar expand/collapse control technicians use for step navigation. |
 | **Intermediate proposal (same session, 2026-07-22): route each WO Type to its own distinct `FUN_CODE`**, mirroring this customer's real `CCJOBS`/`TRJOBS`/`ZJ1000`/`WSJODC` precedent (peer functions sharing `FUN_APPLICATION='WSJOBS'`, each with its own native `R5FUNCTIONTABS`/`R5TABPERMISSIONS`/`R5PAGELAYOUT`) plus 3 new `WOTYPE` fields to resolve which `FUN_CODE` applies. Technically sound and grounded in real data, but rejected. | §11–§13 (2026-07-22, final) — rejected because it fragments the WO List dataspy mechanism (§6.3/§8.3) across multiple functions' dataspy sets for no actual benefit here. Final answer stays on one function, `WSJOBS`, always (including the fallback) — the WO-Type dimension is added via one new `PLO_WOTYPE` column on the existing `R5PAGELAYOUT`, plus one genuinely new small table (§12, "WO Workflow Steps," keyed WO Type × User Group × Step) carrying tab visibility/order/required plus the Free Form flag and status-source choice, now scoped to WO Type × User Group rather than WO Type alone. Existing `R5FUNCTIONTABS`/`R5TABPERMISSIONS` stay completely untouched — a separate, lower access-control layer this project doesn't touch. |
 
 # 22. Custom Fields
@@ -3303,6 +3464,387 @@ type these per Class in this app) — out of scope per an explicit
 2026-07-20 scope call, data/rendering only for now. The two rows above
 specify *contract*, not implementation — Screen Designer (§10) still
 doesn't exist to actually perform either move.
+
+# 23. Color Palette — 3 Instruments, Everything Else Monochrome
+
+Added 2026-07-22, app-wide rollout starting with WO Record View + the
+shared rail components (§14.2/§14.3), continuing screen by screen.
+Locked, not a per-screen style choice — applies to every screen this
+rollout touches and every new screen built after it.
+
+**The rule:** color exists for exactly 3 things, always the same 3 hues,
+never elsewhere:
+1. **Status** (the record header's status pill) — green (good/complete),
+   red (blocked/on hold), or an outlined neutral for "in progress"/
+   standby (was a 3rd filled hue, orange — retired, §4.4.1 keeps its own
+   sync-specific state language, unaffected).
+2. **Sync** (the nav-bar sync control, §4.4.1) — green/red/gray/gray-
+   syncing. The "syncing" state was actually still light purple
+   (`#B388FF`) until this pass despite §4.4.1 describing a 4-state green/
+   red/gray system with no purple in it — corrected here, not a pre-
+   existing exception to this rule.
+3. **Required** — a red left-bar on the field (`.form-field.required`/
+   `.attr-item.required`, was orange) and a red **outline square** count
+   badge (`.required-count-badge`, was an orange-filled pill). Red also
+   covers sync-error (`.form-field.error`) — both "needs your attention"
+   states share the one hue on purpose now, not two.
+
+**Everything else that used to carry a hue is now monochrome — ink
+(black in light mode, white in dark) for "selected/active/current," plain
+outline for "this is an icon/chip," never a filled color:**
+- Purple is retired as a UI-state accent entirely — it used to mean
+  "interactive/active/selected" across dozens of components (nav pin,
+  tab/step rail wash + active states, dataspy bar, filter chips, LOV/
+  tree/calendar selection, row-action hover, the sync panel's syncing
+  state and action buttons). Selection now reads via weight/fill (bold
+  text, a filled radio/badge, a left-bar accent) instead of a hue — same
+  visual result, no color budget spent on it. *(Full app-wide sweep of
+  every purple touchpoint listed above is in progress, screen by screen —
+  the rail components (§14.2/§14.3) are done as of this pass; the rest
+  are being converted as each screen is touched, not yet a completed
+  inventory — treat any remaining purple found elsewhere as not-yet-
+  converted, not intentional.)*
+- Icons/chips/badges that aren't one of the 3 instruments above are
+  outlined (`1.5px solid var(--border-strong)`, `background:none`), never
+  filled with gray or a hue — equipment icons, Type badges, the org pill,
+  Comments/Documents count badges, the rail outline itself (§14.2).
+  **Exception:** Priority's Critical value keeps a solid red chip — the
+  one deliberate exception to "outline only," decided by direct
+  comparison against a fully-monochrome alternative (both mocked up
+  side by side) — Critical is worth spending part of the red budget on;
+  every other Priority/Type value (including High) stays outlined.
+- Mono (`var(--font-mono)`) is reserved for identifiers only — record
+  numbers, LOV codes, dates — and is always gray/black/white, never
+  tinted. This was the original complaint that started the whole pass:
+  colored mono (purple step-pill, green timer-pill text, orange required-
+  badge) read badly; the fix wasn't switching away from mono, it was
+  never coloring it.
+- Green is NOT retired — `seg-done`/`smi-done` (step rail progress) and
+  the timer pill's running state both keep their pre-existing green,
+  since neither was ever the thing flagged as a problem (only purple
+  was) and both predate this pass as legitimate, separate conventions
+  ("done," "actively counting") rather than a 4th color instrument.
+- The Octave Yellow `.rail-not-free-form` variant (§15.4) was originally
+  left untouched here as "a different semantic, outside this rule's
+  scope entirely" — **superseded 2026-07-22 (user direction):** it read
+  badly in practice and was removed outright (the rail now looks
+  identical regardless of Free Form state), not just exempted from this
+  rule. See §15.4 for the flagged-to-revisit note — this isn't a locked
+  replacement decision, just "not yellow, not today."
+- **Home is a deliberate, named exception to this entire section** (user
+  direction, 2026-07-22, after the rest of the app had already gone
+  monochrome) — its tile icons (`.home-tile-sq`) and favorite-chip icons
+  (`.fav-chip-icon`) keep real per-item colour (orange/green/teal/purple
+  tints), unlike every other screen's icons/badges. Don't converge Home
+  to match the rest of the app in some future pass without checking —
+  this was a considered reversal, not an oversight.
+
+**Rejected alternative, kept for reference:** a fully-monochrome option
+where even Priority Critical lost its red (no exception at all) was
+mocked up side by side with the one-exception version above and
+rejected — losing Critical's red was judged a real loss, not a marginal
+one.
+
+## 23.1 Two derived rules, found applying §23 to Activity Checklist
+
+Not anticipated when §23 was written; will recur on any screen with a
+similar pattern, so locking the answer here rather than re-deciding it
+per screen:
+- **A 3-tier green/orange/red severity scale (e.g. Activity Checklist's
+  "Minor/Major/Critical" or "OK/Adjusted" toggle options) collapses to
+  2-tier green/red** — orange is retired, and the option's own text
+  label already conveys the specific degree, so the middle tier just
+  joins red rather than inventing a replacement hue.
+- **An action that flags something as needing follow-up (e.g. "Flag for
+  Follow-up") uses red, not a new hue or an outline-neutral treatment** —
+  it's a 3rd "needs your attention" case, same family as required/sync-
+  error, not a primary-confirm action (which would be green) or a
+  passive state (which would be outlined/ink).
+
+## 23.2 Editable-pill fill — a 4th instrument, pills only
+
+Added 2026-07-22 (punch-list circle-back, user-picked from 4 mockup
+options at `prototypes/standalone/mockups/pill-color-options-editable-
+vs-protected.html`). Every true pill component (`.store-selector`/
+`.crew-selector-pill`, `.org-pill`) now fills solid ink when editable —
+`background:var(--octave-black);color:#fff` light, flipped white/black
+dark — the same recipe `.btn-contained` already used, rather than the
+old outline/`--bg-section` look. This is deliberately scoped narrower
+than §23's 3-color system (status/sync/required): it's a 4th, purely
+structural "is this tappable" signal restricted to genuine pill-shaped
+controls, not a new general-purpose color instrument. Two explicit
+limits, both direct user instruction:
+- **Pills only.** LOV-shaped fields (`.attr-item`, `.form-field`) are
+  not pills and are untouched, even ones that look similar at a glance
+  (e.g. Book Labor's Employee/Crew Header Fields cells — these are
+  ordinary LOV cells, not pills, despite the mockup exploring the same
+  treatment on them too).
+- **Protected pills are untouched.** `.store-selector.protected`
+  (Issue Parts) and `.org-pill.protected` (always paired with
+  `.in-header` on every live screen — WO Record View, Equipment RV,
+  Sample Screen) keep their exact pre-existing look. Since simply
+  dimming the new black fill would have looked nothing like the
+  original gray outline, both were rewritten to spell out their prior
+  colors explicitly rather than relying on opacity alone.
+
+# 24. Navigation — Record View Back Button + Home Tile Pattern
+
+Added 2026-07-22. Two rules, both locked:
+
+**1. A Record View's back button always returns to that entity's Search
+List screen — never straight to Home, never a toast stub.** WO Record
+View → `eam-wo-list-prototype-v5_1.html`; Equipment Record View →
+`eam-equipment-list-prototype-v1.html` (new this pass, §24.1). "Maintaining
+the user's dataspy and persisting any filters" is the locked *intent* —
+there's no real filter/dataspy state anywhere yet to actually persist
+(tracked in §20), so today this is just the correct navigation target,
+not yet a state hand-off mechanism. The pre-existing `eamSyncReturnUrl`
+consume-once override (§4.5 — came here from the Sync Status Screen's
+Review action) still takes priority over this default when set.
+
+**2. A Home tile navigates (real page load) to its parent screen's
+Search List screen, pre-run to that tile's own dataspy** — e.g. the
+"Equipment" tile → Equipment's Search List screen → "All Equipment."
+Same pattern for any future entity's Home tile.
+
+**3. Added 2026-07-22 (bug fix — WO List's own `openWO()` was a complete
+toast stub, so no WO in the list actually opened).** WO List has real
+Record View data behind exactly 3 WO numbers — the demo-WO workflow set
+in `eam-shared.js` (`DEMO_WO_JOBTYPES`: 19257=BRKD/Not Free Form,
+19831=PM/Not Free Form, 20450=ROUT/§11 fallback). Clicking any of those 3
+numbers opens WO Record View as that WO, with its real configured
+workflow (or lack thereof, for 20450). All 3 now have real rows in
+`WOS` too (added same day), so "My Assigned WOs" — narrowed to exactly
+these 3 the same session — is a guaranteed-correct set to click through.
+
+**Extended 2026-07-22, same day (2nd punch-list pass) — real Type-based
+routing for every other WO in the list.** The original version of this
+rule sent literally every non-19257/19831 WO to the WO 20450 identity
+regardless of its own Type — which meant a real PM- or Breakdown-typed
+WO in the list rendered with WO 20450's Free-Form/no-rail identity, so
+the step rail and Start Work bar looked entirely missing from the PM and
+Breakdown flows (reported as inconsistent behavior, traced to this rule
+rather than the demo-WO toggle itself — the toggle mechanism was
+verified working correctly). Now: **BK routes to the BRKD/19257
+identity, PM routes to the PM/19831 identity**; every other Type (CM/
+CAL/INS/MOD/ROUT — none has a configured workflow, `data/wo-workflow.js`)
+still falls back to 20450, per §11's own fallback rule. `TYPE_TO_DEMO_WO`
+in `eam-wo-list-prototype-v5_1.html`. Every WO sharing one of these 3
+identities still shows the identical Record View content underneath
+(only the identity bar's number/description/type swap) — there's no
+real per-WO detail data to show otherwise, unchanged from before.
+
+**Other entry points that punch straight into a WO Record View (not
+through this list) intentionally don't duplicate this Type-based
+lookup** — Notifications' `openNotification()` now defaults to the
+corrective (19257) flow instead of 20450 for any WO number it doesn't
+recognize, rather than building the same Type-routing table twice for a
+secondary entry point that doesn't carry a Type to route on. The Sync
+Status Screen's review flow (§4.5) already effectively does this too —
+it opens each item's own `openUrl` directly, landing on WO Record View's
+default (19257) state, not through `eamOpenDemoWo` at all.
+
+Hand-off is `sessionStorage` (`eamOpenDemoWo`, consume-once, same pattern
+as `eamNewWoRecord`/`eamSyncReturnUrl`), read by WO Record View's init
+before `onDemoWoChanged()` runs so it initializes correctly rather than
+needing a manual dev-toggle click.
+
+**Rule 2 finished, 2026-07-22 (was built for the Equipment tile only until
+now) — every Home tile/favorite navigates for real.** New `goToScreen()`
+helper in `eam-home-screen-prototype-v1.html` resolves every tile/favorite
+tap to its parent screen + an optional pre-run dataspy. Two tiles had no
+real dataspy to point at yet, so WO List gained **ds9 "Corrective
+Maintenance"** (`tp==='CM'`, for "Corrective WO's") and **ds10 "Closed
+WOs"** (`st==='COMP'`, for "My Closed WO's" — and, as its closest
+available proxy, "Last Week's Work" too, since the demo `WOS` dataset only
+spans a few days around `TODAY` and has no real date-range dataspy to
+offer instead). "My PM WO's" already had a match (ds8). Equipment List
+gained its 2nd dataspy, **"Centrifugal Pumps"** (`category==='CENTRIFUGAL'`),
+for the Pumps tile/favorite — still just a pre-run target, not a real
+switcher (the ds-bar tap is still a "coming soon" stub on both screens,
+unchanged). WO favorites route by their own real dataspy id (`f.id`, from
+`loadWoFavorites()`) — no name-matching needed, unlike the static tiles.
+Home's/WO List's bottom-nav Home↔Work stubs are real navigation now too.
+
+**The dataspy hand-off is `sessionStorage` (`eamPendingSpy`, consume-once,
+same convention as `eamNewWoRecord`/`eamSyncReturnUrl`) — deliberately NOT
+a `?spy=` query string.** Tried the query-string version first; confirmed
+live that a `?spy=ds9` link landed on the target screen's *default*
+dataspy instead, no error — `npx serve`'s clean-URL redirect silently
+drops query strings on navigation, the exact limitation
+`navigateToNewRecord()`'s own comment already flags (§9.5). Digging
+further, found the underlying bug was live again, not just a risk: the
+dev server serves from the repo root (`serve .`, §"Preview server" note,
+2026-07-20) but `cleanUrls:false` only lived in `prototypes/serve.json` —
+one directory below the actual served root, so `serve` never read it. The
+clean-URL-then-404 bug §4.5 already documented as "found completely
+broken... sidestepped via serve.json" had quietly come back into force for
+every screen, not just this feature. Fixed by moving `serve.json` to the
+repo root; the stale nested copy is deleted.
+
+## 24.1 Equipment Search List screen (new)
+
+`eam-equipment-list-prototype-v1.html` — Equipment's Search List screen,
+filling the gap that used to leave Equipment Record View's back button
+with nowhere real to go (Equipment's only entry point before this was
+Home's Create bar). Copies WO List's §8.3 card pattern
+(`renderStdCard()`), deliberately minimal beyond that (static dataspy
+label, no search/filter/sort, no Insert Mode entry point here — Home's
+Create bar is still the only way to create Equipment).
+
+**Presented like a pull-up, but is a real page — not an in-page popup.**
+First built as a `.hyperlink-popup` living inside Home's own DOM; reverted
+same day. A real page navigation to Equipment Record View tears down
+whatever JS/DOM state Home was holding, so an in-page popup can't be
+"returned to" with preserved state the way rule 1 above requires — this
+needs to be a real, separate, revisitable page for back-navigation to
+work at all in a multi-page static prototype. It still reads like a
+pull-up visually: no bottom-nav (it has no tab-root entry point of its
+own — only reachable via Home's "Equipment" tile), and the header's
+leading control is an **✕ close** (→ Home) rather than a back-arrow or
+avatar, since closing this screen is dismissing an overlay conceptually,
+not "going back" through a navigation stack. Equipment Record View's own
+back arrow returns HERE, per rule 1 — not to Home directly.
+
+**Extended 2026-07-22 (user direction) — real sheet motion, not just
+sheet-adjacent chrome.** The paragraph above's "reads like a pull-up
+visually" turned out to mean only the missing bottom-nav + ✕ close — the
+`.app` frame itself was already pixel-identical to Home's (verified live:
+both 375×778 at a 375-wide viewport), so a flat page swap didn't actually
+*feel* pulled-up at all. Added rounded top corners + a slide-up-from-
+bottom entrance on load (`@keyframes`, same transform/easing
+`.bottom-sheet` already uses elsewhere in this app) — same size/ratio as
+before, just with the missing motion. A pure CSS animation-on-load, not
+the usual JS classList-toggle-next-frame `.bottom-sheet.open` pattern —
+tried that first, but it depends on a `requestAnimationFrame` callback
+actually firing, which this session's own automated preview tab never
+did (confirmed: the class only landed once triggered manually); a CSS
+animation has no such dependency. Screen-local CSS for now (this file's
+own `<style>` block) — promote `.pullup-app` to `eam-shared.css` if a 2nd
+"reads like a pull-up" full-page screen shows up.
+
+# 25. Notifications
+
+**Built 2026-07-22** — `eam-notifications-prototype-v1.html`, the "quick
+and dirty" screen explicitly deferred during the app-wide nav/palette
+rollout (see the `project_deferred_screens_backlog` memory note / CLAUDE.md).
+Bottom-nav's "Notifications" tab (Home, WO List) was a
+`showToast('Notifications — coming soon')` stub until this pass; both now
+do a real navigation here, same pattern as WO List's own "Work" tab
+pointing at itself. This is a browsing-tier, bottom-nav-root screen (avatar
+top-left, not a back arrow — same §4.2 category as Home/WO List), not a
+drill-down like the Sync Status Screen.
+
+**Source data — `data/notifications.js` (`EAM_NOTIFICATIONS`), modeled on
+R5MAILEVENTS.** That's the real EAM table already driving this app's
+existing email + push notification system (an event fires → a mail-event
+row logs → a push fires too if the recipient user has a device tied to
+them) — this screen is a mobile-side read of that existing log, not a new
+backend concept. **One real gap, flagged rather than solved:** the real
+R5MAILEVENTS schema has no read/unread column — it's a send log, not an
+inbox. `read` is invented client-side for this prototype; a real build
+needs a real place to persist it (new column, or a client-local table
+keyed by event ID + user).
+
+**Types modeled (7 demo rows):** `wo_status`, `wo_assigned`,
+`wo_reassigned`, `pm_due`, `follow_up_created` (the Activity Checklist's
+"Create Follow-up WO" action, §16, now has a notification on the other
+end of it — ties WO 20450, the existing Free-Form fallback demo WO, in as
+the created follow-up), and **`comment_mention`** — a forward reference.
+**@mention tagging in Comments is NOT built anywhere in this prototype
+yet** (raised this session, logged as a circle-back item — see the
+`project_comment_tagging_circleback` memory note); this notification type
+is modeled anyway so this screen doesn't have to wait on that feature
+landing first. When tagging IS built, it should fire this same
+notification type through this same table, not a separate mechanism.
+
+**Screen behavior:**
+- Grouped **Today / Earlier** (by literal date match against today, no
+  relative-time smart formatting elsewhere — same "prototype data stays
+  plain" convention the rest of this app follows).
+- **Filter chips (All / Unread)** — reuses the shared `.filter-chip-row`/
+  `.filter-chip` component verbatim, no new filter UI invented.
+- **Unread state reads via ink weight/fill, not hue** — bold subject +
+  a small filled dot, per §23 (read/unread isn't one of the 3 color
+  instruments). No separate "unread" color anywhere.
+- **Mark all read** — a `.nav-icon-btn` header action (double-check
+  icon), disabled (dimmed, no-op) once nothing is unread. **Real layout
+  bug found and fixed while verifying live:** first built as a text
+  button ("Mark all read") in `.nav-actions`; collided visually with
+  `.nav-title`, which is `position:absolute;left:0;right:0` and
+  genuinely centered across the *entire* bar regardless of how much
+  space the flex siblings occupy — "Notifications" is already one of the
+  longer screen titles, and the text button pushed the overlap into
+  visible range. Fixed by switching to the same narrow `.nav-icon-btn`
+  pattern WO List's own header actions (Create/Search) already use,
+  rather than inventing a new text-button-in-header component.
+- **Dismiss** — a per-card ✕, gated behind the same shared `openConfirm()`
+  modal every other destructive-ish action in this app uses (message
+  clarifies it only removes the notification, not the source record).
+- **Tap a card → source WO.** Uses the same `eamOpenDemoWo` sessionStorage
+  hand-off as WO List's own `openWO()` — 19257/19831/20450 open as
+  themselves, any other WO number defaults to the corrective (19257)
+  flow (updated 2026-07-22, punch-list item — was 20450, same old
+  blanket rule WO List itself moved off of; see §24 rule 3's 2nd pass).
+  No special return-path override added for this screen; per §24's
+  locked rule, the WO Record View back arrow still returns to WO List,
+  not here. A notification with no `wo` (none in this demo set, but the
+  code path
+  exists) shows a toast instead of navigating.
+
+**Bottom-nav badge, promoted to `eam-shared.js` on its 2nd real
+consumer** (Home + WO List both need the same live unread count) —
+`updateNotifBadge()`, called unconditionally from `initSharedApp()` same
+as `renderSyncControl()`, no-ops if `#notifBadge` or `EAM_NOTIFICATIONS`
+isn't present (same defensive-guard pattern as `CURRENT_USER_NAME`
+elsewhere in that file). Home's and WO List's own hardcoded static badge
+count (`3`, decorative demo data with no id at all on WO List's copy) is
+gone — both now load `data/notifications.js` and show the real live
+unread count, hidden entirely at 0.
+
+**Follow-up fix pass, 2026-07-22 (user-reported), 3 items:**
+- **Real cross-cutting bug: `.nav-icon-wrap` was never actually shared,
+  despite already having 2 real consumers (Home, WO List) before this
+  screen existed.** It's the `position:relative` wrapper `.bottom-nav-
+  badge`'s `position:absolute;top:-5px;right:-7px` anchors against; each
+  of the 2 existing consumers had quietly hand-copied it into their own
+  local `<style>` block (past this project's own "promote on 2nd
+  consumer" rule, but never actually moved — same drift pattern as
+  `.bottom-nav` itself, fixed on a prior pass), so neither ever surfaced
+  the gap. This screen was built without it entirely (a genuine miss, not
+  a copy), and its badge rendered positioned against the whole `.bottom-
+  nav-item` button instead of the icon — flying to the button's outer
+  corner instead of sitting on the bell. Fixed at the source: promoted to
+  `eam-shared.css`, both local hand-copies deleted.
+- **Mark all read moved out of the header into the filter-chip row**,
+  right-aligned via `margin-left:auto` on the button itself (not on the
+  shared `.filter-chip-row`, which stays untouched for its other
+  consumers — WO List, Equipment List — that have no trailing item to
+  push). Now a pill (`.notif-mark-all-chip`) matching the visual weight
+  of the All/Unread chips beside it, disabled/dimmed once nothing is
+  unread. Supersedes this screen's original header `.nav-icon-btn`
+  version (itself a fix for an earlier text-button/`.nav-title` collision
+  — see the bullet above) — that header slot now holds only the sync
+  control again, same as Home.
+- **Reference row standardized**: `{date} · {time} | Work Order {number}`
+  — was `{date} · {time}` and a separate `WO {number}` badge with only a
+  gap between them, no visual relationship stated. `time` in `data/
+  notifications.js` also moved off spelled-month (`Jul 22 · 09:14`) onto
+  this app's actual locked numeric-date standard (§3.4:
+  `07/22/2026 · 09:14`) — it had originally matched Comments' own older
+  spelled-month convention, which predates §3.4 and was never swept onto
+  it; this file didn't need to inherit that same staleness. "WO" spelled
+  out to "Work Order" in the reference text itself; the record number
+  stays mono (identifier), the words around it don't.
+
+Verified live (computed styles/bounding boxes, not just visual —
+`preview_screenshot` was unavailable this pass): badge now anchors
+tightly to the bell icon's own corner on Home/WO List/Notifications
+alike; the mark-all-read pill sits flush right in the filter row with
+the row's existing padding; disabled state (opacity 0.4, `disabled=true`)
+confirmed after a real mark-all-read action; reference row renders the
+new format on all 7 demo rows. No console errors on any of the 3
+screens touched.
 
 End of document
 

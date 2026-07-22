@@ -77,6 +77,23 @@
     <div id="syncErrorList"></div>
   </div>
 
+  <!-- Sheet overlay + sync panel — this screen's own sync icon (nav-actions
+       above) opens the same quick panel every other screen does; fixes a
+       real crash, openSheet() previously found neither #sheetOverlay nor
+       #syncPanelSheet here at all. -->
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+  <div class="bottom-sheet" id="syncPanelSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Sync Status</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sync-panel-state" id="syncPanelStateLabel"></div>
+    <div class="sheet-body" id="syncPanelList"></div>
+    <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
+  </div>
+
   <div class="confirm-overlay" id="confirmOverlay">
     <div class="confirm-modal">
       <div class="confirm-message" id="confirmMessage">Are you sure?</div>
@@ -167,8 +184,11 @@ function renderSyncStatusScreen() {
     }
   }
 }
+// Real navigation (2026-07-22 nav pass) — was a toast stub. This screen
+// has no single natural parent list (it's reached from any screen's sync
+// panel), so back goes to Home, the app's root.
 function navBack() {
-  showToast('← Back');
+  location.href = 'eam-home-screen-prototype-v1.html';
 }
 renderSyncStatusScreen();
 initDemoOnlineToggle();
