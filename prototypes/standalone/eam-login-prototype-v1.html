@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>HxGN EAM Mobile — Login v1</title>
@@ -109,6 +110,20 @@ body{background:#0E0D12;}
 </style>
 </head>
 <body>
+<!-- Dev theme bar (added 2026-07-22, demo-consistency pass) — Login's own
+     hero/card design ignores data-theme entirely (always the fixed dark
+     brand look), so this toggle has no visible effect here. It's still
+     included purely for layout parity: every other screen's .app frame
+     starts 35px down, below this bar; without it, Login's frame was
+     390×844 at y=0 while every other screen was 390×809 at y=35 — a
+     visible size/position jump on the very first screen transition of
+     any demo run (login → Home). Toggling it here still updates the
+     shared 'eamTheme' localStorage value, so a choice made here is
+     honored once the technician lands on a real screen. -->
+<div class="proto-theme-bar">
+  <span class="proto-theme-label">Preview theme</span>
+  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+</div>
 <div class="app">
 
   <div class="login-hero">
@@ -145,6 +160,7 @@ body{background:#0E0D12;}
 
 <script src="shared/eam-shared.js"></script>
 <script>
+initThemeToggle();
 function startLogin() {
   const btn = document.getElementById('loginBtn');
   if (btn.disabled) return;

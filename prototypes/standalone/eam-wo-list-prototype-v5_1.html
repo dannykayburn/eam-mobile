@@ -110,7 +110,7 @@ body{
 /* ── APP SHELL (canonical) ────────────────────────────── */
 .app{
   display:flex;flex-direction:column;flex:1;min-height:0;max-width:430px;width:100%;
-  margin:0 auto;position:relative;background:var(--bg-page);
+  margin:0 auto;position:relative;overflow:clip;background:var(--bg-page);
   box-shadow:0 0 40px rgba(0,0,0,0.18);
 }
 
@@ -228,6 +228,16 @@ body{
 .pill-red{background:var(--red);color:#fff;}
 .pill-outline{background:none;border:1.5px solid var(--border-strong);color:var(--octave-black);}
 [data-theme="dark"] .pill-outline{color:var(--white);}
+/* 5th tier, orange, added 2026-07-22 (user direction) — Waiting approval
+   (WAPPR) specifically, pulled out of the generic outline/standby tier
+   into its own solid fill so it reads as its own state rather than
+   blending into every other "waiting on something" status. Waiting
+   materials (WMATL) stays outline, unaffected — the user's ask was
+   Waiting approval by name, not every waiting-tier status. Same
+   #F46600 as the rest of the app's Orange instrument (Corrective WO's
+   tile, etc.) — solid fill needs no dark-theme override, same as
+   pill-green/pill-red above. */
+.pill-orange{background:#F46600;color:#fff;}
 /* .ld-card-headline's own `color` above is equal (1-class) specificity to
    the bare tier rules just above — currently wins only because these
    happen to sit later in the file; found genuinely broken by that same
@@ -237,6 +247,7 @@ body{
 .ld-card-headline.pill-red{color:#fff;}
 .ld-card-headline.pill-outline{color:var(--octave-black);}
 [data-theme="dark"] .ld-card-headline.pill-outline{color:var(--white);}
+.ld-card-headline.pill-orange{color:#fff;}
 /* Was --text-muted (gray) — a real inconsistency, not a deliberate "muted
    subline" choice: this same field (Description) already renders in
    ink (--text-body) everywhere else on this screen (List mode's table
@@ -1088,12 +1099,14 @@ const PRI={
 // same 3-tier fill vocabulary as WO Record View's header status pill
 // (STATUS_CLASS_MAP: operational/completed=green, standby=outlined,
 // down=red) instead of its own 4-way orange/green/gray hex scheme.
-// WAPPR/WMATL (this screen's own "waiting on something" statuses, not in
-// the canonical 4) map to the standby/outlined tier — no down/red status
-// exists in this file's demo data yet, but statusPillStyle() supports it.
+// WMATL (this screen's own "waiting on something" status, not in the
+// canonical 4) maps to the standby/outlined tier — no down/red status
+// exists in this file's demo data yet, but the tier system supports it.
+// WAPPR (Waiting approval) was pulled into its own 5th tier, orange
+// (2026-07-22, user direction) — see the .pill-orange CSS comment above.
 const STI={
   RELEASED:{tier:'green',  label:'Released'},
-  WAPPR:   {tier:'outline',label:'Waiting approval'},
+  WAPPR:   {tier:'orange', label:'Waiting approval'},
   WMATL:   {tier:'outline',label:'Waiting materials'},
   COMP:    {tier:'green',  label:'Completed'},
 };
