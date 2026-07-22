@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Home Tiles — Glow + Spacing Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!--
+  QUICK PREVIEW ONLY (2026-07-22) — does NOT touch the real
+  eam-home-screen-prototype-v1.html. User still feels the Home tiles
+  (today's real tint-square treatment, 100px, teal/orange/green/purple
+  per the color-audit pass) need a bit more "massaging" — floated 2
+  specific ideas: a soft glow, and/or more spacing. 4-way toggle below
+  tries each in isolation plus both combined, all on top of TODAY's real
+  tile styling (not the unapproved bold-fill exploration from the
+  earlier octave-colors preview — that one's still just a preview too,
+  kept separate).
+
+  1 — Current: today's real styling, unchanged, as the baseline.
+  2 — Soft Glow: each tile's icon-square gets an outward colored glow
+      (box-shadow, matching that tile's own accent hue) — the icon-tint
+      idea taken one step further, so the color "breathes" slightly past
+      the square's own edges instead of stopping hard at the border-
+      radius. Halved from the original pass (2026-07-22, user direction
+      — "cut it in half whatever it currently is"): blur 22px→11px,
+      offset 6px→3px, spread -2px→-1px, and each --glow-color's alpha
+      suffix 55→2B (~33%→~17% opacity) — every dimension scaled down
+      together, not just opacity alone.
+  3 — More Spacing: gap between tiles widened, and a bit more breathing
+      room between the icon square and its label/badge — no color/shape
+      change at all, purely rhythm.
+  4 — Both: glow + spacing together.
+  5 — Wide Rectangle (2026-07-22, user direction): same tint/color/
+      badge/label, but the icon-square goes from a 100×100 square to a
+      200×100 rectangle (literally 2x the width, same height) — icon
+      stays centered, badge stays pinned to the same top-right corner.
+      Isolated on its own (no glow/spacing) so the shape change can be
+      judged by itself first.
+  6 — Wide + Glow: the wide rectangle with the (now-halved) glow, since
+      a wider surface changes how much glow reads differently than on
+      a square.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-4:#6F7480; --white:#FFFFFF;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-nav:#1A1A1F; --border:#E7EBF2;
+  --font-sans:"Inter",system-ui,sans-serif;
+  --orange:#F46600; --green:#00AA14; --purple:#9933FF; --teal:#007B87;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:#fff;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px 60px;}
+.legend{max-width:430px;width:100%;color:#fff;font-size:12px;line-height:1.55;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;}
+.legend b{color:#fff;}
+
+.frame{width:390px;height:640px;border-radius:44px;background:#000;padding:10px;box-shadow:0 20px 60px rgba(0,0,0,.5);position:relative;}
+.screen{width:100%;height:100%;border-radius:36px;overflow:hidden;position:relative;background:var(--bg-page);display:flex;flex-direction:column;}
+.hdr{background:var(--bg-nav);flex-shrink:0;padding-top:22px;}
+.hdr-row{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;}
+.hdr-avatar{width:30px;height:30px;border-radius:50%;background:#3E4047;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.hdr-title{color:#fff;font-size:15px;font-weight:700;}
+.hdr-sync{width:8px;height:8px;border-radius:50%;background:var(--green);}
+
+.body{flex:1;overflow-y:auto;padding:16px 14px 30px;}
+.sec-label{font-size:15px;font-weight:800;color:var(--octave-black);margin:20px 2px 10px;transition:margin .2s;}
+.sec-label:first-child{margin-top:2px;}
+
+.tile-grid{display:flex;overflow-x:auto;margin:6px 0 0;padding:14px 0 4px;transition:gap .2s,padding .2s;gap:10px;}
+.tile{flex-shrink:0;width:100px;display:flex;flex-direction:column;align-items:center;}
+.tile-sq{width:100px;aspect-ratio:1;border-radius:20px;display:flex;align-items:center;justify-content:center;position:relative;transition:box-shadow .2s;}
+.tile-sq svg{width:38px;height:38px;}
+.tile-badge{position:absolute;top:-7px;right:-7px;background:var(--octave-black);color:#fff;font-size:11px;font-weight:700;border-radius:100px;padding:2px 6px;min-width:19px;text-align:center;line-height:1.3;border:2px solid var(--bg-page);}
+.tile-label{font-size:12px;font-weight:500;color:var(--octave-black);text-align:center;margin-top:7px;line-height:1.3;transition:margin .2s;}
+
+/* State 2/4/6 — Soft Glow: outward colored box-shadow per tile, set via
+   each tile's own --glow-color custom property (set inline per tile
+   below) so one rule covers every hue without a class per color.
+   Halved 2026-07-22 (user direction) from the original 0 6px 22px -2px —
+   every dimension scaled down together, not just the color's own alpha
+   suffix (also halved inline, 55→2B). */
+.body.glow .tile-sq{box-shadow:0 3px 11px -1px var(--glow-color, transparent);}
+
+/* State 3/4 — More Spacing: wider gap between tiles, more top padding
+   for breathing room, a bit more room between icon square and label. */
+.body.spacing .tile-grid{gap:18px;padding-top:18px;}
+.body.spacing .tile-label{margin-top:11px;}
+.body.spacing .sec-label{margin-top:26px;}
+
+/* State 5/6 — Wide Rectangle (2026-07-22, user direction): 2x width,
+   same height — a rectangle, not a bigger square. Icon/badge/label
+   markup is completely unchanged, just the container's own dimensions. */
+.body.wide .tile{width:200px;}
+.body.wide .tile-sq{width:200px;height:100px;aspect-ratio:unset;}
+
+.toggle-row{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap;justify-content:center;max-width:430px;}
+.toggle-btn{font-size:12px;font-weight:700;color:#fff;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.2);border-radius:100px;padding:8px 16px;cursor:pointer;}
+.toggle-btn.on{background:#fff;color:#111;border-color:#fff;}
+.opt-label{margin-top:10px;font-size:12px;color:rgba(255,255,255,.65);text-align:center;max-width:400px;}
+</style>
+</head>
+<body>
+
+<div class="legend">
+  Today's real tile styling (tint square, 100px, teal/orange/green/
+  purple) as the baseline. Glow, spacing, and a wide-rectangle shape
+  each tried in isolation, plus useful combinations — glow is halved
+  from the first pass per your call.
+</div>
+
+<div class="frame">
+  <div class="screen">
+    <div class="hdr"><div class="hdr-row"><div class="hdr-avatar">BC</div><div class="hdr-title">Home</div><div class="hdr-sync"></div></div></div>
+    <div class="body" id="body">
+      <div class="sec-label">My Work</div>
+      <div class="tile-grid">
+        <div class="tile"><div class="tile-sq" style="background:#F4660022;--glow-color:#F466002B;"><svg viewBox="0 0 24 24" fill="none" stroke="#F46600" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span class="tile-badge">18</span></div><span class="tile-label">Corrective WO's</span></div>
+        <div class="tile"><div class="tile-sq" style="background:#00AA1422;--glow-color:#00AA142B;"><svg viewBox="0 0 24 24" fill="none" stroke="#00AA14" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><polyline points="9,16 11,18 15,14"/></svg><span class="tile-badge">12</span></div><span class="tile-label">My PM WO's</span></div>
+      </div>
+
+      <div class="sec-label">My Equipment</div>
+      <div class="tile-grid">
+        <div class="tile"><div class="tile-sq" style="background:#007B8722;--glow-color:#007B872B;"><svg viewBox="0 0 24 24" fill="none" stroke="#007B87" stroke-width="1.8"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg><span class="tile-badge">134</span></div><span class="tile-label">Equipment</span></div>
+        <div class="tile"><div class="tile-sq" style="background:#007B8722;--glow-color:#007B872B;"><svg viewBox="0 0 24 24" fill="none" stroke="#007B87" stroke-width="1.8"><path d="M12 2.5c4 5 7 9.2 7 12.5a7 7 0 11-14 0c0-3.3 3-7.5 7-12.5z"/></svg><span class="tile-badge">9</span></div><span class="tile-label">Pumps</span></div>
+      </div>
+
+      <div class="sec-label">Reference Section</div>
+      <div class="tile-grid">
+        <div class="tile"><div class="tile-sq" style="background:#9933FF22;--glow-color:#9933FF2B;"><svg viewBox="0 0 24 24" fill="none" stroke="#9933FF" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg><span class="tile-badge">7</span></div><span class="tile-label">My Closed WO's</span></div>
+        <div class="tile"><div class="tile-sq" style="background:#9933FF22;--glow-color:#9933FF2B;"><svg viewBox="0 0 24 24" fill="none" stroke="#9933FF" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg><span class="tile-badge">4</span></div><span class="tile-label">Last Week's Work</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toggle-row">
+  <button class="toggle-btn on" onclick="show('current',this)">1 — Current</button>
+  <button class="toggle-btn" onclick="show('glow',this)">2 — Soft Glow</button>
+  <button class="toggle-btn" onclick="show('spacing',this)">3 — More Spacing</button>
+  <button class="toggle-btn" onclick="show('both',this)">4 — Both</button>
+  <button class="toggle-btn" onclick="show('wide',this)">5 — Wide Rectangle</button>
+  <button class="toggle-btn" onclick="show('wideGlow',this)">6 — Wide + Glow</button>
+</div>
+<div class="opt-label" id="optLabel">Today's real styling, unchanged — the baseline to compare the others against.</div>
+
+<script>
+const STATES = {
+  current:  { glow:false, spacing:false, wide:false, label:"Today's real styling, unchanged — the baseline to compare the others against." },
+  glow:     { glow:true,  spacing:false, wide:false, label:'Each tile\'s icon-square now casts a soft outward glow in its own accent color — halved from the first pass (blur/offset/spread all scaled down, plus the color\'s own alpha cut roughly in half too), so it\'s a light breath past the edge, not a strong bloom.' },
+  spacing:  { glow:false, spacing:true,  wide:false, label:'No color/shape change at all — just more room: wider gaps between tiles, more top padding on each row, a bit more space between the icon square and its label.' },
+  both:     { glow:true,  spacing:true,  wide:false, label:'Glow + Spacing together.' },
+  wide:     { glow:false, spacing:false, wide:true,  label:'Same tint/color/badge/label as today — the icon-square itself just doubles in width (100×100 → 200×100), a rectangle instead of a square. Isolated on its own first, no glow/spacing.' },
+  wideGlow: { glow:true,  spacing:false, wide:true,  label:'Wide rectangle + the (halved) glow together — worth checking since a wider surface spreads the glow differently than a square does.' },
+};
+function show(state, btn){
+  const s = STATES[state];
+  const body = document.getElementById('body');
+  body.classList.toggle('glow', s.glow);
+  body.classList.toggle('spacing', s.spacing);
+  body.classList.toggle('wide', s.wide);
+  document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('optLabel').textContent = s.label;
+}
+</script>
+</body>
+</html>

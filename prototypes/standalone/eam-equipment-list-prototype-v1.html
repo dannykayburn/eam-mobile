@@ -27,6 +27,20 @@
      .pullup-app to eam-shared.css instead of copying this block again. */
   @keyframes eamPullUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
   .app.pullup-app{border-radius:var(--sheet-radius) var(--sheet-radius) 0 0;animation:eamPullUp .32s cubic-bezier(.32,.72,0,1) both;}
+
+  /* List ↔ Search screen toggle (2026-07-22, search/dataspy/filter build)
+     — same 2-screen split as eam-wo-list-prototype-v5_1.html's own
+     #s1/#s2 (that file is this screen's explicit template, per CLAUDE.md
+     — "copy its dataspy-bar/card-list/nav pattern... don't design a
+     second version of this pattern"). Everything else this build needed
+     (.ds-bar/.mode-tog/.filter-chip/.chip-count/.res-row/.sort-btn/
+     .lov-option/.lov-check/.ds-fav-star/.bottom-sheet/.ld-search-bar) was
+     already promoted to eam-shared.css by the §8.2 List/Detail shell and
+     other shared sheets — this is the one piece with no shared
+     equivalent yet (a top-level, full-screen List↔Search swap, distinct
+     from §8.2's inline-collapsing search bar inside a record's tab). */
+  .screen{display:none;flex-direction:column;flex:1;overflow:hidden;}
+  .screen.active{display:flex;}
 </style>
 <!--
   EQUIPMENT SEARCH LIST (2026-07-22, 2nd correction pass) — this is the
@@ -88,26 +102,122 @@
        bottom sheet already uses, borrowed here to read as a pull-up. -->
   <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
 
-  <header class="nav" onclick="scrollFormToTop()">
-    <div class="nav-left">
-      <!-- ✕ close, not a back-arrow/avatar — this screen is dismissed
-           back to Home, not "gone back through" (see header note). -->
-      <button class="nav-back" onclick="event.stopPropagation();location.href='eam-home-screen-prototype-v1.html'" aria-label="Close">
-        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-      <span class="prototype-label">PROTOTYPE</span>
-    </div>
-    <div class="nav-title">Equipment</div>
-    <div class="nav-actions"><span id="syncCtrl"></span></div>
-  </header>
+  <!-- ═══════════════════════ SCREEN 1 — EQUIPMENT LIST ═══════════════════════ -->
+  <div class="screen active" id="s1">
+    <header class="nav" onclick="scrollListToTop()">
+      <div class="nav-left">
+        <!-- ✕ close, not a back-arrow/avatar — this screen is dismissed
+             back to Home, not "gone back through" (see header note). -->
+        <button class="nav-back" onclick="event.stopPropagation();location.href='eam-home-screen-prototype-v1.html'" aria-label="Close">
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <span class="prototype-label">PROTOTYPE</span>
+      </div>
+      <div class="nav-title">Equipment</div>
+      <div class="nav-actions">
+        <button class="nav-icon-btn" onclick="event.stopPropagation();goSearch()" aria-label="Search" title="Search">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+        <span id="syncCtrl"></span>
+      </div>
+    </header>
 
-  <div class="ds-bar" onclick="showToast('Dataspy switcher — coming soon')">
-    <div class="ds-icon-w"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke-linecap="round"/></svg></div>
-    <span class="ds-name" id="dsName">All Equipment</span>
-    <svg class="ds-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div class="ds-bar" onclick="openEquipDsSheet()">
+      <div class="ds-icon-w"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke-linecap="round"/></svg></div>
+      <div class="ds-body"><span class="ds-name" id="dsName">All Equipment</span></div>
+      <svg class="ds-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <div class="res-row">
+      <span class="res-count" id="s1Count"></span>
+      <button class="sort-btn" onclick="showToast('Sort options — coming soon')">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="11" y2="12"/><line x1="4" y1="18" x2="8" y2="18"/><path d="M17 4v16m0 0l3-3m-3 3l-3-3"/></svg>
+        Description
+      </button>
+    </div>
+
+    <div class="content" id="listContent"></div>
   </div>
 
-  <div class="content" id="listContent"></div>
+  <!-- ═══════════════════════ SCREEN 2 — SEARCH EQUIPMENT ═══════════════════════ -->
+  <div class="screen" id="s2">
+    <header class="nav" onclick="scrollListToTop()">
+      <div class="nav-left">
+        <button class="nav-back" onclick="event.stopPropagation();closeSearch()" aria-label="Back">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <span class="prototype-label">PROTOTYPE</span>
+      </div>
+      <div class="nav-title">Search equipment</div>
+      <!-- No sync control here — same precedent as the Sync Status Screen
+           (no icon there either), and avoids the duplicate-id="syncCtrl"
+           quirk eam-wo-list-prototype-v5_1.html's own 2-screen split
+           carries (its 2nd copy never actually renders anything, since
+           renderSyncControl() only ever targets the first match). -->
+      <div class="nav-actions"></div>
+    </header>
+
+    <div class="ld-search-bar" style="margin:12px 14px 0;">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input class="ld-search-input" id="sInp" type="text" placeholder="Search equipment…" oninput="onSearch(this.value)" autocomplete="off">
+      <button class="ld-search-close" id="sClr" onclick="clearSearch()" aria-label="Clear" style="display:none;">✕</button>
+    </div>
+
+    <!-- Filter chips — same 6 fields as the card (§8.3/§6.11-equivalent).
+         Organization/Class/Assigned To get real multi-select sheets
+         (small fixed code lists); Description/Asset ID/Category stay
+         toast stubs — free text/an identifier/a field already implied by
+         Class don't fit a multi-select shape, same reasoning WO List's
+         own Description/WO number/Due date stubs already established. -->
+    <div class="filter-chip-row" id="chipsRow">
+      <button class="filter-chip" id="cOrg" onclick="openCS('organization')">Organization</button>
+      <button class="filter-chip" id="cClass" onclick="openCS('class')">Class</button>
+      <button class="filter-chip" onclick="showToast('Category filter — coming soon')">Category</button>
+      <button class="filter-chip" id="cAssigned" onclick="openCS('assignedTo')">Assigned To</button>
+      <button class="filter-chip" onclick="showToast('Description filter — coming soon')">Description</button>
+      <button class="filter-chip" onclick="showToast('Asset ID filter — coming soon')">Asset ID</button>
+    </div>
+
+    <div class="res-row"><span class="res-count" id="s2Count"></span></div>
+
+    <!-- Real bug found live-verifying this build: without the shared
+         .content class (flex:1;overflow-y:auto, eam-shared.css) this div
+         had no constrained/scrollable height of its own, so it just grew
+         to its full unconstrained content size — which starved its
+         flex-shrink siblings (the search bar/filter chips above) down
+         toward 0 height instead, inside .screen's own flex column. #s1's
+         own #listContent already carried class="content" for exactly
+         this reason; this one was missing it. -->
+    <div class="content" id="s2List"></div>
+  </div>
+
+  <!-- Dataspy sheet (favorite star per row persisted to a separate
+       localStorage key from WO List's own — see the JS note by
+       LS_FAVORITE_EQUIP_DS_KEY — so it surfaces on Home's Favorites row
+       tagged as an Equipment favorite, not mislabeled as a WO one. -->
+  <div class="bottom-sheet" id="equipDsSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Select dataspy</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sheet-body" id="equipDsSheetBody"></div>
+  </div>
+
+  <!-- Filter chip sheet — reused for whichever of the 3 real chips
+       (Organization/Class/Assigned To) is currently open, same "ack"
+       pattern as WO List's own chip sheet. -->
+  <div class="bottom-sheet" id="csSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="csTitle">Filter</div>
+      <button class="sheet-clear-btn" onclick="clearCS()">Clear</button>
+    </div>
+    <div class="sheet-body" id="csList"></div>
+    <div class="sheet-footer"><button class="btn-contained" onclick="applyCS()">Apply</button></div>
+  </div>
 
   <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
 
@@ -127,7 +237,6 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/equipment.js"></script>
 <script src="shared/eam-shared.js"></script>
 <script>
 function goEquipmentRecord() {
@@ -136,34 +245,260 @@ function goEquipmentRecord() {
   // demo record the Equipment Record View screen already renders.
   location.href = 'eam-equipment-record-view-prototype-v1.html';
 }
-// 2nd real dataspy (2026-07-22, home-nav wiring pass) — Home's Pumps
-// tile/favorite pre-run here via sessionStorage's 'eamPendingSpy',
-// consume-once (§24 rule 2; NOT a ?spy= query string — npx serve's
-// clean-URL redirect strips query strings on navigation, confirmed live
-// this session — see eam-home-screen-prototype-v1.html's goToScreen()).
-// Still no real switcher sheet (tapping the ds-bar stays a "coming soon"
-// stub) — just an entry-point pre-run, same minimal scope as before.
-const EQUIP_DS = {
-  all:   { name: 'All Equipment',      filter: () => true },
-  pumps: { name: 'Centrifugal Pumps',  filter: e => e.category === 'CENTRIFUGAL' },
+
+/* ══════════════════════════════════════════════════════════════════════
+   EQUIPMENT SEARCH/DATASPY/FILTER BUILD (2026-07-22) — brings this screen
+   up to the same real functionality as eam-wo-list-prototype-v5_1.html's
+   §8.3 pattern (that file is this screen's explicit template per
+   CLAUDE.md). Replaces the old EQUIP_DS/renderEquipmentList stub pair.
+   ══════════════════════════════════════════════════════════════════════ */
+
+// Local list-only demo rows (mirrors WO List's own WOS array — list
+// content isn't 1:1 with data/equipment.js's EAM_EQUIPMENT real backing
+// records; every card still opens the one hardcoded demo Equipment
+// record via goEquipmentRecord() regardless of which row was tapped —
+// no per-record routing exists anywhere in this app yet, a pre-existing
+// limitation, unchanged here). Real asset identities reused verbatim
+// from eam-shared.js's EQUIPMENT_LOOKUP_DATA/TREE_DATA (00067333/-334/
+// -335, 00068211, 00069045, 00070102, 00071358) and data/equipment.js's
+// BLDG-A — not invented, same "reuse real identities established
+// elsewhere" discipline the rest of the app follows.
+const EQUIPS = [
+  { assetId:'00067333', desc:'Pump, Centrifugal',           organization:'FBPP', class:'PUMP',       category:'CENTRIFUGAL',  assignedTo:'BCAMPBELL' },
+  { assetId:'00067334', desc:'Pump, Centrifugal (Standby)', organization:'FBPP', class:'PUMP',       category:'CENTRIFUGAL',  assignedTo:'BCAMPBELL' },
+  { assetId:'00067335', desc:'Pump, Centrifugal (Backup)',  organization:'FBPP', class:'PUMP',       category:'CENTRIFUGAL',  assignedTo:'JRODRIGUEZ' },
+  { assetId:'00068211', desc:'Motor, Induction 50HP',       organization:'ORG1', class:'MOTOR',      category:'INDUCTION',    assignedTo:'MKUMAR' },
+  { assetId:'00069045', desc:'Valve, Gate 6in',             organization:'ORG2', class:'VALVE',      category:'GATE',         assignedTo:'JRODRIGUEZ' },
+  { assetId:'00070102', desc:'Compressor, Rotary Screw',    organization:'ORG1', class:'COMPRESSOR', category:'ROTARY SCREW', assignedTo:'MKUMAR' },
+  { assetId:'00071358', desc:'Blower, Centrifugal',         organization:'ORG2', class:'BLOWER',     category:'CENTRIFUGAL',  assignedTo:'BCAMPBELL' },
+  { assetId:'BLDG-A',   desc:'Building A — Main Lobby',     organization:'FBPP', class:'FACILITY',   category:'BUILDING',     assignedTo:'BCAMPBELL' },
+];
+
+// Dataspies — 'all'/'pumps' ids kept unchanged from before (Home's
+// goToScreen()/sessionStorage 'eamPendingSpy' pre-run already targets
+// these 2 exact ids, §24 rule 2). pumps' filter tightened to class+
+// category (was category alone) — with more than 1 row now, category-
+// only would have wrongly caught the Centrifugal Blower too.
+const DS = [
+  { id:'all',        name:'All Equipment' },
+  { id:'pumps',       name:'Centrifugal Pumps' },
+  { id:'myAssigned',  name:'My Assigned Equipment' },
+  { id:'fbpp',        name:'FBPP Equipment' },
+  { id:'facilities',  name:'Facilities' },
+];
+const DSF = {
+  all:        () => true,
+  pumps:      e => e.class === 'PUMP' && e.category === 'CENTRIFUGAL',
+  myAssigned: e => e.assignedTo === 'BCAMPBELL',
+  fbpp:       e => e.organization === 'FBPP',
+  facilities: e => e.class === 'FACILITY',
 };
-function renderEquipmentList() {
-  const pendingSpy = sessionStorage.getItem('eamPendingSpy');
-  if (pendingSpy) sessionStorage.removeItem('eamPendingSpy');
-  const ds = EQUIP_DS[pendingSpy] || EQUIP_DS.all;
-  document.getElementById('dsName').textContent = ds.name;
-  const rows = Object.values(EAM_EQUIPMENT).filter(ds.filter).map(e => renderStdCard([
+
+// Favorite dataspies — a SEPARATE localStorage key from WO List's own
+// 'eamFavoriteDataspies': eam-home-screen-prototype-v1.html's
+// loadWoFavorites() reads that exact key and hardcodes screen:'wo' on
+// every entry it finds, so writing Equipment favorites into the same key
+// would mislabel them with the wrong icon/color/nav target on Home.
+// Same {id,name}-pairs-array shape, so Home's own favorites construction
+// can read this one the same way, just tagged screen:'equip'.
+const LS_FAVORITE_EQUIP_DS_KEY = 'eamFavoriteEquipDS';
+// Seeded once with 'pumps' on first-ever read (same trick WO List's own
+// getFavoriteDS() uses for ds3/ds6) — Home used to show a static
+// "Centrifugal Pumps" favorite unconditionally; this keeps that same
+// chip showing by default now that it's backed by this real mechanism,
+// rather than Home going favorite-less until someone visits this screen
+// and manually re-favorites it.
+function getFavoriteEquipDS() {
+  try {
+    const raw = localStorage.getItem(LS_FAVORITE_EQUIP_DS_KEY);
+    if (raw === null) {
+      const seed = [{ id: 'pumps', name: 'Centrifugal Pumps' }];
+      localStorage.setItem(LS_FAVORITE_EQUIP_DS_KEY, JSON.stringify(seed));
+      return seed;
+    }
+    return JSON.parse(raw) || [];
+  } catch (e) { return []; }
+}
+function isFavoriteEquipDS(id) { return getFavoriteEquipDS().some(f => f.id === id); }
+function toggleFavEquipDS(id) {
+  const list = getFavoriteEquipDS();
+  const idx = list.findIndex(f => f.id === id);
+  if (idx > -1) list.splice(idx, 1);
+  else { const d = DS.find(x => x.id === id); list.push({ id: d.id, name: d.name }); }
+  localStorage.setItem(LS_FAVORITE_EQUIP_DS_KEY, JSON.stringify(list));
+  openEquipDsSheet();
+}
+
+// Filter chip source data — Organization/Class/Assigned To get real
+// multi-select sheets (small fixed code lists, same "3 real chips" ratio
+// WO List's own Status/Type/Organization use); Description/Asset ID/
+// Category stay toast stubs (see the chip markup's own comment above).
+const CD = {
+  organization: { title: 'Filter by organization', rows: [
+    { code: 'FBPP', name: 'Field-Based Plant & Production' },
+    { code: 'ORG1', name: 'Corporate' },
+    { code: 'ORG2', name: 'US Industrial' },
+  ] },
+  class: { title: 'Filter by class', rows: [
+    { code: 'PUMP', name: 'Pump' },
+    { code: 'MOTOR', name: 'Motor' },
+    { code: 'VALVE', name: 'Valve' },
+    { code: 'COMPRESSOR', name: 'Compressor' },
+    { code: 'BLOWER', name: 'Blower' },
+    { code: 'FACILITY', name: 'Facility' },
+  ] },
+  assignedTo: { title: 'Filter by assigned to', rows: [
+    { code: 'BCAMPBELL', name: 'Bruce Campbell' },
+    { code: 'JRODRIGUEZ', name: 'Juan Rodriguez' },
+    { code: 'MKUMAR', name: 'Meera Kumar' },
+  ] },
+};
+const CID = { organization: 'cOrg', class: 'cClass', assignedTo: 'cAssigned' };
+const CLB = { organization: 'Organization', class: 'Class', assignedTo: 'Assigned To' };
+
+/* ══ STATE ══ */
+let curDS = 'all', sv = '', cf = {}, ack = null, csel = {};
+
+/* ══ FILTERING ══ */
+function dsFilt() { return EQUIPS.filter(DSF[curDS] || DSF.all); }
+function sFilt() {
+  let rows = EQUIPS;
+  if (sv) rows = rows.filter(e => e.desc.toLowerCase().includes(sv) || e.assetId.toLowerCase().includes(sv));
+  if (cf.organization?.length) rows = rows.filter(e => cf.organization.includes(e.organization));
+  if (cf.class?.length)        rows = rows.filter(e => cf.class.includes(e.class));
+  if (cf.assignedTo?.length)   rows = rows.filter(e => cf.assignedTo.includes(e.assignedTo));
+  return rows;
+}
+
+/* ══ CARD (§8.3 6-field set, unchanged from before this build) ══ */
+function equipCardFields(e) {
+  return [
     { type: 'text', value: e.desc },
     { type: 'text', value: e.assetId },
     { type: 'org', value: e.organization },
     { type: 'text', label: 'Class', value: e.class },
     { type: 'text', label: 'Category', value: e.category },
     { type: 'text', label: 'Assigned To', value: e.assignedTo },
-  ]).replace('<div class="ld-card">', '<div class="ld-card" onclick="goEquipmentRecord()">'));
-  document.getElementById('listContent').innerHTML = rows.join('') || `<div style="padding:40px 20px;text-align:center;color:var(--text-faint);font-size:14px;">No equipment found for this dataspy</div>`;
+  ];
 }
-renderEquipmentList();
-initSharedApp({ contentSelector: '.content' });
+// renderStdCard() itself returns the full `<div class="ld-card">...`
+// wrapper (not just inner content) — the .replace() below is how the
+// original stub injected its onclick too, kept the same way here.
+function card(e) {
+  return renderStdCard(equipCardFields(e)).replace('<div class="ld-card">', '<div class="ld-card" onclick="goEquipmentRecord()">');
+}
+
+/* ══ RENDER ══ */
+function emptyMsg() { return `<div style="padding:40px 20px;text-align:center;color:var(--text-faint);font-size:14px;">No equipment found</div>`; }
+function refS1() {
+  const rows = dsFilt();
+  document.getElementById('listContent').innerHTML = rows.map(card).join('') || emptyMsg();
+  document.getElementById('s1Count').textContent = rows.length + ' equipment record' + (rows.length === 1 ? '' : 's');
+}
+function refS2() {
+  const rows = sFilt();
+  document.getElementById('s2List').innerHTML = rows.map(card).join('') || emptyMsg();
+  document.getElementById('s2Count').textContent = rows.length + ' equipment record' + (rows.length === 1 ? '' : 's');
+}
+
+/* ══ TAP HEADER TO SCROLL TO TOP (§4.2, locked, universal) — local
+   equivalent of eam-shared.js's scrollFormToTop(), same reason WO List
+   has its own: 2 screens now share this file, so the generic single-
+   selector version can't tell which one is actually visible. ══ */
+function scrollListToTop() {
+  const screen = document.querySelector('.screen.active');
+  if (!screen) return;
+  const list = screen.querySelector('#listContent, #s2List');
+  if (list) list.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ══ DATASPY SHEET ══ */
+function openEquipDsSheet() {
+  const sorted = [...DS].sort((a, b) => (isFavoriteEquipDS(b.id) ? 1 : 0) - (isFavoriteEquipDS(a.id) ? 1 : 0));
+  document.getElementById('equipDsSheetBody').innerHTML = sorted.map(d => `
+    <div class="lov-option">
+      <button class="ds-fav-star${isFavoriteEquipDS(d.id) ? ' favorited' : ''}" onclick="event.stopPropagation();toggleFavEquipDS('${d.id}')" aria-label="Favorite">${LD_ICONS.star}</button>
+      <div class="lov-option-texts" onclick="selEquipDS('${d.id}')"><div class="lov-option-desc">${d.name}</div></div>
+      <div class="lov-check${curDS === d.id ? ' checked' : ''}" onclick="selEquipDS('${d.id}')"></div>
+    </div>`).join('');
+  openSheet('equipDsSheet');
+}
+function selEquipDS(id) {
+  curDS = id;
+  document.getElementById('dsName').textContent = DS.find(d => d.id === id).name;
+  closeAllSheets();
+  refS1();
+}
+
+/* ══ SEARCH SCREEN ══ */
+function goSearch() {
+  document.getElementById('s1').classList.remove('active');
+  document.getElementById('s2').classList.add('active');
+  refS2();
+  setTimeout(() => document.getElementById('sInp').focus(), 80);
+}
+function closeSearch() {
+  document.getElementById('s2').classList.remove('active');
+  document.getElementById('s1').classList.add('active');
+}
+function onSearch(v) {
+  sv = v.toLowerCase();
+  document.getElementById('sClr').style.display = v.length > 0 ? 'flex' : 'none';
+  refS2();
+}
+function clearSearch() {
+  document.getElementById('sInp').value = '';
+  sv = '';
+  document.getElementById('sClr').style.display = 'none';
+  refS2();
+  document.getElementById('sInp').focus();
+}
+
+/* ══ FILTER CHIP SHEET (reused for whichever field is active, "ack") ══ */
+function openCS(k) {
+  ack = k;
+  csel = Object.fromEntries((cf[k] || []).map(v => [v, true]));
+  document.getElementById('csTitle').textContent = CD[k].title;
+  renderCSRows(CD[k].rows);
+  openSheet('csSheet');
+}
+function renderCSRows(rows) {
+  document.getElementById('csList').innerHTML = rows.map(r => `
+    <div class="lov-option" onclick="togCS('${r.code}')">
+      <div class="lov-option-texts"><div class="lov-option-desc">${r.name}</div></div>
+      <div class="lov-check${csel[r.code] ? ' checked' : ''}" id="csr-${r.code}"></div>
+    </div>`).join('');
+}
+function togCS(c) {
+  csel[c] = !csel[c];
+  const el = document.getElementById('csr-' + c);
+  if (el) el.className = 'lov-check' + (csel[c] ? ' checked' : '');
+}
+function clearCS() { csel = {}; renderCSRows(CD[ack].rows); }
+function applyCS() {
+  const sel = Object.keys(csel).filter(k => csel[k]);
+  cf[ack] = sel;
+  const el = document.getElementById(CID[ack]);
+  el.classList.toggle('active', sel.length > 0);
+  el.innerHTML = CLB[ack] + (sel.length > 0 ? `<span class="chip-count">${sel.length}</span>` : '');
+  refS2();
+  closeAllSheets();
+}
+
+// 2nd real dataspy pre-run (2026-07-22, home-nav wiring pass, carried
+// over from the old stub) — Home's Pumps tile/favorite pre-run here via
+// sessionStorage's 'eamPendingSpy', consume-once (§24 rule 2; NOT a
+// ?spy= query string — npx serve's clean-URL redirect strips query
+// strings on navigation — see eam-home-screen-prototype-v1.html's
+// goToScreen()). Any dataspy id can be pre-run now, not just 'pumps'.
+(function applyPendingSpy() {
+  const pendingSpy = sessionStorage.getItem('eamPendingSpy');
+  if (pendingSpy) sessionStorage.removeItem('eamPendingSpy');
+  if (pendingSpy && DS.some(d => d.id === pendingSpy)) curDS = pendingSpy;
+  document.getElementById('dsName').textContent = DS.find(d => d.id === curDS).name;
+})();
+refS1();
+initSharedApp({ contentSelector: '#listContent' });
 </script>
 </body>
 </html>

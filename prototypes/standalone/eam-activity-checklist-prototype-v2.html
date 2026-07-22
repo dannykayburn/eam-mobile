@@ -815,18 +815,40 @@ function closeOverview() { document.getElementById('overviewOverlay').classList.
 // correctly whichever step actually preceded it. ──────────────────────
 function promptAnswer(issuedParts) {
   sessionStorage.setItem('eamArrivedViaNextStep', 'true');
+  sessionStorage.setItem('eamOpenDemoWo', DEMO_WO);
   window.location.href = issuedParts ? WO_STEP_FILES.issueparts : WO_STEP_FILES.booklabor;
 }
 
 /* Demo-WO workflow hook (design-decisions-v3-1.md §11-13, added
-   2026-07-22) — called by cycleDemoWo() (eam-shared.js) and once at init. */
+   2026-07-22) — called by cycleDemoWo() (eam-shared.js) and once at init.
+   §11 fallback (ROUT) locked in 2026-07-22 (user direction): renders the
+   flat, unnumbered, free-flow rail (renderFlatStepRail(), eam-shared.js)
+   instead of leaving the numbered rail's stale hardcoded BRKD markup in
+   place — renderStepRail() itself no-ops on an empty step list, so
+   without this branch the rail would silently show the wrong thing
+   rather than nothing. */
 let CURRENT_WORKFLOW = null;
 function onDemoWoChanged() {
   const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
   CURRENT_WORKFLOW = resolveWoWorkflow(jobType);
   applyDemoWoIdentity();
-  renderStepRail(CURRENT_WORKFLOW, 'checklist');
+  if (CURRENT_WORKFLOW.configured) renderStepRail(CURRENT_WORKFLOW, 'checklist');
+  else renderFlatStepRail('checklist');
   renderPromptBar();
+}
+
+/* Consume-once hand-off (same pattern as WO Record View's own read,
+   eam-wo-record-view-prototype-v1.html) — picks which of the 3 demo WOs
+   this visit should land on instead of always defaulting to 19257.
+   Needed so a real navigation from Record View's Start Work bar, or a
+   free-flow tap on the fallback rail (goToWoStep(), eam-shared.js),
+   correctly carries the ROUT identity across the page load. */
+const OPEN_DEMO_WO = sessionStorage.getItem('eamOpenDemoWo');
+if (OPEN_DEMO_WO) {
+  sessionStorage.removeItem('eamOpenDemoWo');
+  DEMO_WO = OPEN_DEMO_WO;
+  const demoWoBtn = document.getElementById('demoWoToggle');
+  if (demoWoBtn) demoWoBtn.textContent = '📋 WO ' + DEMO_WO;
 }
 
 /* ── init ── */

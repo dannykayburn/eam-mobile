@@ -748,10 +748,13 @@ const BADGE_LOV_META = { type: TYPE_META, priority: PRIORITY_META };
 // Work Request): pre-delivered statuses are kept to exactly the 3 real
 // system statuses (Work Request/Released/Closed) — a customer's own user
 // statuses nest under one of these three, which is what actually carries
-// the colour. Green is reserved for "live/active work" only (Released) —
-// both before (Work Request) and after (Closed) render neutral/outlined,
-// so green never means "closed" (see design-decisions-v3-1.md §15.4).
-const STATUS_CLASS_MAP = { WAPPR: 'st-standby', RELEASED: 'st-operational', CLOSE: 'st-standby' };
+// the colour. Green is reserved for "live/active work" only (Released);
+// Closed stays neutral/outlined, so green never means "closed" (see
+// design-decisions-v3-1.md §15.4). Work Request (WAPPR) was pulled out
+// of that neutral/outlined tier into its own orange fill (st-waiting,
+// eam-shared.css) 2026-07-22, user direction — mirrors the same code's
+// "Waiting approval" fix already applied to WO List's status pill.
+const STATUS_CLASS_MAP = { WAPPR: 'st-waiting', RELEASED: 'st-operational', CLOSE: 'st-standby' };
 // Custom Fields (§22) gating values — not user-visible/editable fields
 // on this screen (no design decision yet to add a Class picker here),
 // just what selects this WO's Custom Fields set from data/custom_field_
@@ -1172,23 +1175,29 @@ function startWork() {
   // WO status transition on Start (e.g. → "In Progress") depends on a field
   // on the not-yet-modeled WO Workflow Setup record (§15.4) — not
   // implemented here, flagged there rather than guessed at.
-  // Real navigation as of 2026-07-22 (was a toast stub) — every configured
-  // workflow's 2nd step is Activity Checklist (both BRKD and PM), so this
-  // doesn't need to consult CURRENT_WORKFLOW.steps[1] to know where to go,
-  // but does guard on a workflow actually existing (ROUT never shows this
-  // bar at all — see onDemoWoChanged() below — so this guard is a
-  // belt-and-suspenders check, not the primary gate).
-  if (!CURRENT_WORKFLOW || !CURRENT_WORKFLOW.configured) return;
+  // Every configured workflow's 2nd step is Activity Checklist (both BRKD
+  // and PM). Locked in 2026-07-22 (user direction): the §11 fallback
+  // (ROUT) now keeps a real, working Start Work bar too instead of hiding
+  // it (see onDemoWoChanged() below) — Activity Checklist is always Step
+  // 2 regardless, so this needs no CURRENT_WORKFLOW.configured guard at
+  // all anymore. eamOpenDemoWo carries the current demo WO's identity
+  // forward, same mechanism goToWoStep() (eam-shared.js) uses for the
+  // fallback rail's own free-flow taps.
   sessionStorage.setItem('eamArrivedViaNextStep', 'true');
+  sessionStorage.setItem('eamOpenDemoWo', DEMO_WO);
   window.location.href = WO_STEP_FILES.checklist;
 }
 
 /* Demo-WO workflow hook (design-decisions-v3-1.md §11-13, added
    2026-07-22) — called by cycleDemoWo() (eam-shared.js) and once at init.
-   No configured workflow (ROUT/20450) is the §11 fallback: this screen
-   already *is* the plain Standard Record View, so the fallback is just
-   hiding the guided-workflow-only chrome (step rail, Start Work bar) —
-   not a second screen. */
+   No configured workflow (ROUT/20450) is the §11 fallback. Locked in
+   2026-07-22 (user direction, supersedes the original "just hide the
+   guided-workflow-only chrome" call right above): the fallback now shows
+   a real rail + bar too — a flat, unnumbered, free-flow-tappable rail
+   listing all 5 WO-workflow steps (renderFlatStepRail(), same visual
+   paradigm as Equipment RV's own tab rail) instead of the numbered/
+   gated one, plus a working Start Work bar (startWork() above no longer
+   guards on .configured). */
 let CURRENT_WORKFLOW = null;
 function onDemoWoChanged() {
   const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
@@ -1200,14 +1209,10 @@ function onDemoWoChanged() {
   if (!NEW_RECORD) applyDemoWoIdentity();
   const rail = document.getElementById('stepRail');
   const bar = document.getElementById('bottomBar');
-  if (!CURRENT_WORKFLOW.configured) {
-    if (rail) rail.style.display = 'none';
-    if (bar) bar.style.display = 'none';
-  } else {
-    if (rail) rail.style.display = '';
-    if (bar) bar.style.display = '';
-    renderStepRail(CURRENT_WORKFLOW, 'record');
-  }
+  if (rail) rail.style.display = '';
+  if (bar) bar.style.display = '';
+  if (CURRENT_WORKFLOW.configured) renderStepRail(CURRENT_WORKFLOW, 'record');
+  else renderFlatStepRail('record');
   applyWorkflowTypeHeader(CURRENT_WORKFLOW.freeForm ? 'FREE_FORM' : 'NOT_FREE_FORM');
 }
 

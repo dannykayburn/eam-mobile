@@ -60,7 +60,18 @@
    content (docs/reference_screenshots/jr home 1.png), not a flat fill. */
 
 /* ── HOME BODY ── */
-.home-body{flex:1;overflow-y:auto;padding:14px 14px 78px;}
+/* Uniform 1.15x "zoom" (2026-07-22, user direction — "just make it
+   bigger... to fill some negative space") — a plain scale-up of Home's
+   own scrollable content only (greeting/Favorites/tile sections), not
+   the header/create-bar/bottom-nav chrome above/below it, which are
+   shared app-shell mechanics (locked, §4.2/§4.3) rather than Home's own
+   unlocked content. `zoom` (not `transform:scale`) specifically because
+   it reflows layout/scroll height correctly inside this `overflow-y:
+   auto` container — a transform wouldn't grow the scrollable area to
+   match, causing clipping/scroll-length bugs. No other rule in this
+   file changed — every spacing/size ratio below is exactly as it was,
+   just uniformly bigger. */
+.home-body{flex:1;overflow-y:auto;padding:14px 14px 78px;zoom:1.15;}
 /* Section titles — bumped from a muted caption to a bold, high-contrast
    label (classic black/white, no color) so "Favorites"/"My Work"/
    "Reference" read as real section dividers rather than fine print. */
@@ -82,28 +93,45 @@
 .home-greeting{font-size:15px;font-weight:700;color:var(--octave-black);margin:2px 2px 4px;}
 [data-theme="dark"] .home-greeting{color:rgba(255,255,255,.92);}
 
-/* Favorites — dataspy chip row, horizontally scrollable, no visible
-   scrollbar (the underlying scroll works fine on a touch device without
-   one; this is a desktop-preview-only affordance otherwise, §home riff).
-   Chips are a vertical icon-over-name stack — no count badge is surfaced
-   here since the screen icon already disambiguates which screen a
-   favorite belongs to and that was judged sufficient on its own.
-   Height is content-driven (min-height only, not a fixed height) — a
-   fixed height left short names like "Pumps" sitting in a box sized for
-   worst case, all dead space below the text. One consistent rule
-   instead: min-width/max-width bound the width (short names stay
-   compact, long ones get more room before wrapping), min-height gives
-   every chip the same one-line floor, and the name just wraps to as
-   many lines as it actually needs — no line-clamp/ellipsis, so nothing
-   clips even at dataspy-name-field-length extremes (~80 chars: wraps to
-   several lines and the chip grows taller, but never truncates). */
-.fav-row{display:flex;align-items:flex-start;gap:8px;overflow-x:auto;margin:0 -14px;padding:0 14px 4px;-ms-overflow-style:none;scrollbar-width:none;}
+/* Equipment accent — theme-aware (2026-07-22, user direction), backing
+   SCREEN_META.equip and HOME_TILES' Equipment/Pumps tiles above. Teal
+   (#007B87) checked against the user's own Octave brand-deck palette
+   this session and isn't in either page — light mode keeps teal for now
+   (no confirmed light-mode replacement yet), dark mode switches to
+   Octave Aqua (#00FFFF, a real Black-mode-palette entry, verified in
+   prototypes/standalone/mockups/home-bold-tiles-octave-colors-preview.
+   html's 3rd toggle) since Aqua only reads correctly against a dark
+   background. --equip-tint is a separate variable (not color+alpha-
+   suffix string concatenation — you can't append a hex suffix to a
+   var() reference) for the Home tiles' pale tint-square background.
+   --equip-icon flips white→dark ink in dark mode specifically for the
+   Favorites bubble, where the fill is full-opacity: a white icon on
+   solid Aqua is nearly invisible (Aqua's own luminance is close to
+   white's), unlike white-on-teal, which has plenty of contrast. */
+:root{ --equip-accent:#007B87; --equip-tint:#007B8722; --equip-icon:#fff; }
+[data-theme="dark"]{ --equip-accent:#00FFFF; --equip-tint:#00FFFF22; --equip-icon:var(--octave-black); }
+
+/* Favorites — "Icon Bubble" (2026-07-22, user direction, replaces the
+   original card-chip shape). Explored alongside 4 other shapes/paradigms
+   in prototypes/standalone/mockups/home-favorites-redesign-options.html
+   (Option 4) — picked specifically to kill the "plain white chip on
+   plain gray page" flatness the user called out: there's no card
+   container at all now, just a big solid-brand-color circular icon
+   ("coin") with the name as a caption below, same paradigm as an Apple
+   Watch app grid. Color now carries full weight (solid fill + white
+   icon) instead of a pale 22%-tint square, so favorites read distinctly
+   bolder than the Home tiles below even though the tiles are now the
+   physically larger element (see the Home tiles comment below) —
+   intentional, favorites are meant to pop, tiles are meant to inform.
+   No line-clamp/ellipsis carried over from the old chip rule — name
+   still just wraps to as many lines as it needs, never truncates. */
+.fav-row{display:flex;align-items:flex-start;gap:16px;overflow-x:auto;margin:0 -14px;padding:6px 14px 4px;-ms-overflow-style:none;scrollbar-width:none;}
 .fav-row::-webkit-scrollbar{display:none;}
-.fav-chip{flex-shrink:0;min-height:74px;min-width:80px;max-width:150px;display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:18px;padding:14px 8px 10px;font-size:11px;font-weight:600;color:var(--octave-black);text-align:center;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;}
-[data-theme="dark"] .fav-chip{color:rgba(255,255,255,.92);}
-.fav-chip-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.fav-chip-icon svg{width:15px;height:15px;}
-.fav-chip-name{line-height:1.25;overflow-wrap:break-word;}
+.fav-chip{flex-shrink:0;width:72px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;}
+.fav-chip-icon{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 6px 14px rgba(0,0,0,.16);}
+.fav-chip-icon svg{width:26px;height:26px;}
+.fav-chip-name{font-size:11px;font-weight:600;color:var(--octave-black);text-align:center;line-height:1.25;overflow-wrap:break-word;}
+[data-theme="dark"] .fav-chip-name{color:rgba(255,255,255,.92);}
 .fav-chip.reordering{animation:home-jiggle .22s ease-in-out infinite;}
 
 /* Quick-create bar — pinned strip between the header and the scrolling
@@ -138,9 +166,11 @@
    row mechanic as Favorites (.fav-row) instead of a fixed-column grid —
    there's no cap on how many tiles a user can add to a section, and a
    scroll row absorbs that growth without the page getting taller, the
-   way an ever-wrapping grid would. Sized a notch above Favorites (84px
-   vs. 76px) — deliberately, so the two rows still read as different
-   scopes even though they now share the same scroll-row mechanic.
+   way an ever-wrapping grid would.
+   Sized up 84px→100px (2026-07-22, user direction, alongside Favorites'
+   Icon Bubble redesign above) — bigger/more balanced icon-to-tile
+   ratio, and still a clear notch above Favorites' 56px bubble so the two
+   rows keep reading as different scopes even at the larger size.
    Top padding on the row bumped 0→10px: the corner badge pokes above
    the tile via a negative offset, and `overflow-x:auto` here forces
    `overflow-y` to compute as `auto` too (CSS spec — a row can't scroll
@@ -148,9 +178,9 @@
    badge's overhang with no top padding to give it room. */
 .home-tilegrid{display:flex;gap:10px;overflow-x:auto;margin:6px -14px 0;padding:10px 14px 4px;-ms-overflow-style:none;scrollbar-width:none;}
 .home-tilegrid::-webkit-scrollbar{display:none;}
-.home-tile{flex-shrink:0;width:84px;display:flex;flex-direction:column;align-items:center;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;}
-.home-tile-sq{width:100%;aspect-ratio:1;max-width:84px;border-radius:18px;display:flex;align-items:center;justify-content:center;position:relative;}
-.home-tile-sq svg{width:32px;height:32px;}
+.home-tile{flex-shrink:0;width:100px;display:flex;flex-direction:column;align-items:center;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;}
+.home-tile-sq{width:100%;aspect-ratio:1;max-width:100px;border-radius:20px;display:flex;align-items:center;justify-content:center;position:relative;}
+.home-tile-sq svg{width:38px;height:38px;}
 .home-tile-badge{position:absolute;top:-7px;right:-7px;background:var(--octave-black);color:var(--white);font-size:11px;font-weight:700;font-family:var(--font-sans);border-radius:100px;padding:2px 6px;min-width:19px;text-align:center;line-height:1.3;border:2px solid var(--bg-page);}
 [data-theme="dark"] .home-tile-badge{border-color:var(--bg-page);}
 .home-tile-label{font-size:12px;font-weight:500;color:var(--octave-black);text-align:center;margin-top:7px;line-height:1.3;}
@@ -573,35 +603,47 @@
    the Home tiles further down, so the two rows read as different scopes,
    not duplicates (original session riff ask).
    ═══════════════════════════════════════════════════════════════════════ */
-/* WO dataspy favorites now come from eam-wo-list-prototype-v5_1.html's
-   own dataspy-selector star toggle (§8.3, revised 2026-07-20) — not
-   hardcoded here anymore. Both files share one origin (this local
-   server), so localStorage under the same key is a real cross-file
-   channel: favoriting "High Priority — Open" there writes {id:'ds3',
-   name:'High Priority — Open'} to LS_FAVORITE_DS_KEY, and this file just
-   reads it back on load. No live count is computed for these (would mean
-   pulling in WO List's own WOS dataset + filter engine — the same
-   known-simplification the file header already flags for the static
-   tiles below), so a WO favorite chip just shows no count badge at all
-   rather than fabricate one. fav3 (Equipment) has no live favoriting
-   source yet — no Equipment List screen exists — so it stays a static
-   seed entry, same as before. */
+/* WO dataspy favorites come from eam-wo-list-prototype-v5_1.html's own
+   dataspy-selector star toggle (§8.3, revised 2026-07-20); Equipment
+   dataspy favorites come from eam-equipment-list-prototype-v1.html's own
+   equivalent (added 2026-07-22, Equipment search/dataspy/filter build —
+   replaces the old static fav3 seed now that a real mechanism exists).
+   Both files share one origin (this local server), so localStorage under
+   each screen's own key is a real cross-file channel: favoriting "High
+   Priority — Open" on WO List writes {id:'ds3', name:'High Priority —
+   Open'} to LS_FAVORITE_DS_KEY; favoriting "Centrifugal Pumps" on
+   Equipment List writes {id:'pumps', name:'Centrifugal Pumps'} to
+   LS_FAVORITE_EQUIP_DS_KEY — this file just reads both back on load.
+   Two separate keys, not one shared key, specifically so an Equipment
+   favorite doesn't get mislabeled screen:'wo' (or vice versa) — each
+   list only ever tags its own entries with its own literal screen id
+   below, the source key never carries that information itself. No live
+   count is computed for either (would mean pulling in each screen's own
+   dataset + filter engine — a known simplification the file header
+   already flags for the static tiles below), so a dataspy favorite chip
+   just shows no count badge at all rather than fabricate one. */
 const LS_FAVORITE_DS_KEY = 'eamFavoriteDataspies';
+const LS_FAVORITE_EQUIP_DS_KEY = 'eamFavoriteEquipDS';
 function loadWoFavorites() {
   try {
     const raw = localStorage.getItem(LS_FAVORITE_DS_KEY);
     return raw ? (JSON.parse(raw) || []) : [];
   } catch (e) { return []; }
 }
-// spy: f.id below is the real WO List dataspy id these came from
-// (toggleFavDS() persists {id,name} pairs, so favoriting ds3 there
-// surfaces a chip here that opens WO List pre-run to that exact ds3 —
-// no name-matching needed, unlike the static tiles above). fav3 stays a
-// static seed (no live Equipment favoriting mechanism yet) pointed at
-// the same 'pumps' dataspy the Pumps tile uses.
+function loadEquipFavorites() {
+  try {
+    const raw = localStorage.getItem(LS_FAVORITE_EQUIP_DS_KEY);
+    return raw ? (JSON.parse(raw) || []) : [];
+  } catch (e) { return []; }
+}
+// spy: f.id below is the real dataspy id these came from (each screen's
+// own toggleFavDS()/toggleFavEquipDS() persists {id,name} pairs, so
+// favoriting a dataspy there surfaces a chip here that opens that exact
+// screen pre-run to that exact dataspy — no name-matching needed, unlike
+// the static tiles above).
 let FAVORITES = [
   ...loadWoFavorites().map(f => ({ id: f.id, screen: 'wo', name: f.name, spy: f.id })),
-  { id:'fav3', screen:'equip', name:'Centrifugal Pumps', count:3, spy:'pumps' },
+  ...loadEquipFavorites().map(f => ({ id: f.id, screen: 'equip', name: f.name, spy: f.id })),
 ];
 // Screen-identity colour/icon — purple+wrench for Work Orders, teal+box
 // for Equipment. Home is a deliberate exception to §23's monochrome rule
@@ -609,9 +651,21 @@ let FAVORITES = [
 // only) — color stays here specifically so two similarly-named favorites
 // from different screens stay visually distinguishable at a glance, not
 // just by icon shape.
+// Equipment's teal (#007B87) was checked against the user's own Octave
+// brand-deck palette this session (prototypes/standalone/mockups/
+// home-bold-tiles-octave-colors-preview.html) and isn't in either page —
+// purple/orange/green all already matched exactly. Fixed via the
+// theme-aware --equip-accent/--equip-icon custom properties below
+// (defined near .fav-chip-icon) instead of a 2nd hardcoded hex: light
+// mode keeps teal (no confirmed light-mode replacement yet — Octave Blue
+// was explored but not approved for real use), dark mode switches to
+// Octave Aqua (#00FFFF, a real Black-mode-palette entry) since Aqua only
+// reads correctly against a dark background. iconColor flips alongside
+// it (white on teal, dark ink on Aqua) — Aqua is bright enough that a
+// white icon on top of it is nearly invisible, unlike teal.
 const SCREEN_META = {
-  wo:    { icon:'tool',    color:'#9933FF' },
-  equip: { icon:'package', color:'#007B87' },
+  wo:    { icon:'tool',    color:'#9933FF',            iconColor:'#fff' },
+  equip: { icon:'package', color:'var(--equip-accent)', iconColor:'var(--equip-icon)' },
 };
 // Destination page per screen id — every real Home nav edge (tiles,
 // favorites) resolves through this, §24 rule 2.
@@ -651,8 +705,13 @@ function goToScreen(screen, spy) {
 let HOME_TILES = [
   { id:'tile1', name:"Corrective WO's",   icon:'tool',      color:'#F46600', count:18,  group:'mywork',   screen:'wo',    spy:'ds9' },
   { id:'tile2', name:"My PM WO's",        icon:'cal-check', color:'#00AA14', count:12,  group:'mywork',   screen:'wo',    spy:'ds8' },
-  { id:'tile3', name:'Equipment',         icon:'package',   color:'#007B87', count:134, group:'reference',screen:'equip' },
-  { id:'tile4', name:'Pumps',             icon:'droplet',   color:'#007B87', count:9,   group:'reference',screen:'equip', spy:'pumps' },
+  // color/tint use the same theme-aware --equip-accent/--equip-tint
+  // custom properties as SCREEN_META.equip above (teal light / Octave
+  // Aqua dark) — tint is a 2nd variable, not color+alpha-suffix string
+  // concatenation, since you can't append a hex alpha suffix onto a
+  // var() reference.
+  { id:'tile3', name:'Equipment',         icon:'package',   color:'var(--equip-accent)', tint:'var(--equip-tint)', count:134, group:'reference',screen:'equip' },
+  { id:'tile4', name:'Pumps',             icon:'droplet',   color:'var(--equip-accent)', tint:'var(--equip-tint)', count:9,   group:'reference',screen:'equip', spy:'pumps' },
   // Reference Section — WO shortcuts too, but scoped to closed/historical
   // work rather than open work (§home riff). "Last Week's Work" has no
   // real date-range dataspy to point to (the demo WOS dataset only spans
@@ -750,7 +809,7 @@ function renderFavorites() {
   document.getElementById('favRow').innerHTML = FAVORITES.map((f, i) => {
     const m = SCREEN_META[f.screen];
     return `<div class="fav-chip${mode ? ' reordering' : ''}" data-id="${f.id}" onpointerdown="onItemPointerDown(event,'fav','${f.id}')">
-      <span class="fav-chip-icon" style="background:${m.color}22"><svg width="15" height="15" viewBox="0 0 24 24" style="color:${m.color}"><use href="#ico-${m.icon}"/></svg></span>
+      <span class="fav-chip-icon" style="background:${m.color}"><svg width="26" height="26" viewBox="0 0 24 24" style="color:${m.iconColor}"><use href="#ico-${m.icon}"/></svg></span>
       <span class="fav-chip-name">${f.name}</span>
       ${mode ? `<span class="reorder-arrows">
         <button class="reorder-arrow" onclick="event.stopPropagation();moveItem('fav',${i},-1)" ${i === 0 ? 'disabled' : ''}>‹</button>
@@ -768,7 +827,7 @@ function renderTileGroup(containerId, group) {
   const indexed = HOME_TILES.map((t, i) => ({ t, i })).filter(x => x.t.group === group);
   document.getElementById(containerId).innerHTML = indexed.map(({ t, i }) => `
     <div class="home-tile${mode ? ' reordering' : ''}" data-id="${t.id}" onpointerdown="onItemPointerDown(event,'tile','${t.id}')">
-      <span class="home-tile-sq" style="background:${t.color}22">
+      <span class="home-tile-sq" style="background:${t.tint || (t.color + '22')}">
         <svg viewBox="0 0 24 24" style="color:${t.color}"><use href="#ico-${t.icon}"/></svg>
         <span class="home-tile-badge">${t.count}</span>
       </span>

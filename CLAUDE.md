@@ -1352,6 +1352,93 @@ become a re-investigation every time it comes up.
   §24.1 for the full write-up, including why it's a plain CSS
   `@keyframes` animation rather than the usual JS classList-toggle
   pattern every other sheet in this app uses.
+- **Equipment List's search/dataspy/filter build, 2026-07-22 (user
+  direction) — closes the "Equipment search wasn't there" gap.**
+  Brought `eam-equipment-list-prototype-v1.html` up from its deliberately
+  minimal 2026-07-22 stub (ds-bar/search/filter chips all "coming soon")
+  to real functionality, copying `eam-wo-list-prototype-v5_1.html`'s own
+  §8.3 dataspy-bar/search/filter-chip pattern (its explicit template)
+  rather than inventing a second version — but implemented with the
+  ALREADY-SHARED `eam-shared.css`/`.js` primitives that pattern's own
+  future rebuild is still owed (`.bottom-sheet`/`openSheet()`/
+  `closeAllSheets()` for both new sheets instead of a 2nd `.ov`/`.sh-*`
+  system, `.lov-option`/`.lov-option-desc`/`.lov-check`/`.ds-fav-star`/
+  `.filter-chip`/`.chip-count`/`.ds-bar`/`.res-row`/`.sort-btn`/
+  `.ld-search-bar`/`LD_ICONS.*` — all already promoted by the §8.2 List/
+  Detail shell or other shared sheets, zero new icons needed). The one
+  genuinely new piece is the List↔Search full-screen swap itself
+  (`.screen`/`.screen.active`), since that's a top-level 2-screen nav
+  pattern distinct from §8.2's inline-collapsing search bar inside a
+  record's own tab.
+  - New local `EQUIPS` array (8 rows, replacing the old single-record
+    `EAM_EQUIPMENT` read) — list-only demo data, same "list content
+    isn't 1:1 with the real backing detail record" shape WO List's own
+    `WOS` already has (every card still opens the one hardcoded demo
+    Equipment record regardless of which row was tapped — no per-record
+    routing exists anywhere in this app yet, unchanged). Real asset
+    identities reused verbatim from `eam-shared.js`'s
+    `EQUIPMENT_LOOKUP_DATA`/`TREE_DATA` (00067333/-334/-335, 00068211,
+    00069045, 00070102, 00071358) and `data/equipment.js`'s BLDG-A — not
+    invented.
+  - 5 dataspies (`all`/`pumps` ids kept unchanged for Home's existing
+    pre-run compatibility; added `myAssigned`/`fbpp`/`facilities`) with a
+    real favorite-star sheet, same shape as WO List's. `pumps`' filter
+    tightened to class+category (was category alone) — a real latent
+    bug the old 1-record data never exposed: category-only would have
+    wrongly caught the new Centrifugal Blower row too. Verified live.
+  - Real Search screen (nav search icon → full nav-back "Search
+    equipment" page, live text filter over description/asset ID) and 3
+    real filter-chip sheets (Organization/Class/Assigned To — small
+    fixed code lists; Description/Asset ID/Category stay toast stubs,
+    same reasoning as WO List's own free-text/identifier/date stubs).
+    Sort stays a toast stub too, matching WO List's own current state —
+    not exceeding the template.
+  - Equipment dataspy favorites now flow into Home for real, via a new,
+    SEPARATE localStorage key (`eamFavoriteEquipDS`) from WO List's own
+    `eamFavoriteDataspies` — sharing one key would have mislabeled every
+    Equipment favorite with WO's icon/color/nav target on Home, since
+    Home's `loadWoFavorites()` hardcodes `screen:'wo'` on everything it
+    reads from that key. Replaces Home's old static `fav3` seed entry;
+    `getFavoriteEquipDS()` seeds itself with `pumps` on first-ever read
+    (same trick WO List's own `getFavoriteDS()` uses) so Home's
+    "Centrifugal Pumps" favorite keeps showing by default.
+  - **Real bug found + fixed while live-verifying, not in any grep:** the
+    new `#s2List` (search results container) didn't get the shared
+    `.content` class (`flex:1;overflow-y:auto`) that `#listContent`
+    already carried — without it, `#s2List` had no constrained height of
+    its own, so it grew to its full unconstrained size inside `.screen`'s
+    flex column and starved its flex-shrink siblings (the search bar and
+    filter-chip row) down to ~0px height instead. Fixed by adding the
+    class; both screens verified live afterward, both themes, no console
+    errors.
+  - Not built (out of scope for this pass, matching what was actually
+    asked for): List/Detail mode toggle + all-fields table, a real Sort
+    sheet, and per-row search-within-filter-sheet inputs (the option
+    lists are short enough not to need one yet).
+- **§11 fallback (ROUT/WO 20450) rail+bar fix, 2026-07-22 (user-reported
+  bug, "locked in").** WO 20450 (no configured workflow) was hiding its
+  step rail and bottom bar entirely on all 5 WO workflow screens — read
+  as a bug, not the deliberate Free Form behavior it was. Now shows a
+  real rail and bar instead: a flat, unordered, ungated list of all 5 WO
+  steps (WO Record View/Activity Checklist/Issue Parts/Book Labor/WO
+  Closing), no sequence numbers, same visual paradigm as Equipment Record
+  View's own tab rail — new `renderFlatStepRail()`/`goToWoStep()` in
+  `eam-shared.js`, reusing the numbered rail's `#stepRail`/`#stepMap`
+  shell. Every row is freely tappable in any order (real cross-file
+  navigation, carrying the demo WO's identity forward via the same
+  `eamOpenDemoWo` flag WO List's `openWO()` already used). WO Record
+  View's bar now says "Start Work" and works for this case too
+  (`startWork()` no longer guards on `CURRENT_WORKFLOW.configured`); the
+  other 4 screens' bars ("Next: X"/"Close Work Order") already had no
+  such guard, they just needed the same identity-carry fix on their Next
+  buttons plus a read of `eamOpenDemoWo` on load (previously only WO
+  Record View read it — the other 4 always silently defaulted back to
+  WO 19257 regardless of how you arrived). Full write-up: design-
+  decisions-v3-1.md's "Fallback rule" section (§11-area), "Revised
+  2026-07-22" bullet. **Not yet live-verified in a browser this
+  session** — browser preview tool access was denied this turn; re-check
+  visually (both themes, full RV→Checklist→Issue Parts→Book Labor→
+  Closing free-flow walk) next time this area is touched.
 - `prototypes/standalone/shared/eam-shared.css` and `eam-shared.js` hold
   every generic component's CSS/JS (headers, sheets, LOV/date/text-editor
   pickers, Comments/Documents, required-field badges, etc.) — loaded via

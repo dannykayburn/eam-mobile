@@ -557,7 +557,7 @@
        are gated on it, §18.7) — same sessionStorage pattern as
        navigateToNewRecord()'s Insert Mode hand-off. -->
   <div class="bottom-bar">
-    <button class="bar-pill bar-pill-ready" id="nextBtn" onclick="sessionStorage.setItem('eamArrivedViaNextStep','true'); window.location.href='eam-book-labor-prototype-v2.html';">
+    <button class="bar-pill bar-pill-ready" id="nextBtn" onclick="sessionStorage.setItem('eamArrivedViaNextStep','true'); sessionStorage.setItem('eamOpenDemoWo', DEMO_WO); window.location.href=WO_STEP_FILES.booklabor;">
       <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Next: Book Labor
     </button>
@@ -1346,11 +1346,28 @@ function updateSummary() {
 }
 
 /* Demo-WO workflow hook (design-decisions-v3-1.md §11-13, added
-   2026-07-22) — called by cycleDemoWo() (eam-shared.js) and once at init. */
+   2026-07-22) — called by cycleDemoWo() (eam-shared.js) and once at init.
+   §11 fallback (ROUT) locked in 2026-07-22 (user direction): renders the
+   flat, unnumbered, free-flow rail instead of leaving the numbered
+   rail's stale hardcoded BRKD markup in place (renderStepRail() itself
+   no-ops on an empty step list). */
 function onDemoWoChanged() {
   const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
   applyDemoWoIdentity();
-  renderStepRail(resolveWoWorkflow(jobType), 'issueparts');
+  const workflow = resolveWoWorkflow(jobType);
+  if (workflow.configured) renderStepRail(workflow, 'issueparts');
+  else renderFlatStepRail('issueparts');
+}
+
+/* Consume-once hand-off (same pattern as WO Record View's own read) —
+   picks which of the 3 demo WOs this visit should land on instead of
+   always defaulting to 19257. */
+const OPEN_DEMO_WO = sessionStorage.getItem('eamOpenDemoWo');
+if (OPEN_DEMO_WO) {
+  sessionStorage.removeItem('eamOpenDemoWo');
+  DEMO_WO = OPEN_DEMO_WO;
+  const demoWoBtn = document.getElementById('demoWoToggle');
+  if (demoWoBtn) demoWoBtn.textContent = '📋 WO ' + DEMO_WO;
 }
 
 /* ── init ── */

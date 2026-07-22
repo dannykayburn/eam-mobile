@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Home Favorites — Redesign Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<!--
+  HOME FAVORITES — REDESIGN OPTIONS (2026-07-22, exploration only). User
+  called out the real Favorites row specifically as the eyesore: plain
+  white chips sitting on the page's plain gray background read flat/
+  boring, icons feel too small/unbalanced inside them. home-tiles-
+  redefined-options.html (the prior mockup, kept untouched for
+  reference) is NOT being revisited here — this is a focused 2nd pass
+  on Favorites alone, "My Work" shown below each option unchanged (today's
+  real tile styling) purely as in-situ context so the Favorites redesign
+  can be judged sitting next to something familiar, not in isolation.
+
+  User also mused "always dark background?" then immediately waved it
+  off as "crazy" — not pursuing a full dark-page theme, but Option 3
+  below takes the contained version of that idea seriously: just the
+  favorite chips themselves go dark, as little tokens on the still-light
+  page, rather than the whole screen.
+
+  5 options, roughly least → most departure from today's shape:
+  1 — Framed Shelf: same chip shape, just given a real backing panel +
+      bigger/bolder icon instead of floating loose on the bare page.
+  2 — Color-Wash Chip: chip background itself tints toward the
+      favorite's own brand hue (instead of plain white), icon becomes a
+      bigger solid-color coin inside it.
+  3 — Dark Token: the "contained dark" idea — each chip is a small dark
+      card floating on the light page, colored icon + white text.
+  4 — Icon Bubble (no card at all): drops the card container entirely —
+      big solid-color circular icon "coin," name in a caption below,
+      Apple-Watch-app-grid paradigm. Solves "plain white chip" by not
+      having a chip.
+  5 — Quick List Row: a different shape/paradigm entirely — wide
+      horizontal list rows (icon + name + colored left edge + chevron),
+      not square chips at all, closer to a Notion/Linear "favorites"
+      list than an icon tray.
+
+  Real favorite data (High Priority — Open WO dataspy, Centrifugal Pumps
+  Equipment dataspy) plus one 3rd invented favorite (My PM Route) purely
+  to give the row enough items to judge rhythm/spacing — not a real 3rd
+  favorite in the app today.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --green:#00AA14; --red:#E24B4A; --orange:#F46600; --teal:#007B87; --purple:#9933FF;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-nav:#1A1A1F; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:#fff;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px 60px;}
+.legend{max-width:430px;width:100%;color:#fff;font-size:12px;line-height:1.55;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;}
+.legend b{color:#fff;}
+
+.frame{width:390px;height:680px;border-radius:44px;background:#000;padding:10px;box-shadow:0 20px 60px rgba(0,0,0,.5);position:relative;}
+.screen{width:100%;height:100%;border-radius:36px;overflow:hidden;position:relative;background:var(--bg-page);display:flex;flex-direction:column;}
+
+.hdr{background:var(--bg-nav);flex-shrink:0;padding-top:22px;}
+.hdr-row{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;}
+.hdr-avatar{width:30px;height:30px;border-radius:50%;background:#3E4047;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.hdr-title{color:#fff;font-size:15px;font-weight:700;}
+.hdr-sync{width:8px;height:8px;border-radius:50%;background:var(--green);}
+.create-bar{padding:10px 14px 12px;border-bottom:1px solid var(--border);background:var(--bg-page);flex-shrink:0;}
+.create-pill{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--bg-nav);border:none;border-radius:100px;padding:12px 0;font-size:14px;font-weight:700;color:#fff;font-family:var(--font-sans);}
+
+.body{flex:1;overflow-y:auto;padding:14px 14px 30px;}
+.sec-label{font-size:15px;font-weight:800;color:var(--octave-black);margin:20px 2px 10px;}
+.sec-label:first-child{margin-top:2px;}
+
+/* today's real "My Work" tile styling — unchanged, shown as in-situ
+   context under every option so the new Favorites can be judged next
+   to something familiar. */
+.mw-grid{display:flex;gap:10px;overflow-x:auto;margin:6px -14px 0;padding:10px 14px 4px;}
+.mw-tile{flex-shrink:0;width:84px;display:flex;flex-direction:column;align-items:center;}
+.mw-sq{width:84px;aspect-ratio:1;border-radius:18px;display:flex;align-items:center;justify-content:center;position:relative;}
+.mw-sq svg{width:32px;height:32px;}
+.mw-badge{position:absolute;top:-7px;right:-7px;background:var(--octave-black);color:#fff;font-size:11px;font-weight:700;border-radius:100px;padding:2px 6px;min-width:19px;text-align:center;border:2px solid var(--bg-page);}
+.mw-label{font-size:12px;font-weight:500;color:var(--octave-black);text-align:center;margin-top:7px;line-height:1.3;}
+
+/* ═══ OPTION 1 — Framed Shelf ═══ */
+.o1-panel{background:var(--bg-section);border-radius:20px;padding:14px 10px 12px;margin:0 -4px;}
+.o1-row{display:flex;gap:10px;overflow-x:auto;}
+.o1-chip{flex-shrink:0;width:88px;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.o1-icon{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;background:var(--bg-card);box-shadow:0 4px 10px rgba(0,0,0,.06);}
+.o1-icon svg{width:26px;height:26px;}
+.o1-name{font-size:11.5px;font-weight:600;color:var(--octave-black);text-align:center;line-height:1.25;}
+
+/* ═══ OPTION 2 — Color-Wash Chip ═══ */
+.o2-row{display:flex;gap:10px;overflow-x:auto;padding:2px 0;}
+.o2-chip{flex-shrink:0;width:92px;min-height:96px;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:12px 6px;}
+.o2-coin{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.15);}
+.o2-coin svg{width:22px;height:22px;color:#fff;}
+.o2-name{font-size:11.5px;font-weight:700;text-align:center;line-height:1.25;}
+
+/* ═══ OPTION 3 — Dark Token ═══ */
+.o3-row{display:flex;gap:10px;overflow-x:auto;padding:2px 0;}
+.o3-chip{flex-shrink:0;width:90px;min-height:98px;background:var(--octave-black);border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:12px 6px;box-shadow:0 6px 16px rgba(0,0,0,.18);}
+.o3-icon{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.o3-icon svg{width:22px;height:22px;}
+.o3-name{font-size:11.5px;font-weight:600;color:#fff;text-align:center;line-height:1.25;}
+
+/* ═══ OPTION 4 — Icon Bubble (no card) ═══ */
+.o4-row{display:flex;gap:16px;overflow-x:auto;padding:6px 4px;}
+.o4-item{flex-shrink:0;width:60px;display:flex;flex-direction:column;align-items:center;gap:7px;}
+.o4-bubble{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px rgba(0,0,0,.16);}
+.o4-bubble svg{width:26px;height:26px;color:#fff;}
+.o4-name{font-size:11px;font-weight:600;color:var(--octave-black);text-align:center;line-height:1.2;}
+
+/* ═══ OPTION 5 — Quick List Row ═══ */
+.o5-list{display:flex;flex-direction:column;gap:8px;}
+.o5-row{display:flex;align-items:center;gap:12px;background:var(--bg-card);border-radius:14px;padding:12px 14px;position:relative;overflow:hidden;}
+.o5-row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;}
+.o5-icon{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.o5-icon svg{width:19px;height:19px;}
+.o5-text{flex:1;}
+.o5-name{font-size:14px;font-weight:700;color:var(--octave-black);}
+.o5-sub{font-size:11.5px;color:var(--gray-4);margin-top:1px;}
+.o5-chev{color:var(--gray-3);flex-shrink:0;}
+
+.switcher{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap;justify-content:center;max-width:430px;}
+.switch-btn{font-size:12px;font-weight:700;color:#fff;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.2);border-radius:100px;padding:8px 14px;cursor:pointer;}
+.switch-btn.on{background:#fff;color:#111;border-color:#fff;}
+.opt-label{margin-top:10px;font-size:12px;color:rgba(255,255,255,.65);text-align:center;max-width:400px;}
+</style>
+</head>
+<body>
+
+<div class="legend">
+  Same 3 favorites (High Priority — Open WO dataspy, Centrifugal Pumps
+  Equipment dataspy, + one invented "My PM Route" just to fill the row)
+  across 5 shapes/paradigms. "My Work" tiles below are shown unchanged
+  (today's real styling) purely as in-situ context.
+</div>
+
+<div class="frame">
+  <div class="screen">
+    <div class="hdr">
+      <div class="hdr-row">
+        <div class="hdr-avatar">BC</div>
+        <div class="hdr-title">Home</div>
+        <div class="hdr-sync"></div>
+      </div>
+    </div>
+    <div class="create-bar"><button class="create-pill">＋ Create</button></div>
+
+    <div class="body">
+      <!-- ══ OPTION 1 — Framed Shelf ══ -->
+      <div class="opt" id="opt1">
+        <div class="sec-label">Favorites</div>
+        <div class="o1-panel">
+          <div class="o1-row">
+            <div class="o1-chip"><span class="o1-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#9933FF" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span><span class="o1-name">High Priority</span></div>
+            <div class="o1-chip"><span class="o1-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#007783" stroke-width="1.8"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></span><span class="o1-name">Centrifugal Pumps</span></div>
+            <div class="o1-chip"><span class="o1-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#F46600" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><polyline points="9,16 11,18 15,14"/></svg></span><span class="o1-name">My PM Route</span></div>
+          </div>
+        </div>
+        <div class="sec-label">My Work</div>
+        <div class="mw-grid">
+          <div class="mw-tile"><div class="mw-sq" style="background:#F4660022"><svg viewBox="0 0 24 24" fill="none" stroke="#F46600" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span class="mw-badge">18</span></div><span class="mw-label">Corrective WO's</span></div>
+          <div class="mw-tile"><div class="mw-sq" style="background:#00AA1422"><svg viewBox="0 0 24 24" fill="none" stroke="#00AA14" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><polyline points="9,16 11,18 15,14"/></svg><span class="mw-badge">12</span></div><span class="mw-label">My PM WO's</span></div>
+        </div>
+      </div>
+
+      <!-- ══ OPTION 2 — Color-Wash Chip ══ -->
+      <div class="opt" id="opt2" style="display:none;">
+        <div class="sec-label">Favorites</div>
+        <div class="o2-row">
+          <div class="o2-chip" style="background:linear-gradient(160deg,#9933FF14,#9933FF08);"><span class="o2-coin" style="background:#9933FF;"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span><span class="o2-name" style="color:#7A1FDB;">High Priority</span></div>
+          <div class="o2-chip" style="background:linear-gradient(160deg,#00778314,#00778308);"><span class="o2-coin" style="background:#007783;"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></span><span class="o2-name" style="color:#005965;">Centrifugal Pumps</span></div>
+          <div class="o2-chip" style="background:linear-gradient(160deg,#F4660014,#F4660008);"><span class="o2-coin" style="background:#F46600;"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><polyline points="9,16 11,18 15,14"/></svg></span><span class="o2-name" style="color:#B34C00;">My PM Route</span></div>
+        </div>
+        <div class="sec-label">My Work</div>
+        <div class="mw-grid">
+          <div class="mw-tile"><div class="mw-sq" style="background:#F4660022"><svg viewBox="0 0 24 24" fill="none" stroke="#F46600" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span class="mw-badge">18</span></div><span class="mw-label">Corrective WO's</span></div>
+          <div class="mw-tile"><div class="mw-sq" style="background:#00AA1422"><svg viewBox="0 0 24 24" fill="none" stroke="#00AA14" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><polyline points="9,16 11,18 15,14"/></svg><span class="mw-badge">12</span></div><span class="mw-label">My PM WO's</span></div>
+        </div>
+      </div>
+
+      <!-- ══ OPTION 3 — Dark Token ══ -->
+      <div class="opt" id="opt3" style="display:none;">
+        <div class="sec-label">Favorites</div>
+        <div class="o3-row">
+          <div class="o3-chip"><span class="o3-icon" style="background:#9933FF2A;"><svg viewBox="0 0 24 24" fill="none" stroke="#C88BFF" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span><span class="o3-name">High Priority</span></div>
+          <div class="o3-chip"><span class="o3-icon" style="background:#007B872A;"><svg viewBox="0 0 24 24" fill="none" stroke="#4FD6E4" stroke-width="1.8"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></span><span class="o3-name">Centrifugal Pumps</span></div>
+          <div class="o3-chip"><span class="o3-icon" style="background:#F466002A;"><svg viewBox="0 0 24 24" fill="none" stroke="#FFA766" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><polyline points="9,16 11,18 15,14"/></svg></span><span class="o3-name">My PM Route</span></div>
+        </div>
+        <div class="sec-label">My Work</div>
+        <div class="mw-grid">
+          <div class="mw-tile"><div class="mw-sq" style="background:#F4660022"><svg viewBox="0 0 24 24" fill="none" stroke="#F46600" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span class="mw-badge">18</span></div><span class="mw-label">Corrective WO's</span></div>
+          <div class="mw-tile"><div class="mw-sq" style="background:#00AA1422"><svg viewBox="0 0 24 24" fill="none" stroke="#00AA14" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><polyline points="9,16 11,18 15,14"/></svg><span class="mw-badge">12</span></div><span class="mw-label">My PM WO's</span></div>
+        </div>
+      </div>
+
+      <!-- ══ OPTION 4 — Icon Bubble (no card) ══ -->
+      <div class="opt" id="opt4" style="display:none;">
+        <div class="sec-label">Favorites</div>
+        <div class="o4-row">
+          <div class="o4-item"><span class="o4-bubble" style="background:#9933FF;"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span><span class="o4-name">High<br>Priority</span></div>
+          <div class="o4-item"><span class="o4-bubble" style="background:#007783;"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></span><span class="o4-name">Pumps</span></div>
+          <div class="o4-item"><span class="o4-bubble" style="background:#F46600;"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><polyline points="9,16 11,18 15,14"/></svg></span><span class="o4-name">PM<br>Route</span></div>
+        </div>
+        <div class="sec-label">My Work</div>
+        <div class="mw-grid">
+          <div class="mw-tile"><div class="mw-sq" style="background:#F4660022"><svg viewBox="0 0 24 24" fill="none" stroke="#F46600" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span class="mw-badge">18</span></div><span class="mw-label">Corrective WO's</span></div>
+          <div class="mw-tile"><div class="mw-sq" style="background:#00AA1422"><svg viewBox="0 0 24 24" fill="none" stroke="#00AA14" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><polyline points="9,16 11,18 15,14"/></svg><span class="mw-badge">12</span></div><span class="mw-label">My PM WO's</span></div>
+        </div>
+      </div>
+
+      <!-- ══ OPTION 5 — Quick List Row ══ -->
+      <div class="opt" id="opt5" style="display:none;">
+        <div class="sec-label">Favorites</div>
+        <div class="o5-list">
+          <div class="o5-row" style="--accent:#9933FF;"><span class="o5-icon" style="background:#9933FF1F;"><svg viewBox="0 0 24 24" fill="none" stroke="#9933FF" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span><span class="o5-text"><span class="o5-name">High Priority</span><span class="o5-sub">Work Order dataspy</span></span><span class="o5-chev">›</span></div>
+          <div class="o5-row" style="--accent:#007783;"><span class="o5-icon" style="background:#0077831F;"><svg viewBox="0 0 24 24" fill="none" stroke="#007783" stroke-width="1.8"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></span><span class="o5-text"><span class="o5-name">Centrifugal Pumps</span><span class="o5-sub">Equipment dataspy</span></span><span class="o5-chev">›</span></div>
+          <div class="o5-row" style="--accent:#F46600;"><span class="o5-icon" style="background:#F466001F;"><svg viewBox="0 0 24 24" fill="none" stroke="#F46600" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><polyline points="9,16 11,18 15,14"/></svg></span><span class="o5-text"><span class="o5-name">My PM Route</span><span class="o5-sub">Work Order dataspy</span></span><span class="o5-chev">›</span></div>
+        </div>
+        <div class="sec-label">My Work</div>
+        <div class="mw-grid">
+          <div class="mw-tile"><div class="mw-sq" style="background:#F4660022"><svg viewBox="0 0 24 24" fill="none" stroke="#F46600" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span class="mw-badge">18</span></div><span class="mw-label">Corrective WO's</span></div>
+          <div class="mw-tile"><div class="mw-sq" style="background:#00AA1422"><svg viewBox="0 0 24 24" fill="none" stroke="#00AA14" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><polyline points="9,16 11,18 15,14"/></svg><span class="mw-badge">12</span></div><span class="mw-label">My PM WO's</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="switcher">
+  <button class="switch-btn on" onclick="show(1,this)">1 — Framed Shelf</button>
+  <button class="switch-btn" onclick="show(2,this)">2 — Color-Wash Chip</button>
+  <button class="switch-btn" onclick="show(3,this)">3 — Dark Token</button>
+  <button class="switch-btn" onclick="show(4,this)">4 — Icon Bubble</button>
+  <button class="switch-btn" onclick="show(5,this)">5 — Quick List Row</button>
+</div>
+<div class="opt-label" id="optLabel">Same chip shape as today, but backed by a real panel instead of floating loose on the bare page — plus a bigger, bolder icon inside a real white circle for balance.</div>
+
+<script>
+const labels = {
+  1: 'Framed Shelf — same basic chip shape as today, but the whole row now sits inside a soft gray-tinted panel (a real "shelf") instead of floating loose directly on the page background, and each icon is bigger/bolder in a proper white circle instead of a small flat tint square. Smallest change of the 5, directly answers "the plain white on gray isn\'t great."',
+  2: 'Color-Wash Chip — the chip itself drops flat white for a soft gradient tint of the favorite\'s own brand color, and the icon becomes a bigger solid-color coin (not a light 22%-tint square) so it actually pops instead of blending into a pale background.',
+  3: 'Dark Token — the "contained dark" idea: each favorite chip is its own small dark card floating on the still-light page, colored icon glowing inside a translucent circle, white name text. Gets some of that "dark mode" richness without touching the rest of the screen.',
+  4: 'Icon Bubble — drops the card container entirely. Big solid-color circular icon "coin" (Apple-Watch-app-grid paradigm), name as a small caption below. Solves "plain white chip" by not having a chip at all — color and icon do 100% of the work.',
+  5: 'Quick List Row — a different shape/paradigm, not a chip at all: wide horizontal rows (icon, name + a small dataspy-source subtitle, chevron), closer to a Notion/Linear "favorites" list than an icon tray. Reads more like a real navigable list, less like app icons.'
+};
+function show(n, btn){
+  document.querySelectorAll('.opt').forEach(el=>el.style.display='none');
+  document.getElementById('opt'+n).style.display='block';
+  document.querySelectorAll('.switch-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('optLabel').textContent = labels[n];
+}
+</script>
+</body>
+</html>

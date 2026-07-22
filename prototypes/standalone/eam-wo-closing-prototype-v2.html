@@ -969,7 +969,12 @@ function onDemoWoChanged() {
   const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
   applyDemoWoIdentity();
   const workflow = resolveWoWorkflow(jobType);
-  renderStepRail(workflow, 'closing');
+  // §11 fallback (ROUT) locked in 2026-07-22 (user direction): flat,
+  // unnumbered, free-flow rail instead of the numbered rail's stale
+  // hardcoded BRKD markup (renderStepRail() itself no-ops on an empty
+  // step list).
+  if (workflow.configured) renderStepRail(workflow, 'closing');
+  else renderFlatStepRail('closing');
   const isPM = jobType === 'PM';
   const codesCard = document.getElementById('closingCodesCard');
   const commentsArea = document.getElementById('commentsArea');
@@ -1142,6 +1147,16 @@ function quickRemove(idx) {
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────
+// Consume-once hand-off (same pattern as WO Record View's own read) —
+// picks which of the 3 demo WOs this visit should land on instead of
+// always defaulting to 19257.
+const OPEN_DEMO_WO = sessionStorage.getItem('eamOpenDemoWo');
+if (OPEN_DEMO_WO) {
+  sessionStorage.removeItem('eamOpenDemoWo');
+  DEMO_WO = OPEN_DEMO_WO;
+  const demoWoBtn = document.getElementById('demoWoToggle');
+  if (demoWoBtn) demoWoBtn.textContent = '📋 WO ' + DEMO_WO;
+}
 refreshSequentialLocks();
 onDemoWoChanged();
 initSharedApp({ contentSelector: '.content' });

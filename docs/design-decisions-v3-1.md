@@ -2019,6 +2019,52 @@ Types nobody has explicitly configured must stay maximally flexible
 people to do 10,000 things depending on the use case"), never accidentally
 locked down by an absent config row.
 
+**Revised 2026-07-22 (user direction) — "no guided steps at all" no
+longer means hiding the rail/bar entirely.** The original implementation
+(all 5 WO workflow screens) responded to this fallback by setting the
+step rail and bottom bar to `display:none` outright — correct in spirit
+(no *gated, numbered* workflow exists) but it read as a bug ("the WO
+isn't showing the step rail or bottom button") rather than a deliberate
+Free Form screen. Locked instead: the fallback still shows a rail and a
+bar, just not the gated/numbered ones a real configured workflow gets —
+- **Rail:** a flat, unordered, ungated list of all 5 WO-workflow steps
+  (WO Record View, Activity Checklist, Issue Parts, Book Labor, WO
+  Closing — the same 5 any configured workflow draws from), no sequence
+  number next to any name, using the exact same visual language as
+  Equipment Record View's own tab rail (`renderTabRail()`) rather than
+  the numbered/gated step rail (`renderStepRail()`). Every row is freely
+  tappable in any order ("free flow") — there is no gating concept for
+  this fallback case at all, matching the Free Form flag's own "maximally
+  flexible" intent above. New shared function `renderFlatStepRail()`
+  (`eam-shared.js`), reusing the numbered rail's own `#stepRail`/
+  `#stepMap` shell/collapse mechanic — only what renders inside `#stepMap`
+  differs. Tapping a row is a real cross-file navigation (`goToWoStep()`),
+  since each step is its own file, not a same-page tab the way Equipment
+  RV's tabs are — it carries the demo WO's identity forward via the same
+  `eamOpenDemoWo` consume-once flag WO List's own `openWO()` already
+  established, so the destination screen resolves the same fallback
+  identity instead of quietly defaulting back to a different demo WO.
+- **Bottom bar:** stays real and working. WO Record View's bar reads
+  "Start Work" exactly like a configured workflow's Step 1 (gated on the
+  same "an activity is selected" rule, `updateStartGate()`) and, once
+  tapped, goes to Activity Checklist exactly like a configured workflow
+  does — `startWork()` no longer guards on `CURRENT_WORKFLOW.configured`
+  at all. Each subsequent screen's own bar already said "Next: X" (Issue
+  Parts → Book Labor, Book Labor → WO Closing) or "Close Work Order" (WO
+  Closing) unconditionally, with no configured-status gate to begin
+  with — those needed no behavior change, just the same `eamOpenDemoWo`
+  carry-forward fix on their Next buttons so the fallback identity
+  survives the navigation instead of reverting to the default demo WO.
+  Activity Checklist's own bottom control (`renderPromptBar()`) already
+  degrades sensibly for an empty step list (`CURRENT_WORKFLOW.steps.
+  includes('issueparts')` is false when `steps` is `[]`, so it offers
+  "Continue to Book Labor" — the correct free-flow-appropriate default)
+  and needed no change beyond the same identity-carry fix.
+- **Not changed:** the Free Form flag's other effects (status field
+  stays editable, no Not Free Form lock-icon/toast) — this revision is
+  scoped to the rail/bar's *visibility and shape*, not to Free Form's
+  existing editability rules elsewhere.
+
 **Whether a single workflow can reuse the same step type more than once**
 (e.g. two Issue Parts steps) — **resolved 2026-07-22 (user direction): out
 of scope for initial release.** Each of the 5 step types appears at most

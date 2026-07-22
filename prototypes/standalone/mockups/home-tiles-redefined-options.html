@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Home Tiles — Redefined Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<!--
+  HOME TILES — REDEFINED, "for fun" exploration (2026-07-22). Real Home
+  tile data reused verbatim (Corrective WO's 18, My PM WO's 12, Equipment
+  134, Pumps 9, My Closed WO's 7, Last Week's Work 4; Favorites: 2 WO
+  dataspies + Centrifugal Pumps) — only the visual/structural treatment
+  of the tiles is explored here, nothing about the data/nav wiring.
+  Follows straight on from the bottom-nav glass pass (bottom-nav-glass-
+  options.html) — Option 1 below directly extends that "glass" language
+  onto the tiles themselves.
+
+  4 options, roughly ordered least → most departure from today's real
+  layout (Favorites row / My Work / My Equipment / Reference Section,
+  all horizontally-scrolling icon-tiles):
+
+  1 — Frosted Tile: same exact layout/sections/tile shape as today, just
+      given the glass treatment (soft frosted highlight + shadow) that
+      the bottom nav just got, so the two feel like one coherent "glass"
+      design language instead of the nav being the only glassy thing.
+  2 — Stat Card: same sections/order, but each tile becomes a wider
+      2-per-row stat card (big number, label, thin status bar) — the
+      CMMS/work-execution industry's own standard "My Work" card pattern
+      (ServiceNow/UpKeep/Fiix-style), more information-dense than an
+      app-icon tile.
+  3 — Bento Command: breaks the 3-section split into one unified bento
+      mosaic below Favorites — a large hero tile for the most urgent
+      group + a grid of medium tiles for the rest, current "bento
+      widget" layout trend (iOS widgets/Apple Fitness). Tastefully
+      brings in Octave's own gradient-arch brand motif (docs/
+      Octave_articfacts) as the hero tile's background wash — the one
+      place color is more than a flat brand hue.
+  4 — Today Command Center: full reimagining, "use your imagination."
+      Ditches grid tiles for a work-execution "Today" feel: a gradient
+      hero ring (Apple-Fitness-style activity ring, stroked in the
+      Octave arch gradient) showing today's WO completion, an "Up Next"
+      swipeable work-order preview card, Favorites collapsed to a
+      compact icon rail, Equipment/Reference pushed to a de-emphasized
+      secondary rail underneath.
+
+  All 4 keep the real bottom nav (today's actual glass treatment,
+  applied 2026-07-22) and header for continuity. Exploration only —
+  nothing here touches the real eam-home-screen-prototype-v1.html.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --green:#00AA14; --red:#E24B4A; --orange:#F46600; --teal:#007B87; --purple:#9933FF;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-nav:#1A1A1F; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+  --oct-grad: linear-gradient(115deg,#3D2AFB 0%,#B026FF 35%,#FF2ECC 65%,#FFB800 100%);
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:#fff;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px 60px;}
+.legend{max-width:430px;width:100%;color:#fff;font-size:12px;line-height:1.55;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;}
+.legend b{color:#fff;}
+
+.frame{width:390px;height:800px;border-radius:44px;background:#000;padding:10px;box-shadow:0 20px 60px rgba(0,0,0,.5);position:relative;}
+.screen{width:100%;height:100%;border-radius:36px;overflow:hidden;position:relative;background:var(--bg-page);display:flex;flex-direction:column;}
+
+/* header */
+.hdr{background:var(--bg-nav);flex-shrink:0;padding-top:22px;}
+.hdr-row{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;}
+.hdr-avatar{width:30px;height:30px;border-radius:50%;background:#3E4047;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.hdr-title{color:#fff;font-size:15px;font-weight:700;}
+.hdr-sync{width:8px;height:8px;border-radius:50%;background:var(--green);}
+.create-bar{padding:10px 14px 12px;border-bottom:1px solid var(--border);background:var(--bg-page);flex-shrink:0;}
+.create-pill{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--bg-nav);border:none;border-radius:100px;padding:12px 0;font-size:14px;font-weight:700;color:#fff;font-family:var(--font-sans);}
+
+.body{flex:1;overflow-y:auto;padding:14px 14px 90px;}
+.sec-label{font-size:15px;font-weight:800;color:var(--octave-black);margin:20px 2px 10px;display:flex;align-items:center;gap:6px;}
+.sec-label:first-child{margin-top:2px;}
+.sec-count{font-size:12px;font-weight:600;color:var(--gray-4);}
+
+/* shared favorites row (used by options 1-3) */
+.fav-row{display:flex;gap:8px;overflow-x:auto;margin:0 -14px;padding:0 14px 4px;}
+.fav-chip{flex-shrink:0;min-width:80px;display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--bg-card);border:1px solid var(--border);border-radius:18px;padding:14px 8px 10px;font-size:11px;font-weight:600;color:var(--octave-black);text-align:center;}
+.fav-chip-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.fav-chip-icon svg{width:15px;height:15px;}
+
+/* bottom nav (real, applied 2026-07-22 glass pass) */
+.bnav{position:absolute;left:0;right:0;bottom:0;height:58px;background:color-mix(in srgb, var(--bg-nav) 96%, transparent);backdrop-filter:blur(28px) saturate(220%);display:flex;align-items:center;justify-content:center;gap:14px;border-top:1px solid rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.15);z-index:50;}
+.bnav-item{width:84px;display:flex;flex-direction:column;align-items:center;gap:2px;color:rgba(255,255,255,.5);font-size:10.5px;font-weight:600;padding:7px 0;}
+.bnav-item svg{width:20px;height:20px;}
+.bnav-item.active{color:#fff;background:rgba(255,255,255,.2);border-radius:100px;box-shadow:inset 0 1px 0 rgba(255,255,255,.25);}
+
+/* ═══ OPTION 1 — Frosted Tile ═══ */
+.o1-tilegrid{display:flex;gap:10px;overflow-x:auto;margin:6px -14px 0;padding:10px 14px 4px;}
+.o1-tile{flex-shrink:0;width:84px;display:flex;flex-direction:column;align-items:center;}
+.o1-sq{width:84px;aspect-ratio:1;border-radius:18px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;
+  background:var(--bg-card);border:1px solid rgba(255,255,255,.5);
+  box-shadow:0 6px 16px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.8);
+}
+.o1-sq::before{content:'';position:absolute;top:0;left:0;right:0;height:46%;background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,0));}
+.o1-sq svg{width:30px;height:30px;position:relative;z-index:1;}
+.o1-badge{position:absolute;top:-6px;right:-6px;background:var(--octave-black);color:#fff;font-size:11px;font-weight:700;border-radius:100px;padding:2px 6px;min-width:19px;text-align:center;border:2px solid var(--bg-page);z-index:2;}
+.o1-label{font-size:12px;font-weight:500;color:var(--octave-black);text-align:center;margin-top:7px;line-height:1.3;}
+
+/* ═══ OPTION 2 — Stat Card ═══ */
+.o2-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;}
+.o2-card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:14px;position:relative;overflow:hidden;}
+.o2-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.o2-icon{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.o2-icon svg{width:14px;height:14px;}
+.o2-num{font-size:28px;font-weight:800;color:var(--octave-black);line-height:1;font-family:var(--font-mono);}
+.o2-label{font-size:12px;font-weight:600;color:var(--gray-4);margin-top:3px;}
+.o2-bar{height:4px;border-radius:2px;background:var(--bg-section);margin-top:10px;overflow:hidden;}
+.o2-bar-fill{height:100%;border-radius:2px;}
+
+/* ═══ OPTION 3 — Bento Command ═══ */
+.o3-bento{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:96px;gap:10px;margin-top:8px;}
+.o3-hero{grid-column:1/3;grid-row:1/3;border-radius:20px;position:relative;overflow:hidden;padding:16px;display:flex;flex-direction:column;justify-content:space-between;color:#fff;background:var(--oct-grad);}
+.o3-hero-top{display:flex;align-items:center;justify-content:space-between;}
+.o3-hero-icon{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;}
+.o3-hero-icon svg{width:18px;height:18px;color:#fff;}
+.o3-hero-num{font-size:34px;font-weight:800;}
+.o3-hero-label{font-size:13px;font-weight:600;opacity:.9;}
+.o3-med{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:12px;display:flex;flex-direction:column;justify-content:space-between;}
+.o3-med-icon{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;}
+.o3-med-icon svg{width:13px;height:13px;}
+.o3-med-num{font-size:18px;font-weight:800;color:var(--octave-black);}
+.o3-med-label{font-size:11px;font-weight:600;color:var(--gray-4);}
+
+/* ═══ OPTION 4 — Today Command Center ═══ */
+.o4-hero{border-radius:22px;background:var(--octave-black);padding:20px;display:flex;align-items:center;gap:16px;position:relative;overflow:hidden;margin-top:4px;}
+.o4-hero::before{content:'';position:absolute;inset:-40% -40% auto auto;width:70%;height:140%;background:var(--oct-grad);opacity:.35;filter:blur(6px);transform:rotate(12deg);}
+.o4-ring-wrap{position:relative;width:76px;height:76px;flex-shrink:0;}
+.o4-ring-wrap svg{transform:rotate(-90deg);}
+.o4-ring-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:800;}
+.o4-hero-text{color:#fff;position:relative;z-index:1;}
+.o4-hero-title{font-size:13px;font-weight:700;opacity:.8;}
+.o4-hero-sub{font-size:19px;font-weight:800;margin-top:2px;}
+.o4-hero-meta{font-size:11px;opacity:.65;margin-top:4px;}
+
+.o4-upnext-label{font-size:13px;font-weight:700;color:var(--gray-4);margin:18px 2px 8px;}
+.o4-wo-card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:14px;display:flex;align-items:center;gap:12px;}
+.o4-wo-badge{width:38px;height:38px;border-radius:10px;background:var(--orange);opacity:.15;flex-shrink:0;}
+.o4-wo-badge-wrap{width:38px;height:38px;border-radius:10px;background:rgba(244,102,0,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.o4-wo-badge-wrap svg{width:19px;height:19px;color:var(--orange);}
+.o4-wo-title{font-size:14px;font-weight:700;color:var(--octave-black);}
+.o4-wo-sub{font-size:12px;color:var(--gray-4);margin-top:2px;}
+.o4-wo-chev{color:var(--gray-3);margin-left:auto;}
+
+.o4-fav-rail{display:flex;gap:14px;margin-top:6px;overflow-x:auto;}
+.o4-fav-pill{flex-shrink:0;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.o4-fav-pill svg{width:20px;height:20px;}
+
+.o4-sec-strip{display:flex;gap:10px;overflow-x:auto;margin-top:8px;}
+.o4-strip-tile{flex-shrink:0;width:110px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:10px 12px;}
+.o4-strip-num{font-size:16px;font-weight:800;color:var(--octave-black);}
+.o4-strip-label{font-size:11px;color:var(--gray-4);margin-top:1px;}
+
+.switcher{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap;justify-content:center;max-width:430px;}
+.switch-btn{font-size:12px;font-weight:700;color:#fff;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.2);border-radius:100px;padding:8px 14px;cursor:pointer;}
+.switch-btn.on{background:#fff;color:#111;border-color:#fff;}
+.opt-label{margin-top:10px;font-size:12px;color:rgba(255,255,255,.65);text-align:center;max-width:400px;}
+</style>
+</head>
+<body>
+
+<div class="legend">
+  Real Home tile data (Corrective WO's 18, My PM WO's 12, Equipment 134,
+  Pumps 9, My Closed WO's 7, Last Week's Work 4) shown across 4 visual/
+  structural treatments — ordered least → most departure from today's
+  real layout. Nothing here touches the real Home screen file.
+</div>
+
+<div class="frame">
+  <div class="screen">
+    <div class="hdr">
+      <div class="hdr-row">
+        <div class="hdr-avatar">BC</div>
+        <div class="hdr-title">Home</div>
+        <div class="hdr-sync"></div>
+      </div>
+    </div>
+    <div class="create-bar"><button class="create-pill">＋ Create</button></div>
+
+    <div class="body" id="body">
+      <!-- ══ OPTION 1 ══ -->
+      <div class="opt" id="opt1">
+        <div class="sec-label">Favorites</div>
+        <div class="fav-row">
+          <div class="fav-chip"><span class="fav-chip-icon" style="background:#9933FF22"><svg viewBox="0 0 24 24" fill="none" stroke="#9933FF" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span>High Priority</div>
+          <div class="fav-chip"><span class="fav-chip-icon" style="background:#00778322"><svg viewBox="0 0 24 24" fill="none" stroke="#007783" stroke-width="1.8"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></span>Centrifugal Pumps</div>
+        </div>
+        <div class="sec-label">My Work<span class="sec-count">30 open</span></div>
+        <div class="o1-tilegrid">
+          <div class="o1-tile"><div class="o1-sq"><svg viewBox="0 0 24 24" fill="none" stroke="#F46600" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span class="o1-badge">18</span></div><span class="o1-label">Corrective WO's</span></div>
+          <div class="o1-tile"><div class="o1-sq"><svg viewBox="0 0 24 24" fill="none" stroke="#00AA14" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><polyline points="9,16 11,18 15,14"/></svg><span class="o1-badge">12</span></div><span class="o1-label">My PM WO's</span></div>
+        </div>
+        <div class="sec-label">My Equipment</div>
+        <div class="o1-tilegrid">
+          <div class="o1-tile"><div class="o1-sq"><svg viewBox="0 0 24 24" fill="none" stroke="#007783" stroke-width="1.8"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg><span class="o1-badge">134</span></div><span class="o1-label">Equipment</span></div>
+          <div class="o1-tile"><div class="o1-sq"><svg viewBox="0 0 24 24" fill="none" stroke="#007783" stroke-width="1.8"><path d="M12 2.5c4 5 7 9.2 7 12.5a7 7 0 11-14 0c0-3.3 3-7.5 7-12.5z"/></svg><span class="o1-badge">9</span></div><span class="o1-label">Pumps</span></div>
+        </div>
+        <div class="sec-label">Reference Section</div>
+        <div class="o1-tilegrid">
+          <div class="o1-tile"><div class="o1-sq"><svg viewBox="0 0 24 24" fill="none" stroke="#9933FF" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg><span class="o1-badge">7</span></div><span class="o1-label">My Closed WO's</span></div>
+          <div class="o1-tile"><div class="o1-sq"><svg viewBox="0 0 24 24" fill="none" stroke="#9933FF" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg><span class="o1-badge">4</span></div><span class="o1-label">Last Week's Work</span></div>
+        </div>
+      </div>
+
+      <!-- ══ OPTION 2 ══ -->
+      <div class="opt" id="opt2" style="display:none;">
+        <div class="sec-label">Favorites</div>
+        <div class="fav-row">
+          <div class="fav-chip"><span class="fav-chip-icon" style="background:#9933FF22"><svg viewBox="0 0 24 24" fill="none" stroke="#9933FF" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span>High Priority</div>
+          <div class="fav-chip"><span class="fav-chip-icon" style="background:#00778322"><svg viewBox="0 0 24 24" fill="none" stroke="#007783" stroke-width="1.8"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></span>Centrifugal Pumps</div>
+        </div>
+        <div class="sec-label">My Work</div>
+        <div class="o2-grid">
+          <div class="o2-card"><div class="o2-top"><span class="o2-icon" style="background:#F4660022"><svg viewBox="0 0 24 24" fill="none" stroke="#F46600" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span></div><div class="o2-num">18</div><div class="o2-label">Corrective WO's</div><div class="o2-bar"><div class="o2-bar-fill" style="width:64%;background:#F46600;"></div></div></div>
+          <div class="o2-card"><div class="o2-top"><span class="o2-icon" style="background:#00AA1422"><svg viewBox="0 0 24 24" fill="none" stroke="#00AA14" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><polyline points="9,16 11,18 15,14"/></svg></span></div><div class="o2-num">12</div><div class="o2-label">My PM WO's</div><div class="o2-bar"><div class="o2-bar-fill" style="width:40%;background:#00AA14;"></div></div></div>
+        </div>
+        <div class="sec-label">My Equipment</div>
+        <div class="o2-grid">
+          <div class="o2-card"><div class="o2-top"><span class="o2-icon" style="background:#00778322"><svg viewBox="0 0 24 24" fill="none" stroke="#007783" stroke-width="1.8"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></span></div><div class="o2-num">134</div><div class="o2-label">Equipment</div><div class="o2-bar"><div class="o2-bar-fill" style="width:90%;background:#007783;"></div></div></div>
+          <div class="o2-card"><div class="o2-top"><span class="o2-icon" style="background:#00778322"><svg viewBox="0 0 24 24" fill="none" stroke="#007783" stroke-width="1.8"><path d="M12 2.5c4 5 7 9.2 7 12.5a7 7 0 11-14 0c0-3.3 3-7.5 7-12.5z"/></svg></span></div><div class="o2-num">9</div><div class="o2-label">Pumps</div><div class="o2-bar"><div class="o2-bar-fill" style="width:25%;background:#007783;"></div></div></div>
+        </div>
+        <div class="sec-label">Reference Section</div>
+        <div class="o2-grid">
+          <div class="o2-card"><div class="o2-top"><span class="o2-icon" style="background:#9933FF22"><svg viewBox="0 0 24 24" fill="none" stroke="#9933FF" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg></span></div><div class="o2-num">7</div><div class="o2-label">My Closed WO's</div><div class="o2-bar"><div class="o2-bar-fill" style="width:100%;background:#9933FF;"></div></div></div>
+          <div class="o2-card"><div class="o2-top"><span class="o2-icon" style="background:#9933FF22"><svg viewBox="0 0 24 24" fill="none" stroke="#9933FF" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg></span></div><div class="o2-num">4</div><div class="o2-label">Last Week's Work</div><div class="o2-bar"><div class="o2-bar-fill" style="width:100%;background:#9933FF;"></div></div></div>
+        </div>
+      </div>
+
+      <!-- ══ OPTION 3 ══ -->
+      <div class="opt" id="opt3" style="display:none;">
+        <div class="sec-label">Favorites</div>
+        <div class="fav-row">
+          <div class="fav-chip"><span class="fav-chip-icon" style="background:#9933FF22"><svg viewBox="0 0 24 24" fill="none" stroke="#9933FF" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span>High Priority</div>
+          <div class="fav-chip"><span class="fav-chip-icon" style="background:#00778322"><svg viewBox="0 0 24 24" fill="none" stroke="#007783" stroke-width="1.8"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></span>Centrifugal Pumps</div>
+        </div>
+        <div class="sec-label">Your Work, at a Glance</div>
+        <div class="o3-bento">
+          <div class="o3-hero">
+            <div class="o3-hero-top"><span class="o3-hero-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span></div>
+            <div><div class="o3-hero-num">18</div><div class="o3-hero-label">Corrective WO's</div></div>
+          </div>
+          <div class="o3-med"><span class="o3-med-icon" style="background:#00AA1422"><svg viewBox="0 0 24 24" fill="none" stroke="#00AA14" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><polyline points="9,16 11,18 15,14"/></svg></span><div><div class="o3-med-num">12</div><div class="o3-med-label">My PM WO's</div></div></div>
+          <div class="o3-med"><span class="o3-med-icon" style="background:#00778322"><svg viewBox="0 0 24 24" fill="none" stroke="#007783" stroke-width="1.8"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></span><div><div class="o3-med-num">134</div><div class="o3-med-label">Equipment</div></div></div>
+          <div class="o3-med"><span class="o3-med-icon" style="background:#00778322"><svg viewBox="0 0 24 24" fill="none" stroke="#007783" stroke-width="1.8"><path d="M12 2.5c4 5 7 9.2 7 12.5a7 7 0 11-14 0c0-3.3 3-7.5 7-12.5z"/></svg></span><div><div class="o3-med-num">9</div><div class="o3-med-label">Pumps</div></div></div>
+          <div class="o3-med"><span class="o3-med-icon" style="background:#9933FF22"><svg viewBox="0 0 24 24" fill="none" stroke="#9933FF" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg></span><div><div class="o3-med-num">7</div><div class="o3-med-label">My Closed WO's</div></div></div>
+        </div>
+      </div>
+
+      <!-- ══ OPTION 4 ══ -->
+      <div class="opt" id="opt4" style="display:none;">
+        <div class="o4-hero">
+          <div class="o4-ring-wrap">
+            <svg width="76" height="76" viewBox="0 0 76 76">
+              <circle cx="38" cy="38" r="32" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="8"/>
+              <circle cx="38" cy="38" r="32" fill="none" stroke="url(#ringGrad)" stroke-width="8" stroke-linecap="round" stroke-dasharray="201" stroke-dashoffset="72"/>
+              <defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3D2AFB"/><stop offset="40%" stop-color="#B026FF"/><stop offset="70%" stop-color="#FF2ECC"/><stop offset="100%" stop-color="#FFB800"/></linearGradient></defs>
+            </svg>
+            <div class="o4-ring-pct">64%</div>
+          </div>
+          <div class="o4-hero-text">
+            <div class="o4-hero-title">TODAY'S PROGRESS</div>
+            <div class="o4-hero-sub">7 of 11 done</div>
+            <div class="o4-hero-meta">4 remaining · 1 overdue</div>
+          </div>
+        </div>
+
+        <div class="o4-upnext-label">Up Next</div>
+        <div class="o4-wo-card">
+          <div class="o4-wo-badge-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></div>
+          <div><div class="o4-wo-title">WO-19257 · Pump inspection</div><div class="o4-wo-sub">Due today · Corrective</div></div>
+          <span class="o4-wo-chev">›</span>
+        </div>
+        <div class="o4-wo-card" style="margin-top:8px;">
+          <div class="o4-wo-badge-wrap" style="background:rgba(0,170,20,.14);"><svg viewBox="0 0 24 24" fill="none" stroke="#00AA14" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><polyline points="9,16 11,18 15,14"/></svg></div>
+          <div><div class="o4-wo-title">WO-19831 · PM route</div><div class="o4-wo-sub">Due today · Preventive</div></div>
+          <span class="o4-wo-chev">›</span>
+        </div>
+
+        <div class="o4-upnext-label">Favorites</div>
+        <div class="o4-fav-rail">
+          <div class="o4-fav-pill" style="background:#9933FF22"><svg viewBox="0 0 24 24" fill="none" stroke="#9933FF" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></div>
+          <div class="o4-fav-pill" style="background:#00778322"><svg viewBox="0 0 24 24" fill="none" stroke="#007783" stroke-width="1.8"><path d="M12 2.5c4 5 7 9.2 7 12.5a7 7 0 11-14 0c0-3.3 3-7.5 7-12.5z"/></svg></div>
+        </div>
+
+        <div class="o4-upnext-label">Equipment &amp; Reference</div>
+        <div class="o4-sec-strip">
+          <div class="o4-strip-tile"><div class="o4-strip-num">134</div><div class="o4-strip-label">Equipment</div></div>
+          <div class="o4-strip-tile"><div class="o4-strip-num">9</div><div class="o4-strip-label">Pumps</div></div>
+          <div class="o4-strip-tile"><div class="o4-strip-num">7</div><div class="o4-strip-label">Closed WO's</div></div>
+          <div class="o4-strip-tile"><div class="o4-strip-num">4</div><div class="o4-strip-label">Last Week</div></div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="bnav">
+      <button class="bnav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg>Home</button>
+      <button class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>Work</button>
+      <button class="bnav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>Notifications</button>
+    </nav>
+  </div>
+</div>
+
+<div class="switcher">
+  <button class="switch-btn on" onclick="show(1,this)">1 — Frosted Tile</button>
+  <button class="switch-btn" onclick="show(2,this)">2 — Stat Card</button>
+  <button class="switch-btn" onclick="show(3,this)">3 — Bento Command</button>
+  <button class="switch-btn" onclick="show(4,this)">4 — Today Command Center</button>
+</div>
+<div class="opt-label" id="optLabel">Same exact layout/sections as today — tiles just get the same frosted-glass treatment the bottom nav just got, so the two feel like one design language.</div>
+
+<script>
+const labels = {
+  1: 'Same exact layout/sections/tiles as today (Favorites / My Work / My Equipment / Reference) — the icon-squares just pick up the frosted-glass highlight + soft shadow the bottom nav just got, so nav and tiles finally read as one coherent "glass" language instead of the nav being the only glassy thing.',
+  2: 'Same sections/order, but each tile becomes a wider 2-per-row stat card — big number, label, thin status bar. This is the CMMS/work-execution industry\'s own standard "My Work" card pattern (ServiceNow/UpKeep/Fiix-style) — more information-dense than an app-icon tile, no icon-hunting needed to see counts.',
+  3: 'Breaks the 3-section split into one bento mosaic below Favorites — a large hero tile for the most urgent group (Corrective WO\'s) + a grid of medium tiles for the rest. Current "bento widget" trend (iOS widgets/Apple Fitness). The hero tile is the one place Octave\'s own gradient-arch brand motif gets used as more than a flat hue.',
+  4: '"Use your imagination" — ditches grid tiles for a work-execution "Today" feel: an Apple-Fitness-style activity ring (stroked in the Octave arch gradient) showing today\'s WO completion, an "Up Next" preview of the actual next work orders, Favorites collapsed to a compact icon rail, Equipment/Reference pushed to a de-emphasized strip underneath.'
+};
+function show(n, btn){
+  document.querySelectorAll('.opt').forEach(el=>el.style.display='none');
+  document.getElementById('opt'+n).style.display='block';
+  document.querySelectorAll('.switch-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('optLabel').textContent = labels[n];
+}
+</script>
+</body>
+</html>

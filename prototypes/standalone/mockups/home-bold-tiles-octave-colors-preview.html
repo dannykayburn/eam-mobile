@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Home Tiles — Bold Fill + Octave Colors Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!--
+  QUICK PREVIEW ONLY (2026-07-22) — does NOT touch the real
+  eam-home-screen-prototype-v1.html. Two things being tried out here:
+
+  1. Favorites' "Icon Bubble" boldness (solid-color fill + white icon,
+     applied for real to Favorites already this session) tried on the
+     Home tile squares too — SAME square shape/badge/label, just the
+     icon-square fill itself goes from a pale 22%-tint to solid color +
+     white icon, matching the favorites' boldness.
+
+  2. Color audit against the user-provided Octave brand deck ("Black
+     mode extended palette" / "White mode extended palette"). Checked
+     every hex actually in use on Home against both palettes:
+       - Purple #9933FF, Orange #F46600, Dark Green #00AA14, Gray 4
+         #6F7480, Gray 5 #3E4047, Octave Black #1A1A1F — all already
+         exact matches (these app tokens were clearly already sourced
+         from this exact deck).
+       - Teal #007B87 (Equipment/Pumps, both the favorite icon color
+         AND the 2 Home tiles) is the ONE outlier — not present in
+         either palette at all.
+     Fix: teal → Octave Blue (#0000FF, White-mode palette) — the
+     nearest available on-brand hue to teal's cool/blue-green feel,
+     and not already claimed by anything else on this screen (Purple
+     already = WO-general, Green = PM, Orange = Corrective).
+
+  3rd option added (2026-07-22, same session), corrected same session:
+  dark mode, with Equipment/Pumps swapped to Octave Aqua (#00FFFF) —
+  first asked for "teal" back, then corrected to "Aqua" (the user's own
+  wording: "octave aqua. 00FFFF"). This one actually IS on-brand, unlike
+  teal — Aqua is a real entry in the Black-mode extended palette (RGB
+  0/255/255), i.e. the palette page that matches a dark background in
+  the first place, so this is a genuine 2nd valid fix, specifically for
+  dark mode, alongside Octave Blue's light-mode fix above.
+
+  Toggle Before / After / Dark (Aqua) below to compare directly.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-4:#6F7480; --white:#FFFFFF;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-nav:#1A1A1F; --border:#E7EBF2;
+  --font-sans:"Inter",system-ui,sans-serif;
+  /* BEFORE (current real values) */
+  --teal:#007B87; --purple:#9933FF; --orange:#F46600; --green:#00AA14;
+  /* AFTER (Octave-deck-verified) — only teal actually changes */
+  --oct-blue:#0000FF;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:#fff;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px 60px;}
+.legend{max-width:430px;width:100%;color:#fff;font-size:12px;line-height:1.55;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;}
+.legend b{color:#fff;}
+.swatch-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.swatch{display:flex;align-items:center;gap:5px;font-size:11px;background:rgba(255,255,255,.08);border-radius:100px;padding:3px 8px 3px 3px;}
+.swatch-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;}
+
+.frame{width:390px;height:720px;border-radius:44px;background:#000;padding:10px;box-shadow:0 20px 60px rgba(0,0,0,.5);position:relative;}
+.screen{width:100%;height:100%;border-radius:36px;overflow:hidden;position:relative;background:var(--bg-page);display:flex;flex-direction:column;transition:background .15s;}
+/* Dark mode (3rd preview) — same "only bg/text tokens flip, semantic
+   hues stay constant" rule the real app already follows (eam-shared.css
+   dark theme block never touches --green/--orange/--purple, only
+   bg-page/bg-card/border/text). */
+.screen.dark{background:#1A1A1F;}
+.screen.dark .sec-label{color:rgba(255,255,255,.92);}
+.screen.dark .tile-label{color:rgba(255,255,255,.85);}
+.screen.dark .fav-chip-name{color:rgba(255,255,255,.92);}
+.screen.dark .tile-badge{border-color:#1A1A1F;}
+.hdr{background:var(--bg-nav);flex-shrink:0;padding-top:22px;}
+.hdr-row{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;}
+.hdr-avatar{width:30px;height:30px;border-radius:50%;background:#3E4047;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.hdr-title{color:#fff;font-size:15px;font-weight:700;}
+.hdr-sync{width:8px;height:8px;border-radius:50%;background:var(--green);}
+
+.body{flex:1;overflow-y:auto;padding:16px 14px 30px;}
+.sec-label{font-size:15px;font-weight:800;color:var(--octave-black);margin:20px 2px 10px;}
+.sec-label:first-child{margin-top:2px;}
+
+/* Favorites — Icon Bubble (already real), only color swaps between before/after */
+.fav-row{display:flex;gap:16px;overflow-x:auto;padding:6px 0 4px;}
+.fav-chip{flex-shrink:0;width:72px;display:flex;flex-direction:column;align-items:center;gap:7px;}
+.fav-chip-icon{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px rgba(0,0,0,.16);}
+.fav-chip-icon svg{width:26px;height:26px;color:#fff;}
+.fav-chip-name{font-size:11px;font-weight:600;color:var(--octave-black);text-align:center;line-height:1.25;}
+
+/* Home tiles — square kept exactly, badge/label kept exactly, only the
+   square's fill treatment (tint→solid) and icon color (brand-hue→white)
+   change. */
+.tile-grid{display:flex;gap:10px;overflow-x:auto;margin:6px 0 0;padding:10px 0 4px;}
+.tile{flex-shrink:0;width:100px;display:flex;flex-direction:column;align-items:center;}
+.tile-sq{width:100px;aspect-ratio:1;border-radius:20px;display:flex;align-items:center;justify-content:center;position:relative;}
+.tile-sq svg{width:38px;height:38px;}
+.tile-badge{position:absolute;top:-7px;right:-7px;background:var(--octave-black);color:#fff;font-size:11px;font-weight:700;border-radius:100px;padding:2px 6px;min-width:19px;text-align:center;line-height:1.3;border:2px solid var(--bg-page);}
+.tile-label{font-size:12px;font-weight:500;color:var(--octave-black);text-align:center;margin-top:7px;line-height:1.3;}
+
+.toggle-row{display:flex;gap:8px;margin-top:18px;}
+.toggle-btn{font-size:12px;font-weight:700;color:#fff;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.2);border-radius:100px;padding:8px 16px;cursor:pointer;}
+.toggle-btn.on{background:#fff;color:#111;border-color:#fff;}
+.opt-label{margin-top:10px;font-size:12px;color:rgba(255,255,255,.65);text-align:center;max-width:400px;}
+</style>
+</head>
+<body>
+
+<div class="legend">
+  <b>Before</b> = current real colors (teal #007B87 on Equipment/Pumps —
+  not in either Octave palette page you shared). <b>After</b> = same
+  layout, teal swapped for Octave Blue (#0000FF, White-mode palette) —
+  everything else (purple/orange/green) was already an exact match, no
+  change needed there. Tile squares also pick up Favorites' bold
+  solid-fill + white-icon treatment in both states, so you can judge
+  boldness and color correctness together.
+  <div class="swatch-row" id="swatchRow"></div>
+</div>
+
+<div class="frame">
+  <div class="screen">
+    <div class="hdr"><div class="hdr-row"><div class="hdr-avatar">BC</div><div class="hdr-title">Home</div><div class="hdr-sync"></div></div></div>
+    <div class="body">
+      <div class="sec-label">Favorites</div>
+      <div class="fav-row">
+        <div class="fav-chip"><span class="fav-chip-icon" id="fav1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></span><span class="fav-chip-name">High Priority</span></div>
+        <div class="fav-chip"><span class="fav-chip-icon" id="fav2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></span><span class="fav-chip-name">Centrifugal Pumps</span></div>
+      </div>
+
+      <div class="sec-label">My Work</div>
+      <div class="tile-grid">
+        <div class="tile"><div class="tile-sq" id="t1" style="background:var(--orange);"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span class="tile-badge">18</span></div><span class="tile-label">Corrective WO's</span></div>
+        <div class="tile"><div class="tile-sq" id="t2" style="background:var(--green);"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><polyline points="9,16 11,18 15,14"/></svg><span class="tile-badge">12</span></div><span class="tile-label">My PM WO's</span></div>
+      </div>
+
+      <div class="sec-label">My Equipment</div>
+      <div class="tile-grid">
+        <div class="tile"><div class="tile-sq" id="t3"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg><span class="tile-badge">134</span></div><span class="tile-label">Equipment</span></div>
+        <div class="tile"><div class="tile-sq" id="t4"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M12 2.5c4 5 7 9.2 7 12.5a7 7 0 11-14 0c0-3.3 3-7.5 7-12.5z"/></svg><span class="tile-badge">9</span></div><span class="tile-label">Pumps</span></div>
+      </div>
+
+      <div class="sec-label">Reference Section</div>
+      <div class="tile-grid">
+        <div class="tile"><div class="tile-sq" id="t5" style="background:var(--purple);"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg><span class="tile-badge">7</span></div><span class="tile-label">My Closed WO's</span></div>
+        <div class="tile"><div class="tile-sq" id="t6" style="background:var(--purple);"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg><span class="tile-badge">4</span></div><span class="tile-label">Last Week's Work</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toggle-row">
+  <button class="toggle-btn on" onclick="show('before',this)">Before (light, teal)</button>
+  <button class="toggle-btn" onclick="show('after',this)">After (light, Octave Blue)</button>
+  <button class="toggle-btn" onclick="show('dark',this)">Dark mode (Aqua)</button>
+</div>
+<div class="opt-label" id="optLabel">Teal #007B87 on Equipment/Pumps favorite + both tiles — not present in either Octave palette page.</div>
+
+<script>
+const STATES = {
+  before: { dark:false, equip:'#007B87', label:'Teal #007B87 on Equipment/Pumps favorite + both tiles — not present in either Octave palette page.', swatchName:'Teal (off-palette)' },
+  after:  { dark:false, equip:'#0000FF', label:'Swapped to Octave Blue #0000FF (White-mode extended palette) — the nearest on-brand cool hue, not already claimed by Purple (WO)/Green (PM)/Orange (Corrective) elsewhere on this screen.', swatchName:'Octave Blue' },
+  dark:   { dark:true,  equip:'#00FFFF', label:'Dark mode, with Equipment/Pumps swapped to Octave Aqua #00FFFF — this one IS on-brand: Aqua is a real entry in the Black-mode extended palette, the palette page that actually matches a dark background.', swatchName:'Octave Aqua' },
+};
+function show(state, btn){
+  const s = STATES[state];
+  document.getElementById('fav2').style.background = s.equip;
+  document.getElementById('t3').style.background = s.equip;
+  document.getElementById('t4').style.background = s.equip;
+  document.getElementById('fav1').style.background = '#9933FF';
+  document.querySelector('.screen').classList.toggle('dark', s.dark);
+  document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('optLabel').textContent = s.label;
+  renderSwatches(s);
+}
+function renderSwatches(s){
+  const swatches = [
+    {name:'Purple', hex:'#9933FF'},
+    {name:'Orange', hex:'#F46600'},
+    {name:'Dark Green', hex:'#00AA14'},
+    {name: s.swatchName, hex: s.equip},
+  ];
+  document.getElementById('swatchRow').innerHTML = swatches.map(sw=>`<span class="swatch"><span class="swatch-dot" style="background:${sw.hex}"></span>${sw.name} ${sw.hex}</span>`).join('');
+}
+show('before', document.querySelector('.toggle-btn'));
+</script>
+</body>
+</html>

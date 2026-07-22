@@ -176,6 +176,53 @@ function renderStepRail(workflow, activeStep) {
     seg.innerHTML = steps.map((s, i) => `<div class="seg ${i < activeIdx ? 'seg-done' : i === activeIdx ? 'seg-active' : 'seg-future'}"></div>`).join('');
   }
 }
+/* Flat, unordered, ungated rail for the §11 fallback (no configured
+   workflow — always Free Form), added 2026-07-22 (user direction — the
+   fallback screen was hiding its rail/bar entirely; now it shows all 5
+   WO-workflow steps, unnumbered, free-flow-tappable, same visual
+   language as Equipment RV's own .tab-map-item rows (renderTabRail()
+   above) rather than the numbered/sequential .step-map-icon treatment
+   renderStepRail() uses for a real configured workflow. Reuses the same
+   #stepRail/#stepMap shell/collapse mechanic (initStepRail() above) —
+   only what gets rendered INTO #stepMap differs. No per-step icon exists
+   in this data model (WO_STEP_LABELS is label-only), so each row is a
+   leading outline circle (.step-map-dot, added 2026-07-22, user
+   direction — "the current selected tab" gets a highlighted/filled
+   circle, every other row stays outline-only; deliberately a plain dot,
+   not a number, so it doesn't reintroduce the sequence indicator this
+   rail is specifically avoiding) + label + trailing chevron
+   (.step-map-ref-icon, already flex-pushed to the row's right edge by
+   .step-map-label's own flex:1). Every row but the active one is a real
+   cross-file navigation (goToWoStep() below) — there's no gating concept
+   for this fallback case at all, by design. */
+const WO_FLAT_STEPS = ['record', 'checklist', 'issueparts', 'booklabor', 'closing'];
+function renderFlatStepRail(activeStep) {
+  const rail = document.getElementById('stepRail');
+  const map = document.getElementById('stepMap');
+  if (!rail || !map) return;
+  const seg = rail.querySelector('.step-segments');
+  const nameEl = rail.querySelector('.step-name');
+  if (nameEl) nameEl.textContent = WO_STEP_LABELS[activeStep] || '';
+  rail.classList.remove('rail-not-free-form'); // §11 fallback is always Free Form
+  if (seg) seg.innerHTML = ''; // no numbered progress bar in flat mode
+  const timerPanel = map.querySelector('.step-timer-panel');
+  map.innerHTML = (timerPanel ? timerPanel.outerHTML : '') + WO_FLAT_STEPS.map(s => `
+    <div class="step-map-item${s === activeStep ? ' active' : ''}" onclick="${s === activeStep ? 'collapseCurrentRail()' : `goToWoStep('${s}')`}">
+      <span class="step-map-dot"></span>
+      <span class="step-map-label${s === activeStep ? ' active-label' : ''}">${WO_STEP_LABELS[s]}</span>
+      <span class="step-map-ref-icon"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    </div>`).join('') + STEP_MAP_REFERENCE_GROUP_HTML;
+}
+// Real navigation, not a same-page tab switch — each WO step is its own
+// file. Carries the demo WO's identity forward via the same
+// 'eamOpenDemoWo' consume-once flag WO List's openWO() already
+// established, so the destination screen resolves the same ROUT
+// identity instead of falling back to its own default (19257).
+function goToWoStep(step) {
+  sessionStorage.setItem('eamOpenDemoWo', DEMO_WO);
+  location.href = WO_STEP_FILES[step];
+}
+
 /* Reference group markup (§14.2, added 2026-07-22) — see the CSS comment
    on .step-map-group-label for the full rationale. Comments/Documents
    are owned by WO Record View only (never duplicated on the other 4
