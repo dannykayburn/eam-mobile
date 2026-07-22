@@ -2450,14 +2450,25 @@ modeled/built — flagged here as a forward dependency so it isn't lost):
 | WO Workflow flag | Record View | WO Closing |
 | --- | --- | --- |
 | **Free Form** | Status header is live/editable, same control as Equipment | Same Option D status control (§19.2), unprotected — big tappable button |
-| **Not Free Form** | Status is protected (lock icon, no chevron, not tappable — same treatment as any other protected field) | Same Option D status control (§19.2), protected — static pill, lock icon, no picker |
+| **Not Free Form** | Status keeps its real fill colour and stays tappable; chevron swaps to a lock icon. Tapping shows a toast ("Status is determined by workflow. Cannot be updated.") instead of opening the status picker. | Same Option D status control (§19.2), same treatment — fill colour unchanged, lock icon in place of the chevron, tap shows the same toast instead of opening the picker |
+
+**Redesigned 2026-07-22 — deliberate, scoped exception to the general
+protected-field rule (§3.4/§5.2's "protected = not tappable" stays the
+default everywhere else, e.g. Store, Closing Codes cells).** A status
+control that goes gray when protected tells the technician nothing about
+the WO's actual state, and "why is this locked" is a real question for
+status specifically in a way it isn't for most protected fields — so this
+one explains itself instead of just going inert. Superseded: protected
+previously disabled the button/pill entirely and grayed its fill colour
+to `var(--bg-section)`/`var(--gray-4)` (both screens) — see §21.
 
 **Revised 2026-07-16:** WO Closing no longer swaps to an entirely different
 component per flag (an earlier draft had it borrowing Record View's own
 status-forefront header for Free Form). One control, two states — the
 prototype's `statusFieldProtected` flag is this same Free Form/Not Free
-Form flag, inverted (`protected = Not Free Form`), just not modeled as a
-real field yet, so it's hardcoded. See §21 for the superseded draft.
+Form flag, inverted (`protected = Not Free Form`), now actually wired to
+the resolved WO Workflow header's Free Form column (§12 tier 2) rather
+than hardcoded.
 
 **Which status field this section even governs is itself a choice** — see
 §13's "Status source choice": Screen Designer lets the admin pick, per
@@ -3249,16 +3260,35 @@ Note: the WO Details section was removed from this screen — the tech already k
 - From/to statuses sit in their own row below the title (not squeezed
   beside the icon): "from" is a static, lightly-tinted pill, no "from"
   label (the row reads left-to-right); "to" is a bigger solid-fill button
-  in the target status's own colour (green/gray/orange), chevron-suffixed,
-  tappable — opens a picker sheet of user-authorised target statuses.
-  Status text is Inter, never mono — a status label isn't an identifier code.
+  in the target status's own colour, chevron-suffixed, tappable — opens a
+  picker sheet of user-authorised target statuses. Status text is Inter,
+  never mono — a status label isn't an identifier code.
+- **Colour vocabulary unified with the Record View header button's
+  `STATUS_CLASS_MAP`, 2026-07-22** — was its own independent
+  green/gray/**orange** set (`fill-completed`/`fill-closed`/`fill-onhold`);
+  On Hold is **red** now, matching the header's `HOLD: 'st-down'` mapping
+  (was orange here, a real cross-screen clash for the same status — same
+  status must never render two different colours depending on which
+  screen shows it). Completed stays green (`fill-completed` = the header's
+  `st-operational`, already aligned). Closed stays its own gray — the
+  header's own status LOV never offers a Closed option to compare against,
+  so no collision risk there, and gray for a terminal/inactive state reads
+  fine as a 4th value alongside the reused 3. "From" pill's colour is
+  hardcoded to Released's green (was a fixed, unrelated blue regardless of
+  the actual status) — this demo has no mechanism to vary the WO's own
+  current status independent of the close flow, so there's no live
+  mapping to wire, just the one value that's ever actually shown.
 - Both pills share one explicit box model (height/line-height/box-sizing)
   so the "from" `<div>` and the "to" `<button>` line up exactly — a bare
   `<button>` otherwise picks up the browser's own default font metrics.
-- **Protected state**, per §15.4: the "to" pill swaps to static/muted with
-  a lock icon in the same slot, no picker — same standard-model
-  protected-field treatment (§5.2) as anywhere else. Toggled off a single
-  `statusFieldProtected` flag (§15.4/§20).
+- **Protected state**, per §15.4 (redesigned 2026-07-22): the "to" pill
+  keeps its real fill colour and stays tappable — only the chevron swaps
+  to a lock icon. Tapping shows a toast explaining why instead of opening
+  the picker. This is a deliberate exception to the general protected-
+  field treatment (§5.2's usual gray/muted/inert), not that treatment
+  itself — see §15.4 for why. Toggled off a single `statusFieldProtected`
+  flag, now wired to the resolved WO Workflow header's Free Form column
+  (§12 tier 2) instead of a hardcoded constant.
 - **Target-status picker sheet is the plain LOV sheet, not a bespoke
   design** (fixed 2026-07-16). It had drifted into its own thing — a
   `sheet-header` (title-left/close-right) instead of the standard field-
@@ -3365,8 +3395,8 @@ A) — see §21.
 | **Tab rail / step rail — inconsistent class name** | Same component under two names: `.tab-rail` in Equipment, `.step-rail` in all 5 WO standalones + the compiled prototype. Converge on one name next time either is touched. |
 | **Fixed 2026-07-20 — tab-less screens' content mount needs its own flex passthrough** | WO Record View has no tab system (§14.1) — content mounts once into a plain `#recordContentSlot` div rather than a `.tab-content[data-tab]` panel. That div was never `display:flex;flex-direction:column;flex:1;min-height:0` like `.app` itself, so its child `.content`'s shared `flex:1;overflow-y:auto` was inert — harmless while content stayed shorter than the viewport, silently broke scrolling entirely (no scrollbar, `.app`'s `overflow:clip` just clips dead) once it grew past it. Fixed locally in this file; **if any future WO-workflow screen copies this tab-less mount pattern, give its own mount div the same flex passthrough from the start.** |
 | **Open decision: Activity Checklist's Checkbox-type control vs. the generic checkbox pattern** | Carried forward through the 2026-07-21 rebuild, component renamed: §3.4's generic checkbox rule makes the entire row the tap target, sized to a compact list row. The Checkbox-type item's control (`.f-chk`, §16.2/§16.3) is now a large, centered, full-width tap target by design — the focused one-item-at-a-time screen has the room a compact row never did, and deliberately uses it. Call still needed: is this divergence now *more* justified (different context, not just a leftover), or should it converge? |
-| **Step rail: Octave Yellow for Not Free Form WO workflows — decided, not built** | §15.4/§3.2 already lock the rule (purple wash is default; a Not Free Form WO workflow uses Octave Yellow #FFF500 instead, same opacity formula). The Free Form/Not Free Form flag itself is now modeled (§12, 2026-07-22 — the new WO Workflow header table, keyed WO Type × User Group) but not yet wired into any prototype — no data file reads it yet. |
-| **WO Closing status-change control — protected/unprotected flag not yet modeled** | Option D (§19.2/§19.8) is built and driven by a local `statusFieldProtected` const (hardcoded `false`) rather than a real SD-configured flag. The real flag is now modeled (§12, 2026-07-22 — the WO Workflow header table's Free Form column) but still not wired into this const — that's a data-plumbing task, not an open design question anymore. |
+| **Step rail: Octave Yellow for Not Free Form WO workflows — built and verified** | §15.4/§3.2's rule (purple wash default; Octave Yellow for Not Free Form) is now wired end to end: the Free Form flag (§12 tier 2, WO Workflow header keyed WO Type × User Group) drives it via `renderStepRail()`/`applyWorkflowTypeHeader()` (`eam-shared.js`), verified live across all 5 WO-workflow screens on all 3 demo WOs (BRKD=yellow, PM=purple, ROUT=no rail, §11 fallback) through the `cycleDemoWo()` dev toggle. |
+| **WO Closing status-change control — protected/unprotected flag now wired** | Option D (§19.2) previously drove `statusFieldProtected` from a hardcoded `false` const. Now set from the resolved WO Workflow header's Free Form column (§12 tier 2) in `onDemoWoChanged()`, verified live (protected on BRKD, unprotected on PM). See §15.4/§19.2 for the same-day redesign of what "protected" actually looks like now (colour stays, lock icon, tappable-with-toast) — this row is just about the flag being real, not hardcoded. |
 | **WO Closing → post-close navigation — partially built** | Corrected 2026-07-16 (conformance audit) — this row was stale: `executeClose()` already navigates to `eam-wo-list-prototype-v5_1.html` after the "Work Order Closed" overlay shows briefly (1.4s), it does not stay up indefinitely. What's still actually open: that navigation is a plain page load with no state passed, so WO List always lands on its own hardcoded default dataspy (`ds1`) rather than re-running whichever dataspy the user had selected before opening WO Closing. Real cross-screen state-passing is what the unified compile needs to add. |
 
 **Below added 2026-07-21, code-level UI component inventory pass (`docs/ui-component-inventory.md`) — a static CSS/markup audit for visual-consistency drift across every live screen, done ahead of the compile/handoff pass. Full detail lives in that doc. All 12 findings below were fixed the same session — kept here (not deleted) as the record of what was found and how it was resolved.**
@@ -3428,6 +3458,7 @@ its original section with a note attached.
 | **WO workflow chrome, draft 2** — "All 5 steps use the full `.rec-header`" (status + pin + ellipsis on every step). | §15.4 "Chrome — final split" |
 | **WO Closing status banner: Option A** — from/to status shown as small mono chips squeezed beside the icon in the same row as the title/sub-text; to chip tappable, banner background/icon colour/sub-text all retinted per selected status. | §19.2/§19.8 "Status banner: Option D" (2026-07-16) — controls moved to their own row below a simplified single-line title, Inter instead of mono, bigger solid-fill button instead of a chip, protected/unprotected states added. |
 | **WO Closing status control, Free Form case** — swap to an entirely different component (Record View's own status-forefront header, §5 "Header rev. 2") instead of the banner. | §15.4 (2026-07-16) — one control either way (§19.2 Option D); Free Form vs. Not Free Form now just toggles that same control's protected/unprotected state. |
+| **Protected status control (Record View header button + WO Closing's "to" pill) — old treatment**: button/pill disabled entirely, fill colour grayed to `var(--bg-section)`/`var(--gray-4)`, chevron hidden outright, tap did nothing (Record View) or silently no-op'd (WO Closing). WO Closing's "to" pill also had its own independent colour set (green/gray/**orange**) instead of the header's. | §15.4/§19.2 (2026-07-22) — colour always shows now (protected or not); chevron swaps to a lock icon instead of disappearing; tap shows a toast explaining why instead of doing nothing. Colour vocabulary unified with the header's `STATUS_CLASS_MAP` (On Hold orange→red); "from" pill's fixed unrelated blue→green (Released's colour). |
 | **WO List Detailed card — bespoke WO-only anatomy** (§6.5, 2026-07-16) — WO number+status row, description headline, equipment sub-line, type+priority row, location·org·due meta row; hardcoded to WO's specific fields, exempt from the generic child-tab card. | §8.3 "List Search Screen standard" (2026-07-20) — one card standard for WO List/Search and every child tab, no exceptions; WO's fields now just populate that generic card via its own dataspy column order. |
 | **WO List table anatomy — bespoke 5-column layout** (§6.6, 2026-07-16) — chevron+type badge+description, WO number, priority, status, org; fixed columns, no others shown. | §8.3 "List Search Screen standard" (2026-07-20) — List mode now shows every field available on the dataspy (tiered by online/offline), not a fixed column set. |
 | **WO due-date urgency treatment** (§6.8) — Today/Tomorrow got emphasis styling, later dates rendered neutral. | §8.3 (2026-07-20) — every date field, including Due Date, renders plain `MM/DD/YYYY` everywhere, no relative/urgency formatting, so a screen builder never has to write date-math logic for a field they didn't hand-pick. |
