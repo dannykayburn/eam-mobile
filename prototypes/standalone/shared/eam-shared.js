@@ -1267,13 +1267,17 @@ function runLovOnClearHook(key) {
        const EQUIP_LOOKUP_CURRENT   = { equipment: () => RECORD.equipment };
        const EQUIP_LOOKUP_ON_SELECT = { equipment: (o) => { ... } };
    ══════════════════════════════════════════════════════════════════════ */
+// organization added 2026-07-22 (demo-consistency pass) — every other
+// record in this app is FBPP; this dataset just never carried the field,
+// which is why its search cards were missing the org corner-badge every
+// other standard card (WO List, Equipment List) has.
 const EQUIPMENT_LOOKUP_DATA = [
-  { code: '00067333', desc: 'Pump, Centrifugal', class: 'Pump', category: 'Centrifugal', type: 'Asset' },
-  { code: '00068211', desc: 'Motor, Induction 50HP', class: 'Motor', category: 'Induction', type: 'Asset' },
-  { code: '00069045', desc: 'Valve, Gate 6in', class: 'Valve', category: null, type: 'Asset' },
-  { code: 'P-004-00167063', desc: 'Pump House 3 — Bay 4', class: null, category: null, type: 'Position' },
-  { code: '00070102', desc: 'Compressor, Rotary Screw', class: 'Compressor', category: 'Rotary Screw', type: 'Asset' },
-  { code: '00071358', desc: 'Blower, Centrifugal', class: 'Blower', category: 'Centrifugal', type: 'Asset' },
+  { code: '00067333', desc: 'Pump, Centrifugal', class: 'Pump', category: 'Centrifugal', type: 'Asset', organization: 'FBPP' },
+  { code: '00068211', desc: 'Motor, Induction 50HP', class: 'Motor', category: 'Induction', type: 'Asset', organization: 'FBPP' },
+  { code: '00069045', desc: 'Valve, Gate 6in', class: 'Valve', category: null, type: 'Asset', organization: 'FBPP' },
+  { code: 'P-004-00167063', desc: 'Pump House 3 — Bay 4', class: null, category: null, type: 'Position', organization: 'FBPP' },
+  { code: '00070102', desc: 'Compressor, Rotary Screw', class: 'Compressor', category: 'Rotary Screw', type: 'Asset', organization: 'FBPP' },
+  { code: '00071358', desc: 'Blower, Centrifugal', class: 'Blower', category: 'Centrifugal', type: 'Asset', organization: 'FBPP' },
 ];
 const TREE_DATA = {
   id: 'loc1', type: 'Location', desc: 'Belmont Wastewater Treatment Plant', code: 'L-BELMONT-WWTP', class: null, category: null,
@@ -1313,8 +1317,14 @@ const EQUIP_SEARCH_DATASPY_NAME = 'All Equipment';
 let equipSearchState = { mode: 'detailed', search: '' };
 let activeEquipLovKey = null;
 
+// Org corner-badge added 2026-07-22 (demo-consistency pass) — head/sub
+// (Description/Code) never render their own `label` (renderStdCard()
+// only reads .value for those two slots), so the stray labels these used
+// to carry were dead weight; dropped along with adding the badge every
+// other standard card (WO List, Equipment List) already has via the
+// same `{type:'org', value:...}` shape.
 function equipCardFields(o) {
-  const f = [{ label: 'Description', value: o.desc }, { label: 'Code', value: o.code }];
+  const f = [{ value: o.desc }, { value: o.code }, { type: 'org', value: o.organization }];
   if (o.class) f.push({ label: 'Class', value: o.class });
   if (o.category) f.push({ label: 'Category', value: o.category });
   f.push({ label: 'Type', value: o.type });
@@ -1327,6 +1337,7 @@ function equipCardFields(o) {
 function equipTableFields(o) {
   return [
     { label: 'Description', value: o.desc }, { label: 'Code', value: o.code },
+    { label: 'Organization', value: o.organization },
     { label: 'Class', value: o.class || '—' }, { label: 'Category', value: o.category || '—' },
     { label: 'Type', value: o.type },
   ];
