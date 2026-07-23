@@ -135,7 +135,10 @@ body{
    sibling's width; pointer-events:none so it doesn't block them. Font
    was mono (a leftover from this file's pre-Standard-Model styling) —
    should be the app's default sans (Inter) like every other nav-title. */
-.nav-title{position:absolute;left:0;right:0;text-align:center;font-family:var(--font-sans);font-size:14px;font-weight:700;
+/* 14px→15px, 2026-07-24 — matches the same bump to eam-shared.css's
+   canonical .nav-title (this file hand-copies it, doesn't link the
+   shared file, per this file's own header note). */
+.nav-title{position:absolute;left:0;right:0;text-align:center;font-family:var(--font-sans);font-size:15px;font-weight:700;
   color:var(--white);pointer-events:none;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 /* .nav-back/.nav-icon-btn now come from eam-shared.css only (Phase 2b,
@@ -149,11 +152,20 @@ body{
    orange did, and was the fuller of the two definitions besides (had
    properties the shared copy lacked) — promoted up instead of just
    patched here. */
+/* Real bug fixed 2026-07-23: this hardcoded white-on-white-ish colors
+   (rgba(255,255,255,...) for both text and background), which only reads
+   correctly against a dark backdrop — .proto-theme-bar actually sits
+   directly on var(--bg-page), which is light in light mode, so the whole
+   bar (and the "Restart Demo" button eam-shared.js injects next to it)
+   was nearly invisible and looked untappable. Converged to the same
+   theme-aware tokens the canonical .theme-toggle in eam-shared.css
+   already uses (var(--gray-4)/var(--bg-section)/var(--border-strong)),
+   which stay legible in both themes. */
 .theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;
-  color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.08);
-  border:1px solid rgba(255,255,255,0.15);border-radius:100px;padding:3px 9px;
+  color:var(--gray-4);background:var(--bg-section);
+  border:1px solid var(--border-strong);border-radius:100px;padding:3px 10px;
   cursor:pointer;transition:all 0.15s;white-space:nowrap;flex-shrink:0;}
-.theme-toggle:hover{background:rgba(255,255,255,0.15);color:white;}
+.theme-toggle:hover{background:var(--border-strong);}
 
 /* ── SCREENS ──────────────────────────────────────────── */
 .screen{display:none;flex-direction:column;flex:1;overflow:hidden;position:relative;}
@@ -579,6 +591,10 @@ body{
 <div class="proto-theme-bar">
   <span class="proto-theme-label">Preview theme</span>
   <button class="theme-toggle" id="themeToggle">☀ Light</button>
+  <!-- Demo-only connectivity toggle (§4.5) — was missing on this screen
+       entirely (2026-07-23 fix); every WO-workflow screen already has
+       one, driving the same shared DEMO_ONLINE flag (eam-shared.js). -->
+  <button class="theme-toggle" id="onlineToggle" onclick="toggleDemoOnline()">🌐 Offline</button>
 </div>
 
 <div class="app" id="app">
@@ -1006,20 +1022,16 @@ body{
 <script src="../../data/notifications.js"></script>
 <script src="shared/eam-shared.js"></script>
 <script>
-/* ══ THEME (canonical toggle — defaults light per standalone convention) ══ */
-function applyTheme(dark) {
-  if (dark) {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    document.getElementById('themeToggle').textContent = '◑ Dark';
-  } else {
-    document.documentElement.removeAttribute('data-theme');
-    document.getElementById('themeToggle').textContent = '☀ Light';
-  }
-}
-function toggleTheme() {
-  applyTheme(!document.documentElement.hasAttribute('data-theme'));
-}
-document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+/* ══ THEME — real bug fixed 2026-07-23: this file used to also define its
+   own local applyTheme()/toggleTheme() and attach a 2nd click listener to
+   #themeToggle, on top of the one initSharedApp()/initThemeToggle()
+   (shared/eam-shared.js) already attaches below. Both fired on every
+   click, each reading document.documentElement's data-theme attribute and
+   flipping it — so the 2nd listener always undid the 1st in the same
+   click, and the button appeared completely dead. Removed the local
+   duplicate entirely; the shared initThemeToggle() (which also persists
+   to localStorage, unlike this file's old local version) is now the only
+   listener, same as every other screen. ══ */
 
 /* ══ ICON SVG SNIPPETS (used in JS-rendered HTML — chip-sheet rows only,
    §6.11; the card/table standard below carries no icons at all) ══════ */
@@ -1547,6 +1559,7 @@ let RECORD = {};
 refS1();
 renderEntityFields(); // pre-render defaults so the sheet isn't empty the first time it opens (currentEntity defaults 'WO', matching this screen's only use)
 initSharedApp();
+initDemoOnlineToggle();
 </script>
 </body>
 </html>

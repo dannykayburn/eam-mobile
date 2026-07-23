@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tab Rail / Step Rail — Fill Color Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  TAB RAIL / STEP RAIL — FILL COLOR OPTIONS (2026-07-24). Revisits the
+  rail's own surface treatment — user suspicion: "maybe it's the gray"
+  (the flat var(--bg-section) fill + var(--border-strong) outline the
+  2026-07-22 palette pass landed on, replacing the old persistent purple
+  wash). Nothing picked yet. 6 options, each shown 4 ways — both rail
+  types (.tab-rail, e.g. Equipment RV's tabs; .step-rail, a real
+  configured WO workflow) x both states (collapsed, expanded/map-open) —
+  so the fill/outline/shadow treatment reads at actual size in every
+  context it appears. Only the SURFACE (background/border/shadow) varies
+  between options; row layout, chevron, segments, map-item content are
+  the real unchanged markup/CSS from eam-shared.css/.js.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --green:#00AA14;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+[data-theme="dark"]{
+  --bg-page:#1A1A1F; --bg-card:#26252B; --bg-section:#302F33; --border:#3E4047; --border-strong:#4A4C55;
+  --gray-1:#2A2930; --gray-2:#3E4047; --gray-3:#6F7480; --gray-4:#B2B8C4; --octave-black:#1A1A1F;
+}
+[data-theme="dark"] body{color:var(--white);}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--octave-black);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:1000px;width:100%;color:#fff;font-size:12px;line-height:1.6;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:14px 16px;}
+.legend code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:4px;font-family:var(--font-mono);font-size:11px;}
+.theme-row{display:flex;gap:8px;margin-bottom:16px;max-width:1000px;width:100%;}
+.theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:5px 12px;cursor:pointer;}
+.wrap{max-width:1000px;width:100%;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;}
+
+.opt-card{background:var(--bg-page);border-radius:14px;padding:16px;width:440px;flex-shrink:0;}
+.opt-title{font-size:13px;font-weight:700;color:var(--octave-black);margin-bottom:2px;}
+[data-theme="dark"] .opt-title{color:var(--white);}
+.opt-desc{font-size:11.5px;color:var(--gray-4);line-height:1.5;margin-bottom:12px;}
+
+.rail-demo-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-4);margin:10px 0 5px;}
+.rail-demo-label:first-of-type{margin-top:0;}
+.rail-sep{height:1px;background:rgba(0,0,0,.08);margin:14px 0;}
+[data-theme="dark"] .rail-sep{background:rgba(255,255,255,.1);}
+
+/* ── .tab-rail — verbatim base (Option 1) from eam-shared.css ── */
+.tab-rail{background:var(--bg-section);border:1px solid var(--border-strong);padding:0 16px;}
+.tab-rail-collapsed{height:52px;display:flex;align-items:center;gap:10px;padding:4px 0;}
+.tab-rail-name{font-size:14px;font-weight:700;color:var(--octave-black);flex:1;}
+[data-theme="dark"] .tab-rail-name{color:var(--white);}
+.tab-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
+.tab-chevron.rot{transform:rotate(180deg);}
+.tab-rail.expanded{padding-bottom:12px;}
+.tab-map{display:none;background:var(--bg-card);padding:6px 0 8px;border-top:1px solid var(--border);}
+.tab-map.open{display:block;}
+.tab-map-item{display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:4px;margin:0 6px;color:var(--gray-4);}
+.tab-map-item.active{background:var(--bg-section);color:var(--octave-black);}
+[data-theme="dark"] .tab-map-item.active{color:var(--white);}
+.tab-map-label{flex:1;font-size:13px;font-weight:500;color:var(--octave-black);}
+[data-theme="dark"] .tab-map-label{color:rgba(255,255,255,.85);}
+.tab-map-item.active .tab-map-label{font-weight:700;}
+.tab-map-chevron{color:var(--gray-3);flex-shrink:0;}
+
+/* ── .step-rail — verbatim base (Option 1) ── */
+.step-rail{background:var(--bg-section);border:1px solid var(--border-strong);padding:0 16px;}
+.step-rail-collapsed{height:48px;display:flex;align-items:center;gap:8px;padding:4px 0;}
+.step-name{flex:1;font-size:13px;font-weight:600;color:var(--octave-black);}
+[data-theme="dark"] .step-name{color:var(--white);}
+.step-rail-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.step-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
+.step-chevron.rot{transform:rotate(180deg);}
+.step-rail.expanded{padding-bottom:12px;}
+.step-segments{display:flex;gap:4px;padding:0 0 8px;}
+.seg{flex:1;height:7px;border-radius:100px;}
+.seg-done{background:var(--green);}
+.seg-active{background:var(--octave-black);}
+[data-theme="dark"] .seg-active{background:var(--white);}
+.seg-future{background:var(--gray-2);}
+[data-theme="dark"] .seg-future{background:var(--gray-5);}
+.step-map{display:none;background:var(--bg-card);padding:8px 0 8px;border-top:1px solid var(--border);}
+.step-map.open{display:block;}
+.step-map-item{display:flex;align-items:center;gap:10px;padding:5px 14px;border-radius:4px;margin:0 6px;}
+.step-map-item.active{background:var(--bg-section);}
+.step-map-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:700;}
+.smi-done{background:var(--green);color:#fff;}
+.smi-active{background:var(--octave-black);color:var(--white);}
+[data-theme="dark"] .smi-active{background:var(--white);color:var(--octave-black);}
+.smi-locked{background:none;border:2px solid var(--gray-3);color:var(--gray-3);}
+.step-map-label{flex:1;font-size:13px;font-weight:500;color:var(--octave-black);}
+[data-theme="dark"] .step-map-label{color:rgba(255,255,255,.85);}
+.step-map-label.active-label{font-weight:700;}
+
+/* ── Option 2 — no fill, outline only (blends with page) ── */
+.opt2 .tab-rail,.opt2 .step-rail{background:transparent;}
+.opt2 .tab-map,.opt2 .step-map{background:transparent;}
+
+/* ── Option 3 — card fill + shadow, no heavy outline ── */
+.opt3 .tab-rail,.opt3 .step-rail{background:var(--bg-card);border:none;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+[data-theme="dark"] .opt3 .tab-rail,[data-theme="dark"] .opt3 .step-rail{box-shadow:0 1px 6px rgba(0,0,0,.3);}
+.opt3 .tab-map,.opt3 .step-map{background:var(--bg-card);border-top:1px solid var(--border);}
+
+/* ── Option 4 — inset floating card, rounded + margined ── */
+.opt4 .tab-rail,.opt4 .step-rail{background:var(--bg-card);border:none;border-radius:12px;margin:0 4px;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden;}
+[data-theme="dark"] .opt4 .tab-rail,[data-theme="dark"] .opt4 .step-rail{box-shadow:0 1px 6px rgba(0,0,0,.3);}
+.opt4 .tab-map,.opt4 .step-map{background:var(--bg-card);border-top:1px solid var(--border);}
+
+/* ── Option 5 — bold ink collapsed bar, plain card expanded ──
+   Real caveat found building this: var(--octave-black) IS var(--bg-page)
+   in dark mode (#1A1A1F both) — a literal ink fill would be invisible
+   against the page in dark mode, so dark mode substitutes --gray-5
+   (still a deliberately bold dark bar, just not the exact "ink" hue) —
+   flagged in the option's own description, not silently patched over. */
+.opt5 .tab-rail,.opt5 .step-rail{background:var(--octave-black);border:none;}
+[data-theme="dark"] .opt5 .tab-rail,[data-theme="dark"] .opt5 .step-rail{background:var(--gray-5);}
+.opt5 .tab-rail-name,.opt5 .step-name{color:#fff;}
+.opt5 .tab-chevron,.opt5 .step-chevron{color:rgba(255,255,255,.6);}
+.opt5 .seg-active{background:#fff;}
+.opt5 .seg-future{background:rgba(255,255,255,.25);}
+.opt5 .tab-map,.opt5 .step-map{background:var(--bg-card);border-top:1px solid var(--border);}
+
+/* ── Option 6 — keep the section-gray fill, drop the outline, separate
+   with a soft shadow instead of a hard border (isolates: is it the GRAY
+   itself, or the outline, that reads wrong?) ── */
+.opt6 .tab-rail,.opt6 .step-rail{background:var(--bg-section);border:none;box-shadow:0 2px 6px rgba(0,0,0,.05);}
+[data-theme="dark"] .opt6 .tab-rail,[data-theme="dark"] .opt6 .step-rail{box-shadow:0 2px 8px rgba(0,0,0,.25);}
+.opt6 .tab-map,.opt6 .step-map{background:var(--bg-card);border-top:1px solid var(--border);}
+</style>
+</head>
+<body>
+<div class="theme-row">
+  <button class="theme-toggle" onclick="document.documentElement.removeAttribute('data-theme')">☀ Light</button>
+  <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme','dark')">🌙 Dark</button>
+</div>
+<div class="legend">
+  <b>What varies:</b> only the rail's own surface (background/border/
+  shadow) — row layout, chevron, progress segments, and map-item content
+  are the real, unchanged <code>.tab-rail</code>/<code>.step-rail</code>
+  markup from <code>eam-shared.css</code>/<code>.js</code>. Each option
+  shows both rail types (<b>RV Tabs</b> — Equipment Record View's tab
+  rail; <b>Workflow</b> — a real configured WO workflow's step rail) in
+  both states (collapsed, expanded/map-open), since a fill choice can
+  read fine collapsed and wrong expanded, or vice versa. Toggle light/
+  dark above — a few options behave differently by theme, noted where
+  relevant.
+</div>
+
+<div class="wrap">
+
+  <!-- OPTION 1 -->
+  <div class="opt-card">
+    <div class="opt-title">1 — Current (baseline)</div>
+    <div class="opt-desc">What ships today: <code>var(--bg-section)</code> fill (a step darker/lighter than the page) + a full <code>var(--border-strong)</code> outline. Replaced the old persistent purple wash in the 2026-07-22 palette pass. This is the "maybe it's the gray" one.</div>
+
+    <div class="opt2-inner"><div class="rail-demo-label">RV Tabs — collapsed</div>
+      <div class="tab-rail">
+        <div class="tab-rail-collapsed"><span class="tab-rail-name">Structure Details</span><svg class="tab-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="rail-demo-label">RV Tabs — expanded</div>
+      <div class="tab-rail expanded">
+        <div class="tab-rail-collapsed"><span class="tab-rail-name">Structure Details</span><svg class="tab-chevron rot" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="tab-map open">
+          <div class="tab-map-item"><span class="tab-map-label">Record View</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="tab-map-item active"><span class="tab-map-label">Structure Details</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="tab-map-item"><span class="tab-map-label">Documents</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rail-sep"></div>
+
+    <div class="rail-demo-label">Workflow — collapsed</div>
+    <div class="step-rail">
+      <div class="step-rail-collapsed"><span class="step-name">Activity Checklist</span><div class="step-rail-right"><svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+      <div class="step-segments"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+    </div>
+    <div class="rail-demo-label">Workflow — expanded</div>
+    <div class="step-rail expanded">
+      <div class="step-rail-collapsed"><span class="step-name">Activity Checklist</span><div class="step-rail-right"><svg class="step-chevron rot" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+      <div class="step-segments"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+      <div class="step-map open">
+        <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
+        <div class="step-map-item active"><div class="step-map-icon smi-active">2</div><span class="step-map-label active-label">Activity Checklist</span></div>
+        <div class="step-map-item"><div class="step-map-icon smi-locked">3</div><span class="step-map-label">Issue Parts</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION 2 -->
+  <div class="opt-card opt2">
+    <div class="opt-title">2 — No fill, outline only</div>
+    <div class="opt-desc">Drop the background entirely — the rail blends into the page, distinguished only by its border. Tests whether ANY fill at all is the problem, not just this particular gray.</div>
+
+    <div class="rail-demo-label">RV Tabs — collapsed</div>
+    <div class="tab-rail">
+      <div class="tab-rail-collapsed"><span class="tab-rail-name">Structure Details</span><svg class="tab-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="rail-demo-label">RV Tabs — expanded</div>
+    <div class="tab-rail expanded">
+      <div class="tab-rail-collapsed"><span class="tab-rail-name">Structure Details</span><svg class="tab-chevron rot" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="tab-map open">
+        <div class="tab-map-item"><span class="tab-map-label">Record View</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="tab-map-item active"><span class="tab-map-label">Structure Details</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="tab-map-item"><span class="tab-map-label">Documents</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+
+    <div class="rail-sep"></div>
+
+    <div class="rail-demo-label">Workflow — collapsed</div>
+    <div class="step-rail">
+      <div class="step-rail-collapsed"><span class="step-name">Activity Checklist</span><div class="step-rail-right"><svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+      <div class="step-segments"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+    </div>
+    <div class="rail-demo-label">Workflow — expanded</div>
+    <div class="step-rail expanded">
+      <div class="step-rail-collapsed"><span class="step-name">Activity Checklist</span><div class="step-rail-right"><svg class="step-chevron rot" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+      <div class="step-segments"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+      <div class="step-map open">
+        <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
+        <div class="step-map-item active"><div class="step-map-icon smi-active">2</div><span class="step-map-label active-label">Activity Checklist</span></div>
+        <div class="step-map-item"><div class="step-map-icon smi-locked">3</div><span class="step-map-label">Issue Parts</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION 3 -->
+  <div class="opt-card opt3">
+    <div class="opt-title">3 — Card fill + shadow (elevated)</div>
+    <div class="opt-desc">Swap the fill from "section gray" to the same white/near-black <code>var(--bg-card)</code> every card in the app uses, and swap the hard outline for a soft drop shadow — reads as a raised card sitting ABOVE the content, not a recessed section sitting IN it.</div>
+
+    <div class="rail-demo-label">RV Tabs — collapsed</div>
+    <div class="tab-rail">
+      <div class="tab-rail-collapsed"><span class="tab-rail-name">Structure Details</span><svg class="tab-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="rail-demo-label">RV Tabs — expanded</div>
+    <div class="tab-rail expanded">
+      <div class="tab-rail-collapsed"><span class="tab-rail-name">Structure Details</span><svg class="tab-chevron rot" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="tab-map open">
+        <div class="tab-map-item"><span class="tab-map-label">Record View</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="tab-map-item active"><span class="tab-map-label">Structure Details</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="tab-map-item"><span class="tab-map-label">Documents</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+
+    <div class="rail-sep"></div>
+
+    <div class="rail-demo-label">Workflow — collapsed</div>
+    <div class="step-rail">
+      <div class="step-rail-collapsed"><span class="step-name">Activity Checklist</span><div class="step-rail-right"><svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+      <div class="step-segments"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+    </div>
+    <div class="rail-demo-label">Workflow — expanded</div>
+    <div class="step-rail expanded">
+      <div class="step-rail-collapsed"><span class="step-name">Activity Checklist</span><div class="step-rail-right"><svg class="step-chevron rot" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+      <div class="step-segments"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+      <div class="step-map open">
+        <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
+        <div class="step-map-item active"><div class="step-map-icon smi-active">2</div><span class="step-map-label active-label">Activity Checklist</span></div>
+        <div class="step-map-item"><div class="step-map-icon smi-locked">3</div><span class="step-map-label">Issue Parts</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION 4 -->
+  <div class="opt-card opt4">
+    <div class="opt-title">4 — Inset floating card</div>
+    <div class="opt-desc">Same card fill + shadow as Option 3, but pulled off the screen edges (rounded corners, small side margin) — same "floating card" language as the dataspy bar/quick-filter chips, instead of an edge-to-edge structural bar. Reads more like a discrete component, less like part of the chrome.</div>
+
+    <div class="rail-demo-label">RV Tabs — collapsed</div>
+    <div class="tab-rail">
+      <div class="tab-rail-collapsed"><span class="tab-rail-name">Structure Details</span><svg class="tab-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="rail-demo-label">RV Tabs — expanded</div>
+    <div class="tab-rail expanded">
+      <div class="tab-rail-collapsed"><span class="tab-rail-name">Structure Details</span><svg class="tab-chevron rot" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="tab-map open">
+        <div class="tab-map-item"><span class="tab-map-label">Record View</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="tab-map-item active"><span class="tab-map-label">Structure Details</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="tab-map-item"><span class="tab-map-label">Documents</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+
+    <div class="rail-sep"></div>
+
+    <div class="rail-demo-label">Workflow — collapsed</div>
+    <div class="step-rail">
+      <div class="step-rail-collapsed"><span class="step-name">Activity Checklist</span><div class="step-rail-right"><svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+      <div class="step-segments"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+    </div>
+    <div class="rail-demo-label">Workflow — expanded</div>
+    <div class="step-rail expanded">
+      <div class="step-rail-collapsed"><span class="step-name">Activity Checklist</span><div class="step-rail-right"><svg class="step-chevron rot" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+      <div class="step-segments"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+      <div class="step-map open">
+        <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
+        <div class="step-map-item active"><div class="step-map-icon smi-active">2</div><span class="step-map-label active-label">Activity Checklist</span></div>
+        <div class="step-map-item"><div class="step-map-icon smi-locked">3</div><span class="step-map-label">Issue Parts</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION 5 -->
+  <div class="opt-card opt5">
+    <div class="opt-title">5 — Bold ink collapsed bar</div>
+    <div class="opt-desc">The collapsed row goes full ink (white text/chevron/segments-future), like the nav bar's own dark treatment — a deliberate, high-contrast control strip rather than a quiet gray one. Expanded map reverts to plain card white so the step list itself doesn't inherit the same intensity. <b>Caveat found building this:</b> pure ink IS the dark-mode page background (both <code>#1A1A1F</code>), so dark mode substitutes a dark gray instead — worth knowing if you like this in light mode, since it can't be literally "the same color" in both themes.</div>
+
+    <div class="rail-demo-label">RV Tabs — collapsed</div>
+    <div class="tab-rail">
+      <div class="tab-rail-collapsed"><span class="tab-rail-name">Structure Details</span><svg class="tab-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="rail-demo-label">RV Tabs — expanded</div>
+    <div class="tab-rail expanded">
+      <div class="tab-rail-collapsed"><span class="tab-rail-name">Structure Details</span><svg class="tab-chevron rot" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="tab-map open">
+        <div class="tab-map-item"><span class="tab-map-label">Record View</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="tab-map-item active"><span class="tab-map-label">Structure Details</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="tab-map-item"><span class="tab-map-label">Documents</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+
+    <div class="rail-sep"></div>
+
+    <div class="rail-demo-label">Workflow — collapsed</div>
+    <div class="step-rail">
+      <div class="step-rail-collapsed"><span class="step-name">Activity Checklist</span><div class="step-rail-right"><svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+      <div class="step-segments"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+    </div>
+    <div class="rail-demo-label">Workflow — expanded</div>
+    <div class="step-rail expanded">
+      <div class="step-rail-collapsed"><span class="step-name">Activity Checklist</span><div class="step-rail-right"><svg class="step-chevron rot" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+      <div class="step-segments"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+      <div class="step-map open">
+        <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
+        <div class="step-map-item active"><div class="step-map-icon smi-active">2</div><span class="step-map-label active-label">Activity Checklist</span></div>
+        <div class="step-map-item"><div class="step-map-icon smi-locked">3</div><span class="step-map-label">Issue Parts</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION 6 -->
+  <div class="opt-card opt6">
+    <div class="opt-title">6 — Same gray, outline dropped</div>
+    <div class="opt-desc">Isolates the actual variable: keeps the exact same <code>var(--bg-section)</code> fill as today, but removes the hard <code>var(--border-strong)</code> outline in favor of a soft shadow. If this still looks "off," the gray fill itself is the problem, not the outline around it — if it looks fine, the outline was the culprit all along.</div>
+
+    <div class="rail-demo-label">RV Tabs — collapsed</div>
+    <div class="tab-rail">
+      <div class="tab-rail-collapsed"><span class="tab-rail-name">Structure Details</span><svg class="tab-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+    <div class="rail-demo-label">RV Tabs — expanded</div>
+    <div class="tab-rail expanded">
+      <div class="tab-rail-collapsed"><span class="tab-rail-name">Structure Details</span><svg class="tab-chevron rot" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="tab-map open">
+        <div class="tab-map-item"><span class="tab-map-label">Record View</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="tab-map-item active"><span class="tab-map-label">Structure Details</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="tab-map-item"><span class="tab-map-label">Documents</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      </div>
+    </div>
+
+    <div class="rail-sep"></div>
+
+    <div class="rail-demo-label">Workflow — collapsed</div>
+    <div class="step-rail">
+      <div class="step-rail-collapsed"><span class="step-name">Activity Checklist</span><div class="step-rail-right"><svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+      <div class="step-segments"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+    </div>
+    <div class="rail-demo-label">Workflow — expanded</div>
+    <div class="step-rail expanded">
+      <div class="step-rail-collapsed"><span class="step-name">Activity Checklist</span><div class="step-rail-right"><svg class="step-chevron rot" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+      <div class="step-segments"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+      <div class="step-map open">
+        <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
+        <div class="step-map-item active"><div class="step-map-icon smi-active">2</div><span class="step-map-label active-label">Activity Checklist</span></div>
+        <div class="step-map-item"><div class="step-map-icon smi-locked">3</div><span class="step-map-label">Issue Parts</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

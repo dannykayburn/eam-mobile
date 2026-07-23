@@ -15,7 +15,7 @@
   --purple:#9933FF; --orange:#F46600; --green:#00AA14; --red:#E24B4A; --teal:#007B87; --octave-yellow:#FFF500;
   --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-nav:#1A1A1F; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
   --nav-height:52px; --sheet-radius:20px;
-  --step-rail-h:56px; --bar-height:72px;
+  --bar-height:72px;
 }
 [data-theme="dark"] {
   --bg-page:#1A1A1F; --bg-card:#26252B; --bg-nav:#111114; --bg-section:#302F33; --border:#3E4047; --border-strong:#4A4C55;
@@ -63,7 +63,11 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    the whole bar. left:0/right:0 centers it against the true nav width
    regardless of how wide either sibling is; pointer-events:none so it
    never blocks the back button or nav-actions underneath/behind it. */
-.nav-title{position:absolute;left:0;right:0;text-align:center;font-size:14px;font-weight:700;color:var(--white);pointer-events:none;}
+/* 14px→15px, 2026-07-24 — matches the rail's own current-screen-name text
+   (.tab-rail-name/.step-name), bumped the same session, so the two
+   "screen name" texts in the same vertical stack (nav title above, rail
+   name below) read at one consistent size instead of two adjacent ones. */
+.nav-title{position:absolute;left:0;right:0;text-align:center;font-size:15px;font-weight:700;color:var(--white);pointer-events:none;}
 /* Moved to the left, next to the back arrow/avatar (§20 punch list,
    resolved 2026-07-21) — was sitting center/right next to the sync
    control, which crowded that corner and read as if it were part of the
@@ -265,23 +269,52 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    padding bumped 14px→16px to match .rec-id-row/.rec-status-row-inner's
    own 16px — was sitting 2px further left than the header content
    above it, a real (if small) misalignment, not a redesign. */
-.tab-rail{background:var(--bg-section);border:1px solid var(--border-strong);padding:0 16px;flex-shrink:0;cursor:pointer;transition:border-color .15s;}
-.tab-rail:hover{border-color:var(--gray-3);}
+/* Shell rules shared with .step-rail below — confirmed byte-for-byte
+   identical (§20 naming-drift row, 2026-07-24), same pattern already
+   used for store-selector/crew-selector-pill etc. (Phase 2b): a compound
+   selector on the shared shell, not a markup rename — too many onclick/
+   JS references (renderTabRail/renderStepRail, .expanded toggles) to
+   rename risk-free for a styling-only pass. .tab-rail and .step-rail
+   are NOT the same component (one is freely-tappable record tabs, the
+   other is gated/numbered WO steps with a timer pill + progress
+   segments neither shares) — only their outer collapsed-bar shell is
+   identical, which is what's consolidated here. */
+/* Fill promoted to Option 3 (card + shadow), 2026-07-24 — chosen from
+   tab-step-rail-fill-color-options.html / wo-record-view-rail-3-vs-4-
+   full-action.html: the flat var(--bg-section)/var(--border-strong)
+   "recessed section" treatment read as visually lost against the app's
+   own content ("maybe it's the gray"). Swapped to the same var(--bg-card)
+   fill every other card in the app uses, hard outline replaced by a soft
+   elevation shadow — reads as a raised control sitting above the content
+   rather than a recessed one sitting in it, still full-bleed (no
+   rounding/margin — that's Option 4, explicitly not picked: an inset
+   rounded card borrows this app's own visual grammar for records/fields,
+   which risked this primary-navigation rail reading like content instead
+   of chrome). See design-decisions-v3-1.md §14.2 for the full writeup. */
+.tab-rail, .step-rail{background:var(--bg-card);border:none;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:0 16px;flex-shrink:0;cursor:pointer;transition:box-shadow .15s;}
+[data-theme="dark"] .tab-rail, [data-theme="dark"] .step-rail{box-shadow:0 1px 6px rgba(0,0,0,.3);}
+.tab-rail:hover, .step-rail:hover{box-shadow:0 2px 6px rgba(0,0,0,.14);}
+[data-theme="dark"] .tab-rail:hover, [data-theme="dark"] .step-rail:hover{box-shadow:0 2px 10px rgba(0,0,0,.4);}
 /* Bug fix 2026-07-16: was padding-bottom:8px alone (no padding-top) — since
    align-items:center centers within the padded content box, the asymmetric
    padding pushed the icon/name/chevron visibly above true vertical center
    of the full 56px row. Split symmetrically (4px top + 4px bottom, same
    8px total breathing-room budget originally added below the wash) so the
-   row is actually centered, not just centered-within-its-own-padding-box. */
-.tab-rail-collapsed{height:56px;display:flex;align-items:center;gap:10px;padding-top:4px;padding-bottom:4px;}
+   row is actually centered, not just centered-within-its-own-padding-box.
+   gap unified to 10px 2026-07-24 — .step-rail-collapsed had independently
+   drifted to gap:8px with no documented reason; same shell, one value. */
+.tab-rail-collapsed, .step-rail-collapsed{height:56px;display:flex;align-items:center;gap:10px;padding-top:4px;padding-bottom:4px;}
 /* .tab-rail-icon removed, 2026-07-22 — a leading glyph naming "the
    current tab" was redundant right next to the tab's own name text;
    dropped rather than recolored. initTabRail()/renderTabRail() (eam-
    shared.js) and every screen's markup no longer reference #tabRailIcon. */
-.tab-rail-name{font-size:14px;font-weight:700;color:var(--octave-black);flex:1;}
+/* 14px→15px, 2026-07-24 — matches .nav-title's own bump the same session
+   (see that rule's comment), so the rail's current-screen name reads at
+   the same size as the top-most header name it echoes. */
+.tab-rail-name{font-size:15px;font-weight:700;color:var(--octave-black);flex:1;}
 [data-theme="dark"] .tab-rail-name{color:var(--white);}
 .tab-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
-.tab-rail.expanded{padding-bottom:14px;}
+.tab-rail.expanded, .step-rail.expanded{padding-bottom:14px;}
 .tab-map{display:none;background:var(--bg-card);padding:8px 0 12px;border-top:1px solid var(--border);max-height:45vh;overflow-y:auto;}
 .tab-map.open{display:block;}
 .tab-map-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-radius:4px;margin:0 6px;transition:background .1s;color:var(--gray-4);}
@@ -292,7 +325,10 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .tab-map-item.active{background:var(--bg-section);color:var(--octave-black);}
 [data-theme="dark"] .tab-map-item.active{color:var(--white);}
 .tab-map-icon{width:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
-.tab-map-label{flex:1;font-size:13px;font-weight:500;color:var(--octave-black);}
+/* 13px→15px, 2026-07-24, same bump as .tab-rail-name — the active row's
+   label is the same "current screen name" text shown collapsed; leaving
+   this at the old size would make it visibly shrink on expand. */
+.tab-map-label{flex:1;font-size:15px;font-weight:500;color:var(--octave-black);}
 [data-theme="dark"] .tab-map-label{color:rgba(255,255,255,.85);}
 .tab-map-item.active .tab-map-label{color:var(--octave-black);font-weight:700;}
 [data-theme="dark"] .tab-map-item.active .tab-map-label{color:var(--white);}
@@ -309,27 +345,15 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    deliberately different component from .tab-rail above: gated/numbered/
    sequential vs. .tab-rail's freely-tappable record tabs. Screens supply
    their own step-pill/step-name/step-map contents and their own bottom-
-   bar gating logic (readiness rule differs per step, §14.7) — only the
-   chrome and the expand/collapse toggle are shared. ── */
-/* Same outline/alignment/no-wash conversion as .tab-rail above — see its
-   comment for the full reasoning (border-strong, not black; 16px not 14px). */
-.step-rail{background:var(--bg-section);border:1px solid var(--border-strong);padding:0 16px;flex-shrink:0;cursor:pointer;transition:border-color .15s;}
-.step-rail:hover{border-color:var(--gray-3);}
-.step-rail.expanded{padding-bottom:14px;}
-/* Symmetric top/bottom padding (same centering fix as .tab-rail-collapsed,
-   §3.4 2026-07-16) — an unconditional padding-bottom alone would push the
-   row's flex-centered content above true vertical center of the row.
-   Two-row layout (Option A, 2026-07-16): the collapsed row now holds just
-   step-name/step-rail-right (timer+chevron); the progress segments live
-   in their own full-width row below, .step-segments moved out of
-   .step-rail-collapsed entirely (see markup). Left-justified name
-   (2026-07-22, matches .tab-rail-name's own left-justified flex:1 layout
-   instead of a separately-centered one) — replaced the old absolutely-
-   centered .step-name + dedicated .step-rail-left timer slot; the timer
-   pill now lives in .step-rail-right instead, beside the chevron, so
-   simple flex order does the layout with no absolute positioning. ── */
-.step-rail-collapsed{height:var(--step-rail-h);display:flex;align-items:center;gap:8px;padding-top:4px;padding-bottom:4px;}
-.step-name{flex:1;text-align:left;font-size:13px;font-weight:600;color:var(--octave-black);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+   bar gating logic (readiness rule differs per step, §14.7). The shell
+   (background/border/hover/expanded-padding/collapsed-row) IS shared with
+   .tab-rail — consolidated into the compound `.tab-rail, .step-rail`
+   rules above 2026-07-24, see that comment — only the content below the
+   shell is step-specific. ── */
+/* 13px→15px, 2026-07-24, same rationale as .tab-rail-name above — also
+   deduplicates this rule, which had been accidentally declared twice
+   back to back (harmless, just redundant; caught while touching it). */
+.step-name{flex:1;text-align:left;font-size:15px;font-weight:600;color:var(--octave-black);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 [data-theme="dark"] .step-name{color:var(--white);}
 .step-rail-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 /* Timer pill — moved into .step-rail-right (2026-07-22, was its own
@@ -358,6 +382,15 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 [data-theme="dark"] .seg-active{background:var(--white);}
 .seg-future{background:var(--gray-2);}
 [data-theme="dark"] .seg-future{background:var(--gray-5);}
+/* Flat rail's own "no sequence" cue (§14.2, added 2026-07-23, chosen from
+   the step-rail-workflow-vs-freeform-options.html mockup's Option 3) — a
+   plain dashed divider standing in for the numbered segments, instead of
+   rendering nothing at all (renderFlatStepRail() previously just cleared
+   this row, seg.innerHTML=''). Signals "deliberately unstructured," not
+   "broken/missing." Zero color — same monochrome discipline as the rest
+   of this rail, no WO Type color involved. */
+.step-segments.flat{display:block;}
+.seg-flat-dash{height:0;border-top:2px dashed var(--gray-3);}
 .step-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
 .step-map{display:none;background:var(--bg-card);padding:10px 0 12px;border-top:1px solid var(--border);}
 .step-map.open{display:block;}
@@ -379,7 +412,8 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .step-map-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;border:1.5px solid var(--border-strong);margin-top:1px;}
 .step-map-item.active .step-map-dot{background:var(--octave-black);border-color:var(--octave-black);}
 [data-theme="dark"] .step-map-item.active .step-map-dot{background:var(--white);border-color:var(--white);}
-.step-map-label{flex:1;font-size:13px;font-weight:500;color:var(--octave-black);}
+/* 13px→15px, 2026-07-24 — same rationale as .tab-map-label above. */
+.step-map-label{flex:1;font-size:15px;font-weight:500;color:var(--octave-black);}
 [data-theme="dark"] .step-map-label{color:rgba(255,255,255,.85);}
 .step-map-label.active-label{color:var(--octave-black);font-weight:700;}
 [data-theme="dark"] .step-map-label.active-label{color:var(--white);}
@@ -656,6 +690,15 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .attr-text.mono{font-family:var(--font-mono);font-size:24px;line-height:1;}
 .field-chevron{margin-left:6px;color:var(--gray-3);flex-shrink:0;}
 .field-lock{margin-left:6px;color:var(--gray-3);flex-shrink:0;}
+/* Badge / Icon LOV, List version (§5.2 field-behavior consolidation,
+   promoted 2026-07-24 from screen-layout-field-behavior-prototype-v1.html)
+   — a plain sibling of .field-value, not a wrapper div: a nested flex
+   context (justify-content:flex-end) proved unreliable on a real device,
+   rendering the badge detached near the label instead of grouped with
+   the value. margin-left:auto (the same trick .field-checkbox already
+   uses) pushes it to the row's right edge instead, with a fixed gap
+   before the value that follows it. */
+.field-badge-inline{margin-left:auto;margin-right:8px;}
 .field-lov-value{display:flex;flex-direction:column;align-items:flex-end;flex:1;gap:1px;}
 .field-lov-code{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--gray-4);line-height:1.2;}
 .field-lov-desc{font-size:14px;font-weight:500;color:var(--octave-black);line-height:1.3;text-align:right;}
@@ -841,15 +884,19 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .ld-card-attr-row .field-value{text-align:right;}
 .ld-card-attr-row .field-value.tinted{font-weight:700;}
 
-/* Header Fields / Non-nullable fields (§5.2 D2, 2026-07-16, revised same
+/* Header Fields / Non-nullable fields (§5.2, 2026-07-16, revised same
    day) — holds every non-nullable field on the screen, badge-style or
    plain-LOV alike, 2-per-row; an odd field out spans both columns instead
    of leaving an empty cell. No section-card-header/title on this
    container — the fields just sit directly in the card, unlabeled.
-   Plain-LOV items show description only, no code (revised same day —
-   these fields are reference-data lookups being surfaced prominently, not
-   identifiers, so the code adds nothing here even though the general LOV-
-   row default elsewhere is code+description, §3.4). */
+   Plain-LOV items' "description only, no code" treatment (this rule as
+   first written, 2026-07-16) is REVERSED as of 2026-07-24 — see §5.2's
+   "LOV — Code Only" / "LOV — Code + Description" rows: a plain Grid LOV
+   now always shows a code too, either alone (mono, .attr-text.mono) or
+   stacked with its description (.attr-lov-stack, description over
+   code). Notes/Description and Long-text are always full-width
+   (.attr-item.full-width) regardless of position — not just "the odd
+   one out" falling into the last row. */
 .attr-item.full-width{grid-column:1/-1;}
 
 /* ── Header fields — Type/Priority-style colour badge pair (§9.3) ── */
@@ -864,6 +911,16 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    .form-field.required row gets (was orange — palette pass, 2026-07-22,
    see .form-field.required above) — just on this cell instead. */
 .attr-item.required::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
+/* Protected, Grid version (§5.2 field-behavior consolidation, promoted
+   2026-07-24 from screen-layout-field-behavior-prototype-v1.html) —
+   mirrors .form-field.protected's exact recipe onto a grid cell. Lock
+   icon sits on the label's own row (.attr-label-row) rather than next to
+   the value below it — List's single-row .form-field.protected already
+   puts label and lock "in the same row" trivially; Grid's 2-row column
+   layout needed this explicit wrapper to match. */
+.attr-item.protected{background:var(--bg-section);opacity:.75;cursor:default;}
+[data-theme="dark"] .attr-item.protected{background:rgba(255,255,255,.03);}
+.attr-label-row{display:flex;align-items:center;gap:6px;}
 .attr-label{font-size:13px;color:var(--gray-4);}
 .attr-value{display:flex;align-items:center;gap:6px;}
 .attr-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;flex-shrink:0;}
@@ -944,7 +1001,11 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    code-over-description order, unchanged. ── */
 .attr-lov-stack{display:flex;flex-direction:column;gap:2px;}
 .attr-lov-stack-code{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--gray-4);line-height:1.2;}
-.attr-text.muted{color:var(--gray-3);}
+/* font-weight:500 added 2026-07-24 (promoted from screen-layout-field-
+   behavior-prototype-v1.html) — dims Protected's Grid value down from
+   .attr-text's default 600 weight, matching .field-value.muted's own
+   lighter weight relative to .field-value's 500 base. */
+.attr-text.muted{color:var(--gray-3);font-weight:500;}
 
 /* ── HYPERLINKED POPUP (added 2026-07-16) — a full-screen sheet that slides
    up from the bottom to show a record reached by tapping a "link" field
@@ -1138,6 +1199,54 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .row-action-btn.danger{border-color:rgba(228,75,74,0.35);color:var(--red);background:rgba(228,75,74,0.04);}
 .row-action-btn.danger:hover{background:rgba(228,75,74,0.1);border-color:var(--red);}
 .row-action-btn svg{flex-shrink:0;}
+
+/* ── ACTION ROW (promoted 2026-07-24) — the real component behind what
+   used to be Issue Parts' Part Card and Book Labor's Labor Row: "a
+   detailed row with multiple fields and a single action button unique
+   to that row," per direct user decision to merge the two rather than
+   just share a category name (see docs/component-library.md's Entry Row
+   entry — Activity Row stays its own separate exception, not part of
+   this). Interaction paradigm, locked: tapping an Action Row NEVER
+   navigates to another screen or opens Update Mode — it expands in
+   place and transacts via its own action button(s); this is a
+   deliberate contrast with the standard List/Detail row-tap-to-Record-
+   View rule (§8) — an Action Row isn't updating the record, it's taking
+   action on it.
+   Data order, locked: description on top, code (mono) below it —
+   supporting fields render as labeled, mono chips, always visible (not
+   hidden behind the tap) — tapping the row reveals a read-only detail
+   list with the action button(s) at the very bottom. Badges stay
+   screen-specific (qty-badge is outline/"planned"; hours-badge is
+   filled green/red/"regular vs. correction") — deliberately not
+   consolidated, they mean different things. ── */
+.action-row{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:box-shadow .15s;}
+.action-row:hover{box-shadow:0 2px 12px rgba(0,0,0,.08);}
+.action-row-header{padding:10px 12px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;}
+/* Optional persistent left accent (Issue Parts' issued state so far;
+   generic enough for any future consumer that wants a persistent status
+   accent alongside — not every consumer needs one, omit the element
+   entirely if not). */
+.action-row-accent{width:3px;align-self:stretch;border-radius:100px;flex-shrink:0;background:var(--gray-2);margin-top:2px;}
+[data-theme="dark"] .action-row-accent{background:var(--gray-5);}
+.action-row-main{flex:1;min-width:0;}
+.action-row-title{font-size:14px;font-weight:600;color:var(--octave-black);line-height:1.3;}
+[data-theme="dark"] .action-row-title{color:var(--white);}
+.action-row-code{font-family:var(--font-mono);font-size:11px;color:var(--gray-4);margin-top:1px;}
+.action-row-meta-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:4px;}
+.action-row-meta{font-family:var(--font-mono);font-size:11px;color:var(--gray-4);display:flex;align-items:center;gap:3px;}
+.action-row-meta-label{color:var(--gray-3);}
+.action-row-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;margin-top:2px;}
+.action-row-detail{display:none;background:var(--bg-section);border-top:1px solid var(--border);padding:10px 12px 12px;}
+[data-theme="dark"] .action-row-detail{background:rgba(255,255,255,.03);}
+.action-row-detail.open{display:block;}
+.action-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px 8px;margin-bottom:10px;font-size:12px;}
+.action-detail-label{color:var(--gray-4);padding:3px 0;}
+.action-detail-value{color:var(--octave-black);text-align:right;padding:3px 0;font-size:12px;}
+[data-theme="dark"] .action-detail-value{color:rgba(255,255,255,.85);}
+.action-detail-value.mono{font-family:var(--font-mono);}
+.action-detail-value.green{color:var(--green);font-weight:600;font-family:var(--font-mono);}
+.action-detail-value.red{color:var(--red);font-weight:600;font-family:var(--font-mono);}
+.action-row-actions{display:flex;gap:6px;padding-top:8px;border-top:1px solid var(--border);}
 .cal-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;}
 .cal-nav-btn{width:32px;height:32px;border-radius:50%;border:none;background:var(--bg-section);color:var(--octave-black);cursor:pointer;display:flex;align-items:center;justify-content:center;}
 [data-theme="dark"] .cal-nav-btn{color:var(--white);}
@@ -1164,8 +1273,11 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    spinner instead of a scroll wheel" elsewhere in this app — the
    underlying value and every bit of the app's OWN rendered text are
    always 24-hour regardless; only the native picker's own transient
-   edit chrome is outside our control. See the caption on Sample
-   Screen's "Start Time" field for the full rule. */
+   edit chrome is outside our control. See design-decisions-v3-1.md
+   §3.4/§5.2 for the full rule (moved out of a standalone caption
+   2026-07-24 when screen-layout-field-behavior-prototype-v1.html became
+   the canonical field-type reference — the standalone itself carries
+   no explanatory prose anymore, only the doc does). */
 .time-input{background:none;border:none;outline:none;font-family:var(--font-sans);color:var(--octave-black);text-align:right;width:100%;cursor:pointer;position:relative;}
 [data-theme="dark"] .time-input{color:rgba(255,255,255,.9);}
 .time-input:focus{color:var(--octave-black);}

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Entry Row — Part Card / Labor Row Consolidation Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  ENTRY ROW CONSOLIDATION — Part Card / Labor Row (2026-07-24).
+  User direction: Activity Row stays its own separate exception (radio-
+  select list, no action button, different shape entirely — not explored
+  here). Part Card (Issue Parts) and Labor Row (Book Labor) are close
+  enough — "detailed row with multiple fields and a single action button
+  unique to that row" — to actually merge into one shared component,
+  not just share a category name (see docs/component-library.md's Entry
+  Row entry, locked 2026-07-24 as naming-only until now).
+
+  Real difference today: Part Card shows every field up front (header +
+  an always-visible footer button, no collapse at all); Labor Row shows
+  only name/code/meta/hours-badge up front and hides its detail grid +
+  button behind a chevron. 3 options below test different answers to
+  that one real axis, each rendered with BOTH real data sets so the
+  comparison is apples-to-apples:
+
+  A — Always Expanded: no chevron, no collapse, every field + the action
+      button always visible (today's Part Card shape, applied to Labor
+      too — its 3 extra detail fields fold into a 2nd meta-chip row).
+  B — Always Collapsible: chevron reveals the full detail grid + action
+      button (today's Labor Row shape, applied to Part too — its
+      UOM/Store/Bin meta moves behind the tap).
+  C — Fields Expanded, Button Collapsible: every field stays visible
+      (nothing hidden, unlike B) but the action button itself sits behind
+      a small reveal control — isolates "just the button collapses" as
+      its own option, distinct from collapsing the whole row.
+
+  Deliberately NOT converged here (kept as each screen's own real
+  difference, not drift): Part's qty-badge is an OUTLINE pill (planned,
+  not yet issued — a different semantic than "done"); Labor's hours-badge
+  is a FILLED green/red pill (regular vs. correction). These mean
+  different things and should keep looking different regardless of which
+  option below gets picked.
+
+  Self-contained (no eam-shared.css/.js dependency), same lean convention
+  as grid-checkbox-size-alignment-options.html — mockups explore, they
+  don't need the whole shared component stack.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --green:#00AA14; --red:#E24B4A;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+[data-theme="dark"]{
+  --bg-page:#1A1A1F; --bg-card:#26252B; --bg-section:#302F33; --border:#3E4047; --border-strong:#4A4C55;
+  --gray-1:#2A2930; --gray-2:#3E4047; --gray-3:#6F7480; --gray-4:#B2B8C4; --octave-black:#1A1A1F;
+}
+[data-theme="dark"] body{color:var(--white);}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--octave-black);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:920px;width:100%;color:#fff;font-size:12px;line-height:1.55;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;}
+.legend b{color:#fff;}
+.theme-row{display:flex;gap:8px;margin-bottom:16px;}
+.theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:5px 12px;cursor:pointer;}
+.section-title{max-width:920px;width:100%;color:#fff;font-size:14px;font-weight:700;margin:18px 0 4px;}
+.section-sub{max-width:920px;width:100%;color:rgba(255,255,255,.6);font-size:11px;margin-bottom:12px;}
+.wrap{max-width:920px;width:100%;display:flex;flex-wrap:wrap;gap:14px;}
+.opt-card{background:var(--bg-page);border-radius:14px;padding:14px;width:430px;flex-shrink:0;}
+.opt-title{font-size:12px;font-weight:700;color:var(--octave-black);margin-bottom:8px;}
+[data-theme="dark"] .opt-title{color:var(--white);}
+
+/* ── Shared Entry Row shell — the actual consolidation candidate ── */
+.entry-row{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.entry-row-header{padding:10px 12px;display:flex;align-items:flex-start;gap:10px;}
+.entry-row.collapsible .entry-row-header{cursor:pointer;}
+.entry-row-main{flex:1;min-width:0;}
+.entry-row-title{font-size:14px;font-weight:600;color:var(--octave-black);}
+[data-theme="dark"] .entry-row-title{color:var(--white);}
+.entry-row-code{font-family:var(--font-mono);font-size:11px;color:var(--gray-4);margin-top:1px;}
+.entry-meta-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;}
+.entry-meta{font-size:11px;color:var(--gray-4);}
+.entry-meta-label{color:var(--gray-3);}
+.entry-row-side{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
+.entry-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;margin-top:2px;}
+.entry-row.open .entry-chevron{transform:rotate(180deg);}
+
+/* Badges — kept deliberately distinct (see header note): qty = outline
+   (planned), hours = filled (regular/correction). Not consolidated. */
+.qty-badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:100px;font-family:var(--font-mono);font-size:11px;font-weight:600;white-space:nowrap;}
+.qty-badge-planned{border:1.5px solid var(--border-strong);color:var(--octave-black);background:none;}
+[data-theme="dark"] .qty-badge-planned{color:var(--white);}
+.hours-badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:100px;font-family:var(--font-mono);font-size:11px;font-weight:600;white-space:nowrap;}
+.hours-badge.green{background:rgba(0,170,20,.1);color:var(--green);}
+.hours-badge.red{background:rgba(228,75,74,.1);color:var(--red);}
+
+/* Detail area — collapsible variants (B, C) */
+.entry-row-detail{display:none;background:var(--bg-section);border-top:1px solid var(--border);padding:10px 12px 12px;}
+.entry-row-detail.open{display:block;}
+.entry-detail-grid{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;font-size:12px;}
+.entry-detail-label{color:var(--gray-4);}
+.entry-detail-value{color:var(--octave-black);text-align:right;font-weight:500;}
+[data-theme="dark"] .entry-detail-value{color:rgba(255,255,255,.9);}
+.entry-detail-value.mono{font-family:var(--font-mono);}
+
+/* Action button — same spec as the real shared .row-action-btn (34px/13px) */
+.row-action-btn{height:34px;border-radius:100px;border:1.5px solid var(--border-strong);background:none;font-size:13px;font-weight:700;font-family:var(--font-sans);color:var(--octave-black);cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:0 14px;}
+[data-theme="dark"] .row-action-btn{color:var(--white);}
+.row-action-btn.danger{border-color:rgba(228,75,74,.4);color:var(--red);}
+
+/* Option A — always expanded: footer sits directly under the header,
+   no collapse mechanism, full width. */
+.entry-row-footer{padding:0 12px 10px;border-top:1px solid var(--border);margin-top:2px;padding-top:10px;}
+
+/* Option C — fields always visible; only the action row collapses,
+   behind a small dedicated toggle (not the whole row). */
+.entry-action-toggle{display:flex;align-items:center;justify-content:center;gap:4px;padding:7px 0;border-top:1px solid var(--border);cursor:pointer;color:var(--gray-4);font-size:11px;font-weight:600;}
+.entry-action-toggle svg{transition:transform .2s;}
+.entry-row.open .entry-action-toggle svg{transform:rotate(180deg);}
+.entry-action-strip{display:none;padding:0 12px 10px;}
+.entry-action-strip.open{display:block;}
+</style>
+</head>
+<body>
+<div class="theme-row">
+  <button class="theme-toggle" onclick="document.documentElement.removeAttribute('data-theme')">☀ Light</button>
+  <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme','dark')">🌙 Dark</button>
+</div>
+<div class="legend">
+  Same two real data sets (a planned Part, a booked Labor entry) rendered
+  through 3 candidate shapes for one shared <b>Entry Row</b> component.
+  Tap any row/chevron to try the collapse behavior where one exists.
+  Activity Row is intentionally not part of this comparison — it's
+  staying its own separate shape.
+</div>
+
+<div class="section-title">Option A — Always Expanded</div>
+<div class="section-sub">No chevron anywhere. Every field, plus the action button, is always visible — today's Part Card shape, applied to both. Labor's 3 extra detail fields fold into a 2nd meta-chip row.</div>
+<div class="wrap">
+
+  <div class="opt-card">
+    <div class="opt-title">Part — 400-VP6-14</div>
+    <div class="entry-row">
+      <div class="entry-row-header">
+        <div class="entry-row-main">
+          <div class="entry-row-code">400-VP6-14</div>
+          <div class="entry-row-title">O Ring EPDM</div>
+          <div class="entry-meta-row">
+            <span class="entry-meta"><span class="entry-meta-label">UOM&nbsp;</span>EA</span>
+            <span class="entry-meta"><span class="entry-meta-label">Store&nbsp;</span>IND-MAIN</span>
+            <span class="entry-meta"><span class="entry-meta-label">Bin&nbsp;</span>A1-001</span>
+          </div>
+        </div>
+        <div class="entry-row-side"><span class="qty-badge qty-badge-planned">8 EA</span></div>
+      </div>
+      <div class="entry-row-footer">
+        <button class="row-action-btn">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+          Quick Issue/Return
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="opt-card">
+    <div class="opt-title">Labor — Bruce Campbell</div>
+    <div class="entry-row">
+      <div class="entry-row-header">
+        <div class="entry-row-main">
+          <div class="entry-row-title">Bruce Campbell</div>
+          <div class="entry-row-code">BCAMPBELL</div>
+          <div class="entry-meta-row">
+            <span class="entry-meta"><span class="entry-meta-label">Type&nbsp;</span>Regular</span>
+            <span class="entry-meta"><span class="entry-meta-label">Dept&nbsp;</span>Maintenance</span>
+            <span class="entry-meta"><span class="entry-meta-label">Trade&nbsp;</span>Technician</span>
+          </div>
+          <div class="entry-meta-row" style="margin-top:4px;">
+            <span class="entry-meta" style="font-family:var(--font-mono);">08:00–09:23 · 07/20/2026</span>
+          </div>
+        </div>
+        <div class="entry-row-side"><span class="hours-badge green">1h 23m</span></div>
+      </div>
+      <div class="entry-row-footer">
+        <button class="row-action-btn danger">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Create correction
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section-title">Option B — Always Collapsible</div>
+<div class="section-sub">Header shows only the identifier, name, and badge. Tap the row to reveal the detail grid + action button below — today's Labor Row shape, applied to both. Part's UOM/Store/Bin moves behind the tap.</div>
+<div class="wrap">
+
+  <div class="opt-card">
+    <div class="opt-title">Part — 400-VP6-14</div>
+    <div class="entry-row collapsible" onclick="toggleRow(this)">
+      <div class="entry-row-header">
+        <div class="entry-row-main">
+          <div class="entry-row-code">400-VP6-14</div>
+          <div class="entry-row-title">O Ring EPDM</div>
+        </div>
+        <div class="entry-row-side"><span class="qty-badge qty-badge-planned">8 EA</span></div>
+        <svg class="entry-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="entry-row-detail open">
+        <div class="entry-detail-grid">
+          <div class="entry-detail-label">UOM</div><div class="entry-detail-value">EA</div>
+          <div class="entry-detail-label">Store</div><div class="entry-detail-value mono">IND-MAIN</div>
+          <div class="entry-detail-label">Bin</div><div class="entry-detail-value mono">A1-001</div>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="row-action-btn" onclick="event.stopPropagation()">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+            Quick Issue/Return
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="opt-card">
+    <div class="opt-title">Labor — Bruce Campbell</div>
+    <div class="entry-row collapsible" onclick="toggleRow(this)">
+      <div class="entry-row-header">
+        <div class="entry-row-main">
+          <div class="entry-row-title">Bruce Campbell</div>
+          <div class="entry-row-code">BCAMPBELL</div>
+          <div class="entry-meta-row"><span class="entry-meta" style="font-family:var(--font-mono);">07/20/2026 · Technician</span></div>
+        </div>
+        <div class="entry-row-side"><span class="hours-badge green">1h 23m</span></div>
+        <svg class="entry-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="entry-row-detail open">
+        <div class="entry-detail-grid">
+          <div class="entry-detail-label">Type of hours</div><div class="entry-detail-value">Regular</div>
+          <div class="entry-detail-label">Department</div><div class="entry-detail-value">Maintenance</div>
+          <div class="entry-detail-label">Trade</div><div class="entry-detail-value">Technician</div>
+          <div class="entry-detail-label">Start time</div><div class="entry-detail-value mono">08:00</div>
+          <div class="entry-detail-label">End time</div><div class="entry-detail-value mono">09:23</div>
+          <div class="entry-detail-label">Hours</div><div class="entry-detail-value mono">1h 23m</div>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="row-action-btn danger" onclick="event.stopPropagation()">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Create correction
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section-title">Option C — Fields Expanded, Button Collapsible</div>
+<div class="section-sub">Every field is always visible (nothing hidden, unlike B) — only the action button sits behind its own small "Actions" reveal strip at the bottom. Isolates "just the button collapses" as its own shape.</div>
+<div class="wrap">
+
+  <div class="opt-card">
+    <div class="opt-title">Part — 400-VP6-14</div>
+    <div class="entry-row" onclick="toggleActionStrip(this)">
+      <div class="entry-row-header">
+        <div class="entry-row-main">
+          <div class="entry-row-code">400-VP6-14</div>
+          <div class="entry-row-title">O Ring EPDM</div>
+          <div class="entry-meta-row">
+            <span class="entry-meta"><span class="entry-meta-label">UOM&nbsp;</span>EA</span>
+            <span class="entry-meta"><span class="entry-meta-label">Store&nbsp;</span>IND-MAIN</span>
+            <span class="entry-meta"><span class="entry-meta-label">Bin&nbsp;</span>A1-001</span>
+          </div>
+        </div>
+        <div class="entry-row-side"><span class="qty-badge qty-badge-planned">8 EA</span></div>
+      </div>
+      <div class="entry-action-toggle">
+        Actions
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="entry-action-strip open">
+        <button class="row-action-btn" onclick="event.stopPropagation()">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+          Quick Issue/Return
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="opt-card">
+    <div class="opt-title">Labor — Bruce Campbell</div>
+    <div class="entry-row" onclick="toggleActionStrip(this)">
+      <div class="entry-row-header">
+        <div class="entry-row-main">
+          <div class="entry-row-title">Bruce Campbell</div>
+          <div class="entry-row-code">BCAMPBELL</div>
+          <div class="entry-meta-row">
+            <span class="entry-meta"><span class="entry-meta-label">Type&nbsp;</span>Regular</span>
+            <span class="entry-meta"><span class="entry-meta-label">Dept&nbsp;</span>Maintenance</span>
+            <span class="entry-meta"><span class="entry-meta-label">Trade&nbsp;</span>Technician</span>
+          </div>
+          <div class="entry-meta-row" style="margin-top:4px;">
+            <span class="entry-meta" style="font-family:var(--font-mono);">08:00–09:23 · 07/20/2026</span>
+          </div>
+        </div>
+        <div class="entry-row-side"><span class="hours-badge green">1h 23m</span></div>
+      </div>
+      <div class="entry-action-toggle">
+        Actions
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="entry-action-strip open">
+        <button class="row-action-btn danger" onclick="event.stopPropagation()">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Create correction
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleRow(row){
+  row.classList.toggle('open');
+  row.querySelector('.entry-row-detail').classList.toggle('open');
+}
+function toggleActionStrip(row){
+  row.classList.toggle('open');
+  row.querySelector('.entry-action-strip').classList.toggle('open');
+}
+</script>
+</body>
+</html>

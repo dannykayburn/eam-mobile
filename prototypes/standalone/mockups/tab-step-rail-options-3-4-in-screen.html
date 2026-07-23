@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tab Rail / Step Rail — Options 3 &amp; 4, In-Screen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  TAB RAIL / STEP RAIL — OPTIONS 3 & 4, IN-SCREEN (2026-07-24). Narrowed
+  from the 6-option fill-color mockup down to the 2 the user wants to
+  see in real context: Option 3 (card fill + shadow) and Option 4 (inset
+  floating card). Screen chrome is deliberately stripped to the minimum
+  needed to judge the rail honestly — a real dark nav bar, the rail
+  itself, then one plain 2x2 Header Fields grid standing in for "the rest
+  of the record" (no scroll body, no bottom nav, no sheets). Fully
+  interactive, not a static screenshot substitute — tap any of the 4
+  rails to expand/collapse it for real, same click-toggle behavior as
+  initTabRail()/initStepRail() in eam-shared.js.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --green:#00AA14;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-nav:#1A1A1F; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+[data-theme="dark"]{
+  --bg-page:#1A1A1F; --bg-card:#26252B; --bg-nav:#111114; --bg-section:#302F33; --border:#3E4047; --border-strong:#4A4C55;
+  --gray-1:#2A2930; --gray-2:#3E4047; --gray-3:#6F7480; --gray-4:#B2B8C4; --octave-black:#1A1A1F;
+}
+[data-theme="dark"] body{color:var(--white);}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--octave-black);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:900px;width:100%;color:#fff;font-size:12px;line-height:1.6;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;}
+.legend code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:4px;font-family:var(--font-mono);font-size:11px;}
+.theme-row{display:flex;gap:8px;margin-bottom:16px;max-width:900px;width:100%;}
+.theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:5px 12px;cursor:pointer;}
+
+.groups{max-width:900px;width:100%;display:flex;flex-wrap:wrap;gap:24px;}
+.group{flex:1;min-width:340px;}
+.group-title{color:#fff;font-size:14px;font-weight:700;margin-bottom:4px;}
+.group-sub{color:rgba(255,255,255,.6);font-size:11px;margin-bottom:12px;line-height:1.5;}
+.frames{display:flex;flex-direction:column;gap:16px;}
+.frame-label{color:rgba(255,255,255,.55);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;}
+
+/* ── Phone frame — nav + rail + one grid, nothing else ── */
+.phone{width:100%;max-width:360px;border-radius:0 0 18px 18px;overflow:hidden;background:var(--bg-page);box-shadow:0 0 30px rgba(0,0,0,.3);}
+.mini-nav{height:52px;background:var(--bg-nav);display:flex;align-items:center;padding:0 14px;gap:10px;}
+.mini-avatar{width:28px;height:28px;border-radius:50%;background:var(--gray-5);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.mini-title{flex:1;color:#fff;font-size:14px;font-weight:700;text-align:center;}
+.mini-icon{width:18px;height:18px;color:rgba(255,255,255,.7);flex-shrink:0;}
+
+/* ── .tab-rail / .step-rail — real base structure from eam-shared.css ── */
+.tab-rail,.step-rail{cursor:pointer;padding:0 16px;}
+.tab-rail-collapsed,.step-rail-collapsed{height:52px;display:flex;align-items:center;gap:10px;padding:4px 0;}
+.tab-rail-name,.step-name{font-size:14px;font-weight:700;color:var(--octave-black);flex:1;}
+[data-theme="dark"] .tab-rail-name,[data-theme="dark"] .step-name{color:var(--white);}
+.tab-chevron,.step-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
+.tab-rail.expanded,.step-rail.expanded{padding-bottom:12px;}
+.step-rail-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.step-segments{display:flex;gap:4px;padding:0 0 8px;}
+.seg{flex:1;height:7px;border-radius:100px;}
+.seg-done{background:var(--green);}
+.seg-active{background:var(--octave-black);}
+[data-theme="dark"] .seg-active{background:var(--white);}
+.seg-future{background:var(--gray-2);}
+[data-theme="dark"] .seg-future{background:var(--gray-5);}
+.tab-map,.step-map{display:none;padding:6px 0 8px;}
+.tab-map.open,.step-map.open{display:block;}
+.tab-map-item,.step-map-item{display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:4px;margin:0 6px;color:var(--gray-4);}
+.tab-map-item.active,.step-map-item.active{background:var(--bg-section);color:var(--octave-black);}
+[data-theme="dark"] .tab-map-item.active,[data-theme="dark"] .step-map-item.active{color:var(--white);}
+.tab-map-label,.step-map-label{flex:1;font-size:13px;font-weight:500;color:var(--octave-black);}
+[data-theme="dark"] .tab-map-label,[data-theme="dark"] .step-map-label{color:rgba(255,255,255,.85);}
+.tab-map-item.active .tab-map-label,.step-map-label.active-label{font-weight:700;}
+.tab-map-chevron{color:var(--gray-3);flex-shrink:0;}
+.step-map-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:700;}
+.smi-done{background:var(--green);color:#fff;}
+.smi-active{background:var(--octave-black);color:var(--white);}
+[data-theme="dark"] .smi-active{background:var(--white);color:var(--octave-black);}
+.smi-locked{background:none;border:2px solid var(--gray-3);color:var(--gray-3);}
+
+/* ── OPTION 3 — card fill + shadow ── */
+.rail-card{background:var(--bg-card);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+[data-theme="dark"] .rail-card{box-shadow:0 1px 6px rgba(0,0,0,.3);}
+.rail-card .tab-map,.rail-card .step-map{background:var(--bg-card);border-top:1px solid var(--border);}
+
+/* ── OPTION 4 — inset floating card ── */
+.rail-inset{background:var(--bg-card);border-radius:12px;margin:10px 12px 0;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden;}
+[data-theme="dark"] .rail-inset{box-shadow:0 1px 6px rgba(0,0,0,.3);}
+.rail-inset .tab-map,.rail-inset .step-map{background:var(--bg-card);border-top:1px solid var(--border);}
+
+/* ── Grid fields — real .equip-attrs/.attr-item, standing in for "the
+   rest of the record," nothing more ── */
+.equip-attrs{margin:14px 12px;background:var(--bg-card);display:grid;grid-template-columns:1fr 1fr;border-radius:10px;overflow:hidden;border:1px solid var(--border);}
+.attr-item{padding:12px 14px;display:flex;flex-direction:column;gap:6px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);}
+.attr-item:nth-child(2n){border-right:none;}
+.attr-item:nth-last-child(-n+2){border-bottom:none;}
+.attr-label{font-size:13px;color:var(--gray-4);}
+.attr-text{font-size:14px;font-weight:600;color:var(--octave-black);text-align:right;}
+[data-theme="dark"] .attr-text{color:rgba(255,255,255,.9);}
+</style>
+</head>
+<body>
+<div class="theme-row">
+  <button class="theme-toggle" onclick="document.documentElement.removeAttribute('data-theme')">☀ Light</button>
+  <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme','dark')">🌙 Dark</button>
+</div>
+<div class="legend">
+  Screen chrome stripped to the minimum needed to judge the rail honestly:
+  a real dark <code>.nav</code> bar, the rail itself, then one plain
+  Header Fields grid standing in for "the rest of the record" — no scroll
+  body, no bottom nav, no sheets. <b>Tap any rail to expand/collapse it</b> —
+  this is live, not a screenshot.
+</div>
+
+<div class="groups">
+
+  <!-- OPTION 3 -->
+  <div class="group">
+    <div class="group-title">Option 3 — Card fill + shadow</div>
+    <div class="group-sub">Same white/near-black <code>bg-card</code> every other card uses, hard outline swapped for a soft drop shadow.</div>
+    <div class="frames">
+
+      <div>
+        <div class="frame-label">RV Tabs</div>
+        <div class="phone">
+          <div class="mini-nav"><div class="mini-avatar">BC</div><div class="mini-title">Equipment</div>
+            <svg class="mini-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <div class="tab-rail rail-card" id="tabRail3">
+            <div class="tab-rail-collapsed"><span class="tab-rail-name">Structure Details</span><svg class="tab-chevron" id="tabChev3" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="tab-map" id="tabMap3">
+              <div class="tab-map-item"><span class="tab-map-label">Record View</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="tab-map-item active"><span class="tab-map-label">Structure Details</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="tab-map-item"><span class="tab-map-label">Documents</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            </div>
+          </div>
+          <div class="equip-attrs">
+            <div class="attr-item"><span class="attr-label">Code</span><span class="attr-text">00067333</span></div>
+            <div class="attr-item"><span class="attr-label">Organization</span><span class="attr-text">BELMONT-WWTP</span></div>
+            <div class="attr-item"><span class="attr-label">Description</span><span class="attr-text">Centrifugal Pump</span></div>
+            <div class="attr-item"><span class="attr-label">Status</span><span class="attr-text">Operating</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="frame-label">Workflow</div>
+        <div class="phone">
+          <div class="mini-nav"><div class="mini-avatar">BC</div><div class="mini-title">Activity Checklist</div>
+            <svg class="mini-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 113.56-13.04A5 5 0 0118 11a3.5 3.5 0 01-.5 7z"/><polyline points="9,12 11,14 15,10"/></svg>
+          </div>
+          <div class="step-rail rail-card" id="stepRail3">
+            <div class="step-rail-collapsed"><span class="step-name">Activity Checklist</span><div class="step-rail-right"><svg class="step-chevron" id="stepChev3" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+            <div class="step-segments"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+            <div class="step-map" id="stepMap3">
+              <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
+              <div class="step-map-item active"><div class="step-map-icon smi-active">2</div><span class="step-map-label active-label">Activity Checklist</span></div>
+              <div class="step-map-item"><div class="step-map-icon smi-locked">3</div><span class="step-map-label">Issue Parts</span></div>
+            </div>
+          </div>
+          <div class="equip-attrs">
+            <div class="attr-item"><span class="attr-label">WO number</span><span class="attr-text">19257</span></div>
+            <div class="attr-item"><span class="attr-label">Type</span><span class="attr-text">Breakdown</span></div>
+            <div class="attr-item"><span class="attr-label">Priority</span><span class="attr-text">High</span></div>
+            <div class="attr-item"><span class="attr-label">Due date</span><span class="attr-text">07/20/2026</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- OPTION 4 -->
+  <div class="group">
+    <div class="group-title">Option 4 — Inset floating card</div>
+    <div class="group-sub">Same fill + shadow as Option 3, pulled off the screen edges — rounded corners, small margin, same language as the dataspy bar.</div>
+    <div class="frames">
+
+      <div>
+        <div class="frame-label">RV Tabs</div>
+        <div class="phone">
+          <div class="mini-nav"><div class="mini-avatar">BC</div><div class="mini-title">Equipment</div>
+            <svg class="mini-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <div class="tab-rail rail-inset" id="tabRail4">
+            <div class="tab-rail-collapsed"><span class="tab-rail-name">Structure Details</span><svg class="tab-chevron" id="tabChev4" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="tab-map" id="tabMap4">
+              <div class="tab-map-item"><span class="tab-map-label">Record View</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="tab-map-item active"><span class="tab-map-label">Structure Details</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="tab-map-item"><span class="tab-map-label">Documents</span><svg class="tab-map-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            </div>
+          </div>
+          <div class="equip-attrs">
+            <div class="attr-item"><span class="attr-label">Code</span><span class="attr-text">00067333</span></div>
+            <div class="attr-item"><span class="attr-label">Organization</span><span class="attr-text">BELMONT-WWTP</span></div>
+            <div class="attr-item"><span class="attr-label">Description</span><span class="attr-text">Centrifugal Pump</span></div>
+            <div class="attr-item"><span class="attr-label">Status</span><span class="attr-text">Operating</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="frame-label">Workflow</div>
+        <div class="phone">
+          <div class="mini-nav"><div class="mini-avatar">BC</div><div class="mini-title">Activity Checklist</div>
+            <svg class="mini-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 113.56-13.04A5 5 0 0118 11a3.5 3.5 0 01-.5 7z"/><polyline points="9,12 11,14 15,10"/></svg>
+          </div>
+          <div class="step-rail rail-inset" id="stepRail4">
+            <div class="step-rail-collapsed"><span class="step-name">Activity Checklist</span><div class="step-rail-right"><svg class="step-chevron" id="stepChev4" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div>
+            <div class="step-segments"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+            <div class="step-map" id="stepMap4">
+              <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
+              <div class="step-map-item active"><div class="step-map-icon smi-active">2</div><span class="step-map-label active-label">Activity Checklist</span></div>
+              <div class="step-map-item"><div class="step-map-icon smi-locked">3</div><span class="step-map-label">Issue Parts</span></div>
+            </div>
+          </div>
+          <div class="equip-attrs">
+            <div class="attr-item"><span class="attr-label">WO number</span><span class="attr-text">19257</span></div>
+            <div class="attr-item"><span class="attr-label">Type</span><span class="attr-text">Breakdown</span></div>
+            <div class="attr-item"><span class="attr-label">Priority</span><span class="attr-text">High</span></div>
+            <div class="attr-item"><span class="attr-label">Due date</span><span class="attr-text">07/20/2026</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Same click-toggle behavior as initTabRail()/initStepRail() in
+// eam-shared.js — generalized here since this file has 4 rail instances.
+function wireRail(railId, mapId, chevId, itemSelector) {
+  const rail = document.getElementById(railId);
+  const map = document.getElementById(mapId);
+  const chev = document.getElementById(chevId);
+  rail.addEventListener('click', (e) => {
+    if (e.target.closest(itemSelector)) return;
+    const open = map.classList.toggle('open');
+    rail.classList.toggle('expanded', open);
+    chev.style.transform = open ? 'rotate(180deg)' : '';
+  });
+}
+wireRail('tabRail3', 'tabMap3', 'tabChev3', '.tab-map-item');
+wireRail('stepRail3', 'stepMap3', 'stepChev3', '.step-map-item');
+wireRail('tabRail4', 'tabMap4', 'tabChev4', '.tab-map-item');
+wireRail('stepRail4', 'stepMap4', 'stepChev4', '.step-map-item');
+</script>
+</body>
+</html>

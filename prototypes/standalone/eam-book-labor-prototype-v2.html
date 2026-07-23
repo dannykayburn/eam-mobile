@@ -101,39 +101,16 @@
 .timer-banner-value { font-family: var(--font-mono); font-size: 18px; font-weight: 700; color: var(--octave-black); flex-shrink: 0; }
 [data-theme="dark"] .timer-banner-value { color: var(--white); }
 
-/* ── LABOR LIST (§18.3) — no shared equivalent. ─────────────────────────  */
+/* ── LABOR LIST (§18.3) — the row shape itself (.action-row and friends)
+   is now the shared component promoted to eam-shared.css 2026-07-24 (see
+   its own comment there) — Book Labor and Issue Parts are its 2 real
+   consumers. Only the list container, the badge, and the correction-
+   specific callout stay local here. ── */
 .labor-list { padding: 0 12px; display: flex; flex-direction: column; gap: 6px; margin: 14px 0 10px; }
-.labor-row { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-.labor-row.correction-row { border-color: rgba(228,75,74,0.3); background: rgba(228,75,74,0.03); }
-[data-theme="dark"] .labor-row.correction-row { background: rgba(228,75,74,0.06); }
-.labor-row-header { padding: 10px 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
-.labor-row-info { flex: 1; min-width: 0; }
-.labor-row-name { font-size: 14px; font-weight: 600; color: var(--octave-black); }
-[data-theme="dark"] .labor-row-name { color: var(--white); }
-.labor-row-code { font-family: var(--font-mono); font-size: 11px; color: var(--gray-4); margin-top: 1px; }
-.labor-row-meta { font-family: var(--font-mono); font-size: 11px; color: var(--gray-4); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .labor-hours-badge { font-family: var(--font-mono); font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 100px; white-space: nowrap; flex-shrink: 0; }
 /* .badge-green/.badge-red tint styling now lives in eam-shared.css's
    shared block (Phase 2b, 2026-07-22) — was byte-for-byte identical to
    Issue Parts' .qty-badge-issued. */
-.labor-chevron { color: var(--gray-4); flex-shrink: 0; transition: transform 0.2s; }
-
-/* ── EXPANDED DETAIL ── */
-.labor-row-detail { display: none; background: var(--bg-section); border-top: 1px solid var(--border); padding: 10px 12px 12px; }
-[data-theme="dark"] .labor-row-detail { background: rgba(255,255,255,0.03); }
-.labor-row-detail.open { display: block; }
-.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 8px; margin-bottom: 10px; font-size: 12px; }
-.detail-label { color: var(--gray-4); padding: 3px 0; }
-.detail-value { color: var(--octave-black); text-align: right; padding: 3px 0; font-size: 12px; }
-[data-theme="dark"] .detail-value { color: rgba(255,255,255,0.85); }
-.detail-value.mono  { font-family: var(--font-mono); }
-.detail-value.green { color: var(--green); font-weight: 600; font-family: var(--font-mono); }
-.detail-value.red   { color: var(--red);   font-weight: 600; font-family: var(--font-mono); }
-.detail-actions { display: flex; gap: 6px; padding-top: 8px; border-top: 1px solid var(--border); }
-/* Only one action — Correction. No Edit button (§18.3). Was a local
-   .detail-btn — converged onto the shared .row-action-btn 2026-07-21
-   (UI inventory pass), which unifies this with Issue Parts'/WO Closing's
-   equivalent per-row tertiary action buttons at one size (34px/13px). */
 .correction-note { display: flex; align-items: center; gap: 6px; background: rgba(228,75,74,0.06); border: 1px solid rgba(228,75,74,0.15); border-radius: 6px; padding: 6px 10px; margin-bottom: 8px; font-size: 11px; color: var(--red); font-family: var(--font-mono); }
 
 /* ── ADD BUTTON — promoted to the shared .btn-contained, full-width to
@@ -807,14 +784,8 @@ function navBack() {
   location.href = 'eam-wo-prototype-issue-parts-v1.html';
 }
 
-// ── LABOR ROW EXPAND ──────────────────────────────────────────────────────
-function toggleRow(idx) {
-  const d = document.getElementById('detail'+idx);
-  const c = document.getElementById('chev'+idx);
-  const open = !d.classList.contains('open');
-  d.classList.toggle('open', open);
-  c.style.transform = open ? 'rotate(180deg)' : '';
-}
+// Labor row expand/collapse now uses the shared toggleActionRow()
+// (eam-shared.js) — see addLaborRow() below.
 
 // ── SHEETS ──────────────────────────────────────────────────────────────
 function openSheet(id) {
@@ -1361,41 +1332,47 @@ const tradeNames = { TECH:'Technician', 'TECH-II':'Technician II', MECH:'Mechani
 // corrections) — carried on `data-minutes`/`data-type-code` so
 // updateSummary() can bucket Regular/OT hours without re-parsing text.
 function addLaborRow(name, date, start, end, mins, typeCode, typeDesc, dept, trade, isCorr) {
-  const idx = document.querySelectorAll('.labor-row').length;
+  const idx = document.querySelectorAll('#laborList .action-row').length;
   const fullName = empNames[name] || name;
   const tradeFull = tradeNames[trade] || trade;
   const deptFull  = deptNames[dept]  || dept;
   const hours = minsToHM(mins);
-  const metaStr  = `${date} · ${tradeFull}`;
   const corrNote = isCorr ? `<div class="correction-note"><svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#E24B4A" stroke-width="2" stroke-linecap="round"/></svg>Correction — reverses original booking</div>` : '';
   const hoursClass = isCorr ? 'red' : 'green';
   const div = document.createElement('div');
-  div.className = 'labor-row' + (isCorr ? ' correction-row' : '');
+  div.className = 'action-row' + (isCorr ? ' correction' : '');
   div.id = 'laborRow'+idx;
   div.setAttribute('data-trade', trade);
   div.setAttribute('data-minutes', mins);
   div.setAttribute('data-type-code', typeCode);
+  // Data order locked (§18.3/§17): description on top, code (mono) below,
+  // supporting fields (Date, Trade) as labeled mono chips, always
+  // visible — Type of hours/Department/Start/End/Hours stay in the
+  // read-only detail behind the tap, action button at the bottom of it.
   div.innerHTML = `
-    <div class="labor-row-header" onclick="toggleRow(${idx})">
-      <div class="labor-row-info">
-        <div class="labor-row-name">${fullName}</div>
-        <div class="labor-row-code">${name}</div>
-        <div class="labor-row-meta">${metaStr}</div>
+    <div class="action-row-header" onclick="toggleActionRow(this)">
+      <div class="action-row-main">
+        <div class="action-row-title">${fullName}</div>
+        <div class="action-row-code">${name}</div>
+        <div class="action-row-meta-row">
+          <span class="action-row-meta"><span class="action-row-meta-label">Date&nbsp;</span>${date}</span>
+          <span class="action-row-meta"><span class="action-row-meta-label">Trade&nbsp;</span>${tradeFull}</span>
+        </div>
       </div>
       <span class="labor-hours-badge badge-${isCorr?'red':'green'}">${hours}</span>
-      <svg class="labor-chevron" id="chev${idx}" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg class="action-row-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-    <div class="labor-row-detail" id="detail${idx}">
+    <div class="action-row-detail">
       ${corrNote}
-      <div class="detail-grid">
-        <div class="detail-label">Type of hours</div><div class="detail-value">${typeDesc}</div>
-        <div class="detail-label">Department</div><div class="detail-value">${deptFull}</div>
-        <div class="detail-label">Trade</div><div class="detail-value">${tradeFull}</div>
-        <div class="detail-label">Start time</div><div class="detail-value mono">${start}</div>
-        <div class="detail-label">End time</div><div class="detail-value mono">${end}</div>
-        <div class="detail-label">Hours</div><div class="detail-value ${hoursClass}">${hours}</div>
+      <div class="action-detail-grid">
+        <div class="action-detail-label">Type of hours</div><div class="action-detail-value">${typeDesc}</div>
+        <div class="action-detail-label">Department</div><div class="action-detail-value">${deptFull}</div>
+        <div class="action-detail-label">Trade</div><div class="action-detail-value">${tradeFull}</div>
+        <div class="action-detail-label">Start time</div><div class="action-detail-value mono">${start}</div>
+        <div class="action-detail-label">End time</div><div class="action-detail-value mono">${end}</div>
+        <div class="action-detail-label">Hours</div><div class="action-detail-value ${hoursClass}">${hours}</div>
       </div>
-      ${!isCorr ? `<div class="detail-actions">
+      ${!isCorr ? `<div class="action-row-actions">
         <button class="row-action-btn danger" onclick="openCorrectionSheet(${idx})">
           <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           Create correction
@@ -1424,7 +1401,7 @@ function renderSeedLabor() {
 const WO_EST_HOURS_MINS = 150; // 2h 30m
 
 function updateSummary() {
-  const allRows = document.querySelectorAll('.labor-row');
+  const allRows = document.querySelectorAll('#laborList .action-row');
   // Total/Regular/OT are all real sums over each row's signed minutes
   // (§18.7, 2026-07-21 — Total was previously a hardcoded 83-min-per-row
   // placeholder that ignored what was actually booked). Corrections carry

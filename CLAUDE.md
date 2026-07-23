@@ -70,12 +70,18 @@ become a re-investigation every time it comes up.
 ## Current state
 - **Canonical standard (locked, build every new/rebuilt screen against
   these two files, don't re-derive rules per screen):**
-  `sample-screen-standard-model-prototype.html` (every field type + the
-  rule captioned under each — §5.2) and `eam-equipment-record-view-prototype-v1.html`
-  (the standard applied to a full record view, incl. the canonical header
-  pattern — §5.3). Both load `prototypes/standalone/shared/eam-shared.css`
+  `screen-layout-field-behavior-prototype-v1.html` (every field type, in
+  both the Grid and List containers — §5.2; the rule + rationale for
+  each lives in the design doc now, not as an inline caption in this
+  file) and `eam-equipment-record-view-prototype-v1.html` (the standard
+  applied to a full record view, incl. the canonical header pattern —
+  §5.3). Both load `prototypes/standalone/shared/eam-shared.css`
   and `eam-shared.js` (see "Shared-file architecture" below) — copy their
   markup/config conventions, not their pre-2026-07-16 self-contained form.
+  **`sample-screen-standard-model-prototype.html` is retired** (2026-07-24,
+  see the dated bullet below and design-decisions-v3-1.md §5.2/§21) —
+  don't copy patterns from it, and don't re-add it as a link target;
+  it's archived in `old versions/` for history only.
 - **Rebuild in progress, not patch-in-place.** The 5 WO workflow steps
   predate the canonical standard above and were getting retrofitted via
   repeated conformance sweeps — that approach is retired. Screens are now
@@ -1953,6 +1959,68 @@ become a re-investigation every time it comes up.
   **Not yet live-verified in a browser this session** — same admin-
   disabled constraint; re-check grid order, required left-bars, collapsed
   default, and pill contrast in both themes next open.
+- **Canonical field-type reference coalesced onto one file, 2026-07-24
+  (user direction) — `sample-screen-standard-model-prototype.html`
+  retired.** The two files had converged onto the same job (§5.2 field
+  types) with one real difference: the retired file explained each
+  field's rule as an inline caption in the HTML, `screen-layout-field-
+  behavior-prototype-v1.html` (built 2026-07-23 as a Grid-vs-List
+  consolidation exercise, §20) is a superset — every type shown in both
+  a Grid and a List container, not just one. Coalesced onto the latter:
+  every per-field "why" (rationale, decision history) moved into design-
+  decisions-v3-1.md §5.2 as real table rows, not an inline caption — the
+  standalone now carries only field markup/config plus a one-line
+  pointer comment to §5.2, so a rule can't drift out of sync with what's
+  actually locked. The retired file's non-field-type scaffolding (full
+  header pin/ellipsis-menu, a List/Detail header variant, a 3-tab
+  dataspy-driven list demo, a full Insert Mode demo, real Comments/
+  Documents sections) was dropped, not carried over — deliberate, not an
+  oversight: each already has its own canonical home in a real screen
+  (Equipment Record View §5.3, WO List §8.3, Home/WO List/Equipment
+  List §9.6, Equipment RV §7.2), so a second, thinner copy in the field-
+  type file was pure duplication risk. Also swept while in there:
+  Equipment RV's Department/Criticality/Class/Manufacturer/Category
+  fields (`fieldRowAttr()`) converted from the old description-only
+  rule to the decided Code + Description stack — the flagged "real
+  screens not yet swept" gap from the 2026-07-24 LOV reversal is now
+  closed. See design-decisions-v3-1.md §5.2 (new consolidated rows) and
+  §21 (the retired row) for the full write-up. Old file archived at
+  `prototypes/standalone/old versions/sample-screen-standard-model-
+  prototype.html` for history only — don't copy patterns from it.
+- **Action Row — Part Card + Labor Row merged into one real shared
+  component, 2026-07-24 (user direction).** Started as a naming-only fix
+  (both were tracked as separate implementations of an unnamed category)
+  — revisited same session, user's own read on it ("detailed row with
+  multiple fields and a single action button unique to that row, real
+  difference is the button is collapsible") turned it into an actual UI
+  consolidation. Explored first via a 3-option comparison mockup
+  (`prototypes/standalone/mockups/entry-row-part-labor-consolidation-
+  options.html`) before landing on the shape now promoted to
+  `eam-shared.css`/`.js` as `.action-row` (+ `toggleActionRow()`), with
+  Issue Parts and Book Labor as its 2 real consumers — both files'
+  former local `.part-card*`/`.labor-row*`/`.detail-*` CSS and Book
+  Labor's screen-local `toggleRow(idx)` are gone, replaced by the shared
+  component. Locked shape: description on top, code (mono) below,
+  supporting fields as labeled mono chips always visible (Issue Parts'
+  UOM/Store/Bin unchanged; Book Labor's Date/Trade converted from an
+  unlabeled string to match), tap reveals a read-only detail list with
+  the action button(s) at the bottom. Badges stay deliberately
+  unconverged — Issue Parts' qty-badge (outline, "planned") and Book
+  Labor's hours-badge (filled, "regular vs. correction") mean different
+  things. **Locked interaction paradigm, the reason for the name:**
+  tapping an Action Row never navigates to another screen or opens
+  Update Mode — it transacts in place via its own button(s), a
+  deliberate contrast with the standard List/Detail row-tap-to-Record-
+  View rule (§8); Action Row only appears on a "function" tab (Issue
+  Parts, Book Labor), every other list/detail screen uses the standard
+  search-list pattern (§8.3) instead. Activity Row (WO Record View's
+  Activity Selector) stays a deliberate, separate exception — not
+  merged, different shape (radio-select, no action button), explicit
+  user call. See design-decisions-v3-1.md §17.4/§18.3 and
+  `docs/component-library.md`'s Action Row entry for the full write-up.
+  **Not yet live-verified in a browser this session** — preview tools
+  are admin-disabled; re-check both screens' expand/collapse, the issue/
+  return and correction flows, and both themes next open.
 - `prototypes/standalone/shared/eam-shared.css` and `eam-shared.js` hold
   every generic component's CSS/JS (headers, sheets, LOV/date/text-editor
   pickers, Comments/Documents, required-field badges, etc.) — loaded via

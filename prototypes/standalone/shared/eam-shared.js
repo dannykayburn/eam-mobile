@@ -173,6 +173,7 @@ function renderStepRail(workflow, activeStep) {
     return `<div class="step-map-item"><div class="step-map-icon smi-locked">${i + 1}</div><span class="step-map-label">${label}</span></div>`;
   }).join('') + STEP_MAP_REFERENCE_GROUP_HTML;
   if (seg) {
+    seg.classList.remove('flat');
     seg.innerHTML = steps.map((s, i) => `<div class="seg ${i < activeIdx ? 'seg-done' : i === activeIdx ? 'seg-active' : 'seg-future'}"></div>`).join('');
   }
 }
@@ -204,7 +205,10 @@ function renderFlatStepRail(activeStep) {
   const nameEl = rail.querySelector('.step-name');
   if (nameEl) nameEl.textContent = WO_STEP_LABELS[activeStep] || '';
   rail.classList.remove('rail-not-free-form'); // §11 fallback is always Free Form
-  if (seg) seg.innerHTML = ''; // no numbered progress bar in flat mode
+  // No numbered progress bar in flat mode — a plain dashed divider instead
+  // (§14.2, 2026-07-23) so the row reads as "deliberately unstructured,"
+  // not "missing." Zero color, chosen from this session's mockup Option 3.
+  if (seg) { seg.classList.add('flat'); seg.innerHTML = '<div class="seg-flat-dash"></div>'; }
   const timerPanel = map.querySelector('.step-timer-panel');
   map.innerHTML = (timerPanel ? timerPanel.outerHTML : '') + WO_FLAT_STEPS.map(s => `
     <div class="step-map-item${s === activeStep ? ' active' : ''}" onclick="${s === activeStep ? 'collapseCurrentRail()' : `goToWoStep('${s}')`}">
@@ -2752,6 +2756,19 @@ function rvToggle(id) {
   const chev = document.getElementById('rv-chev-' + id);
   const open = el.classList.toggle('open');
   chev.classList.toggle('open', open);
+}
+// Action Row (§17/§18, promoted 2026-07-24 — see eam-shared.css's own
+// comment on .action-row for the full component write-up). Generic,
+// DOM-relative toggle — no index-based ids needed (replaces Book Labor's
+// old screen-local toggleRow(idx)/getElementById('detail'+idx) pattern),
+// so both real consumers (Issue Parts, Book Labor) share this one
+// function unmodified.
+function toggleActionRow(headerEl) {
+  const row = headerEl.closest('.action-row');
+  const detail = row.querySelector('.action-row-detail');
+  const chev = row.querySelector('.action-row-chevron');
+  const open = detail.classList.toggle('open');
+  if (chev) chev.style.transform = open ? 'rotate(180deg)' : '';
 }
 
 /* ══════════════════════════════════════════════════════════════════════

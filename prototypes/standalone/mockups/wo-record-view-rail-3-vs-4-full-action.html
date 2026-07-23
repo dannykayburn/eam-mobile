@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>WO Record View — Rail Option 3 vs. 4, Full Action</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  WO RECORD VIEW — RAIL OPTION 3 VS. 4, FULL ACTION (2026-07-24). One more
+  narrowing pass before a pick: a near-full WO Record View clone (nav bar,
+  rec-header, step rail, Equipment/Type/Priority grid, a real collapsible
+  "Work order details" section, 2 Activities rows, collapsed Comments/
+  Documents, bottom bar) — real markup/CSS shapes throughout, but every
+  field VALUE is dead/dummy placeholder text, not real WO 19257 data, so
+  attention stays on the rail rather than on data accuracy. Option 3 on
+  the left, Option 4 on the right, side by side at real mobile width.
+  Interactive: rail expand/collapse, section collapse/expand, and
+  activity selection all work for real, same as the live screen.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --green:#00AA14; --red:#D91E30;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-nav:#1A1A1F; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+[data-theme="dark"]{
+  --bg-page:#1A1A1F; --bg-card:#26252B; --bg-nav:#111114; --bg-section:#302F33; --border:#3E4047; --border-strong:#4A4C55;
+  --gray-1:#2A2930; --gray-2:#3E4047; --gray-3:#6F7480; --gray-4:#B2B8C4; --octave-black:#1A1A1F;
+}
+[data-theme="dark"] body{color:var(--white);}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--octave-black);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:820px;width:100%;color:#fff;font-size:12px;line-height:1.6;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;}
+.theme-row{display:flex;gap:8px;margin-bottom:16px;max-width:820px;width:100%;}
+.theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:5px 12px;cursor:pointer;}
+.cols{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;}
+.col-label{color:#fff;font-size:13px;font-weight:700;text-align:center;margin-bottom:8px;}
+
+/* ── Phone frame ── */
+.phone{width:375px;border-radius:22px;overflow:hidden;background:var(--bg-page);box-shadow:0 0 40px rgba(0,0,0,.35);display:flex;flex-direction:column;}
+
+/* ── Nav (dark) ── */
+.nav{height:52px;background:var(--bg-nav);display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0;}
+.nav-back{width:32px;height:32px;border-radius:6px;background:none;border:none;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.nav-title{flex:1;text-align:center;color:#fff;font-size:14px;font-weight:700;}
+.nav-sync{width:16px;height:16px;color:rgba(255,255,255,.5);flex-shrink:0;}
+
+/* ── rec-header (dark) — real classes ── */
+.rec-header{background:var(--bg-nav);flex-shrink:0;}
+.rec-id-row{display:flex;align-items:flex-start;gap:10px;padding:12px 16px 8px;}
+.rec-id-text{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1;}
+.rec-num{font-family:var(--font-mono);font-size:22px;font-weight:700;letter-spacing:.3px;color:#fff;line-height:1.1;}
+.rec-desc{font-size:15px;font-weight:600;color:rgba(255,255,255,.65);line-height:1.3;}
+.rec-header-actions{display:flex;align-items:center;gap:2px;flex-shrink:0;color:rgba(255,255,255,.6);}
+.rec-header-actions svg{width:20px;height:20px;}
+.rec-status-row-inner{padding:0 16px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.rec-status-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:8px;font-size:15px;font-weight:700;color:#fff;border:none;font-family:var(--font-sans);background:var(--green);}
+.org-pill{position:relative;display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(255,255,255,.85);border-radius:999px;padding:8px 12px;font-family:var(--font-sans);color:#fff;opacity:.75;cursor:default;}
+.org-pill .field-value{color:rgba(255,255,255,.92);font-size:14px;font-weight:500;}
+
+/* ── Rail — real base shapes ── */
+.tab-rail,.step-rail{cursor:pointer;padding:0 16px;}
+.tab-rail-collapsed,.step-rail-collapsed{height:52px;display:flex;align-items:center;gap:10px;padding:4px 0;}
+.step-name{font-size:13px;font-weight:600;color:var(--octave-black);flex:1;}
+[data-theme="dark"] .step-name{color:var(--white);}
+.step-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
+.step-rail.expanded{padding-bottom:12px;}
+.step-rail-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.step-segments{display:flex;gap:4px;padding:0 0 8px;}
+.seg{flex:1;height:7px;border-radius:100px;}
+.seg-active{background:var(--octave-black);}
+[data-theme="dark"] .seg-active{background:var(--white);}
+.seg-future{background:var(--gray-2);}
+[data-theme="dark"] .seg-future{background:var(--gray-5);}
+.step-map{display:none;padding:6px 0 8px;}
+.step-map.open{display:block;}
+.step-map-item{display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:4px;margin:0 6px;color:var(--gray-4);}
+.step-map-item.active{background:var(--bg-section);color:var(--octave-black);}
+[data-theme="dark"] .step-map-item.active{color:var(--white);}
+.step-map-label{flex:1;font-size:13px;font-weight:500;color:var(--octave-black);}
+[data-theme="dark"] .step-map-label{color:rgba(255,255,255,.85);}
+.step-map-label.active-label{font-weight:700;}
+.step-map-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:700;}
+.smi-active{background:var(--octave-black);color:var(--white);}
+[data-theme="dark"] .smi-active{background:var(--white);color:var(--octave-black);}
+.smi-locked{background:none;border:2px solid var(--gray-3);color:var(--gray-3);}
+
+/* Option 3 — card fill + shadow */
+.rail-card{background:var(--bg-card);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+[data-theme="dark"] .rail-card{box-shadow:0 1px 6px rgba(0,0,0,.3);}
+.rail-card .step-map{background:var(--bg-card);border-top:1px solid var(--border);}
+
+/* Option 4 — inset floating card */
+.rail-inset{background:var(--bg-card);border-radius:12px;margin:10px 12px 0;box-shadow:0 1px 3px rgba(0,0,0,.08);overflow:hidden;}
+[data-theme="dark"] .rail-inset{box-shadow:0 1px 6px rgba(0,0,0,.3);}
+.rail-inset .step-map{background:var(--bg-card);border-top:1px solid var(--border);}
+
+/* ── Content body (scrollable) ── */
+.content{flex:1;overflow-y:auto;max-height:560px;padding-bottom:8px;}
+.content::-webkit-scrollbar{display:none;}
+
+/* ── Equipment/Type/Priority grid (section-card + equip-attrs) ── */
+.section-card{margin:12px 12px 0;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.equip-attrs{margin:0;background:var(--bg-card);display:grid;grid-template-columns:1fr 1fr;}
+.attr-item{position:relative;padding:12px 14px;display:flex;flex-direction:column;gap:6px;border-right:1px solid var(--border);border-top:1px solid var(--border);cursor:pointer;}
+.attr-item:first-child{border-top:none;}
+.attr-item.full-width{grid-column:1/-1;}
+.attr-item.required::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
+.attr-label{font-size:13px;color:var(--gray-4);}
+.attr-value{display:flex;align-items:center;gap:8px;}
+.attr-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;flex-shrink:0;border:1.5px solid var(--border-strong);color:var(--octave-black);}
+[data-theme="dark"] .attr-badge{color:rgba(255,255,255,.9);}
+.attr-text{font-size:14px;font-weight:600;color:var(--octave-black);}
+[data-theme="dark"] .attr-text{color:rgba(255,255,255,.9);}
+
+/* ── Work order details (fg-section, collapsible) ── */
+.fg-section{margin:10px 12px 0;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.fg-toggle-row{display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;}
+.fg-toggle-title{font-size:14px;font-weight:600;color:var(--octave-black);flex:1;}
+[data-theme="dark"] .fg-toggle-title{color:var(--white);}
+.fg-chev{color:var(--gray-4);transition:transform .2s;}
+.fg-chev.open{transform:rotate(180deg);}
+.fg-collapse{display:none;border-top:1px solid var(--border);}
+.fg-collapse.open{display:block;}
+.form-field{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);position:relative;min-height:48px;cursor:pointer;}
+.form-field:last-child{border-bottom:none;}
+.form-field.required::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
+.field-label{font-size:13px;color:var(--gray-4);width:118px;flex-shrink:0;}
+.field-value{flex:1;font-size:14px;font-weight:500;color:var(--octave-black);text-align:right;}
+[data-theme="dark"] .field-value{color:rgba(255,255,255,.9);}
+.field-chevron{margin-left:6px;color:var(--gray-3);flex-shrink:0;}
+
+/* ── Activities (rv-section) ── */
+.rv-section{margin:10px 12px 0;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.rv-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;}
+.rv-toggle-left{display:flex;align-items:center;gap:9px;}
+.rv-toggle-left svg{color:var(--gray-4);flex-shrink:0;}
+.rv-toggle-title{font-size:14px;font-weight:600;color:var(--octave-black);}
+[data-theme="dark"] .rv-toggle-title{color:var(--white);}
+.rv-toggle-right{display:flex;align-items:center;gap:8px;}
+.rv-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:100px;font-family:var(--font-mono);background:none;color:var(--gray-4);border:1.5px solid var(--border-strong);}
+.rv-chev{color:var(--gray-4);transition:transform .2s;}
+.rv-chev.open{transform:rotate(180deg);}
+.rv-collapse{display:none;border-top:1px solid var(--border);}
+.rv-collapse.open{display:block;}
+.act-item{display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--border);cursor:pointer;position:relative;}
+.act-item:last-child{border-bottom:none;}
+.act-item.selected{background:var(--bg-section);}
+.act-item.selected::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--octave-black);}
+[data-theme="dark"] .act-item.selected::before{background:var(--white);}
+.act-radio{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border-strong);background:var(--bg-section);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.act-item.selected .act-radio{border-color:var(--octave-black);background:var(--octave-black);}
+[data-theme="dark"] .act-item.selected .act-radio{border-color:var(--white);background:var(--white);}
+.act-radio svg{display:none;color:#fff;}
+[data-theme="dark"] .act-item.selected .act-radio svg{color:var(--octave-black);}
+.act-item.selected .act-radio svg{display:block;}
+.act-num-big{font-size:22px;font-weight:700;font-family:var(--font-mono);color:var(--octave-black);flex-shrink:0;width:32px;text-align:center;}
+[data-theme="dark"] .act-num-big{color:rgba(255,255,255,.9);}
+.act-info{flex:1;min-width:0;}
+.meta-grid-a{display:flex;flex-wrap:wrap;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.meta-cell-a{flex:1 1 50%;padding:7px 10px;border-left:1px solid var(--border);border-top:1px solid var(--border);}
+.meta-cell-a:nth-child(odd){border-left:none;}
+.meta-cell-a:nth-child(-n+2){border-top:none;}
+.meta-cell-label{font-size:10px;color:var(--gray-4);display:block;margin-bottom:3px;}
+.trade-code{font-size:10px;color:var(--gray-4);font-family:var(--font-mono);display:block;}
+.trade-desc{font-size:12px;font-weight:600;color:var(--octave-black);}
+[data-theme="dark"] .trade-desc{color:rgba(255,255,255,.9);}
+.date-val{font-size:12px;font-weight:600;color:var(--octave-black);font-family:var(--font-mono);}
+[data-theme="dark"] .date-val{color:rgba(255,255,255,.9);}
+
+/* ── Bottom bar ── */
+.bottom-bar{height:74px;background:var(--bg-card);border-top:1px solid var(--border);padding:0 16px;display:flex;align-items:center;flex-shrink:0;}
+[data-theme="dark"] .bottom-bar{background:var(--octave-black);}
+.bar-pill{flex:1;height:48px;border-radius:100px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;font-weight:700;font-family:var(--font-sans);border:none;background:var(--green);color:#fff;}
+</style>
+</head>
+<body>
+<div class="theme-row">
+  <button class="theme-toggle" onclick="document.documentElement.removeAttribute('data-theme')">☀ Light</button>
+  <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme','dark')">🌙 Dark</button>
+</div>
+<div class="legend">
+  Near-full WO Record View clone, real markup/CSS shapes throughout — but
+  every field <b>value</b> is dead/dummy placeholder text, not real WO
+  19257 data. Rail expand/collapse, section collapse/expand, and activity
+  selection are all live. Scroll each phone's body independently.
+</div>
+
+<div class="cols">
+
+  <!-- OPTION 3 -->
+  <div>
+    <div class="col-label">Option 3 — Card fill + shadow</div>
+    <div class="phone">
+      <div class="nav">
+        <button class="nav-back"><svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-title">Work Orders</div>
+        <svg class="nav-sync" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17.5 19H9a7 7 0 113.56-13.04A5 5 0 0118 11a3.5 3.5 0 01-.5 7z"/></svg>
+      </div>
+      <div class="rec-header">
+        <div class="rec-id-row">
+          <div class="rec-id-text">
+            <span class="rec-num">88213</span>
+            <span class="rec-desc">Sample work order description text</span>
+          </div>
+          <div class="rec-header-actions">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+          </div>
+        </div>
+        <div class="rec-status-row-inner">
+          <button class="rec-status-btn">Released <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button class="org-pill"><span class="field-value">SAMPLE ORG</span><svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+      </div>
+
+      <div class="step-rail rail-card" id="stepRail3">
+        <div class="step-rail-collapsed">
+          <div class="step-name">WO Record View</div>
+          <div class="step-rail-right"><svg class="step-chevron" id="stepChev3" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <div class="step-segments"><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+        <div class="step-map" id="stepMap3">
+          <div class="step-map-item active"><div class="step-map-icon smi-active">1</div><span class="step-map-label active-label">WO Record View</span></div>
+          <div class="step-map-item"><div class="step-map-icon smi-locked">2</div><span class="step-map-label">Activity Checklist</span></div>
+          <div class="step-map-item"><div class="step-map-icon smi-locked">3</div><span class="step-map-label">Issue Parts</span></div>
+          <div class="step-map-item"><div class="step-map-icon smi-locked">4</div><span class="step-map-label">Book Labor</span></div>
+          <div class="step-map-item"><div class="step-map-icon smi-locked">5</div><span class="step-map-label">WO Closing</span></div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="section-card">
+          <div class="equip-attrs">
+            <div class="attr-item full-width required">
+              <span class="attr-label">Equipment</span>
+              <div class="attr-value"><span class="attr-text">Sample Equipment Unit</span></div>
+            </div>
+            <div class="attr-item required"><span class="attr-label">Type</span><div class="attr-value"><span class="attr-badge">B</span><span class="attr-text">Breakdown</span></div></div>
+            <div class="attr-item"><span class="attr-label">Priority</span><div class="attr-value"><span class="attr-badge">H</span><span class="attr-text">High</span></div></div>
+          </div>
+        </div>
+
+        <div class="fg-section">
+          <div class="fg-toggle-row" onclick="toggleFg(this)">
+            <span class="fg-toggle-title">Work order details</span>
+            <svg class="fg-chev open" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="fg-collapse open">
+            <div class="form-field required"><span class="field-label">Department</span><span class="field-value">Facilities</span><span class="field-chevron">›</span></div>
+            <div class="form-field"><span class="field-label">Assigned To</span><span class="field-value">J. Sample</span><span class="field-chevron">›</span></div>
+            <div class="form-field"><span class="field-label">Reported By</span><span class="field-value">M. Placeholder</span><span class="field-chevron">›</span></div>
+            <div class="form-field"><span class="field-label">Date Reported</span><span class="field-value">01/01/2026</span><span class="field-chevron">›</span></div>
+            <div class="form-field required"><span class="field-label">Problem Code</span><span class="field-value">GEN-001</span><span class="field-chevron">›</span></div>
+          </div>
+        </div>
+
+        <div class="rv-section">
+          <div class="rv-toggle-row" onclick="rvToggle(this)">
+            <div class="rv-toggle-left"><span class="rv-toggle-title">Activities</span></div>
+            <div class="rv-toggle-right"><svg class="rv-chev open" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          </div>
+          <div class="rv-collapse open">
+            <div class="act-item selected" onclick="selectAct(this)">
+              <div class="act-radio"><svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="act-num-big">10</div>
+              <div class="act-info"><div class="meta-grid-a">
+                <div class="meta-cell-a"><span class="meta-cell-label">Trade</span><span class="trade-code">MECH</span><span class="trade-desc">Mechanical</span></div>
+                <div class="meta-cell-a"><span class="meta-cell-label">Start Date</span><span class="date-val">01/01/2026</span></div>
+              </div></div>
+            </div>
+            <div class="act-item" onclick="selectAct(this)">
+              <div class="act-radio"><svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="act-num-big">20</div>
+              <div class="act-info"><div class="meta-grid-a">
+                <div class="meta-cell-a"><span class="meta-cell-label">Trade</span><span class="trade-code">ELEC</span><span class="trade-desc">Electrical</span></div>
+                <div class="meta-cell-a"><span class="meta-cell-label">Start Date</span><span class="date-val">01/02/2026</span></div>
+              </div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rv-section">
+          <div class="rv-toggle-row" onclick="rvToggle(this)">
+            <div class="rv-toggle-left">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+              <span class="rv-toggle-title">Comments</span>
+            </div>
+            <div class="rv-toggle-right"><span class="rv-badge">2</span><svg class="rv-chev" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          </div>
+          <div class="rv-collapse"></div>
+        </div>
+
+        <div class="rv-section">
+          <div class="rv-toggle-row" onclick="rvToggle(this)">
+            <div class="rv-toggle-left">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+              <span class="rv-toggle-title">Documents</span>
+            </div>
+            <div class="rv-toggle-right"><span class="rv-badge">1</span><svg class="rv-chev" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          </div>
+          <div class="rv-collapse"></div>
+        </div>
+
+        <div style="height:16px;"></div>
+      </div>
+
+      <div class="bottom-bar"><button class="bar-pill">Start Work</button></div>
+    </div>
+  </div>
+
+  <!-- OPTION 4 -->
+  <div>
+    <div class="col-label">Option 4 — Inset floating card</div>
+    <div class="phone">
+      <div class="nav">
+        <button class="nav-back"><svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="nav-title">Work Orders</div>
+        <svg class="nav-sync" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17.5 19H9a7 7 0 113.56-13.04A5 5 0 0118 11a3.5 3.5 0 01-.5 7z"/></svg>
+      </div>
+      <div class="rec-header">
+        <div class="rec-id-row">
+          <div class="rec-id-text">
+            <span class="rec-num">88213</span>
+            <span class="rec-desc">Sample work order description text</span>
+          </div>
+          <div class="rec-header-actions">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+          </div>
+        </div>
+        <div class="rec-status-row-inner">
+          <button class="rec-status-btn">Released <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button class="org-pill"><span class="field-value">SAMPLE ORG</span><svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+      </div>
+
+      <div class="step-rail rail-inset" id="stepRail4">
+        <div class="step-rail-collapsed">
+          <div class="step-name">WO Record View</div>
+          <div class="step-rail-right"><svg class="step-chevron" id="stepChev4" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <div class="step-segments"><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+        <div class="step-map" id="stepMap4">
+          <div class="step-map-item active"><div class="step-map-icon smi-active">1</div><span class="step-map-label active-label">WO Record View</span></div>
+          <div class="step-map-item"><div class="step-map-icon smi-locked">2</div><span class="step-map-label">Activity Checklist</span></div>
+          <div class="step-map-item"><div class="step-map-icon smi-locked">3</div><span class="step-map-label">Issue Parts</span></div>
+          <div class="step-map-item"><div class="step-map-icon smi-locked">4</div><span class="step-map-label">Book Labor</span></div>
+          <div class="step-map-item"><div class="step-map-icon smi-locked">5</div><span class="step-map-label">WO Closing</span></div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="section-card">
+          <div class="equip-attrs">
+            <div class="attr-item full-width required">
+              <span class="attr-label">Equipment</span>
+              <div class="attr-value"><span class="attr-text">Sample Equipment Unit</span></div>
+            </div>
+            <div class="attr-item required"><span class="attr-label">Type</span><div class="attr-value"><span class="attr-badge">B</span><span class="attr-text">Breakdown</span></div></div>
+            <div class="attr-item"><span class="attr-label">Priority</span><div class="attr-value"><span class="attr-badge">H</span><span class="attr-text">High</span></div></div>
+          </div>
+        </div>
+
+        <div class="fg-section">
+          <div class="fg-toggle-row" onclick="toggleFg(this)">
+            <span class="fg-toggle-title">Work order details</span>
+            <svg class="fg-chev open" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="fg-collapse open">
+            <div class="form-field required"><span class="field-label">Department</span><span class="field-value">Facilities</span><span class="field-chevron">›</span></div>
+            <div class="form-field"><span class="field-label">Assigned To</span><span class="field-value">J. Sample</span><span class="field-chevron">›</span></div>
+            <div class="form-field"><span class="field-label">Reported By</span><span class="field-value">M. Placeholder</span><span class="field-chevron">›</span></div>
+            <div class="form-field"><span class="field-label">Date Reported</span><span class="field-value">01/01/2026</span><span class="field-chevron">›</span></div>
+            <div class="form-field required"><span class="field-label">Problem Code</span><span class="field-value">GEN-001</span><span class="field-chevron">›</span></div>
+          </div>
+        </div>
+
+        <div class="rv-section">
+          <div class="rv-toggle-row" onclick="rvToggle(this)">
+            <div class="rv-toggle-left"><span class="rv-toggle-title">Activities</span></div>
+            <div class="rv-toggle-right"><svg class="rv-chev open" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          </div>
+          <div class="rv-collapse open">
+            <div class="act-item selected" onclick="selectAct(this)">
+              <div class="act-radio"><svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="act-num-big">10</div>
+              <div class="act-info"><div class="meta-grid-a">
+                <div class="meta-cell-a"><span class="meta-cell-label">Trade</span><span class="trade-code">MECH</span><span class="trade-desc">Mechanical</span></div>
+                <div class="meta-cell-a"><span class="meta-cell-label">Start Date</span><span class="date-val">01/01/2026</span></div>
+              </div></div>
+            </div>
+            <div class="act-item" onclick="selectAct(this)">
+              <div class="act-radio"><svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="act-num-big">20</div>
+              <div class="act-info"><div class="meta-grid-a">
+                <div class="meta-cell-a"><span class="meta-cell-label">Trade</span><span class="trade-code">ELEC</span><span class="trade-desc">Electrical</span></div>
+                <div class="meta-cell-a"><span class="meta-cell-label">Start Date</span><span class="date-val">01/02/2026</span></div>
+              </div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rv-section">
+          <div class="rv-toggle-row" onclick="rvToggle(this)">
+            <div class="rv-toggle-left">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+              <span class="rv-toggle-title">Comments</span>
+            </div>
+            <div class="rv-toggle-right"><span class="rv-badge">2</span><svg class="rv-chev" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          </div>
+          <div class="rv-collapse"></div>
+        </div>
+
+        <div class="rv-section">
+          <div class="rv-toggle-row" onclick="rvToggle(this)">
+            <div class="rv-toggle-left">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+              <span class="rv-toggle-title">Documents</span>
+            </div>
+            <div class="rv-toggle-right"><span class="rv-badge">1</span><svg class="rv-chev" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          </div>
+          <div class="rv-collapse"></div>
+        </div>
+
+        <div style="height:16px;"></div>
+      </div>
+
+      <div class="bottom-bar"><button class="bar-pill">Start Work</button></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function wireRail(railId, mapId, chevId) {
+  const rail = document.getElementById(railId);
+  const map = document.getElementById(mapId);
+  const chev = document.getElementById(chevId);
+  rail.addEventListener('click', (e) => {
+    if (e.target.closest('.step-map-item')) return;
+    const open = map.classList.toggle('open');
+    rail.classList.toggle('expanded', open);
+    chev.style.transform = open ? 'rotate(180deg)' : '';
+  });
+}
+wireRail('stepRail3', 'stepMap3', 'stepChev3');
+wireRail('stepRail4', 'stepMap4', 'stepChev4');
+
+function toggleFg(row) {
+  row.querySelector('.fg-chev').classList.toggle('open');
+  row.nextElementSibling.classList.toggle('open');
+}
+function rvToggle(row) {
+  row.querySelector('.rv-chev').classList.toggle('open');
+  row.nextElementSibling.classList.toggle('open');
+}
+function selectAct(item) {
+  item.parentElement.querySelectorAll('.act-item').forEach(a => a.classList.remove('selected'));
+  item.classList.add('selected');
+}
+</script>
+</body>
+</html>

@@ -13,7 +13,7 @@
   shared.css + shared/eam-shared.js, per docs/EAM-REBUILD-Strategy-and-
   Execution-Plan-v1.md Phase 0.4). See docs/design-decisions-v3-1.md §5–§9
   for the Standard Model this now conforms to directly (canonical reference
-  files: sample-screen-standard-model-prototype.html and this one). This
+  files: screen-layout-field-behavior-prototype-v1.html and this one). This
   file only ever adds Equipment-specific data/config/markup — every shared
   component's CSS/JS lives in the two shared files, not here.
 
@@ -425,8 +425,7 @@ const ALWAYS_REQUIRED_LOVS = new Set(['__status']);
 // Org pill shows code only, no description (§3.4.1) — inert on this screen
 // specifically (the Record View org pill is always protected/non-
 // interactive, so openLov/selectLov never actually runs for 'organization'
-// here), kept for consistency with the shared convention documented in
-// sample-screen-standard-model-prototype.html.
+// here), kept for consistency with the shared §3.4.1 convention.
 const ORG_STYLE_LOVS = new Set(['organization']);
 // Class-driven attribute section (§5.2, [4]) — Pump Information only shows
 // for Class=PUMP. Reads LOV_CURRENT.class, not RECORD.class.code — RECORD
@@ -651,10 +650,9 @@ function navBack() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   RECORD VIEW TAB — static, rendered once at init (not in TAB_RENDERERS,
-   same convention as sample-screen-standard-model-prototype.html's
-   'record' tab) — every update after that happens via direct DOM
-   mutation from the shared field helpers, not a re-render.
+   RECORD VIEW TAB — static, rendered once at init (not in TAB_RENDERERS)
+   — every update after that happens via direct DOM mutation from the
+   shared field helpers, not a re-render.
    ═══════════════════════════════════════════════════════════════════════ */
 function renderRecordViewTab() {
   return `
@@ -799,14 +797,22 @@ function renderRecordViewTab() {
 // code (revised 2026-07-16). Uses the same id (fv-{key}-desc) fieldRowLov()/
 // selectLov() already expect, so selection updates this row the same way
 // it would any other LOV field — no special-casing needed in eam-shared.js.
-// `required` gets the same orange left-bar marker as a .form-field.required
+// `required` gets the same red left-bar marker as a .form-field.required
 // row (§5.2, revised 2026-07-16 — Header Fields membership no longer
 // implies required on its own).
+// Stacked Code + Description (description over code), not description-
+// only — swept 2026-07-24 onto the decided Grid LOV rule (§5.2's "LOV —
+// Code + Description" row): plain Grid LOVs show a code again now,
+// reversing the 2026-07-16 "description only" default this function
+// originally implemented.
 function fieldRowAttr(key, fullWidth, required) {
   const v = RECORD[key];
   return `<div class="attr-item${fullWidth ? ' full-width' : ''}${required ? ' required' : ''}" data-field="${key}" onclick="openLov('${key}')">
     <span class="attr-label">${FIELD_LABELS[key]}</span>
-    <div class="attr-value"><span class="attr-text" id="fv-${key}-desc">${v.desc}</span></div>
+    <div class="attr-lov-stack">
+      <span class="attr-text" id="fv-${key}-desc">${v.desc}</span>
+      <span class="attr-lov-stack-code" id="fv-${key}-code">${v.code}</span>
+    </div>
   </div>`;
 }
 

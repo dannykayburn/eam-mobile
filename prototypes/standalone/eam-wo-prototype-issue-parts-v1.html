@@ -110,26 +110,18 @@
 .section-label { padding: 0 16px 6px; font-size: 14px; font-weight: 600; color: var(--octave-black); }
 [data-theme="dark"] .section-label { color: var(--white); }
 
-/* ─── PART CARD ──────────────────────────────────────────────────────────  */
+/* ─── PART CARD → ACTION ROW (2026-07-24) ─────────────────────────────────
+   The row shell itself (.action-row and friends) is now the shared
+   component promoted to eam-shared.css (see its own comment there) —
+   Issue Parts and Book Labor are its 2 real consumers. Only the list
+   container and the issued-state accent/badge colours (Parts' own
+   semantic, kept deliberately separate from Labor's regular/correction
+   badge) stay local here.  ──────────────────────────────────────────── */
 .parts-list { padding: 0 12px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
-.part-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: box-shadow 0.15s; }
-.part-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
-.part-card.issued { border-color: rgba(0,170,20,0.3); background: rgba(0,170,20,0.03); }
-[data-theme="dark"] .part-card.issued { background: rgba(0,170,20,0.06); border-color: rgba(0,170,20,0.25); }
+.action-row.issued { border-color: rgba(0,170,20,0.3); background: rgba(0,170,20,0.03); }
+[data-theme="dark"] .action-row.issued { background: rgba(0,170,20,0.06); border-color: rgba(0,170,20,0.25); }
+.action-row-accent.issued { background: var(--green); }
 
-.part-card-header { padding: 10px 12px 8px; display: flex; align-items: flex-start; gap: 10px; }
-.part-status-bar { width: 3px; align-self: stretch; border-radius: 100px; flex-shrink: 0; background: var(--gray-2); margin-top: 2px; }
-[data-theme="dark"] .part-status-bar { background: var(--gray-5); }
-.part-status-bar.issued { background: var(--green); }
-
-.part-main { flex: 1; min-width: 0; }
-.part-number { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--octave-black); margin-bottom: 2px; }
-[data-theme="dark"] .part-number { color: var(--white); }
-.part-desc { font-size: 14px; font-weight: 600; color: var(--octave-black); margin-bottom: 4px; line-height: 1.3; }
-[data-theme="dark"] .part-desc { color: var(--white); }
-.part-meta-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.part-meta { font-family: var(--font-mono); font-size: 11px; color: var(--gray-4); display: flex; align-items: center; gap: 3px; }
-.part-meta-label { color: var(--gray-3); }
 .qty-badge { font-family: var(--font-mono); font-size: 12px; font-weight: 700; padding: 2px 7px; border-radius: 100px; flex-shrink: 0; }
 .qty-badge-planned { background: none; border: 1px solid var(--border-strong); color: var(--octave-black); }
 [data-theme="dark"] .qty-badge-planned { color: var(--white); }
@@ -137,8 +129,6 @@
    (Phase 2b, 2026-07-22) — was the same green-tint recipe as Book
    Labor's .badge-green, just at a slightly different opacity (.12 vs
    .1); unified on the shared value. */
-
-.part-card-footer { padding: 0 12px 10px 25px; display: flex; gap: 8px; align-items: center; }
 /* Tertiary action pill (§17.14) */
 /* Was a local .btn-quick-issue — converged onto the shared .row-action-btn
    2026-07-21 (UI inventory pass); this screen's own spec (34px/13px)
@@ -419,103 +409,125 @@
     <!-- Parts list (§17.4) -->
     <div class="parts-list" id="partsList">
 
-      <!-- Part 1 -->
-      <div class="part-card" data-part-id="1">
-        <div class="part-card-header">
-          <div class="part-status-bar" data-bar="1"></div>
-          <div class="part-main">
-            <div class="part-number">400-VP6-14</div>
-            <div class="part-desc">O Ring EPDM</div>
-            <div class="part-meta-row">
-              <span class="part-meta"><span class="part-meta-label">UOM&nbsp;</span>EA</span>
-              <span class="part-meta"><span class="part-meta-label">Store&nbsp;</span>IND-MAIN</span>
-              <span class="part-meta"><span class="part-meta-label">Bin&nbsp;</span>A1-001</span>
+      <!-- Part 1 — Action Row (§17.4, promoted 2026-07-24): description on
+           top, code (mono) below, supporting fields (UOM/Store/Bin) mono +
+           labeled + always visible; tap expands the read-only action area. -->
+      <div class="action-row" data-part-id="1">
+        <div class="action-row-header" onclick="toggleActionRow(this)">
+          <div class="action-row-accent" data-bar="1"></div>
+          <div class="action-row-main">
+            <div class="action-row-title">O Ring EPDM</div>
+            <div class="action-row-code">400-VP6-14</div>
+            <div class="action-row-meta-row">
+              <span class="action-row-meta"><span class="action-row-meta-label">UOM&nbsp;</span>EA</span>
+              <span class="action-row-meta"><span class="action-row-meta-label">Store&nbsp;</span>IND-MAIN</span>
+              <span class="action-row-meta"><span class="action-row-meta-label">Bin&nbsp;</span>A1-001</span>
             </div>
           </div>
-          <div>
-            <span class="qty-badge qty-badge-planned" data-qty-badge="1">8 EA</span>
-          </div>
+          <span class="qty-badge qty-badge-planned" data-qty-badge="1">8 EA</span>
+          <svg class="action-row-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <div class="part-card-footer">
-          <button class="row-action-btn" data-part="1" onclick="openIssueSheet(1)">
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-            Quick Issue/Return
-          </button>
+        <div class="action-row-detail">
+          <div class="action-row-actions">
+            <button class="row-action-btn" data-part="1" onclick="openIssueSheet(1)">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+              Quick Issue/Return
+            </button>
+            <button class="row-action-btn" data-part="1" onclick="openModifySheet(1)">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+              Modify
+            </button>
+          </div>
         </div>
       </div>
 
       <!-- Part 2 -->
-      <div class="part-card" data-part-id="2">
-        <div class="part-card-header">
-          <div class="part-status-bar" data-bar="2"></div>
-          <div class="part-main">
-            <div class="part-number">200-AB8-001</div>
-            <div class="part-desc">Casing (AB-8 Pump)</div>
-            <div class="part-meta-row">
-              <span class="part-meta"><span class="part-meta-label">UOM&nbsp;</span>FA</span>
-              <span class="part-meta"><span class="part-meta-label">Store&nbsp;</span>IND-MAIN</span>
-              <span class="part-meta"><span class="part-meta-label">Bin&nbsp;</span>C3-014</span>
+      <div class="action-row" data-part-id="2">
+        <div class="action-row-header" onclick="toggleActionRow(this)">
+          <div class="action-row-accent" data-bar="2"></div>
+          <div class="action-row-main">
+            <div class="action-row-title">Casing (AB-8 Pump)</div>
+            <div class="action-row-code">200-AB8-001</div>
+            <div class="action-row-meta-row">
+              <span class="action-row-meta"><span class="action-row-meta-label">UOM&nbsp;</span>FA</span>
+              <span class="action-row-meta"><span class="action-row-meta-label">Store&nbsp;</span>IND-MAIN</span>
+              <span class="action-row-meta"><span class="action-row-meta-label">Bin&nbsp;</span>C3-014</span>
             </div>
           </div>
-          <div>
-            <span class="qty-badge qty-badge-planned" data-qty-badge="2">2 FA</span>
-          </div>
+          <span class="qty-badge qty-badge-planned" data-qty-badge="2">2 FA</span>
+          <svg class="action-row-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <div class="part-card-footer">
-          <button class="row-action-btn" data-part="2" onclick="openIssueSheet(2)">
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-            Quick Issue/Return
-          </button>
+        <div class="action-row-detail">
+          <div class="action-row-actions">
+            <button class="row-action-btn" data-part="2" onclick="openIssueSheet(2)">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+              Quick Issue/Return
+            </button>
+            <button class="row-action-btn" data-part="2" onclick="openModifySheet(2)">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+              Modify
+            </button>
+          </div>
         </div>
       </div>
 
       <!-- Part 3 -->
-      <div class="part-card" data-part-id="3">
-        <div class="part-card-header">
-          <div class="part-status-bar" data-bar="3"></div>
-          <div class="part-main">
-            <div class="part-number">400-VP6-16</div>
-            <div class="part-desc">Flat Washer Steel (Zn Plt)</div>
-            <div class="part-meta-row">
-              <span class="part-meta"><span class="part-meta-label">UOM&nbsp;</span>EA</span>
-              <span class="part-meta"><span class="part-meta-label">Store&nbsp;</span>IND-MAIN</span>
-              <span class="part-meta"><span class="part-meta-label">Bin&nbsp;</span>A1-009</span>
+      <div class="action-row" data-part-id="3">
+        <div class="action-row-header" onclick="toggleActionRow(this)">
+          <div class="action-row-accent" data-bar="3"></div>
+          <div class="action-row-main">
+            <div class="action-row-title">Flat Washer Steel (Zn Plt)</div>
+            <div class="action-row-code">400-VP6-16</div>
+            <div class="action-row-meta-row">
+              <span class="action-row-meta"><span class="action-row-meta-label">UOM&nbsp;</span>EA</span>
+              <span class="action-row-meta"><span class="action-row-meta-label">Store&nbsp;</span>IND-MAIN</span>
+              <span class="action-row-meta"><span class="action-row-meta-label">Bin&nbsp;</span>A1-009</span>
             </div>
           </div>
-          <div>
-            <span class="qty-badge qty-badge-planned" data-qty-badge="3">4 EA</span>
-          </div>
+          <span class="qty-badge qty-badge-planned" data-qty-badge="3">4 EA</span>
+          <svg class="action-row-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <div class="part-card-footer">
-          <button class="row-action-btn" data-part="3" onclick="openIssueSheet(3)">
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-            Quick Issue/Return
-          </button>
+        <div class="action-row-detail">
+          <div class="action-row-actions">
+            <button class="row-action-btn" data-part="3" onclick="openIssueSheet(3)">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+              Quick Issue/Return
+            </button>
+            <button class="row-action-btn" data-part="3" onclick="openModifySheet(3)">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+              Modify
+            </button>
+          </div>
         </div>
       </div>
 
       <!-- Part 4 -->
-      <div class="part-card" data-part-id="4">
-        <div class="part-card-header">
-          <div class="part-status-bar" data-bar="4"></div>
-          <div class="part-main">
-            <div class="part-number">200-AB8-006</div>
-            <div class="part-desc">Ball Bearing, 2" Bore, Cast</div>
-            <div class="part-meta-row">
-              <span class="part-meta"><span class="part-meta-label">UOM&nbsp;</span>EA</span>
-              <span class="part-meta"><span class="part-meta-label">Store&nbsp;</span>IND-MAIN</span>
-              <span class="part-meta"><span class="part-meta-label">Bin&nbsp;</span>B2-033</span>
+      <div class="action-row" data-part-id="4">
+        <div class="action-row-header" onclick="toggleActionRow(this)">
+          <div class="action-row-accent" data-bar="4"></div>
+          <div class="action-row-main">
+            <div class="action-row-title">Ball Bearing, 2" Bore, Cast</div>
+            <div class="action-row-code">200-AB8-006</div>
+            <div class="action-row-meta-row">
+              <span class="action-row-meta"><span class="action-row-meta-label">UOM&nbsp;</span>EA</span>
+              <span class="action-row-meta"><span class="action-row-meta-label">Store&nbsp;</span>IND-MAIN</span>
+              <span class="action-row-meta"><span class="action-row-meta-label">Bin&nbsp;</span>B2-033</span>
             </div>
           </div>
-          <div>
-            <span class="qty-badge qty-badge-planned" data-qty-badge="4">2 EA</span>
-          </div>
+          <span class="qty-badge qty-badge-planned" data-qty-badge="4">2 EA</span>
+          <svg class="action-row-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <div class="part-card-footer">
-          <button class="row-action-btn" data-part="4" onclick="openIssueSheet(4)">
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-            Quick Issue/Return
-          </button>
+        <div class="action-row-detail">
+          <div class="action-row-actions">
+            <button class="row-action-btn" data-part="4" onclick="openIssueSheet(4)">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+              Quick Issue/Return
+            </button>
+            <button class="row-action-btn" data-part="4" onclick="openModifySheet(4)">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+              Modify
+            </button>
+          </div>
         </div>
       </div>
 
@@ -796,6 +808,33 @@ function openAdHocSheet() {
   configureSegControl('PLANNED', 'Planned', true);
   renderAdHocSheet();
   setSegActive('ISSUE');
+  document.getElementById('sheetOverlay').classList.add('open');
+  document.getElementById('issueSheet').classList.add('open');
+}
+
+// "Modify" — Action Row standard, 2026-07-24 (design-decisions-v3-1.md
+// §17.4/§18.3): any Action Row whose underlying entity supports updates
+// to its own master data gets a Modify button invoking the same add
+// sheet a technician would use to add one from scratch, pre-filled with
+// the selected record's current data, header swapped to "Modify" — a
+// sheet, not a screen, so this still honors Action Row's own "never
+// navigates away" rule. Parts qualify (Store/Bin/Lot/Qty are real master
+// fields, not just a transaction); Booked Labor doesn't (§18.3 — booked
+// labor is immutable, correction-only, no Modify button there).
+// Reuses the exact ad hoc "part already selected" render path
+// (renderAdHocSheet()) rather than a parallel one — defaults the segment
+// to Planned, not Issue, since modifying a part's own fields shouldn't
+// silently re-issue it.
+function openModifySheet(partId) {
+  currentPartId = null;
+  currentMode = 'ISSUE';
+  adHocSelectedPartId = partId;
+  const p = parts[partId];
+  currentFieldValues = { bin: p.bin, lot: p.lot !== '*' ? p.lot : null };
+  configureSegControl('PLANNED', 'Planned', true);
+  renderAdHocSheet();
+  document.getElementById('sheetTitle').textContent = 'Modify';
+  setSegActive('PLANNED');
   document.getElementById('sheetOverlay').classList.add('open');
   document.getElementById('issueSheet').classList.add('open');
 }

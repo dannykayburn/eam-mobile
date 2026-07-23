@@ -387,6 +387,17 @@ a record at any depth counts):
   itself. Any new screen, shared-file or bespoke, must wire this in from
   the start — it is not optional polish.
 
+- **`.nav-title` bumped 14px→15px, 2026-07-24 (user direction).** Part of
+  the same session as the step/tab rail's Option 3 promotion (§14.2) —
+  the rail's own current-screen-name text (`.tab-rail-name`/`.step-name`)
+  was bumped to 15px there too, and the nav title sits directly above it
+  in the same vertical stack on every record-view-tier screen, so the two
+  "screen name" texts now read at one consistent size instead of two
+  slightly different adjacent ones. Applies app-wide via `eam-shared.css`;
+  `eam-wo-list-prototype-v5_1.html` carries its own local hand-copy of
+  `.nav-title` (self-contained, doesn't link the shared file) and got the
+  same bump applied directly in that file.
+
 ## 4.3 Profile
 
 Entry point decided 2026-07-16: the top-left slot of the per-screen nav bar
@@ -704,11 +715,21 @@ Insert and Update are nearly identical screens.
 | **Required-field navigation validation** | When the user tries to navigate away from a record with a required field still unpopulated, don't just block silently — jump the user TO that field (scroll it into view) and make it visually obvious that it's the one blocking navigation (e.g. flash/highlight the required left-bar, focus the row). Not yet built on any screen; the required-field visual marker (orange left bar) exists, but the "catch it on navigate-away and point at it" behavior does not. |
 | **Required Entry — warning, not a hard block** | Default enforcement for a required field on a Standard Record View: an amber warning bar + override, not a hard block on saving/navigating. This is the field-level default — distinct from the WO Workflow's own step-progression gate (§14.7), which *does* hard-lock advancing to the next step until its required items are answered. The two coexist deliberately: a required field always warns rather than blocks at the field level; a workflow step can additionally gate progression on top of that. |
 | **LOV value clearing — built** | Resolved — see the "'Clear' action on every field-edit sheet" row in §3.4. Applied to Equipment and the reference file; not yet ported to the WO files. |
-| **Master field-type reference — renamed 2026-07-14** | `sample-screen-standard-model-prototype.html` (renamed from `eam-field-type-reference-v1.html`, which is now retired to `prototypes/standalone/old versions/` per the "rebuild, not patch-in-place" convention in `CLAUDE.md`) — a standalone prototype, not tied to any module, showing one canonical example of every field type (LOV description-only, LOV code+desc exception, identifier LOV, edit text, currency, number, date, date/time, checkbox, protected, required, long-text) with the rule written as a caption under each, plus the full List/Detail header + Insert Mode reference build (§8.1/§9.3). Check new or edited screens against this file instead of re-deriving each rule per screen — this is exactly how repeated conformance-sweep drift happened in the first place. Same-day cosmetic pass: nav title changed from "Field Type Reference" to "Sample Standard Screen" (centered) and the sample header description got a `[Click in here]` prefix, both purely to make the generic/reusable framing more legible at a glance — no behavior change. |
+| **Master field-type reference — retired 2026-07-24, see §21** | `sample-screen-standard-model-prototype.html` is retired to `prototypes/standalone/old versions/`. See the "Grid vs. List field-type consolidation" row below for its replacement, `screen-layout-field-behavior-prototype-v1.html`, and §21 for this row's original 2026-07-14 text. |
 | **Type and Priority color badges** | When Type or Priority (or similar metadata fields) are displayed with color badges, show the badge only if a color is configured. If no color is set, omit the badge entirely and left-align the field value text under the field label (no forced right-alignment or gap where the badge would have been). Applies to any metadata field that uses optional color coding. **Built on WO Record View 2026-07-14**, reusing the exact icon+colour pairs from the §6.7 WO icon language (WO List) rather than re-deriving a second palette — `TYPE_META`/`PRIORITY_META` keyed by the same type/priority codes. Fixed a real bug in the process: the badge markup already had the `:empty{display:none}` omit-if-no-color rule wired up, but the badge `<span>` itself was always rendered with zero children (just a background-color class, no icon glyph inside) — so `:empty` was matching and hiding *every* badge unconditionally, regardless of whether a color was "configured." The rule was correct; the badge had no content to make it not-empty. Now fixed by rendering the real type/priority icon inside. |
 | **Header actions — pin + ellipsis menu** | Added 2026-07-14. Record View headers only — never on tab content, list screens, or detail sub-views. Top-right of the pinned `.rec-id-row` (not the collapsing status row, since these are record-level actions relevant regardless of scroll position): a **pin toggle** (outlined when unpinned, filled purple when pinned — same accent as every other "active/selected" state, §3.2.2) directly left of an **⋯ ellipsis** that opens a small anchored dropdown menu (not a bottom sheet — a deliberate exception to "everything is a bottom sheet," since this is a compact, corner-anchored action list, not a value picker or a full-form editor). Menu has three groups, each divided by a thin rule: (1) **Copy Link**, (2) **Copy** / **Delete** (Delete styled red, opens the existing centered confirm modal — the same "destructive actions get a centered dialog" pattern used for Comments delete, not a new one), (3) **screen-specific action(s)** — an extensible slot each record type populates itself (e.g. Equipment: "View Structure Details"; WO: "Print Work Order"). The pin toggle is the UI surface for the `pinned` device-side contract already described in §2.6 / `EAM-DESIGN-Pinning-Enhancement-v1.md` — tapping it in the prototype is a local visual toggle only; the real write-through to whichever punch-list mechanism is chosen (§2.6 Option A/B) is not modeled here. **Sized up 2026-07-16**: 30px→34px button / 16px→18px icon on both pin and ellipsis — a `margin-top:-3px` on `.rec-header-actions` re-centers the bigger circles against `.rec-num`'s line height, and the anchored menu's `top` offset moved 36px→40px to keep its gap under the now-taller button. `.rec-id-row`/`.rec-status-row-inner` left/right insets also bumped 14px→16px the same day (a general "give the header edges a touch more room" pass, not specific to the button resize). |
 | **Organization pill — always present, always protected in update mode, lives in the header** | Added 2026-07-16, **moved into the header the same day**: the pill now sits inside `.rec-status-row`, justified opposite the status button (right-aligned against it, sized down slightly from the standalone/Insert-Mode pill so the row reads as one balanced unit rather than two competing full-size controls) — no longer its own section-card above Header Fields. It collapses on scroll exactly like status does, for free, since it's now a child of the same collapsing `.rec-status-row` that already hides on scroll — no separate scroll rule needed. Distinct from the pill's editable/required state on Insert Mode (§9.3, Record View insert standard only, still the standalone full-size pill) — on the Record View itself, it's always protected: no chevron, not tappable, same treatment as any other protected field. **No lock icon either** (removed 2026-07-16) — unlike a `.form-field.protected` row, which keeps its chevron slot occupied by a lock so the row doesn't look broken, the org pill's chevron slot just goes empty when protected; the pill's muted background + non-interactive cursor already read as "not editable" without needing a second icon to say so. **In-header style locked 2026-07-16, second follow-up** — Inter (the app's default sans, not a monospace/code font), white text, no building icon in the markup at all, outlined rather than filled (transparent background, `1.5px solid rgba(255,255,255,.85)` border). Decided via a live scratchpad comparing both fonts × {white, gray, orange} outline treatments plus icon-on/off and a longer code (FISHERS) to check width — landed on the simplest option: just the code, in white, no icon. Text is unconditionally light rather than the theme-flipping `.field-value` default, since this row's background is always dark regardless of the app's own light/dark toggle. Only applies to the in-header (Record View, always-protected) placement — the separate standalone Insert Mode pill (required/editable, light card background) is a different context and keeps its base filled style; don't carry this outline treatment there without a separate decision. |
-| **Header Fields / Non-nullable Fields — renamed, expanded, and simplified** | Renamed 2026-07-16 from "Header fields (Type/Priority style)," **revised further the same day**: no section-card-header/title on this container at all — the fields just sit directly in the card, unlabeled. Plain-LOV items (e.g. Department) show **description only, no code** — these fields are reference-data lookups being surfaced prominently here, not identifiers, so unlike the general LOV-row default elsewhere (code+description, §3.4) the code adds nothing in this specific box. Badge-style fields (Type, Priority, Status-adjacent) are unaffected — they never showed a code to begin with. **Reversed 2026-07-24 (direct user decision, screen-layout-field-behavior-prototype-v1.html's consolidation exercise):** there is no "description only" plain-LOV type in the Grid anymore — codes are wanted in Grid fields now. A plain Grid LOV shows either a code alone ("LOV — Code Only," mono font, normal value size/weight, same treatment as any other identifier field) or the badge/stacked code+description types. Real screens not yet swept to match: `eam-equipment-record-view-prototype-v1.html`'s Department field (the original example behind this row) still shows description-only, unchanged. Holds every non-nullable field on the screen, not a fixed Type/Priority pair; 2-per-row grid, an odd field out spans the full row width rather than leaving an empty cell. Demonstrated with 3 fields (Type, Priority, Department) in `sample-screen-standard-model-prototype.html`. **First real-screen application:** `eam-equipment-record-view-prototype-v1.html` (rebuilt 2026-07-16) — Department, Criticality, Class, Manufacturer, Category (5 plain-LOV fields, 2-per-row, Category spans full-width as the odd one out — **swapped with Manufacturer 2026-07-16, second follow-up**, so Category is the bottom/full-width field instead of Manufacturer). Organization is required but isn't here — it's the dedicated org pill in the header (previous row). Operational Status is required but also isn't here — it's the header's own status button, never duplicated as a body/Header-Fields row. **Status swapped out for Criticality the same day**: the lifecycle Status field (Pending/Installed/In Service/Withdrawn) moved out of Header Fields into Asset Details, and Criticality (already an existing, already-4-valued field — 1-Low/2-Medium/3-High/4-Critical, previously sitting in Asset Details) moved into Header Fields in its place. A straight swap, not a deletion — every field that was visible before still is, just relocated. **Membership here no longer implies required** (policy reversed 2026-07-16, third follow-up) — a required field in this box gets the same orange left-bar `.form-field.required` uses, just on its own cell; Department and Criticality are marked required in the demo (two markers), Class/Manufacturer/Category aren't. **WO Record View exception:** the Equipment field is its own large standalone container above this grid, not one of the 2-per-row cells — every other header field on that screen stays consistent with this standard below it. **Status corrected 2026-07-16 (conformance audit):** WO Record View *has* a Header Fields box (Type + Priority) — the "not yet built" note here was stale. What's still actually true: it holds only Type/Priority, not every non-nullable field this row requires — Department and Problem Code, also required, sit in a separate "Work order details" card instead. Not yet reconciled; tracked in §20. |
+| **Header Fields / Non-nullable Fields — renamed, expanded, and simplified** | Renamed 2026-07-16 from "Header fields (Type/Priority style)," **revised further the same day**: no section-card-header/title on this container at all — the fields just sit directly in the card, unlabeled. Plain-LOV items (e.g. Department) show **description only, no code** — these fields are reference-data lookups being surfaced prominently here, not identifiers, so unlike the general LOV-row default elsewhere (code+description, §3.4) the code adds nothing in this specific box. Badge-style fields (Type, Priority, Status-adjacent) are unaffected — they never showed a code to begin with. **Reversed 2026-07-24 (direct user decision, screen-layout-field-behavior-prototype-v1.html's consolidation exercise):** there is no "description only" plain-LOV type in the Grid anymore — codes are wanted in Grid fields now. A plain Grid LOV shows either a code alone ("LOV — Code Only," mono font, normal value size/weight, same treatment as any other identifier field) or the badge/stacked code+description types. **Swept 2026-07-24:** `eam-equipment-record-view-prototype-v1.html`'s Department field (the original example behind this row, plus Criticality/Class/Manufacturer/Category — all 5 route through the same `fieldRowAttr()` helper) now renders the stacked Code + Description shape (description over code, `.attr-lov-stack`) instead of description-only. Holds every non-nullable field on the screen, not a fixed Type/Priority pair; 2-per-row grid, an odd field out spans the full row width rather than leaving an empty cell. Demonstrated with 3 fields (Type, Priority, Department) in `sample-screen-standard-model-prototype.html`. **First real-screen application:** `eam-equipment-record-view-prototype-v1.html` (rebuilt 2026-07-16) — Department, Criticality, Class, Manufacturer, Category (5 plain-LOV fields, 2-per-row, Category spans full-width as the odd one out — **swapped with Manufacturer 2026-07-16, second follow-up**, so Category is the bottom/full-width field instead of Manufacturer). Organization is required but isn't here — it's the dedicated org pill in the header (previous row). Operational Status is required but also isn't here — it's the header's own status button, never duplicated as a body/Header-Fields row. **Status swapped out for Criticality the same day**: the lifecycle Status field (Pending/Installed/In Service/Withdrawn) moved out of Header Fields into Asset Details, and Criticality (already an existing, already-4-valued field — 1-Low/2-Medium/3-High/4-Critical, previously sitting in Asset Details) moved into Header Fields in its place. A straight swap, not a deletion — every field that was visible before still is, just relocated. **Membership here no longer implies required** (policy reversed 2026-07-16, third follow-up) — a required field in this box gets the same orange left-bar `.form-field.required` uses, just on its own cell; Department and Criticality are marked required in the demo (two markers), Class/Manufacturer/Category aren't. **WO Record View exception:** the Equipment field is its own large standalone container above this grid, not one of the 2-per-row cells — every other header field on that screen stays consistent with this standard below it. **Status corrected 2026-07-16 (conformance audit):** WO Record View *has* a Header Fields box (Type + Priority) — the "not yet built" note here was stale. What's still actually true: it holds only Type/Priority, not every non-nullable field this row requires — Department and Problem Code, also required, sit in a separate "Work order details" card instead. Not yet reconciled; tracked in §20. |
+| **Grid vs. List field-type consolidation — canonical field-type reference replaced, 2026-07-24** | `screen-layout-field-behavior-prototype-v1.html` supersedes `sample-screen-standard-model-prototype.html` (retired, see §21) as the canonical §5.2 reference. Built as a dedicated exercise: one example of every field type, rendered in BOTH the Grid container (`.attr-item`, the Header Fields box above) and the List container (`.form-field`, any `.fg-section`) side by side, to settle whether each type's Grid/List rendering already agreed, deliberately diverged, or was genuinely undecided. Every open call it raised is resolved — see the rows below. The old file's extra scaffolding (full header pin/ellipsis-menu, a List/Detail header variant, a tab rail with 3 sample dataspy-driven list tabs, a full Insert Mode demo, real Comments/Documents sections) was dropped, not carried over — each already has its own canonical home in a real screen (Equipment Record View for the header, §5.3; WO List for the §8.3 list standard; Home/WO List/Equipment List for Insert Mode, §9.6; Equipment RV for Comments/Documents, §7.2), so a second, thinner copy in the field-type file was pure duplication risk with no added coverage. The standalone file itself now carries only field markup/config plus a pointer comment to this section — the "why" behind each field's rule lives here, in this table, not as an inline caption in the HTML. |
+| **Notes/Description and Long-text — always full-width, in both containers** | Both types are forced double-wide via `.attr-item.full-width` in Grid — a double-wide field can't be one of a 2-up pair. Notes/Description is pinned first, Long-text trails last; neither depends on "the odd field out" happening to land there by count alone. In List this is a no-op (every List row is already full-width) — the rule only has visible effect in Grid. |
+| **Long-text — collapsed display now honors carriage returns** | Added 2026-07-24, real bug. The full-screen editor always allowed Enter to insert a line break and the stored value always preserved it, but the collapsed read-only span didn't render it: default `white-space:normal` collapses `\n` to a plain space like any other whitespace run, so a multi-line value read as one run-on line. Fixed with a `.multiline` modifier (`.field-value.multiline` / `.attr-text.multiline`, `white-space:pre-wrap`; the List version also switches to left-align, since a right-aligned multi-line paragraph reads badly) — applies to both containers. |
+| **Badge / Icon LOV — now allowed in a List row, not Grid-only** | Decided 2026-07-23, rebuilt 2026-07-24 after a real device found the first build unreliable. Icon leads (left of the description), grouped with the value at the row's right edge: a plain sibling of `.field-value`, pushed there by `margin-left:auto` (`.field-badge-inline` — the same trick `.field-checkbox` already uses), not a nested flex wrapper (`justify-content:flex-end`) — the nested-wrapper version rendered the badge detached near the label instead of grouped with the value on a real device. Grid's existing Type/Priority-style badge is unchanged. This does not resolve the still-open §3.4 question of whether `.attr-badge`'s icon-in-a-swatch shape is itself a deliberate exception to "no icons inside any pill or field" — it only settles that the same shape, wherever already allowed, is now allowed in a List row too. |
+| **LOV field types — sizing convention and naming consolidation, 2026-07-23/24** | "LOV — Code + Description" and "LOV — Identifier" are the same field type going forward (code + description, stacked; no separate "Identifier" name — same reasoning §3.4.1 already applied to identifier fields). Stack order: **Grid** locks to description-over-code (`.attr-lov-stack`, description on top); **List** is unchanged, keeping its pre-existing code-over-description order (`.field-lov-value`) — this order decision was scoped to Grid LOVs specifically, not applied app-wide. Sizing for "LOV — Code Only" (the type that replaced plain description-only, see the row above) deliberately differs by container: **Grid** — `.attr-text.mono`, 24px, line-height exactly 1 — 14px looked visually short next to its Grid row-mates (the 28px badge icon, and Code + Description's own 2-line stack), so this is the type's standard Grid size everywhere it appears, not a one-off. **List** — `.field-value.mono`, standard 14px value size, mono font-family only — List's own row-mates (a plain chevron, a 2-line stack) don't create the same "looks short" mismatch, so it doesn't inherit Grid's size bump. |
+| **Time Only — right-aligned everywhere, no container-specific exception; iOS rendering is a known platform limitation** | A brief Grid-only left-align override (added 2026-07-23) was reversed 2026-07-24 by direct user instruction: List is always right-aligned, no exceptions, and Grid falling through to the same base rule needs no special-casing either way. Both containers now inherit the identical `.time-input{text-align:right}` rule, confirmed correct on desktop. On a real iOS device the rendered result still doesn't visually match in either container — Grid shows the native control centered, List shows it left-aligned — despite both resolving to the same CSS. This is a WebKit/iOS platform limitation, not a CSS authoring error: `<input type="time">` renders as a fully native OS control on iOS Safari, and its internal segment layout doesn't reliably honor `text-align` at all — same category as the already-documented 24-hour/`lang="en-GB"` quirk on this exact control (§3.4). Accepted as-is, not chased further — nothing in page CSS can reach inside a native-rendered control's own internal layout. |
+| **Checkbox — Grid gets a dedicated right-hand zone row, decided after comparing 7 live options** | Decided 2026-07-24, superseding 2 earlier passes (a 2026-07-23 centered-in-value-row treatment, then briefly "no change needed"). The user compared 7 mockup variants live (`prototypes/standalone/mockups/grid-checkbox-size-alignment-options.html`: 4 variants of a stacked label-above/checkbox-below shape at 2 sizes/2 alignments, 3 variants of a dedicated-right-zone row shape) and picked option 6: a single row, label on the left, a fixed ~28%-wide zone on the right holding a medium (24px) checkbox (`.attr-item.checkbox-zone-row` / `.attr-checkbox-zone`) — the same idea as a settings-app toggle row, not the stacked shape every other Grid field uses. List's existing rule (whole row is the tap target, §3.4) is unaffected. Applied to the one real consumer: WO Record View's Activity Edit popup, Completed checkbox (§15.2) — `toggleCheckbox()` needed no changes either time, since it never cared which container it sat in. |
+| **Protected — Grid gets its own `.attr-item.protected`, lock icon on the label's own row** | Decided 2026-07-23. Mirrors `.form-field.protected`'s exact recipe (gray tint, dimmed, no pointer cursor) onto a grid cell. One deliberate difference from the first pass: the lock icon sits on the label's own row (`.attr-label-row`, new), not beside the value below it — List's single-row `.form-field.protected` already puts label and lock "in the same row" trivially (it's one row total); Grid's 2-row column layout (label line, then value line) didn't, until this change. |
+| **Inline text — cursor always lands at the end of existing text on tap; a real height bug fixed** | Decided/fixed 2026-07-23/24. Tapping anywhere in the row (not just the textarea itself) always lands the cursor at the end of the existing text, matching the header description field's own already-proven pattern (`onDescTap()`) — `focusInlineField()` in `eam-shared.js`, replacing the old `this.querySelector('textarea').focus()` onclick at every call site (6 real screens plus the shared `fieldRowInline()` template). Separately, a real bug: long values were visibly cutting off instead of growing the row taller. Root cause was a flexbox min-size gotcha, not a missing `autoGrow()` call — `.field-inline-input`'s base `flex:1` sets `flex-basis:0%`, which governs the MAIN-axis size; inside a column-direction parent (List's `.stacked`, Grid's `.attr-item`) the main axis is vertical, so `flex-basis:0` controlled height, and the same rule's `overflow:hidden` suppressed the browser's automatic content-based minimum-size safety net that would otherwise have kept the box from collapsing. Fixed with `flex:none` on both the List and Grid override rules (`.form-field.stacked .field-inline-input`, `.attr-item .field-inline-input`) — never caught before because no existing real screen's inline-text field had been tested with genuinely long, multi-line-wrapping content. |
+| **Currency / Number edit sheet — same numeric keypad, and a real focus bug fixed** | Fixed 2026-07-24. Number switched from native `type="number"` to the same `type="text"` + `inputmode="decimal"` combo Currency already used — the two were popping different mobile keypads for what's supposed to be the same class of input. Separately, a real bug: `openEdit()` never focused its own input on open, so the keyboard only appeared after a second, separate manual tap — fixed with the same delayed-focus pattern (`setTimeout(()=>input.focus(),250)`) `openTextEditor()` already used. |
 | **Operational Status (or equivalent header-status field) is header-only — never duplicated as a body row** | Added 2026-07-16, generalizing the identifier+description header-only rule (two rows above) to the header's own status field. Whatever field drives the header's `.rec-status-btn` (Equipment: Operational Status) is edited exclusively there — it must not also appear as a plain-LOV row in a field-group section or the Header Fields box. Equipment's pre-rebuild file had exactly this duplication (an "Operational Status" row inside Asset Details, redundant with the header button); removed during the 2026-07-16 rebuild. |
 | **Container required-field-count indicator** | Added 2026-07-16. Any `.fg-section` or `.section-card` whose header (`.fg-toggle-row` / `.section-card-header`) contains at least one required field shows a small orange count badge there (e.g. "1", "2") — the container-level counterpart to the individual field's orange required left-bar. Orange-tinted (matches the required left-bar accent). Implemented generically in `eam-shared.js` (`updateRequiredBadges()`, wired into every field-mutating function) — no per-screen config needed, works on both canonical files automatically. The Header Fields box (row above) is exempt by construction: it has no container header to attach a badge to, and its fields aren't `.form-field` elements in the first place. **Demo fields added 2026-07-16** (`eam-equipment-record-view-prototype-v1.html`): Dormant Start/Dormant End (Equipment Details) and X/Y Coordinate (Tracking Details) were marked required to seed both containers with a visible "2" badge. Purely illustrative — not a real business rule that these four fields are actually required. **Badge/chevron order fixed 2026-07-16, second follow-up:** the badge inserts *before* the chevron (`header.insertBefore(badge, chev)`), not after — every container's chevron sits at the same fixed x-position whether or not a badge is present, so the chevrons read as one straight column down the page; the badge sits "inside," next to the title, and only nudges the title's available width, never the chevron's position. **Revised 2026-07-20 — always shown, not a completion tracker:** the badge used to disappear once every required field inside was populated (and was documented to "reappear if a value is cleared again"). That reappear case can't actually happen in Update Mode: §3.4's Clear-visibility rule hides Clear for required fields specifically because clearing one would contradict the requirement, so once a required field is filled it can never go back to empty again on this screen. That made the badge a one-way indicator that vanished the first time a container's fields got filled and then simply never came back — not the live "still needs attention" signal it was meant to be. Fixed by dropping the empty/complete distinction entirely: the badge is now a static "this container has N required fields" count, shown unconditionally whenever the container has ≥1 required field, populated or not. |
 | **Documents — built, was missing despite being locked** | Added 2026-07-16. "Comments + Documents always present" (row above) was locked well before this but never actually implemented in the master reference file — `sample-screen-standard-model-prototype.html` had a Comments section with no Documents section at all until now. Same add-affordance-on-top pattern as Comments; shows every document inline, no truncation (unlike Comments, see below). |
@@ -2256,6 +2277,33 @@ bar, just not the gated/numbered ones a real configured workflow gets —
   scoped to the rail/bar's *visibility and shape*, not to Free Form's
   existing editability rules elsewhere.
 
+**Segments row given its own zero-color cue, 2026-07-23 (user direction —
+chosen from `prototypes/standalone/mockups/step-rail-workflow-vs-freeform-
+options.html`'s 7-option mockup, Option 3).** The flat rail's
+`.step-segments` row still rendered nothing at all (`seg.innerHTML=''`)
+even after the revision above put a real rail/bar back — the same
+"absence reads as broken, not deliberate" problem that revision already
+fixed once for the rail/bar's visibility, just one row lower. Now shows a
+single full-width dashed divider (`.seg-flat-dash`, `2px dashed
+var(--gray-3)`) in that row instead — a positive "no sequence" cue, not
+an empty gap; a configured workflow's numbered segments are unchanged.
+Deliberately zero color: the mockup also explored painting the WO Type's
+own admin-set icon color onto this rail (a small dot, a tinted badge, a
+full-width top-edge stripe) as a further way to distinguish workflows
+from each other, not just from Free Form — but that stayed unresolved
+(real risk of an admin-picked hue clashing with this app's disciplined
+palette, worse the bigger the color's surface area) and is **not** part
+of this pick. If Type color on the rail comes back up, that mockup file
+has the fuller spectrum, including a curated-swatch option that clamps
+the admin's choice instead of just shrinking its surface. `renderStepRail()`/
+`renderFlatStepRail()` (`eam-shared.js`) toggle a `.flat` modifier class on
+`#stepRail`'s `.step-segments` element so both rail types share the one
+CSS row without conflicting. Applies to all 5 WO workflow screens
+automatically (shared component, no per-screen change needed). **Not yet
+live-verified in a browser this session** — preview tools are admin-
+disabled; re-check the dashed line's placement and color in both themes
+next time this area is touched.
+
 **Whether a single workflow can reuse the same step type more than once**
 (e.g. two Issue Parts steps) — **resolved 2026-07-22 (user direction): out
 of scope for initial release.** Each of the 5 step types appears at most
@@ -2458,6 +2506,64 @@ removed, not recolored. The now-dead `.step-pill` ("2 of 5," already
 removed from markup the same day per the note above) and
 `.step-map-footer` ("WO.WORKFLOW.01 - Corrective Maintenance Execution")
 CSS/markup are both deleted outright.
+
+**Fill promoted to "Option 3" (card + shadow), 2026-07-24 — supersedes
+the palette pass immediately above.** User feedback on the 2026-07-22
+plain-`--bg-section`-with-outline treatment: it read as visually lost
+against the rest of the screen ("maybe it's the gray"). Explored via 3
+rounds of mockups before picking anything —
+`prototypes/standalone/mockups/tab-step-rail-fill-color-options.html` (6
+surface options: no-fill, card+shadow, inset floating card, bold-ink bar,
+same-gray-no-outline, etc., shown collapsed+expanded for both `.tab-rail`
+and `.step-rail`), then `tab-step-rail-options-3-4-in-screen.html`
+(narrowed to the 2 real finalists, laid into a simplified header+rail+
+grid context so they weren't judged floating in isolation), then
+`wo-record-view-rail-3-vs-4-full-action.html` (both finalists laid into a
+near-full WO Record View clone — real header, status row, Equipment/
+Type/Priority grid, a real collapsible "Work order details" section,
+Activities, Comments/Documents — dead/dummy field values throughout so
+attention stayed on the rail, not the data). **Option 3 wins:** swap the
+flat `--bg-section` fill + `--border-strong` outline for the same
+`var(--bg-card)` fill every other card in the app already uses, with the
+hard outline replaced by a soft elevation shadow (`0 1px 3px
+rgba(0,0,0,.08)` light / `0 1px 6px rgba(0,0,0,.3)` dark) — reads as a
+raised control sitting *above* the content rather than a recessed one
+sitting *in* it. Full-bleed, no rounding or margin. **Option 4 (inset
+floating card — same fill/shadow, but rounded corners + side margin,
+pulled off the screen edges) was explicitly not picked**, on a real
+design-principle basis, not just taste: this rail is primary navigation,
+not a data container, and rounded-corners-with-margin is this app's own
+established visual grammar for *content* (the dataspy bar, filter chips,
+every record card) — borrowing it here risked the rail reading as a
+field/content card instead of structural chrome, the opposite of what a
+persistent nav element should do. Applied to the shared `.tab-rail,
+.step-rail` compound rule in `eam-shared.css` (one edit, both components,
+per their existing consolidated-shell rule, §20's naming-drift row) — no
+screen carries a local override of this shell, so this took effect
+everywhere with no other file changes needed. Hover state changed from
+`border-color` (meaningless once the border is gone) to a slightly deeper
+shadow, same "elevate further on interaction" language as `.ds-bar`
+elsewhere in the app.
+
+**Rail text bumped 13/14px→15px, same session, same mockups.** Before
+committing to Option 3, the user asked to see the chosen surface at 3
+text treatments on the same full WO Record View clone
+(`wo-record-view-option3-rail-font-options.html`): as-shipped (Inter
+13px/600), slightly larger (Inter 15px/600, size only), and mono
+(JetBrains Mono at the original 13px, family only). **15px (Inter) won**
+— applied to `.tab-rail-name` (14px→15px) and `.step-name`
+(13px→15px, and de-duplicated — this rule had been accidentally declared
+twice back to back, harmless but redundant, caught while touching it),
+plus `.tab-map-label`/`.step-map-label` (13px→15px each): the active row's
+label in the expanded map is the same "current screen name" text shown
+collapsed, so leaving the map labels at the old size would have made that
+text visibly shrink on expand — not something either mockup's font
+comparison was testing for, but a real consistency requirement once
+committing the collapsed size for real. Mono was looked at and not
+chosen — no rationale beyond it simply not being the pick. `.nav-title`
+(the top-most header's own screen name, e.g. "Work Orders") was bumped
+14px→15px in the same pass for the same reason — see §4.2's own bullet
+on this, it's chrome-adjacent but not part of this rail component.
 
 ## 14.3 Step map (expanded)
 
@@ -3270,12 +3376,42 @@ Planned — see 17.8/17.9 for both.
 
 ## 17.4 Planned parts list
 
-- One card per planned part, ordered as planned on the activity
-- Card anatomy: left status bar (gray → green on issue) | part number (purple monospace) | description | meta row | qty badge | Quick Issue/Return button
-- Meta row shows: UOM value · Store · Bin — Activity is NOT shown (inherited through workflow)
-- Qty badge: purple "8 EA" (planned) → green "8 EA ✓" (issued)
-- Quick Issue/Return button: outlined pill, becomes green "Issued · Return?" after issue
-- Cards update in-place when issued — no separate issued list
+**Converged onto the shared Action Row component 2026-07-24** (see
+§18.3's own updated row and `docs/component-library.md`'s Entry Row
+entry) — merged with Book Labor's labor row into one real shared
+component (`.action-row`, `eam-shared.css`/`.js`), not just a shared
+category name. Row anatomy, current: left accent bar (gray → green on
+issue) | description (bold, top) | part number (mono, below description
+— order flipped from the pre-2026-07-24 number-first layout to match the
+locked Action Row data order) | meta row (UOM · Store · Bin, mono,
+labeled, always visible — not behind the tap) | qty badge | chevron. Tap
+the row to reveal the read-only action area holding the Quick Issue/
+Return button (moved off the always-visible footer this pass — see
+§18.3, "the button is collapsible" is the one real difference this
+merge had to reconcile). Activity is NOT shown (inherited through
+workflow). Qty badge: outline "8 EA" (planned) → filled green "8 EA ✓"
+(issued) — kept deliberately distinct from Labor's own hours-badge, they
+mean different things. Cards update in-place when issued — no separate
+issued list.
+
+**Modify button, added 2026-07-24 (locked Action Row standard —
+`docs/component-library.md`'s Action Row entry):** any Action Row whose
+underlying entity supports updates to its own master data gets a
+**Modify** button in the action area, alongside the row's primary
+action button. A part's Store/Bin/Lot/Qty are real master fields, so
+Issue Parts qualifies — every part gets a Modify button next to Quick
+Issue/Return, `openModifySheet(partId)`, which invokes the exact same
+ad hoc "Add Part" sheet a technician uses to add a new part from
+scratch (`renderAdHocSheet()`'s already-selected-part path), pre-filled
+with the tapped part's current data, header swapped from "Add Part" to
+"Modify." Defaults the Issue/Planned segment to Planned, not Issue, so
+opening Modify to fix a Bin/Lot typo doesn't silently re-issue the part.
+Still a sheet, not a screen — this is the same "never navigates away"
+paradigm as the row's primary action, not a 2nd exception to it. Book
+Labor does not get this button — see §18.3, booked labor is immutable
+after booking, so there's nothing for Modify to invoke there, which is
+this same rule's correct/expected outcome, not an inconsistency between
+the two Action Row consumers.
 
 ## 17.5 Add Parts button
 
@@ -3441,11 +3577,56 @@ local — genuinely screen-specific, no 2nd consumer for either yet.
 
 ## 18.3 Labor list rows
 
-- Row display: description (full name) primary; code (employee ID) small + muted, stacked directly beneath it — not inline beside it (corrected 2026-07-21, see §18.7)
-- Meta row: date + trade only — no time range
-- Tap row → expands inline to show detail grid + "Create correction" action
-- No Edit action — correction is the only action on booked labor (records are immutable after booking)
-- Detail grid values are description-only, e.g. "Maintenance", "Technician" — corrected 2026-07-21, this line previously (and incorrectly) claimed a "Description (CODE)" bracket format that was never actually implemented anywhere and directly contradicts §3.4's locked, already-app-wide "Detail grid values: description only" rule. Follow §3.4, not this row, if the two ever seem to disagree again.
+**Converged onto the shared Action Row component, 2026-07-24 (user
+direction)** — real merge, not just a shared category name. Was tracked
+as its own "Labor Row" alongside Issue Parts' separate "Part Card,"
+flagged as naming drift (§20); the user's own read on revisiting it —
+"detailed row with multiple fields and a single action button unique to
+that row, real difference is the button is collapsible" — turned it into
+an actual UI consolidation instead. Explored first via a 3-option
+mockup (`prototypes/standalone/mockups/entry-row-part-labor-
+consolidation-options.html`: always-expanded / always-collapsible /
+fields-expanded-button-collapsible) before landing on the shape below,
+now shared verbatim with Issue Parts' planned parts list (§17.4). See
+`docs/component-library.md`'s Entry Row entry for the named-component
+write-up; Activity Row (WO Record View's Activity Selector) is explicitly
+NOT part of this merge — user call, kept as its own separate exception
+(different shape: radio-select, no per-row action button).
+
+**Interaction paradigm, locked — this is the real reason the name is
+"Action Row," not "Record Row" or similar:** tapping an Action Row never
+navigates to another screen or opens Update Mode, unlike the standard
+List/Detail row-tap rule (§8, "row tap → that record's own Record View,
+in update mode"). An Action Row expands in place and transacts via its
+own action button(s) — issuing/returning a part, correcting a labor
+booking — without ever leaving the screen it's on. This isn't updating
+the record, it's taking action on it. Action Row only ever appears on a
+"function" tab (Issue Parts, Book Labor) — every other List/Detail
+screen in this app uses the standard search-list-screen pattern (§8.3)
+instead, whose rows *do* drill into Update Mode per §8's rule.
+
+**Row anatomy, current:** description (full name) on top, code (mono,
+muted) directly beneath it — not inline beside it (this order was
+already locked 2026-07-21, see §18.7, and is now the general Action Row
+rule, not just a Labor-specific one). Supporting fields render as
+labeled, mono chips, always visible, not hidden behind the tap — Date +
+Trade for Labor (was a plain unlabeled "date · trade" string before this
+pass; now matches Issue Parts' labeled UOM/Store/Bin chips exactly).
+Tapping the row reveals a read-only detail grid (Type of hours,
+Department, Trade, Start time, End time, Hours) with the action
+button(s) at the very bottom of it — "Create correction" is still the
+only action (no Edit — booked labor is immutable, records only ever get
+reversed, never edited in place). Detail grid values are description-
+only, e.g. "Maintenance," "Technician" (§3.4's locked, app-wide rule —
+this row previously had a stale, never-implemented claim about a
+"Description (CODE)" bracket format; corrected 2026-07-21, still true).
+
+**No Modify button here, on purpose:** the locked Action Row standard
+(§17.4, added 2026-07-24) gives Modify to any consumer whose underlying
+entity supports updates to its own master data — booked labor doesn't
+(the "no Edit" rule two sentences up already covers why), so Book Labor
+correctly has only one action button while Issue Parts has two. This is
+the rule working as intended, not a gap to close later.
 
 ## 18.4 Add Labor sheet
 
@@ -3484,7 +3665,7 @@ local — genuinely screen-specific, no 2nd consumer for either yet.
 | **No time entry mode toggle (on this screen)** | Start/End time only, still. The config flag itself is resolved — §12 tier 3's Book Labor Time Entry Mode, 2026-07-22 — but Direct Hours Entry as an actual alternate form isn't built here yet. |
 | **Crew selector** | Pill at top of Add by Crew sheet, above member list. Defaults from activity. Changing reloads member list. |
 | **Correction stepper** | 1-minute tap. Hold 3s → 15-minute repeat at 150ms interval. Stops on pointerup/pointerleave. |
-| **Labor row display** | Description (full name) primary; code (employee ID) small + muted, stacked directly beneath it — not inline beside it (changed 2026-07-21, matching the app's own standard `.picker-card-value`/`.picker-card-code` stacking, `.labor-row-code`). Date + trade only in meta — no time range. |
+| **Labor row display — superseded 2026-07-24, see §18.3** | Description (full name) primary; code (employee ID) small + muted, stacked directly beneath it — not inline beside it (changed 2026-07-21, matching the app's own standard `.picker-card-value`/`.picker-card-code` stacking, was `.labor-row-code`). Now the shared Action Row's `.action-row-code`, converged with Issue Parts (§18.3); meta is now labeled Date + Trade chips, not an unlabeled "date · trade" string. |
 
 LOV visibility, detail-grid formatting, save-button gating, and field-value
 colour all follow the Standard Model defaults (§3.4) — no exception on this
@@ -3703,7 +3884,7 @@ A) — see §21.
 | **Resolved 2026-07-22: single WO base function (`WSJOBS`), always — WO Type surfaced via Screen Designer + a new WO Workflow Steps table instead** | Was an open discussion (added 2026-07-22, flagged by the user). Real EAM precedent for a multi-`FUN_CODE` approach exists in this customer's data (`CCJOBS`/`TRJOBS`/`ZJ1000`/`WSJODC` all under `FUN_APPLICATION='WSJOBS'`) and was seriously considered, but rejected — it would've fragmented the WO List dataspy mechanism (§6.3/§8.3) across multiple functions' dataspy sets. Final answer stays on one function; full resolution in §11–§13. The dataspy-selector mechanism is therefore unaffected by any of this — there's still only ever one function's dataspy set. |
 | **Equipment Photo — icon/preview pop-out/edit, decided 2026-07-22, not built** | See §7.5 (new) and §15.5's cross-reference. Two consumers: WO Record View's Equipment LOV icon (`.equip-summary-card`, §15.5) and Equipment Record View's own header (`.rec-id-row`, §5.3 — which has no icon slot at all today). Open: exact placement/size for the new icon slot in Equipment RV's header; whether the photo's preview pop-out (a new variant of §19.6's viewer sheet, swapping the existing Remove action for an added Edit) should also keep Remove; what Equipment RV's icon shows when there's no photo, since — unlike WO Record View, which falls back to its existing per-class icon rule — it has no prior fallback to drop back to. |
 | **Unified prototype compile** | eam-wo-prototype-full-v1.html — all five steps in one navigable file. Assembly brief in EAM-HANDOFF-Book-Labor-and-WO-Closing.md. Dark mode default; canonical nav/WO block/step rail from the Issue Parts prototype; step-state-driven rail variations; end-to-end timer behaviour. |
-| **Date fields still show stale spelled-month literals on 3 screens** | `isoToDisplay()` changed app-wide 2026-07-21 to plain numeric format (§3.4), and Book Labor's own dates were updated to match — but `eam-wo-record-view-prototype-v1.html`, `eam-equipment-record-view-prototype-v1.html`, and `sample-screen-standard-model-prototype.html` all have hardcoded initial-render date text ("May 19, 2026" style) baked into their markup, not generated through `isoToDisplay()` at load — changing the function alone doesn't fix already-baked-in literals. Only actually re-picking a date via the shared calendar sheet on those screens will show the new format; everything else still reads stale until each file gets its own pass. **`eam-wo-closing-prototype-v2.html` fixed 2026-07-21** (dropped from this list) — also surfaced and fixed the actual reason re-picking a date wouldn't have helped there: shared `saveDateTime()` (`eam-shared.js`) rendered `month:'short'` instead of `isoToDisplay()`'s numeric format, a shared-file bug now fixed at the source (also corrects Sample Screen's date-time field, its only other consumer — Sample Screen's plain `openDate()` date field, listed above, is a separate, still-stale literal). |
+| **Date fields still show stale spelled-month literals on 2 screens** | `isoToDisplay()` changed app-wide 2026-07-21 to plain numeric format (§3.4), and Book Labor's own dates were updated to match — but `eam-wo-record-view-prototype-v1.html` and `eam-equipment-record-view-prototype-v1.html` still have hardcoded initial-render date text ("May 19, 2026" style) baked into their markup, not generated through `isoToDisplay()` at load — changing the function alone doesn't fix already-baked-in literals. Only actually re-picking a date via the shared calendar sheet on those screens will show the new format; everything else still reads stale until each file gets its own pass. **`eam-wo-closing-prototype-v2.html` fixed 2026-07-21** (dropped from this list) — also surfaced and fixed the actual reason re-picking a date wouldn't have helped there: shared `saveDateTime()` (`eam-shared.js`) rendered `month:'short'` instead of `isoToDisplay()`'s numeric format, a shared-file bug now fixed at the source. **`sample-screen-standard-model-prototype.html` dropped from this list 2026-07-24** — retired (§5.2, §21); its replacement, `screen-layout-field-behavior-prototype-v1.html`, was built numeric-only from the start, so this row no longer applies to the canonical field-type file at all. |
 | **Date/time formatting is hardcoded to `en-US`, not actually locale-driven — flag for final-review accuracy** | Added 2026-07-21. `isoToDisplay()` and `saveDateTime()` both hardcode `'en-US'` today, producing MM/DD/YYYY dates and (now-corrected) 24-hour times for everyone regardless of who's logged in. The *real* rule: dates should follow the logged-in user's own locale (this app targets North America/Europe/Asia at minimum — DD/MM/YYYY and YYYY/MM/DD are real cases), while time-of-day stays a fixed 24-hour business rule regardless of locale (see the row above — that part is deliberate, not a gap). No per-user locale/session concept exists anywhere in this prototype to actually drive the date-format switch. Needs a real pass before treating any screen's current MM/DD/YYYY rendering as the final, locked behavior for every user. |
 | **Activity Screen** | Timer, task plan reference, assignment status. Ref: Activity_Selector.png. A future standalone Activities tab — flagged 2026-07-22 alongside §12's Completion Status Entity work — could double as the real closing surface for Activity-driven WO Types, instead of WO Closing; not designed, not built. |
 | **Screen Designer riff, 2026-07-22 — items considered and explicitly deferred, not built** | Reviewed against `eam-screen-designer-v1.html` (base screens): (1) per-step "allow skip with reason," a "jump target" dropdown, "repeat allowed," and admin-only internal per-step notes — all speculative UI from the earliest workflow-designer mockup (`eam-workflow-designer-v1_1.html`), never promoted into this doc as real requirements, and still not adopted; (2) checklist item authoring (the 17 item types, §16.3, and dynamic branching rules, §16.5) is Task Plan/Digital Work content, a different admin surface than Screen Designer's field-layout scope — don't conflate the two; (3) the List Search 4-filter-chip config (§10's own separate named sub-scope) is unrelated to WO step configuration and wasn't touched this pass. None of the three are being tracked as "to build" — noted here only so they aren't re-derived from scratch if revisited. |
@@ -3713,7 +3894,7 @@ A) — see §21.
 | **WO Insert Mode** | Built 2026-07-20. Two entry points: WO List's own Create (+), single org pill (§9.3 point 1); Home's Create bar with the WO entity selected (§9.4). Both build a real WO record and hand off via `navigateToNewRecord()` — see the new §9.3 "Built 2026-07-20" note below. Equipment's empty-state behavior is per §15.5 (renders as an unset required record-card, no auto-open) — but Insert Mode's own Equipment field is a lighter flat searchable list (new shared `.equip-card`/`renderRefCard()`/`REF_CARD_FIELDS` component in `eam-shared.css`/`.js`), **not** the full Equipment Lookup sheet's Search+Structure tabs/QR scan — a deliberate simplification, since Insert Mode is creating a record, not browsing an existing hierarchy. |
 | **Equipment Insert Mode** | Built 2026-07-20, reachable only via Home's Create bar with the Equipment entity selected (§9.4) — no dedicated Equipment List/Search screen exists yet (separate, larger scope, not built this pass), so there's no second, already-entity-scoped entry point the way WO List gives WO. Lands on Equipment Record View via the same sessionStorage hand-off; that screen also blanks its non-Record-View tabs (Events/PM/Depreciation/Meters/Warranties/Parts Associated/Costs) and the two hardcoded Performance Details/Depreciation Method cards for a freshly-created record — a brand-new asset has no history on any of them. |
 | **Equipment field — converged onto one "Equipment LOV," 2026-07-21 (user direction)** | Resolved. Was tracked here as 3 divergent implementations (WO RV's full Search+Structure picker, Insert Mode's lighter generic LOV, Checklist's read-only badge). By explicit user call: WO Insert Mode is now converged onto WO Record View's full Search+Structure two-tab picker (promoted to `eam-shared.css`/`.js`, `useEquipmentLookup` flag on `REF_CARD_FIELDS`), named **Equipment LOV**; the Checklist badge stays deliberately separate, named **Equipment ID Badge**, not part of this convergence. On-field display (`.equip-summary-card` vs `.equip-card`) was explicitly out of scope for this decision and flagged as its own open question — **resolved 2026-07-22** (2nd punch-list pass, user direction): Insert Mode's `.equip-card` is gone, `renderRefCard()` now renders the exact same `.equip-summary-card` markup as WO Record View via a shared `equipSummaryCardHTML()` helper in `eam-shared.js`. See `docs/component-library.md`'s Equipment LOV entry. |
-| **Naming drift: "Activity Row"/"Labor Row" vs. "Part Card" for the same conceptual thing** | Added 2026-07-21, surfaced while naming the Activity Selector's individual rows. The app has no single term for "a multi-field record inside a selectable/expandable list" — WO Record View's Activity Selector calls its entries Activity Rows, Book Labor calls its equivalent a Labor Row, Issue Parts calls its equivalent a Part Card. Not fixed — flagged for whenever this naming gets standardized. See `docs/component-library.md`'s Activity Selector entry. |
+| **Naming drift: "Activity Row"/"Labor Row" vs. "Part Card" — locked 2026-07-24, then superseded same day by a real merge** | Added 2026-07-21, surfaced while naming the Activity Selector's individual rows. The app had no single term for "a multi-field record inside a selectable/expandable list" — WO Record View's Activity Selector calls its entries Activity Rows, Book Labor calls its equivalent a Labor Row, Issue Parts calls its equivalent a Part Card. First pass resolved this as naming-only (category term **Entry Row**, no code change) — **superseded hours later, same day, by direct user decision:** Labor Row and Part Card aren't just conceptually similar, they're close enough to actually merge ("detailed row with multiple fields and a single action button unique to that row, real difference is the button is collapsible") — see §17.4/§18.3 and `docs/component-library.md`'s Entry Row entry for the real component, now named **Action Row**. Activity Row stays a deliberate exception, not merged — different shape (radio-select, no action button), user call. Entry Row survives as the umbrella category name covering exactly 2 members now: Activity Row (exception) and Action Row (the merged component). |
 | **Insert Mode post-save navigation — built 2026-07-20** | §9.2's "After Save" rule is now real for WO and Equipment: `navigateToNewRecord(url, storageKey, record)` (new, `eam-shared.js`) writes the entered record to `sessionStorage` and navigates to the plain record-view URL (no query string — see §9.5's note on why `?new=1` doesn't survive this project's `npx serve` clean-URL redirect). Both WO Record View and Equipment Record View read that stored record once on load, immediately removing it (consume-once), and build `RECORD` from it (with this app's existing `{code:'',desc:''}` unset shape for anything not entered) instead of their hardcoded demo record — same screen, Standard Update Mode, no special "just created" state, per the locked rule. Still stubbed: every *other* List/Detail Plus's Insert Mode (§9.1 standard 2) — this row only covers the two Record View inserts. |
 | **Standard Update Mode** | Update flows for equipment and other non-workflow records — the standard (non-guided) record view pattern. In progress — see §5.1. |
 | **Record-view child tabs** | Child list / detail tabs for standard record views — selection layout. **Largely resolved** — see §8. One piece already locked (§5.3 Scope, 2026-07-14): these child tabs never repeat the parent record's status button or pin/ellipsis header actions — that header is the parent record's identity, not the child tab's. Still open: the generic-case ellipsis menu contents (§8), and the Structure Details tree pattern (§7.4). |
@@ -3727,7 +3908,7 @@ A) — see §21.
 | **Comments/Documents — dual treatment** | Both need the compact inline Record View section (built, §7.2) AND a standalone dedicated tab for viewing/managing the full thread on its own screen. Not yet designed which record types need the standalone tab vs. inline-only, or both always. |
 | **WO Record View Comments — no interactivity yet** | WO Record View has a Comments *section* (§15.1) but no add/edit/delete/copy — the ellipsis/edit/delete mechanics built for Equipment and the reference file (§7.2) haven't been ported here. A new feature for this screen, not a conformance fix. |
 | **WO timer placement + pause/resume** | Today the timer only appears as a pill in the collapsed step rail (§14.2), starts automatically on "Start Work" (§15), and runs uninterrupted through Steps 2–4 with no pause. Two open questions: (1) keep it in the step rail or move to the nav bar so it stays visible while the rail is scrolled/collapsed; (2) whether pause/resume should exist, and if so whether it's a per-WO-type configuration flag on WO Workflow Setup (§11), same family as the Free Form/Not Free Form flag (§15.4). Not designed, not prototyped. |
-| **Tab rail / step rail — inconsistent class name** | Same component under two names: `.tab-rail` in Equipment, `.step-rail` in all 5 WO standalones + the compiled prototype. Converge on one name next time either is touched. |
+| **Tab rail / step rail — converged 2026-07-24** | Was framed as "same component under two names" (`.tab-rail` in Equipment, `.step-rail` in all 5 WO standalones + the compiled prototype) — checking the actual CSS on this pass found that framing imprecise: they're genuinely different components (`.tab-rail` is freely-tappable record tabs; `.step-rail` is gated/numbered WO steps with a timer pill + progress segments `.tab-rail` has no equivalent of), but their outer collapsed-bar *shell* (background/border/hover/expanded-padding/collapsed-row height+padding) was byte-for-byte duplicated CSS, including one undocumented drift (`.step-rail-collapsed`'s gap had quietly drifted to 8px vs `.tab-rail-collapsed`'s 10px, no stated reason). Fixed the real problem — the shell rules are now one compound selector (`.tab-rail, .step-rail{...}`) in `eam-shared.css`, gap unified to 10px — rather than renaming one to match the other, which wouldn't have been semantically correct either direction (WO steps aren't tabs; Equipment's tabs aren't sequential steps). No markup/JS changes needed — every consumer's `class="tab-rail"`/`class="step-rail"` and `#tabRail`/`#stepRail` element IDs are untouched, same low-risk "compound selector, not a rename" pattern already used for store-selector/crew-selector-pill (Phase 2b). The unused `--step-rail-h` CSS variable (only ever fed into the now-merged rule) was removed. |
 | **Fixed 2026-07-20 — tab-less screens' content mount needs its own flex passthrough** | WO Record View has no tab system (§14.1) — content mounts once into a plain `#recordContentSlot` div rather than a `.tab-content[data-tab]` panel. That div was never `display:flex;flex-direction:column;flex:1;min-height:0` like `.app` itself, so its child `.content`'s shared `flex:1;overflow-y:auto` was inert — harmless while content stayed shorter than the viewport, silently broke scrolling entirely (no scrollbar, `.app`'s `overflow:clip` just clips dead) once it grew past it. Fixed locally in this file; **if any future WO-workflow screen copies this tab-less mount pattern, give its own mount div the same flex passthrough from the start.** |
 | **Open decision: Activity Checklist's Checkbox-type control vs. the generic checkbox pattern** | Carried forward through the 2026-07-21 rebuild, component renamed: §3.4's generic checkbox rule makes the entire row the tap target, sized to a compact list row. The Checkbox-type item's control (`.f-chk`, §16.2/§16.3) is now a large, centered, full-width tap target by design — the focused one-item-at-a-time screen has the room a compact row never did, and deliberately uses it. Call still needed: is this divergence now *more* justified (different context, not just a leftover), or should it converge? |
 | **Step rail: Octave Yellow for Not Free Form WO workflows — built and verified** | §15.4/§3.2's rule (purple wash default; Octave Yellow for Not Free Form) is now wired end to end: the Free Form flag (§12 tier 2, WO Workflow header keyed WO Type × User Group) drives it via `renderStepRail()`/`applyWorkflowTypeHeader()` (`eam-shared.js`), verified live across all 5 WO-workflow screens on all 3 demo WOs (BRKD=yellow, PM=purple, ROUT=no rail, §11 fallback) through the `cycleDemoWo()` dev toggle. |
@@ -3787,6 +3968,7 @@ its original section with a note attached.
 
 | Former decision | Superseded by |
 | --- | --- |
+| **Master field-type reference — `sample-screen-standard-model-prototype.html`** (renamed 2026-07-14 from `eam-field-type-reference-v1.html`) — a standalone prototype, not tied to any module, showing one canonical example of every field type (LOV description-only, LOV code+desc exception, identifier LOV, edit text, currency, number, date, date/time, checkbox, protected, required, long-text) with the rule written as a caption under each, plus the full List/Detail header + Insert Mode reference build (§8.1/§9.3). | §5.2 "Grid vs. List field-type consolidation" (2026-07-24) — `screen-layout-field-behavior-prototype-v1.html` replaces it: a superset (every type shown in both a Grid and a List container, not just one), retired to `prototypes/standalone/old versions/`. The header actions menu/List-Detail header/tab rail/Insert Mode/Comments-Documents scaffolding the old file also carried was dropped, not carried over — each already has its own canonical home elsewhere (§5.3, §8.3, §9.6, §7.2). Per-field "why" rationale that used to live as an inline caption in the HTML now lives in §5.2's table only — the standalone carries field markup/config and a pointer comment, nothing else. |
 | **LOV description-first** — description primary, code small + muted, on every LOV row in every form. | §3.4 "LOV row: description only" (2026-07-15) — itself superseded the next day, see the row below. |
 | **LOV row: description only** (2026-07-15) — no code at all, not even small/muted, except identifier fields and a short, explicit opt-in exception list (`CODE_VISIBLE_FIELDS`: Cost Code, Store). | §3.4 "LOV field: code + description" (2026-07-16) — code + description is now the default for every plain LOV field; the exception-list mechanism is retired along with the default it carved exceptions out of. Organization (§3.4.1) remains its own separate, stricter case — code only, no description at all. |
 | **Collapsible header block (WO + Equipment)** — first rework of the record header: collapsed showed code+description, expanded showed status+location via a tap gesture. Turned out to have its own problem: the nav bar's static title was *also* showing code+description, duplicating the block directly beneath it. | §5.2/§5.3 "Header rev. 2" — status-forefront, scroll-collapsing, no tap gesture. |
@@ -4259,6 +4441,50 @@ the row's existing padding; disabled state (opacity 0.4, `disabled=true`)
 confirmed after a real mark-all-read action; reference row renders the
 new format on all 7 demo rows. No console errors on any of the 3
 screens touched.
+
+**WO List's `.proto-theme-bar` fixed, 2026-07-23 (user-reported: "the
+dark/light mode toggler isn't working on the work order search," plus
+the online/offline toggle missing) — 3 real bugs in
+`eam-wo-list-prototype-v5_1.html`, none of them specific to the Search
+screen (§8.2's screen swap inside this same file) — the theme bar sits
+outside `.app`/`.screen` entirely and is identical on both.**
+- **The toggle button was genuinely dead, not just hard to see.** This
+  file predates the shared-file architecture and had its own local
+  `applyTheme()`/`toggleTheme()` plus a manual
+  `document.getElementById('themeToggle').addEventListener('click',
+  toggleTheme)` — leftover from before this file called `initSharedApp()`
+  at all. `initSharedApp()` → `initThemeToggle()` (`eam-shared.js`)
+  attaches its *own* click listener to the same `#themeToggle` button.
+  Both fired on every click, each independently reading
+  `document.documentElement`'s `data-theme` attribute and flipping it —
+  so the 2nd listener always undid the 1st in the same click, netting
+  zero visible change. Fixed by deleting the local duplicate outright;
+  the shared listener (which also correctly persists to `localStorage`,
+  unlike the local one) is now the only one, same as every other screen.
+- **Real contrast bug, independent of the above:** this file's local
+  `.theme-toggle` CSS hardcoded `rgba(255,255,255,...)` for both text and
+  background — legible only against a dark backdrop, but
+  `.proto-theme-bar` sits directly on `var(--bg-page)`, which is light in
+  light mode. The bar (and the "Restart Demo" button `eam-shared.js`
+  injects into it) was reduced to white-on-near-white, matching the
+  user's screenshot exactly ("hard to see," read as untappable even
+  before the listener bug was found). Converged to the same theme-aware
+  tokens the canonical `.theme-toggle` in `eam-shared.css` already uses
+  (`var(--gray-4)`/`var(--bg-section)`/`var(--border-strong)`).
+- **Online/offline toggle was never added to this file at all** — every
+  WO-workflow screen (WO Record View, Activity Checklist, Issue Parts,
+  Book Labor, WO Closing) has one (§4.5), driving the same shared
+  `DEMO_ONLINE` flag/`localStorage` key, but WO List's own `.proto-theme-
+  bar` only ever had the theme button. Added the same `#onlineToggle`
+  button + `initDemoOnlineToggle()` call (`eam-shared.js` already has
+  both `toggleDemoOnline()` and this init function; this file just never
+  called them). No visible effect on this screen's own UI today (WO List
+  has no sync-error banner to Retry), but keeps the flag consistent
+  everywhere a technician might flip it, same as the theme flag.
+**Not yet live-verified in a browser this session** — preview tools are
+admin-disabled; re-check both buttons' visibility/tap behavior in both
+themes, on both the List and Search screens, next time this file is
+touched.
 
 End of document
 

@@ -91,6 +91,89 @@ Equipment — it's always the anchor record there.
 
 ---
 
+## Entry Row (category term, not a component)
+
+**Locked 2026-07-24**, closing the naming-drift punch-list item
+(design-decisions-v3-1.md §20): "the app has no single term for a
+multi-field record inside a selectable/expandable list." Started as a
+naming-only fix across 3 screens' independent implementations — but
+hours later, same day, direct user decision turned 2 of the 3 into a
+real merge (see **Action Row** below). Entry Row survives as the
+umbrella category, now covering exactly 2 members:
+
+| Concrete name | Class | Screens | Relationship |
+| --- | --- | --- | --- |
+| Activity Row | `.act-item` | WO Record View's Activity Selector | Its own separate exception — radio-select, no per-row action button, deliberately NOT merged (user call) |
+| Action Row | `.action-row` | Issue Parts, Book Labor | A real shared component (`eam-shared.css`/`.js`), not just a shared name — see its own entry below |
+
+Activity Row stays genuinely different in shape (a selectable record,
+not an actionable one) — nothing here proposes converging it with
+Action Row.
+
+---
+
+## Action Row
+
+**Locked + built 2026-07-24 (user direction)**, `eam-shared.css`/`.js` —
+real 2-consumer shared component, not a category name. Started as
+"Labor Row" (Book Labor) and "Part Card" (Issue Parts), independently
+built, flagged as naming drift; the user's own framing on revisiting it
+— "detailed row with multiple fields and a single action button unique
+to that row, real difference is the button is collapsible" — turned it
+into an actual merge. Explored first via a 3-option comparison mockup
+(`prototypes/standalone/mockups/entry-row-part-labor-consolidation-
+options.html`) before landing on the shape below.
+
+**Interaction paradigm — the reason for the name:** tapping an Action
+Row never navigates to another screen or opens Update Mode, unlike the
+standard List/Detail row-tap rule (§8, "row tap → that record's own
+Record View, in update mode"). It expands in place and transacts via
+its own action button(s) instead. This isn't updating the record, it's
+*taking action* on it. Action Row only ever appears on a "function" tab
+(Issue Parts, Book Labor) — every other list/detail screen in this app
+uses the standard search-list-screen pattern (§8.3) instead, whose rows
+*do* drill into Update Mode.
+
+**Anatomy:** description (bold) on top, code (mono, muted) directly
+beneath it. Supporting fields render as labeled, mono chips, always
+visible — UOM/Store/Bin for Issue Parts, Date/Trade for Book Labor (the
+latter converted from an unlabeled "date · trade" string to match).
+Badge (right side) stays screen-specific and deliberately unconverged —
+Issue Parts' `.qty-badge` is an outline pill ("planned, not yet
+issued"); Book Labor's `.labor-hours-badge` is a filled green/red pill
+("regular vs. correction") — different semantics, not styling drift.
+Tapping the row (`toggleActionRow()`, generic/DOM-relative — no
+index-based ids) reveals a read-only detail area (`.action-detail-grid`)
+with the action button(s) at the very bottom (`.action-row-actions`,
+a real multi-button row now — see "Modify" below). An optional
+persistent left accent (`.action-row-accent`) exists for a consumer
+that wants one — Issue Parts' issued state uses it; Book Labor doesn't.
+
+**Modify — locked standard, 2026-07-24:** if the Action Row's underlying
+entity supports updates to its own master data (not just the row's
+primary transactional action), it gets a **Modify** button in
+`.action-row-actions`, alongside the primary action button. Modify
+invokes the *same* add sheet a technician would use to create one of
+these from scratch, pre-filled with the selected record's current data,
+header swapped from its "Add X" title to "Modify" — a sheet, not a
+screen, so this still honors the "never navigates away" interaction
+paradigm above; it isn't a second exception to that rule, it's the same
+rule applied to a 2nd button. **Issue Parts qualifies:** a part's Store/
+Bin/Lot/Qty are real master fields, not just a transaction, so all 4
+parts get Modify next to Quick Issue/Return (`openModifySheet(partId)`,
+reuses `renderAdHocSheet()`'s "part already selected" path, defaults the
+segment to Planned rather than Issue so opening Modify doesn't silently
+re-issue the part). **Book Labor does NOT qualify:** booked labor is
+immutable after booking, correction-only (§18.3's locked "no Edit"
+rule) — there is no update to invoke, so no Modify button there, and
+that's the correct/expected outcome of this same rule, not an
+inconsistency.
+
+**Not merged:** Activity Row (see Entry Row above) — different shape,
+no action button, explicit user call to keep it separate.
+
+---
+
 ## Activity Selector
 
 **Where:** WO Record View only (`eam-wo-record-view-prototype-v1.html`,
@@ -103,12 +186,9 @@ badge in this app's vocabulary (Equipment ID Badge, `.org-pill`,
 `.qty-badge`, `.hours-type-pill`) is a small, mostly-static label, icon
 plus a few words at most. An Activity Row is a full multi-field record
 (number, name, discipline, date, up to 2 codes) with selectable state —
-the same category as Book Labor's **Labor Row** (`.labor-row`), not a
-label. Worth flagging while naming this: the app already has drifted
-terminology for this same category of thing — Issue Parts calls its
-equivalent a **Part Card** (`.part-card`), not a row. Not fixed as part
-of this naming pass, but real drift if the app ever wants one consistent
-term for "a multi-field record inside a selectable/expandable list."
+the same general **Entry Row** category as **Action Row** (see above),
+but deliberately not merged into it: Activity Row has no per-row action
+button and is chosen (radio-select), not acted upon.
 
 Each row shows a radio circle, Activity number, Name, Discipline, and a
 meta line (Date + Code1 + optional Code2). Tapping a row (`selectActivity()`)
@@ -156,14 +236,17 @@ screen (including WO Record View, checked directly) shows any summary of
 booked labor — this list is the only place it's ever visible.
 
 **What it is:** Seeded for real from `data/wo-19257.js`'s `labor` array
-via `renderSeedLabor()` (lines 1351-1356) — not hardcoded HTML. Each row
-(`.labor-row`) is a tap-to-expand header (`toggleRow()`) over a detail
-grid: Type of Hours, Department, Trade, Start, End, Hours.
+via `renderSeedLabor()` — not hardcoded HTML. Each row is now a real
+**Action Row** (`.action-row`, see that entry above — converged with
+Issue Parts' equivalent 2026-07-24) — a tap-to-expand header
+(`toggleActionRow()`, shared) over a detail grid: Type of Hours,
+Department, Trade, Start, End, Hours.
 
 **Correction, not Edit:** a booked row has exactly one action —
 "Create correction" — which opens `#correctionSheet` and, on save,
-appends a **new** reversing `.correction-row` rather than editing the
-original (§18.3's locked "no Edit button" rule). **Known simplification,
+appends a **new** reversing row (`.action-row.correction`) rather than
+editing the original (§18.3's locked "no Edit button" rule). **Known
+simplification,
 worth flagging explicitly:** the correction sheet's employee/hours-type/
 department/trade/duration are all hardcoded to fixed demo values
 (`saveCorrection()`, a fixed -83 min correction) rather than real fields
@@ -225,4 +308,6 @@ schema).
 | Equipment ID Badge | Activity Checklist | Built, read-only, deliberately separate from the LOV (§16) |
 | Notification Card | Notifications | Built 2026-07-22 (§25); single consumer so far |
 | Activity Selector (rows = Activity Rows) | WO Record View | Built (§15.2); cross-screen hand-off undefined |
-| Booked Labor List (rows = Labor Rows) | Book Labor | Built (§18.3/§18.6); correction sheet content hardcoded |
+| Action Row | Book Labor, Issue Parts | Merged + built 2026-07-24 (§17.4/§18.3) — real shared component, was "Labor Row"/"Part Card" |
+| Booked Labor List | Book Labor | Built (§18.3/§18.6); rows are Action Rows; correction sheet content hardcoded |
+| Entry Row (category term — Activity Row / Action Row) | WO Record View, Book Labor, Issue Parts | Category only; Action Row is a real merge, Activity Row stays a deliberate exception |

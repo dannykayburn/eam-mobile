@@ -20,8 +20,10 @@ Book-Labor/WO-Closing and Issue-Parts/Book-Labor assembly briefs.
   out of doing the work (Standard Model updates, module-specific deltas),
   same as always. Update it the same session a decision gets made — this
   doc doesn't change that habit.
-- **`sample-screen-standard-model-prototype.html`** — gets a new canonical
-  field type/pattern added the same session it's locked, same as always.
+- **`screen-layout-field-behavior-prototype-v1.html`** — gets a new
+  canonical field type/pattern added the same session it's locked, same
+  as always (supersedes `sample-screen-standard-model-prototype.html`,
+  retired 2026-07-24 — see design-decisions-v3-1.md §5.2/§21).
 
 ## 1. Goal
 
