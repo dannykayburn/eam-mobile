@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Grid Checkbox — Size &amp; Alignment Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  GRID CHECKBOX — SIZE & ALIGNMENT OPTIONS (2026-07-24, circle-back on the
+  Checkbox-in-Grid Finding from screen-layout-field-behavior-prototype-v1
+  .html, which locked the checkbox to today's default size, centered).
+  User wants to see more of the design space before treating that as
+  final: same real .attr-item/.field-checkbox shell used everywhere else
+  in the app, one field ("Multiple Equipment") shown across 7 options —
+
+  PARADIGM 1 — today's shape (label on its own row, checkbox in the value
+  row below, full cell width):
+    1 — current size (22px), centered
+    2 — current size (22px), left-aligned
+    3 — larger (30px), centered
+    4 — larger (30px), left-aligned
+
+  PARADIGM 2 — a different shape: the right ~25-30% of the cell is a
+  dedicated zone for the checkbox only, label takes the rest, single row
+  (not stacked) — checkbox at 3 sizes relative to that zone:
+    5 — small (16px)
+    6 — medium (24px)
+    7 — large (34px)
+
+  Each option is a real 2-column grid row (Multiple Equipment + a neutral
+  filler cell, "Location") at true mobile cell width, so size/alignment
+  reads accurately — not just an isolated checkbox floating on its own.
+  Self-contained (no eam-shared.css/.js dependency), same lean convention
+  as pill-color-options-editable-vs-protected.html — mockups explore,
+  they don't need the whole shared component stack.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --green:#00AA14;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+[data-theme="dark"]{
+  --bg-page:#1A1A1F; --bg-card:#26252B; --bg-section:#302F33; --border:#3E4047; --border-strong:#4A4C55;
+  --gray-1:#2A2930; --gray-2:#3E4047; --gray-3:#6F7480; --gray-4:#B2B8C4; --octave-black:#1A1A1F;
+}
+[data-theme="dark"] body{color:var(--white);}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--octave-black);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:900px;width:100%;color:#fff;font-size:12px;line-height:1.55;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;}
+.legend b{color:#fff;}
+.theme-row{display:flex;gap:8px;margin-bottom:16px;}
+.theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:5px 12px;cursor:pointer;}
+.section-title{max-width:900px;width:100%;color:#fff;font-size:14px;font-weight:700;margin:18px 0 4px;}
+.section-sub{max-width:900px;width:100%;color:rgba(255,255,255,.6);font-size:11px;margin-bottom:12px;}
+.wrap{max-width:900px;width:100%;display:flex;flex-wrap:wrap;gap:14px;}
+
+.opt-card{background:var(--bg-page);border-radius:14px;padding:14px;width:370px;flex-shrink:0;}
+.opt-title{font-size:12px;font-weight:700;color:var(--octave-black);margin-bottom:8px;}
+[data-theme="dark"] .opt-title{color:var(--white);}
+
+/* ── Real shell, copied from eam-shared.css (.equip-attrs/.attr-item/
+   .attr-label/.attr-value/.field-checkbox) so size/alignment reads at
+   true mobile cell width. ── */
+.equip-attrs{margin:0;background:var(--bg-card);display:grid;grid-template-columns:1fr 1fr;border-radius:10px;overflow:hidden;border:1px solid var(--border);}
+.attr-item{position:relative;padding:12px 14px;display:flex;flex-direction:column;gap:6px;border-right:1px solid var(--border);cursor:pointer;transition:background .15s;}
+.attr-item:hover{background:var(--bg-section);}
+.attr-item:last-child{border-right:none;}
+.attr-label{font-size:13px;color:var(--gray-4);}
+.attr-value{display:flex;align-items:center;gap:6px;}
+.attr-text{font-size:14px;font-weight:600;color:var(--octave-black);}
+[data-theme="dark"] .attr-text{color:rgba(255,255,255,.9);}
+.field-checkbox{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--gray-3);background:var(--bg-card);display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+[data-theme="dark"] .field-checkbox{border-color:var(--gray-5);background:var(--bg-section);}
+.field-checkbox.checked{background:var(--octave-black);border-color:var(--octave-black);}
+[data-theme="dark"] .field-checkbox.checked{background:var(--white);border-color:var(--white);}
+.field-checkbox svg{display:none;color:#fff;}
+[data-theme="dark"] .field-checkbox svg{color:var(--octave-black);}
+.field-checkbox.checked svg{display:block;}
+
+/* ── Paradigm 1 — alignment/size modifiers on the existing shape ── */
+.opt1 .field-checkbox, .opt3 .field-checkbox{margin:0 auto;}              /* centered */
+.opt2 .field-checkbox, .opt4 .field-checkbox{margin:0;}                    /* left-aligned (flow start) */
+.opt3 .field-checkbox, .opt4 .field-checkbox{width:30px;height:30px;border-radius:8px;}  /* larger */
+
+/* ── Paradigm 2 — dedicated right zone, single row not stacked ── */
+.zone-row{flex-direction:row;align-items:center;justify-content:space-between;}
+.zone-wrap{width:28%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.opt5 .field-checkbox{width:16px;height:16px;border-radius:4px;}
+.opt6 .field-checkbox{width:24px;height:24px;}
+.opt7 .field-checkbox{width:34px;height:34px;border-radius:9px;}
+</style>
+</head>
+<body>
+<div class="theme-row">
+  <button class="theme-toggle" onclick="document.documentElement.removeAttribute('data-theme')">☀ Light</button>
+  <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme','dark')">🌙 Dark</button>
+</div>
+<div class="legend">
+  Same real <code>.attr-item</code>/<code>.field-checkbox</code> shell as
+  every other Grid field — one field, "Multiple Equipment," shown 7 ways.
+  Each option is a real 2-column grid row (paired with a neutral
+  "Location" filler cell) at true mobile cell width, not an isolated
+  checkbox floating on its own. Tap any checkbox to toggle it.
+</div>
+
+<div class="section-title">Paradigm 1 — today's shape (label above, checkbox in the value row)</div>
+<div class="section-sub">Same stacked cell shape already locked for every other Grid field type — only size and horizontal alignment vary below.</div>
+<div class="wrap">
+
+  <div class="opt-card">
+    <div class="opt-title">1 — current size, centered</div>
+    <div class="equip-attrs">
+      <div class="attr-item opt1" onclick="toggleCb(this)">
+        <span class="attr-label">Multiple Equipment</span>
+        <div class="attr-value"><div class="field-checkbox checked"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></div></div>
+      </div>
+      <div class="attr-item"><span class="attr-label">Location</span><div class="attr-value"><span class="attr-text">Building A</span></div></div>
+    </div>
+  </div>
+
+  <div class="opt-card">
+    <div class="opt-title">2 — current size, left</div>
+    <div class="equip-attrs">
+      <div class="attr-item opt2" onclick="toggleCb(this)">
+        <span class="attr-label">Multiple Equipment</span>
+        <div class="attr-value"><div class="field-checkbox checked"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></div></div>
+      </div>
+      <div class="attr-item"><span class="attr-label">Location</span><div class="attr-value"><span class="attr-text">Building A</span></div></div>
+    </div>
+  </div>
+
+  <div class="opt-card">
+    <div class="opt-title">3 — larger (30px), centered</div>
+    <div class="equip-attrs">
+      <div class="attr-item opt3" onclick="toggleCb(this)">
+        <span class="attr-label">Multiple Equipment</span>
+        <div class="attr-value"><div class="field-checkbox checked"><svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></div></div>
+      </div>
+      <div class="attr-item"><span class="attr-label">Location</span><div class="attr-value"><span class="attr-text">Building A</span></div></div>
+    </div>
+  </div>
+
+  <div class="opt-card">
+    <div class="opt-title">4 — larger (30px), left</div>
+    <div class="equip-attrs">
+      <div class="attr-item opt4" onclick="toggleCb(this)">
+        <span class="attr-label">Multiple Equipment</span>
+        <div class="attr-value"><div class="field-checkbox checked"><svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></div></div>
+      </div>
+      <div class="attr-item"><span class="attr-label">Location</span><div class="attr-value"><span class="attr-text">Building A</span></div></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section-title">Paradigm 2 — dedicated right zone (~25–30% of the cell)</div>
+<div class="section-sub">A different shape, not just a size tweak: single row, label takes the rest, checkbox pinned to its own zone on the right — same idea as a settings-app toggle row.</div>
+<div class="wrap">
+
+  <div class="opt-card">
+    <div class="opt-title">5 — small (16px) in zone</div>
+    <div class="equip-attrs">
+      <div class="attr-item opt5 zone-row" onclick="toggleCb(this)">
+        <span class="attr-label">Multiple Equipment</span>
+        <div class="zone-wrap"><div class="field-checkbox checked"><svg width="10" height="10" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></div></div>
+      </div>
+      <div class="attr-item"><span class="attr-label">Location</span><div class="attr-value"><span class="attr-text">Building A</span></div></div>
+    </div>
+  </div>
+
+  <div class="opt-card">
+    <div class="opt-title">6 — medium (24px) in zone</div>
+    <div class="equip-attrs">
+      <div class="attr-item opt6 zone-row" onclick="toggleCb(this)">
+        <span class="attr-label">Multiple Equipment</span>
+        <div class="zone-wrap"><div class="field-checkbox checked"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></div></div>
+      </div>
+      <div class="attr-item"><span class="attr-label">Location</span><div class="attr-value"><span class="attr-text">Building A</span></div></div>
+    </div>
+  </div>
+
+  <div class="opt-card">
+    <div class="opt-title">7 — large (34px) in zone</div>
+    <div class="equip-attrs">
+      <div class="attr-item opt7 zone-row" onclick="toggleCb(this)">
+        <span class="attr-label">Multiple Equipment</span>
+        <div class="zone-wrap"><div class="field-checkbox checked"><svg width="17" height="17" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></div></div>
+      </div>
+      <div class="attr-item"><span class="attr-label">Location</span><div class="attr-value"><span class="attr-text">Building A</span></div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleCb(row){
+  const box = row.querySelector('.field-checkbox');
+  box.classList.toggle('checked');
+}
+</script>
+</body>
+</html>

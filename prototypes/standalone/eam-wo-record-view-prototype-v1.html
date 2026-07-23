@@ -49,16 +49,14 @@
    itself. */
 #recordContentSlot { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 
-/* ── Equipment selector — its own large standalone container above the
-   Header Fields grid (§5.2 D2 "WO Record View exception"), not a 2-per-
-   row cell. WO-specific mount position; the card itself is now the
-   shared `.equip-summary-card` in eam-shared.css (converged with WO
-   Insert Mode's own Equipment field 2026-07-22 — punch-list item, see
-   that file's comment for the full history of the two diverging and
-   re-converging). This mount carries its own margin (the shared class
-   is margin:0, since Insert Mode's copy sits inside a .section-card
-   that already provides its own spacing). ── */
-#equipCardMount { margin: 12px 12px 0; }
+/* ── Equipment — rolled into the Header Fields grid 2026-07-24 as an
+   ordinary full-width/required .attr-item (was its own large standalone
+   container above the grid, §5.2 D2's "WO Record View exception," now
+   retired — see design-decisions-v3-1.md §15.5). #equipCardMount is now
+   just the .attr-value slot inside that row; the value content itself
+   (badge + desc/code stack) is the shared eam-shared.js
+   equipSummaryCardHTML(), also used by WO Insert Mode's own Equipment
+   field. No local margin needed — the row is an ordinary grid cell now. ── */
 
 /* ── Equipment Lookup sheet — Search + Structure tabs (§15.5).
 
@@ -490,7 +488,7 @@
       </div>
 
       <div class="section-card">
-        <div class="form-field stacked" onclick="this.querySelector('textarea').focus()">
+        <div class="form-field stacked" onclick="focusInlineField(this)">
           <span class="field-label">Note</span>
           <textarea class="field-inline-input" id="activityEditName" rows="1" maxlength="255" oninput="updateInlineFieldLayout(this)"></textarea>
         </div>
@@ -550,14 +548,14 @@
                "Additional Details" card below); pairs with it to fill
                out the same grid row instead of sitting alone. Same
                .field-checkbox/toggleCheckbox() component as every other
-               checkbox in this popup, just hosted in an .attr-item cell
-               instead of a .form-field row — first checkbox in this
-               grid, no other change needed since toggleCheckbox()/
+               checkbox in this popup — toggleCheckbox()/
                isActivityChecked() only look for a data-field ancestor +
-               a .field-checkbox child, not a specific row class. -->
-          <div class="attr-item" data-field="activityCompleted" onclick="toggleCheckbox(this)">
+               a .field-checkbox child, not a specific row class, so the
+               2026-07-24 shape change below (checkbox-zone-row, decided
+               after comparing 7 mockup options) needed no JS changes. -->
+          <div class="attr-item checkbox-zone-row" data-field="activityCompleted" onclick="toggleCheckbox(this)">
             <span class="attr-label">Completed</span>
-            <div class="attr-value"><div class="field-checkbox"></div></div>
+            <div class="attr-checkbox-zone"><div class="field-checkbox"></div></div>
           </div>
         </div>
       </div>
@@ -614,9 +612,6 @@
     </div>
   </div>
 
-  <button class="inline-confirm-btn" id="inlineConfirmBtn" tabindex="-1">
-    <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </button>
 
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
@@ -1180,29 +1175,31 @@ function saveActivityEdit() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   EQUIPMENT LOOKUP (§15.5) — tapping the Equipment card opens a real
+   EQUIPMENT LOOKUP (§15.5) — tapping the Equipment row opens a real
    picker (Search + Structure tabs), not a read-only preview: Equipment is
-   an ordinary (if bespoke-styled) editable field like any other, just
-   with a richer option shape than the generic openLov() can render.
-   Insert Mode note (not built yet, §20): same card renders empty
-   ("Tap to select equipment", orange required bar) and does NOT auto-open
-   this sheet — decided this session, applies whenever WO Insert Mode
-   gets built.
+   an ordinary grid field like any other now (rolled into the Header
+   Fields grid 2026-07-24, full-width + always-required), just with a
+   richer option shape (badge icon + desc/code stack) than the generic
+   openLov() renders, and its own onclick calling openEquipmentLookup()
+   instead of openLov() — the one remaining exception. Insert Mode's
+   equivalent field renders empty ("Tap to select equipment") the same
+   way and does NOT auto-open this sheet.
 
    Class icon — per-class, not universal (2026-07-20, 6th pass): only
    classes with a real icon defined in EQUIP_CLASS_ICONS get one. "Valve"
-   deliberately has none, to exercise the fallback this session locked:
-   no icon → no placeholder box, Description/Code/Type render flush left
-   against .equip-summary-main's own padding instead. An unset equipment
-   (Insert Mode's empty state) has no class either, so the same rule
-   applies there — no icon on that state either.
+   deliberately has none, to exercise the fallback: no icon → the
+   .attr-badge-outline box still renders (same as Type/Priority's own
+   badge when their meta lookup misses), just empty inside. An unset
+   equipment (Insert Mode's empty state) has no class either, so the same
+   rule applies there.
    ═══════════════════════════════════════════════════════════════════════ */
-// EQUIP_ICON_SVG/EQUIP_CLASS_ICONS and the card markup itself now live in
+// EQUIP_ICON_SVG/EQUIP_CLASS_ICONS and the value markup itself now live in
 // eam-shared.js's equipSummaryCardHTML() (2026-07-22 convergence with WO
-// Insert Mode, see eam-shared.css's comment) — this is just the RECORD-
-// field glue equipSummaryCardHTML() itself doesn't know about.
+// Insert Mode, rolled into the grid 2026-07-24, see eam-shared.css's
+// comment) — this is just the RECORD-field glue equipSummaryCardHTML()
+// itself doesn't know about.
 function renderEquipCard() {
-  return equipSummaryCardHTML(RECORD.equipment, 'Tap to select equipment', "openEquipmentLookup('equipment')");
+  return equipSummaryCardHTML(RECORD.equipment, 'Tap to select equipment');
 }
 // Equipment LOV glue (§15.5, promoted 2026-07-21 — see eam-shared.js's
 // openEquipmentLookup()/commitEquipmentSelection()): this screen's
@@ -1314,10 +1311,12 @@ function renderRecordViewTab() {
            otherwise. -->
       <div class="sync-error-banner" id="syncErrorBanner"></div>
 
-      <div id="equipCardMount">${renderEquipCard()}</div>
-
       <div class="section-card">
         <div class="equip-attrs">
+          <div class="attr-item full-width required" data-field="equipment" onclick="openEquipmentLookup('equipment')">
+            <span class="attr-label">Equipment</span>
+            <div class="attr-value" id="equipCardMount">${renderEquipCard()}</div>
+          </div>
           ${fieldRowBadgeAttr('type', TYPE_META, true)}
           ${fieldRowBadgeAttr('priority', PRIORITY_META, false)}
         </div>

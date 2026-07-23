@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Equipment LOV — Rolled Into Grid Fields (Mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  EQUIPMENT LOV — ROLLED INTO GRID FIELDS, DOUBLE-WIDE AT TOP (2026-07-24
+  quick mockup, exploratory — nothing locked). Today, WO Record View's
+  Equipment field is its own large standalone .equip-summary-card sitting
+  ABOVE the Header Fields grid (§5.2 D2 "WO Record View exception") — a
+  full bordered card of its own, not a 2-per-row cell. This mockup shows
+  the alternative: Equipment folded directly into the same .equip-attrs
+  grid as the Type/Priority badges right below it, as one .attr-item.
+  full-width row at the top — same trick Notes/Long-text already use to
+  go double-wide in a Grid container.
+
+  "Before" and "After" side by side, both at true mobile cell width, both
+  using the exact real classes (.equip-summary-icon/-info/-desc/-meta/
+  -type, .attr-item/.attr-label/.attr-value, .attr-badge-outline) so the
+  visual weight reads accurately. Self-contained (no eam-shared.css/.js
+  dependency), same lean convention as grid-checkbox-size-alignment-
+  options.html and pill-color-options-editable-vs-protected.html.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --red:#E5484D;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+[data-theme="dark"]{
+  --bg-page:#1A1A1F; --bg-card:#26252B; --bg-section:#302F33; --border:#3E4047; --border-strong:#4A4C55;
+  --gray-1:#2A2930; --gray-2:#3E4047; --gray-3:#6F7480; --gray-4:#B2B8C4; --octave-black:#1A1A1F;
+}
+[data-theme="dark"] body{color:var(--white);}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--octave-black);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:780px;width:100%;color:#fff;font-size:12px;line-height:1.55;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;}
+.legend b{color:#fff;}
+.theme-row{display:flex;gap:8px;margin-bottom:16px;}
+.theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:5px 12px;cursor:pointer;}
+.section-title{max-width:780px;width:100%;color:#fff;font-size:14px;font-weight:700;margin:18px 0 4px;}
+.section-sub{max-width:780px;width:100%;color:rgba(255,255,255,.6);font-size:11px;margin-bottom:12px;}
+.wrap{max-width:780px;width:100%;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;}
+
+.opt-card{background:var(--bg-page);border-radius:14px;padding:14px;width:360px;flex-shrink:0;}
+.opt-title{font-size:12px;font-weight:700;color:var(--octave-black);margin-bottom:8px;}
+[data-theme="dark"] .opt-title{color:var(--white);}
+
+/* ── Real shell, copied verbatim from eam-shared.css ── */
+.section-card{margin:12px 0 0;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.opt-card .section-card{margin:0 0 10px;}
+.equip-attrs{margin:0;background:var(--bg-card);display:grid;grid-template-columns:1fr 1fr;}
+.attr-item{position:relative;padding:12px 14px;display:flex;flex-direction:column;gap:6px;border-right:1px solid var(--border);border-top:1px solid var(--border);cursor:pointer;transition:background .15s;}
+.attr-item:first-child{border-top:none;}
+.attr-item:nth-child(2){border-top:none;}
+.attr-item:hover{background:var(--bg-section);}
+.attr-item:last-child{border-right:none;}
+.attr-item.full-width{grid-column:1/-1;}
+.attr-label{font-size:13px;color:var(--gray-4);}
+.attr-value{display:flex;align-items:center;gap:6px;}
+.attr-text{font-size:14px;font-weight:600;color:var(--octave-black);}
+[data-theme="dark"] .attr-text{color:rgba(255,255,255,.9);}
+.attr-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;flex-shrink:0;}
+.attr-badge-outline{border:1.5px solid var(--border-strong);color:var(--octave-black);}
+[data-theme="dark"] .attr-badge-outline{color:rgba(255,255,255,.9);}
+.attr-badge-critical{background:var(--red);border-color:var(--red);color:#fff;}
+
+/* Standalone Equipment card ("Before" state) */
+.equip-summary-card{margin:0 0 10px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;}
+.equip-summary-main{display:flex;align-items:center;gap:12px;padding:12px 14px;}
+.equip-summary-icon{width:40px;height:40px;border-radius:10px;border:1.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--gray-4);}
+.equip-summary-info{flex:1;min-width:0;}
+.equip-summary-desc{font-size:15px;font-weight:700;color:var(--octave-black);line-height:1.2;}
+[data-theme="dark"] .equip-summary-desc{color:var(--white);}
+.equip-summary-meta{font-family:var(--font-mono);font-size:13px;color:var(--gray-4);margin-top:2px;letter-spacing:.3px;}
+.equip-summary-type{font-size:12px;font-weight:600;color:var(--gray-4);margin-top:3px;}
+.equip-summary-chevron{color:var(--gray-4);flex-shrink:0;}
+
+/* Rolled-in Equipment row ("After" state) — same icon/info pieces, just
+   laid out inside .attr-value instead of its own bordered card. */
+.attr-equip-value{width:100%;justify-content:space-between;}
+.attr-equip-icon{width:36px;height:36px;border-radius:9px;border:1.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--gray-4);}
+.attr-equip-info{flex:1;min-width:0;}
+.attr-equip-desc{font-size:14px;font-weight:700;color:var(--octave-black);line-height:1.2;}
+[data-theme="dark"] .attr-equip-desc{color:rgba(255,255,255,.9);}
+.attr-equip-meta{font-family:var(--font-mono);font-size:12px;color:var(--gray-4);margin-top:2px;letter-spacing:.3px;}
+.attr-equip-type{font-size:11px;font-weight:600;color:var(--gray-4);margin-top:2px;}
+.attr-equip-chevron{color:var(--gray-4);flex-shrink:0;}
+</style>
+</head>
+<body>
+<div class="theme-row">
+  <button class="theme-toggle" onclick="document.documentElement.removeAttribute('data-theme')">☀ Light</button>
+  <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme','dark')">🌙 Dark</button>
+</div>
+<div class="legend">
+  Today (<b>Before</b>): Equipment is its own standalone bordered card
+  sitting above the Header Fields grid — a §5.2 D2 exception, not a
+  2-per-row cell. This mockup (<b>After</b>) folds it directly into that
+  same grid, as one <code>.attr-item.full-width</code> row at the top,
+  right above Type/Priority — same double-wide trick Notes/Long-text
+  already use in a Grid container. Real classes/content throughout
+  (WO 19257's actual equipment: Pump, Centrifugal / 00067333).
+</div>
+
+<div class="wrap">
+
+  <div class="opt-card">
+    <div class="opt-title">Before — standalone card above the grid (today)</div>
+    <div class="equip-summary-card">
+      <div class="equip-summary-main">
+        <div class="equip-summary-icon"><svg width="20" height="20" fill="none" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="equip-summary-info">
+          <div class="equip-summary-desc">Pump, Centrifugal</div>
+          <div class="equip-summary-meta">00067333</div>
+          <div class="equip-summary-type">Asset</div>
+        </div>
+        <svg class="equip-summary-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="section-card">
+      <div class="equip-attrs">
+        <div class="attr-item">
+          <span class="attr-label">Type</span>
+          <div class="attr-value"><span class="attr-badge attr-badge-outline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" stroke-linecap="round"/></svg></span><span class="attr-text">Breakdown</span></div>
+        </div>
+        <div class="attr-item">
+          <span class="attr-label">Priority</span>
+          <div class="attr-value"><span class="attr-badge attr-badge-critical"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01" stroke-linecap="round"/><path d="M10.3 3.9L2.6 17.1c-.5.9.1 2 1.1 2h16.6c1 0 1.6-1.1 1.1-2L13.7 3.9c-.5-.9-1.9-.9-2.4 0z"/></svg></span><span class="attr-text">Critical</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="opt-card">
+    <div class="opt-title">After — rolled into the grid, double-wide at top</div>
+    <div class="section-card">
+      <div class="equip-attrs">
+        <div class="attr-item full-width">
+          <span class="attr-label">Equipment</span>
+          <div class="attr-value attr-equip-value">
+            <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+              <div class="attr-equip-icon"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+              <div class="attr-equip-info">
+                <div class="attr-equip-desc">Pump, Centrifugal</div>
+                <div class="attr-equip-meta">00067333</div>
+                <div class="attr-equip-type">Asset</div>
+              </div>
+            </div>
+            <svg class="attr-equip-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="attr-item">
+          <span class="attr-label">Type</span>
+          <div class="attr-value"><span class="attr-badge attr-badge-outline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" stroke-linecap="round"/></svg></span><span class="attr-text">Breakdown</span></div>
+        </div>
+        <div class="attr-item">
+          <span class="attr-label">Priority</span>
+          <div class="attr-value"><span class="attr-badge attr-badge-critical"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01" stroke-linecap="round"/><path d="M10.3 3.9L2.6 17.1c-.5.9.1 2 1.1 2h16.6c1 0 1.6-1.1 1.1-2L13.7 3.9c-.5-.9-1.9-.9-2.4 0z"/></svg></span><span class="attr-text">Critical</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section-sub" style="margin-top:6px;">
+  Open questions this mockup surfaces, not answered here: whether the
+  Equipment row keeps its own required/protected left-bar treatment same
+  as any other <code>.attr-item</code>; whether the icon shrinks (40px→
+  36px above) to sit comfortably inside the grid's tighter row height;
+  and whether losing the standalone card's own border/shadow reads as a
+  demotion of Equipment's importance on the screen.
+</div>
+
+</body>
+</html>

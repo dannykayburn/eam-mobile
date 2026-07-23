@@ -464,8 +464,6 @@ function onDescTap(event) {
   autoGrow(edit);
   edit.focus();
   edit.setSelectionRange(edit.value.length, edit.value.length);
-  const confirmBtn = document.getElementById('inlineConfirmBtn');
-  if (confirmBtn) confirmBtn.classList.add('show');
 }
 function onDescBlur() {
   const span = document.getElementById('recDesc');
@@ -473,8 +471,6 @@ function onDescBlur() {
   span.textContent = edit.value;
   span.classList.remove('hidden-while-editing');
   edit.classList.remove('editing');
-  const confirmBtn = document.getElementById('inlineConfirmBtn');
-  if (confirmBtn) confirmBtn.classList.remove('show');
   showToast('Saved');
 }
 function autoGrow(ta) {
@@ -1242,15 +1238,294 @@ function discardFromBanner() {
     renderSyncBanner();
   });
 }
+/* ══════════════════════════════════════════════════════════════════════
+   CREATE / INSERT MODE — entity-aware two-pill header (§9.4), promoted
+   here 2026-07-24 (user direction) as the ONE shared implementation every
+   screen's + button invokes, replacing 3 independent copies (Home's own
+   entity-aware build, WO List's separate WO-only build, and Equipment
+   List's total absence of one). ENTITY_META/ENTITY_FIELD_META/
+   ENTITY_FLAT_FIELDS/ENTITY_FLAT_LOV_DATA/ICO were Home-local; this is
+   now the single source of truth every consuming screen's own LOV_DATA/
+   LOV_CURRENT/LOV_TITLES/BADGE_LOV_META/RECORD globals get read into and
+   written back out of, exactly like the generic openLov()/selectLov()
+   engine already does — same "screen-local mutable state, shared code
+   that reads/writes it by name" convention as everywhere else in this
+   file, not a module-import pattern.
+   Every consuming screen's own markup must carry the identical
+   #insertModeSheet shape (entity pill row `#insertEntityPill`/
+   `#fv-insertEntity-icon`/`#fv-insertEntity-desc`, Organization pill
+   `#fv-insertOrganization-code`, Equipment grid row `#insertEquipCard`
+   (the `.attr-item` itself, id-toggled hidden per entity — rolled into
+   the same grid as Type/Status 2026-07-24, no longer its own section-
+   card)/`#insertEquipMount`, Type/Status attrs `#imTypeLabel`/
+   `#fv-insertType-badge`/`#fv-insertType-desc`/`#fv-insertStatus-badge`/
+   `#fv-insertStatus-desc`, Description `#fv-insertDescription`, flat-
+   fields mount `#insertFlatFieldsMount`, Comments `#insertCommentsList`,
+   Save button `#insertSaveBtn`) — copy the shape verbatim, don't
+   re-derive it per screen. ══════════════════════════════════════════ */
+const ICO = k => `<svg width="14" height="14" viewBox="0 0 24 24"><use href="#ico-${k}"/></svg>`;
+const ENTITY_META = {
+  WO:    { desc: 'Work order', icon: 'tool' },
+  EQUIP: { desc: 'Equipment',  icon: 'package' },
+};
+// §23: renderColorBadge() only ever reads `.critical` (never `.color`),
+// and none of these codes is the one Priority-Critical-style exception.
+const ENTITY_FIELD_META = {
+  WO: {
+    typeLabel: 'Type',
+    // Collapsible flat-fields section title (§9.6/§15.5, 2026-07-24) —
+    // matches WO Record View's own real "Work order details" fg-section
+    // verbatim, now that Insert Mode's grid+collapsible shape converges
+    // with the real screen's.
+    flatFieldsLabel: 'Work order details',
+    typeOptions: [
+      { code:'CM', desc:'Corrective Maintenance', icon:ICO('tool') },
+      { code:'PM', desc:'Preventive Maintenance',  icon:ICO('cal-check') },
+      { code:'BK', desc:'Breakdown',               icon:ICO('alert') },
+    ],
+    defaultType: 'CM',
+    statusOptions: [
+      { code:'RELEASED',    desc:'Released',    icon:ICO('check') },
+      { code:'IN_PROGRESS', desc:'In Progress',  icon:ICO('clock') },
+      { code:'HOLD',        desc:'On Hold',      icon:ICO('alert') },
+    ],
+    defaultStatus: 'RELEASED',
+  },
+  EQUIP: {
+    typeLabel: 'Class',
+    // Same title Equipment Record View's own field-group already uses
+    // for this exact content (Department/Criticality/etc.), not invented.
+    flatFieldsLabel: 'Equipment details',
+    typeOptions: [
+      { code:'PUMP',       desc:'Pump',       icon:ICO('droplet') },
+      { code:'VALVE',      desc:'Valve',      icon:ICO('tool') },
+      { code:'COMPRESSOR', desc:'Compressor', icon:ICO('package') },
+    ],
+    defaultType: 'PUMP',
+    statusOptions: [
+      { code:'OPERATIONAL', desc:'Operational', icon:ICO('check') },
+      { code:'DOWN',        desc:'Down',         icon:ICO('alert') },
+      { code:'STANDBY',     desc:'Standby',      icon:ICO('clock') },
+    ],
+    defaultStatus: 'OPERATIONAL',
+  },
+};
+let currentEntity = 'WO';
+// Flat fields (§9.3 point 5), per entity. Regenerated into
+// #insertFlatFieldsMount on every entity switch (renderFlatFields()
+// below), same "re-scope everything below the pill" principle §9.4
+// already documents for Type/Status.
+const ENTITY_FLAT_FIELDS = {
+  WO: [
+    { key:'insertDepartment', label:'Department', required:true },
+    { key:'insertProblemCode', label:'Problem Code', required:true },
+    { key:'insertPriority', label:'Priority', required:false },
+    { key:'insertAssignedTo', label:'Assigned To', required:false },
+    { key:'insertReportedBy', label:'Reported By', required:false },
+    { key:'insertDateReported', label:'Date Reported', required:false, type:'date' },
+  ],
+  EQUIP: [
+    { key:'insertDepartment', label:'Department', required:true },
+    { key:'insertCriticality', label:'Criticality', required:true },
+    { key:'insertManufacturer', label:'Manufacturer', required:false },
+    { key:'insertCategory', label:'Category', required:false },
+    { key:'insertPmWoDepartment', label:'PM WO Department', required:false },
+    { key:'insertAssignedTo', label:'Assigned To', required:false },
+    { key:'insertCostCode', label:'Cost Code', required:false },
+  ],
+};
+const ENTITY_FLAT_LOV_DATA = {
+  WO: {
+    insertDepartment: [{code:'WATER',desc:'Water Utility'},{code:'MAINT',desc:'Maintenance'},{code:'OPS',desc:'Operations'}],
+    insertProblemCode: [{code:'MECH',desc:'Mechanical'},{code:'ELEC',desc:'Electrical'},{code:'HYDRAULIC',desc:'Hydraulic'}],
+    insertPriority: [{code:'LOW',desc:'Low'},{code:'MEDIUM',desc:'Medium'},{code:'HIGH',desc:'High'},{code:'CRITICAL',desc:'Critical'}],
+    insertAssignedTo: [{code:'BCAMPBELL',desc:'Bruce Campbell'},{code:'JRODRIGUEZ',desc:'Juan Rodriguez'},{code:'MKUMAR',desc:'Meera Kumar'}],
+    insertReportedBy: [{code:'DKILBURN',desc:'Danny Kilburn'},{code:'RSMITH',desc:'Rachel Smith'},{code:'PJONES',desc:'Pat Jones'}],
+  },
+  EQUIP: {
+    insertDepartment: [{code:'ENG',desc:'Engineering'},{code:'WATER',desc:'Water Utility'},{code:'MAINT',desc:'Maintenance'},{code:'MECH',desc:'Mechanical'}],
+    insertCriticality: [{code:'1',desc:'1 - Low'},{code:'2',desc:'2 - Medium'},{code:'3',desc:'3 - High'},{code:'4',desc:'4 - Critical'}],
+    insertManufacturer: [{code:'DAYTON',desc:'Dayton Electric Mfg.'},{code:'GRUNDFOS',desc:'Grundfos'},{code:'GOULDS',desc:'Goulds Pumps'}],
+    insertCategory: [{code:'CENTRIFUGAL',desc:'Centrifugal'},{code:'RECIPROCATING',desc:'Reciprocating'}],
+    insertPmWoDepartment: [{code:'',desc:'(none)'},{code:'ENG',desc:'Engineering'},{code:'MAINT',desc:'Maintenance'}],
+    insertAssignedTo: [{code:'BCAMPBELL',desc:'Bruce Campbell'},{code:'JRODRIGUEZ',desc:'Juan Rodriguez'},{code:'MKUMAR',desc:'Meera Kumar'}],
+    insertCostCode: [{code:'100-100',desc:'General Maintenance'},{code:'100-200',desc:'Capital Repair'}],
+  },
+};
+function renderFlatFields() {
+  const fields = ENTITY_FLAT_FIELDS[currentEntity];
+  const lovSets = ENTITY_FLAT_LOV_DATA[currentEntity];
+  fields.forEach(f => { LOV_DATA[f.key] = lovSets[f.key]; LOV_TITLES[f.key] = f.label; LOV_CURRENT[f.key] = ''; RECORD[f.key] = ''; });
+  document.getElementById('insertFlatFieldsMount').innerHTML = fields.map(f => f.type === 'date'
+    ? `<div class="form-field${f.required ? ' required' : ''}" data-field="${f.key}" onclick="openDate('${f.key}','${f.label}')">
+         <span class="field-label">${f.label}</span>
+         <span class="field-value muted" id="fv-${f.key}"></span>
+         <span class="field-chevron">›</span>
+       </div>`
+    : `<div class="form-field${f.required ? ' required' : ''}" data-field="${f.key}" onclick="openLov('${f.key}')">
+         <span class="field-label">${f.label}</span>
+         <div class="field-lov-value"><span class="field-lov-desc muted" id="fv-${f.key}-desc"></span></div>
+         <span class="field-chevron">›</span>
+       </div>`
+  ).join('');
+}
+function renderEntityFields() {
+  const cfg = ENTITY_FIELD_META[currentEntity];
+  document.getElementById('imTypeLabel').textContent = cfg.typeLabel;
+  LOV_TITLES.insertType = cfg.typeLabel;
+  LOV_DATA.insertType = cfg.typeOptions.map(o => ({ code:o.code, desc:o.desc }));
+  BADGE_LOV_META.insertType = Object.fromEntries(cfg.typeOptions.map(o => [o.code, o]));
+  LOV_CURRENT.insertType = cfg.defaultType;
+  const typeOpt = BADGE_LOV_META.insertType[cfg.defaultType];
+  document.getElementById('fv-insertType-badge').outerHTML = renderColorBadge(typeOpt).replace('<span ', '<span id="fv-insertType-badge" ');
+  document.getElementById('fv-insertType-desc').textContent = typeOpt.desc;
+
+  LOV_DATA.insertStatus = cfg.statusOptions.map(o => ({ code:o.code, desc:o.desc }));
+  BADGE_LOV_META.insertStatus = Object.fromEntries(cfg.statusOptions.map(o => [o.code, o]));
+  LOV_CURRENT.insertStatus = cfg.defaultStatus;
+  const statusOpt = BADGE_LOV_META.insertStatus[cfg.defaultStatus];
+  document.getElementById('fv-insertStatus-badge').outerHTML = renderColorBadge(statusOpt).replace('<span ', '<span id="fv-insertStatus-badge" ');
+  document.getElementById('fv-insertStatus-desc').textContent = statusOpt.desc;
+
+  // Equipment reference field — WO entity only (§15.5/§9.3); re-scoping to
+  // Equipment hides it entirely rather than leaving an irrelevant field
+  // visible, same "everything below the pill re-scopes" principle §9.4
+  // already documents for Type/Status. #insertEquipCard is the .attr-item
+  // row itself now (rolled into the grid 2026-07-24) — display:none on a
+  // grid item just drops it from the grid, Type/Status re-flow normally.
+  document.getElementById('insertEquipCard').style.display = currentEntity === 'WO' ? '' : 'none';
+  if (currentEntity === 'WO') renderRefCard('insertEquipment');
+  // Flat-fields collapsible section title (§9.6, 2026-07-24) — same
+  // entity-aware re-labeling as Type/Status above, just for the
+  // .fg-toggle-title instead of an .attr-label.
+  document.getElementById('imFlatFieldsLabel').textContent = cfg.flatFieldsLabel;
+  renderFlatFields();
+  updateInsertSaveGate();
+  // The flat-fields fg-section now has real required fields inside
+  // (§9.6) — refresh its required-count badge whenever the field set
+  // regenerates (entity switch or initial render), same as any other
+  // fg-section already gets on every field mutation.
+  updateRequiredBadges();
+}
+function openEntityPicker() {
+  document.getElementById('lovSheetTitle').textContent = 'Create';
+  document.getElementById('lovClearBtn').classList.add('hidden');
+  document.getElementById('lovSearchRow').classList.add('hidden');
+  document.getElementById('lovSheetBody').innerHTML = Object.entries(ENTITY_META).map(([code, m]) => `
+    <div class="lov-option ${code === currentEntity ? 'selected' : ''}" onclick="selectEntity('${code}')">
+      <div class="lov-option-texts"><div class="lov-option-desc">${m.desc}</div></div>
+      <div class="lov-check ${code === currentEntity ? 'checked' : ''}"></div>
+    </div>`).join('');
+  openSheet('lovSheet');
+}
+function selectEntity(code) {
+  currentEntity = code;
+  document.getElementById('fv-insertEntity-desc').textContent = ENTITY_META[code].desc;
+  document.getElementById('fv-insertEntity-icon').innerHTML = ICO(ENTITY_META[code].icon);
+  closeAllSheets();
+  renderEntityFields();
+  showToast('✓ ' + ENTITY_META[code].desc);
+}
+// Entity pill tap dispatcher — the pill's onclick is always this (never
+// openEntityPicker() directly), so the same markup works whether the pill
+// is editable (Home) or protected/locked (List/Search-originated Create,
+// below). Same "protected field taps show a toast instead of a no-op"
+// convention as every other protected control in this app.
+let insertEntityLocked = false;
+function onEntityPillTap() {
+  if (insertEntityLocked) { showToast('Entity is fixed for this screen'); return; }
+  openEntityPicker();
+}
+// THE one Create entry point every screen's + button calls now (2026-07-24,
+// replacing Home's openInsertModeFromHome() and WO List's local duplicate
+// entirely). Omit lockEntity for Home's own editable two-pill behavior
+// (defaults WO, user can still switch entities). Pass 'WO' or 'EQUIP' for
+// a List/Search-originated Create, where the entity is already implied by
+// which screen you're on: the pill goes .protected (CSS already hides its
+// chevron for that state, same as every other .org-pill.protected) and is
+// pinned to that entity for the rest of this Create.
+function openCreateSheet(lockEntity) {
+  insertEntityLocked = !!lockEntity;
+  currentEntity = lockEntity || 'WO';
+  const pill = document.getElementById('insertEntityPill');
+  if (pill) pill.classList.toggle('protected', insertEntityLocked);
+  document.getElementById('fv-insertEntity-desc').textContent = ENTITY_META[currentEntity].desc;
+  document.getElementById('fv-insertEntity-icon').innerHTML = ICO(ENTITY_META[currentEntity].icon);
+  LOV_CURRENT.insertOrganization = 'ORG1';
+  document.getElementById('fv-insertOrganization-code').textContent = 'ORG1';
+  LOV_CURRENT.insertEquipment = '';
+  const descField = document.getElementById('fv-insertDescription');
+  descField.value = '';
+  descField.style.height = 'auto'; // reset autoGrow() height from any previous open's long value
+  document.getElementById('insertCommentsList').querySelectorAll('.comment-item').forEach(el => el.remove());
+  // Flat-fields collapsible section (§9.6, 2026-07-24) always reopens
+  // collapsed, matching WO Record View's own "Work order details"
+  // fg-section default — not whatever state a previous open was left in.
+  const flatCollapse = document.querySelector('#insertModeSheet .fg-collapse');
+  const flatChev = document.querySelector('#insertModeSheet .fg-chev');
+  if (flatCollapse) flatCollapse.classList.remove('open');
+  if (flatChev) flatChev.classList.remove('open');
+  renderEntityFields();
+  openInsertMode();
+}
 function updateInsertSaveGate() {
   const btn = document.getElementById('insertSaveBtn');
   if (!btn) return;
-  btn.classList.toggle('ready', !!(typeof LOV_CURRENT !== 'undefined' && LOV_CURRENT.insertPriority));
+  const fields = ENTITY_FLAT_FIELDS[currentEntity] || [];
+  let ready = fields.every(f => !f.required || LOV_CURRENT[f.key]);
+  if (currentEntity === 'WO') ready = ready && !!LOV_CURRENT.insertEquipment;
+  // Description is now a required grid field (§9.6, 2026-07-24 — rolled
+  // into the standard grid, same "always required, not just empty-state"
+  // treatment Equipment already has) — gate on it same as any other
+  // required field.
+  const descEl = document.getElementById('fv-insertDescription');
+  ready = ready && !!(descEl && descEl.value.trim());
+  btn.classList.toggle('ready', ready);
 }
+// §9.2 "After Save": navigate to the new record's own Record View in
+// Standard Update Mode via sessionStorage — every entry point (Home,
+// WO List, Equipment List) hands off through this exact same function now.
 function saveInsertRecord() {
-  if (typeof LOV_CURRENT !== 'undefined' && !LOV_CURRENT.insertPriority) { showToast('Priority is required'); return; }
+  const fields = ENTITY_FLAT_FIELDS[currentEntity];
+  for (const f of fields) {
+    if (f.required && !LOV_CURRENT[f.key]) { showToast(f.label + ' is required'); return; }
+  }
+  if (currentEntity === 'WO' && !LOV_CURRENT.insertEquipment) { showToast('Equipment is required'); return; }
+  const opt = (key) => { const o = (LOV_DATA[key] || []).find(o => o.code === LOV_CURRENT[key]); return o ? { code: o.code, desc: o.desc } : null; };
+  const desc = document.getElementById('fv-insertDescription').value;
+  if (!desc.trim()) { showToast('Description is required'); return; }
+  const comments = Array.from(document.querySelectorAll('#insertCommentsList .comment-item')).map(el => ({
+    author: el.querySelector('.comment-author')?.textContent.replace(' (You)', '') || CURRENT_USER_NAME,
+    text: el.querySelector('.comment-text')?.textContent || '',
+  }));
   closeInsertMode();
-  showToast('Record created — coming soon', '✓');
+  if (currentEntity === 'WO') {
+    const woNumber = String(parseInt(localStorage.getItem('eamNextWoNumber') || '19258', 10));
+    localStorage.setItem('eamNextWoNumber', String(parseInt(woNumber, 10) + 1));
+    navigateToNewRecord('eam-wo-record-view-prototype-v1.html', 'eamNewWoRecord', {
+      number: woNumber, desc,
+      department: opt('insertDepartment'), assignedTo: opt('insertAssignedTo'), reportedBy: opt('insertReportedBy'),
+      dateReported: RECORD.insertDateReported || '', problemCode: opt('insertProblemCode'),
+      type: { code: LOV_CURRENT.insertType, desc: document.getElementById('fv-insertType-desc').textContent },
+      status: { code: LOV_CURRENT.insertStatus, desc: document.getElementById('fv-insertStatus-desc').textContent },
+      priority: opt('insertPriority'),
+      equipment: (LOV_DATA.insertEquipment || []).find(o => o.code === LOV_CURRENT.insertEquipment) || null,
+      comments,
+    });
+  } else {
+    const equipNumber = String(parseInt(localStorage.getItem('eamNextEquipNumber') || '67400', 10)).padStart(8, '0');
+    localStorage.setItem('eamNextEquipNumber', String(parseInt(equipNumber, 10) + 1));
+    navigateToNewRecord('eam-equipment-record-view-prototype-v1.html', 'eamNewEquipRecord', {
+      asset: equipNumber, desc,
+      department: opt('insertDepartment'), criticality: opt('insertCriticality'),
+      class: { code: LOV_CURRENT.insertType, desc: document.getElementById('fv-insertType-desc').textContent },
+      category: opt('insertCategory'), manufacturer: opt('insertManufacturer'),
+      pmWoDepartment: opt('insertPmWoDepartment'), assignedTo: opt('insertAssignedTo'), costCode: opt('insertCostCode'),
+      status: { code: LOV_CURRENT.insertStatus, desc: document.getElementById('fv-insertStatus-desc').textContent },
+      organization: { code: LOV_CURRENT.insertOrganization, desc: '' },
+      comments,
+    });
+  }
 }
 let insertDragStartY = null, insertDragDelta = 0;
 function insertDragStart(e) {
@@ -1422,14 +1697,18 @@ function runLovOnClearHook(key) {
 
    Markup (#equipmentPopup/#qrScanOverlay) stays per-screen, same
    convention as #lovSheet/#dateSheet — only this data/CSS/JS is shared.
-   Two ways a screen can consume it:
-   - As a REF_CARD_FIELDS key (Insert Mode's Equipment field) — set
-     `useEquipmentLookup: true` on that key's REF_CARD_FIELDS config;
-     renderRefCard()'s onclick and commitEquipmentSelection() below both
-     already check for it, nothing else needed.
+   Two ways a screen can consume it (both now rolled into the standard
+   Header Fields grid as a full-width/required `.attr-item`, 2026-07-24
+   — see §15.5): a screen's own static markup wires that row's onclick
+   to `openEquipmentLookup(key)` directly, same as any other field's
+   onclick, instead of the generic `openLov(key)`.
+   - As a REF_CARD_FIELDS key (Insert Mode's Equipment field) — the value
+     content renders via renderRefCard()/equipSummaryCardHTML(); picking
+     a result is handled by commitEquipmentSelection() below, which
+     checks `REF_CARD_FIELDS[key]` to route there.
    - As a plain record field (WO Record View's own Equipment field) — the
-     screen calls `openEquipmentLookup('equipment')` itself and supplies
-     two small hooks, same shape as LOV_ON_SELECT/DATE_ON_SELECT:
+     screen supplies two small hooks, same shape as LOV_ON_SELECT/
+     DATE_ON_SELECT:
        const EQUIP_LOOKUP_CURRENT   = { equipment: () => RECORD.equipment };
        const EQUIP_LOOKUP_ON_SELECT = { equipment: (o) => { ... } };
    ══════════════════════════════════════════════════════════════════════ */
@@ -1666,54 +1945,50 @@ function simulateQrScan() {
   const o = EQUIPMENT_LOOKUP_DATA[1];
   commitEquipmentSelection({ code: o.code, desc: o.desc, class: o.class, category: o.category, type: o.type }, 'scan');
 }
-/* ── EQUIPMENT SUMMARY CARD (§15.5) — icon + desc/code/type card, shared
-   by WO Record View's own Equipment field (a plain RECORD field, calls
-   this directly) and WO Insert Mode's Equipment field (a REF_CARD_FIELDS
-   key, via renderRefCard() below). Converged 2026-07-22 (punch-list
-   item) — Insert Mode used to render a differently-shaped card here;
-   now both surfaces are visually identical, same markup either way. */
-const EQUIP_ICON_SVG = '<svg width="20" height="20" fill="none" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+/* ── EQUIPMENT VALUE (§15.5) — badge icon + description/code stack, the
+   .attr-value content for Equipment's row wherever it appears in a
+   Header Fields grid. Shared by WO Record View's own Equipment field (a
+   plain RECORD field, calls this directly) and WO Insert Mode's
+   Equipment field (a REF_CARD_FIELDS key, via renderRefCard() below).
+   Rolled into the standard grid as an ordinary full-width/required
+   .attr-item 2026-07-24 (was its own large standalone bordered card
+   above the grid before this, see design-decisions-v3-1.md §15.5) —
+   same badge + .attr-lov-stack shape any other Badge/Icon + Code+
+   Description field would use elsewhere in a grid. Type is dropped
+   entirely (was a 3rd line, "Asset" — added no identifying value); the
+   icon shrinks to the same 28px .attr-badge-outline every other grid
+   badge field (Type/Priority) already uses, not a bespoke larger size.
+   The ONLY thing that stays special about Equipment: its .attr-item
+   wrapper's onclick calls openEquipmentLookup(key), not openLov(key) —
+   written directly in each screen's own static markup like any other
+   field's onclick, not decided by this function. */
+const EQUIP_ICON_SVG = '<svg width="14" height="14" fill="none" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 const EQUIP_CLASS_ICONS = { Pump: EQUIP_ICON_SVG, Motor: EQUIP_ICON_SVG, Compressor: EQUIP_ICON_SVG, Blower: EQUIP_ICON_SVG };
-function equipSummaryCardHTML(e, emptyLabel, openFn) {
+function equipSummaryCardHTML(e, emptyLabel) {
+  const badge = `<span class="attr-badge attr-badge-outline">${(e && EQUIP_CLASS_ICONS[e.class]) || ''}</span>`;
   if (!e) {
-    return `<div class="equip-summary-card empty" onclick="${openFn}">
-      <div class="equip-summary-main">
-        <div class="equip-summary-info"><div class="equip-summary-desc">${emptyLabel || 'Tap to select equipment'}</div></div>
-        <svg class="equip-summary-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-    </div>`;
+    return `${badge}<span class="attr-text muted">${emptyLabel || 'Tap to select equipment'}</span>`;
   }
-  const classIcon = EQUIP_CLASS_ICONS[e.class];
-  return `<div class="equip-summary-card" onclick="${openFn}">
-    <div class="equip-summary-main">
-      ${classIcon ? `<div class="equip-summary-icon">${classIcon}</div>` : ''}
-      <div class="equip-summary-info">
-        <div class="equip-summary-desc">${e.desc}</div>
-        <div class="equip-summary-meta">${e.code}</div>
-        <div class="equip-summary-type">${e.type}</div>
-      </div>
-      <svg class="equip-summary-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </div>
-  </div>`;
+  return `${badge}<div class="attr-lov-stack"><span class="attr-text">${e.desc}</span><span class="attr-lov-stack-code">${e.code}</span></div>`;
 }
 /* ── REFERENCE CARD FIELDS (§15.5, promoted 2026-07-20) — a field whose
    value is a small record (e.g. WO Insert Mode's Equipment field), not a
    plain code+desc row. Screen provides:
-     REF_CARD_FIELDS = { key: { mountId, emptyLabel, useEquipmentLookup } }
+     REF_CARD_FIELDS = { key: { mountId, emptyLabel } }
    LOV_DATA[key] still drives the picker list (openLov()/filterLovOptions()
    need no changes — they only ever render code+desc); each option's full
-   object is looked up back out of LOV_DATA[key] by code after selection. ── */
+   object is looked up back out of LOV_DATA[key] by code after selection.
+   Equipment is the only real consumer — its .attr-item wrapper's onclick
+   (openEquipmentLookup(key)) is written statically in each screen's own
+   markup (2026-07-24, see equipSummaryCardHTML() above), not decided
+   here, so this function only ever fills the mount's own value content. ── */
 function renderRefCard(key) {
   const cfg = REF_CARD_FIELDS[key];
   const mount = document.getElementById(cfg.mountId);
   if (!mount) return;
-  // Equipment LOV opt-in (§15.5, 2026-07-21) — a ref-card field can use
-  // the full Search+Structure picker instead of the plain generic LOV
-  // sheet by setting useEquipmentLookup:true on its REF_CARD_FIELDS entry.
-  const openFn = cfg.useEquipmentLookup ? `openEquipmentLookup('${key}')` : `openLov('${key}')`;
   const code = LOV_CURRENT[key];
   const opt = code ? LOV_DATA[key].find(o => o.code === code) : null;
-  mount.innerHTML = equipSummaryCardHTML(opt, cfg.emptyLabel, openFn);
+  mount.innerHTML = equipSummaryCardHTML(opt, cfg.emptyLabel);
 }
 function selectLov(code, desc) {
   const key = activeLovKey;
@@ -1821,12 +2096,26 @@ function openEdit(key, label, type) {
   document.getElementById('editSheetTitle').textContent = label;
   document.getElementById('editClearBtn').classList.toggle('hidden', shouldHideClear(key, document.getElementById('fv-'+key)));
   const input = document.getElementById('editSheetInput');
-  input.type = type === 'number' ? 'number' : 'text';
-  input.inputMode = type === 'currency' ? 'decimal' : '';
+  // type is always 'text' now (2026-07-24, real bug) — Number used to get
+  // the native type="number", which on mobile pops a DIFFERENT numeric
+  // keypad than Currency's type="text"+inputMode="decimal" combo (no
+  // decimal point readily available on some platforms' number keypad).
+  // User wants Number to match Currency's keypad exactly, so both now
+  // use the identical text+decimal combo.
+  input.type = 'text';
+  input.inputMode = (type === 'currency' || type === 'number') ? 'decimal' : '';
   input.placeholder = type === 'currency' ? '0.00' : '';
   const raw = document.getElementById('fv-'+key).textContent.replace(/[$,]/g,'');
   input.value = raw;
   openSheet('editSheet');
+  // Real bug, found on a real device (2026-07-24): opening the sheet
+  // never actually focused the input, so the keyboard/keypad only
+  // appeared after a 2nd, separate tap directly on the input. Delay
+  // matches openTextEditor()'s own proven pattern — the sheet is still
+  // sliding in when openSheet() returns, and an immediate focus() can be
+  // dropped by some mobile browsers if the element isn't yet considered
+  // "visible."
+  setTimeout(() => input.focus(), 250);
 }
 function saveEdit() {
   const val = document.getElementById('editSheetInput').value;
@@ -1996,13 +2285,29 @@ function clearDateTime() {
 /* ══════════════════════════════════════════════════════════════════════
    INLINE TEXT (≤255 chars, §3.4) + CHECKBOX (§3.4)
    ══════════════════════════════════════════════════════════════════════ */
-function onInlineFocus() {
-  const btn = document.getElementById('inlineConfirmBtn');
-  if (btn) btn.classList.add('show');
+// No-op as of 2026-07-24 (was: show the bespoke floating green checkmark
+// FAB) — user direction: remove that button entirely from every field, on
+// a real device it duplicated the native mobile keyboard's own confirm/
+// arrow affordances instead of complementing them. Left as a stub rather
+// than hunting down every screen's onfocus="onInlineFocus(this)" markup
+// attribute, which still calls this harmlessly.
+function onInlineFocus() {}
+// Tapping ANYWHERE in an inline-text field's row — not just the textarea
+// itself — always lands the cursor at the end of the existing text, never
+// wherever the tap/click happened to land (the browser's native, otherwise
+// inconsistent default). Same pattern onDescTap() already used for the
+// header description field, generalized 2026-07-23 (user request, "across
+// the board") so every other .field-inline-input consumer gets it too —
+// call sites changed from `this.querySelector('textarea').focus()` to
+// `focusInlineField(this)`.
+function focusInlineField(container) {
+  const ta = container.tagName === 'TEXTAREA' ? container : container.querySelector('textarea');
+  if (!ta) return;
+  autoGrow(ta);
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
 }
 function onInlineBlur(el) {
-  const btn = document.getElementById('inlineConfirmBtn');
-  if (btn) btn.classList.remove('show');
   showToast('Saved');
   updateRequiredBadges();
 }
@@ -2018,7 +2323,15 @@ function updateInlineFieldLayout(input) {
   // 'stacked' class for this reason (correct even before any input
   // event fires); this just keeps it and grows the height as content
   // changes, same autoGrow() technique as the header's own growth.
-  input.closest('.form-field').classList.add('stacked');
+  // Guarded 2026-07-23 — this used to assume a .form-field ancestor always
+  // exists, but Grid cells (.attr-item) now host inline-text fields too and
+  // have no such ancestor at all (their own CSS already forces the same
+  // full-width/left-aligned shape unconditionally, via .attr-item
+  // .field-inline-input, so .stacked is a List-only concept to begin with)
+  // — calling .classList.add() on the null .closest() result threw on every
+  // keystroke in a Grid inline-text field before this guard.
+  const wrap = input.closest('.form-field');
+  if (wrap) wrap.classList.add('stacked');
   autoGrow(input);
 }
 function toggleCheckbox(row) {
@@ -2404,7 +2717,7 @@ function fieldRowEdit(key, label, inputType, required, chevronIcon) {
 function fieldRowInline(key, label, required) {
   const v = RECORD[key] || '';
   const stacked = v.length > 24 ? ' stacked' : '';
-  return `<div class="form-field${required ? ' required' : ''}${stacked}" data-field="${key}" onclick="this.querySelector('textarea').focus()">
+  return `<div class="form-field${required ? ' required' : ''}${stacked}" data-field="${key}" onclick="focusInlineField(this)">
     <span class="field-label">${label}</span>
     <textarea class="field-inline-input" id="inline-${key}" rows="1" maxlength="255" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus(this)" onblur="onInlineBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${v.replace(/</g,'&lt;')}</textarea>
   </div>`;

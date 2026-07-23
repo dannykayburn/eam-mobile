@@ -621,6 +621,39 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .field-value{flex:1;font-size:14px;font-weight:500;color:var(--octave-black);text-align:right;}
 [data-theme="dark"] .field-value{color:rgba(255,255,255,.9);}
 .field-value.muted{color:var(--gray-3);font-size:13px;}
+/* Long-text's collapsed display value, added 2026-07-24 (real bug, found
+   on a real device) — Long-text supports carriage returns while editing
+   (the full-screen textarea always has, nothing prevents Enter there),
+   but the collapsed read-only span never honored them: default
+   white-space:normal collapses \n to a plain space, same as any other
+   run of whitespace, so a multi-paragraph value read as one run-on line.
+   pre-wrap preserves the line breaks AND still wraps long lines; also
+   switches to left-aligned, since a right-aligned multi-line paragraph
+   reads badly (same reasoning Notes/Inline Text already applied). Opt-in
+   via .multiline — every other .field-value consumer (Currency, Number,
+   Date, plain LOV echoes) is single-line by nature and unaffected. */
+.field-value.multiline{white-space:pre-wrap;text-align:left;}
+/* Code-only value, added 2026-07-24 — a plain LOV field that shows only
+   its code (no description at all), reversing the 2026-07-16 "Grid
+   plain-LOV shows description only" rule (§5.2) now that codes are
+   wanted in Grid fields again. Mono, not the smaller muted
+   .attr-lov-stack-code/.field-lov-code sub-label style used when a code
+   sits alongside its own description.
+   Grid size fine-tuned same day — 14px (the normal value size) looked
+   "funky," visually shorter than its two natural row-mates: the 28px
+   .attr-badge icon, and the Code + Description type's own 2-line stack
+   (11px code + 14px description + gap), which already reads about as
+   tall as the badge. 24px, line-height exactly 1 (24px total) — close
+   enough to the 28px badge without a second line to help fill the
+   height. Standard size for THIS field type in Grid everywhere it
+   appears — not a one-off tweak on a single example.
+   List is a deliberate exception (same day) — standard 14px value size,
+   just mono font-family, no size bump. List's own row-mates (a plain
+   .field-chevron, .field-lov-value's 2-line stack) don't create the
+   same "looks short" mismatch the 28px Grid badge did, so there's no
+   reason to inherit Grid's fix. */
+.field-value.mono{font-family:var(--font-mono);}
+.attr-text.mono{font-family:var(--font-mono);font-size:24px;line-height:1;}
 .field-chevron{margin-left:6px;color:var(--gray-3);flex-shrink:0;}
 .field-lock{margin-left:6px;color:var(--gray-3);flex-shrink:0;}
 .field-lov-value{display:flex;flex-direction:column;align-items:flex-end;flex:1;gap:1px;}
@@ -652,15 +685,36 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 [data-theme="dark"] .field-inline-input{color:var(--white);}
 .form-field.stacked{flex-direction:column;align-items:flex-start;gap:4px;}
 .form-field.stacked .field-label{width:auto;}
-.form-field.stacked .field-inline-input{width:100%;text-align:left;}
+/* flex:none added 2026-07-24 — real bug, found on a real device: the base
+   .field-inline-input rule's flex:1 sets flex-basis:0%, which governs the
+   MAIN axis size. In this stacked/column context the main axis is
+   VERTICAL, so flex-basis:0 controls HEIGHT, not width — and because the
+   base rule also sets overflow:hidden, the browser's automatic minimum-
+   size safety net (which would otherwise keep a flex item at least as
+   tall as its content) is suppressed, letting the item collapse toward
+   flex-basis:0 regardless of autoGrow()'s own explicit inline `height`.
+   Net effect: text wrapped internally exactly as expected, but the box
+   never actually grew to show the wrapped lines — they were just clipped.
+   flex:none removes flex-basis from the equation entirely, so the
+   textarea's height is governed by its own (auto, then autoGrow-set)
+   height again, as intended. Same fix applied to the Grid equivalent
+   below. */
+.form-field.stacked .field-inline-input{width:100%;text-align:left;flex:none;}
+/* Grid version — promoted 2026-07-24 from screen-layout-field-behavior-
+   prototype-v1.html's own local override (was exploratory; Notes/
+   Description-in-Grid is a real, load-bearing pattern per that file's
+   Findings, not merely a demo, so this belongs here now). Same flex:none
+   fix as the List/.stacked rule above, same root cause (.attr-item is
+   also a column-direction flex parent). */
+.attr-item .field-inline-input{width:100%;text-align:left;flex:none;}
 .field-inline-input::placeholder{color:var(--gray-3);}
-/* Was blue #3B82F6 — corrected 2026-07-22 (§23), found during the Sample
-   Screen sweep: an arbitrary decorative hue never caught by any earlier
-   purple/orange grep. Same "go ahead" green as .insert-save-btn.ready —
-   this FAB only ever shows once there's something to confirm, so it's
-   inherently always in the "ready" state, not a 4th CTA colour. */
-.inline-confirm-btn{position:absolute;right:16px;bottom:56px;width:52px;height:52px;border-radius:50%;background:var(--green);box-shadow:0 4px 14px rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:250;border:none;cursor:pointer;}
-.inline-confirm-btn.show{display:flex;}
+/* .inline-confirm-btn REMOVED 2026-07-24 — user direction, found on a
+   real device: this bespoke floating green checkmark FAB duplicated the
+   native mobile keyboard's own confirm/arrow affordances instead of
+   complementing them ("arrow duplication"). Removed from every field
+   app-wide — markup deleted from all 4 real consumers, JS calls that
+   showed/hid it are now no-ops (onInlineFocus/onInlineBlur/onDescTap/
+   onDescBlur). Rely on the native OS keyboard's own Done/checkmark. */
 .field-checkbox{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--gray-3);background:var(--bg-card);display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;margin-left:auto;}
 [data-theme="dark"] .field-checkbox{border-color:var(--gray-5);background:var(--bg-section);}
 .field-checkbox.checked{background:var(--octave-black);border-color:var(--octave-black);}
@@ -700,6 +754,17 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    a lock. The org pill's own "required, editable" state (§9.1/§9.3) is
    Insert-Mode-only, a separate case from this one. */
 .org-pill.protected{cursor:default;opacity:.75;background:var(--bg-section);}
+/* Text color, added 2026-07-24 (real bug, found via Insert Mode's
+   protected entity pill on a real device — "washed out, not visible").
+   This rule never set one, so the base .org-pill .field-value{color:#fff}
+   rule kept winning — invisible white text on this variant's own light-
+   gray background. Every existing .protected consumer before this was
+   also .in-header (the header Organization pill), which has its own
+   separate, correct white-on-dark override at the same specificity —
+   :not(.in-header) keeps this fix scoped to the standalone case only, so
+   it can't tie/collide with that rule by source order. */
+.org-pill.protected:not(.in-header) .field-value{color:var(--gray-4);}
+[data-theme="dark"] .org-pill.protected:not(.in-header) .field-value{color:var(--gray-3);}
 .org-pill.protected:hover{border-color:var(--border);}
 .org-pill.protected .org-pill-chevron{display:none;}
 /* In-header placement — sized down slightly from the standalone pill so
@@ -715,6 +780,21 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .org-pill.in-header{padding:8px 12px;gap:6px;background:transparent;border-color:rgba(255,255,255,.85);opacity:1;}
 .org-pill.in-header:hover{border-color:rgba(255,255,255,.85);}
 .org-pill.in-header .field-value{color:rgba(255,255,255,.92);}
+
+/* ── INSERT MODE two-pill header (§9.4) — chains the Screen/entity pill
+   in front of the Organization pill, same .org-pill component reused for
+   both. Promoted here 2026-07-24 (was Home-local only) — Create is now
+   ONE shared implementation every screen's + button invokes
+   (openCreateSheet(), eam-shared.js), so this markup/CSS is a real,
+   multi-consumer shared component, not a single-screen local one anymore.
+   The entity pill's .protected state (List/Search-originated Create,
+   locked to that screen's entity) reuses .org-pill.protected verbatim —
+   no separate rule needed, its chevron already auto-hides the same way
+   every other protected org-pill's does. ── */
+.im-pill-row{display:flex;align-items:center;gap:8px;padding:14px 16px 6px;flex-wrap:wrap;}
+.im-pill-connector{color:var(--gray-3);flex-shrink:0;display:flex;}
+.im-pill-connector svg{width:13px;height:13px;}
+.im-entity-pill svg{width:13px;height:13px;color:var(--gray-4);}
 
 /* ── List Search Screen standard — the generic card (§8.3, locked
    2026-07-20, unified across WO List/Search and every child tab the same
@@ -802,6 +882,9 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .attr-badge:empty{display:none;}
 .attr-text{font-size:14px;font-weight:600;color:var(--octave-black);}
 [data-theme="dark"] .attr-text{color:rgba(255,255,255,.9);}
+/* Grid equivalent of .field-value.multiline above — already left-aligned
+   by default, so only white-space needs the override. */
+.attr-text.multiline{white-space:pre-wrap;}
 
 .caption{padding:6px 14px 12px;font-size:11px;color:var(--gray-4);line-height:1.4;background:var(--bg-section);border-bottom:1px solid var(--border);}
 .caption b{color:var(--octave-black);}
@@ -838,34 +921,30 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .insert-save-btn.danger-ready{background:var(--red);color:white;cursor:pointer;box-shadow:0 4px 16px rgba(228,75,74,.25);}
 .insert-save-btn.danger-ready:hover{background:#ff6060;}
 
-/* ── EQUIPMENT SUMMARY CARD (§15.5, converged 2026-07-22 — punch-list
-   item) — icon + desc/code/type card for a field whose value is an
-   Equipment reference: WO Record View's own Equipment field AND WO
-   Insert Mode's Equipment field (WO List's own Create, Home's WO-entity
-   Create) now all render this exact same card. Previously WO Insert
-   Mode used a differently-shaped `.equip-card` (headline/subline/attrs
-   table) — an earlier iteration of WO Record View's own Equipment
-   display that WO Record View itself had already moved off of; Insert
-   Mode never got the memo, so the two screens visibly diverged ("a
-   previous design," per the user's own description). `.equip-card` is
-   now gone — promoted here verbatim from eam-wo-record-view-prototype-
-   v1.html, the one real remaining consumer's own prior local copy.
-   Rendering lives in eam-shared.js's equipSummaryCardHTML(), called by
-   both renderEquipCard() (WO Record View, plain RECORD field) and
-   renderRefCard() (Insert Mode, REF_CARD_FIELDS); selection reuses the
-   existing openLov()/selectLov()/openEquipmentLookup() sheet either way. ── */
-.equip-summary-card{margin:0;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:background .15s;position:relative;}
-.equip-summary-card:hover{background:var(--bg-section);}
-.equip-summary-main{display:flex;align-items:center;gap:12px;padding:12px 14px;}
-.equip-summary-icon{width:40px;height:40px;border-radius:10px;background:none;border:1.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--gray-4);}
-.equip-summary-info{flex:1;min-width:0;}
-.equip-summary-desc{font-size:15px;font-weight:700;color:var(--octave-black);line-height:1.2;}
-[data-theme="dark"] .equip-summary-desc{color:var(--white);}
-.equip-summary-meta{font-family:var(--font-mono);font-size:13px;color:var(--gray-4);margin-top:2px;letter-spacing:.3px;}
-.equip-summary-type{font-size:12px;font-weight:600;color:var(--gray-4);margin-top:3px;}
-.equip-summary-chevron{color:var(--gray-4);flex-shrink:0;}
-.equip-summary-card.empty .equip-summary-desc{color:var(--gray-4);font-weight:600;}
-.equip-summary-card.empty::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
+/* ── EQUIPMENT GRID ROW (§15.5, rolled into the standard grid 2026-07-24
+   — was its own large standalone bordered card above the grid before
+   this, see design-decisions-v3-1.md §15.5) — Equipment is now an
+   ordinary full-width/required .attr-item, same badge+.attr-lov-stack
+   shape any other Badge/Icon + Code+Description grid field uses: WO
+   Record View's own Equipment field AND WO Insert Mode's Equipment
+   field (WO List's own Create, Home's WO-entity Create) both render via
+   eam-shared.js's equipSummaryCardHTML(), called by renderEquipCard()
+   (WO Record View, plain RECORD field) and renderRefCard() (Insert
+   Mode, REF_CARD_FIELDS) — no bespoke card CSS left, .attr-badge-
+   outline/.attr-lov-stack below are real shared components used
+   elsewhere too. The ONLY thing still special about Equipment: its
+   .attr-item wrapper's onclick calls openEquipmentLookup(key) instead
+   of openLov(key) — written statically per screen, same as any other
+   field's onclick. ── */
+/* ── LOV — Code + Description, Grid stack (promoted 2026-07-24 from
+   screen-layout-field-behavior-prototype-v1.html's exploratory copy —
+   Equipment's own desc/code display is now a real 2nd consumer).
+   Order locked 2026-07-23 (user decision): description over code, Grid
+   LOVs only — List's .field-lov-value keeps its own pre-existing
+   code-over-description order, unchanged. ── */
+.attr-lov-stack{display:flex;flex-direction:column;gap:2px;}
+.attr-lov-stack-code{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--gray-4);line-height:1.2;}
+.attr-text.muted{color:var(--gray-3);}
 
 /* ── HYPERLINKED POPUP (added 2026-07-16) — a full-screen sheet that slides
    up from the bottom to show a record reached by tapping a "link" field
@@ -1111,6 +1190,33 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    picking one and living with a mismatch in the other. */
 .form-field .time-input{font-size:14px;font-weight:500;}
 .attr-value .time-input{font-size:14px;font-weight:600;}
+/* Text-align override REMOVED 2026-07-24 (was added 2026-07-23) — user
+   direction: List is always right-aligned, no exceptions, full stop; if
+   Grid's base .time-input rule also renders right by default that's
+   fine too, no special-casing needed either way. Both contexts now fall
+   through to the base .time-input{text-align:right} rule above,
+   uniformly. (Separately noted on a real device: the native <input
+   type=time> control rendered centered in Grid regardless of which
+   text-align value was in effect — a likely platform limitation, same
+   category as the documented 24-hour/lang="en-GB" quirk, accepted as-is
+   now that there's no override left to chase instead.) */
+/* Checkbox, Grid version — decided 2026-07-24, superseding the 2026-07-23
+   centered-in-value-row treatment entirely. User compared 7 options live
+   (prototypes/standalone/mockups/grid-checkbox-size-alignment-options.html
+   — 4 variants of the stacked/centered shape at 2 sizes, 3 variants of a
+   dedicated-right-zone row shape) and picked option 6: a single row (not
+   the stacked label-above/checkbox-below shape every other Grid field
+   uses), label on the left, a fixed ~28%-wide zone on the right holding a
+   medium (24px) checkbox — same idea as a settings-app toggle row.
+   Markup: <div class="attr-item checkbox-zone-row" ...><span
+   class="attr-label">...</span><div class="attr-checkbox-zone"><div
+   class="field-checkbox">...</div></div></div> — no .attr-value wrapper
+   needed (that class was for text values; the zone wrapper replaces it
+   for this field type specifically). */
+.attr-item.checkbox-zone-row{flex-direction:row;align-items:center;justify-content:space-between;}
+.attr-item.checkbox-zone-row .attr-label{flex:1;}
+.attr-checkbox-zone{width:28%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.attr-checkbox-zone .field-checkbox{width:24px;height:24px;}
 .text-editor-sheet{height:88vh;max-height:88vh;}
 .text-editor-header{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);gap:10px;}
 .text-editor-left{display:flex;align-items:center;gap:10px;flex-shrink:0;min-width:30px;}

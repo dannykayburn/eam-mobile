@@ -1629,6 +1629,330 @@ become a re-investigation every time it comes up.
   tool access denied again this turn; re-check both new tiles navigate
   correctly and that the Favorites label actually disappears/reappears
   next time this area is touched.
+- **New file, 2026-07-23: `screen-layout-field-behavior-prototype-v1.html`
+  — Grid vs. List field-type consolidation exercise, findings still
+  pending your review, nothing locked yet.** Triggered by WO Closing's
+  Activity Completed checkbox (§15.2) being the first field of any type
+  ever placed inside the Header Fields grid (`.attr-item`) instead of a
+  plain List row (`.form-field`) — it worked by luck (`toggleCheckbox()`/
+  `.field-checkbox` never cared which container it sat in), which raised
+  the real question this file answers for every field type, not just
+  Checkbox. Dummy Record View header (code/description/org/status) above
+  two containers: a header-less "Field Grid Container" (matches today's
+  legacy Header Fields grid) and a titled "Collapsible Container"
+  (`.fg-section`), each holding one example of all 14 field types in the
+  same order — Notes/Description forced full-width and pinned first per
+  this session's own new rule (a double-wide field can't be one of a
+  2-up grid pair). A Findings panel at the bottom states, per type,
+  whether Grid and List already agree (Currency/Number/Date/Date-Time/
+  Time Only/Checkbox/Identifier LOV — Checkbox turned out to need zero
+  new rule at all), deliberately diverge on purpose (Description-Only
+  LOV — Grid-only per the 2026-07-16 code+desc-default rule), or are
+  genuinely open questions this file is the first to surface (Badge/Icon
+  LOV and Protected in a List row; plain Code+Description LOV in a Grid
+  cell; Long-text's Grid full-width landing being coincidental, not a
+  real rule the way Notes now has). Several new CSS classes
+  (`.attr-item.protected`, `.attr-lov-stack`, `.field-badge-inline`,
+  `.attr-text.muted`) are exploratory and screen-local on purpose — do
+  not promote them to `eam-shared.css` until the relevant Finding is
+  actually decided. Also surfaced 2 real pre-existing bugs, neither
+  fixed as part of this exercise (flagged in-file/to-user instead):
+  `setFieldValue()` is called by the Time Only field in both
+  `sample-screen-standard-model-prototype.html` and Book Labor but is
+  never defined anywhere in the app; and that same canonical file's
+  Department field (and every other `.attr-item` LOV) has no
+  `LOV_TITLES` entry and uses `.attr-label` not `.field-label`, so
+  `openLov()`'s title fallback silently shows the raw data key instead
+  of a real label — avoided in the new file via explicit `LOV_TITLES`
+  entries, not fixed at the source. **Not live-verified in a browser
+  this session** — preview tool access was denied throughout; re-check
+  visually (both themes, every field type in both containers, both
+  required examples' left-bar, the Protected/Badge exploratory CSS)
+  next time this file is touched, and get your call on each open
+  Finding before promoting anything into design-decisions-v3-1.md.
+- **Screen Layout / Field Behavior file, follow-up pass, same day
+  (2026-07-23) — first round of Findings reviewed, several decided.**
+  Badge/Icon LOV in a List row: approved, icon leads (left of the
+  description), promote `.field-badge-inline` to `eam-shared.css`.
+  Protected in a Grid cell: approved with one change — lock icon moved
+  onto the label's own row (new `.attr-label-row`) instead of sitting
+  next to the value below it, so it's genuinely "in the same row as the
+  label" the way List's single-row `.form-field.protected` already is.
+  Long-text: locked to explicit `.attr-item.full-width`, not left to the
+  odd-item-out coincidence. **"LOV — Code + Description" and "LOV —
+  Identifier" are the same field type going forward** — code +
+  description only, no separate "Identifier" name — but the stack ORDER
+  (code-over-description, today's default, vs. description-over-code)
+  is still the user's own open call: added a 2nd "(desc/code)" example
+  of each, right after the original pair, in both containers (file now
+  shows 16 field-type examples per container, not 14), so both orders
+  can be compared side by side before this goes into design-decisions-
+  v3-1.md. Nothing in this bullet is written into the design doc yet —
+  still pending the user's final order decision.
+- **Screen Layout / Field Behavior file, 3rd follow-up pass, same day
+  (2026-07-23) — remaining decisions made, plus real cross-cutting
+  fixes promoted straight to the shared files.** LOV stack order for
+  Grid is now decided: description over code, locked (List's own
+  `.field-lov-value` keeps its pre-existing code-over-description order,
+  untouched — this was scoped to Grid LOVs only). The comparison "(desc/
+  code)" rows added in the prior pass were removed now that the call is
+  made — file is back to 14 field-type examples per container. Checkbox
+  in Grid now centers (`.attr-item .field-checkbox{margin-left:auto;
+  margin-right:auto;}`) instead of inheriting the List-only right-
+  alignment. Time Only in Grid now left-aligns (`.attr-value .time-input
+  {text-align:left;}`) to match every other Grid value — its base
+  `.time-input` rule is right-aligned, correct for List, but Grid has no
+  such convention. **Real cross-cutting change, not scoped to this one
+  file:** inline-text fields (short and long, every real screen) now
+  always land the cursor at the end of existing text on tap, regardless
+  of where in the row the tap lands — new `focusInlineField()` in
+  `eam-shared.js` (mirrors `onDescTap()`'s already-proven pattern for the
+  header description field), replacing `this.querySelector('textarea')
+  .focus()` at all 6 real call sites (Home, WO List, WO Record View,
+  Activity Checklist, Sample Screen, this new file) plus the shared
+  `fieldRowInline()` template (Equipment RV's Alias/Serial/Model, Custom
+  Fields' text-type fields). **Real bug found and fixed doing this:**
+  `updateInlineFieldLayout()` unconditionally called `.classList.add()`
+  on `input.closest('.form-field')` with no null check — harmless in
+  every pre-existing List context, but throws on every keystroke in a
+  Grid inline-text field, which has no `.form-field` ancestor at all;
+  now guarded. Checkbox/Time-Only/inline-text changes are all promoted
+  directly to `eam-shared.css`/`.js` (real shared-component rules, not
+  exploratory) — only the LOV stack-order CSS stays local to this file's
+  own `<style>` block pending the Findings panel's remaining open items.
+  **Not yet live-verified in a browser this session** — re-check on the
+  LAN preview (phone) next open, especially: tapping an inline-text
+  field's padding vs. its textarea lands the cursor at the end either
+  way; typing in a Grid inline-text field no longer throws; Grid's
+  Checkbox/Time Only render centered/left-aligned; Grid's two LOV
+  examples show description above code.
+- **Screen Layout / Field Behavior file, 4th follow-up pass, 2026-07-24
+  (user-reported on a real device) — 2 real bugs, both real fixes
+  promoted to `eam-shared.css`, neither caught by the prior passes'
+  static review since both needed genuinely long/multi-line content
+  typed into a field to surface.**
+  1. **Inline Text / Notes still visibly cut off long values instead of
+     growing taller.** Root cause was a flexbox min-size gotcha, not a
+     missing `autoGrow()` call: `.field-inline-input`'s base rule sets
+     `flex:1` (→ `flex-basis:0%`, governs the MAIN axis size) *and*
+     `overflow:hidden`; inside a column-direction parent (List's
+     `.form-field.stacked`, Grid's `.attr-item`) the main axis is
+     vertical, so `flex-basis:0` controlled height — and `overflow:hidden`
+     suppresses the browser's automatic content-based minimum-size
+     safety net, letting the box collapse toward 0 regardless of
+     `autoGrow()`'s own explicit inline height. Fixed with `flex:none` on
+     both the `.form-field.stacked .field-inline-input` and `.attr-item
+     .field-inline-input` override rules — the Grid rule was previously
+     local-only to this file, now promoted to `eam-shared.css` alongside
+     the List fix. Never caught before because no existing real screen's
+     inline-text field had ever been tested with content long enough to
+     wrap onto multiple lines.
+  2. **Long-text's collapsed display never honored carriage returns.**
+     The full-screen editor already allowed Enter to insert a line break
+     (nothing blocked it), and the underlying value already stored `\n`
+     correctly (`saveTextEditor()` just assigns the raw string to
+     `textContent`) — only the read-only collapsed `<span>` failed to
+     show them, since default `white-space:normal` collapses `\n` to a
+     plain space like any other whitespace run. New `.field-value
+     .multiline` / `.attr-text.multiline` modifier (`white-space:pre-
+     wrap`, plus left-align on `.field-value` since a right-aligned
+     paragraph reads badly) fixes both containers in this file and the
+     canonical `sample-screen-standard-model-prototype.html`'s own Long
+     Note field — the only other real single-field Long-text consumer
+     (Comments/Closing Comments are a different, always-expanded-
+     textarea component, not affected).
+  Both Notes/Description and Long-text examples in this file now carry
+  real multi-line sample content (was an empty "Tap to add…" placeholder
+  for Long-text, which couldn't have demonstrated either bug). **Also
+  found, flagged, not fixed:** `sample-screen-standard-model-prototype.
+  html`'s own Insert Mode `insertDescription` field (line ~391) still
+  uses the old `openTextEditor()`/Long-text popup pattern — the real
+  screens (Home, WO List) already converted their equivalent field to
+  the standard inline text field per this session's earlier decision
+  (see the "Near-final punch-list pass" bullet above), but the canonical
+  reference file itself was never updated to match its own documented
+  rule. Not touched this pass — out of scope for what was asked, flagged
+  here so it isn't lost.
+  **Not yet live-verified in a browser this session** — preview tool
+  access was denied again; the user is testing live via the LAN phone
+  preview instead, which is what surfaced both bugs above in the first
+  place.
+- **Browser preview tools are admin-disabled, confirmed 2026-07-24 —
+  see [[feedback_no_browser_preview]] memory.** Not a per-call fluke;
+  don't keep retrying `preview_start`/`preview_list`/etc. Verify via
+  static code review + the user's own LAN phone testing instead.
+- **Grid checkbox — 7-option mockup, then locked in, 2026-07-24.** New
+  `prototypes/standalone/mockups/grid-checkbox-size-alignment-options
+  .html` — a "Multiple Equipment" checkbox shown 7 ways (4 variants of
+  the stacked shape at 2 sizes/2 alignments, 3 variants of a new
+  dedicated-right-zone row shape), built as a mockup rather than
+  embedded in the comparison file directly (cheaper — no dummy header/
+  sheets/Findings panel needed, and matches this project's own
+  established convention for exploring options before picking one). User
+  picked option 6 (single row, ~28%-wide right zone, medium 24px
+  checkbox) — promoted to `eam-shared.css` as `.attr-item.checkbox-zone-
+  row`/`.attr-checkbox-zone`, superseding the 2026-07-23 centered-in-
+  value-row treatment entirely. Applied to the one real consumer too:
+  WO Record View's Activity Edit popup, Completed checkbox —
+  `toggleCheckbox()` needed no changes either time.
+- **Screen Layout / Field Behavior file, 5th follow-up pass, 2026-07-24
+  (same session, more real-device testing) — several real fixes,
+  2 promoted app-wide, 1 reverses a locked design-doc rule.**
+  - **Currency/Number edit sheet, 2 real bugs.** `openEdit()` never
+    focused its input at all — the keyboard only appeared after a 2nd,
+    separate tap directly on the input. Fixed with the same delayed-
+    focus pattern `openTextEditor()` already used
+    (`setTimeout(()=>input.focus(),250)`). Separately, Number used
+    native `type="number"`, which pops a different mobile keypad than
+    Currency's `type="text"`+`inputMode="decimal"` combo — both now use
+    the identical combo per user request ("Number needs the same keypad
+    Currency does").
+  - **Time Only — reversed the 2026-07-23 Grid-only left-align.** User
+    restated the rule directly: List is always right-aligned, no
+    exceptions; if Grid defaults to right too, that's fine, no special-
+    casing needed either direction. The `.attr-value .time-input{text-
+    align:left}` override is removed entirely from `eam-shared.css`;
+    both containers now inherit the same base right-aligned rule. Also
+    noted: the native `<input type=time>` rendered *centered* in Grid on
+    a real device regardless of which text-align value was in effect —
+    accepted as a platform limitation (same category as the documented
+    24-hour/`lang="en-GB"` quirk), not chased further now that there's
+    no override left to suspect instead.
+  - **"LOV — Code Only" replaces "LOV — Description Only" entirely —
+    real reversal of a locked design-doc rule, not just this file.**
+    design-decisions-v3-1.md §5.2's 2026-07-16 "Grid's plain-LOV items
+    show description only, no code" is reversed by direct user
+    decision: codes are wanted in Grid fields now. Doc updated in place
+    (inline correction, matching this row's own established style of
+    appending same-row corrections rather than relocating to §21). New
+    `.field-value.mono`/`.attr-text.mono` modifier in `eam-shared.css`
+    (mono font, normal value size/weight — same as any other identifier
+    field, not the smaller muted sub-label style). **Real screen not yet
+    swept:** `eam-equipment-record-view-prototype-v1.html`'s own
+    Department field — the original example behind the now-reversed
+    rule — still shows description-only. Flagged, not touched.
+  - **Removed the bespoke floating green checkmark
+    (`.inline-confirm-btn`) from every field, app-wide.** User report,
+    real device: it duplicated the native mobile keyboard's own confirm/
+    arrow affordances ("arrow duplication"). Markup deleted from all 4
+    real consumers (this file, Sample Screen, WO Record View, Equipment
+    Record View); `onInlineFocus()` is now a no-op stub (existing
+    `onfocus="onInlineFocus(this)"` attributes left in place rather than
+    hunted down across every screen — harmless), `onInlineBlur()`/
+    `onDescTap()`/`onDescBlur()` no longer reference the button. Rely on
+    the native OS keyboard's own Done/checkmark instead.
+  - **Badge/Icon LOV in a List row — investigated, code confirmed
+    correct via static re-read, no bug found.** User reported the icon
+    not appearing next to the value in the List. Re-checked the markup,
+    `.field-badge-inline`/`.attr-badge`/`.attr-badge-outline` CSS, and
+    the flex layout end-to-end — nothing wrong found; the icon SVG is
+    inline in the static markup (fixed in an earlier pass), sized,
+    coloured via `currentColor`, and has room in the row. Likely
+    explanation: the phone's browser cache serving a pre-fix copy from
+    earlier in this session (`serve`'s default static-asset caching) —
+    not something to fix in code. Re-check after a hard refresh.
+  **Not yet live-verified in a browser this session** — preview tools
+  are admin-disabled (see above); the user's own LAN phone testing is
+  the only real verification path now.
+- **Screen Layout / Field Behavior file, 6th follow-up pass, 2026-07-24
+  — real device screenshots from an iPhone confirmed 3 of the 5th
+  pass's items and surfaced one genuine platform limitation.**
+  - **`.mono` fine-tuned twice more:** line-height set to exactly `1`
+    (was `1.2`) per direct request. Then a deliberate List exception
+    added: List's "LOV — Code Only" stays standard 14px value size,
+    mono font-family only (`.field-value.mono`) — List's own row-mates
+    (a plain chevron, a 2-line stack) don't create the "looks short"
+    mismatch the 28px Grid badge did, so it doesn't need Grid's size
+    bump. `.attr-text.mono` (Grid) keeps 24px/line-height 1.
+  - **Badge / Icon LOV rebuilt, real bug confirmed by screenshot.** The
+    nested-flex-wrapper approach (`.field-badge-inline` as its own
+    `justify-content:flex-end` div) rendered the badge detached near the
+    label instead of grouped with the value, exactly as reported.
+    Rebuilt using the same proven `margin-left:auto` trick
+    `.field-checkbox` already uses — badge is now a plain sibling of
+    `.field-value`, no wrapper div, one flex context instead of two.
+  - **Time Only — confirmed as a real iOS platform limitation, not a
+    CSS bug, not chased further.** Both containers now resolve to the
+    identical `text-align:right` at the CSS level (verified correct on
+    desktop) — but on the user's real iPhone, Grid still shows the
+    native control centered and List shows it left-aligned, regardless.
+    `<input type="time">` renders as a fully native OS control on iOS
+    Safari; its internal segment layout doesn't reliably honor
+    `text-align` at all, full stop — same control, same category as the
+    already-documented 24-hour/`lang="en-GB"` quirk. No further CSS
+    attempts are planned; nothing from page CSS can reach inside a
+    native-rendered control's own layout.
+  **Not yet re-verified after this pass** — preview tools are admin-
+  disabled; next real-device check is on the user.
+- **Insert Mode converged onto ONE shared implementation, 2026-07-24
+  (user direction) — see design-decisions-v3-1.md §9.6 for the full
+  write-up.** Was 3 independent Create builds, one per screen: Home's
+  entity-aware two-pill version, WO List's own separate WO-only version
+  (hardcoded fields, no entity pill), and Equipment List's total absence
+  of one. Now: `eam-shared.js`'s `openCreateSheet(lockEntity)` is the ONE
+  entry point every screen's `+`/Create action calls — `ENTITY_META`/
+  `ENTITY_FIELD_META`/`ENTITY_FLAT_FIELDS`/`ENTITY_FLAT_LOV_DATA`/
+  `renderEntityFields()`/`renderFlatFields()`/`updateInsertSaveGate()`/
+  `saveInsertRecord()` all promoted there (were Home-local, or
+  independently duplicated by WO List with a different shape).
+  `.im-pill-row`/`.im-entity-pill`/`.im-pill-connector` CSS promoted to
+  `eam-shared.css` too (was Home-local).
+  - **Home's Create bar** — `openCreateSheet()`, unchanged behavior:
+    entity pill editable, defaults Work Order.
+  - **WO List's own `+`** (both its screens) — `openCreateSheet('WO')`.
+    Its entire separate Insert Mode build is gone: local `TYPE_META`/
+    `INSERT_STATUS_META`/`renderInsertBadge()`/`initInsertModeDefaults()`
+    and local `updateInsertSaveGate()`/`saveInsertRecord()` overrides all
+    deleted, hardcoded flat-fields markup replaced by the same
+    `#insertFlatFieldsMount` every other consumer uses. Entity pill is
+    now `.org-pill.protected` (chevron auto-hides, same as any other
+    protected org-pill — no new CSS needed) and locked to Work Order;
+    tapping it shows a toast instead of opening the entity picker.
+  - **Equipment List gained its first-ever Create entry point** — `+` on
+    both its List and Search screens, `openCreateSheet('EQUIP')`. Needed
+    the full `#insertModeSheet` markup plus the adjacent lovSheet/
+    equipmentPopup/qrScanOverlay/dateSheet/textEditorSheet blocks added
+    from scratch (none existed before). No `REF_CARD_FIELDS.
+    insertEquipment` entry here (Equipment entities have no equipment-
+    reference field pointing at themselves — that's WO-only), so its
+    `currentEntity` is set to `'EQUIP'` explicitly before its own eager
+    pre-render call — the shared default (`'WO'`) would otherwise try to
+    render that card and throw.
+  **Not yet live-verified in a browser this session** — preview tools
+  are admin-disabled; re-check on the LAN phone preview next open, all 5
+  entry points (Home ×2 entities, WO List ×2 screens, Equipment List ×2
+  screens) — pill editable/protected states, Save end to end.
+- **Insert Mode follow-up pass, same day — see design-decisions-v3-1.md
+  §9.7 for the full write-up.** Closes the gap between §9.6's shell
+  convergence and WO Record View's own separate §15.5 Equipment
+  convergence (Equipment rolled into its `.equip-attrs` grid as a
+  full-width required cell, already done in Home/WO List before this
+  pass — only Equipment List's copy still needed the same fix, applied
+  here even though it's always hidden there).
+  - **Protected entity pill contrast, real bug fixed.**
+    `.org-pill.protected` never set its own text color — invisible white
+    text on its own light-gray background, since every prior consumer
+    was also `.in-header` (a separate, correct override). Fixed with
+    `.org-pill.protected:not(.in-header) .field-value{color:var(
+    --gray-4)}` (`--gray-3` dark theme).
+  - **Description rolled into the grid, pinned first, now required** —
+    same "always double-wide, always first" rule the field-behavior
+    reference file locked; real validation added to
+    `updateInsertSaveGate()`/`saveInsertRecord()`, which had nothing
+    checking it before.
+  - **Flat fields are now a real collapsible `.fg-section`** (was a bare
+    `.section-card`, no toggle at all) — matches WO Record View's own
+    "Work order details" section exactly, starts collapsed
+    (`openCreateSheet()` resets it every fresh open), entity-aware title
+    (`ENTITY_FIELD_META[x].flatFieldsLabel`), required-count badge now
+    refreshes via a new `updateRequiredBadges()` call in
+    `renderEntityFields()`.
+  - **Order flagged, not explicitly specified:** Description placed
+    before Equipment (both full-width) — revisit if the intended order
+    was reversed.
+  **Not yet live-verified in a browser this session** — same admin-
+  disabled constraint; re-check grid order, required left-bars, collapsed
+  default, and pill contrast in both themes next open.
 - `prototypes/standalone/shared/eam-shared.css` and `eam-shared.js` hold
   every generic component's CSS/JS (headers, sheets, LOV/date/text-editor
   pickers, Comments/Documents, required-field badges, etc.) — loaded via

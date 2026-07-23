@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HxGN EAM Mobile — Screen Layout &amp; Field Behavior</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-shared.css">
+<!--
+  SCREEN LAYOUT / FIELD BEHAVIOR REFERENCE — new 2026-07-23, a consolidation
+  exercise, not a real screen. Triggered by WO Closing's Activity Completed
+  checkbox (eam-wo-record-view-prototype-v1.html) being the first field of
+  any type ever placed inside the Header Fields grid (.attr-item) instead
+  of a plain List row (.form-field) — that one worked by pure luck (the
+  shared toggleCheckbox()/.field-checkbox component never cared which
+  container it sat in), which raised the real question this file answers:
+  for EVERY field type, does Grid vs. List rendering already have an
+  established rule, or is it untested/exception territory?
+
+  Two containers below hold one example of every field type — same set,
+  same order, same demo values (key-prefixed g_ / l_ so they don't share
+  DOM ids) — followed by a Findings panel at the bottom stating, per type,
+  whether Grid and List already agree, deliberately diverge (and why), or
+  are an open call this file surfaces for the first time. Several cells
+  below use small new CSS classes (.attr-item.protected, .attr-lov-stack,
+  .field-badge-inline, .attr-text.muted, .attr-item .field-inline-input)
+  added in THIS file's own <style> block, not eam-shared.css — they're
+  exploratory combinations with no locked rule yet; promote only the ones
+  the Findings panel's calls actually confirm.
+
+  Follow-up pass, same day, first round of Findings reviewed: Badge/Icon
+  LOV (List), Protected (Grid), and Long-text's full-width rule are now
+  DECIDED — see each one's own updated Finding below. "LOV — Code +
+  Description" and "LOV — Identifier" are also decided to be the same
+  field type going forward (code + description, no separate "Identifier"
+  name).
+
+  2nd follow-up pass, same day: LOV stack ORDER is now DECIDED for Grid
+  only — description over code, locked — after briefly comparing both
+  orders side by side via a 2nd "(desc/code)" example pair (now removed,
+  decision made). List's own .field-lov-value keeps its pre-existing
+  code-over-description order untouched — this decision was scoped to
+  Grid LOVs specifically. Also this pass: Checkbox in Grid now centers
+  (.attr-item .field-checkbox, eam-shared.css) instead of inheriting the
+  List-only right-alignment; Time Only in Grid now left-aligns to match
+  every other Grid value (.attr-value .time-input, eam-shared.css) —
+  its base .time-input rule is right-aligned, correct for List, but
+  Grid has no such convention, so Time Only was the one value quietly
+  fighting it. And: inline-text fields (short and long, both containers)
+  now always land the cursor at the end of existing text on tap,
+  regardless of where in the row the tap lands — new focusInlineField()
+  in eam-shared.js, replacing every screen's old
+  `this.querySelector('textarea').focus()` onclick (6 real screens plus
+  the shared fieldRowInline() template). Found and fixed a real bug
+  along the way: updateInlineFieldLayout() (eam-shared.js) assumed a
+  .form-field ancestor always exists and threw on every keystroke in a
+  Grid inline-text field, which has none — now guarded. Field count per
+  container is back to 14 (the 2 "(desc/code)" comparison rows were
+  removed once the order was decided).
+
+  3rd follow-up pass, 2026-07-24, user-reported on a real device — 2 real
+  bugs the static review in this session's earlier passes missed
+  entirely (both needed genuinely long/multi-line content to surface,
+  which no prior pass actually typed into a field to check). (1)
+  Inline Text/Notes were still visibly cutting off long values instead
+  of growing taller — root cause was a flexbox min-size gotcha
+  (.field-inline-input's flex:1 + overflow:hidden inside the column-
+  direction .stacked/.attr-item parents), not a missing autoGrow() call;
+  fixed with flex:none on both List and Grid override rules, promoted to
+  eam-shared.css (the Grid rule was previously local-only here). (2)
+  Long-text's collapsed display never honored carriage returns — the
+  data and the full-screen editor both already supported them fine, only
+  the read-only span's default white-space:normal was collapsing them;
+  new .multiline modifier (eam-shared.css) fixes it here and on the
+  canonical sample-screen-standard-model-prototype.html's Long Note
+  field, the only other real single-field Long-text consumer. See the
+  Findings panel for both write-ups in full.
+
+  4th follow-up pass, 2026-07-24, same session — a punch list from more
+  real-device testing, several real cross-cutting fixes:
+  - Checkbox in Grid: superseded again — see grid-checkbox-size-
+    alignment-options.html (7 options compared live), user picked #6:
+    dedicated right-hand zone (~28%), medium (24px), single row, not the
+    stacked shape. New .attr-item.checkbox-zone-row/.attr-checkbox-zone
+    in eam-shared.css, replacing the centered-in-value-row rule entirely.
+    Applied to the one real consumer too (WO Record View's Activity Edit
+    popup, Completed checkbox).
+  - Time Only: the Grid-only left-align override added in the 2nd
+    follow-up pass is REMOVED — user direction: List is always right-
+    aligned, no exceptions, and Grid defaulting to right too is fine, no
+    special-casing needed. Real device also showed the native time
+    control rendering centered in Grid regardless of the CSS value —
+    accepted as a platform limitation, same category as the documented
+    24-hour/lang="en-GB" quirk.
+  - Currency/Number edit sheet: 2 real bugs. openEdit() never focused its
+    input at all, so the keyboard only appeared after a 2nd manual tap;
+    fixed with the same delayed-focus pattern openTextEditor() already
+    used. Number used native type="number" (a different mobile keypad
+    than Currency's type="text"+inputMode="decimal"); both now use the
+    identical text+decimal combo per user request.
+  - "LOV — Code Only" replaces "LOV — Description Only" entirely — real
+    design reversal (design-decisions-v3-1.md §5.2's 2026-07-16 "Grid
+    shows description only, no code" rule no longer holds; codes are
+    wanted in Grid fields now). Mono font, normal value size — new
+    .mono modifier on .field-value/.attr-text. Real screens not yet
+    swept: WO Record View's own Department field (the original example
+    behind that rule) still shows description-only.
+  - Removed the bespoke floating green checkmark (.inline-confirm-btn)
+    from every field, app-wide (4 real screens: this file, Sample
+    Screen, WO Record View, Equipment Record View) — user report: it
+    duplicated the native mobile keyboard's own confirm/arrow
+    affordances ("arrow duplication"). onInlineFocus/onInlineBlur/
+    onDescTap/onDescBlur no longer reference it.
+-->
+<style>
+/* ── Exploratory-only additions for this consolidation exercise. Each is
+   a combination (field type × container) with no existing precedent
+   anywhere in the app — see the Findings panel at the bottom of this file
+   for the specific call each one is standing in for. Do NOT copy these
+   into eam-shared.css until the relevant Finding is actually decided. ── */
+
+/* Protected field, Grid version — no .attr-item.protected exists yet
+   anywhere; mirrors .form-field.protected's exact recipe (gray tint,
+   dimmed, no pointer) onto a grid cell. Decided 2026-07-23: lock icon
+   sits on the label's own row (List's single-row .form-field already
+   puts it "in the same row as the label" trivially — Grid's 2-row
+   column layout didn't, until now). */
+.attr-item.protected{background:var(--bg-section);opacity:.75;cursor:default;}
+[data-theme="dark"] .attr-item.protected{background:rgba(255,255,255,.03);}
+.attr-text.muted{color:var(--gray-3);font-weight:500;}
+.attr-label-row{display:flex;align-items:center;gap:6px;}
+
+/* LOV — Code + Description, Grid version — decided 2026-07-23: stacked,
+   description over code (order locked after a brief side-by-side
+   comparison, since removed). List's own .field-lov-value keeps its
+   pre-existing code-over-description order, untouched — this order
+   decision was scoped to Grid LOVs specifically. "LOV — Identifier" is
+   the same field type as "LOV — Code + Description" in our terminology
+   going forward (code+description only, no separate "Identifier" name) —
+   kept as a 2nd example below only because the naming consolidation
+   doesn't retroactively merge the two rows.
+   .attr-lov-stack/.attr-lov-stack-code themselves are promoted to
+   eam-shared.css now (2026-07-24 — Equipment's own desc/code row in the
+   real grid became a 2nd real consumer), not re-declared here. */
+
+/* Badge / Icon LOV, List version — no plain .form-field row anywhere
+   carries an icon badge; every real badge-style field (Type, Priority)
+   only ever exists inside the Grid.
+   Rebuilt 2026-07-24 (real bug, found on a real device) — the original
+   approach wrapped {badge, value} in their own nested flex div
+   (justify-content:flex-end) inside .form-field's own flex row. On a
+   real device the badge rendered detached near the label instead of
+   grouped with the value — a nested flex context here wasn't reliable.
+   Switched to the same proven margin-left:auto trick .field-checkbox
+   already uses elsewhere in this app: the badge is now a plain sibling
+   of .field-value (no wrapper div at all), pushed to the right edge by
+   its own margin, with a fixed gap before the value that follows it —
+   one flex context (.form-field's own), not two. */
+.field-badge-inline{margin-left:auto;margin-right:8px;}
+
+/* Inline Text / Notes, Grid version — promoted to eam-shared.css
+   2026-07-24 (real bug fix, not just this local override — see that
+   file's own comment on .attr-item .field-inline-input for the actual
+   flexbox root cause found on a real device). Nothing left to override
+   here. */
+</style>
+</head>
+<body>
+
+<div class="proto-theme-bar">
+  <span class="proto-theme-label">Preview theme</span>
+  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+</div>
+
+<div class="app" id="app">
+  <header class="nav" onclick="scrollFormToTop()">
+    <div class="nav-left">
+      <button class="nav-back" onclick="event.stopPropagation();navBack()"><svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <span class="prototype-label">PROTOTYPE</span>
+    </div>
+    <div class="nav-title">Screen Layout &amp; Field Behavior</div>
+    <div class="nav-actions">
+      <span id="syncCtrl"></span>
+    </div>
+  </header>
+
+  <!-- Dummy record header (code, description, org, status) — same pattern
+       as sample-screen-standard-model-prototype.html's own header; not
+       the subject of this file, just the required scaffolding around it. -->
+  <div class="rec-header" id="recHeader" onclick="onRecHeaderTap(event)">
+    <div class="rec-id-row">
+      <div class="rec-id-text">
+        <span class="rec-num" id="recNum">CODE-001</span>
+        <span class="rec-desc" id="recDesc" onclick="onDescTap(event)">[Click in here] Dummy record used only to carry the standard header — code, description, org, status. Not the subject of this file.</span>
+        <textarea class="rec-desc-edit" id="recDescEdit" maxlength="255" oninput="autoGrow(this)" onblur="onDescBlur()"></textarea>
+      </div>
+      <div class="rec-header-actions">
+        <button class="rec-ellipsis-btn" id="recEllipsisBtn" onclick="event.stopPropagation(); toggleRecActionsMenu()" aria-label="More actions">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+        </button>
+        <div class="rec-actions-menu" id="recActionsMenu">
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Example only — this file has no real record actions')">Example action</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="rec-status-row" id="recStatusRow">
+      <div class="rec-status-row-inner">
+        <button class="rec-status-btn st-operational" id="recStatusBtn" onclick="openLov('__status')">
+          <span id="recStatusBtnText">Operational</span>
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="org-pill protected in-header" data-field="organization">
+          <span class="field-value" id="fv-organization-code">ORG1</span>
+          <svg class="org-pill-chevron" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══════════════════════════════════════════════════════════════
+         FIELD GRID CONTAINER — header-less, always open (matches today's
+         legacy Header Fields grid, .attr-item/.equip-attrs, per this
+         session's own decision — a generic "Field Grid Section" WOULD get
+         a collapsible title row in Screen Designer's newer model, but this
+         file demonstrates the plainer, already-real pattern instead).
+         Notes/Description is forced full-width and pinned first (locked
+         rule, this session — a double-wide field can't be one of a 2-up
+         pair); Long-text is also explicitly full-width and trails last
+         (locked 2026-07-23, see the Findings panel — not relying on
+         landing on an odd count). The 12 fields in between pair up
+         2-per-row. ══════════════════════════════════════════════════ -->
+    <div class="caption" style="margin:10px 12px 0;"><b>Field Grid Container</b> — one example of every field type, 2-per-row. Field labels are the type name, not a real business field, so the two containers below can be compared type-for-type.</div>
+    <div class="section-card">
+      <div class="equip-attrs">
+
+        <div class="attr-item full-width" data-field="g_notes" onclick="focusInlineField(this)">
+          <span class="attr-label">Notes / Description</span>
+          <textarea class="field-inline-input" id="fv-g_notes" rows="1" maxlength="255" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus(this)" onblur="onInlineBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">Sample notes text — this field type is always double-wide, regardless of container.</textarea>
+        </div>
+
+        <div class="attr-item" data-field="g_badge" onclick="openLov('g_badge')">
+          <span class="attr-label">Badge / Icon LOV</span>
+          <div class="attr-value">
+            <span class="attr-badge attr-badge-outline" id="fv-g_badge-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/></svg></span>
+            <span class="attr-text" id="fv-g_badge-desc">Alpha</span>
+          </div>
+        </div>
+        <div class="attr-item" data-field="g_lovCode" onclick="openLov('g_lovCode')">
+          <span class="attr-label">LOV — Code Only</span>
+          <div class="attr-value"><span class="attr-text mono" id="fv-g_lovCode-code">C01</span></div>
+        </div>
+
+        <!-- Order locked 2026-07-23 (user decision): description over
+             code, Grid LOVs only — List's .field-lov-value keeps its own
+             pre-existing code-over-description order, unchanged. -->
+        <div class="attr-item required" data-field="g_lovCodeDesc" onclick="openLov('g_lovCodeDesc')">
+          <span class="attr-label">LOV — Code + Description</span>
+          <div class="attr-lov-stack">
+            <span class="attr-text" id="fv-g_lovCodeDesc-desc">General Maintenance</span>
+            <span class="attr-lov-stack-code" id="fv-g_lovCodeDesc-code">100-100</span>
+          </div>
+        </div>
+        <div class="attr-item" data-field="g_lovId" onclick="openLov('g_lovId')">
+          <span class="attr-label">LOV — Identifier</span>
+          <div class="attr-lov-stack">
+            <span class="attr-text" id="fv-g_lovId-desc">Bruce Campbell</span>
+            <span class="attr-lov-stack-code" id="fv-g_lovId-code">BCAMPBELL</span>
+          </div>
+        </div>
+
+        <div class="attr-item" data-field="g_inline" onclick="focusInlineField(this)">
+          <span class="attr-label">Inline Text</span>
+          <textarea class="field-inline-input" id="fv-g_inline" rows="1" maxlength="255" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus(this)" onblur="onInlineBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">Sample text</textarea>
+        </div>
+        <div class="attr-item" data-field="g_currency" onclick="openEdit('g_currency','Currency','currency')">
+          <span class="attr-label">Currency</span>
+          <div class="attr-value"><span class="attr-text" id="fv-g_currency">$1,250.00</span></div>
+        </div>
+
+        <div class="attr-item" data-field="g_number" onclick="openEdit('g_number','Number','number')">
+          <span class="attr-label">Number</span>
+          <div class="attr-value"><span class="attr-text" id="fv-g_number">42</span></div>
+        </div>
+        <div class="attr-item required" data-field="g_date" onclick="openDate('g_date','Date')">
+          <span class="attr-label">Date</span>
+          <div class="attr-value"><span class="attr-text" id="fv-g_date">07/20/2026</span></div>
+        </div>
+
+        <div class="attr-item" data-field="g_dateTime" onclick="openDateTime('g_dateTime','Date/Time')">
+          <span class="attr-label">Date/Time</span>
+          <div class="attr-value"><span class="attr-text" id="fv-g_dateTime">07/20/2026 · 14:30</span></div>
+        </div>
+        <div class="attr-item" data-field="g_time">
+          <span class="attr-label">Time Only</span>
+          <div class="attr-value"><input class="time-input" type="time" lang="en-GB" id="fv-g_time" value="08:00"></div>
+        </div>
+
+        <div class="attr-item checkbox-zone-row" data-field="g_checkbox" onclick="toggleCheckbox(this)">
+          <span class="attr-label">Checkbox</span>
+          <div class="attr-checkbox-zone"><div class="field-checkbox checked" id="fv-g_checkbox-box"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></div></div>
+        </div>
+        <div class="attr-item protected" data-field="g_protected">
+          <div class="attr-label-row">
+            <span class="attr-label">Protected</span>
+            <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <div class="attr-value"><span class="attr-text muted" id="fv-g_protected">SYS-0001</span></div>
+        </div>
+
+        <div class="attr-item full-width" data-field="g_longtext" onclick="openTextEditor('g_longtext','Edit Long-text')">
+          <span class="attr-label">Long-text</span>
+          <div class="attr-value"><span class="attr-text multiline" id="fv-g_longtext">First line of a long-text value.
+Second line — carriage returns are preserved here, unlike Inline Text.</span></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         COLLAPSIBLE CONTAINER — .fg-section/.fg-toggle-row/.fg-collapse,
+         same shell as Equipment's Asset/Equipment/Tracking Details and
+         Custom Fields. Same 14 field-type examples, same order, as plain
+         List rows (.form-field) instead of grid cells. ═══════════════ -->
+    <div class="fg-section">
+      <div class="fg-toggle-row" onclick="toggleFg(this)">
+        <span class="fg-toggle-title">Collapsible Container</span>
+        <svg class="fg-chev open" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="fg-collapse open">
+
+        <div class="form-field stacked" data-field="l_notes" onclick="focusInlineField(this)">
+          <span class="field-label">Notes / Description</span>
+          <textarea class="field-inline-input" id="fv-l_notes" rows="1" maxlength="255" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus(this)" onblur="onInlineBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">Sample notes text — already full-width by default in a List row; the double-wide rule only has visible effect in Grid.</textarea>
+        </div>
+
+        <div class="form-field" data-field="l_badge" onclick="openLov('l_badge')">
+          <span class="field-label">Badge / Icon LOV</span>
+          <span class="attr-badge attr-badge-outline field-badge-inline" id="fv-l_badge-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/></svg></span>
+          <span class="field-value" id="fv-l_badge-desc">Alpha</span>
+          <span class="field-chevron">›</span>
+        </div>
+
+        <div class="form-field" data-field="l_lovCode" onclick="openLov('l_lovCode')">
+          <span class="field-label">LOV — Code Only</span>
+          <span class="field-value mono" id="fv-l_lovCode-code">C01</span>
+          <span class="field-chevron">›</span>
+        </div>
+
+        <div class="form-field required" data-field="l_lovCodeDesc" onclick="openLov('l_lovCodeDesc')">
+          <span class="field-label">LOV — Code + Description</span>
+          <div class="field-lov-value"><span class="field-lov-code" id="fv-l_lovCodeDesc-code">100-100</span><span class="field-lov-desc" id="fv-l_lovCodeDesc-desc">General Maintenance</span></div>
+          <span class="field-chevron">›</span>
+        </div>
+
+        <div class="form-field" data-field="l_lovId" onclick="openLov('l_lovId')">
+          <span class="field-label">LOV — Identifier</span>
+          <div class="field-lov-value"><span class="field-lov-code" id="fv-l_lovId-code">BCAMPBELL</span><span class="field-lov-desc" id="fv-l_lovId-desc">Bruce Campbell</span></div>
+          <span class="field-chevron">›</span>
+        </div>
+
+        <div class="form-field stacked" data-field="l_inline" onclick="focusInlineField(this)">
+          <span class="field-label">Inline Text</span>
+          <textarea class="field-inline-input" id="fv-l_inline" rows="1" maxlength="255" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus(this)" onblur="onInlineBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">Sample text</textarea>
+        </div>
+
+        <div class="form-field" data-field="l_currency" onclick="openEdit('l_currency','Currency','currency')">
+          <span class="field-label">Currency</span>
+          <span class="field-value" id="fv-l_currency">$1,250.00</span>
+          <span class="field-chevron">›</span>
+        </div>
+
+        <div class="form-field" data-field="l_number" onclick="openEdit('l_number','Number','number')">
+          <span class="field-label">Number</span>
+          <span class="field-value" id="fv-l_number">42</span>
+          <span class="field-chevron">›</span>
+        </div>
+
+        <div class="form-field required" data-field="l_date" onclick="openDate('l_date','Date')">
+          <span class="field-label">Date</span>
+          <span class="field-value" id="fv-l_date">07/20/2026</span>
+          <span class="field-chevron">›</span>
+        </div>
+
+        <div class="form-field" data-field="l_dateTime" onclick="openDateTime('l_dateTime','Date/Time')">
+          <span class="field-label">Date/Time</span>
+          <span class="field-value" id="fv-l_dateTime">07/20/2026 · 14:30</span>
+          <span class="field-chevron">›</span>
+        </div>
+
+        <div class="form-field" data-field="l_time">
+          <span class="field-label">Time Only</span>
+          <input class="time-input" type="time" lang="en-GB" id="fv-l_time" value="08:00">
+        </div>
+
+        <div class="form-field" data-field="l_checkbox" onclick="toggleCheckbox(this)">
+          <span class="field-label">Checkbox</span>
+          <div class="field-checkbox checked" id="fv-l_checkbox-box"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+        </div>
+
+        <div class="form-field protected">
+          <span class="field-label">Protected</span>
+          <span class="field-value muted">SYS-0001</span>
+          <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+
+        <div class="form-field" data-field="l_longtext" onclick="openTextEditor('l_longtext','Edit Long-text')">
+          <span class="field-label">Long-text</span>
+          <span class="field-value multiline" id="fv-l_longtext">First line of a long-text value.
+Second line — carriage returns are preserved here, unlike Inline Text.</span>
+          <span class="field-chevron">›</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         FINDINGS — the actual deliverable of this exercise. One row per
+         field type: what Grid does, what List does, and whether that's
+         already consistent/locked, a deliberate divergence, or an open
+         call this file is the first to surface. Tap either container's
+         field above to see the behavior a Finding refers to. ═══════ -->
+    <div class="caption" style="margin:14px 12px 0;"><b>Findings — Grid vs. List consolidation</b> (2026-07-23). Confirms what's already consistent, flags real exceptions, and calls out open questions this file is the first to surface — nothing below is locked into design-decisions-v3-1.md yet pending your review.</div>
+
+    <div class="caption"><b>Notes / Description — locked, this session.</b> Always double-wide. In Grid that's a real rule (<code>.attr-item.full-width</code>, forced regardless of position — placed first here so it never depends on landing on an odd count). In List it's a no-op, since every List row is already full-width — the rule only has visible teeth in Grid.</div>
+
+    <div class="caption"><b>Badge / Icon LOV — decided, 2026-07-23; rebuilt 2026-07-24, real bug found on a real device.</b> Allowed in a List row, icon leading (left of the description), grouped with it at the right edge of the row. The first build wrapped {badge, value} in their own nested flex div (<code>justify-content:flex-end</code>) — on a real device the badge rendered detached near the label instead of grouped with the value. Rebuilt using the same proven <code>margin-left:auto</code> trick <code>.field-checkbox</code> already uses elsewhere: the badge is now a plain sibling of <code>.field-value</code>, no wrapper div, one flex context instead of two. Grid: unchanged, already the real Type/Priority pattern.</div>
+
+    <div class="caption"><b>LOV — Code Only — replaces "LOV — Description Only" entirely, 2026-07-24 (real design reversal, not just this file).</b> Design-decisions-v3-1.md §5.2 locked "Grid's plain-LOV items show description only, no code" on 2026-07-16, reasoning that Grid LOVs are reference-data lookups being surfaced prominently, not identifiers. That's now reversed by direct user decision: codes ARE wanted in Grid fields, so there is no "description only" LOV type at all — a plain Grid LOV either shows a code (this type) or the badge/stacked code+description types above. Mono in both containers, but the SIZE now deliberately diverges between them (both same day): <b>Grid</b> — 14px looked visually short next to its row-mates (the 28px badge icon, and Code + Description's own 2-line stack) — <code>.attr-text.mono</code> is font-size 24px, line-height exactly 1, as its standard, documented size, not a one-off tweak on this one example. <b>List</b> — a deliberate exception, standard 14px value size, still mono font-family only (<code>.field-value.mono</code>) — List's own row-mates (a plain chevron, a 2-line stack) don't create the same "looks short" mismatch the 28px Grid badge did, so it doesn't inherit Grid's size bump. <b>Real screens not yet updated:</b> WO Record View's own Department field (the Header Fields grid's original description-only example, §5.2) still shows description-only — flagged, not touched this pass, since this file's scope was the field-TYPE comparison, not a sweep of every real screen using the old rule.</div>
+
+    <div class="caption"><b>LOV — Code + Description / Identifier — decided, 2026-07-23.</b> Same field type going forward ("code + description," no separate "Identifier" name) — kept as 2 examples here only because the naming consolidation doesn't retroactively change which is which yet. Stacked is the standard shape in both containers. Stack order: <b>Grid locks to description-over-code</b> (the two examples above now render this way — was code-over-description in the first pass, flipped after a brief side-by-side comparison, now removed). <b>List is unchanged</b> — its pre-existing <code>.field-lov-value</code> stays code-over-description, since this decision was scoped to Grid LOVs specifically, not applied app-wide.</div>
+
+    <div class="caption"><b>Inline Text / Notes — decided, 2026-07-23; a 2nd, more serious real bug found and fixed 2026-07-24 on an actual device.</b> Tapping anywhere in the row (not just the textarea itself) always lands the cursor at the end of the existing text, matching the header description field's own already-proven pattern (<code>onDescTap()</code>) — <code>focusInlineField()</code> in eam-shared.js, replacing the old <code>this.querySelector('textarea').focus()</code> onclick everywhere it appeared (6 real screens plus the shared <code>fieldRowInline()</code> template). <b>Wrapping/height bug:</b> long values were visibly cutting off instead of growing the row taller — root cause was a flexbox gotcha, not a missing autoGrow() call: <code>.field-inline-input</code>'s base <code>flex:1</code> sets <code>flex-basis:0%</code>, which governs the MAIN axis size; inside a column-direction parent (List's <code>.stacked</code>, Grid's <code>.attr-item</code>) the main axis is vertical, so flex-basis:0 controlled HEIGHT — and because the same rule also sets <code>overflow:hidden</code>, the browser's automatic content-based minimum-size safety net was suppressed, letting the box collapse toward 0 regardless of <code>autoGrow()</code>'s own explicit inline height. Fixed with <code>flex:none</code> on both the List and Grid override rules (eam-shared.css) — never caught before because no existing real screen's inline-text field had ever been tested with genuinely long, multi-line-wrapping content.</div>
+
+    <div class="caption"><b>Currency / Number / Date / Date/Time — consistent, no exception.</b> All four are identical in Grid and List — same sheets, same formatting, same required left-bar recipe (<code>.attr-item.required::before</code> already mirrors <code>.form-field.required</code> exactly, confirmed live above on the two required examples).</div>
+
+    <div class="caption"><b>Time Only — reversed, 2026-07-24: right-aligned everywhere, no exceptions in the CSS; confirmed as a real iOS platform limitation, not chasing it further.</b> The 2026-07-23 pass added a Grid-only left-align override (<code>.attr-value .time-input{text-align:left}</code>) — removed entirely; both containers now inherit the identical base <code>.time-input{text-align:right}</code> rule, uniformly, no exceptions in the actual CSS. On a real iOS device, the rendered result still doesn't match that rule in either container: Grid shows the native control centered, List shows it left-aligned — despite both now resolving to the exact same <code>text-align:right</code> at the CSS level, confirmed on desktop (right-aligned correctly there, this is not a CSS authoring mistake). This is a known WebKit/iOS limitation, not fixable from page CSS: <code>&lt;input type="time"&gt;</code> renders as a fully native OS control on iOS Safari, and its internal segment layout doesn't reliably honor <code>text-align</code> at all — same category as the already-documented 24-hour/<code>lang="en-GB"</code> quirk on this exact control. Accepted as-is; no further CSS attempts planned, since none can reach inside a native-rendered control's own layout.</div>
+
+    <div class="caption"><b>Checkbox — decided, 2026-07-24, after comparing 7 options live on a real device.</b> Superseded both the original (2026-07-23) centered-in-value-row treatment and this file's earlier "fully consistent, no change needed" framing — the user asked to see more of the design space first (<a href="mockups/grid-checkbox-size-alignment-options.html">grid-checkbox-size-alignment-options.html</a>: 4 variants of the stacked shape at 2 sizes/2 alignments, 3 variants of a dedicated-right-zone row shape) and picked option 6: single row, label left, a fixed ~28%-wide zone on the right holding a medium (24px) checkbox — new <code>.attr-item.checkbox-zone-row</code>/<code>.attr-checkbox-zone</code> in eam-shared.css, replacing the old centering rule entirely. Applied to the one real consumer too (WO Record View's Activity Edit popup, Completed checkbox) — <code>toggleCheckbox()</code> needed no changes, same as before.</div>
+
+    <div class="caption"><b>Protected — decided, 2026-07-23, approved with one change from the first pass.</b> <code>.attr-item.protected</code> is good; the lock icon moved onto the label's own row (<code>.attr-label-row</code>, new) instead of sitting next to the value below it — List's single-row <code>.form-field.protected</code> already put the lock "in the same row as the label" trivially (it's one row total), Grid's 2-row column layout didn't until this change. Ready to promote to eam-shared.css.</div>
+
+    <div class="caption"><b>Long-text — decided, 2026-07-23: locked explicit, not left to coincidence; a real carriage-return bug found and fixed 2026-07-24.</b> <code>.attr-item.full-width</code> is applied directly regardless of position, matching Notes/Description's own rule — not relying on the "odd item spans the row" fallback the original 13-field count happened to trigger. <b>Carriage-return bug:</b> Long-text's full-screen editor already supported Enter-key line breaks (nothing ever blocked it), and the underlying value already stored them (<code>saveTextEditor()</code> just assigns the raw string to <code>textContent</code>) — but the COLLAPSED display span never rendered them: default <code>white-space:normal</code> collapses <code>\n</code> to a plain space like any other whitespace run, so a multi-line value read as one run-on line. New <code>.multiline</code> modifier (<code>white-space:pre-wrap</code>, plus left-align on <code>.field-value</code> since a right-aligned paragraph reads badly) fixes both containers here and the canonical <code>sample-screen-standard-model-prototype.html</code>'s own Long Note field, the only other real single-field Long-text consumer.</div>
+
+    <div class="caption"><b>Cross-cutting note: a real pre-existing bug, not part of this comparison.</b> The Time Only example above intentionally omits an <code>onchange</code> handler — the canonical <code>sample-screen-standard-model-prototype.html</code>'s own Start Time field calls <code>setFieldValue(this,this.value)</code>, a function that doesn't exist anywhere in this app (also referenced, equally broken, in Book Labor). Harmless today (the native input still displays its own value), but flagged here rather than silently copied into a 3rd file.</div>
+
+  </div>
+
+  <!-- ── SHEETS (shared component markup — behavior lives in eam-shared.js) ── -->
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <div class="bottom-sheet" id="syncPanelSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Sync Status</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sync-panel-state" id="syncPanelStateLabel"></div>
+    <div class="sheet-body" id="syncPanelList"></div>
+    <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
+  </div>
+
+  <div class="bottom-sheet" id="lovSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="lovSheetTitle">Select value</div>
+      <button class="sheet-clear-btn" id="lovClearBtn" onclick="clearLov()">Clear</button>
+    </div>
+    <div class="lov-search-row" id="lovSearchRow">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input class="lov-search-input" id="lovSearchInput" placeholder="Search" oninput="filterLovOptions(this.value)">
+    </div>
+    <div class="sheet-body" id="lovSheetBody"></div>
+  </div>
+
+  <div class="bottom-sheet" id="editSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="editSheetTitle">Edit field</div>
+      <button class="sheet-clear-btn" id="editClearBtn" onclick="clearEdit()">Clear</button>
+    </div>
+    <div class="edit-input-wrap"><input class="edit-input" id="editSheetInput" type="text" oninput="sanitizeCurrencyInput(this)"></div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveEdit()">Save</button></div>
+  </div>
+
+  <div class="bottom-sheet" id="dateSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="dateSheetTitle">Select date</div>
+      <button class="sheet-clear-btn" id="dateClearBtn" onclick="clearDate()">Clear</button>
+    </div>
+    <div class="sheet-body">
+      <div class="cal-header">
+        <button class="cal-nav-btn" onclick="calNavMonth(-1)">‹</button>
+        <span class="cal-month-label" id="calMonthLabel">July 2026</span>
+        <button class="cal-nav-btn" onclick="calNavMonth(1)">›</button>
+      </div>
+      <div class="cal-weekdays"><span class="cal-weekday">Sun</span><span class="cal-weekday">Mon</span><span class="cal-weekday">Tue</span><span class="cal-weekday">Wed</span><span class="cal-weekday">Thu</span><span class="cal-weekday">Fri</span><span class="cal-weekday">Sat</span></div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+  </div>
+
+  <div class="bottom-sheet" id="dateTimeSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="dateTimeSheetTitle">Select date &amp; time</div>
+      <button class="sheet-clear-btn" id="dateTimeClearBtn" onclick="clearDateTime()">Clear</button>
+    </div>
+    <div class="sheet-body">
+      <div class="cal-header">
+        <button class="cal-nav-btn" onclick="calNavMonthDT(-1)">‹</button>
+        <span class="cal-month-label" id="calMonthLabelDT">July 2026</span>
+        <button class="cal-nav-btn" onclick="calNavMonthDT(1)">›</button>
+      </div>
+      <div class="cal-weekdays"><span class="cal-weekday">Sun</span><span class="cal-weekday">Mon</span><span class="cal-weekday">Tue</span><span class="cal-weekday">Wed</span><span class="cal-weekday">Thu</span><span class="cal-weekday">Fri</span><span class="cal-weekday">Sat</span></div>
+      <div class="cal-grid" id="calGridDT"></div>
+      <div class="form-field">
+        <span class="field-label">Time</span>
+        <input class="time-input" type="time" lang="en-GB" id="dateTimeInput" value="14:30">
+      </div>
+    </div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveDateTime()">Save</button></div>
+  </div>
+
+  <div class="bottom-sheet text-editor-sheet" id="textEditorSheet">
+    <div class="text-editor-header">
+      <div class="text-editor-left">
+        <button class="text-editor-close" id="textEditorCloseBtn" onclick="textEditorCloseTap()">✕</button>
+        <button class="text-editor-discard" id="textEditorDiscard" onclick="textEditorConfirmDiscard()">Discard unsaved changes</button>
+      </div>
+      <div class="text-editor-title" id="textEditorTitle">Edit</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="text-editor-body"><textarea class="text-editor-textarea" id="textEditorTextarea" oninput="textEditorInputChanged()" placeholder="Type here…"></textarea></div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveTextEditor()">Save</button></div>
+  </div>
+
+
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+</div>
+
+<script src="shared/eam-shared.js"></script>
+<script>
+/* ── screen-specific config — everything below is data/wiring only;
+   all behavior comes from shared/eam-shared.js. Every LOV-driven field
+   below is duplicated under a g_ (Grid) / l_ (List) key pair so the two
+   containers stay fully independent — editing one never touches the
+   other, even though they demonstrate the same field type. ── */
+const ICON_A = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/></svg>';
+const ICON_B = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>';
+const ICON_C = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 18H3z"/></svg>';
+
+const LOV_DATA = {
+  __status: [{code:'OPERATIONAL',desc:'Operational'},{code:'DOWN',desc:'Down'},{code:'STANDBY',desc:'Standby'}],
+  g_badge: [{code:'A',desc:'Alpha'},{code:'B',desc:'Beta'},{code:'C',desc:'Gamma'}],
+  l_badge: [{code:'A',desc:'Alpha'},{code:'B',desc:'Beta'},{code:'C',desc:'Gamma'}],
+  g_lovCode: [{code:'C01',desc:'Category One'},{code:'C02',desc:'Category Two'},{code:'C03',desc:'Category Three'}],
+  l_lovCode: [{code:'C01',desc:'Category One'},{code:'C02',desc:'Category Two'},{code:'C03',desc:'Category Three'}],
+  g_lovCodeDesc: [{code:'100-100',desc:'General Maintenance'},{code:'100-200',desc:'Capital Repair'}],
+  l_lovCodeDesc: [{code:'100-100',desc:'General Maintenance'},{code:'100-200',desc:'Capital Repair'}],
+  g_lovId: [{code:'BCAMPBELL',desc:'Bruce Campbell'},{code:'JRODRIGUEZ',desc:'Juan Rodriguez'}],
+  l_lovId: [{code:'BCAMPBELL',desc:'Bruce Campbell'},{code:'JRODRIGUEZ',desc:'Juan Rodriguez'}],
+};
+const LOV_CURRENT = {
+  __status: 'OPERATIONAL',
+  g_badge:'A', l_badge:'A',
+  g_lovCode:'C01', l_lovCode:'C01',
+  g_lovCodeDesc:'100-100', l_lovCodeDesc:'100-100',
+  g_lovId:'BCAMPBELL', l_lovId:'BCAMPBELL',
+};
+const BADGE_LOV_META = {
+  g_badge: { A:{icon:ICON_A}, B:{icon:ICON_B}, C:{icon:ICON_C} },
+  l_badge: { A:{icon:ICON_A}, B:{icon:ICON_B}, C:{icon:ICON_C} },
+};
+const NO_SEARCH_LOVS = new Set(['__status','g_badge','l_badge']);
+const ORG_STYLE_LOVS = new Set(['organization']);
+// openLov()'s title fallback (eam-shared.js) looks for a `.field-label`
+// element under [data-field=key] — every Grid cell here uses `.attr-label`
+// instead, so without explicit titles the sheet would show the raw key
+// string (e.g. "g_lovCodeDesc"). Real, pre-existing bug found while
+// building this file: sample-screen-standard-model-prototype.html's own
+// Department field has the identical gap (no LOV_TITLES entry, .attr-label
+// not .field-label) — not fixed there as part of this exercise, just
+// avoided here.
+const LOV_TITLES = {
+  __status: 'Operational Status',
+  g_badge: 'Badge / Icon LOV', l_badge: 'Badge / Icon LOV',
+  g_lovCode: 'LOV — Code Only', l_lovCode: 'LOV — Code Only',
+  g_lovCodeDesc: 'LOV — Code + Description', l_lovCodeDesc: 'LOV — Code + Description',
+  g_lovId: 'LOV — Identifier', l_lovId: 'LOV — Identifier',
+};
+
+/* Org pill in the dummy header is protected (real Record View convention
+   — org is always protected on a Record View) — no click handler, so
+   ORG_STYLE_LOVS above is declared for consistency but never actually
+   exercised by this file. */
+
+function navBack() {
+  location.href = 'eam-home-screen-prototype-v1.html';
+}
+initSharedApp({ contentSelector: '.content' });
+</script>
+</body>
+</html>

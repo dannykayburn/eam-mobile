@@ -293,6 +293,17 @@ body{
 .ld-chev.open{transform:rotate(90deg);}
 .ld-chev-ph{display:inline-block;width:24px;}
 
+/* Detailed-card equivalent of the chevron/tint pair above (§6.9 — §20
+   punch-list fix, 2026-07-23: Detailed mode's card() had no chevron at
+   all, so a parent WO's card just navigated away instead of expanding
+   its children the way Table mode's tRow() already did). */
+.ld-card.has-chev{padding-left:38px;position:relative;}
+.ld-card-chev{position:absolute;left:12px;top:14px;width:20px;height:20px;border-radius:6px;background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:transform 0.18s,background 0.15s;color:var(--text-muted);}
+.ld-card-chev:hover{background:var(--bg-section);}
+.ld-card-chev.open{transform:rotate(90deg);}
+.ld-card.child-card{background:rgba(0,0,0,0.035);}
+[data-theme="dark"] .ld-card.child-card{background:rgba(255,255,255,0.06);}
+
 /* Favorite star, dataspy selector sheet (§8.3). */
 .ds-fav-star{width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--gray-3);padding:0;}
 .ds-fav-star svg{width:16px;height:16px;fill:none;stroke:currentColor;}
@@ -590,7 +601,7 @@ body{
       </div>
       <div class="nav-title">Work orders</div>
       <div class="nav-actions">
-        <button class="nav-icon-btn" onclick="event.stopPropagation();openInsertMode()" aria-label="Create work order" title="Create work order">
+        <button class="nav-icon-btn" onclick="event.stopPropagation();openCreateSheet('WO')" aria-label="Create work order" title="Create work order">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
         <button class="nav-icon-btn" onclick="event.stopPropagation();goSearch()" aria-label="Search" title="Search">
@@ -641,7 +652,6 @@ body{
     </div>
 
     <div class="toast" id="t1">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00AA14" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-check"/></svg>
       <span id="t1m"></span>
     </div>
   </div>
@@ -657,7 +667,7 @@ body{
       </div>
       <div class="nav-title">Search work orders</div>
       <div class="nav-actions">
-        <button class="nav-icon-btn" onclick="event.stopPropagation();openInsertMode()" aria-label="Create work order" title="Create work order">
+        <button class="nav-icon-btn" onclick="event.stopPropagation();openCreateSheet('WO')" aria-label="Create work order" title="Create work order">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
         <span id="syncCtrl"></span>
@@ -725,13 +735,12 @@ body{
         <div class="sh-list" id="csList"></div>
         <button class="sh-apply" onclick="applyCS()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-check"/></svg>
-          Apply dataspy
+          Apply filter
         </button>
       </div>
     </div>
 
     <div class="toast" id="t2">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00AA14" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-check"/></svg>
       <span id="t2m"></span>
     </div>
   </div>
@@ -863,9 +872,15 @@ body{
     <div class="sheet-footer"><button class="btn-save" onclick="saveTextEditor()">Save</button></div>
   </div>
 
-  <!-- Insert Mode (§9.1–§9.3) — WO List's own Create (+). Single org pill,
-       already WO-scoped (§9.3 point 1 — unlike Home's two-pill entity
-       picker, §9.4, this entry point never needs one). -->
+  <!-- Insert Mode (§9.1–§9.4) — converged 2026-07-24 onto the ONE shared
+       implementation Home/Equipment List also use (openCreateSheet(),
+       eam-shared.js). This entry point calls openCreateSheet('WO'): the
+       entity pill is protected (.org-pill.protected, chevron auto-hides)
+       and locked to Work Order, since this screen's own + is already
+       WO-scoped — same two-pill markup shape as Home either way, just
+       non-interactive here. Was a hand-copied WO-only sheet with
+       hardcoded flat fields and no entity pill at all; that whole
+       duplicate build is gone now. -->
   <div class="insert-mode-sheet" id="insertModeSheet">
     <div class="insert-mode-handle-row" id="insertModeHandle"><div class="sheet-handle"></div></div>
     <div class="insert-mode-header">
@@ -874,76 +889,65 @@ body{
       <div style="width:30px;flex-shrink:0;"></div>
     </div>
     <div class="insert-mode-body">
-      <div style="padding:14px 16px 6px;">
+      <div class="im-pill-row">
+        <button class="org-pill im-entity-pill" id="insertEntityPill" data-field="insertEntity" onclick="onEntityPillTap()">
+          <span id="fv-insertEntity-icon"></span>
+          <span class="field-value" id="fv-insertEntity-desc">Work order</span>
+          <svg class="org-pill-chevron" width="12" height="12" viewBox="0 0 24 24"><use href="#ico-chevdown"/></svg>
+        </button>
+        <span class="im-pill-connector"><svg viewBox="0 0 24 24"><use href="#ico-chevright"/></svg></span>
         <button class="org-pill" data-field="insertOrganization" onclick="openLov('insertOrganization')">
           <span class="field-value" id="fv-insertOrganization-code">ORG1</span>
           <svg class="org-pill-chevron" width="12" height="12" viewBox="0 0 24 24"><use href="#ico-chevdown"/></svg>
         </button>
       </div>
 
-      <!-- Equipment reference field (§15.5/§9.3, shared component) — same
-           relative position as the real WO Record View: its own
-           standalone container above the Type/Status header box. Required,
-           unset by default, no auto-open. -->
-      <div class="section-card">
-        <div id="insertEquipMount"></div>
-      </div>
-
+      <!-- Field Grid Container (§9.6, 2026-07-24 — converged onto
+           screen-layout-field-behavior-prototype-v1.html's own locked
+           shape). Description is pinned first, full-width, required
+           (rolled in from its own standalone card — same "Notes/
+           Description always double-wide, always first" rule that file
+           locked, now marking it required too, matching Equipment's
+           "always required, not just empty-state" treatment). Equipment
+           (§15.5/§9.3) follows, also full-width/required, opening the
+           Equipment Lookup sheet instead of a standard LOV — the one
+           remaining exception, WO entity only. Then Type/Status as the
+           ordinary 2-per-row pair. -->
       <div class="section-card">
         <div class="equip-attrs">
+          <div class="attr-item full-width required" data-field="insertDescription" onclick="focusInlineField(this)">
+            <span class="attr-label">Description</span>
+            <textarea class="field-inline-input" id="fv-insertDescription" rows="1" maxlength="255" placeholder="Tap to add…" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus()" onblur="onInlineBlur(this)"></textarea>
+          </div>
+          <div class="attr-item full-width required" id="insertEquipCard" data-field="insertEquipment" onclick="openEquipmentLookup('insertEquipment')">
+            <span class="attr-label">Equipment</span>
+            <div class="attr-value" id="insertEquipMount"></div>
+          </div>
           <div class="attr-item required" data-field="insertType" onclick="openLov('insertType')">
-            <span class="attr-label">Type</span>
+            <span class="attr-label" id="imTypeLabel">Type</span>
             <div class="attr-value"><span class="attr-badge" id="fv-insertType-badge"></span><span class="attr-text" id="fv-insertType-desc"></span></div>
           </div>
-          <div class="attr-item" data-field="insertStatus" onclick="openLov('insertStatus')">
+          <div class="attr-item required" data-field="insertStatus" onclick="openLov('insertStatus')">
             <span class="attr-label">Status</span>
             <div class="attr-value"><span class="attr-badge" id="fv-insertStatus-badge"></span><span class="attr-text" id="fv-insertStatus-desc"></span></div>
           </div>
         </div>
       </div>
 
-      <div class="section-card">
-        <div class="form-field stacked" data-field="insertDescription" onclick="this.querySelector('textarea').focus()">
-          <span class="field-label">Description</span>
-          <textarea class="field-inline-input" id="fv-insertDescription" rows="1" maxlength="255" placeholder="Tap to add…" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus()" onblur="onInlineBlur(this)"></textarea>
+      <!-- Flat fields — regenerated per entity by the shared
+           renderFlatFields() (eam-shared.js) into this mount. Real
+           collapsible .fg-section as of 2026-07-24 (§9.6) — was a bare
+           .section-card with no toggle; now matches WO Record View's own
+           "Work order details" fg-section exactly, including starting
+           collapsed (openCreateSheet() resets it closed on every fresh
+           open). Title is entity-aware, same as imTypeLabel above. -->
+      <div class="fg-section">
+        <div class="fg-toggle-row" onclick="toggleFg(this)">
+          <span class="fg-toggle-title" id="imFlatFieldsLabel">Work order details</span>
+          <svg class="fg-chev" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-      </div>
-
-      <!-- Flat fields container, required-first (§9.3 point 5 — no Screen
-           Designer yet, this session's field set is the working default:
-           Department + Problem Code required, matching the real WO Record
-           View's own required fields; Priority/Assigned To/Reported
-           By/Date Reported optional, same as there). -->
-      <div class="section-card">
-        <div class="form-field required" data-field="insertDepartment" onclick="openLov('insertDepartment')">
-          <span class="field-label">Department</span>
-          <div class="field-lov-value"><span class="field-lov-desc muted" id="fv-insertDepartment-desc"></span></div>
-          <span class="field-chevron">›</span>
-        </div>
-        <div class="form-field required" data-field="insertProblemCode" onclick="openLov('insertProblemCode')">
-          <span class="field-label">Problem Code</span>
-          <div class="field-lov-value"><span class="field-lov-desc muted" id="fv-insertProblemCode-desc"></span></div>
-          <span class="field-chevron">›</span>
-        </div>
-        <div class="form-field" data-field="insertPriority" onclick="openLov('insertPriority')">
-          <span class="field-label">Priority</span>
-          <div class="field-lov-value"><span class="field-lov-desc muted" id="fv-insertPriority-desc"></span></div>
-          <span class="field-chevron">›</span>
-        </div>
-        <div class="form-field" data-field="insertAssignedTo" onclick="openLov('insertAssignedTo')">
-          <span class="field-label">Assigned To</span>
-          <div class="field-lov-value"><span class="field-lov-desc muted" id="fv-insertAssignedTo-desc"></span></div>
-          <span class="field-chevron">›</span>
-        </div>
-        <div class="form-field" data-field="insertReportedBy" onclick="openLov('insertReportedBy')">
-          <span class="field-label">Reported By</span>
-          <div class="field-lov-value"><span class="field-lov-desc muted" id="fv-insertReportedBy-desc"></span></div>
-          <span class="field-chevron">›</span>
-        </div>
-        <div class="form-field" data-field="insertDateReported" onclick="openDate('insertDateReported','Date Reported')">
-          <span class="field-label">Date Reported</span>
-          <span class="field-value muted" id="fv-insertDateReported"></span>
-          <span class="field-chevron">›</span>
+        <div class="fg-collapse">
+          <div id="insertFlatFieldsMount"></div>
         </div>
       </div>
 
@@ -1210,7 +1214,7 @@ function toggleFavDS(id){
 // Home's tiles/favorites — icon shape distinguishes them, no per-row hue
 // (dropped the `color`/`bg` fields entirely, same fix as Home's tiles).
 const CD={
-  status:{title:'Dataspy by status',rows:[
+  status:{title:'Filter by status',rows:[
     {code:'RELEASED',name:'Released',              svg:'send'},
     {code:'WAPPR',   name:'Waiting approval',       svg:'clock'},
     {code:'WMATL',   name:'Waiting materials',      svg:'pkg'},
@@ -1222,7 +1226,7 @@ const CD={
   // row previously reused ELEC/INSTR/MECH/WATER, which are Department/
   // Problem-Code/Trade values from other screens, not real Organization
   // codes; w.org itself was wrong the same way (see the WOS array above).
-  org:{title:'Dataspy by organization',rows:[
+  org:{title:'Filter by organization',rows:[
     {code:'FBPP',name:'Field-Based Plant & Production',svg:'bldg'},
     {code:'ORG1',name:'Corporate',                      svg:'sett'},
     {code:'ORG2',name:'US Industrial',                  svg:'adjust'},
@@ -1230,7 +1234,7 @@ const CD={
   // Replaced the priority row 2026-07-22 (punch-list item) — Type took
   // Priority's spot as one of the 6 dataspy fields, so its quick-filter
   // sheet moved with it, same mechanism, sourced from TM instead of PRI.
-  type:{title:'Dataspy by type',rows:[
+  type:{title:'Filter by type',rows:[
     {code:'BK', name:TM.BK.name, svg:'alert'},
     {code:'PM', name:TM.PM.name, svg:'calchk'},
     {code:'CM', name:TM.CM.name, svg:'adjust'},
@@ -1301,8 +1305,14 @@ function woAllFields(w){
 }
 
 /* ══ DETAILED CARD ═══════════════════════════════════════ */
-function card(w){
-  return`<div class="ld-card" onclick="openWO('${w.id}')">${renderStdCard(woCardFields(w))}</div>`;
+function card(w,isChild){
+  const ck=kids(WOS,w.id);
+  const hk=w.isP&&ck.length>0;
+  const ex=!!exp[w.id];
+  const chevBtn=hk
+    ?`<button class="ld-card-chev${ex?' open':''}" onclick="event.stopPropagation();toggleP('${w.id}')">${SVGS.chevR}</button>`
+    :'';
+  return`<div class="ld-card${hk?' has-chev':''}${isChild?' child-card':''}" onclick="openWO('${w.id}')">${chevBtn}${renderStdCard(woCardFields(w))}</div>`;
 }
 
 /* ══ LIST TABLE — all fields (§8.3), local (not the generic shared
@@ -1348,7 +1358,7 @@ function emptyT(){return`<div class="empty"><div class="empty-icon"><svg width="
 function renderD(id,wos){
   const el=document.getElementById(id);
   if(!wos||!wos.length){el.innerHTML=emptyH();return;}
-  el.innerHTML=roots(wos).map(w=>{let h=card(w);if(w.isP&&exp[w.id])kids(wos,w.id).forEach(k=>{h+=card(k);});return h;}).join('');
+  el.innerHTML=roots(wos).map(w=>{let h=card(w);if(w.isP&&exp[w.id])kids(wos,w.id).forEach(k=>{h+=card(k,true);});return h;}).join('');
 }
 function renderT(id,wos){
   const el=document.getElementById(id);
@@ -1433,7 +1443,7 @@ function renderCSRows(rows){
       <div class="sh-ri">
         ${SVGS[r.svg]||''}
       </div>
-      <div class="sh-rb"><div class="sh-rn">${r.name}</div></div>
+      <div class="sh-rb"><div class="sh-rn">${r.name}</div><div class="sh-rc">${r.code}</div></div>
       <div class="sh-radio${csel[r.code]?' on':''}" id="csr-${r.code}"></div>
     </div>`).join('');
 }
@@ -1450,7 +1460,7 @@ function applyCS(){
   el.classList.toggle('active',sel.length>0);
   el.innerHTML=CLB[ack]+(sel.length>0?`<span class="chip-badge">${sel.length}</span>`:'');
   refS2();closeCS();
-  if(sel.length)showT2(sel.length+' dataspy'+(sel.length>1?'s':'')+' applied');
+  if(sel.length)showT2(sel.length+' filter'+(sel.length>1?'s':'')+' applied');
 }
 function closeCS(){document.getElementById('csOv').classList.remove('open');}
 function csOvTap(e){if(e.target===document.getElementById('csOv'))closeCS();}
@@ -1488,102 +1498,39 @@ function showT1(msg){document.getElementById('t1m').textContent=msg;const el=doc
 function showT2(msg){document.getElementById('t2m').textContent=msg;const el=document.getElementById('t2');el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2400);}
 
 /* ══════════════════════════════════════════════════════════════════════
-   INSERT MODE (§9.1–§9.3) — added 2026-07-20. Field option sets copied
-   from eam-wo-record-view-prototype-v1.html's own real Type/Status/
-   Department/Assigned To/Reported By/Problem Code LOV_DATA — deliberately
-   NOT this file's own card-only TM/PRI/STI maps (different, already-
-   inconsistent status vocabulary used only for list-card display, §6.5–
-   §6.7) — Insert Mode's entered Type/Status has to make sense on the real
-   Record View it lands on afterward.
+   INSERT MODE (§9.1–§9.4) — converged 2026-07-24 onto the ONE shared
+   implementation (openCreateSheet(lockEntity), renderEntityFields(),
+   renderFlatFields(), updateInsertSaveGate(), saveInsertRecord(), all in
+   eam-shared.js) that Home and Equipment List also use now. This file
+   used to carry its own WO-only TYPE_META/INSERT_STATUS_META/
+   renderInsertBadge()/initInsertModeDefaults() plus local
+   updateInsertSaveGate()/saveInsertRecord() overrides — all deleted;
+   redeclaring any of updateInsertSaveGate/saveInsertRecord here would
+   shadow the shared versions and defeat the whole convergence. LOV_DATA/
+   LOV_TITLES/LOV_CURRENT/RECORD/NO_SEARCH_LOVS/ORG_STYLE_LOVS/
+   BADGE_LOV_META/REF_CARD_FIELDS below are the same minimal, screen-local
+   starting shape Home uses — ENTITY_FIELD_META/ENTITY_FLAT_FIELDS
+   (eam-shared.js) populate insertType/insertStatus/the flat fields
+   dynamically once openCreateSheet('WO') runs.
    ═══════════════════════════════════════════════════════════════════════ */
-const TYPE_META = {
-  CM: { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>' },
-  PM: { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg>' },
-  BREAKDOWN: { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
-};
-const INSERT_STATUS_META = {
-  RELEASED:    { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>' },
-  IN_PROGRESS: { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>' },
-  COMPLETED:   { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>' },
-  HOLD:        { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
-};
-// Equipment reference field's own picker list (§15.5 simplification — a
-// flat searchable list, not the full Search+Structure lookup popup) —
-// insertEquipment now literally IS EQUIPMENT_LOOKUP_DATA (eam-shared.js) —
-// was its own hand-copied duplicate of those same demo rows until the
-// Equipment LOV convergence (2026-07-21, docs/component-library.md) gave
-// this field the real shared picker, so there's no reason left to keep a
-// separate array; same reference, so any code that pushes a scanned/tree-
-// selected result into it (commitEquipmentSelection()) is visible here too.
-const LOV_DATA = {
+let LOV_TITLES = { insertOrganization:'Organization', insertEquipment:'Equipment', insertType:'Type', insertStatus:'Status', insertDescription:'Description' };
+let LOV_DATA = {
   insertOrganization: [{code:'FBPP',desc:'Field-Based Plant & Production'},{code:'ORG1',desc:'Corporate'},{code:'ORG2',desc:'US Industrial'}],
+  // Same reference as EQUIPMENT_LOOKUP_DATA (eam-shared.js), not a copy —
+  // any code that pushes a scanned/tree-selected result into it
+  // (commitEquipmentSelection()) is visible here too.
   insertEquipment: EQUIPMENT_LOOKUP_DATA,
-  insertType: [{code:'CM',desc:'Corrective Maintenance'},{code:'PM',desc:'Preventive Maintenance'},{code:'BREAKDOWN',desc:'Breakdown'}],
-  insertStatus: [{code:'RELEASED',desc:'Released'},{code:'IN_PROGRESS',desc:'In Progress'},{code:'COMPLETED',desc:'Completed'},{code:'HOLD',desc:'On Hold'}],
-  insertDepartment: [{code:'WATER',desc:'Water Utility'},{code:'MAINT',desc:'Maintenance'},{code:'OPS',desc:'Operations'}],
-  insertAssignedTo: [{code:'BCAMPBELL',desc:'Bruce Campbell'},{code:'JRODRIGUEZ',desc:'Juan Rodriguez'},{code:'MKUMAR',desc:'Meera Kumar'}],
-  insertReportedBy: [{code:'DKILBURN',desc:'Danny Kilburn'},{code:'RSMITH',desc:'Rachel Smith'},{code:'PJONES',desc:'Pat Jones'}],
-  insertProblemCode: [{code:'MECH',desc:'Mechanical'},{code:'ELEC',desc:'Electrical'},{code:'HYDRAULIC',desc:'Hydraulic'}],
-  insertPriority: [{code:'LOW',desc:'Low'},{code:'MEDIUM',desc:'Medium'},{code:'HIGH',desc:'High'},{code:'CRITICAL',desc:'Critical'}],
 };
-const LOV_TITLES = {
-  insertOrganization:'Organization', insertEquipment:'Equipment', insertType:'Type', insertStatus:'Status',
-  insertDepartment:'Department', insertProblemCode:'Problem Code', insertPriority:'Priority',
-  insertAssignedTo:'Assigned To', insertReportedBy:'Reported By', insertDateReported:'Date Reported',
-};
-let LOV_CURRENT = {
-  insertOrganization:'ORG1', insertEquipment:'', insertType:'CM', insertStatus:'RELEASED',
-  insertDepartment:'', insertProblemCode:'', insertPriority:'', insertAssignedTo:'', insertReportedBy:'', insertDateReported:'',
-};
+let LOV_CURRENT = { insertOrganization:'ORG1', insertEquipment:'' };
+let BADGE_LOV_META = {};
+const NO_SEARCH_LOVS = new Set(['insertOrganization', 'insertType', 'insertStatus']);
+const ORG_STYLE_LOVS = new Set(['insertOrganization']);
+const REF_CARD_FIELDS = { insertEquipment: { mountId: 'insertEquipMount', emptyLabel: 'Tap to select equipment' } };
 // eam-shared.js's openDate()/selectDate()/clearDate() read/write
 // RECORD[key] directly (§3.4) — this file otherwise has no RECORD object
 // (WOS is a list, not a single record), so a bare object is declared just
 // to give Date Reported somewhere to land.
 let RECORD = {};
-const NO_SEARCH_LOVS = new Set(['insertOrganization', 'insertType', 'insertStatus']);
-const ORG_STYLE_LOVS = new Set(['insertOrganization']);
-const BADGE_LOV_META = { insertType: TYPE_META, insertStatus: INSERT_STATUS_META };
-const REF_CARD_FIELDS = { insertEquipment: { mountId: 'insertEquipMount', emptyLabel: 'Tap to select equipment', useEquipmentLookup: true } };
-
-function renderInsertBadge(key, meta) {
-  const opt = meta[LOV_CURRENT[key]];
-  document.getElementById(`fv-${key}-badge`).outerHTML = renderColorBadge(opt).replace('<span ', `<span id="fv-${key}-badge" `);
-  document.getElementById(`fv-${key}-desc`).textContent = (LOV_DATA[key].find(o => o.code === LOV_CURRENT[key]) || {}).desc || '';
-}
-function initInsertModeDefaults() {
-  renderInsertBadge('insertType', TYPE_META);
-  renderInsertBadge('insertStatus', INSERT_STATUS_META);
-  renderRefCard('insertEquipment');
-}
-function updateInsertSaveGate() {
-  const btn = document.getElementById('insertSaveBtn');
-  if (!btn) return;
-  const ready = !!(LOV_CURRENT.insertEquipment && LOV_CURRENT.insertDepartment && LOV_CURRENT.insertProblemCode);
-  btn.classList.toggle('ready', ready);
-}
-function saveInsertRecord() {
-  if (!LOV_CURRENT.insertEquipment) { showToast('Equipment is required'); return; }
-  if (!LOV_CURRENT.insertDepartment) { showToast('Department is required'); return; }
-  if (!LOV_CURRENT.insertProblemCode) { showToast('Problem Code is required'); return; }
-  const find = (key) => LOV_DATA[key].find(o => o.code === LOV_CURRENT[key]);
-  const opt = (key) => { const o = find(key); return o ? { code: o.code, desc: o.desc } : null; };
-  const woNumber = String(parseInt(localStorage.getItem('eamNextWoNumber') || '19258', 10));
-  localStorage.setItem('eamNextWoNumber', String(parseInt(woNumber, 10) + 1));
-  const record = {
-    number: woNumber,
-    desc: document.getElementById('fv-insertDescription').value,
-    department: opt('insertDepartment'), assignedTo: opt('insertAssignedTo'), reportedBy: opt('insertReportedBy'),
-    dateReported: RECORD.insertDateReported || '', problemCode: opt('insertProblemCode'),
-    type: opt('insertType'), status: opt('insertStatus'), priority: opt('insertPriority'),
-    equipment: find('insertEquipment'),
-    comments: Array.from(document.querySelectorAll('#insertCommentsList .comment-item')).map(el => ({
-      author: el.querySelector('.comment-author')?.textContent.replace(' (You)','') || 'Bruce Campbell',
-      text: el.querySelector('.comment-text')?.textContent || '',
-    })),
-  };
-  closeInsertMode();
-  navigateToNewRecord('eam-wo-record-view-prototype-v1.html', 'eamNewWoRecord', record);
-}
 
 // Pre-run to a Home tile/favorite's dataspy (§24 rule 2) — handed off via
 // sessionStorage, consume-once, same convention as eamNewWoRecord/
@@ -1598,7 +1545,7 @@ function saveInsertRecord() {
   if(d){curDS=d.id;document.getElementById('dsName').textContent=d.name;}
 })();
 refS1();
-initInsertModeDefaults();
+renderEntityFields(); // pre-render defaults so the sheet isn't empty the first time it opens (currentEntity defaults 'WO', matching this screen's only use)
 initSharedApp();
 </script>
 </body>

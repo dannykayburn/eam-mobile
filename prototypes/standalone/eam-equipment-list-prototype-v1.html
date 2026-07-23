@@ -115,6 +115,9 @@
       </div>
       <div class="nav-title">Equipment</div>
       <div class="nav-actions">
+        <button class="nav-icon-btn" onclick="event.stopPropagation();openCreateSheet('EQUIP')" aria-label="Create equipment" title="Create equipment">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
         <button class="nav-icon-btn" onclick="event.stopPropagation();goSearch()" aria-label="Search" title="Search">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </button>
@@ -153,8 +156,16 @@
            (no icon there either), and avoids the duplicate-id="syncCtrl"
            quirk eam-wo-list-prototype-v5_1.html's own 2-screen split
            carries (its 2nd copy never actually renders anything, since
-           renderSyncControl() only ever targets the first match). -->
-      <div class="nav-actions"></div>
+           renderSyncControl() only ever targets the first match).
+           Create IS added here though (2026-07-24) — WO List's own
+           Search screen has a real, working 2nd Create entry point, and
+           there's no reason a technician searching Equipment should have
+           to back out to Screen 1 first just to create a new asset. -->
+      <div class="nav-actions">
+        <button class="nav-icon-btn" onclick="event.stopPropagation();openCreateSheet('EQUIP')" aria-label="Create equipment" title="Create equipment">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
     </header>
 
     <div class="ld-search-bar" style="margin:12px 14px 0;">
@@ -232,6 +243,188 @@
     <div class="sync-panel-state" id="syncPanelStateLabel"></div>
     <div class="sheet-body" id="syncPanelList"></div>
     <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
+  </div>
+
+  <!-- Insert Mode (§9.1–§9.4), added 2026-07-24 — this screen's + calls
+       openCreateSheet('EQUIP') (eam-shared.js), the same shared Create
+       implementation Home and WO List use. Entity pill is protected and
+       locked to Equipment, since this screen's own + is already
+       Equipment-scoped — same two-pill markup shape as Home either way,
+       just non-interactive here. Copy this shape verbatim if a future
+       screen needs its own locked Create entry point; don't re-derive it. -->
+  <div class="insert-mode-sheet" id="insertModeSheet">
+    <div class="insert-mode-handle-row" id="insertModeHandle"><div class="sheet-handle"></div></div>
+    <div class="insert-mode-header">
+      <button class="sheet-close" onclick="closeInsertMode()">✕</button>
+      <div class="insert-mode-title">Create</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="insert-mode-body">
+      <div class="im-pill-row">
+        <button class="org-pill im-entity-pill" id="insertEntityPill" data-field="insertEntity" onclick="onEntityPillTap()">
+          <span id="fv-insertEntity-icon"></span>
+          <span class="field-value" id="fv-insertEntity-desc">Equipment</span>
+          <svg class="org-pill-chevron" width="12" height="12" viewBox="0 0 24 24"><use href="#ico-chevdown"/></svg>
+        </button>
+        <span class="im-pill-connector"><svg viewBox="0 0 24 24"><use href="#ico-chevright"/></svg></span>
+        <button class="org-pill" data-field="insertOrganization" onclick="openLov('insertOrganization')">
+          <span class="field-value" id="fv-insertOrganization-code">ORG1</span>
+          <svg class="org-pill-chevron" width="12" height="12" viewBox="0 0 24 24"><use href="#ico-chevdown"/></svg>
+        </button>
+      </div>
+
+      <!-- Field Grid Container (§9.6, 2026-07-24 — converged onto
+           screen-layout-field-behavior-prototype-v1.html's own locked
+           shape, same as Home/WO List). Description is pinned first,
+           full-width, required. Equipment (§15.5/§9.3) follows, same
+           full-width/required .attr-item shape as those two files — WO
+           entity only, always hidden here (this screen's Create is
+           always Equipment, and Equipment entities have no equipment-
+           reference field of their own) — markup still present purely
+           for copy-paste consistency, renderEntityFields() keeps it
+           display:none. Then Type/Status as the ordinary 2-per-row pair. -->
+      <div class="section-card">
+        <div class="equip-attrs">
+          <div class="attr-item full-width required" data-field="insertDescription" onclick="focusInlineField(this)">
+            <span class="attr-label">Description</span>
+            <textarea class="field-inline-input" id="fv-insertDescription" rows="1" maxlength="255" placeholder="Tap to add…" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus()" onblur="onInlineBlur(this)"></textarea>
+          </div>
+          <div class="attr-item full-width required" id="insertEquipCard" data-field="insertEquipment" onclick="openEquipmentLookup('insertEquipment')">
+            <span class="attr-label">Equipment</span>
+            <div class="attr-value" id="insertEquipMount"></div>
+          </div>
+          <div class="attr-item required" data-field="insertType" onclick="openLov('insertType')">
+            <span class="attr-label" id="imTypeLabel">Class</span>
+            <div class="attr-value"><span class="attr-badge" id="fv-insertType-badge"></span><span class="attr-text" id="fv-insertType-desc"></span></div>
+          </div>
+          <div class="attr-item required" data-field="insertStatus" onclick="openLov('insertStatus')">
+            <span class="attr-label">Status</span>
+            <div class="attr-value"><span class="attr-badge" id="fv-insertStatus-badge"></span><span class="attr-text" id="fv-insertStatus-desc"></span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flat fields — regenerated per entity by the shared
+           renderFlatFields() (eam-shared.js) into this mount. Real
+           collapsible .fg-section as of 2026-07-24 (§9.6) — was a bare
+           .section-card with no toggle; now matches WO Record View's own
+           "Work order details" fg-section shape (here: "Equipment
+           details", entity-aware title). Starts collapsed —
+           openCreateSheet() resets it closed on every fresh open. -->
+      <div class="fg-section">
+        <div class="fg-toggle-row" onclick="toggleFg(this)">
+          <span class="fg-toggle-title" id="imFlatFieldsLabel">Equipment details</span>
+          <svg class="fg-chev" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="fg-collapse">
+          <div id="insertFlatFieldsMount"></div>
+        </div>
+      </div>
+
+      <!-- Comments + Documents (§9.3 point 6 — per-screen call: both
+           included, starting empty, same as the canonical Sample Screen
+           reference). -->
+      <div class="section-card">
+        <div class="section-card-header"><span class="section-card-title">Comments</span></div>
+        <div id="insertCommentsList">
+          <div class="comment-add-row" onclick="openTextEditor('__insertComment','Add Comment',(t)=>addComment(t,'insertCommentsList'))">
+            <span class="comment-add-plus">+</span> Add comment
+          </div>
+        </div>
+      </div>
+      <div class="section-card">
+        <div class="section-card-header"><span class="section-card-title">Documents</span></div>
+        <div class="comment-add-row" onclick="showToast('Attach document — coming soon')">
+          <span class="comment-add-plus">+</span> Add document
+        </div>
+      </div>
+    </div>
+    <div class="insert-mode-footer">
+      <button class="insert-save-btn" id="insertSaveBtn" onclick="saveInsertRecord()">Create</button>
+    </div>
+  </div>
+
+  <!-- Generic LOV sheet — shared behavior (openLov()/selectLov()/
+       clearLov(), eam-shared.js) reused for every Insert Mode field. -->
+  <div class="bottom-sheet" id="lovSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="lovSheetTitle">Select value</div>
+      <button class="sheet-clear-btn" id="lovClearBtn" onclick="clearLov()">Clear</button>
+    </div>
+    <div class="lov-search-row" id="lovSearchRow">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input class="lov-search-input" id="lovSearchInput" placeholder="Search" oninput="filterLovOptions(this.value)">
+    </div>
+    <div class="sheet-body" id="lovSheetBody"></div>
+  </div>
+
+  <!-- EQUIPMENT LOV (§15.5/§9, docs/component-library.md) — Insert Mode's
+       Equipment field uses the same full Search+Structure picker as WO
+       Record View. Markup copied verbatim from eam-wo-record-view-
+       prototype-v1.html — shared CSS/JS in eam-shared.css/.js drives both. -->
+  <div class="hyperlink-popup" id="equipmentPopup">
+    <div class="insert-mode-header">
+      <button class="sheet-close" onclick="closeHyperlinkPopup('equipmentPopup')">✕</button>
+      <div class="insert-mode-title">Select Equipment</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="mode-tog">
+      <button class="mode-btn active" id="equipTabBtnSearch" onclick="switchEquipTab('search')">Search</button>
+      <button class="mode-btn" id="equipTabBtnStructure" onclick="switchEquipTab('structure')">Structure</button>
+    </div>
+    <div class="insert-mode-body" id="equipmentPopupBody">
+      <div id="equipTabSearch">
+        <div id="equipSearchShell"></div>
+      </div>
+      <div id="equipTabStructure" style="display:none;">
+        <div class="tree-wrap" id="equipTreeBody"></div>
+      </div>
+    </div>
+  </div>
+  <div class="qr-scan-overlay" id="qrScanOverlay">
+    <div class="qr-scan-header">
+      <button class="qr-scan-close" onclick="closeEquipScan()" aria-label="Close scanner">✕</button>
+    </div>
+    <div class="qr-scan-body">
+      <div class="qr-scan-reticle"></div>
+      <div class="qr-scan-hint">Point camera at the equipment's QR code</div>
+    </div>
+    <div class="qr-scan-footer">
+      <button class="insert-save-btn ready" onclick="simulateQrScan()">Simulate scan</button>
+    </div>
+  </div>
+
+  <div class="bottom-sheet" id="dateSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="dateSheetTitle">Select date</div>
+      <button class="sheet-clear-btn" id="dateClearBtn" onclick="clearDate()">Clear</button>
+    </div>
+    <div class="sheet-body">
+      <div class="cal-header">
+        <button class="cal-nav-btn" onclick="calNavMonth(-1)">‹</button>
+        <span class="cal-month-label" id="calMonthLabel">July 2026</span>
+        <button class="cal-nav-btn" onclick="calNavMonth(1)">›</button>
+      </div>
+      <div class="cal-weekdays"><span class="cal-weekday">Sun</span><span class="cal-weekday">Mon</span><span class="cal-weekday">Tue</span><span class="cal-weekday">Wed</span><span class="cal-weekday">Thu</span><span class="cal-weekday">Fri</span><span class="cal-weekday">Sat</span></div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+  </div>
+
+  <div class="bottom-sheet text-editor-sheet" id="textEditorSheet">
+    <div class="text-editor-header">
+      <div class="text-editor-left">
+        <button class="text-editor-close" id="textEditorCloseBtn" onclick="textEditorCloseTap()">✕</button>
+        <button class="text-editor-discard" id="textEditorDiscard" onclick="textEditorConfirmDiscard()">Discard unsaved changes</button>
+      </div>
+      <div class="text-editor-title" id="textEditorTitle">Edit</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="text-editor-body"><textarea class="text-editor-textarea" id="textEditorTextarea" oninput="textEditorInputChanged()" placeholder="Type here…"></textarea></div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveTextEditor()">Save</button></div>
   </div>
 
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
@@ -497,6 +690,41 @@ function applyCS() {
   if (pendingSpy && DS.some(d => d.id === pendingSpy)) curDS = pendingSpy;
   document.getElementById('dsName').textContent = DS.find(d => d.id === curDS).name;
 })();
+/* ══════════════════════════════════════════════════════════════════════
+   INSERT MODE (§9.1–§9.4), added 2026-07-24 — this screen's + calls the
+   ONE shared implementation (openCreateSheet('EQUIP'), renderEntityFields(),
+   renderFlatFields(), updateInsertSaveGate(), saveInsertRecord(), all in
+   eam-shared.js) that Home and WO List also use. LOV_DATA/LOV_TITLES/
+   LOV_CURRENT/RECORD/NO_SEARCH_LOVS/ORG_STYLE_LOVS/BADGE_LOV_META/
+   REF_CARD_FIELDS below are the same minimal, screen-local starting shape
+   those two files use — ENTITY_FIELD_META/ENTITY_FLAT_FIELDS
+   (eam-shared.js) populate insertType/insertStatus/the flat fields
+   dynamically once openCreateSheet('EQUIP') runs. Do NOT redeclare
+   updateInsertSaveGate/saveInsertRecord here — that would shadow the
+   shared versions and defeat the whole point of the convergence.
+   ══════════════════════════════════════════════════════════════════════ */
+let LOV_TITLES = { insertOrganization:'Organization', insertEquipment:'Equipment', insertType:'Class', insertStatus:'Status', insertDescription:'Description' };
+let LOV_DATA = {
+  insertOrganization: [{code:'FBPP',desc:'Field-Based Plant & Production'},{code:'ORG1',desc:'Corporate'},{code:'ORG2',desc:'US Industrial'}],
+};
+let LOV_CURRENT = { insertOrganization:'ORG1' };
+let BADGE_LOV_META = {};
+const NO_SEARCH_LOVS = new Set(['insertOrganization', 'insertType', 'insertStatus']);
+const ORG_STYLE_LOVS = new Set(['insertOrganization']);
+const REF_CARD_FIELDS = {};
+// eam-shared.js's openDate()/selectDate()/clearDate() read/write
+// RECORD[key] directly (§3.4) — this file otherwise has no RECORD object,
+// so a bare object is declared just to give Date-type flat fields
+// somewhere to land.
+let RECORD = {};
+// currentEntity defaults 'WO' (eam-shared.js) — must be set to 'EQUIP'
+// explicitly before this screen's own eager pre-render, since this file
+// has no REF_CARD_FIELDS.insertEquipment entry at all (Equipment entities
+// have no such field) and renderEntityFields() would otherwise try to
+// render it and throw, if it ever ran with currentEntity still 'WO'.
+currentEntity = 'EQUIP';
+renderEntityFields(); // pre-render defaults so the sheet isn't empty the first time it opens
+
 refS1();
 initSharedApp({ contentSelector: '#listContent' });
 </script>

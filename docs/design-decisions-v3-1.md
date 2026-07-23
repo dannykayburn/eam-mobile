@@ -153,7 +153,7 @@ Revised mid-sweep: the first pass made these bold (700), uppercase, and muted gr
 | **Prompt bar style** | Option 4: monospace question label + segmented yes/no control. Full-width, edge-to-edge. |
 | **Group color bar** | Option B: tinted section header + 35% opacity bar on items. Bar runs full item height including notes row. |
 | **Checklist item** | Hybrid B/C: rail icons (right column) + inline notes trigger row + follow-up in notes row. |
-| **Toast style** | Dark chip, bottom of screen, orange alert icon, 2.4s auto-dismiss, context-specific message. |
+| **Toast style** | Dark chip, bottom of screen, text only (no icon), 2.4s auto-dismiss, context-specific message. Corrected 2026-07-23 — this row still said "orange alert icon," stale since §23's palette rollout retired orange as an instrument entirely; every real toast in the app (`#toast`/`showToast()` on all 19 screens) has in fact always been icon-less. WO List's own local `#t1`/`#t2` toasts were the one holdout still carrying a leftover green-checkmark icon — fixed to match, see §20. |
 | **Bottom sheet style** | Border-radius 20px top, handle bar, header with title + close, scrollable body. Every sheet needs real bottom breathing room (~20px) below its last row — sheets with a `.sheet-footer` (Save button etc.) get this for free from the footer's own padding, but short sheets with no footer (e.g. the comment actions menu — Edit/Delete/Copy) do not, and rendered with the last row flush against the screen edge (a real bug, found and fixed). Any new short/footer-less sheet needs this padding added explicitly, not assumed. |
 | **Insert Mode sheet — full-screen, not the compact bottom-sheet** | Added 2026-07-14 (§9). Insert Mode is a full form, not a value picker, so it gets its own larger surface: full-screen, slides up from the bottom over the current screen. ✕ top-left + swipe-down both discard (swipe-to-dismiss is new to this app — no other sheet uses it). "Create" title, save pill at bottom. Two content standards (Record View insert, List/Detail insert) share this shell; neither's field content is designed yet. |
 | **Insert Mode's z-index must sit below every sheet/toast it can trigger** | Bug found and fixed 2026-07-16: Insert Mode was `z-index:401`, higher than `.bottom-sheet` (201), `.confirm-overlay` (260), and `.toast` (300) — so tapping a field inside Insert Mode opened its LOV/date/text-editor sheet correctly, just invisibly, behind Insert Mode's own layer. Looked exactly like "clicking does nothing." Fixed to `z-index:199` — below every transient overlay, above ordinary page content. Any future full-screen overlay needs its z-index checked against the rest of the stack, not picked in isolation. |
@@ -708,7 +708,7 @@ Insert and Update are nearly identical screens.
 | **Type and Priority color badges** | When Type or Priority (or similar metadata fields) are displayed with color badges, show the badge only if a color is configured. If no color is set, omit the badge entirely and left-align the field value text under the field label (no forced right-alignment or gap where the badge would have been). Applies to any metadata field that uses optional color coding. **Built on WO Record View 2026-07-14**, reusing the exact icon+colour pairs from the §6.7 WO icon language (WO List) rather than re-deriving a second palette — `TYPE_META`/`PRIORITY_META` keyed by the same type/priority codes. Fixed a real bug in the process: the badge markup already had the `:empty{display:none}` omit-if-no-color rule wired up, but the badge `<span>` itself was always rendered with zero children (just a background-color class, no icon glyph inside) — so `:empty` was matching and hiding *every* badge unconditionally, regardless of whether a color was "configured." The rule was correct; the badge had no content to make it not-empty. Now fixed by rendering the real type/priority icon inside. |
 | **Header actions — pin + ellipsis menu** | Added 2026-07-14. Record View headers only — never on tab content, list screens, or detail sub-views. Top-right of the pinned `.rec-id-row` (not the collapsing status row, since these are record-level actions relevant regardless of scroll position): a **pin toggle** (outlined when unpinned, filled purple when pinned — same accent as every other "active/selected" state, §3.2.2) directly left of an **⋯ ellipsis** that opens a small anchored dropdown menu (not a bottom sheet — a deliberate exception to "everything is a bottom sheet," since this is a compact, corner-anchored action list, not a value picker or a full-form editor). Menu has three groups, each divided by a thin rule: (1) **Copy Link**, (2) **Copy** / **Delete** (Delete styled red, opens the existing centered confirm modal — the same "destructive actions get a centered dialog" pattern used for Comments delete, not a new one), (3) **screen-specific action(s)** — an extensible slot each record type populates itself (e.g. Equipment: "View Structure Details"; WO: "Print Work Order"). The pin toggle is the UI surface for the `pinned` device-side contract already described in §2.6 / `EAM-DESIGN-Pinning-Enhancement-v1.md` — tapping it in the prototype is a local visual toggle only; the real write-through to whichever punch-list mechanism is chosen (§2.6 Option A/B) is not modeled here. **Sized up 2026-07-16**: 30px→34px button / 16px→18px icon on both pin and ellipsis — a `margin-top:-3px` on `.rec-header-actions` re-centers the bigger circles against `.rec-num`'s line height, and the anchored menu's `top` offset moved 36px→40px to keep its gap under the now-taller button. `.rec-id-row`/`.rec-status-row-inner` left/right insets also bumped 14px→16px the same day (a general "give the header edges a touch more room" pass, not specific to the button resize). |
 | **Organization pill — always present, always protected in update mode, lives in the header** | Added 2026-07-16, **moved into the header the same day**: the pill now sits inside `.rec-status-row`, justified opposite the status button (right-aligned against it, sized down slightly from the standalone/Insert-Mode pill so the row reads as one balanced unit rather than two competing full-size controls) — no longer its own section-card above Header Fields. It collapses on scroll exactly like status does, for free, since it's now a child of the same collapsing `.rec-status-row` that already hides on scroll — no separate scroll rule needed. Distinct from the pill's editable/required state on Insert Mode (§9.3, Record View insert standard only, still the standalone full-size pill) — on the Record View itself, it's always protected: no chevron, not tappable, same treatment as any other protected field. **No lock icon either** (removed 2026-07-16) — unlike a `.form-field.protected` row, which keeps its chevron slot occupied by a lock so the row doesn't look broken, the org pill's chevron slot just goes empty when protected; the pill's muted background + non-interactive cursor already read as "not editable" without needing a second icon to say so. **In-header style locked 2026-07-16, second follow-up** — Inter (the app's default sans, not a monospace/code font), white text, no building icon in the markup at all, outlined rather than filled (transparent background, `1.5px solid rgba(255,255,255,.85)` border). Decided via a live scratchpad comparing both fonts × {white, gray, orange} outline treatments plus icon-on/off and a longer code (FISHERS) to check width — landed on the simplest option: just the code, in white, no icon. Text is unconditionally light rather than the theme-flipping `.field-value` default, since this row's background is always dark regardless of the app's own light/dark toggle. Only applies to the in-header (Record View, always-protected) placement — the separate standalone Insert Mode pill (required/editable, light card background) is a different context and keeps its base filled style; don't carry this outline treatment there without a separate decision. |
-| **Header Fields / Non-nullable Fields — renamed, expanded, and simplified** | Renamed 2026-07-16 from "Header fields (Type/Priority style)," **revised further the same day**: no section-card-header/title on this container at all — the fields just sit directly in the card, unlabeled. Plain-LOV items (e.g. Department) show **description only, no code** — these fields are reference-data lookups being surfaced prominently here, not identifiers, so unlike the general LOV-row default elsewhere (code+description, §3.4) the code adds nothing in this specific box. Badge-style fields (Type, Priority, Status-adjacent) are unaffected — they never showed a code to begin with. Holds every non-nullable field on the screen, not a fixed Type/Priority pair; 2-per-row grid, an odd field out spans the full row width rather than leaving an empty cell. Demonstrated with 3 fields (Type, Priority, Department) in `sample-screen-standard-model-prototype.html`. **First real-screen application:** `eam-equipment-record-view-prototype-v1.html` (rebuilt 2026-07-16) — Department, Criticality, Class, Manufacturer, Category (5 plain-LOV fields, 2-per-row, Category spans full-width as the odd one out — **swapped with Manufacturer 2026-07-16, second follow-up**, so Category is the bottom/full-width field instead of Manufacturer). Organization is required but isn't here — it's the dedicated org pill in the header (previous row). Operational Status is required but also isn't here — it's the header's own status button, never duplicated as a body/Header-Fields row. **Status swapped out for Criticality the same day**: the lifecycle Status field (Pending/Installed/In Service/Withdrawn) moved out of Header Fields into Asset Details, and Criticality (already an existing, already-4-valued field — 1-Low/2-Medium/3-High/4-Critical, previously sitting in Asset Details) moved into Header Fields in its place. A straight swap, not a deletion — every field that was visible before still is, just relocated. **Membership here no longer implies required** (policy reversed 2026-07-16, third follow-up) — a required field in this box gets the same orange left-bar `.form-field.required` uses, just on its own cell; Department and Criticality are marked required in the demo (two markers), Class/Manufacturer/Category aren't. **WO Record View exception:** the Equipment field is its own large standalone container above this grid, not one of the 2-per-row cells — every other header field on that screen stays consistent with this standard below it. **Status corrected 2026-07-16 (conformance audit):** WO Record View *has* a Header Fields box (Type + Priority) — the "not yet built" note here was stale. What's still actually true: it holds only Type/Priority, not every non-nullable field this row requires — Department and Problem Code, also required, sit in a separate "Work order details" card instead. Not yet reconciled; tracked in §20. |
+| **Header Fields / Non-nullable Fields — renamed, expanded, and simplified** | Renamed 2026-07-16 from "Header fields (Type/Priority style)," **revised further the same day**: no section-card-header/title on this container at all — the fields just sit directly in the card, unlabeled. Plain-LOV items (e.g. Department) show **description only, no code** — these fields are reference-data lookups being surfaced prominently here, not identifiers, so unlike the general LOV-row default elsewhere (code+description, §3.4) the code adds nothing in this specific box. Badge-style fields (Type, Priority, Status-adjacent) are unaffected — they never showed a code to begin with. **Reversed 2026-07-24 (direct user decision, screen-layout-field-behavior-prototype-v1.html's consolidation exercise):** there is no "description only" plain-LOV type in the Grid anymore — codes are wanted in Grid fields now. A plain Grid LOV shows either a code alone ("LOV — Code Only," mono font, normal value size/weight, same treatment as any other identifier field) or the badge/stacked code+description types. Real screens not yet swept to match: `eam-equipment-record-view-prototype-v1.html`'s Department field (the original example behind this row) still shows description-only, unchanged. Holds every non-nullable field on the screen, not a fixed Type/Priority pair; 2-per-row grid, an odd field out spans the full row width rather than leaving an empty cell. Demonstrated with 3 fields (Type, Priority, Department) in `sample-screen-standard-model-prototype.html`. **First real-screen application:** `eam-equipment-record-view-prototype-v1.html` (rebuilt 2026-07-16) — Department, Criticality, Class, Manufacturer, Category (5 plain-LOV fields, 2-per-row, Category spans full-width as the odd one out — **swapped with Manufacturer 2026-07-16, second follow-up**, so Category is the bottom/full-width field instead of Manufacturer). Organization is required but isn't here — it's the dedicated org pill in the header (previous row). Operational Status is required but also isn't here — it's the header's own status button, never duplicated as a body/Header-Fields row. **Status swapped out for Criticality the same day**: the lifecycle Status field (Pending/Installed/In Service/Withdrawn) moved out of Header Fields into Asset Details, and Criticality (already an existing, already-4-valued field — 1-Low/2-Medium/3-High/4-Critical, previously sitting in Asset Details) moved into Header Fields in its place. A straight swap, not a deletion — every field that was visible before still is, just relocated. **Membership here no longer implies required** (policy reversed 2026-07-16, third follow-up) — a required field in this box gets the same orange left-bar `.form-field.required` uses, just on its own cell; Department and Criticality are marked required in the demo (two markers), Class/Manufacturer/Category aren't. **WO Record View exception:** the Equipment field is its own large standalone container above this grid, not one of the 2-per-row cells — every other header field on that screen stays consistent with this standard below it. **Status corrected 2026-07-16 (conformance audit):** WO Record View *has* a Header Fields box (Type + Priority) — the "not yet built" note here was stale. What's still actually true: it holds only Type/Priority, not every non-nullable field this row requires — Department and Problem Code, also required, sit in a separate "Work order details" card instead. Not yet reconciled; tracked in §20. |
 | **Operational Status (or equivalent header-status field) is header-only — never duplicated as a body row** | Added 2026-07-16, generalizing the identifier+description header-only rule (two rows above) to the header's own status field. Whatever field drives the header's `.rec-status-btn` (Equipment: Operational Status) is edited exclusively there — it must not also appear as a plain-LOV row in a field-group section or the Header Fields box. Equipment's pre-rebuild file had exactly this duplication (an "Operational Status" row inside Asset Details, redundant with the header button); removed during the 2026-07-16 rebuild. |
 | **Container required-field-count indicator** | Added 2026-07-16. Any `.fg-section` or `.section-card` whose header (`.fg-toggle-row` / `.section-card-header`) contains at least one required field shows a small orange count badge there (e.g. "1", "2") — the container-level counterpart to the individual field's orange required left-bar. Orange-tinted (matches the required left-bar accent). Implemented generically in `eam-shared.js` (`updateRequiredBadges()`, wired into every field-mutating function) — no per-screen config needed, works on both canonical files automatically. The Header Fields box (row above) is exempt by construction: it has no container header to attach a badge to, and its fields aren't `.form-field` elements in the first place. **Demo fields added 2026-07-16** (`eam-equipment-record-view-prototype-v1.html`): Dormant Start/Dormant End (Equipment Details) and X/Y Coordinate (Tracking Details) were marked required to seed both containers with a visible "2" badge. Purely illustrative — not a real business rule that these four fields are actually required. **Badge/chevron order fixed 2026-07-16, second follow-up:** the badge inserts *before* the chevron (`header.insertBefore(badge, chev)`), not after — every container's chevron sits at the same fixed x-position whether or not a badge is present, so the chevrons read as one straight column down the page; the badge sits "inside," next to the title, and only nudges the title's available width, never the chevron's position. **Revised 2026-07-20 — always shown, not a completion tracker:** the badge used to disappear once every required field inside was populated (and was documented to "reappear if a value is cleared again"). That reappear case can't actually happen in Update Mode: §3.4's Clear-visibility rule hides Clear for required fields specifically because clearing one would contradict the requirement, so once a required field is filled it can never go back to empty again on this screen. That made the badge a one-way indicator that vanished the first time a container's fields got filled and then simply never came back — not the live "still needs attention" signal it was meant to be. Fixed by dropping the empty/complete distinction entirely: the badge is now a static "this container has N required fields" count, shown unconditionally whenever the container has ≥1 required field, populated or not. |
 | **Documents — built, was missing despite being locked** | Added 2026-07-16. "Comments + Documents always present" (row above) was locked well before this but never actually implemented in the master reference file — `sample-screen-standard-model-prototype.html` had a Comments section with no Documents section at all until now. Same add-affordance-on-top pattern as Comments; shows every document inline, no truncation (unlike Comments, see below). |
@@ -1124,6 +1124,16 @@ mobile-vertical-optimized as-is.
 
 ## 7.5 Equipment Photo — icon, preview pop-out, and edit (decided
 2026-07-22, not yet built)
+
+**Flagged, not re-solved, 2026-07-24:** this section's WO Record View
+consumer still assumes the old standalone `.equip-summary-card`/40px icon
+and its "no photo, no class icon → no icon at all" fallback — both
+superseded by §15.5's 2026-07-24 change (Equipment rolled into the
+Header Fields grid, a fixed 28px `.attr-badge-outline` box that always
+renders regardless of whether a class icon fills it). Whoever builds this
+still-unbuilt spec needs to re-derive the tap-target/fallback details
+below against the current 28px badge shape, not the sizes/rules quoted
+here.
 
 New named component, raised this session, not yet prototyped in either
 consumer. **Distinct from §4.3's user Avatar** — this is a photo of the
@@ -1843,7 +1853,8 @@ small chevron:
   captured value.
 - Every other Insert Mode entry point (WO List's own +, a List/Detail
   tab's own Plus) is already scoped to one entity and keeps the existing
-  single-pill-or-no-pill treatment from §9.3 point 1, unchanged.
+  single-pill-or-no-pill treatment from §9.3 point 1, unchanged. **Superseded
+  2026-07-24 for List/Search-originated Create specifically — see §9.6.**
 - **Open:** which entities populate the Screen/entity pill's option list —
   only whatever Create actions are already pinned to Home's own
   quick-create row, or every top-level record type with an Insert Mode at
@@ -1866,9 +1877,11 @@ separate, larger scope). Both entities' Insert Mode content and the real
     moved into the flat container for WO instead).
   - **WO** flat container, required-first: Department, Problem Code
     (required) → Priority, Assigned To, Reported By, Date Reported
-    (optional). Plus an **Equipment reference field** positioned above
-    the header fields box, same relative spot as the real WO Record View,
-    required, unset by default, no auto-open (§15.5).
+    (optional). Plus an **Equipment reference field**, rolled into the
+    header fields box's own grid as its first full-width row since
+    2026-07-24 (was positioned above the box, same relative spot as the
+    real WO Record View, before that — see §15.5), required, unset by
+    default, no auto-open.
   - **Equipment** flat container, required-first: Department, Criticality
     (required) → Manufacturer, Category, PM WO Department, Assigned To,
     Cost Code (optional).
@@ -1924,6 +1937,139 @@ separate, larger scope). Both entities' Insert Mode content and the real
   duplicates (`.nav-avatar`, `.bottom-nav`, `.field-label`) are untouched,
   identical-but-local overrides — full de-duplication of those stays out
   of scope (WO List's own future full rebuild pass).
+
+## 9.6 Converged onto ONE shared implementation, 2026-07-24 (user direction)
+
+Home's entity-aware build (§9.4), WO List's own separate WO-only build,
+and Equipment List's total absence of one (3 independent Create
+implementations, one per screen — exactly the duplication §9.1–§9.5 above
+never fully resolved) are now **one shared implementation**: `eam-shared.js`'s
+`openCreateSheet(lockEntity)`, plus the promoted `ENTITY_META`/
+`ENTITY_FIELD_META`/`ENTITY_FLAT_FIELDS`/`ENTITY_FLAT_LOV_DATA`/
+`renderEntityFields()`/`renderFlatFields()`/`updateInsertSaveGate()`/
+`saveInsertRecord()` (all previously Home-local, or independently
+re-implemented by WO List with a different field-set shape). Every
+screen's `+`/Create action invokes this exact same function now — there
+is no more "Home's version" vs. "WO List's version."
+
+**The rule, resolving §9.4's own "every other entry point keeps the
+single-pill-or-no-pill treatment" framing (now superseded):** every
+Insert Mode entry point gets the identical two-pill shell (Screen/entity
+pill chained to the Organization pill, §9.4) — there is no longer a
+separate no-entity-pill variant. The only thing that varies by entry
+point is whether the entity pill is **editable** or **protected**:
+
+- **Home's Create bar** — `openCreateSheet()`, no argument. Entity pill
+  stays editable, defaults to Work Order, exactly as §9.4 already locked.
+- **A List/Search screen's own `+`** (WO List, Equipment List) —
+  `openCreateSheet('WO')` / `openCreateSheet('EQUIP')`. The entity is
+  already implied by which screen you're on, so the pill goes
+  `.org-pill.protected` (its chevron auto-hides, same as every other
+  protected org-pill in the app — no new CSS state needed) and is locked
+  to that entity for the rest of that Create. Tapping a protected entity
+  pill shows a toast ("Entity is fixed for this screen") rather than
+  opening the entity picker — same "protected but still tappable, toast
+  explains why" convention as every other protected control (§15.4).
+
+**Markup contract:** every consuming screen's `#insertModeSheet` must
+carry the identical shape — entity pill `#insertEntityPill`/
+`#fv-insertEntity-icon`/`#fv-insertEntity-desc`, Organization pill
+`#fv-insertOrganization-code`, Equipment reference card `#insertEquipCard`/
+`#insertEquipMount`, Type/Status `#imTypeLabel`/`#fv-insertType-badge`/
+`#fv-insertType-desc`/`#fv-insertStatus-badge`/`#fv-insertStatus-desc`,
+Description `#fv-insertDescription`, a flat-fields mount
+`#insertFlatFieldsMount` (never hardcoded field markup per screen — WO
+List's old hardcoded Department/Problem Code/etc. rows are gone, replaced
+by the same dynamically-regenerated mount Home always used), Comments
+`#insertCommentsList`, Save `#insertSaveBtn`. Copy the shape verbatim from
+any of the three real consumers for a future 4th one — don't re-derive it.
+
+**Removed entirely:** WO List's local `TYPE_META`/`INSERT_STATUS_META`/
+`renderInsertBadge()`/`initInsertModeDefaults()` and its own local
+`updateInsertSaveGate()`/`saveInsertRecord()` overrides (redeclaring
+either of those two in a consuming screen's own script would shadow the
+shared versions and defeat the whole convergence — every screen's local
+script now only declares the minimal `LOV_DATA`/`LOV_TITLES`/
+`LOV_CURRENT`/`RECORD`/`NO_SEARCH_LOVS`/`ORG_STYLE_LOVS`/`BADGE_LOV_META`/
+`REF_CARD_FIELDS` starting shape the shared functions read/write by name).
+
+**Equipment List gained its first-ever Create entry point** (`+` on both
+its List and Search screens) — previously Equipment's only Insert Mode
+entry point was Home's Create bar (§9.5). Equipment List has no
+`REF_CARD_FIELDS.insertEquipment` entry (Equipment entities have no
+equipment-reference field pointing at themselves — that field is WO-only)
+— its `currentEntity` is set to `'EQUIP'` explicitly before its own eager
+pre-render call, since the shared default (`'WO'`) would otherwise try to
+render a WO-only reference card and throw.
+
+**Not yet live-verified in a browser this session** — preview tools are
+admin-disabled; re-check on the LAN phone preview next open: Home's
+entity pill still switches between Work Order/Equipment correctly; WO
+List's and Equipment List's own `+` open the protected/locked variant
+correctly (pill grayed, chevron gone, toast on tap); Save works end to
+end from all 5 entry points (Home ×2 entities, WO List ×2 screens,
+Equipment List ×2 screens).
+
+## 9.7 Follow-up pass, same day — protected pill contrast, Description
+rolled into the grid, flat fields made a real collapsible
+
+Three more real fixes, closing out the gap between §9.6's shell
+convergence and §15.5's separate same-day Equipment convergence (below) —
+Insert Mode's grid/collapsible shape now matches WO Record View's real
+screen exactly, not just its own two-pill header.
+
+- **Protected entity pill was washed out, real bug.** `.org-pill.protected`
+  (`eam-shared.css`) never set its own text color, relying on the base
+  `.org-pill .field-value{color:#fff}` rule — invisible white text on the
+  variant's own light-gray background. Every prior `.protected` consumer
+  was also `.in-header` (the header Organization pill), which has its
+  own separate, correct white-on-dark override — never exercised without
+  it until Insert Mode's standalone entity pill. Fixed with
+  `.org-pill.protected:not(.in-header) .field-value{color:var(--gray-4)}`
+  (`--gray-3` in dark theme) — `:not(.in-header)` specifically so it can't
+  tie/collide with the existing in-header rule by source order.
+- **Description rolled into the Field Grid Container, pinned first, now
+  required.** Was its own standalone `.section-card` below the grid;
+  moved to a full-width `.attr-item` at the very top of `.equip-attrs`,
+  ahead of Equipment — same "Notes/Description always double-wide,
+  always first" rule `screen-layout-field-behavior-prototype-v1.html`
+  locked, now also required (previously always optional). Real gate/
+  validation added — `updateInsertSaveGate()` and `saveInsertRecord()`
+  (`eam-shared.js`) had nothing checking it before this.
+- **Flat fields converted from a bare `.section-card` to a real
+  collapsible `.fg-section`** — matches WO Record View's own "Work order
+  details" `.fg-section` exactly (§15.5 below), including starting
+  collapsed by default (`openCreateSheet()` now resets it closed on
+  every fresh open, so a previous session's expanded state never leaks
+  into the next Create). Title is entity-aware
+  (`ENTITY_FIELD_META[x].flatFieldsLabel` — "Work order details" /
+  "Equipment details", the latter matching Equipment Record View's own
+  existing field-group title verbatim) — same pattern already used for
+  `imTypeLabel`. `renderEntityFields()` now also calls
+  `updateRequiredBadges()` after every render, so the section's required-
+  count badge (Department/Problem Code for WO, Department/Criticality
+  for EQUIP) shows correctly even while collapsed.
+- **Equipment List's still-standalone Equipment card markup fixed too**
+  (was the one file that hadn't picked up §15.5's grid convergence yet,
+  since its Create is brand new this session) — now the identical
+  full-width `.attr-item` shape as Home/WO List, even though it's always
+  `display:none` there (Equipment entities have no equipment-reference
+  field of their own) — kept for copy-paste consistency, not because it
+  does anything visible on this screen.
+
+**Order call, not explicitly specified, flagged for confirmation:**
+Description was placed *before* Equipment (both full-width, consecutive)
+rather than after — reasoning: the Description-always-first rule was
+already locked independently in the field-behavior reference file, so it
+keeps that position literally rather than deferring to Equipment, which
+had no such "must be first" rule of its own. Revisit if the intended
+order was Equipment-then-Description.
+
+**Not yet live-verified in a browser this session** — same admin-disabled
+preview constraint as §9.6; re-check the grid order, the required
+left-bar on both Description and Equipment, the collapsed-by-default flat
+fields section (and its required-count badge), and the protected pill's
+text contrast in both themes, next time this is touched.
 
 # 10. Screen Designer — Standalone (Base Screens)
 
@@ -2740,45 +2886,49 @@ read-only linked-record preview. The previous "hyperlinked popup" design
 (tap → protected preview of the equipment record, "View full record" stub)
 is retired; the popup shell it used is repurposed into an actual picker.
 
-**On-record display — icon summary only (reverted 2026-07-20, 4th pass; Class/
-Category dropped entirely 5th pass).** An earlier pass this session tried a
-static record-card anatomy here (headline/subline/attr-rows) — that's now
-WO Insert Mode's own Equipment field instead (promoted into
-`eam-shared.css` as `.equip-card*` by a separate, concurrent session
-building Insert Mode). WO Record View deliberately does **not** use that
-shared component — local `.equip-summary-card` restores the original,
-pre-redesign layout: equipment icon + Description (bold) + Code (muted
-mono, 13px — bumped up from 11px 2026-07-20, 6th pass, for legibility) +
-Type (purple, colour TBD data-driven per module) + chevron, tap opens the
-same Search/Structure picker as before.
+**On-record display — rolled into the standard grid, 2026-07-24 (user
+direction).** Superseded — Equipment's own standalone bordered card above
+the Header Fields grid is retired; see §21 for the full retired anatomy
+(icon + Description/Code/Type + chevron). Equipment is now an ordinary
+full-width `.attr-item` inside the SAME grid as Type/Priority (WO Record
+View) or Type/Status (WO Insert Mode) — first row, spanning both columns,
+same double-wide trick Notes/Long-text already use elsewhere in a grid
+(§5.2). Content: a 28px `.attr-badge-outline` icon (same size/style as
+Type/Priority's own badge — shrunk from the old 40px standalone icon, and
+rendered "the same" as any other grid badge field: the box always shows,
+even with no class icon to fill it, exactly like Type/Priority's badge
+when their own meta lookup misses) + a description-over-code
+`.attr-lov-stack` (§5.2's locked Grid LOV stack order — Description bold,
+Code mono/muted below it). **Type is dropped entirely** — it was a 3rd
+line ("Asset") that added no identifying value once the field lives in a
+grid cell instead of its own spacious card. Class/Category remain not
+shown on this screen (unchanged from before) — still visible via the
+Equipment Lookup sheet's Search results and Structure tree.
 
-**Class icon is per-class, not universal (2026-07-20, 6th pass).** Only
-equipment classes with a real icon defined in `EQUIP_CLASS_ICONS` get one
-— **if the equipment's class has no icon defined, no icon placeholder
-renders at all**: Description/Code/Type simply sit flush left against
-`.equip-summary-main`'s own padding instead (no gray box, no empty slot to
-fill later). Same rule for the empty/unset state (Insert Mode, once
-built) — no class, so no icon there either. The 4th pass had briefly
-added Class/Category back underneath as protected `.form-field` rows in
-their own `section-card` — **removed again same session**, on feedback
-that a lone extra container floating between the icon card and the Type/
-Priority box didn't belong to any of this screen's established containers
-("loosely hanging out," not fitting the standard Record View paradigm).
-Class/Category are simply not shown on this screen anymore — still visible
-via the Equipment Lookup sheet's Search results and Structure tree. Empty
-(no equipment set — relevant once WO Insert Mode exists, §9) renders "Tap
-to select equipment" with the ordinary orange required-field left bar.
-**Record View and Insert Mode's Equipment fields now intentionally look
-different** — flagged here as a real, visible divergence between the two
-screens for the same conceptual field, not an oversight; worth a
-conscious call later on whether either should converge toward the other.
+**Equipment is always required — the left-bar is unconditional, not
+empty-state-only.** The row carries `.attr-item.required`'s red left-bar
+regardless of whether equipment is set, like any other business-required
+grid field (e.g. Trade on the Activity popup), not the old "only when
+unset" treatment. Empty state still renders "Tap to select equipment," now
+as a plain muted `.attr-text` next to the (still-present) empty badge box.
 
-**Icon is now also a photo slot, decided 2026-07-22 — see §7.5.** The
-icon in `.equip-summary-card` gains a second responsibility: showing the
-equipment's own photo (if one is on file) and, on tap, a preview/edit
-pop-out — a distinct, smaller tap target than the rest of the card, which
-still opens the picker below as before. Not yet built; §7.5 has the full
-spec, including the same component's Equipment Record View consumer.
+**Record View and Insert Mode's Equipment fields are visually identical**
+— both render through the same shared `equipSummaryCardHTML()`
+(`eam-shared.js`), returning just the `.attr-value` content; each screen's
+own static markup supplies the surrounding `.attr-item` (label, required/
+full-width classes, `data-field`). This closes the divergence flagged the
+first time this section was written. **The one remaining exception:**
+the row's `onclick` calls `openEquipmentLookup(key)` — written statically
+in each screen's own markup exactly like any other field's `onclick`,
+instead of the generic `openLov(key)`. Equipment is otherwise treated
+exactly like any other grid field.
+
+**Icon-as-photo-slot (§7.5) is still unbuilt, flagged not re-solved here.**
+§7.5's spec assumed the old 40px standalone icon as the tap target for a
+future photo preview/edit pop-out; that target is now the 28px
+`.attr-badge-outline` box shared with Type/Priority — worth a real look
+before §7.5 gets built, since a badge that small may not read well as a
+photo thumbnail.
 
 **Picker — two tabs in one full-screen sheet** (reuses the `.hyperlink-
 popup` shell, same shell Insert Mode uses, X-closes-not-back-arrow):
@@ -3615,9 +3765,9 @@ A) — see §21.
 
 | **WO Record View — missing Notes section** | §15.1 lists "Notes — renamed from 'Description'. Free text field from WO record" as part of the screen's section order; no such field exists anywhere in `eam-wo-record-view-prototype-v1.html`. |
 | **WO Record View — field set vs. §15.1 conflict, needs reconciling (not just a code fix)** | §15.1's text says Work Order Details should show "asset, location, assigned to, reported by, est. duration, created." The actual screen shows Department/Assigned To/Reported By/Date Reported/Problem Code — location and est. duration don't exist. The top-of-doc changelog describes *this exact* field set as the intended rebuild output, so it's unclear whether §15.1's prose or the code is the stale one; needs a decision, not an assumption, before "fixing" either side. Related: Department and Problem Code (both required) sit in a separate "Work order details" card rather than the Header Fields box §5.2 says should hold every non-nullable field — possibly the same underlying gap. |
-| **WO List — Detailed view missing its expand chevron** | §6.9: parent WOs carry an expand chevron in *both* view modes, tapping expands children inline. List/table mode has it (and the working `toggleP()`/`exp[id]` state); Detailed mode's `card()` has no chevron at all — tapping a parent card navigates away instead of expanding, even though the state that would render children already exists. |
-| **WO List — toast icon is a green checkmark, not the locked orange alert icon** | §3.4 Component Patterns: "Toast style: dark chip, orange alert icon." `#t1`/`#t2` use `stroke="#00AA14"` + a checkmark glyph. |
-| **WO List — filter-chip sheet mislabeled, and its rows never show a code** | The Status/Priority/Organization chip sheet's Apply button reads "Apply dataspy" (`openCS()`/`#csOv`), conflating it with the separate dataspy mechanism (§6.3 vs. §6.11 — two different things in the doc). Separately, §6.11 specifies "description primary, code small" for these rows; `renderCSRows()` only ever renders the description — the `.sh-rc` CSS class defined for exactly this has zero usages in the file. |
+| **WO List — Detailed view missing its expand chevron** | **Fixed 2026-07-23.** §6.9: parent WOs carry an expand chevron in *both* view modes, tapping expands children inline — List/table mode already had it (`tRow()`/`toggleP()`/`exp[id]`), but Detailed mode's `card()` had none at all, so tapping a parent card navigated away instead of expanding. `card(w,isChild)` now renders the same chevron button (stopPropagation, toggles `exp[id]`) whenever the WO has children, via new `.ld-card-chev`/`.has-chev` CSS; child cards get the same `.child-card` background tint as Table mode's `.child-row`, for visual parity between the two view modes. |
+| **WO List — toast icon is a green checkmark, not the locked orange alert icon** | **Fixed 2026-07-23.** Removed the leftover green-checkmark SVG from `#t1`/`#t2` — every other screen's toast is icon-only-free text, and §23 retired orange as an instrument entirely, so neither the old code nor the old doc text was still correct. See §3.4's corrected Toast style row. |
+| **WO List — filter-chip sheet mislabeled, and its rows never show a code** | **Fixed 2026-07-23.** This sheet (`openCS()`/`#csOv`) is the Status/Type/Organization filter-chip mechanism (§6.11), not the separate dataspy switcher (§6.3/`dsOv`) — its title text ("Dataspy by status" etc.), Apply button ("Apply dataspy"), and toast message ("N dataspy(s) applied") all wrongly borrowed dataspy language; corrected to "Filter by status" / "Apply filter" / "N filter(s) applied". Separately, `renderCSRows()` now renders each row's code via the already-styled-but-unused `.sh-rc` class, matching §6.11's "description primary, code small" rule. |
 | **Canonical files — "Tap to add…" on empty long-text fields, confirmed intentional** | Not a bug — raised during this audit's triage and deliberately kept as a call-to-action exception to the "no placeholder text" rule (§3.4), since long-text fields render as a full editable row rather than a short inline value. Documented here so it isn't mistakenly "fixed" later. |
 | **Doc structure — changelog cell has re-grown into a duplicate decision log (line 14)** | Highest-priority structural finding from this audit: the header table's "Doc version" cell is ~20,000 characters of session-by-session narrative restating decisions already written properly elsewhere — the exact anti-pattern a 2026-07-15 pass already removed once (that pass's own note is in this same cell). Needs a dedicated pruning pass, not a quick edit — deliberately not attempted as part of this session's fix batch. |
 | **Doc structure — Insert Mode shell duplicated (§3.4 vs. §9.2)** | §3.4's Component Patterns table re-narrates the same full-screen/✕/swipe-to-dismiss/footer rule §9.2 already owns as the canonical spec. Should be a cross-reference, not a restatement. |
@@ -3654,6 +3804,7 @@ its original section with a note attached.
 | **"WO Workflow Setup" — a bespoke 3-screen base-EAM admin entity** (§11–§13, original framing) — a dedicated setup screen with its own **Steps** tab (per-WO-type step sequence, reuse-same-step-type question, Free Form flag) and its own **Screen Designer** tab (one tab covering all 5 steps, no base-screen picker, status-source choice) — a parallel structure invented from scratch alongside real EAM admin surfaces. | §11–§13 (2026-07-22, final) — no new admin screen at all; Screen Designer (§10) itself gains a WO Type selector. See the row below for the intermediate step in between. |
 | **WO colour language — Type tinted, Status 4-way hex** (§6.7, pre-2026-07-22) — Type was a 6-way hex-per-code text tint (Breakdown red #E24B4A, Calibration teal #007B87, Corrective maint orange #F46600, Inspection purple #9933FF, Modification gray #6F7480, Preventive maint green #00AA14); Status was a 4-way hex-per-code solid pill (Released green #00AA14, Waiting approval/materials both orange #F46600, Completed gray #6F7480, white text throughout). | §6.7/§23 (2026-07-22, Phase 6 palette sweep) — Type loses colour entirely (not one of the 3 instruments); Status converges onto the app-wide 3-tier fill vocabulary (green/outlined/red) instead of its own scheme. |
 | **Comments & Documents reachable via an ellipsis-menu entry** (§14.8, 2026-07-16) — Step 1 used §5.3's screen-specific action group, Steps 2–5 used §8.1's open ellipsis slot; each menu row showed a trailing count. Reasoning at the time: keeping them out of the step map avoided implying they were sequence steps ("step 6/7"). | §14.8/§23 (2026-07-22) — a "Reference" group inside the step rail's own expanded map, always pinned after the last numbered step, using a plain icon (not a numbered badge) specifically so it doesn't carry that "step 6/7" implication. More discoverable than a buried ellipsis entry, same already-familiar expand/collapse control technicians use for step navigation. |
+| **Equipment on-record display — standalone bordered card above the Header Fields grid** (§15.5, WO Record View + WO Insert Mode) — its own `.equip-summary-card`: 40px class icon + Description (bold) + Code (mono, muted) + **Type** ("Asset," muted) + chevron, one uniform tap target opening the Equipment Lookup sheet. | §15.5 (2026-07-24, user direction) — Equipment is now an ordinary full-width/required `.attr-item` inside the same grid as Type/Priority (or Type/Status), badge icon shrunk to the standard 28px `.attr-badge-outline` size, Type line dropped, description-over-code `.attr-lov-stack` in place of the 3-line stack. Only remaining exception: its `onclick` calls `openEquipmentLookup(key)` instead of `openLov(key)`. |
 | **Intermediate proposal (same session, 2026-07-22): route each WO Type to its own distinct `FUN_CODE`**, mirroring this customer's real `CCJOBS`/`TRJOBS`/`ZJ1000`/`WSJODC` precedent (peer functions sharing `FUN_APPLICATION='WSJOBS'`, each with its own native `R5FUNCTIONTABS`/`R5TABPERMISSIONS`/`R5PAGELAYOUT`) plus 3 new `WOTYPE` fields to resolve which `FUN_CODE` applies. Technically sound and grounded in real data, but rejected. | §11–§13 (2026-07-22, final) — rejected because it fragments the WO List dataspy mechanism (§6.3/§8.3) across multiple functions' dataspy sets for no actual benefit here. Final answer stays on one function, `WSJOBS`, always (including the fallback) — the WO-Type dimension is added via one new `PLO_WOTYPE` column on the existing `R5PAGELAYOUT`, plus one genuinely new small table (§12, "WO Workflow Steps," keyed WO Type × User Group × Step) carrying tab visibility/order/required plus the Free Form flag and status-source choice, now scoped to WO Type × User Group rather than WO Type alone. Existing `R5FUNCTIONTABS`/`R5TABPERMISSIONS` stay completely untouched — a separate, lower access-control layer this project doesn't touch. |
 
 # 22. Custom Fields

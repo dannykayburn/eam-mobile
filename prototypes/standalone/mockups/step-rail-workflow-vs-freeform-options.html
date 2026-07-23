@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Step Rail — Workflow vs. Free Form + Type Color Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  STEP RAIL — WORKFLOW VS. FREE FORM + TYPE-COLOR OPTIONS (2026-07-23).
+  Exploration only, nothing picked yet. Two questions in one file:
+
+  (1) How should the persistent .step-rail bar visually read differently
+      when it's a real configured workflow (numbered/gated, §14.2) vs. the
+      §11 fallback (flat/ungated, renderFlatStepRail()) — today the ONLY
+      difference is the segments row (numbered colored bars vs. nothing)
+      and the map's icon shape (numbered circle vs. plain dot). Is that
+      enough, or does it read as "broken/missing" the way the old
+      .rail-not-free-form yellow wash did before it got pulled?
+
+  (2) Should the WO Type's own icon color (now a real per-Type concept via
+      Screen Designer) paint onto the step rail at all? Real concern
+      raised: Type color is admin-set, so an admin could pick something
+      that clashes hard with this app's otherwise-disciplined 3-instrument
+      palette (§23) — loud, off-brand, inconsistent WO Type to WO Type.
+
+  7 options, ordered along a spectrum from "no color, structural cues
+  only" to "full color surface" — ending on a version that resolves the
+  loudness worry structurally (clamps admin choice to a curated set)
+  rather than by just shrinking the color's surface area. Real classnames
+  reused verbatim from eam-shared.css (.step-rail/.step-segments/.seg-*/
+  .step-chevron) — only the option-specific bits (mode chip, type chip/
+  badge, dashed segment, top-stripe, swatch legend) are new, local to this
+  file. Two "raw admin pick" demo colors (a garish pink for Breakdown, a
+  garish lime for PM) are used deliberately in options 4–6 to make the
+  actual risk visible, not a hypothetical — same convention as showing a
+  worst case in a risk discussion instead of just describing it.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --green:#00AA14; --red:#D91E30;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+  --step-rail-h:52px;
+}
+[data-theme="dark"]{
+  --bg-page:#1A1A1F; --bg-card:#26252B; --bg-section:#302F33; --border:#3E4047; --border-strong:#4A4C55;
+  --gray-1:#2A2930; --gray-2:#3E4047; --gray-3:#6F7480; --gray-4:#B2B8C4; --octave-black:#1A1A1F;
+}
+[data-theme="dark"] body{color:var(--white);}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--octave-black);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:960px;width:100%;color:#fff;font-size:12px;line-height:1.6;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:14px 16px;}
+.legend b{color:#fff;}
+.legend code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:4px;font-family:var(--font-mono);font-size:11px;}
+.theme-row{display:flex;gap:8px;margin-bottom:16px;max-width:960px;width:100%;}
+.theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:5px 12px;cursor:pointer;}
+.spectrum{max-width:960px;width:100%;display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.5);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin:2px 0 18px;}
+.spectrum-bar{flex:1;height:4px;border-radius:100px;background:linear-gradient(90deg,#6F7480,#3E6FE0 35%,#C9962E 55%,#FF2EC4 80%,#1E9E8B);}
+.wrap{max-width:960px;width:100%;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;}
+
+.opt-card{background:var(--bg-page);border-radius:14px;padding:16px;width:400px;flex-shrink:0;}
+.opt-title{font-size:13px;font-weight:700;color:var(--octave-black);margin-bottom:2px;}
+[data-theme="dark"] .opt-title{color:var(--white);}
+.opt-risk{font-size:10.5px;font-weight:600;color:var(--gray-4);margin-bottom:10px;font-style:italic;}
+.opt-desc{font-size:11.5px;color:var(--gray-4);line-height:1.5;margin-bottom:12px;}
+
+.rail-block{margin-bottom:10px;}
+.rail-block:last-child{margin-bottom:0;}
+.rail-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-4);margin-bottom:5px;}
+
+/* ── Real .step-rail shell, verbatim from eam-shared.css ── */
+.step-rail{background:var(--bg-section);border:1px solid var(--border-strong);border-radius:8px;overflow:hidden;}
+.step-rail-collapsed{height:var(--step-rail-h);display:flex;align-items:center;gap:8px;padding:0 16px;}
+.step-name{flex:1;text-align:left;font-size:13px;font-weight:600;color:var(--octave-black);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+[data-theme="dark"] .step-name{color:var(--white);}
+.step-rail-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.step-chevron{color:var(--gray-4);flex-shrink:0;}
+.step-segments{display:flex;gap:4px;padding:0 16px 10px;}
+.seg{flex:1;height:7px;border-radius:100px;}
+.seg-done{background:var(--green);}
+.seg-active{background:var(--octave-black);}
+[data-theme="dark"] .seg-active{background:var(--white);}
+.seg-future{background:var(--gray-2);}
+[data-theme="dark"] .seg-future{background:var(--gray-5);}
+
+/* ── Option 2 — structural mode chip, zero color ── */
+.mode-chip{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-4);border:1px solid var(--border-strong);border-radius:100px;padding:3px 9px;flex-shrink:0;}
+
+/* ── Option 3 — segment-shape distinction, zero color ── */
+.seg-dashed-row{padding:0 16px 10px;}
+.seg-dashed{height:0;border-top:2px dashed var(--gray-3);}
+
+/* ── Options 4/5/7 — type icon chip / badge ── */
+.type-chip{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+.type-icon{width:15px;height:15px;color:var(--gray-4);flex-shrink:0;}
+.type-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.type-dot.neutral{background:var(--gray-3);}
+.type-badge{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.type-badge.neutral{background:var(--gray-1);}
+[data-theme="dark"] .type-badge.neutral{background:var(--gray-5);}
+.type-badge svg{width:14px;height:14px;color:var(--octave-black);}
+[data-theme="dark"] .type-badge svg{color:var(--white);}
+
+/* ── Option 6 — top-edge stripe (bigger surface) ── */
+.step-rail.stripe-neutral{border-top:3px solid var(--border-strong);}
+
+/* ── Option 7 — curated swatch legend ── */
+.swatch-legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.swatch{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--gray-4);}
+.swatch-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+
+.arrow-note{font-size:10.5px;color:var(--gray-4);text-align:center;margin:2px 0 8px;}
+</style>
+</head>
+<body>
+<div class="theme-row">
+  <button class="theme-toggle" onclick="document.documentElement.removeAttribute('data-theme')">☀ Light</button>
+  <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme','dark')">🌙 Dark</button>
+</div>
+<div class="legend">
+  <b>What this compares:</b> the persistent <code>.step-rail</code> bar (always
+  visible at the top of every WO workflow screen) in its two real states —
+  <b>Free Form / §11 fallback</b> (WO 20450, no configured workflow, flat
+  ungated rail) vs. a <b>real configured workflow</b> (WO 19257 Breakdown,
+  5 gated steps; WO 19831 PM, 4 gated steps, shown where the WO Type's
+  color matters). Today the only difference is the segments row and the
+  map's icon shape — this file explores making that split read more
+  clearly, and separately, whether the WO Type's own admin-set icon color
+  should paint onto this rail at all. Ordered left→right, safest→loudest,
+  with a resolution at the end.
+</div>
+<div class="spectrum">
+  <span>No color</span>
+  <div class="spectrum-bar"></div>
+  <span>Full color surface</span>
+</div>
+
+<div class="wrap">
+
+  <!-- OPTION 1 — BASELINE / CURRENT STATE -->
+  <div class="opt-card">
+    <div class="opt-title">1 — Current state (baseline)</div>
+    <div class="opt-risk">No color risk — nothing to compare against yet</div>
+    <div class="opt-desc">What ships today. Free Form shows an empty segments row (nothing rendered at all); a configured workflow shows numbered colored segments. No type color anywhere on the rail.</div>
+
+    <div class="rail-block">
+      <div class="rail-label">Free Form · WO 20450 (ROUT)</div>
+      <div class="step-rail">
+        <div class="step-rail-collapsed">
+          <span class="step-name">WO Record View</span>
+          <div class="step-rail-right"><svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <div class="step-segments"></div>
+      </div>
+    </div>
+
+    <div class="rail-block">
+      <div class="rail-label">Workflow · WO 19257 (Breakdown)</div>
+      <div class="step-rail">
+        <div class="step-rail-collapsed">
+          <span class="step-name">Activity Checklist</span>
+          <div class="step-rail-right"><svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <div class="step-segments">
+          <div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION 2 — STRUCTURAL MODE CHIP, ZERO COLOR -->
+  <div class="opt-card">
+    <div class="opt-title">2 — "Free Form" mode chip (zero color)</div>
+    <div class="opt-risk">No color risk</div>
+    <div class="opt-desc">A plain outlined text chip labels the mode explicitly when it's Free Form, same visual language as any other tag in the app — no new hue. A configured workflow shows nothing extra; its own numbered segments already say "this is a sequence" (same reasoning that killed the old "X of 5" step-count pill).</div>
+
+    <div class="rail-block">
+      <div class="rail-label">Free Form · WO 20450 (ROUT)</div>
+      <div class="step-rail">
+        <div class="step-rail-collapsed">
+          <span class="step-name">WO Record View</span>
+          <div class="step-rail-right">
+            <span class="mode-chip">Free Form</span>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments"></div>
+      </div>
+    </div>
+
+    <div class="rail-block">
+      <div class="rail-label">Workflow · WO 19257 (Breakdown)</div>
+      <div class="step-rail">
+        <div class="step-rail-collapsed">
+          <span class="step-name">Activity Checklist</span>
+          <div class="step-rail-right"><svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <div class="step-segments">
+          <div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION 3 — SEGMENT-SHAPE DISTINCTION, ZERO COLOR -->
+  <div class="opt-card">
+    <div class="opt-title">3 — Dashed "no sequence" bar (zero color)</div>
+    <div class="opt-risk">No color risk</div>
+    <div class="opt-desc">Instead of rendering nothing (which can read as "broken"), Free Form shows a plain dashed divider in the same slot the segments occupy — a positive signal for "unstructured," not an absence. Still fully monochrome; pairs well with Option 2's chip.</div>
+
+    <div class="rail-block">
+      <div class="rail-label">Free Form · WO 20450 (ROUT)</div>
+      <div class="step-rail">
+        <div class="step-rail-collapsed">
+          <span class="step-name">WO Record View</span>
+          <div class="step-rail-right"><svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <div class="seg-dashed-row"><div class="seg-dashed"></div></div>
+      </div>
+    </div>
+
+    <div class="rail-block">
+      <div class="rail-label">Workflow · WO 19257 (Breakdown)</div>
+      <div class="step-rail">
+        <div class="step-rail-collapsed">
+          <span class="step-name">Activity Checklist</span>
+          <div class="step-rail-right"><svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <div class="step-segments">
+          <div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION 4 — TYPE ICON + SMALL COLOR DOT (contained) -->
+  <div class="opt-card">
+    <div class="opt-title">4 — Type icon + 8px color dot</div>
+    <div class="opt-risk">Contained risk — color surface is ~8px</div>
+    <div class="opt-desc">A small monochrome Type icon sits in the rail's right slot with a tiny colored dot riding it — the WO Type's own admin-set color, at its rawest, unclamped. Free Form gets the same icon slot with a neutral gray dot (no type, no color) instead of an empty gap. Two real Types shown below using their actual admin-picked colors, including one that's frankly too loud — that's the point, this is the risk made visible.</div>
+
+    <div class="rail-block">
+      <div class="rail-label">Free Form · WO 20450 (ROUT)</div>
+      <div class="step-rail">
+        <div class="step-rail-collapsed">
+          <span class="step-name">WO Record View</span>
+          <div class="step-rail-right">
+            <div class="type-chip"><svg class="type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span class="type-dot neutral"></span></div>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments"></div>
+      </div>
+    </div>
+
+    <div class="rail-block">
+      <div class="rail-label">Workflow · WO 19257 (Breakdown — admin picked hot pink)</div>
+      <div class="step-rail">
+        <div class="step-rail-collapsed">
+          <span class="step-name">Activity Checklist</span>
+          <div class="step-rail-right">
+            <div class="type-chip"><svg class="type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span class="type-dot" style="background:#FF2EC4"></span></div>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments">
+          <div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rail-block">
+      <div class="rail-label">Workflow · WO 19831 (PM — admin picked lime)</div>
+      <div class="step-rail">
+        <div class="step-rail-collapsed">
+          <span class="step-name">Activity Checklist</span>
+          <div class="step-rail-right">
+            <div class="type-chip"><svg class="type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span class="type-dot" style="background:#C6FF1A"></span></div>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments">
+          <div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION 5 — TYPE ICON BADGE WASH (icon stays ink, background tints) -->
+  <div class="opt-card">
+    <div class="opt-title">5 — Icon badge, tinted background</div>
+    <div class="opt-risk">Contained risk — color surface is a 24px badge</div>
+    <div class="opt-desc">Same idea, slightly bigger and more legible surface: a 24px rounded badge whose background tints ~14% toward the Type's color, icon glyph stays plain ink (never colored itself, so it's always readable). Free Form gets the same badge shape in flat neutral gray. Still the same raw unclamped admin colors as Option 4 — the badge shape reads calmer than a bare dot even at the same hue, but a truly loud color still shows through.</div>
+
+    <div class="rail-block">
+      <div class="rail-label">Free Form · WO 20450 (ROUT)</div>
+      <div class="step-rail">
+        <div class="step-rail-collapsed">
+          <span class="step-name">WO Record View</span>
+          <div class="step-rail-right">
+            <div class="type-badge neutral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></div>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments"></div>
+      </div>
+    </div>
+
+    <div class="rail-block">
+      <div class="rail-label">Workflow · WO 19257 (Breakdown — admin picked hot pink)</div>
+      <div class="step-rail">
+        <div class="step-rail-collapsed">
+          <span class="step-name">Activity Checklist</span>
+          <div class="step-rail-right">
+            <div class="type-badge" style="background:#FF2EC424"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></div>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments">
+          <div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rail-block">
+      <div class="rail-label">Workflow · WO 19831 (PM — admin picked lime)</div>
+      <div class="step-rail">
+        <div class="step-rail-collapsed">
+          <span class="step-name">Activity Checklist</span>
+          <div class="step-rail-right">
+            <div class="type-badge" style="background:#C6FF1A30"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></div>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments">
+          <div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION 6 — TOP-EDGE STRIPE (bigger, louder surface) -->
+  <div class="opt-card">
+    <div class="opt-title">6 — Full-width top-edge stripe</div>
+    <div class="opt-risk">Higher risk — shown deliberately for contrast, not recommended as-is</div>
+    <div class="opt-desc">The Type's raw color paints a 3px stripe across the entire top edge of the rail — always in view while scrolling, not a small tag. This is the "loud" end of the spectrum: even a merely-bright color reads as a persistent colored line across every screen for that WO Type, and a truly bad admin pick (below) is hard to miss in a way none of the earlier options are.</div>
+
+    <div class="rail-block">
+      <div class="rail-label">Free Form · WO 20450 (ROUT)</div>
+      <div class="step-rail stripe-neutral">
+        <div class="step-rail-collapsed">
+          <span class="step-name">WO Record View</span>
+          <div class="step-rail-right"><svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <div class="step-segments"></div>
+      </div>
+    </div>
+
+    <div class="rail-block">
+      <div class="rail-label">Workflow · WO 19257 (Breakdown — admin picked hot pink)</div>
+      <div class="step-rail" style="border-top:3px solid #FF2EC4">
+        <div class="step-rail-collapsed">
+          <span class="step-name">Activity Checklist</span>
+          <div class="step-rail-right"><svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <div class="step-segments">
+          <div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rail-block">
+      <div class="rail-label">Workflow · WO 19831 (PM — admin picked lime)</div>
+      <div class="step-rail" style="border-top:3px solid #C6FF1A">
+        <div class="step-rail-collapsed">
+          <span class="step-name">Activity Checklist</span>
+          <div class="step-rail-right"><svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <div class="step-segments">
+          <div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION 7 — CURATED PALETTE SAFETY VALVE -->
+  <div class="opt-card">
+    <div class="opt-title">7 — Same badge as Option 5, but color is clamped</div>
+    <div class="opt-risk">Resolves the loudness risk structurally</div>
+    <div class="opt-desc">Screen Designer's Type-color picker offers a small curated swatch set (6 shown below) instead of a raw hex/color wheel — hues chosen to already sit comfortably next to this app's disciplined palette, deliberately excluding green/red (reserved status instruments, §23). The admin still picks per-Type, still gets visual variety across Types — they just can't reach hot pink or lime. Same two Types as Options 4–6, now mapped to their nearest curated swatch instead of the raw pick.</div>
+
+    <div class="rail-block">
+      <div class="rail-label">Free Form · WO 20450 (ROUT)</div>
+      <div class="step-rail">
+        <div class="step-rail-collapsed">
+          <span class="step-name">WO Record View</span>
+          <div class="step-rail-right">
+            <div class="type-badge neutral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></div>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments"></div>
+      </div>
+    </div>
+
+    <div class="rail-block">
+      <div class="rail-label">Workflow · WO 19257 (Breakdown — clamped to "Rose")</div>
+      <div class="step-rail">
+        <div class="step-rail-collapsed">
+          <span class="step-name">Activity Checklist</span>
+          <div class="step-rail-right">
+            <div class="type-badge" style="background:#C25B7C24"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></div>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments">
+          <div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rail-block">
+      <div class="rail-label">Workflow · WO 19831 (PM — clamped to "Teal")</div>
+      <div class="step-rail">
+        <div class="step-rail-collapsed">
+          <span class="step-name">Activity Checklist</span>
+          <div class="step-rail-right">
+            <div class="type-badge" style="background:#1E9E8B24"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></div>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments">
+          <div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="swatch-legend">
+      <div class="swatch"><span class="swatch-dot" style="background:#3E6FE0"></span>Blue</div>
+      <div class="swatch"><span class="swatch-dot" style="background:#1E9E8B"></span>Teal</div>
+      <div class="swatch"><span class="swatch-dot" style="background:#C9962E"></span>Amber</div>
+      <div class="swatch"><span class="swatch-dot" style="background:#8B5FBF"></span>Plum</div>
+      <div class="swatch"><span class="swatch-dot" style="background:#C25B7C"></span>Rose</div>
+      <div class="swatch"><span class="swatch-dot" style="background:#5B6B8C"></span>Slate</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

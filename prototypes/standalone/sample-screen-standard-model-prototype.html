@@ -188,11 +188,11 @@
 
     <div class="section-card">
       <div class="section-card-header"><span class="section-card-title">Text, number, currency, date, time</span></div>
-      <div class="form-field stacked" data-field="udf01" onclick="this.querySelector('textarea').focus()">
+      <div class="form-field stacked" data-field="udf01" onclick="focusInlineField(this)">
         <span class="field-label">User Defined Field 01</span>
         <textarea class="field-inline-input" id="fv-udf01" rows="1" maxlength="255" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus(this)" onblur="onInlineBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"></textarea>
       </div>
-      <div class="caption"><b>Inline text (≤255 chars):</b> tap directly into the row and edit right there — no popup at all. Label sits on its own line, cursor starts left-aligned underneath it (not right-justified mid-line), and the value spans the full row width, wrapping to as many lines as needed — this is the field's permanent shape (2026-07-23 — was conditional, only going tall once text passed 24 characters; now always this taller shape from the start). A floating green checkmark appears above the keyboard; tapping it (or Enter, or tapping away) commits the value and marks the form dirty. This is the standard for any standalone free-text field NOT inside a collapsible container (Activity Notes, Checklist Notes, Insert Mode Description, this UDF01) — a same-shaped field that ever ends up inside a real collapsible container, or an actual multi-line textarea like Comments/Closing Comments, is a different case and keeps its own shape. This supersedes the single-line edit sheet for plain text — the sheet is still used for currency/number below, just not for text.</div>
+      <div class="caption"><b>Inline text (≤255 chars):</b> tap directly into the row and edit right there — no popup at all. Label sits on its own line, cursor starts left-aligned underneath it (not right-justified mid-line), and the value spans the full row width, wrapping to as many lines as needed — this is the field's permanent shape (2026-07-23 — was conditional, only going tall once text passed 24 characters; now always this taller shape from the start). Tapping anywhere in the row always lands the cursor at the end of the existing text (<code>focusInlineField()</code>); tapping away commits the value and marks the form dirty — no bespoke on-screen confirm button (removed app-wide 2026-07-24, was duplicating the native mobile keyboard's own confirm/arrow affordances). This is the standard for any standalone free-text field NOT inside a collapsible container (Activity Notes, Checklist Notes, Insert Mode Description, this UDF01) — a same-shaped field that ever ends up inside a real collapsible container, or an actual multi-line textarea like Comments/Closing Comments, is a different case and keeps its own shape. This supersedes the single-line edit sheet for plain text — the sheet is still used for currency/number below, just not for text.</div>
 
       <div class="form-field" data-field="equipmentValue" onclick="openEdit('equipmentValue','Equipment Value','currency')">
         <span class="field-label">Equipment Value</span>
@@ -256,10 +256,10 @@
       <div class="section-card-header"><span class="section-card-title">Long-text</span></div>
       <div class="form-field" data-field="longNote" onclick="openTextEditor('longNote','Edit Note')">
         <span class="field-label">Long Note</span>
-        <span class="field-value muted" id="fv-longNote">Tap to add…</span>
+        <span class="field-value muted multiline" id="fv-longNote">Tap to add…</span>
         <span class="field-chevron">›</span>
       </div>
-      <div class="caption"><b>Long-text:</b> full-height text editor sheet, not a cramped inline input. Closing with unsaved edits swaps the close button for a red "Discard unsaved changes" pill; typing again dismisses the warning. No Clear button here — select all and delete instead.</div>
+      <div class="caption"><b>Long-text:</b> full-height text editor sheet, not a cramped inline input. Closing with unsaved edits swaps the close button for a red "Discard unsaved changes" pill; typing again dismisses the warning. No Clear button here — select all and delete instead. Supports carriage returns (unlike Inline Text) — the collapsed value shown here uses <code>.multiline</code> (<code>white-space:pre-wrap</code>, left-aligned) so line breaks actually render once a real value is entered, added 2026-07-24.</div>
     </div>
 
     <!-- Collapsible (§5.2 "collapsed except the first section") — conformance
@@ -516,9 +516,6 @@
     <div class="sheet-body" id="commentActionsBody"></div>
   </div>
 
-  <button class="inline-confirm-btn" id="inlineConfirmBtn" tabindex="-1">
-    <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </button>
 
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>

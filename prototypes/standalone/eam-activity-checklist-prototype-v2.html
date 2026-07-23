@@ -651,7 +651,7 @@ function renderFocus() {
     ${it.dynamicRules ? `<div class="focus-dynamic-hint">${BRANCH_ICON}<span>This response may add follow-up items to the checklist</span></div>` : ''}
 
     <div class="section-card">
-      <div class="form-field stacked" data-field="itemNotes" onclick="this.querySelector('textarea').focus()">
+      <div class="form-field stacked" data-field="itemNotes" onclick="focusInlineField(this)">
         <span class="field-label">Notes</span>
         <textarea class="field-inline-input" id="fv-itemNotes" rows="1" maxlength="255" placeholder="Add a note…" oninput="updateInlineFieldLayout(this); setNote(this)" onfocus="onInlineFocus()" onblur="onInlineBlur(this)">${it.note}</textarea>
       </div>
