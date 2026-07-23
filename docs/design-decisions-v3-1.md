@@ -602,6 +602,51 @@ progress (§4.4.2) stays there; this screen doesn't duplicate it.
   `SYNC_DEMO_ITEMS` — the protection mechanism itself is untouched (see
   above), just currently undemoed. The 2 queued (not error) items are
   unaffected.
+- **`wo-local-insert`'s error message + 3 real fixes to Retry, 2026-07-23.**
+  Gave the demo record's error a real message — "Equipment is not valid."
+  — that actually matches its own seed data (no `equipment` key at all,
+  so it renders as the unset "Tap to select equipment" state, §15.5) and
+  demoes cleanly: fill in Equipment, hit Retry, error goes away for a
+  reason a technician can follow, even though nothing actually gates
+  Retry on the field being fixed (§4.5's own "no per-field validation
+  exists" rule, unchanged — Retry always just attempts). Three real
+  fixes surfaced while doing this, all now in `eam-shared.js`:
+  1. **Offline Retry never actually queued the item — only claimed to.**
+     Both `retryFromBanner()` and `retrySyncItem()`'s offline branches
+     showed "Retry queued"/moved the banner to its orange "pending"
+     state, but never touched the underlying item's `state` in
+     `SYNC_DEMO_ITEMS` — it stayed `'error'`, still showing under "Needs
+     Attention" on the Sync Status Screen and the sync panel while the
+     banner alone called it queued. Both now flip `item.state` to
+     `'queued'` for real, so every surface agrees.
+  2. **New `resolveSyncItemSuccess(item)`** — when an item with a
+     `newRecord` payload (today, only `wo-local-insert`) finally syncs
+     successfully, it's given a real record number (`'19265'`, a plain
+     5-digit WO# in the same paradigm as the other demo WOs), simulating
+     a server handing back the real key on insert instead of leaving the
+     header showing `'(new)'` forever. Called from both
+     `retryFromBanner()`'s and `retrySyncItem()`'s success branches, so
+     it fires the same way whether the record resolves directly (Retry
+     tapped while already online) or after being queued and resolved
+     later from the sync panel/Sync Status Screen — "moved out of the
+     queue" isn't a separate case, same function either way. If the
+     record's own banner happens to be the one live on screen for this
+     exact item, the header number updates immediately (`recNum`/
+     `RECORD.number`); otherwise the update simply has no visible
+     surface in this prototype (there's no persistent "WO 19265" record
+     elsewhere in the app to reopen) once the item leaves the outbox —
+     an accepted, static-file-demo limitation, not something this pass
+     tried to solve with a new backing record file.
+  3. **Real bug fix, found while wiring #1/#2, unrelated to either:**
+     `retrySyncItem()`'s pre-existing success branch called
+     `openSyncPanel()` unconditionally whenever `#syncPanelList` existed
+     in the DOM (true on every screen now) — that function both renders
+     AND force-opens the sheet, so retrying from the Sync Status
+     Screen's own card would unexpectedly pop the sync panel bottom
+     sheet open on top of it. New `refreshSyncPanelIfOpen()` guards on
+     the sheet's own `.open` class instead — re-renders its content if
+     it's already visible, does nothing otherwise. All 4 call sites
+     (both branches of both retry functions) now go through this guard.
 
 Open question, not decided: since this app is a greenfield bridge between
 DUX (fully online) and legacy Mobile (a different offline model), does it
@@ -2459,6 +2504,14 @@ timer-stop flow.
   other protected control, §5.2) until an activity is selected; per the
   rule above, that means the bar starts locked whenever a WO has more than
   one activity, and starts ready when it has exactly one.
+- **Start Work is protected when the selected activity is complete**
+  (added 2026-07-23) — same "still tappable, explains itself" protected
+  language as the header status button (§15.4), not a plain gray/disabled
+  state: the bar reads "Activity is completed" and tapping it shows a
+  toast instead of starting the workflow. Selecting an incomplete
+  activity clears this and shows the ordinary "Start Work" ready state.
+  See the Completed-state bullet below for what makes an activity
+  complete in the first place.
 - **Edit button — non-standard, unique to this section** (added
   2026-07-16). A pencil icon in the toggle row's right side opens a
   dedicated full-screen edit popup (§15.3's hyperlinked-popup shell) for
@@ -2470,6 +2523,43 @@ timer-stop flow.
   Name and Discipline are editable there; Date/Code 1/Code 2 stay
   protected/read-only — the popup exists to prove the shell can host a
   real edit form, not to cover every Activity field's edit behavior yet.
+- **Completed state, added 2026-07-23, corrected same day after 2 rounds
+  of live review.** An activity is "complete" when its own Completed
+  checkbox is checked, OR its assignment status is at system status 'C'
+  (`ACTIVITY_STATUS_OPTIONS`' `COMP`/"Completed") — either is sufficient
+  on its own (`isActivityComplete()`, `eam-wo-record-view-prototype-
+  v1.html`). First pass literally superscripted every field (shrink +
+  raise), including the Trade/Start Date grid cells — broke that grid's
+  own alignment. 2nd pass narrowed the shrink+raise to just the Activity
+  # and Notes line, which fixed the grid but still didn't look right —
+  turned out "superscript" was the user's own shorthand for a
+  **strikethrough** the whole session, not literal raised/shrunk text.
+  **Locked treatment:** exactly 2 fields — the big Activity #
+  (`.act-num-big`) and the Notes line (`.act-name`) — get a plain
+  `text-decoration: line-through`, otherwise pixel-identical to the
+  non-completed state (same size/weight/color). Everything else in the
+  row, including the whole Trade/Start Date grid, is untouched either
+  way. The row stays fully selectable either way — selecting a completed
+  activity is only useful to reopen it via the Edit button and uncheck
+  Completed — and selecting one now changes what the bottom bar does —
+  see the "Start Work is protected..." bullet above.
+- **Completed checkbox — moved into the Header Fields grid, next to
+  Assignment Status (2026-07-23).** Was a plain `.form-field` checkbox
+  row buried in the popup's collapsed "Additional Details" card, sharing
+  no visual weight with the field that most directly implies it
+  (Assignment Status = 'C'/"Completed" is the other way to reach this
+  same state, see the bullet above). Now a plain `.attr-item` cell,
+  paired with Assignment Status in the same grid row instead of Status
+  sitting full-width alone — same `.field-checkbox`/`toggleCheckbox()`
+  component every other checkbox in this popup already uses, just
+  hosted in a grid cell instead of a form-field row. Populated by the
+  same `populateActivityPopup()` routine both Insert and Update mode
+  already share, so it reads correctly regardless of how the activity's
+  `completed` flag got set — including by WO Closing (see §19.7's
+  post-close navigation bullet): closing the WO sets the underlying
+  `completed` flag before this popup is ever opened, so opening it
+  afterward shows the checkbox already checked with no separate sync
+  step needed.
 
 ## 15.3 Collapsible sections
 
@@ -3406,6 +3496,34 @@ A) — see §21.
 
 - "Close Work Order" bar → confirm summary sheet: WO details + all codes + attachment count + target status
 - Execute Close → green full-screen closed overlay
+- **Post-close navigation, revised 2026-07-23** — was "overlay, then the
+  WO List"; now "overlay, then back to this same WO's Record View,"
+  so the technician sees the WO they just closed, header status updated
+  in place, rather than losing that context back in a list. Two things
+  ride along via sessionStorage, consumed once on Record View's next
+  load (`eam-wo-closing-prototype-v2.html`'s `executeClose()` writes
+  both, `eam-wo-record-view-prototype-v1.html`'s init reads/clears
+  both): (1) `eamActivityJustCompleted` — the workflow instance's
+  activity (captured as `eamActiveActivityId` back when Record View's
+  own Start Work first launched this instance, §15.2) gets its Completed
+  checkbox forced true **regardless of its prior assignment status** —
+  closing the WO always finishes the activity it was closed under; (2)
+  `eamClosedStatusKey` — the target status chosen on this screen
+  (§19.2's Completed/Closed/On Hold), mapped onto the header's own
+  status button via `CLOSING_STATUS_MAP` (`eam-wo-record-view-prototype-
+  v1.html`). **Flagged, not fully reconciled:** WO Closing's 3 target-
+  status keys aren't literally the same 3 codes as the header's own
+  `__status` LOV (WAPPR/RELEASED/CLOSE, §15.4) — Completed and Closed
+  both land on the header's existing neutral CLOSE tier, On Hold reuses
+  the existing orange "waiting" tier already established for Work
+  Request, and none of the 3 touch the header's own `LOV_CURRENT.__status`
+  value, display-only. **Live-verified 2026-07-23** (user screenshot,
+  Completed → Record View round trip): closed status lands on the
+  header correctly (lock icon, "Completed" fill), the workflow's
+  activity shows checked/complete, and Start Work correctly reads
+  "Activity is completed" — confirmed working as designed. Only the
+  superscript visual itself needed a follow-up pass; see the Completed-
+  state bullet in §15.2 for what changed there.
 
 ## 19.8 Design decisions locked (WO Closing)
 
@@ -3465,6 +3583,7 @@ A) — see §21.
 | **Step rail: Octave Yellow for Not Free Form WO workflows — built and verified** | §15.4/§3.2's rule (purple wash default; Octave Yellow for Not Free Form) is now wired end to end: the Free Form flag (§12 tier 2, WO Workflow header keyed WO Type × User Group) drives it via `renderStepRail()`/`applyWorkflowTypeHeader()` (`eam-shared.js`), verified live across all 5 WO-workflow screens on all 3 demo WOs (BRKD=yellow, PM=purple, ROUT=no rail, §11 fallback) through the `cycleDemoWo()` dev toggle. |
 | **WO Closing status-change control — protected/unprotected flag now wired** | Option D (§19.2) previously drove `statusFieldProtected` from a hardcoded `false` const. Now set from the resolved WO Workflow header's Free Form column (§12 tier 2) in `onDemoWoChanged()`, verified live (protected on BRKD, unprotected on PM). See §15.4/§19.2 for the same-day redesign of what "protected" actually looks like now (colour stays, lock icon, tappable-with-toast) — this row is just about the flag being real, not hardcoded. |
 | **WO Closing → post-close navigation — partially built** | Corrected 2026-07-16 (conformance audit) — this row was stale: `executeClose()` already navigates to `eam-wo-list-prototype-v5_1.html` after the "Work Order Closed" overlay shows briefly (1.4s), it does not stay up indefinitely. What's still actually open: that navigation is a plain page load with no state passed, so WO List always lands on its own hardcoded default dataspy (`ds1`) rather than re-running whichever dataspy the user had selected before opening WO Closing. Real cross-screen state-passing is what the unified compile needs to add. |
+| **Dev-only `demoWoToggle` pill removed, 2026-07-23** | The manual "cycle through the 3 demo WOs" pill (`cycleDemoWo()`, sat in each screen's `.proto-theme-bar` outside the app frame, next to the theme/online toggles — referenced in the row above and in §18.7/§19.7) is gone from all 5 WO-workflow screens. It predated real cross-screen navigation (§24 rule 3): WO List's `openWO()` now routes by the tapped row's own Type (BK→19257, PM→19831, everything else→20450, with "My Assigned WOs" carrying one real row per demo WO), and every WO-workflow screen's own "Next" button already carries the current demo WO's identity forward via the `eamOpenDemoWo` sessionStorage flag — so all 3 workflow tiers (BRKD full flow / PM skips Issue Parts / ROUT §11 fallback) are reachable by actually navigating, with no reviewer-facing manual override needed. `DEMO_WO`/`DEMO_WO_JOBTYPES`/`applyDemoWoIdentity()`/`onDemoWoChanged()` and each screen's consume-once `eamOpenDemoWo` read are all unchanged — only the hand-operated pill (button markup + `cycleDemoWo()` in `eam-shared.js`) was removed. |
 
 **Below added 2026-07-21, code-level UI component inventory pass (`docs/ui-component-inventory.md`) — a static CSS/markup audit for visual-consistency drift across every live screen, done ahead of the compile/handoff pass. Full detail lives in that doc. All 12 findings below were fixed the same session — kept here (not deleted) as the record of what was found and how it was resolved.**
 
@@ -3821,6 +3940,51 @@ did (confirmed: the class only landed once triggered manually); a CSS
 animation has no such dependency. Screen-local CSS for now (this file's
 own `<style>` block) — promote `.pullup-app` to `eam-shared.css` if a 2nd
 "reads like a pull-up" full-page screen shows up.
+
+## 24.2 Home — 2 new tiles + Favorites empty-state rule (2026-07-23)
+
+Two tiles added to `eam-home-screen-prototype-v1.html`'s `HOME_TILES`,
+same "My Work"/"My Equipment" groups as the existing ones (still an
+open, unlocked content riff per this doc's own framing above — adding
+tiles isn't locking the tile *set*, just these 2 particular ones being
+present):
+
+- **"High Priority — Open"** (`tile1b`, group `mywork`) — points at WO
+  List's own `ds3` dataspy, which already existed there with no Home
+  tile pointing to it. Red (`#E24B4A`, this app's one real urgency
+  instrument) rather than either sibling tile's colour, since this tile
+  is about *how urgent*, not *what kind* of work, the axis tile1/tile2
+  are already on.
+- **"Facilities"** (`tile4b`, group `reference`) — points at Equipment
+  List's own `facilities` dataspy (already real there,
+  `class==='FACILITY'`). Same teal treatment as Equipment/Pumps — icon
+  shape distinguishes them, not a 3rd hue, same language those two
+  already use. New `#ico-building` symbol added to Home's own sprite,
+  copied verbatim from `eam-wo-list-prototype-v5_1.html`'s existing
+  glyph of the same name rather than inventing a 2nd one.
+
+**Favorites section header hides entirely when there are no favorites —
+locked design decision, not just a code fix.** Previously the
+"Favorites ⭐" label always rendered even with zero chips under it,
+which read as broken rather than empty — and this session's own WO-
+favorites-seeding bug fix (§4.5 area, `getFavoriteDS()`) means a
+genuinely-empty favorites state is now actually reachable at the outset
+instead of theoretical (WO no longer seeds any default favorite;
+Equipment still seeds `pumps`, so today's practical floor is 1, not
+0 — see the note on that seed in `resetDemoState()`, `eam-shared.js`).
+Rule: zero favorites → the label AND the (empty) row beneath it are
+both hidden (`display:none`, plain show/hide, not a 2nd rendered empty
+state); the moment a first favorite exists, both reappear in the exact
+same location, no animation or placeholder needed. `renderFavorites()`
+toggles `#favSectionLabel`/`#favRow` on every call based on
+`FAVORITES.length` — no separate code path, so it stays correct through
+adds/removes/reorders alike. **One known, accepted minor gap:**
+`.home-section-label:first-child` gives whichever section label is
+structurally first a smaller top margin; when Favorites is hidden via
+`display:none` it's still the first DOM child, so "My Work" doesn't
+inherit that reduced margin and the gap under the greeting is very
+slightly larger than if Favorites had never existed in the DOM at all —
+cosmetic only, not fixed this pass.
 
 # 25. Notifications
 

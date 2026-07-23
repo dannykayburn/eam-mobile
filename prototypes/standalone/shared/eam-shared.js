@@ -320,27 +320,26 @@ function applyDemoWoIdentity() {
   // Type is left alone here now — it renders from each screen's own
   // RECORD.type, same as every other demo-WO-swap-untouched deeper field.
 }
-/* Dev-only demo-WO selector (same pattern as the theme/online toggles) —
-   this prototype has no real cross-screen ?wo= navigation yet (Phase 1,
-   still unstarted), so which of the 3 demo WOs' workflow rules apply is a
-   flag a reviewer flips by hand, per screen, to see all 3 tiers of the
-   §11-13 model (BRKD full flow / PM skips Issue Parts / ROUT falls back
-   to the plain Standard Record View). Also swaps the WO#/description/
-   Type text (applyDemoWoIdentity() above, added 2026-07-22) — but still
+/* Which of the 3 demo WOs' workflow rules apply (§11-13: BRKD full flow /
+   PM skips Issue Parts / ROUT falls back to the plain Standard Record
+   View) is driven entirely by real navigation now — WO List's openWO()
+   (Type-based routing), Home, Notifications, and each WO-workflow
+   screen's own "Next" button all set the eamOpenDemoWo sessionStorage
+   flag before navigating, and every screen's own consume-once read of it
+   (see each file's own OPEN_DEMO_WO block) sets DEMO_WO on load. Removed
+   2026-07-23: this used to also be flippable by hand via a dev-only
+   demoWoToggle pill (cycleDemoWo()) sitting outside the app frame,
+   dating from before real cross-screen navigation existed — now
+   redundant, since a reviewer can reach all 3 tiers by actually
+   navigating (e.g. WO List's "My Assigned WOs" dataspy has one real row
+   per demo WO). Also swaps the WO#/description/Type text
+   (applyDemoWoIdentity() above, added 2026-07-22) — but still
    deliberately doesn't touch deeper content (equipment, activities,
    labor, parts) on any screen; swapping *that* per screen is the larger
    Phase 1 scope this pass isn't tackling (see design-decisions-v3-1.md
    §11's "lightweight vs. full ?wo= loading" note). */
 const DEMO_WO_JOBTYPES = { '19257': 'BRKD', '19831': 'PM', '20450': 'ROUT' };
 let DEMO_WO = '19257';
-function cycleDemoWo() {
-  const nums = Object.keys(DEMO_WO_JOBTYPES);
-  DEMO_WO = nums[(nums.indexOf(DEMO_WO) + 1) % nums.length];
-  const btn = document.getElementById('demoWoToggle');
-  if (btn) btn.textContent = '📋 WO ' + DEMO_WO;
-  applyDemoWoIdentity();
-  if (typeof onDemoWoChanged === 'function') onDemoWoChanged();
-}
 
 /* goToTab is the one function most screens never need to call directly
    (tab-map items call it via onclick) but every screen with more than one
@@ -787,7 +786,7 @@ function closeHyperlinkPopup(id) {
    currently undemoed; add a row back here if it needs exercising again. ══ */
 let SYNC_DEMO_ITEMS = [
   { id: 'wo-local-insert', entity: 'Work Order', recordLabel: 'WO (not yet synced)', sub: 'Handrail corrosion — Bay 4',
-    timestamp: '2:14 PM', state: 'error', protection: null, errorMessage: null,
+    timestamp: '2:14 PM', state: 'error', protection: null, errorMessage: 'Equipment is not valid.',
     openUrl: 'eam-wo-record-view-prototype-v1.html',
     newRecord: { storageKey: 'eamNewWoRecord', record: {
       number: '(new)', desc: 'Handrail corrosion — Bay 4',
@@ -810,7 +809,7 @@ let SYNC_DEMO_ITEMS = [
 /* Persisted across navigation (added 2026-07-22) — same "resets on every
    screen load" problem theme/DEMO_WO had, but this one has no manual
    reset control: the reset affordance is logging in again
-   (resetSyncDemoState() below, called from eam-login-prototype-v1.html's
+   (resetDemoState() below, called from eam-login-prototype-v1.html's
    startLogin()), matching how a real app would re-sync on a fresh
    session rather than adding demo-only UI chrome. */
 (function () {
@@ -818,14 +817,56 @@ let SYNC_DEMO_ITEMS = [
   if (saved) { try { SYNC_DEMO_ITEMS = JSON.parse(saved); } catch (e) {} }
 })();
 function persistSyncItems() { localStorage.setItem('eamSyncItems', JSON.stringify(SYNC_DEMO_ITEMS)); }
-/* Reset affordance — clears persisted sync state so the next load falls
-   back to this file's own hardcoded seed above (2 errors, offline).
+/* Reset affordance — renamed from resetSyncDemoState() 2026-07-23 (was
+   sync-only; broadened same day to cover every other localStorage key
+   this prototype accumulates demo progress in, not just the outbox —
+   found while wiring the new "Restart Demo" button below, which made
+   "does this actually look like a fresh start" a real question for the
+   first time instead of a theoretical one). Clears all of it so the
+   next load falls back to every file's own hardcoded seed data:
+   - eamSyncItems/eamSyncOnline — the sync outbox demo (2 errors,
+     offline), as before.
+   - eamNextWoNumber/eamNextEquipNumber — Insert Mode's auto-increment
+     counters (Home/WO List's Create), so newly-inserted demo records
+     restart from 19258/00067400 instead of continuing to climb.
+   - eamFavoriteDataspies/eamFavoriteEquipDS — WO List's/Equipment
+     List's favorited dataspies. WO's now has no seeded default at all
+     (fixed 2026-07-23 — see the comment on getFavoriteDS() in
+     eam-wo-list-prototype-v5_1.html for why a seed was the wrong call
+     to begin with); Equipment's still self-seeds 'pumps' the same old
+     way, which carries the identical Home/List first-visit mismatch
+     this fix resolved for WO — not touched this pass since only WO was
+     asked about, but worth the same fix if it comes up.
+   - eamHomeFavOrder/eamHomeTileOrder — Home's drag-reordered
+     Favorites/tile sections, back to their built-in order.
    Deliberately does NOT touch 'eamTheme' — theme is a real user
    preference, not demo progress, and should survive a fresh login same
    as it survives navigation. */
-function resetSyncDemoState() {
-  localStorage.removeItem('eamSyncItems');
-  localStorage.removeItem('eamSyncOnline');
+function resetDemoState() {
+  ['eamSyncItems', 'eamSyncOnline', 'eamNextWoNumber', 'eamNextEquipNumber',
+   'eamFavoriteDataspies', 'eamFavoriteEquipDS', 'eamHomeFavOrder', 'eamHomeTileOrder']
+    .forEach(k => localStorage.removeItem(k));
+}
+/* Dev-only "Restart Demo" button (2026-07-23, user direction) — injected
+   into every screen's .proto-theme-bar rather than hand-copied into each
+   of the ~15 standalone files' markup (same reasoning as promoting any
+   other 2nd/3rd+ consumer here: one function, applies everywhere
+   eam-shared.js already loads). Just a navigation shortcut past
+   manually re-opening the login screen from the standalone folder — the
+   actual reset happens where it already did, in startLogin() below via
+   resetDemoState(), when the technician taps Log In there (pre-filled
+   credentials, so it's one more tap after landing). Not shown on the
+   login screen itself since that screen never calls initSharedApp() (a
+   fully custom one-off, §4.1) — nothing to restart from there anyway. */
+function initRestartDemoButton() {
+  const bar = document.querySelector('.proto-theme-bar');
+  if (!bar || document.getElementById('restartDemoBtn')) return;
+  const btn = document.createElement('button');
+  btn.className = 'theme-toggle';
+  btn.id = 'restartDemoBtn';
+  btn.textContent = '⟲ Restart Demo';
+  btn.onclick = () => { location.href = 'eam-login-prototype-v1.html'; };
+  bar.appendChild(btn);
 }
 function syncErrorTierText(item) {
   if (item.errorMessage) return item.errorMessage;
@@ -922,25 +963,86 @@ function deleteSyncItem(id, onDone) {
     if (onDone) onDone();
   }, 'Discard');
 }
+// Re-renders the sync panel's content in place if it's actually open
+// right now — NOT the same as openSyncPanel() itself, which both renders
+// AND forces the sheet open. Real bug fix, 2026-07-23: the pre-existing
+// online-success branch below called openSyncPanel() unconditionally
+// whenever #syncPanelList existed in the DOM (true on every screen now),
+// which yanks the bottom sheet open over whatever the technician was
+// looking at even if they never opened it — most visibly, tapping Retry
+// on WO Record View's own banner would pop the sync panel open on top of
+// it. Every call site that refreshes the panel after mutating
+// SYNC_DEMO_ITEMS now goes through this guard instead.
+function refreshSyncPanelIfOpen() {
+  const sheet = document.getElementById('syncPanelSheet');
+  if (sheet && sheet.classList.contains('open')) openSyncPanel();
+}
+// Assigns a real record # to a not-yet-synced local record once it
+// actually syncs successfully — same idea as a real server handing back
+// the record's real key on insert, which a locally-created record can't
+// know in advance (§9.5's '(new)' placeholder). Demo-only, so the
+// "real" number is hardcoded: '19265', a plain 5-digit WO# in the same
+// paradigm as this app's other demo WOs (19257/19831/20450). Shared by
+// every success path that can resolve a sync item — retryFromBanner()
+// (Retry tapped from the record's own banner) and retrySyncItem() (Retry
+// tapped from the sync panel or the Sync Status Screen's queued/error
+// row) — so the number updates consistently no matter which surface
+// completed the sync, including a record resolving after it was already
+// moved into the queue rather than resolving directly. Written WO-
+// shaped (a `number` field) since that's the only newRecord item that
+// exists today; a future Equipment insert item would need its own
+// mapping, not this one verbatim.
+function resolveSyncItemSuccess(item) {
+  if (!item.newRecord) return;
+  item.newRecord.record.number = '19265';
+  // If this exact item's banner is the one currently live on screen
+  // (i.e. the technician is sitting on this record's own Record View
+  // right now), reflect the new number immediately instead of leaving
+  // the header stale until they navigate away and back.
+  if (typeof SYNC_ERROR_ACTIVE !== 'undefined' && SYNC_ERROR_ACTIVE && SYNC_ERROR_ACTIVE.itemId === item.id) {
+    const numEl = document.getElementById('recNum');
+    if (numEl) numEl.textContent = item.newRecord.record.number;
+    if (typeof RECORD !== 'undefined' && RECORD) RECORD.number = item.newRecord.record.number;
+  }
+}
 // Same online/offline resolution as retryFromBanner() — this is the
 // Retry button's OTHER surface (the sync panel's pending rows, and the
 // Sync Status Screen's own card list). Always attempts now (the field-
 // level gate is gone along with field-level detail itself, §4.5).
+// Offline (2026-07-23): retrying an 'error' item while offline doesn't
+// resolve it, but it does move it into the queue — same as the banner's
+// own offline branch below — rather than leaving it sitting under
+// "Needs Attention" while the toast claims it's queued.
 function retrySyncItem(id) {
   const item = SYNC_DEMO_ITEMS.find(i => i.id === id);
   if (!item) return;
   if (!DEMO_ONLINE) {
+    if (item.state !== 'queued') {
+      item.state = 'queued';
+      persistSyncItems();
+      renderSyncControl();
+      if (typeof renderSyncStatusScreen === 'function') renderSyncStatusScreen();
+      refreshSyncPanelIfOpen();
+    }
     showToast('Retry queued — will attempt again once back online');
     return;
   }
   showToast('Retrying…');
   setTimeout(() => {
+    resolveSyncItemSuccess(item);
     SYNC_DEMO_ITEMS = SYNC_DEMO_ITEMS.filter(i => i.id !== id);
     persistSyncItems();
     showToast('Synced');
     renderSyncControl();
+    // Keep the record's own banner (if it's up for this exact item) from
+    // going stale when the technician resolves it from the panel/Sync
+    // Status Screen instead of the banner's own Retry button.
+    if (typeof SYNC_ERROR_ACTIVE !== 'undefined' && SYNC_ERROR_ACTIVE && SYNC_ERROR_ACTIVE.itemId === id) {
+      SYNC_ERROR_ACTIVE.status = 'synced';
+      renderSyncBanner();
+    }
     if (typeof renderSyncStatusScreen === 'function') renderSyncStatusScreen();
-    if (document.getElementById('syncPanelList')) openSyncPanel();
+    refreshSyncPanelIfOpen();
   }, 900);
 }
 /* ── Sync panel (§4.4.2) — bottom sheet, reuses .bottom-sheet/#sheetOverlay
@@ -1090,12 +1192,26 @@ function renderSyncBanner() {
    go find the item in the Sync Status Screen again. Always available now
    (the 2026-07-20 "protected until the flagged field clears" gate is
    gone along with field-level detail itself, §4.5) — offline queues
-   (matches the panel's own queued language), online always resolves. */
+   (matches the panel's own queued language), online always resolves.
+   Fixed 2026-07-23: "offline queues" was true of the banner's own
+   wording/status but never actually true of the underlying item — the
+   banner said "queued" while SYNC_DEMO_ITEMS still carried it as
+   'error', so it kept sitting under "Needs Attention" everywhere else
+   (sync panel, Sync Status Screen) while this banner alone called it
+   queued. Now actually flips the item's state, so every surface agrees. */
 function retryFromBanner() {
   if (!SYNC_ERROR_ACTIVE) return;
+  const item = SYNC_DEMO_ITEMS.find(i => i.id === SYNC_ERROR_ACTIVE.itemId);
   if (!DEMO_ONLINE) {
     SYNC_ERROR_ACTIVE.status = 'pending';
     renderSyncBanner();
+    if (item && item.state !== 'queued') {
+      item.state = 'queued';
+      persistSyncItems();
+      renderSyncControl();
+      if (typeof renderSyncStatusScreen === 'function') renderSyncStatusScreen();
+      refreshSyncPanelIfOpen();
+    }
     showToast('Retry queued — will attempt again once back online');
     return;
   }
@@ -1105,9 +1221,12 @@ function retryFromBanner() {
     if (!SYNC_ERROR_ACTIVE) return;
     SYNC_ERROR_ACTIVE.status = 'synced';
     renderSyncBanner();
+    if (item) resolveSyncItemSuccess(item);
     SYNC_DEMO_ITEMS = SYNC_DEMO_ITEMS.filter(i => i.id !== SYNC_ERROR_ACTIVE.itemId);
     persistSyncItems();
     renderSyncControl();
+    if (typeof renderSyncStatusScreen === 'function') renderSyncStatusScreen();
+    refreshSyncPanelIfOpen();
     showToast('Synced');
   }, 900);
 }
@@ -2421,6 +2540,7 @@ function autosaveIfDirty() {
 function initSharedApp(opts) {
   opts = opts || {};
   initThemeToggle();
+  initRestartDemoButton();
   initTabRail();
   initStepRail();
   initRecHeaderScroll(opts.contentSelector);

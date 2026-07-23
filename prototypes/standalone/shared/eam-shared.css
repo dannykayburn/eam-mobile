@@ -931,6 +931,34 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .equip-search-scan-btn { flex-shrink: 0; background: none; border: none; color: var(--gray-4); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px; transition: color .15s; }
 .equip-search-scan-btn:hover { color: var(--octave-black); }
 [data-theme="dark"] .equip-search-scan-btn:hover { color: var(--white); }
+/* ── Equipment popup, host-page CSS immunity (2026-07-23, user-reported:
+   Create WO's Equipment field looked different/"wonky" opened from WO
+   List's own Create vs. Home's Create bar). Root cause: this popup's
+   Search tab reuses the exact same class names as the shared §8.2/§8.3
+   List/Detail shell (.ds-bar, .mode-tog/.mode-btn, .res-row/.res-count,
+   .ld-card-subline, .ld-table-wrap) — WO List keeps its own local,
+   deliberately-diverged copy of those same classes for its OWN screen
+   (a taller/bigger mode-toggle, a mono result count, an ink-not-muted
+   card subline, a table-wrap margin padded for its own bottom bar — see
+   that file's own header note on why it hand-copies this component),
+   loaded after this file so it wins same-specificity ties by source
+   order. That local override was never meant to reach into this shared
+   popup, but the identical class names dragged it in anyway. Home has
+   no such local duplicate, so the popup only ever looked right there.
+   Pinned here at #equipmentPopup (ID) specificity, which always wins
+   over a plain class rule regardless of which file defines it or which
+   loads last — same defensive technique as .ld-card-headline.pill-
+   green's own compounded-specificity fix above, just scoped by
+   container instead of by an extra class, so any *future* per-screen
+   local override of these same classes is covered too, not just today's
+   known one. ── */
+#equipmentPopup .ds-bar { margin: 12px 12px 0; padding: 11px 14px; }
+#equipmentPopup .mode-tog { margin: 10px 12px 0; padding: 3px; }
+#equipmentPopup .mode-btn { height: auto; padding: 7px 0; font-size: 12px; }
+#equipmentPopup .res-row { padding: 10px 16px 4px; }
+#equipmentPopup .res-count { font-family: var(--font-sans); }
+#equipmentPopup .ld-card-subline { color: var(--gray-4); }
+#equipmentPopup .ld-table-wrap { margin: 10px 12px 0; }
 .qr-scan-overlay { position: absolute; inset: 0; background: #0b0b0d; z-index: 230; display: flex; flex-direction: column; transform: translateY(100%); transition: transform .3s cubic-bezier(.32,.72,0,1); }
 .qr-scan-overlay.open { transform: translateY(0); }
 .qr-scan-header { display: flex; justify-content: flex-end; padding: 14px; flex-shrink: 0; }

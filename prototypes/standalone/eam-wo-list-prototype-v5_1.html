@@ -1175,21 +1175,25 @@ const DSF={
    localStorage, not just an in-memory Set, specifically so favoriting a
    dataspy here can surface it as a Favorites chip on
    eam-home-screen-prototype-v1.html (same origin, same local server —
-   localStorage is shared across every standalone file). Seeded once with
-   the same two dataspies Home's own FAVORITES array already hardcoded
-   (ds3/ds6) so first load looks unchanged; every toggle after that is
-   real. Stores {id,name} pairs, not just ids, so Home can render a chip
-   without needing this file's DS array. */
+   localStorage is shared across every standalone file). Stores {id,name}
+   pairs, not just ids, so Home can render a chip without needing this
+   file's DS array.
+   No self-seeding (removed 2026-07-23, real bug fix) — this used to seed
+   ds3/ds6 as already-favorited the first time this function ran, and
+   ONLY this function did that: Home's own loadWoFavorites() just reads
+   the key back with no seeding step of its own. Since a fresh login
+   always lands on Home first (before this file has ever run), Home read
+   the still-empty key and showed no WO favorites, while this screen's
+   own dataspy sheet later self-seeded and showed 2 stars filled — a real
+   mismatch, not a timing coincidence. Now both screens just read-and-
+   default-to-empty identically, so WO dataspies start genuinely
+   unfavorited everywhere at the outset, regardless of which screen is
+   opened first. */
 const LS_FAVORITE_DS_KEY='eamFavoriteDataspies';
 function getFavoriteDS(){
   try{
     const raw=localStorage.getItem(LS_FAVORITE_DS_KEY);
-    if(raw===null){
-      const seed=[{id:'ds3',name:'High Priority — Open'},{id:'ds6',name:'Waiting Approval'}];
-      localStorage.setItem(LS_FAVORITE_DS_KEY,JSON.stringify(seed));
-      return seed;
-    }
-    return JSON.parse(raw)||[];
+    return raw ? (JSON.parse(raw)||[]) : [];
   }catch(e){ return []; }
 }
 function isFavoriteDS(id){ return getFavoriteDS().some(f=>f.id===id); }

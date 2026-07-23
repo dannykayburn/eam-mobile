@@ -1439,6 +1439,196 @@ become a re-investigation every time it comes up.
   session** — browser preview tool access was denied this turn; re-check
   visually (both themes, full RV→Checklist→Issue Parts→Book Labor→
   Closing free-flow walk) next time this area is touched.
+- **WO Closing's post-close flow + activity Completed state, 2026-07-23
+  (user direction).** Closing a WO now returns to this same WO's Record
+  View instead of the WO List (green overlay unchanged), header status
+  updated to match whatever target status was chosen on the Closing
+  screen, and the workflow's own activity gets its Completed checkbox
+  forced true regardless of its prior assignment status. New: a
+  completed activity (checkbox true OR assignment status at system
+  status 'C') now renders its fields in a shrunk/raised, literal-
+  superscript treatment on WO Record View's Activities list — flagged
+  by the user themself as a first pass that might read "wonky" and need
+  a different treatment. It stays selectable (only useful to reopen it
+  via the Edit button and uncheck Completed); selecting one now makes
+  the bottom bar's Start Work protected ("Activity is completed," toast
+  on tap) instead of starting the workflow. Full write-up + the real
+  cross-screen mechanics (new `eamActiveActivityId`/
+  `eamActivityJustCompleted`/`eamClosedStatusKey` sessionStorage hand-
+  offs, `CLOSING_STATUS_MAP`): design-decisions-v3-1.md §15.2/§19.7.
+  **Live-verified 2026-07-23 by the user (screenshot)** — the close →
+  back-to-Record-View round trip, header status swap, and Start Work
+  protection all work as designed. The superscript treatment took 2
+  follow-up passes to land: 1st pass superscripted every field (broke
+  the Trade/Start Date grid's own alignment); 2nd pass narrowed the
+  shrink+raise to just the Activity #/Notes line, which fixed the grid
+  but still looked wrong — turned out "superscript" was the user's own
+  shorthand for a **strikethrough**, not literal raised/shrunk text, all
+  along. **Corrected:** the Activity # and Notes line now get a plain
+  `text-decoration: line-through`, otherwise pixel-identical to the
+  non-completed state (same size/weight/color) — everything else in the
+  row, including the whole Trade/Start Date grid, is untouched either
+  way.
+- **Activity edit popup's Completed checkbox moved into the Header
+  Fields grid, next to Assignment Status, 2026-07-23 (user direction).**
+  Was a plain `.form-field` checkbox row buried in the popup's collapsed
+  "Additional Details" card; now a plain `.attr-item` cell pairing with
+  Assignment Status in the same grid row (Status lost its `full-width`
+  class to make room) instead of sitting alone. Same `.field-checkbox`/
+  `toggleCheckbox()` component every other checkbox in the popup already
+  uses — first checkbox hosted in this particular grid, no JS changes
+  needed since `toggleCheckbox()`/`isActivityChecked()`/
+  `setActivityChecked()` only look for a `data-field` ancestor + a
+  `.field-checkbox` child, not a specific row class, and both Insert and
+  Update mode already populate it through the one shared
+  `populateActivityPopup()`. Confirmed WO Closing's existing hand-off
+  (§19.7) already checks this box correctly with no further change —
+  it sets the activity's `completed` flag before the popup is ever
+  opened, so the popup just reads that flag like any other field. Full
+  write-up: design-decisions-v3-1.md §15.2.
+- **Equipment LOV popup fixed to render identically from both Create WO
+  entry points, 2026-07-23 (user-reported "wonky search LOV" from WO
+  List's Create vs. Home's Create bar).** The two entry points already
+  called the exact same shared `openEquipmentLookup()` (§15.5) — no
+  divergent code path existed. The real cause: the popup's Search tab
+  renders using the shared §8.2/§8.3 List/Detail shell's own class names
+  (`.ds-bar`, `.mode-tog`/`.mode-btn`, `.res-row`/`.res-count`,
+  `.ld-card-subline`, `.ld-table-wrap`) — and `eam-wo-list-prototype-
+  v5_1.html` keeps its own local, deliberately-diverged copy of those
+  same classes for its own screen (taller/bigger mode-toggle buttons, a
+  mono result count, an ink-not-muted card subline, a `.ld-table-wrap`
+  bottom margin padded 78px for its own bottom bar) — see that file's own
+  header note on why it hand-copies this component at all. Loaded after
+  `eam-shared.css`, that local copy silently won same-specificity ties by
+  source order, so the popup rendered with WO List's own screen styling
+  bleeding through instead of the shared/clean look — Home has no such
+  local duplicate, so the popup only ever looked right there. Fixed at
+  the shared-file source: added an `#equipmentPopup`-scoped override
+  block in `eam-shared.css` (ID specificity always wins over a plain
+  class rule, regardless of load order) that pins the popup's mode-
+  toggle sizing/font, result-count font-family, card-subline color, and
+  table-wrap margin to the canonical/shared values — covers any *future*
+  per-screen local override of these same classes too, not just this
+  one. **Not yet live-verified in a browser this session** — browser
+  preview tool access was denied this turn; re-check visually (open
+  Create WO's Equipment field from both WO List's Create and Home's
+  Create bar, compare the Search tab's toggle size/result count/card
+  subline in both themes) next time this area is touched.
+- **Dev-only WO pill selector removed, 2026-07-23 (user direction).** The
+  `demoWoToggle` pill (📋 WO 19257/19831/20450, `cycleDemoWo()`) that sat
+  outside the app frame in each WO-workflow screen's `.proto-theme-bar`
+  next to the theme/online toggles is gone — real cross-screen navigation
+  already makes it redundant: WO List's `openWO()` routes by the tapped
+  row's Type to the correct demo WO (§24 rule 3), and every WO-workflow
+  screen's own "Next" button already carries the current demo WO forward
+  via `eamOpenDemoWo`. All 3 workflow tiers (BRKD full flow / PM skips
+  Issue Parts / ROUT §11 fallback) are reachable by actually navigating
+  (e.g. WO List's "My Assigned WOs" dataspy has one real row per demo
+  WO) — verified by reading each screen's own load-time logic, not a
+  live-browser check this session (preview tool access was denied).
+  `DEMO_WO`/`DEMO_WO_JOBTYPES`/`applyDemoWoIdentity()`/`onDemoWoChanged()`
+  and each screen's consume-once `eamOpenDemoWo` read are unchanged —
+  only the hand-operated pill itself (button markup in all 5 WO-workflow
+  screens + `cycleDemoWo()` in `eam-shared.js`) was removed. See design-
+  decisions-v3-1.md's "Dev-only `demoWoToggle` pill removed" row for the
+  full write-up. **Re-check visually next time these screens are
+  touched.**
+- **Sync flow buttered up, 2026-07-23 (user direction) — `wo-local-
+  insert`'s error message + 3 real fixes to Retry, all in
+  `eam-shared.js`.** The not-yet-synced demo WO's error is now a real,
+  matching message — "Equipment is not valid." (its seed data has no
+  `equipment` key at all, so the field really is unset) — instead of the
+  generic fallback. Fixing it in the UI and hitting Retry now behaves
+  correctly end to end: offline actually moves the item into the queue
+  (was previously just a banner-text claim — the underlying item stayed
+  `'error'` the whole time, a real bug); online resolves it and assigns
+  a real WO# (`'19265'`, new shared `resolveSyncItemSuccess()`) instead
+  of leaving the header on `'(new)'` forever — same function fires
+  whether it resolves directly or after sitting in the queue first, so
+  "moved out of the queue" gets identical treatment, not a separate
+  code path. Also fixed, found along the way: `retrySyncItem()`'s
+  success branch was unconditionally force-opening the sync panel
+  bottom sheet on every successful retry, even when it was never open —
+  new `refreshSyncPanelIfOpen()` only re-renders it if it's actually
+  visible. Full write-up: design-decisions-v3-1.md §4.5.
+- **"Restart Demo" button added, 2026-07-23 (user-requested convenience)
+  — dev/demo tooling only, no design-doc entry, same category as the
+  theme/online toggles.** User was manually re-navigating to the
+  standalone folder and opening the login screen by hand each time they
+  wanted a clean run; asked whether a button could do that, and whether
+  localStorage-cached progress would actually reset. Answer to the 2nd
+  question: only partially, before this pass — `resetSyncDemoState()`
+  (`eam-shared.js`) only ever cleared the sync outbox
+  (`eamSyncItems`/`eamSyncOnline`); Insert Mode's auto-increment WO/
+  Equipment number counters, WO List's/Equipment List's favorited
+  dataspies, and Home's drag-reordered Favorites/tile order were all
+  separate `localStorage` keys it never touched, so a "fresh" login
+  wasn't actually fresh on any of those fronts. **Renamed and broadened
+  to `resetDemoState()`** — now clears all 8 keys (see its own comment
+  in `eam-shared.js` for the full list); still called only from
+  `eam-login-prototype-v1.html`'s `startLogin()`, same as before, just
+  doing more when it runs. **New `initRestartDemoButton()`**, called
+  from `initSharedApp()` — injects a "⟲ Restart Demo" button into every
+  screen's `.proto-theme-bar` in JS rather than hand-copying markup into
+  ~15 files (same reasoning as any other shared component here); tapping
+  it just navigates to the login screen — the actual reset still only
+  runs when Log In is tapped there (one more tap, pre-filled
+  credentials), not on page load, so simply landing on login to look
+  around doesn't silently wipe anything. Not shown on the login screen
+  itself (it never calls `initSharedApp()`) — nothing to restart from
+  there. **Not yet live-verified in a browser this session** — preview
+  tool access was denied this turn; re-check the button's placement in
+  `.proto-theme-bar` (especially now that the `demoWoToggle` pill is also
+  gone, per the row above — up to 2 buttons on WO-workflow screens,
+  theme + restart on the rest) and that a fresh login genuinely resets
+  every one of the 8 keys next time these files are touched.
+- **Real bug found + fixed testing the above, 2026-07-23 (user-
+  reported): WO dataspy favorites weren't actually consistent at the
+  outset.** After a Restart Demo/fresh login, Home showed zero WO
+  favorite chips, yet WO List's own dataspy sheet showed 2 stars
+  (`ds3`/`ds6`) already filled — not a timing fluke, a real asymmetry:
+  `eam-wo-list-prototype-v5_1.html`'s `getFavoriteDS()` self-seeded those
+  2 as favorited the *first time it ever ran*, but Home's own
+  `loadWoFavorites()` never seeds anything, just reads the key back —
+  and a fresh login always reaches Home first (before WO List has run
+  even once), so Home read the still-empty key while WO List's sheet
+  seeded itself only once the technician actually opened it. Fixed by
+  removing the seed entirely — `getFavoriteDS()` now just reads-and-
+  defaults-to-empty, identically to Home's own function, so WO
+  dataspies start genuinely unfavorited everywhere regardless of visit
+  order. Equipment List's `getFavoriteEquipDS()` has the exact same
+  self-seed shape (`pumps`) and would show the identical mismatch — not
+  touched this pass since only WO was reported, flagged in
+  `resetDemoState()`'s own comment (`eam-shared.js`) so it isn't lost.
+  **Not yet live-verified in a browser this session** — preview tool
+  access denied again this turn; re-check that Home shows zero WO
+  favorites immediately after Restart Demo, before ever opening WO List,
+  next time this area is touched.
+- **2 new Home tiles + Favorites empty-state rule, 2026-07-23 (user
+  direction).** Added "High Priority — Open" (`tile1b`, My Work group,
+  red, points at WO List's already-real `ds3`) and "Facilities"
+  (`tile4b`, My Equipment group, same teal as Equipment/Pumps, points at
+  Equipment List's already-real `facilities` dataspy) to
+  `HOME_TILES` — both dataspies existed already, they just had no Home
+  tile pointing to them yet. New `#ico-building` symbol in Home's own
+  sprite, copied verbatim from WO List's existing glyph of the same
+  name. Also, per explicit user direction to lock this as a real design
+  decision, not just a code tweak: **the "Favorites ⭐" section label
+  (and its empty row) now hides entirely when there are zero
+  favorites**, reappearing the instant a first one exists, same spot —
+  previously it always rendered even at zero, which read as broken. This
+  is directly downstream of this session's own WO-favorites-seeding fix
+  above (§4.5 area) — that fix is what makes a genuinely-empty favorites
+  state reachable at the outset in the first place; Equipment's `pumps`
+  seed is untouched, so today's practical floor is still 1 favorite, not
+  0, until/unless that seed gets the same treatment. Full write-up:
+  design-decisions-v3-1.md §24.2, including one accepted minor cosmetic
+  gap (a slightly larger top gap under the greeting when Favorites is
+  hidden, from `:first-child`'s margin rule not transferring to "My
+  Work"). **Not yet live-verified in a browser this session** — preview
+  tool access denied again this turn; re-check both new tiles navigate
+  correctly and that the Favorites label actually disappears/reappears
+  next time this area is touched.
 - `prototypes/standalone/shared/eam-shared.css` and `eam-shared.js` hold
   every generic component's CSS/JS (headers, sheets, LOV/date/text-editor
   pickers, Comments/Documents, required-field badges, etc.) — loaded via

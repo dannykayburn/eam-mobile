@@ -180,6 +180,26 @@
 .date-val { font-size: 12px; font-weight: 600; color: var(--octave-black); font-family: var(--font-mono); }
 [data-theme="dark"] .date-val { color: rgba(255,255,255,.9); }
 
+/* Completed-activity state (2026-07-23, corrected same day — 2nd live
+   review). "Superscript" was the user's own shorthand for a strikethrough
+   the whole time, not literal raised/shrunk text — the shrink+raise
+   attempt (both the original all-fields pass and the narrowed 2-field
+   pass) was solving the wrong problem. Fields stay pixel-identical to
+   the non-completed state (same size/weight/color) with one line-through
+   added, on exactly the 2 fields the user wants marked: the big
+   Activity # (.act-num-big) and the Notes line (.act-name). The Trade/
+   Start Date grid is untouched either way. True when the item's own
+   completed checkbox is checked OR its assignment status is at system
+   status 'C' (ACTIVITY_STATUS_OPTIONS' COMP/"Completed") — see
+   isActivityComplete() below. The row stays fully tappable
+   (selectActivity()) — a completed activity can still be selected, just
+   to reopen it for editing; see updateStartGate()'s own completed-aware
+   branch for what selecting one now does to the bottom bar. */
+.act-item.completed .act-num-big,
+.act-item.completed .act-name {
+  text-decoration: line-through;
+}
+
 /* If no activities exist (§15.2) — not exercised by this file's demo data
    (2 seeded activities), kept for the documented empty-state case. Was
    its own local .activity-add-row (purple text, a real §23 miss no
@@ -208,12 +228,6 @@
        no real backend, so "online" is a flag a reviewer flips by hand to
        see both outcomes of the sync banner's Retry button. -->
   <button class="theme-toggle" id="onlineToggle" onclick="toggleDemoOnline()">🌐 Offline</button>
-  <!-- Demo-only WO Workflow selector (§11-13, 2026-07-22) — cycles which
-       of the 3 demo WOs' workflow rules apply (BRKD full flow / PM skips
-       Issue Parts / ROUT falls back to the plain Standard Record View).
-       See cycleDemoWo() in eam-shared.js for what this does and doesn't
-       change. -->
-  <button class="theme-toggle" id="demoWoToggle" onclick="cycleDemoWo()">📋 WO 19257</button>
 </div>
 
 <div class="app" id="app">
@@ -527,9 +541,23 @@
               </div>
             </div>
           </div>
-          <div class="attr-item full-width required" data-field="activityStatus" onclick="openLov('activityStatus')">
+          <div class="attr-item required" data-field="activityStatus" onclick="openLov('activityStatus')">
             <span class="attr-label">Assignment Status</span>
             <div class="attr-value"><span class="attr-text" id="fv-activityStatus-desc"></span></div>
+          </div>
+          <!-- Completed — moved next to Assignment Status 2026-07-23
+               (was a plain .form-field row buried in the collapsed
+               "Additional Details" card below); pairs with it to fill
+               out the same grid row instead of sitting alone. Same
+               .field-checkbox/toggleCheckbox() component as every other
+               checkbox in this popup, just hosted in an .attr-item cell
+               instead of a .form-field row — first checkbox in this
+               grid, no other change needed since toggleCheckbox()/
+               isActivityChecked() only look for a data-field ancestor +
+               a .field-checkbox child, not a specific row class. -->
+          <div class="attr-item" data-field="activityCompleted" onclick="toggleCheckbox(this)">
+            <span class="attr-label">Completed</span>
+            <div class="attr-value"><div class="field-checkbox"></div></div>
           </div>
         </div>
       </div>
@@ -569,10 +597,6 @@
             <span class="field-value muted" id="fv-activityLaborType">—</span>
             <span class="field-chevron" style="display:none;">›</span>
             <span class="field-lock"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-          </div>
-          <div class="form-field" data-field="activityCompleted" onclick="toggleCheckbox(this)">
-            <span class="field-label">Completed</span>
-            <div class="field-checkbox"></div>
           </div>
         </div>
       </div>
@@ -755,6 +779,21 @@ const BADGE_LOV_META = { type: TYPE_META, priority: PRIORITY_META };
 // eam-shared.css) 2026-07-22, user direction — mirrors the same code's
 // "Waiting approval" fix already applied to WO List's status pill.
 const STATUS_CLASS_MAP = { WAPPR: 'st-waiting', RELEASED: 'st-operational', CLOSE: 'st-standby' };
+// Closing hand-off (2026-07-23) — maps WO Closing's own Option D target-
+// status keys (completed/closed/onhold, §19.2) onto this header's locked
+// 3-status vocabulary above for display only. Closing never produces the
+// green "Released" state, so Completed/Closed both land on the same
+// neutral st-standby tier CLOSE already uses; On Hold reuses the orange
+// st-waiting tier already established for Work Request — both read as
+// "paused, not active work," not a new hue. Flagged, not fully reconciled:
+// WO Closing's 3 target statuses aren't literally the same 3 codes as
+// this header's own __status LOV (WAPPR/RELEASED/CLOSE) — see
+// design-decisions-v3-1.md §15.4/§19.2 for the existing note on this gap.
+const CLOSING_STATUS_MAP = {
+  completed: { label: 'Completed', cls: 'st-standby' },
+  closed:    { label: 'Closed',    cls: 'st-standby' },
+  onhold:    { label: 'On hold',   cls: 'st-waiting' },
+};
 // Custom Fields (§22) gating values — not user-visible/editable fields
 // on this screen (no design decision yet to add a Class picker here),
 // just what selects this WO's Custom Fields set from data/custom_field_
@@ -842,6 +881,29 @@ if (NEW_RECORD) {
   document.getElementById('recStatusBtnText').textContent = statusOpt.desc;
 }
 
+// Consume-once hand-offs from WO Closing (design-decisions-v3-1.md
+// §15.2/§19.8, 2026-07-23) — closing the WO now returns here instead of
+// the WO List. Both must run before renderRecordViewTab() below renders
+// the Activities list/header off current ACTIVITIES/LOV_CURRENT state.
+const justCompletedActivityId = sessionStorage.getItem('eamActivityJustCompleted');
+if (justCompletedActivityId) {
+  sessionStorage.removeItem('eamActivityJustCompleted');
+  const finishedAct = ACTIVITIES.find(a => a.id === justCompletedActivityId);
+  if (finishedAct) {
+    finishedAct.completed = true;
+    RECORD.selectedActivity = finishedAct.id;
+  }
+}
+const closedStatusKey = sessionStorage.getItem('eamClosedStatusKey');
+if (closedStatusKey) {
+  sessionStorage.removeItem('eamClosedStatusKey');
+  const mappedStatus = CLOSING_STATUS_MAP[closedStatusKey];
+  if (mappedStatus) {
+    document.getElementById('recStatusBtn').className = 'rec-status-btn ' + mappedStatus.cls;
+    document.getElementById('recStatusBtnText').textContent = mappedStatus.label;
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    NAV
    ═══════════════════════════════════════════════════════════════════════ */
@@ -889,10 +951,16 @@ function selectActivity(id) {
   showToast('Activity selected');
   updateStartGate();
 }
+// Completed (2026-07-23) — checkbox true OR assignment status at system
+// status 'C' (ACTIVITY_STATUS_OPTIONS' COMP/"Completed"); either is
+// enough on its own, they're not required together.
+function isActivityComplete(act) {
+  return !!act.completed || act.assignmentStatus === 'Completed';
+}
 function renderActivitiesListHTML() {
   if (!ACTIVITIES.length) return `<div class="comment-add-row" onclick="showToast('Create activity — coming soon')"><span class="comment-add-plus">+</span> Add Activity</div>`;
   return ACTIVITIES.map(a => `
-    <div class="act-item${a.id===RECORD.selectedActivity?' selected':''}${a.name ? ' has-note' : ''}" id="act${a.id}" onclick="selectActivity('${a.id}')" data-act="${a.id}">
+    <div class="act-item${a.id===RECORD.selectedActivity?' selected':''}${a.name ? ' has-note' : ''}${isActivityComplete(a) ? ' completed' : ''}" id="act${a.id}" onclick="selectActivity('${a.id}')" data-act="${a.id}">
       <div class="act-radio"><svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div class="act-num-big">${a.id}</div>
       <div class="act-info">
@@ -1153,13 +1221,24 @@ const EQUIP_LOOKUP_ON_SELECT = { equipment: (o) => {
 function updateStartGate() {
   const btn = document.getElementById('barBtn');
   const label = document.getElementById('barBtnLabel');
-  const ready = !!RECORD.selectedActivity;
+  const selectedAct = ACTIVITIES.find(a => a.id === RECORD.selectedActivity);
+  // A completed activity is still selectable (§15.2, so it can be reopened
+  // for edit — see openActivityEditPopup()), but Start Work on it is
+  // protected, same "still tappable, explains itself instead of just going
+  // inert" language as the header status button (§15.4) — not a plain
+  // disabled/gray state.
+  const completed = selectedAct && isActivityComplete(selectedAct);
+  const ready = !!selectedAct && !completed;
   btn.className = 'bar-pill ' + (ready ? 'bar-pill-ready' : 'bar-pill-locked');
-  label.textContent = ready ? 'Start Work' : 'Select an activity to start';
+  label.textContent = !selectedAct ? 'Select an activity to start'
+    : completed ? 'Activity is completed'
+    : 'Start Work';
 }
 function onBarPillTap() {
-  if (RECORD.selectedActivity) startWork();
-  else showToast('Select an activity to start');
+  const selectedAct = ACTIVITIES.find(a => a.id === RECORD.selectedActivity);
+  if (!selectedAct) { showToast('Select an activity to start'); return; }
+  if (isActivityComplete(selectedAct)) { showToast('Activity is completed. Uncheck Completed on the activity to reopen it.'); return; }
+  startWork();
 }
 // Status button tap (§15.4, redesigned 2026-07-22) — protected (Not Free
 // Form) no longer disables the button or grays its colour; it stays
@@ -1185,12 +1264,18 @@ function startWork() {
   // fallback rail's own free-flow taps.
   sessionStorage.setItem('eamArrivedViaNextStep', 'true');
   sessionStorage.setItem('eamOpenDemoWo', DEMO_WO);
+  // Rides along, unread, through every step of this workflow instance —
+  // WO Closing reads it back at the very end to mark this same activity
+  // Completed regardless of source status (design-decisions-v3-1.md
+  // §15.2/§19.8, 2026-07-23).
+  sessionStorage.setItem('eamActiveActivityId', RECORD.selectedActivity);
   window.location.href = WO_STEP_FILES.checklist;
 }
 
 /* Demo-WO workflow hook (design-decisions-v3-1.md §11-13, added
-   2026-07-22) — called by cycleDemoWo() (eam-shared.js) and once at init.
-   No configured workflow (ROUT/20450) is the §11 fallback. Locked in
+   2026-07-22) — called once at init, keyed off whichever of the 3 demo
+   WOs real navigation (WO List's openWO(), Home, Notifications) landed
+   on. No configured workflow (ROUT/20450) is the §11 fallback. Locked in
    2026-07-22 (user direction, supersedes the original "just hide the
    guided-workflow-only chrome" call right above): the fallback now shows
    a real rail + bar too — a flat, unnumbered, free-flow-tappable rail
@@ -1331,14 +1416,12 @@ applySyncErrorBanner();
 initDemoOnlineToggle();
 // Consume-once hand-off from WO List's real openWO() (2026-07-22, nav-bug
 // fix), same pattern as eamNewWoRecord/eamSyncReturnUrl — picks which of
-// the 3 demo WOs (cycleDemoWo()'s own set) this visit should land on
-// instead of always defaulting to 19257.
+// the 3 demo WOs this visit should land on instead of always defaulting
+// to 19257.
 const OPEN_DEMO_WO = sessionStorage.getItem('eamOpenDemoWo');
 if (OPEN_DEMO_WO) {
   sessionStorage.removeItem('eamOpenDemoWo');
   DEMO_WO = OPEN_DEMO_WO;
-  const demoWoBtn = document.getElementById('demoWoToggle');
-  if (demoWoBtn) demoWoBtn.textContent = '📋 WO ' + DEMO_WO;
 }
 onDemoWoChanged();
 // Arrived here via the step rail's Reference-group Comments/Documents

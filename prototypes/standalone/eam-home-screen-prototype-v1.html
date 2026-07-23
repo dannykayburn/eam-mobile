@@ -286,6 +286,14 @@
     <symbol id="ico-star" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 2.5l3.09 6.26 6.91 1-5 4.87 1.18 6.88L12 18.27l-6.18 3.24L7 14.63l-5-4.87 6.91-1L12 2.5z"/>
     </symbol>
+    <!-- Same building/factory glyph as eam-wo-list-prototype-v5_1.html's
+         chip-sheet rows (#ico-building) — reused verbatim, new tile4b
+         "Facilities" tile below (2026-07-23). -->
+    <symbol id="ico-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="7" width="20" height="15" rx="1"/>
+      <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+      <line x1="12" y1="12" x2="12" y2="12.01"/><line x1="12" y1="16" x2="12" y2="16.01"/>
+    </symbol>
   </defs>
 </svg>
 
@@ -341,7 +349,7 @@
   <div class="home-body">
     <div class="home-greeting" id="homeGreeting"></div>
 
-    <div class="home-section-label">Favorites<svg class="fav-section-star" viewBox="0 0 24 24"><use href="#ico-star"/></svg></div>
+    <div class="home-section-label" id="favSectionLabel">Favorites<svg class="fav-section-star" viewBox="0 0 24 24"><use href="#ico-star"/></svg></div>
     <div class="fav-row" id="favRow"></div>
 
     <div class="home-section-label">My Work</div>
@@ -705,6 +713,13 @@ function goToScreen(screen, spy) {
 let HOME_TILES = [
   { id:'tile1', name:"Corrective WO's",   icon:'tool',      color:'#F46600', count:18,  group:'mywork',   screen:'wo',    spy:'ds9' },
   { id:'tile2', name:"My PM WO's",        icon:'cal-check', color:'#00AA14', count:12,  group:'mywork',   screen:'wo',    spy:'ds8' },
+  // Added 2026-07-23 (user direction) — same 'mywork' group as the 2
+  // above, pointed at WO List's own ds3 ("High Priority — Open," already
+  // real there, just had no Home tile pointing to it yet). Red matches
+  // this app's one real urgency instrument (var(--red)/#E24B4A) rather
+  // than either of tile1/tile2's own colours, which are both about *what
+  // kind* of work it is, not how urgent — this tile is the reverse.
+  { id:'tile1b', name:'High Priority — Open', icon:'alert',  color:'#E24B4A', count:6,   group:'mywork',   screen:'wo',    spy:'ds3' },
   // color/tint use the same theme-aware --equip-accent/--equip-tint
   // custom properties as SCREEN_META.equip above (teal light / Octave
   // Aqua dark) — tint is a 2nd variable, not color+alpha-suffix string
@@ -712,6 +727,14 @@ let HOME_TILES = [
   // var() reference.
   { id:'tile3', name:'Equipment',         icon:'package',   color:'var(--equip-accent)', tint:'var(--equip-tint)', count:134, group:'reference',screen:'equip' },
   { id:'tile4', name:'Pumps',             icon:'droplet',   color:'var(--equip-accent)', tint:'var(--equip-tint)', count:9,   group:'reference',screen:'equip', spy:'pumps' },
+  // Added 2026-07-23 (user direction) — same 'reference' group/teal
+  // treatment as Equipment/Pumps above (icon shape, not hue, tells them
+  // apart, same as those two already do), pointed at Equipment List's
+  // own 'facilities' dataspy (real there already — see eam-equipment-
+  // list-prototype-v1.html's DS/DSF, class==='FACILITY'). Count is exact,
+  // not decorative like most other tiles — the demo EQUIPS data only has
+  // 1 real facility (BLDG-A).
+  { id:'tile4b', name:'Facilities',       icon:'building',  color:'var(--equip-accent)', tint:'var(--equip-tint)', count:1,   group:'reference',screen:'equip', spy:'facilities' },
   // Reference Section — WO shortcuts too, but scoped to closed/historical
   // work rather than open work (§home riff). "Last Week's Work" has no
   // real date-range dataspy to point to (the demo WOS dataset only spans
@@ -806,6 +829,18 @@ function onItemTap(kind, id) {
 
 function renderFavorites() {
   const mode = reorderTarget === 'fav';
+  // Section header hidden entirely when there are no favorites yet
+  // (2026-07-23, design decision) — an empty "Favorites ⭐" label with
+  // nothing under it read as broken, not just empty, especially now
+  // that WO dataspies start unfavorited by default (this session's own
+  // fix) makes a genuinely-zero state reachable in practice, not just
+  // theoretical. Reappears the instant a first favorite is added, back
+  // in this exact spot — no separate empty-state placeholder needed,
+  // this is a plain show/hide, not a 2nd rendered state.
+  const labelEl = document.getElementById('favSectionLabel');
+  const rowEl = document.getElementById('favRow');
+  if (labelEl) labelEl.style.display = FAVORITES.length ? '' : 'none';
+  if (rowEl) rowEl.style.display = FAVORITES.length ? '' : 'none';
   document.getElementById('favRow').innerHTML = FAVORITES.map((f, i) => {
     const m = SCREEN_META[f.screen];
     return `<div class="fav-chip${mode ? ' reordering' : ''}" data-id="${f.id}" onpointerdown="onItemPointerDown(event,'fav','${f.id}')">

@@ -93,8 +93,6 @@ body{background:#0E0D12;}
 .login-loading{position:absolute;inset:0;z-index:20;background:#141218;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .35s;overflow:hidden;}
 .login-loading.show{opacity:1;pointer-events:auto;}
 .login-loading.fading{opacity:0;}
-.loading-swoosh{position:absolute;right:-35%;top:-15%;width:160%;max-width:none;animation:swooshDrift 2.6s ease-in-out infinite,swooshSpin 6s linear infinite;transform-origin:60% 30%;opacity:.9;}
-@keyframes swooshSpin{from{filter:hue-rotate(0deg);}to{filter:hue-rotate(18deg);}}
 .loading-mark-wrap{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:14px;}
 .loading-mark-wrap img{height:56px;width:auto;display:block;animation:loginPulse 1.3s ease-in-out infinite;}
 @keyframes loginPulse{
@@ -147,7 +145,6 @@ body{background:#0E0D12;}
   </div>
 
   <div class="login-loading" id="loginLoading">
-    <img class="loading-swoosh" src="octave-arch-pink-cutout.png" alt="" style="opacity:.55;">
     <div class="loading-mark-wrap">
       <img src="../../docs/Octave_articfacts/Octave%20Logos/Octave_logo_primary_rgb_white.svg" alt="Octave">
     </div>
@@ -165,14 +162,18 @@ function startLogin() {
   const btn = document.getElementById('loginBtn');
   if (btn.disabled) return;
   btn.disabled = true;
-  // Reset affordance for the sync demo data (added 2026-07-22) — a fresh
-  // login is this app's one real, always-present "start the demo over"
-  // moment, so resolving errors during a walkthrough doesn't strand a
+  // Reset affordance for demo progress (added 2026-07-22, broadened
+  // 2026-07-23 past just the sync outbox — see resetDemoState() in
+  // eam-shared.js for the full list) — a fresh login is this app's one
+  // real, always-present "start the demo over" moment, so resolving
+  // errors/reordering tiles/etc. during a walkthrough doesn't strand a
   // later run with nothing left to demo. Theme is deliberately untouched
-  // (see resetSyncDemoState() in eam-shared.js) — it's a real preference,
-  // not demo progress, and survives a fresh login same as it survives
-  // navigation.
-  resetSyncDemoState();
+  // — it's a real preference, not demo progress, and survives a fresh
+  // login same as it survives navigation. Reachable from anywhere via
+  // the "Restart Demo" button in every other screen's .proto-theme-bar
+  // (initRestartDemoButton(), eam-shared.js) — that button just
+  // navigates here; this is still the only place the reset itself runs.
+  resetDemoState();
   const overlay = document.getElementById('loginLoading');
   overlay.classList.add('show');
   setTimeout(() => {

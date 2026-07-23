@@ -262,10 +262,6 @@
 <div class="proto-theme-bar">
   <span class="proto-theme-label">Preview theme</span>
   <button class="theme-toggle" id="themeToggle">☀ Light</button>
-  <!-- Demo-only WO Workflow selector (§11-13, 2026-07-22) — see
-       eam-wo-record-view-prototype-v1.html's copy of this button for the
-       full note; cycleDemoWo() in eam-shared.js is the shared mechanism. -->
-  <button class="theme-toggle" id="demoWoToggle" onclick="cycleDemoWo()">📋 WO 19257</button>
 </div>
 
 <div class="app" id="app">
@@ -820,8 +816,9 @@ function promptAnswer(issuedParts) {
 }
 
 /* Demo-WO workflow hook (design-decisions-v3-1.md §11-13, added
-   2026-07-22) — called by cycleDemoWo() (eam-shared.js) and once at init.
-   §11 fallback (ROUT) locked in 2026-07-22 (user direction): renders the
+   2026-07-22) — called once at init, keyed off whichever of the 3 demo
+   WOs real navigation landed on. §11 fallback (ROUT) locked in
+   2026-07-22 (user direction): renders the
    flat, unnumbered, free-flow rail (renderFlatStepRail(), eam-shared.js)
    instead of leaving the numbered rail's stale hardcoded BRKD markup in
    place — renderStepRail() itself no-ops on an empty step list, so
@@ -847,8 +844,6 @@ const OPEN_DEMO_WO = sessionStorage.getItem('eamOpenDemoWo');
 if (OPEN_DEMO_WO) {
   sessionStorage.removeItem('eamOpenDemoWo');
   DEMO_WO = OPEN_DEMO_WO;
-  const demoWoBtn = document.getElementById('demoWoToggle');
-  if (demoWoBtn) demoWoBtn.textContent = '📋 WO ' + DEMO_WO;
 }
 
 /* ── init ── */

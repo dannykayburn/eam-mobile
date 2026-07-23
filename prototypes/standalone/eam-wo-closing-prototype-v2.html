@@ -275,12 +275,6 @@
 <div class="proto-theme-bar">
   <span class="proto-theme-label">Preview theme</span>
   <button class="theme-toggle" id="themeToggle">☀ Light</button>
-  <!-- Demo-only WO Workflow selector (§11-13, 2026-07-22) — see
-       eam-wo-record-view-prototype-v1.html's copy of this button for the
-       full note; cycleDemoWo() in eam-shared.js is the shared mechanism.
-       On this screen it also drives the PM-specific Closing layout
-       (§13 — no Closing Codes, optional Comments). -->
-  <button class="theme-toggle" id="demoWoToggle" onclick="cycleDemoWo()">📋 WO 19257</button>
 </div>
 
 <div class="app" id="app">
@@ -961,10 +955,11 @@ function onCloseBarTap() {
 }
 
 /* Demo-WO workflow hook (design-decisions-v3-1.md §11-13, added
-   2026-07-22) — called by cycleDemoWo() (eam-shared.js) and once at init.
-   PM's Closing layout difference (no Closing Codes, optional Comments) is
-   a §13 field-layout fact about the WO Type, independent of the Free
-   Form flag rendered via renderStepRail()'s own rail colour. */
+   2026-07-22) — called once at init, keyed off whichever of the 3 demo
+   WOs real navigation landed on. PM's Closing layout difference (no
+   Closing Codes, optional Comments) is a §13 field-layout fact about the
+   WO Type, independent of the Free Form flag rendered via
+   renderStepRail()'s own rail colour. */
 function onDemoWoChanged() {
   const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
   applyDemoWoIdentity();
@@ -1011,10 +1006,13 @@ function buildConfirmSummary() {
     </div>`).join('');
 }
 
-// Close Work Order → brief success overlay, then navigate to the WO List
-// and (in the real app) re-run the user's default/last-run dataspy — this
-// static prototype can't demonstrate the dataspy re-run itself, just the
-// navigation (design-decisions-v3-1.md §20).
+// Close Work Order → brief success overlay, then return to this same WO's
+// Record View (revised 2026-07-23 — was the WO List) so the technician
+// sees the WO they just closed, header status updated, in place. Also
+// marks this workflow instance's activity Completed regardless of its
+// prior status (design-decisions-v3-1.md §15.2/§19.8) — both hand off via
+// sessionStorage, consumed once on Record View's next load, since
+// ACTIVITIES/the header status button only exist on that page.
 function executeClose() {
   closeAllSheets();
   document.getElementById('closedSub').textContent = 'Status: ' + statusOptions[currentStatusKey].label;
@@ -1022,9 +1020,16 @@ function executeClose() {
   // §20) — Date completed reflects whatever was actually entered above.
   const dateCompleted = document.getElementById('fv-dateCompleted').textContent;
   document.getElementById('closedWo').textContent = 'WO# 19257' + (dateCompleted ? ' · ' + dateCompleted : '');
+  const activeActivityId = sessionStorage.getItem('eamActiveActivityId');
+  if (activeActivityId) {
+    sessionStorage.removeItem('eamActiveActivityId');
+    sessionStorage.setItem('eamActivityJustCompleted', activeActivityId);
+  }
+  sessionStorage.setItem('eamClosedStatusKey', currentStatusKey);
+  sessionStorage.setItem('eamOpenDemoWo', DEMO_WO);
   setTimeout(() => {
     document.getElementById('closedOverlay').classList.add('show');
-    setTimeout(() => { window.location.href = 'eam-wo-list-prototype-v5_1.html'; }, 1400);
+    setTimeout(() => { window.location.href = 'eam-wo-record-view-prototype-v1.html'; }, 1400);
   }, 400);
 }
 
@@ -1154,8 +1159,6 @@ const OPEN_DEMO_WO = sessionStorage.getItem('eamOpenDemoWo');
 if (OPEN_DEMO_WO) {
   sessionStorage.removeItem('eamOpenDemoWo');
   DEMO_WO = OPEN_DEMO_WO;
-  const demoWoBtn = document.getElementById('demoWoToggle');
-  if (demoWoBtn) demoWoBtn.textContent = '📋 WO ' + DEMO_WO;
 }
 refreshSequentialLocks();
 onDemoWoChanged();
