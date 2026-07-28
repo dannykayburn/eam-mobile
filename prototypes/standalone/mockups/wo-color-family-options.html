@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Color Families — 8 Candidates</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  8 COLOR FAMILY CANDIDATES (2026-07-28). Colours only — no field,
+  hierarchy, or component shape attached (header/list/rail all stay
+  exactly as shipped). 6 are the families already curated for WO Type
+  (Slate/Blue/Teal/Amber/Plum/Rose); 2 are new (Clay, Indigo), added so
+  there's a real 8-wide set to choose from rather than just re-judging
+  the existing 6. Every family gets a light tint (background/outline use)
+  + base (fill use) + dark shade (text-on-tint use) — one hue, three
+  jobs, same 3-stop shape every real UI colour in this app already needs
+  (cf. --bg-{role}/--fill-{role}/--text-{role} pattern). None of the 8
+  are true red/green — both stay reserved for Status/Required (§23).
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-4:#6F7480; --white:#FFFFFF;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --border:#E7EBF2;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+[data-theme="dark"]{ --bg-page:#1A1A1F; --bg-card:#26252B; --border:#3E4047; --octave-black:#1A1A1F; }
+[data-theme="dark"] body{color:var(--white);}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--octave-black);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:1000px;width:100%;color:#fff;font-size:12px;line-height:1.6;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;}
+.theme-row{display:flex;gap:8px;margin-bottom:16px;max-width:1000px;width:100%;}
+.theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:5px 12px;cursor:pointer;}
+.grid{max-width:1000px;width:100%;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.fam-card{background:var(--bg-page);border-radius:12px;padding:12px;}
+.fam-name{font-size:12.5px;font-weight:700;color:var(--octave-black);margin-bottom:1px;}
+[data-theme="dark"] .fam-name{color:var(--white);}
+.fam-note{font-size:10px;color:var(--gray-4);margin-bottom:8px;}
+.ramp{display:flex;height:36px;border-radius:8px;overflow:hidden;margin-bottom:8px;}
+.ramp div{flex:1;}
+.chip-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.chip{width:22px;height:22px;border-radius:50%;flex-shrink:0;}
+.hex{font-family:var(--font-mono);font-size:9.5px;color:var(--gray-4);}
+.tag{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;padding:1px 6px;border-radius:100px;margin-left:6px;}
+</style>
+</head>
+<body>
+<div class="theme-row">
+  <button class="theme-toggle" onclick="document.documentElement.removeAttribute('data-theme')">☀ Light</button>
+  <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme','dark')">🌙 Dark</button>
+</div>
+<div class="legend">
+  Colour only, nothing else — header/list/rail shapes all stay exactly
+  as shipped. Each family: light tint (backgrounds/outlines) → base
+  (fills) → dark shade (text on the tint). 6 are already curated for WO
+  Type; Clay and Indigo are new, so there's a real 8 to choose from.
+</div>
+
+<div class="grid">
+
+  <div class="fam-card">
+    <div class="fam-name">Slate<span class="tag" style="background:var(--border);color:var(--gray-4)">current</span></div>
+    <div class="fam-note">Blue-gray, neutral/calm — today's Routine</div>
+    <div class="ramp"><div style="background:#DDE2EA"></div><div style="background:#5B6B8C"></div><div style="background:#38445C"></div></div>
+    <div class="chip-row"><div class="chip" style="background:#5B6B8C"></div><span class="hex">#5B6B8C</span></div>
+  </div>
+
+  <div class="fam-card">
+    <div class="fam-name">Blue<span class="tag" style="background:var(--border);color:var(--gray-4)">current</span></div>
+    <div class="fam-note">Clear, dependable — curated but unassigned</div>
+    <div class="ramp"><div style="background:#DCE6FB"></div><div style="background:#3E6FE0"></div><div style="background:#24478C"></div></div>
+    <div class="chip-row"><div class="chip" style="background:#3E6FE0"></div><span class="hex">#3E6FE0</span></div>
+  </div>
+
+  <div class="fam-card">
+    <div class="fam-name">Teal<span class="tag" style="background:var(--border);color:var(--gray-4)">current</span></div>
+    <div class="fam-note">Blue-green, operational — today's PPM</div>
+    <div class="ramp"><div style="background:#D6F0EC"></div><div style="background:#1E9E8B"></div><div style="background:#135E52"></div></div>
+    <div class="chip-row"><div class="chip" style="background:#1E9E8B"></div><span class="hex">#1E9E8B</span></div>
+  </div>
+
+  <div class="fam-card">
+    <div class="fam-name">Amber<span class="tag" style="background:var(--border);color:var(--gray-4)">current</span></div>
+    <div class="fam-note">Warm gold, caution without alarm — today's Breakdown</div>
+    <div class="ramp"><div style="background:#F5E6C8"></div><div style="background:#C9962E"></div><div style="background:#7A5A1B"></div></div>
+    <div class="chip-row"><div class="chip" style="background:#C9962E"></div><span class="hex">#C9962E</span></div>
+  </div>
+
+  <div class="fam-card">
+    <div class="fam-name">Plum<span class="tag" style="background:var(--border);color:var(--gray-4)">current</span></div>
+    <div class="fam-note">Purple, distinct/premium — today's Corrective</div>
+    <div class="ramp"><div style="background:#E9DEF5"></div><div style="background:#8B5FBF"></div><div style="background:#563975"></div></div>
+    <div class="chip-row"><div class="chip" style="background:#8B5FBF"></div><span class="hex">#8B5FBF</span></div>
+  </div>
+
+  <div class="fam-card">
+    <div class="fam-name">Rose<span class="tag" style="background:var(--border);color:var(--gray-4)">current</span></div>
+    <div class="fam-note">Muted pink-red, warm but not literal red — curated but unassigned</div>
+    <div class="ramp"><div style="background:#F4DCE4"></div><div style="background:#C25B7C"></div><div style="background:#77364A"></div></div>
+    <div class="chip-row"><div class="chip" style="background:#C25B7C"></div><span class="hex">#C25B7C</span></div>
+  </div>
+
+  <div class="fam-card">
+    <div class="fam-name">Clay<span class="tag" style="background:#8B5FBF33;color:#8B5FBF">new</span></div>
+    <div class="fam-note">Burnt-orange/terracotta — earthier, more industrial than Amber</div>
+    <div class="ramp"><div style="background:#F0DCC9"></div><div style="background:#B5652E"></div><div style="background:#6E3C19"></div></div>
+    <div class="chip-row"><div class="chip" style="background:#B5652E"></div><span class="hex">#B5652E</span></div>
+  </div>
+
+  <div class="fam-card">
+    <div class="fam-name">Indigo<span class="tag" style="background:#8B5FBF33;color:#8B5FBF">new</span></div>
+    <div class="fam-note">Deep blue-violet — richer/more serious than Blue or Plum</div>
+    <div class="ramp"><div style="background:#DEDFF2"></div><div style="background:#4B4E9E"></div><div style="background:#2C2E60"></div></div>
+    <div class="chip-row"><div class="chip" style="background:#4B4E9E"></div><span class="hex">#4B4E9E</span></div>
+  </div>
+
+</div>
+</body>
+</html>

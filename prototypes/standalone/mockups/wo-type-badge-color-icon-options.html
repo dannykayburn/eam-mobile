@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>WO Type — Icon + Color Badge Options (Type field / List row / Step rail)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  WO TYPE — ICON + COLOR BADGE, 3 SURFACES AT ONCE (2026-07-28).
+  Exploration only, nothing picked yet.
+
+  Conflict flag: §6.7/§23 of design-decisions-v3-1.md currently give WO
+  Type ZERO color anywhere — a deliberate retraction (Type used to be a
+  6-way hex scheme, then lost color entirely when the palette locked to
+  exactly 3 instruments: status/sync/required). This file explores
+  reintroducing Type color+icon as a real 4th instrument, using the same
+  precedent §23.2 already set for editable-pill fill: build options here,
+  user picks one, then the doc gets a narrow explicit-scope write-up
+  (not a re-opening of §23 itself).
+
+  Same icon+color assignment is used in EVERY option below, unchanged —
+  that consistency (not the badge shape) is the actual point, per the
+  request that this read as one methodical system rather than a
+  per-screen improvisation. Only the badge SHAPE/SURFACE TREATMENT varies
+  option to option. Colors are drawn from the same curated 6-swatch set
+  §23.2/Option 7 of step-rail-workflow-vs-freeform-options.html already
+  established (Blue/Teal/Amber/Plum/Rose/Slate) — deliberately excluding
+  green/red (reserved status/required instruments, §23) — so this reuses
+  an existing safety rail rather than inventing a new one.
+
+  Icons are hand-drawn simplified solid glyphs (bolt / calendar-check /
+  asterisk / wrench) in an FA-solid spirit, not the FA library itself —
+  this repo has no icon-font dependency today and the ask was "simplistic
+  icon and fill," not pixel-matched FA. The asterisk for Routine is a
+  deliberate literal nod to that Type's own real code, "*".
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --green:#00AA14; --red:#D91E30;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+  --step-rail-h:52px;
+  --t-breakdown:#C9962E; --t-ppm:#1E9E8B; --t-routine:#5B6B8C; --t-corrective:#8B5FBF;
+}
+[data-theme="dark"]{
+  --bg-page:#1A1A1F; --bg-card:#26252B; --bg-section:#302F33; --border:#3E4047; --border-strong:#4A4C55;
+  --gray-1:#2A2930; --gray-2:#3E4047; --gray-3:#6F7480; --gray-4:#B2B8C4; --octave-black:#1A1A1F;
+}
+[data-theme="dark"] body{color:var(--white);}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--octave-black);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:1000px;width:100%;color:#fff;font-size:12px;line-height:1.6;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:14px 16px;}
+.legend b{color:#fff;}
+.legend code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:4px;font-family:var(--font-mono);font-size:11px;}
+.theme-row{display:flex;gap:8px;margin-bottom:16px;max-width:1000px;width:100%;}
+.theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:5px 12px;cursor:pointer;}
+.spectrum{max-width:1000px;width:100%;display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.5);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin:2px 0 18px;}
+.spectrum-bar{flex:1;height:4px;border-radius:100px;background:linear-gradient(90deg,#6F7480,#8B5FBF 40%,#C9962E 70%,#1E9E8B);}
+
+/* ── Foundation strip — the one icon+color system, stated once ── */
+.foundation{max-width:1000px;width:100%;background:var(--bg-card);border-radius:14px;padding:16px 18px;margin-bottom:18px;}
+.foundation-title{font-size:12px;font-weight:700;color:var(--octave-black);margin-bottom:2px;}
+[data-theme="dark"] .foundation-title{color:var(--white);}
+.foundation-sub{font-size:11px;color:var(--gray-4);margin-bottom:12px;}
+.foundation-row{display:flex;gap:18px;flex-wrap:wrap;}
+.foundation-item{display:flex;align-items:center;gap:8px;}
+.f-swatch{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;}
+.f-swatch svg{width:15px;height:15px;}
+.f-label{font-size:11.5px;font-weight:600;color:var(--octave-black);}
+[data-theme="dark"] .f-label{color:var(--white);}
+.f-code{font-family:var(--font-mono);font-size:10px;color:var(--gray-4);display:block;}
+
+.wrap{max-width:1000px;width:100%;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;}
+.opt-card{background:var(--bg-page);border-radius:14px;padding:16px;width:460px;flex-shrink:0;}
+.opt-title{font-size:13px;font-weight:700;color:var(--octave-black);margin-bottom:2px;}
+[data-theme="dark"] .opt-title{color:var(--white);}
+.opt-risk{font-size:10.5px;font-weight:600;color:var(--gray-4);margin-bottom:10px;font-style:italic;}
+.opt-desc{font-size:11.5px;color:var(--gray-4);line-height:1.5;margin-bottom:12px;}
+
+.surf-block{margin-bottom:10px;}
+.surf-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-4);margin-bottom:5px;}
+
+/* ── Surface 1: Type field (real .attr-item/.attr-badge shape) ── */
+.attr-item-demo{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;width:180px;}
+.attr-label{font-size:10.5px;color:var(--gray-4);font-weight:500;}
+.attr-badge-row{display:flex;align-items:center;gap:8px;}
+.attr-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;flex-shrink:0;}
+.attr-badge-outline{border:1.5px solid var(--border-strong);color:var(--octave-black);}
+[data-theme="dark"] .attr-badge-outline{color:rgba(255,255,255,.9);}
+.attr-badge svg{width:14px;height:14px;}
+.field-value{font-size:14px;font-weight:500;color:var(--octave-black);}
+[data-theme="dark"] .field-value{color:var(--white);}
+
+/* ── Surface 2: WO List card row ── */
+.list-card-demo{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;width:100%;}
+.list-headline{font-size:13px;font-weight:600;color:var(--octave-black);margin-bottom:6px;}
+[data-theme="dark"] .list-headline{color:var(--white);}
+.list-attr-row{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gray-4);}
+.list-attr-row .field-value{font-size:12px;font-weight:500;}
+.list-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.list-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 7px 2px 5px;border-radius:100px;flex-shrink:0;}
+.list-chip svg{width:10px;height:10px;}
+
+/* ── Surface 3: Step rail (real .step-rail shell) — color only, no icon ── */
+.step-rail{background:var(--bg-section);border:1px solid var(--border-strong);border-radius:8px;overflow:hidden;}
+.step-rail-collapsed{height:var(--step-rail-h);display:flex;align-items:center;gap:8px;padding:0 16px;}
+.step-name{flex:1;text-align:left;font-size:13px;font-weight:600;color:var(--octave-black);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+[data-theme="dark"] .step-name{color:var(--white);}
+.step-rail-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.step-chevron{color:var(--gray-4);flex-shrink:0;}
+.step-segments{display:flex;gap:4px;padding:0 16px 10px;}
+.seg{flex:1;height:7px;border-radius:100px;}
+.seg-done{background:var(--green);}
+.seg-active{background:var(--octave-black);}
+[data-theme="dark"] .seg-active{background:var(--white);}
+.seg-future{background:var(--gray-2);}
+[data-theme="dark"] .seg-future{background:var(--gray-5);}
+.rail-edge-bar{width:3px;flex-shrink:0;align-self:stretch;margin:8px 0 8px -16px;border-radius:0 100px 100px 0;}
+.rail-with-edge{position:relative;padding-left:3px;}
+.rail-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+/* ── Compact per-option consistency strip (all 4 types, small) ── */
+.mini-legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.mini-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--gray-4);}
+.mini-badge{width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.mini-badge svg{width:10px;height:10px;}
+.mini-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+</style>
+</head>
+<body>
+<div class="theme-row">
+  <button class="theme-toggle" onclick="document.documentElement.removeAttribute('data-theme')">☀ Light</button>
+  <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme','dark')">🌙 Dark</button>
+</div>
+<div class="legend">
+  <b>What this compares:</b> a WO Type icon+color badge shown across the
+  <b>3 places it needs to appear consistently</b> — the Type field itself
+  (WO Record View's <code>.attr-item</code>/<code>.attr-badge</code>),
+  the WO List/Search card row's Type attribute, and the step rail (colour
+  signal only, no icon, per direct instruction). Every option uses the
+  <b>same icon+colour assignment</b> (Foundation strip below) — only the
+  badge shape/surface treatment changes. Ends on a recommended combination.
+</div>
+<div class="spectrum">
+  <span>Lowest color footprint</span>
+  <div class="spectrum-bar"></div>
+  <span>Full badge system</span>
+</div>
+
+<!-- FOUNDATION — the one icon+color system, stated once, unchanged below -->
+<div class="foundation">
+  <div class="foundation-title">Foundation — one icon + one curated color per Type, reused in every option</div>
+  <div class="foundation-sub">Colors pulled from the same curated 6-swatch set already established for the WO Type color picker (Screen Designer) — Blue/Teal/Amber/Plum/Rose/Slate — deliberately excluding green/red (reserved for Status/Required, §23). Corrective shown as the worked example of a user-added custom code slotting into the same curated set, not a raw color-wheel pick.</div>
+  <div class="foundation-row">
+    <div class="foundation-item">
+      <div class="f-swatch" style="background:var(--t-breakdown)">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+      </div>
+      <div><span class="f-label">Breakdown</span><span class="f-code">BR · Amber</span></div>
+    </div>
+    <div class="foundation-item">
+      <div class="f-swatch" style="background:var(--t-ppm)">
+        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" fill="currentColor"/><rect x="7" y="2" width="2.4" height="5" rx="1" fill="currentColor"/><rect x="14.6" y="2" width="2.4" height="5" rx="1" fill="currentColor"/><path d="M8 14l2.3 2.3L16 11" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div><span class="f-label">Preventative</span><span class="f-code">PPM · Teal</span></div>
+    </div>
+    <div class="foundation-item">
+      <div class="f-swatch" style="background:var(--t-routine)">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"><line x1="12" y1="4" x2="12" y2="20"/><line x1="5" y1="8" x2="19" y2="16"/><line x1="19" y1="8" x2="5" y2="16"/></svg>
+      </div>
+      <div><span class="f-label">Routine</span><span class="f-code">* · Slate</span></div>
+    </div>
+    <div class="foundation-item">
+      <div class="f-swatch" style="background:var(--t-corrective)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="7" cy="7" r="3.4"/><line x1="9.5" y1="9.5" x2="19" y2="19"/></svg>
+      </div>
+      <div><span class="f-label">Corrective</span><span class="f-code">CORR (custom) · Plum</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- OPTION 1 — BASELINE / CURRENT STATE -->
+  <div class="opt-card">
+    <div class="opt-title">1 — Current state (baseline)</div>
+    <div class="opt-risk">No color anywhere — reference only</div>
+    <div class="opt-desc">What ships today per §6.7/§23: Type field's <code>.attr-badge</code> renders outline-only (icon in ink, no fill); WO List's Type is plain mono text, no icon; step rail carries no Type signal at all.</div>
+
+    <div class="surf-block">
+      <div class="surf-label">Type field</div>
+      <div class="attr-item-demo">
+        <span class="attr-label">Type</span>
+        <div class="attr-badge-row">
+          <span class="attr-badge attr-badge-outline"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg></span>
+          <span class="field-value">Breakdown</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="surf-block">
+      <div class="surf-label">WO List row</div>
+      <div class="list-card-demo">
+        <div class="list-headline">WO 19257 — Conveyor motor bearing failure</div>
+        <div class="list-attr-row">Type <span class="field-value">Breakdown</span></div>
+      </div>
+    </div>
+
+    <div class="surf-block">
+      <div class="surf-label">Step rail</div>
+      <div class="step-rail">
+        <div class="step-rail-collapsed">
+          <span class="step-name">Activity Checklist</span>
+          <div class="step-rail-right"><svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <div class="step-segments"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION 2 — SQUARE SWATCH FILL + DOT + EDGE BAR -->
+  <div class="opt-card">
+    <div class="opt-title">2 — Solid swatch fill · dot · rail edge-bar</div>
+    <div class="opt-risk">Full badge system — reactivates .attr-badge's dormant fill</div>
+    <div class="opt-desc"><code>.attr-badge</code> fills solid with the Type's color, icon glyph in white (same shape §23 already reserves for Priority Critical's one exception, now extended to Type). List row gets a small solid dot before the value — carries the color, text itself stays plain per the "mono is identifiers-only" rule. Step rail gets a 3px colored left-edge bar — always visible while scrolling, contained surface, no icon.</div>
+
+    <div class="surf-block">
+      <div class="surf-label">Type field — Breakdown</div>
+      <div class="attr-item-demo">
+        <span class="attr-label">Type</span>
+        <div class="attr-badge-row">
+          <span class="attr-badge" style="background:var(--t-breakdown);color:#fff"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg></span>
+          <span class="field-value">Breakdown</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="surf-block">
+      <div class="surf-label">Type field — PM</div>
+      <div class="attr-item-demo">
+        <span class="attr-label">Type</span>
+        <div class="attr-badge-row">
+          <span class="attr-badge" style="background:var(--t-ppm);color:#fff"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" fill="currentColor"/><rect x="7" y="2" width="2.4" height="5" rx="1" fill="currentColor"/><rect x="14.6" y="2" width="2.4" height="5" rx="1" fill="currentColor"/><path d="M8 14l2.3 2.3L16 11" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="field-value">Preventative Maintenance</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="surf-block">
+      <div class="surf-label">WO List row</div>
+      <div class="list-card-demo">
+        <div class="list-headline">WO 19257 — Conveyor motor bearing failure</div>
+        <div class="list-attr-row"><span class="list-dot" style="background:var(--t-breakdown)"></span>Type <span class="field-value">Breakdown</span></div>
+      </div>
+    </div>
+
+    <div class="surf-block">
+      <div class="surf-label">Step rail — Breakdown (edge bar)</div>
+      <div class="step-rail rail-with-edge" style="border-left:3px solid var(--t-breakdown)">
+        <div class="step-rail-collapsed">
+          <span class="step-name">Activity Checklist</span>
+          <div class="step-rail-right"><svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        </div>
+        <div class="step-segments"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+      </div>
+    </div>
+
+    <div class="mini-legend">
+      <div class="mini-item"><span class="mini-badge" style="background:var(--t-ppm)"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" fill="#fff"/><path d="M8 14l2.3 2.3L16 11" fill="none" stroke="var(--t-ppm)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>PPM</div>
+      <div class="mini-item"><span class="mini-badge" style="background:var(--t-routine)"><svg viewBox="0 0 24 24" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none"><line x1="12" y1="4" x2="12" y2="20"/><line x1="5" y1="8" x2="19" y2="16"/><line x1="19" y1="8" x2="5" y2="16"/></svg></span>Routine</div>
+      <div class="mini-item"><span class="mini-badge" style="background:var(--t-corrective)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><circle cx="7" cy="7" r="3.4"/><line x1="9.5" y1="9.5" x2="19" y2="19"/></svg></span>Corrective</div>
+    </div>
+  </div>
+
+  <!-- OPTION 3 — ROUNDED TINTED BADGE + INLINE CHIP + RAIL DOT -->
+  <div class="opt-card">
+    <div class="opt-title">3 — Tinted badge (ink icon) · inline chip · rail dot</div>
+    <div class="opt-risk">Quieter than Option 2 — icon glyph never itself colored</div>
+    <div class="opt-desc">Badge background tints ~16% toward the Type color; the icon glyph stays plain ink so it's always legible regardless of the tint, echoing the calmer half of the earlier step-rail exploration. List row gets a small pill-shaped chip (icon + tint) rather than a bare dot — slightly more identifiable at a glance in a dense list. Step rail signal moves to the right slot as a plain colored dot next to the chevron (contained, matches the earlier step-rail-options file's Option 4 dot, now curated instead of raw admin hex).</div>
+
+    <div class="surf-block">
+      <div class="surf-label">Type field — Breakdown</div>
+      <div class="attr-item-demo">
+        <span class="attr-label">Type</span>
+        <div class="attr-badge-row">
+          <span class="attr-badge" style="background:color-mix(in srgb, var(--t-breakdown) 18%, var(--bg-card))"><svg viewBox="0 0 24 24" fill="var(--octave-black)"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg></span>
+          <span class="field-value">Breakdown</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="surf-block">
+      <div class="surf-label">Type field — PM</div>
+      <div class="attr-item-demo">
+        <span class="attr-label">Type</span>
+        <div class="attr-badge-row">
+          <span class="attr-badge" style="background:color-mix(in srgb, var(--t-ppm) 18%, var(--bg-card))"><svg viewBox="0 0 24 24" fill="none" stroke="var(--octave-black)" stroke-width="0"><rect x="3" y="5" width="18" height="16" rx="2" fill="var(--octave-black)"/><rect x="7" y="2" width="2.4" height="5" rx="1" fill="var(--octave-black)"/><rect x="14.6" y="2" width="2.4" height="5" rx="1" fill="var(--octave-black)"/><path d="M8 14l2.3 2.3L16 11" fill="none" stroke="var(--bg-card)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="field-value">Preventative Maintenance</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="surf-block">
+      <div class="surf-label">WO List row</div>
+      <div class="list-card-demo">
+        <div class="list-headline">WO 19257 — Conveyor motor bearing failure</div>
+        <div class="list-attr-row">Type
+          <span class="list-chip" style="background:color-mix(in srgb, var(--t-breakdown) 20%, var(--bg-card))">
+            <svg viewBox="0 0 24 24" fill="var(--octave-black)"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+            <span class="field-value">Breakdown</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="surf-block">
+      <div class="surf-label">Step rail — Breakdown (right-slot dot)</div>
+      <div class="step-rail">
+        <div class="step-rail-collapsed">
+          <span class="step-name">Activity Checklist</span>
+          <div class="step-rail-right">
+            <span class="rail-dot" style="background:var(--t-breakdown)"></span>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+      </div>
+    </div>
+
+    <div class="mini-legend">
+      <div class="mini-item"><span class="mini-dot" style="background:var(--t-ppm)"></span>PPM</div>
+      <div class="mini-item"><span class="mini-dot" style="background:var(--t-routine)"></span>Routine</div>
+      <div class="mini-item"><span class="mini-dot" style="background:var(--t-corrective)"></span>Corrective</div>
+    </div>
+  </div>
+
+  <!-- OPTION 4 — ICON-TINTED ONLY, NO FILL ANYWHERE -->
+  <div class="opt-card">
+    <div class="opt-title">4 — Icon-tinted only (lowest color footprint)</div>
+    <div class="opt-risk">Tests whether tinting only the glyph, no badge fill at all, is "enough"</div>
+    <div class="opt-desc">No filled or tinted background anywhere — the <code>.attr-badge</code> stays outline exactly as it is today, but the icon glyph itself renders in the Type's color instead of ink. List row: same idea, a small colored icon precedes the plain text value. Step rail: no dot, no bar — the Reference-group-style plain icon slot (§14.8) gets colored instead of a new element being added. Smallest possible change from baseline, worth testing against the fuller options above before assuming more surface area is needed.</div>
+
+    <div class="surf-block">
+      <div class="surf-label">Type field — Breakdown</div>
+      <div class="attr-item-demo">
+        <span class="attr-label">Type</span>
+        <div class="attr-badge-row">
+          <span class="attr-badge attr-badge-outline" style="color:var(--t-breakdown)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg></span>
+          <span class="field-value">Breakdown</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="surf-block">
+      <div class="surf-label">WO List row</div>
+      <div class="list-card-demo">
+        <div class="list-headline">WO 19257 — Conveyor motor bearing failure</div>
+        <div class="list-attr-row">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="var(--t-breakdown)"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+          Type <span class="field-value">Breakdown</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="surf-block">
+      <div class="surf-label">Step rail — Breakdown (tinted plain icon, no new element)</div>
+      <div class="step-rail">
+        <div class="step-rail-collapsed">
+          <span class="step-name">Activity Checklist</span>
+          <div class="step-rail-right">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--t-breakdown)"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+      </div>
+    </div>
+
+    <div class="mini-legend">
+      <div class="mini-item"><svg width="12" height="12" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" fill="var(--t-ppm)"/><path d="M8 14l2.3 2.3L16 11" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>PPM</div>
+      <div class="mini-item"><svg width="12" height="12" viewBox="0 0 24 24" stroke="var(--t-routine)" stroke-width="3" stroke-linecap="round" fill="none"><line x1="12" y1="4" x2="12" y2="20"/><line x1="5" y1="8" x2="19" y2="16"/><line x1="19" y1="8" x2="5" y2="16"/></svg>Routine</div>
+      <div class="mini-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--t-corrective)" stroke-width="3" stroke-linecap="round"><circle cx="7" cy="7" r="3.4"/><line x1="9.5" y1="9.5" x2="19" y2="19"/></svg>Corrective</div>
+    </div>
+  </div>
+
+  <!-- OPTION 5 — RESOLUTION -->
+  <div class="opt-card" style="width:100%">
+    <div class="opt-title">5 — Recommended combination</div>
+    <div class="opt-risk">Resolves the §23 conflict structurally, same way §23.2 did for pills</div>
+    <div class="opt-desc">Type field = Option 2's solid swatch fill (highest-legibility surface, and the one place a user is deliberately looking to confirm what they're working on). WO List row = Option 2's small dot, not a full badge — a dense card list is the wrong place for a 28px badge per row, and the dot is enough once the field label already says "Type." Step rail = Option 2's 3px left-edge bar, color only, no icon — matches the direct instruction that the rail should signal color, not add a second icon competing with the step name. All four Types (plus any admin-added custom code, e.g. Corrective) draw from the same curated 6-swatch set already scoped for the WO Type color picker — never a raw hex/color wheel — so this stays a narrowly-scoped 4th instrument next to §23.2's pill-fill, not a reopening of §23's 3-instrument rule itself.</div>
+
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+      <div class="surf-block" style="flex:1;min-width:180px;">
+        <div class="surf-label">Type field</div>
+        <div class="attr-item-demo">
+          <span class="attr-label">Type</span>
+          <div class="attr-badge-row">
+            <span class="attr-badge" style="background:var(--t-breakdown);color:#fff"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg></span>
+            <span class="field-value">Breakdown</span>
+          </div>
+        </div>
+      </div>
+      <div class="surf-block" style="flex:2;min-width:220px;">
+        <div class="surf-label">WO List row</div>
+        <div class="list-card-demo">
+          <div class="list-headline">WO 19257 — Conveyor motor bearing failure</div>
+          <div class="list-attr-row"><span class="list-dot" style="background:var(--t-breakdown)"></span>Type <span class="field-value">Breakdown</span></div>
+        </div>
+      </div>
+      <div class="surf-block" style="flex:2;min-width:220px;">
+        <div class="surf-label">Step rail</div>
+        <div class="step-rail rail-with-edge" style="border-left:3px solid var(--t-breakdown)">
+          <div class="step-rail-collapsed">
+            <span class="step-name">Activity Checklist</span>
+            <div class="step-rail-right"><svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          </div>
+          <div class="step-segments"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mini-legend">
+      <div class="mini-item"><span class="mini-badge" style="background:var(--t-ppm)"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" fill="#fff"/><path d="M8 14l2.3 2.3L16 11" fill="none" stroke="var(--t-ppm)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>PPM</div>
+      <div class="mini-item"><span class="mini-badge" style="background:var(--t-routine)"><svg viewBox="0 0 24 24" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none"><line x1="12" y1="4" x2="12" y2="20"/><line x1="5" y1="8" x2="19" y2="16"/><line x1="19" y1="8" x2="5" y2="16"/></svg></span>Routine</div>
+      <div class="mini-item"><span class="mini-badge" style="background:var(--t-corrective)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><circle cx="7" cy="7" r="3.4"/><line x1="9.5" y1="9.5" x2="19" y2="19"/></svg></span>Corrective (custom, same curated set)</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

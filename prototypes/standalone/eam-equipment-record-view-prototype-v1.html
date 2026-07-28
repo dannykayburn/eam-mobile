@@ -78,8 +78,7 @@
     <div class="rec-id-row">
       <div class="rec-id-text">
         <span class="rec-num" id="recNum">00067333</span>
-        <span class="rec-desc" id="recDesc" onclick="onDescTap(event)">Pump, Centrifugal</span>
-        <textarea class="rec-desc-edit" id="recDescEdit" maxlength="255" oninput="autoGrow(this)" onblur="onDescBlur()"></textarea>
+        <span class="rec-desc" id="recDesc" onclick="openDescEditor(event)">Pump, Centrifugal</span>
       </div>
       <div class="rec-header-actions">
         <button class="rec-pin-btn" id="recPinBtn" onclick="event.stopPropagation(); toggleRecordPin()" aria-label="Pin record" title="Pin to my list">
@@ -396,10 +395,12 @@ const FIELD_LABELS = {
 // then the raw key — this file's LOV fields render `.attr-label` (Grid),
 // not `.field-label`, so without this object the sheet title silently
 // showed the raw data key (e.g. "department") instead of a real label.
-const LOV_TITLES = {
-  __status: 'Operational Status', department: 'Department', criticality: 'Criticality',
-  class: 'Class', manufacturer: 'Manufacturer', category: 'Category',
-};
+// (Found + fixed 2026-07-28: this comment used to sit above a first,
+// incomplete `const LOV_TITLES` — a duplicate of the real one a few
+// lines below, a fatal `const`-redeclared-in-the-same-scope SyntaxError
+// that silently broke this screen's entire inline script. Removed the
+// duplicate; the complete version below is the one that was actually
+// intended to ship.)
 // Every LOV field shows code + description by default (§3.4, D6 2026-07-16
 // — CODE_VISIBLE_FIELDS is retired). LOV_CURRENT seeds from RECORD's initial
 // values so the sheet shows the right option pre-checked the first time it
@@ -430,7 +431,11 @@ const NO_SEARCH_LOVS = new Set(['__status', 'status', 'criticality', 'class']);
 // listing needed here for those. __status has to stay in this set since
 // it drives the header's own status button, which has no data-field
 // element at all to carry a 'required' class on.
-const ALWAYS_REQUIRED_LOVS = new Set(['__status']);
+// 'desc' added 2026-07-28 (direct instruction) — header descriptions are
+// always required; feeds updateTextEditorSaveGate()'s empty-save block
+// on openDescEditor()'s modal, same mechanism every other required field
+// already uses.
+const ALWAYS_REQUIRED_LOVS = new Set(['__status', 'desc']);
 // Org pill shows code only, no description (§3.4.1) — inert on this screen
 // specifically (the Record View org pill is always protected/non-
 // interactive, so openLov/selectLov never actually runs for 'organization'

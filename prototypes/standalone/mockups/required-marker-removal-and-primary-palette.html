@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Required Marker Removal + Primary Palette for Status/Type/Priority</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  REQUIRED MARKER REMOVAL + PRIMARY PALETTE (2026-07-28). Two linked
+  ideas in one file, exploration only:
+
+  (1) The red required left-bar (.form-field.required::before /
+      .attr-item.required::before) and the collapsible section's
+      .required-count-badge exist to warn "don't leave this empty" — but
+      shouldHideClear()/isRequiredField() (eam-shared.js) already hide
+      the Clear (X) button on every required field's own edit popup
+      (LOV sheet, date picker), so a technician can never actually clear
+      one to empty in the first place. Verified, not assumed: both
+      openLov() and openDate() call shouldHideClear() the same way. If
+      the system already prevents the empty state, the red marker is
+      warning about something that can't happen — pure visual noise,
+      spending part of the app's one red instrument (§23) on a
+      redundant signal.
+  (2) Freeing that attention (and, per direct instruction, reconsidering
+      how much of the red/colour budget Required needs at all) opens room
+      to push Status/Type/Priority toward a bolder, more saturated
+      "Primary" palette instead of the muted/Vivid hues chosen so far —
+      shown side by side against the current Vivid pick so the jump is
+      visible, not just described.
+
+  Section A shows (1) as a real before/after on real component shapes.
+  Section B shows (2) as Vivid (current) vs. Primary (proposed) on the
+  same 3 surfaces used throughout this session's other mockups.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --white:#FFFFFF;
+  --green:#00AA14; --red:#E24B4A;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-section:#F0F2F5; --bg-nav:#1A1A1F; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+[data-theme="dark"]{
+  --bg-page:#1A1A1F; --bg-card:#26252B; --bg-section:#302F33; --border:#3E4047; --border-strong:#4A4C55; --gray-2:#3E4047; --octave-black:#1A1A1F;
+}
+[data-theme="dark"] body{color:var(--white);}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--octave-black);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:1020px;width:100%;color:#fff;font-size:12px;line-height:1.6;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:14px 16px;}
+.legend b{color:#fff;}
+.legend code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:4px;font-family:var(--font-mono);font-size:11px;}
+.theme-row{display:flex;gap:8px;margin-bottom:16px;max-width:1020px;width:100%;}
+.theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:5px 12px;cursor:pointer;}
+.section-title{max-width:1020px;width:100%;color:#fff;font-size:14px;font-weight:700;margin:6px 0 10px;}
+.wrap{max-width:1020px;width:100%;display:flex;flex-wrap:wrap;gap:16px;margin-bottom:22px;}
+
+/* ── Real component shapes, verbatim ── */
+.section-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.equip-attrs{display:grid;grid-template-columns:1fr 1fr;}
+.attr-item{position:relative;padding:12px 14px;display:flex;flex-direction:column;gap:6px;border-right:1px solid var(--border);border-top:1px solid var(--border);}
+.attr-item:nth-child(-n+2){border-top:none;}
+.attr-item:nth-child(even){border-right:none;}
+.attr-item.required::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
+.attr-label{font-size:12px;color:var(--gray-4);}
+.attr-text{font-size:13.5px;font-weight:600;color:var(--octave-black);}
+[data-theme="dark"] .attr-text{color:var(--white);}
+.fg-toggle-row{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg-card);}
+.fg-toggle-title{font-size:13.5px;font-weight:600;color:var(--octave-black);flex:1;}
+[data-theme="dark"] .fg-toggle-title{color:var(--white);}
+.required-count-badge{font-family:var(--font-mono);font-size:10px;font-weight:700;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:6px;background:none;color:var(--red);border:1.5px solid var(--red);flex-shrink:0;}
+.fg-chev{color:var(--gray-4);}
+
+.opt-card{background:var(--bg-page);border-radius:14px;padding:14px 16px;width:485px;flex-shrink:0;}
+.opt-title{font-size:13px;font-weight:700;color:var(--octave-black);margin-bottom:6px;}
+[data-theme="dark"] .opt-title{color:var(--white);}
+.opt-desc{font-size:11px;color:var(--gray-4);line-height:1.5;margin-bottom:10px;}
+
+/* ── Mini header + list row (Section B) ── */
+.mini-header{background:var(--bg-nav);border-radius:10px;padding:12px 14px;margin-bottom:8px;}
+.mh-num{font-family:var(--font-mono);font-size:15px;font-weight:700;color:#fff;}
+.mh-desc{font-size:10.5px;color:rgba(255,255,255,.6);margin-bottom:8px;}
+.mh-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.mh-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 11px;border-radius:8px;font-size:11.5px;font-weight:700;color:#fff;}
+.mh-badge{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;}
+.mh-badge svg{width:10px;height:10px;}
+.mh-chip{padding:3px 9px;border-radius:100px;font-size:10px;font-weight:700;color:#fff;}
+
+.list-row-demo{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-size:11px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+.lr-item{display:flex;align-items:center;gap:5px;color:var(--gray-4);}
+.lr-item .v{color:var(--octave-black);font-weight:600;}
+[data-theme="dark"] .lr-item .v{color:var(--white);}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.lr-pill{padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700;color:#fff;}
+</style>
+</head>
+<body>
+<div class="theme-row">
+  <button class="theme-toggle" onclick="document.documentElement.removeAttribute('data-theme')">☀ Light</button>
+  <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme','dark')">🌙 Dark</button>
+</div>
+<div class="legend">
+  <b>Verified before building this:</b> <code>shouldHideClear()</code>
+  already returns true for any required field (<code>isRequiredField()</code>),
+  and both <code>openLov()</code> and <code>openDate()</code> call it —
+  the Clear (X) icon is already hidden on every required field's edit
+  popup, app-wide, today. So the red marker below is warning about a
+  state the system doesn't let you reach.
+</div>
+
+<div class="section-title">A — Required markers: today vs. removed</div>
+<div class="wrap">
+  <div class="opt-card">
+    <div class="opt-title">Today</div>
+    <div class="opt-desc">Red left-bar on the field, red outline count badge on the section header — 2 separate red signals for the same fact, on fields whose own edit popup already prevents the problem they're warning about.</div>
+    <div class="section-card">
+      <div class="equip-attrs">
+        <div class="attr-item required"><span class="attr-label">Department</span><span class="attr-text">Water Utility</span></div>
+        <div class="attr-item"><span class="attr-label">Assigned To</span><span class="attr-text">Bruce Campbell</span></div>
+        <div class="attr-item required"><span class="attr-label">Problem Code</span><span class="attr-text">Mechanical</span></div>
+        <div class="attr-item"><span class="attr-label">Reported By</span><span class="attr-text">Danny Kilburn</span></div>
+      </div>
+    </div>
+    <div style="height:8px;"></div>
+    <div class="section-card">
+      <div class="fg-toggle-row">
+        <span class="fg-toggle-title">Work order details</span>
+        <span class="required-count-badge">2</span>
+        <svg class="fg-chev" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="opt-card">
+    <div class="opt-title">Removed</div>
+    <div class="opt-desc">Same fields, same required-ness underneath (still gates Save/Start elsewhere, still blocks Clear on the popup) — just no longer painted in red on the row or counted on the header. Nothing about validation changes, only whether it announces itself visually before you've even opened the field.</div>
+    <div class="section-card">
+      <div class="equip-attrs">
+        <div class="attr-item"><span class="attr-label">Department</span><span class="attr-text">Water Utility</span></div>
+        <div class="attr-item"><span class="attr-label">Assigned To</span><span class="attr-text">Bruce Campbell</span></div>
+        <div class="attr-item"><span class="attr-label">Problem Code</span><span class="attr-text">Mechanical</span></div>
+        <div class="attr-item"><span class="attr-label">Reported By</span><span class="attr-text">Danny Kilburn</span></div>
+      </div>
+    </div>
+    <div style="height:8px;"></div>
+    <div class="section-card">
+      <div class="fg-toggle-row">
+        <span class="fg-toggle-title">Work order details</span>
+        <svg class="fg-chev" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-title">B — Vivid (current) vs. Primary (proposed) on Status/Type/Priority</div>
+<div class="wrap">
+
+  <div class="opt-card">
+    <div class="opt-title">Vivid — current</div>
+    <div class="opt-desc">Where things stand after this session's earlier pass — saturated, but still a "designed palette," not attention-grabbing on its own.</div>
+    <div class="mini-header">
+      <div class="mh-num">19257</div>
+      <div class="mh-desc">Pump Cavitating; lost head</div>
+      <div class="mh-row">
+        <span class="mh-pill" style="background:var(--green)">Released</span>
+        <span class="mh-badge" style="background:#E0A83B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+        <span class="mh-chip" style="background:var(--red)">Critical</span>
+      </div>
+    </div>
+    <div class="list-row-demo">
+      <span class="lr-item"><span class="dot" style="background:var(--green)"></span>Status <span class="v">Released</span></span>
+      <span class="lr-item"><span class="dot" style="background:#17B3A0"></span>Type <span class="v">Preventive maint</span></span>
+      <span class="lr-item">Priority <span class="v">High</span></span>
+    </div>
+  </div>
+
+  <div class="opt-card">
+    <div class="opt-title">Primary — proposed</div>
+    <div class="opt-desc">Bolder, more saturated hues — Breakdown/Corrective push toward true orange and violet rather than gold/purple-tinted amber; PPM becomes a real royal blue (Blue was curated but unassigned until now); Priority gains real colour past just Critical (High = orange, not plain text). Status's own green/red get a touch more saturated too, so the whole trio reads as one bolder system, not Status alone.</div>
+    <div class="mini-header">
+      <div class="mh-num">19257</div>
+      <div class="mh-desc">Pump Cavitating; lost head</div>
+      <div class="mh-row">
+        <span class="mh-pill" style="background:#16C130">Released</span>
+        <span class="mh-badge" style="background:#F5821F"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+        <span class="mh-chip" style="background:#DC2626">Critical</span>
+      </div>
+    </div>
+    <div class="list-row-demo">
+      <span class="lr-item"><span class="dot" style="background:#16C130"></span>Status <span class="v">Released</span></span>
+      <span class="lr-item"><span class="dot" style="background:#2563EB"></span>Type <span class="v">Preventive maint</span></span>
+      <span class="lr-item">Priority <span class="lr-pill" style="background:#F5821F">High</span></span>
+    </div>
+  </div>
+
+  <div class="opt-card" style="width:100%">
+    <div class="opt-title">Primary — full Type family (Breakdown/PPM/Routine/Corrective)</div>
+    <div class="opt-desc">Same 4-role structure as Vivid, new hue set: Breakdown = true orange, PPM = royal blue, Routine = violet (was steel blue), Corrective = gold. Kept clear of literal red/green — Status still owns both exclusively.</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div class="mh-badge" style="width:26px;height:26px;background:#F5821F"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        <span style="font-size:10px;color:var(--gray-4);">Breakdown</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div class="mh-badge" style="width:26px;height:26px;background:#2563EB"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg></div>
+        <span style="font-size:10px;color:var(--gray-4);">PPM</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div class="mh-badge" style="width:26px;height:26px;background:#7C3AED"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="5" y1="8" x2="19" y2="16"/><line x1="19" y1="8" x2="5" y2="16"/></svg></div>
+        <span style="font-size:10px;color:var(--gray-4);">Routine</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+        <div class="mh-badge" style="width:26px;height:26px;background:#F2C94C"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="7" cy="7" r="3.4"/><line x1="9.5" y1="9.5" x2="19" y2="19"/></svg></div>
+        <span style="font-size:10px;color:var(--gray-4);">Corrective</span>
+      </div>
+    </div>
+    <div class="opt-desc" style="margin-top:10px;margin-bottom:0;">Risk, stated plainly: this is genuinely loud — the exact opposite direction from §23's original "busy palette" complaint that started this whole discipline. Worth deciding deliberately, not by momentum from Muted → Vivid → Primary each feeling like a small step.</div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -248,8 +248,7 @@
     <div class="rec-id-row">
       <div class="rec-id-text">
         <span class="rec-num" id="recNum">19257</span>
-        <span class="rec-desc" id="recDesc" onclick="onDescTap(event)">Pump Cavitating; lost head</span>
-        <textarea class="rec-desc-edit" id="recDescEdit" maxlength="255" oninput="autoGrow(this)" onblur="onDescBlur()"></textarea>
+        <span class="rec-desc" id="recDesc" onclick="openDescEditor(event)">Pump Cavitating; lost head</span>
       </div>
       <div class="rec-header-actions">
         <button class="rec-pin-btn" id="recPinBtn" onclick="event.stopPropagation(); toggleRecordPin()" aria-label="Pin record" title="Pin to my list">
@@ -644,25 +643,42 @@
    all behavior comes from shared/eam-shared.js. ── */
 
 /* WO icon language (§14.7 note, ported from eam-wo-list-prototype-v5_1.html) —
-   same icon shapes Type/Priority use everywhere else in the app. Palette
-   pass, 2026-07-22: no more per-code `color` — every badge is outlined/
-   monochrome by default (icon shape alone carries the specific meaning),
-   except Priority CRITICAL, which keeps the one deliberate red exception
-   (`critical:true`, read by fieldRowBadgeAttr() below and eam-shared.js's
-   renderColorBadge()). Icon SVGs use stroke/fill="currentColor" (was a
-   hardcoded "white", back when every badge had a saturated color fill
-   behind it) so they pick up whichever badge class's `color` applies. */
+   same icon shapes Type/Priority use everywhere else in the app. Type
+   regained its per-code `color` 2026-07-28 (WO Type Colour + Icon Badge,
+   design-decisions-v3-1.md) — the 2026-07-22 "every badge outlined/
+   monochrome" pass was itself the temporary state, scoped to the
+   rebuild-exercise window, not a permanent rule; §6.7/§23 have been
+   updated to match. BK/BREAKDOWN, CM, and PM below draw their colour from
+   the same curated WO_TYPE_PALETTE eam-shared.js/the step rail/WO List
+   use, via woTypeBadgeMetaForCode() — CAL keeps no colour (Calibration
+   isn't one of the 3 system Types + Corrective's custom-code example this
+   pass covers). Priority CRITICAL keeps its own, unrelated, one deliberate
+   red exception (`critical:true`, read by fieldRowBadgeAttr() below and
+   eam-shared.js's renderColorBadge()). Icon SVGs use stroke/
+   fill="currentColor" so they pick up whichever badge class's `color`
+   applies, fill or outline alike. */
 const TYPE_META = {
-  BK:  { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
+  BK:  { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>', color: woTypeBadgeMetaForCode('BK').color },
   CAL: { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>' },
-  CM:  { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>' },
-  BREAKDOWN: { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' },
-  PM:  { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg>' },
+  CM:  { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>', color: woTypeBadgeMetaForCode('CM').color },
+  BREAKDOWN: { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>', color: woTypeBadgeMetaForCode('BREAKDOWN').color },
+  PM:  { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg>', color: woTypeBadgeMetaForCode('PM').color },
+  // Added 2026-07-28 (bug fix) — WO 20450's Type LOV value; didn't exist
+  // here before because no demo WO ever actually resolved to it (Type
+  // wasn't synced across demo WOs at all until this same fix). Same
+  // asterisk glyph as the step rail/WO List's Routine icon (§23.3) — a
+  // literal nod to the real WO Type code, "*".
+  ROUT: { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="5" y1="8" x2="19" y2="16"/><line x1="19" y1="8" x2="5" y2="16"/></svg>', color: woTypeBadgeMetaForCode('ROUT').color },
 };
 const PRIORITY_META = {
   LOW:      { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/></svg>' },
   MEDIUM:   { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/></svg>' },
-  HIGH:     { icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="5,15 12,8 19,15"/></svg>' },
+  // color added 2026-07-28 (Primary palette pass) — Priority's first
+  // real colour past Critical's long-standing red exception. Deliberately
+  // its own hue (--priority-high, a magenta/pink), not Breakdown's orange
+  // or Status's red — a different field's colour should never double as
+  // a different meaning, the same rule §23.3 already applies to WO Type.
+  HIGH:     { color: 'var(--priority-high)', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="5,15 12,8 19,15"/></svg>' },
   CRITICAL: { critical: true, icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 01-7 7 7 7 0 01-7-7c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>' },
 };
 
@@ -744,7 +760,7 @@ const LOV_DATA = {
   // status picker after a Completed close shows the right value selected
   // instead of silently falling back to whatever it was before closing.
   __status: [{code:'WAPPR',desc:'Work Request'},{code:'RELEASED',desc:'Released'},{code:'CLOSE',desc:'Closed'},{code:'COMPLETED',desc:'Completed'}],
-  type: [{code:'CM',desc:'Corrective Maintenance'},{code:'PM',desc:'Preventive Maintenance'},{code:'BREAKDOWN',desc:'Breakdown'}],
+  type: [{code:'CM',desc:'Corrective Maintenance'},{code:'PM',desc:'Preventive Maintenance'},{code:'BREAKDOWN',desc:'Breakdown'},{code:'ROUT',desc:'Routine Maintenance'}],
   priority: [{code:'LOW',desc:'Low'},{code:'MEDIUM',desc:'Medium'},{code:'HIGH',desc:'High'},{code:'CRITICAL',desc:'Critical'}],
   department: [{code:'WATER',desc:'Water Utility'},{code:'MAINT',desc:'Maintenance'},{code:'OPS',desc:'Operations'}],
   assignedTo: [{code:'BCAMPBELL',desc:'Bruce Campbell'},{code:'JRODRIGUEZ',desc:'Juan Rodriguez'},{code:'MKUMAR',desc:'Meera Kumar'}],
@@ -778,7 +794,11 @@ const NO_SEARCH_LOVS = new Set(['__status', 'type', 'priority', 'activityTrade',
 // required field (Department, Problem Code, Type below) is marked via the
 // ordinary 'required' class instead (§5.2, revised 2026-07-16 — Header
 // Fields / section membership no longer implies required on its own).
-const ALWAYS_REQUIRED_LOVS = new Set(['__status']);
+// 'desc' added 2026-07-28 (direct instruction) — header descriptions are
+// always required; feeds updateTextEditorSaveGate()'s empty-save block
+// on openDescEditor()'s modal, same mechanism every other required field
+// already uses.
+const ALWAYS_REQUIRED_LOVS = new Set(['__status', 'desc']);
 const BADGE_LOV_META = { type: TYPE_META, priority: PRIORITY_META };
 // WO's status codes aren't Equipment's Operational/Down/Standby — this
 // screen-provided map lets eam-shared.js's selectLov() drive the same 3
@@ -1002,7 +1022,16 @@ function navBack() {
 function fieldRowBadgeAttr(key, metaMap, required, fullWidth) {
   const v = RECORD[key];
   const meta = metaMap[v.code];
-  const badge = meta ? `<span class="attr-badge${meta.critical ? ' attr-badge-critical' : ' attr-badge-outline'}" id="fv-${key}-badge">${meta.icon}</span>` : `<span class="attr-badge attr-badge-outline" id="fv-${key}-badge"></span>`;
+  // Mirrors eam-shared.js's renderColorBadge() (color > critical > outline)
+  // — kept as its own local branch rather than calling that shared function
+  // because this markup also needs the id="fv-${key}-badge" attribute
+  // inline, and adding an id param to the shared renderer isn't worth it
+  // for its one other caller.
+  const badge = meta
+    ? (meta.color
+        ? `<span class="attr-badge attr-badge-fill" style="background:${meta.color}" id="fv-${key}-badge">${meta.icon}</span>`
+        : `<span class="attr-badge${meta.critical ? ' attr-badge-critical' : ' attr-badge-outline'}" id="fv-${key}-badge">${meta.icon}</span>`)
+    : `<span class="attr-badge attr-badge-outline" id="fv-${key}-badge"></span>`;
   return `<div class="attr-item${fullWidth ? ' full-width' : ''}${required ? ' required' : ''}" data-field="${key}" onclick="openLov('${key}')">
     <span class="attr-label">${FIELD_LABELS[key]}</span>
     <div class="attr-value">${badge}<span class="attr-text" id="fv-${key}-desc">${v.desc}</span></div>
@@ -1379,21 +1408,45 @@ function proceedStartWork() {
    paradigm as Equipment RV's own tab rail) instead of the numbered/
    gated one, plus a working Start Work bar (startWork() above no longer
    guards on .configured). */
+// Bug fix, 2026-07-28 — the Type field/badge showed "Breakdown" on every
+// demo WO regardless of which was actually open (RECORD.type was a
+// static default, never wired to DEMO_WO — see applyDemoWoIdentity()'s
+// own comment in eam-shared.js for why Type was deliberately left out of
+// that shared function). Screen-local because the codes are this
+// screen's own LOV_DATA.type values, not the internal jobType routing
+// key. ROUT ("Routine Maintenance") is a real LOV_DATA.type/TYPE_META
+// entry now too — added alongside this fix, since no demo WO had ever
+// actually resolved to it before.
+const DEMO_WO_TYPE = {
+  '19257': { code: 'BREAKDOWN', desc: 'Breakdown' },
+  '19831': { code: 'PM', desc: 'Preventive Maintenance' },
+  '20450': { code: 'ROUT', desc: 'Routine Maintenance' },
+};
+function applyDemoWoType() {
+  const t = DEMO_WO_TYPE[DEMO_WO];
+  if (!t) return;
+  RECORD.type = t;
+  LOV_CURRENT.type = t.code;
+  const badgeEl = document.getElementById('fv-type-badge');
+  const descEl = document.getElementById('fv-type-desc');
+  if (badgeEl) badgeEl.outerHTML = renderColorBadge(TYPE_META[t.code]).replace('<span ', 'id="fv-type-badge" ');
+  if (descEl) descEl.textContent = t.desc;
+}
 let CURRENT_WORKFLOW = null;
 function onDemoWoChanged() {
   const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
   CURRENT_WORKFLOW = resolveWoWorkflow(jobType);
   // Guard: a freshly-inserted record (NEW_RECORD truthy, §9.5's
   // navigateToNewRecord() hand-off) already has its own real number/
-  // description painted above — the demo-WO identity swap must never
-  // stomp on that with one of the 3 canned demo WOs' text.
-  if (!NEW_RECORD) applyDemoWoIdentity();
+  // description/type painted above — the demo-WO identity swap must
+  // never stomp on that with one of the 3 canned demo WOs' values.
+  if (!NEW_RECORD) { applyDemoWoIdentity(); applyDemoWoType(); }
   const rail = document.getElementById('stepRail');
   const bar = document.getElementById('bottomBar');
   if (rail) rail.style.display = '';
   if (bar) bar.style.display = '';
-  if (CURRENT_WORKFLOW.configured) renderStepRail(CURRENT_WORKFLOW, 'record');
-  else renderFlatStepRail('record');
+  if (CURRENT_WORKFLOW.configured) renderStepRail(CURRENT_WORKFLOW, 'record', jobType);
+  else renderFlatStepRail('record', jobType);
   applyWorkflowTypeHeader(CURRENT_WORKFLOW.freeForm ? 'FREE_FORM' : 'NOT_FREE_FORM');
 }
 

@@ -143,6 +143,88 @@ function resolveWoWorkflow(jobType, userGroup) {
   const wotype = (typeof EAM_WOTYPE !== 'undefined' && EAM_WOTYPE[jobType]) || {};
   return { configured: true, freeForm: !!header.freeForm, statusSource: wotype.statusSource || 'WO_HEADER', steps };
 }
+/* ══════════════════════════════════════════════════════════════════════
+   WO TYPE COLOUR + ICON BADGE (design-decisions-v3-1.md, added 2026-07-28)
+   — a real 4th palette instrument, alongside Status/Sync/Required (§23)
+   and the pill-fill instrument (§23.2). Reused identically across 3
+   surfaces: this rail, WO Record View's Type field (fieldRowBadgeAttr(),
+   TYPE_META), and WO List's Type row (TM). Colour is always one of the
+   curated --wo-type-* vars (eam-shared.css) — never a raw admin hex —
+   same discipline §23 already applies elsewhere.
+
+   Two genuinely different code namespaces both need to resolve to the
+   same badge, and are kept as two small separate maps rather than merged,
+   so that distinction stays visible in code, not just in a comment:
+     - jobType (BRKD/PM/ROUT) — the internal EAM_WOTYPE workflow-routing
+       key (§11-13), always in sync with whichever demo WO is loaded.
+     - the WO's own user-facing Type LOV code (RECORD.type.code on WO
+       Record View, WO List's own `tp`) — a legitimately different field
+       (see applyDemoWoIdentity()'s own comment below), whose exact codes
+       vary per screen's own demo LOV list (BK/BREAKDOWN/CM/PM/ROUT).
+   Breakdown and Corrective are the same real EAM function in this
+   customer's actual data — deliberately split into 2 user codes here
+   (direct instruction) to demonstrate a 4th, admin-added custom Type
+   riding the same curated palette as the 3 system ones. ══ */
+const WO_TYPE_ICON_GLYPHS = {
+  // Reused verbatim from the app's existing BK/PM/CM icon language
+  // (eam-wo-list-prototype-v5_1.html's ico-alert/ico-cal-check/ico-tool,
+  // eam-wo-record-view-prototype-v1.html's TYPE_META) rather than
+  // inventing new shapes for the same 3 concepts.
+  BREAKDOWN: '<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+  PPM: '<rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/>',
+  // New — no existing icon covers Routine. A plain asterisk, a deliberate
+  // literal nod to that Type's own real code, "*".
+  ROUTINE: '<line x1="12" y1="4" x2="12" y2="20"/><line x1="5" y1="8" x2="19" y2="16"/><line x1="19" y1="8" x2="5" y2="16"/>',
+  CORRECTIVE: '<path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>',
+};
+function woTypeIconSvg(family, size) {
+  const glyph = WO_TYPE_ICON_GLYPHS[family];
+  if (!glyph) return '';
+  return `<svg width="${size || 14}" height="${size || 14}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${glyph}</svg>`;
+}
+const WO_TYPE_PALETTE = {
+  BREAKDOWN:  { family: 'BREAKDOWN',  color: 'var(--wo-type-breakdown)',  glow: 'var(--wo-type-breakdown-glow)'  },
+  PPM:        { family: 'PPM',        color: 'var(--wo-type-ppm)',        glow: 'var(--wo-type-ppm-glow)'        },
+  ROUTINE:    { family: 'ROUTINE',    color: 'var(--wo-type-routine)',    glow: 'var(--wo-type-routine-glow)'    },
+  CORRECTIVE: { family: 'CORRECTIVE', color: 'var(--wo-type-corrective)', glow: 'var(--wo-type-corrective-glow)' },
+};
+const JOBTYPE_TO_WOTYPE_FAMILY = { BRKD: 'BREAKDOWN', PM: 'PPM', ROUT: 'ROUTINE' };
+const TYPECODE_TO_WOTYPE_FAMILY = { BK: 'BREAKDOWN', BREAKDOWN: 'BREAKDOWN', CM: 'CORRECTIVE', PM: 'PPM', ROUT: 'ROUTINE' };
+function woTypeBadgeMetaForJobType(jobType) {
+  return WO_TYPE_PALETTE[JOBTYPE_TO_WOTYPE_FAMILY[jobType]] || null;
+}
+function woTypeBadgeMetaForCode(code) {
+  return WO_TYPE_PALETTE[TYPECODE_TO_WOTYPE_FAMILY[code]] || null;
+}
+// Builds/updates the step rail's own Type slot in .step-rail-right —
+// called by renderStepRail()/renderFlatStepRail() below, never directly.
+// asCircle=false (renderStepRail, real configured workflow): plain
+// colour-tinted icon, paired with a Type-tinted glow on the rail's own
+// pill shadow (--rail-glow-color, eam-shared.css — supersedes the
+// pre-2026-07-28 left-edge bar, see design-decisions-v3-1.md §21's named
+// "Flush Full-Bleed Card" reference for that retired treatment).
+// asCircle=true (renderFlatStepRail, §11 fallback): the same icon inside
+// a solid filled circle instead — no glow (plain neutral shadow), the
+// circle itself is the free-form cue.
+function renderStepRailTypeSlot(rail, jobType, asCircle) {
+  if (!rail) return;
+  const right = rail.querySelector('.step-rail-right');
+  if (!right) return;
+  let slot = right.querySelector('.step-rail-type-slot');
+  const meta = woTypeBadgeMetaForJobType(jobType);
+  if (meta && !asCircle) rail.style.setProperty('--rail-glow-color', meta.glow);
+  else rail.style.removeProperty('--rail-glow-color');
+  if (!meta) { if (slot) slot.remove(); return; }
+  if (!slot) {
+    slot = document.createElement('span');
+    slot.className = 'step-rail-type-slot';
+    right.insertBefore(slot, right.querySelector('.step-chevron'));
+  }
+  slot.className = 'step-rail-type-slot ' + (asCircle ? 'step-rail-type-circle' : 'step-rail-type-icon');
+  slot.style.background = asCircle ? meta.color : '';
+  slot.style.color = asCircle ? '' : meta.color;
+  slot.innerHTML = woTypeIconSvg(meta.family, asCircle ? 12 : 15);
+}
 /* Renders the step-rail's step-map + progress segments + step-name from a
    resolved workflow's own step list — replaces each of the 5 WO-workflow
    screens' previously-hardcoded 5-item markup. PM's 4-step list (skipping
@@ -150,8 +232,9 @@ function resolveWoWorkflow(jobType, userGroup) {
    copy-pasted per screen. activeStep is this screen's own step key. No-
    ops (leaves existing markup alone) when the resolved workflow has no
    steps at all (the §11 fallback) — screens handle that case themselves,
-   typically by hiding the whole rail (it has nothing to show). */
-function renderStepRail(workflow, activeStep) {
+   typically by hiding the whole rail (it has nothing to show). jobType
+   (optional) drives the WO Type colour+icon signal above. */
+function renderStepRail(workflow, activeStep, jobType) {
   const rail = document.getElementById('stepRail');
   const map = document.getElementById('stepMap');
   if (!rail || !map || !workflow || !workflow.steps.length) return;
@@ -161,6 +244,7 @@ function renderStepRail(workflow, activeStep) {
   const activeIdx = steps.indexOf(activeStep);
   if (nameEl) nameEl.textContent = WO_STEP_LABELS[activeStep] || '';
   rail.classList.toggle('rail-not-free-form', !workflow.freeForm);
+  renderStepRailTypeSlot(rail, jobType, false);
   // Preserve the expanded-rail timer panel (Steps 2–3's hardcoded first
   // child of #stepMap, §14.2 follow-up) — this used to get silently wiped
   // out by the innerHTML overwrite below, which is why it looked like it
@@ -197,7 +281,7 @@ function renderStepRail(workflow, activeStep) {
    cross-file navigation (goToWoStep() below) — there's no gating concept
    for this fallback case at all, by design. */
 const WO_FLAT_STEPS = ['record', 'checklist', 'issueparts', 'booklabor', 'closing'];
-function renderFlatStepRail(activeStep) {
+function renderFlatStepRail(activeStep, jobType) {
   const rail = document.getElementById('stepRail');
   const map = document.getElementById('stepMap');
   if (!rail || !map) return;
@@ -205,6 +289,7 @@ function renderFlatStepRail(activeStep) {
   const nameEl = rail.querySelector('.step-name');
   if (nameEl) nameEl.textContent = WO_STEP_LABELS[activeStep] || '';
   rail.classList.remove('rail-not-free-form'); // §11 fallback is always Free Form
+  renderStepRailTypeSlot(rail, jobType, true);
   // No numbered progress bar in flat mode — a plain dashed divider instead
   // (§14.2, 2026-07-23) so the row reads as "deliberately unstructured,"
   // not "missing." Zero color, chosen from this session's mockup Option 3.
@@ -290,15 +375,19 @@ function consumeJumpToSection() {
   setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
 }
 /* Identity text swap (added 2026-07-22, widening the demo-WO selector's
-   scope per user request) — updates the visible WO#/description/Type
-   text to match the selected demo WO. Deliberately still doesn't touch
-   deeper content (equipment, activities, labor, parts) — same "workflow
-   chrome only" scope call as the rest of this mechanism — but showing
-   19257's own number/description/Type while a completely different
-   demo WO's workflow rules are active read as flatly wrong, not just
-   incomplete, so these 3 highly-visible text nodes get the same live
-   treatment as the step rail. Requires WO_19257/WO_19831/WO_20450 all
-   loaded (harmless additional <script src> tags, tiny flat objects). */
+   scope per user request) — updates the visible WO#/description text to
+   match the selected demo WO. Deliberately still doesn't touch deeper
+   content (equipment, activities, labor, parts) — same "workflow chrome
+   only" scope call as the rest of this mechanism — but showing 19257's
+   own number/description while a completely different demo WO's
+   workflow rules are active read as flatly wrong, not just incomplete,
+   so these 2 highly-visible text nodes get the same live treatment as
+   the step rail. Requires WO_19257/WO_19831/WO_20450 all loaded
+   (harmless additional <script src> tags, tiny flat objects). Type used
+   to be a 3rd field here and got pulled (see the comment inside the
+   function below) — WO Record View now syncs Type itself, screen-locally
+   (applyDemoWoType(), added 2026-07-28 fixing a real bug: the Type badge
+   showed "Breakdown" on every demo WO regardless of which was open). */
 function demoWoRecord() {
   const map = {
     '19257': (typeof WO_19257 !== 'undefined' ? WO_19257 : null),
@@ -321,8 +410,12 @@ function applyDemoWoIdentity() {
   // user-facing Type field (LOV_DATA.type/RECORD.type, e.g. "Breakdown").
   // The two are legitimately different fields; stomping one with the
   // other produced a value that didn't match the Type LOV's own text.
-  // Type is left alone here now — it renders from each screen's own
-  // RECORD.type, same as every other demo-WO-swap-untouched deeper field.
+  // Left alone here for that reason — but "left alone" silently became
+  // "never synced at all," a real regression (WO 19831/20450 opened
+  // showing Breakdown, not PM/Routine), found + fixed 2026-07-28. Each
+  // consuming screen now syncs its own Type field, keyed off its own
+  // LOV_DATA.type codes — WO Record View's own applyDemoWoType() is the
+  // only current example, since it's the only screen with a Type field.
 }
 /* Which of the 3 demo WOs' workflow rules apply (§11-13: BRKD full flow /
    PM skips Issue Parts / ROUT falls back to the plain Standard Record
@@ -456,26 +549,25 @@ function onRecHeaderTap() {
   const header = document.getElementById('recHeader');
   if (header && header.classList.contains('scrolled')) scrollFormToTop();
 }
-function onDescTap(event) {
+// Replaces the old inline-swap edit (onDescTap()/onDescBlur()/
+// .rec-desc-edit, retired 2026-07-28, direct instruction) — Description
+// now opens the same compact modal every other Free Text field uses
+// (openTextEditor's opts.compact), instead of editing in place. Header
+// descriptions are always required (direct instruction) — 'desc' is in
+// each consuming screen's own ALWAYS_REQUIRED_LOVS, so the empty-save
+// gate (updateTextEditorSaveGate()) applies to it like any other
+// required field.
+function openDescEditor(event) {
   const header = document.getElementById('recHeader');
   if (header && header.classList.contains('scrolled')) return;
-  event.stopPropagation();
+  if (event) event.stopPropagation();
   const span = document.getElementById('recDesc');
-  const edit = document.getElementById('recDescEdit');
-  edit.value = span.textContent;
-  span.classList.add('hidden-while-editing');
-  edit.classList.add('editing');
-  autoGrow(edit);
-  edit.focus();
-  edit.setSelectionRange(edit.value.length, edit.value.length);
-}
-function onDescBlur() {
-  const span = document.getElementById('recDesc');
-  const edit = document.getElementById('recDescEdit');
-  span.textContent = edit.value;
-  span.classList.remove('hidden-while-editing');
-  edit.classList.remove('editing');
-  showToast('Saved');
+  // No empty/muted branch needed here — 'desc' is always-required
+  // (ALWAYS_REQUIRED_LOVS), so saveTextEditor()'s own guard never invokes
+  // this callback with an empty val in the first place.
+  openTextEditor('desc', 'Description', (val) => {
+    span.textContent = val;
+  }, span.textContent, { compact: true });
 }
 function autoGrow(ta) {
   ta.style.height = 'auto';
@@ -843,7 +935,7 @@ function persistSyncItems() { localStorage.setItem('eamSyncItems', JSON.stringif
    preference, not demo progress, and should survive a fresh login same
    as it survives navigation. */
 function resetDemoState() {
-  ['eamSyncItems', 'eamSyncOnline', 'eamNextWoNumber', 'eamNextEquipNumber',
+  ['eamSyncItems', 'eamSyncOnline', 'eamSyncForceSynced', 'eamNextWoNumber', 'eamNextEquipNumber',
    'eamFavoriteDataspies', 'eamFavoriteEquipDS', 'eamHomeFavOrder', 'eamHomeTileOrder']
     .forEach(k => localStorage.removeItem(k));
 }
@@ -887,6 +979,13 @@ function syncErrorTierText(item) {
 // to a technician; that backlog now reads as Offline (no connection) or
 // Syncing (connected, working through it), decided by DEMO_ONLINE alone.
 function syncOverallState(items) {
+  // Demo-only override (2026-07-28, no design decision — prototype/demo
+  // convenience only): forces green/Synced regardless of SYNC_DEMO_ITEMS'
+  // own seeded error rows, so a live demo doesn't show "Error" the whole
+  // time. Previously the only way around this was manually clearing the
+  // error rows every demo; this is the same outcome without touching the
+  // underlying data. Checked first, before the real error/offline logic.
+  if (DEMO_SYNCED_OVERRIDE) return 'synced';
   if (items.some(i => i.state === 'error')) return 'error';
   if (items.length) return DEMO_ONLINE ? 'syncing' : 'offline';
   return 'synced';
@@ -1115,23 +1214,42 @@ function reviewSyncItem(id) {
    and-succeeds. Defaults false — the whole outbox/error premise is that
    the technician was offline when these were queued. ── */
 let DEMO_ONLINE = false;
+// 3rd toggle state, added 2026-07-28 (demo/prototype convenience only,
+// no design decision) — see syncOverallState()'s own comment for why.
+let DEMO_SYNCED_OVERRIDE = false;
 // Restored the same way as SYNC_DEMO_ITEMS above (separate IIFE since
 // DEMO_ONLINE isn't declared yet at that point in the file — let's TDZ
 // would throw if this ran any earlier).
 (function () {
   const saved = localStorage.getItem('eamSyncOnline');
   if (saved !== null) DEMO_ONLINE = saved === 'true';
+  const savedSynced = localStorage.getItem('eamSyncForceSynced');
+  if (savedSynced !== null) DEMO_SYNCED_OVERRIDE = savedSynced === 'true';
 })();
+// 3-way cycle: Offline -> Online -> Synced -> Offline. Synced implies
+// Online underneath (no reason to also claim a dropped connection while
+// forcing a green sync pill) — dropping back out of Synced returns to
+// Offline, same starting point as before this existed.
 function toggleDemoOnline() {
-  DEMO_ONLINE = !DEMO_ONLINE;
+  if (DEMO_SYNCED_OVERRIDE) {
+    DEMO_SYNCED_OVERRIDE = false;
+    DEMO_ONLINE = false;
+  } else if (!DEMO_ONLINE) {
+    DEMO_ONLINE = true;
+  } else {
+    DEMO_SYNCED_OVERRIDE = true;
+  }
   localStorage.setItem('eamSyncOnline', String(DEMO_ONLINE));
-  const btn = document.getElementById('onlineToggle');
-  if (btn) btn.textContent = DEMO_ONLINE ? '🌐 Online' : '🌐 Offline';
+  localStorage.setItem('eamSyncForceSynced', String(DEMO_SYNCED_OVERRIDE));
+  updateOnlineToggleLabel();
   renderSyncControl();
 }
-function initDemoOnlineToggle() {
+function updateOnlineToggleLabel() {
   const btn = document.getElementById('onlineToggle');
-  if (btn) btn.textContent = DEMO_ONLINE ? '🌐 Online' : '🌐 Offline';
+  if (btn) btn.textContent = DEMO_SYNCED_OVERRIDE ? '🌐 Synced' : (DEMO_ONLINE ? '🌐 Online' : '🌐 Offline');
+}
+function initDemoOnlineToggle() {
+  updateOnlineToggleLabel();
 }
 
 /* ── Sync error banner (§4.5, simplified 2026-07-22 — field-level detail
@@ -1281,8 +1399,10 @@ const ENTITY_META = {
   WO:    { desc: 'Work order', icon: 'tool' },
   EQUIP: { desc: 'Equipment',  icon: 'package' },
 };
-// §23: renderColorBadge() only ever reads `.critical` (never `.color`),
-// and none of these codes is the one Priority-Critical-style exception.
+// renderColorBadge() also reads `.color` now (WO Type colour badge, added
+// 2026-07-28) — none of these entries set it, so Insert Mode's own Type/
+// Status badges stay outline-only, same as before. Not yet extended to
+// Insert Mode's Type picker; flagged as a follow-up, not done here.
 const ENTITY_FIELD_META = {
   WO: {
     typeLabel: 'Type',
@@ -1591,37 +1711,20 @@ function shouldHideClear(key, el) {
 
 /* ══════════════════════════════════════════════════════════════════════
    REQUIRED-FIELD-COUNT CONTAINER INDICATORS (§5.2, 2026-07-16; revised
-   2026-07-20) — a .fg-section or .section-card whose header (.fg-toggle-
-   row / .section-card-header) contains at least one required field shows
-   a small orange count badge there, always — not just while incomplete.
-   Required fields can never be cleared back to empty once populated
-   (§3.4's Clear-visibility rule hides Clear for required fields), so a
-   "still empty" badge that disappears on fill can never reappear either —
-   it was a one-way indicator masquerading as a live one. The badge is now
-   a static "this container has N required fields" count, not a
-   completion tracker. Call updateRequiredBadges() after any save/select/
-   clear/blur (already wired into every such function in this file) — no
-   screen-specific config needed.
+   2026-07-20) — REMOVED 2026-07-28, direct instruction: every required
+   field's own edit popup already blocks Clear (isRequiredField()/
+   shouldHideClear() above), so this badge was counting a state that
+   can't happen — pure visual noise spending part of the app's red
+   instrument on a redundant signal. Kept as a no-op below (only ever
+   removes a stray badge, never creates one) rather than deleting the
+   function outright and its call sites — every save/select/clear/blur
+   path in this file still calls updateRequiredBadges(), and rewiring
+   all of them for one removed feature would be a much larger, unrelated
+   diff for no behavioral gain. See design-decisions-v3-1.md §21 if this
+   needs reverting.
    ══════════════════════════════════════════════════════════════════════ */
 function updateRequiredBadges() {
-  document.querySelectorAll('.fg-section, .section-card').forEach(container => {
-    const header = container.querySelector(':scope > .fg-toggle-row, :scope > .section-card-header');
-    if (!header) return;
-    const requiredFields = container.querySelectorAll('.form-field.required');
-    let badge = header.querySelector('.required-count-badge');
-    if (!requiredFields.length) { if (badge) badge.remove(); return; }
-    if (!badge) {
-      badge = document.createElement('span');
-      badge.className = 'required-count-badge';
-      // Insert before the chevron, not after — the chevron's own
-      // position must stay fixed (all containers' chevrons line up in
-      // one column) regardless of whether a badge is present; the badge
-      // sits on the inside, next to the title, not past the chevron.
-      const chev = header.querySelector('.fg-chev');
-      if (chev) header.insertBefore(badge, chev); else header.appendChild(badge);
-    }
-    badge.textContent = requiredFields.length;
-  });
+  document.querySelectorAll('.required-count-badge').forEach(b => b.remove());
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1644,13 +1747,16 @@ function updateRequiredBadges() {
    falling through to the generic code+description branch here, a real
    bug, not by design) — openLov() below checks isSystemCode explicitly so
    the description-only rule can't silently regress. ══ */
-// Outline by default, red-filled only for a meta entry explicitly flagged
-// `critical:true` (palette pass, 2026-07-22 — was an inline colored
-// background per meta entry; see .attr-badge-outline/.attr-badge-critical
-// in eam-shared.css). Screens whose own meta maps don't set `critical` on
-// anything simply always render the outline variant — no code color left.
+// Outline by default; red-filled for a meta entry flagged `critical:true`
+// (Priority's one deliberate exception, palette pass 2026-07-22); solid
+// per-Type-colour fill for a meta entry carrying `color` (WO Type's own
+// TYPE_META entries, added 2026-07-28 — see .attr-badge-fill in
+// eam-shared.css). Screens whose own meta maps set neither simply always
+// render the outline variant — no code color left.
 function renderColorBadge(meta) {
-  return meta ? `<span class="attr-badge${meta.critical ? ' attr-badge-critical' : ' attr-badge-outline'}">${meta.icon}</span>` : `<span class="attr-badge attr-badge-outline"></span>`;
+  if (!meta) return `<span class="attr-badge attr-badge-outline"></span>`;
+  if (meta.color) return `<span class="attr-badge attr-badge-fill" style="background:${meta.color}">${meta.icon}</span>`;
+  return `<span class="attr-badge${meta.critical ? ' attr-badge-critical' : ' attr-badge-outline'}">${meta.icon}</span>`;
 }
 let activeLovKey = null;
 function openLov(key) {
@@ -2369,7 +2475,10 @@ function toggleSectionCard(headerEl) {
    FULL-SCREEN LONG-TEXT EDITOR (§3.4) — Comments reuse this exact pattern.
    ══════════════════════════════════════════════════════════════════════ */
 let textEditorKey = null, textEditorInitial = '', textEditorAwaitingDiscard = false, textEditorOnSave = null;
-function openTextEditor(key, title, onSaveCallback, initialOverride) {
+// opts.compact (added 2026-07-28, direct instruction) — a much shorter
+// sheet/textarea (.compact, eam-shared.css) for a 1-2 line field like
+// Description, instead of the default size built for Notes/Comments.
+function openTextEditor(key, title, onSaveCallback, initialOverride, opts) {
   textEditorKey = key;
   textEditorOnSave = onSaveCallback || null;
   document.getElementById('textEditorTitle').textContent = title;
@@ -2379,6 +2488,10 @@ function openTextEditor(key, title, onSaveCallback, initialOverride) {
   textEditorAwaitingDiscard = false;
   document.getElementById('textEditorDiscard').classList.remove('show');
   document.getElementById('textEditorCloseBtn').style.display = '';
+  // Toggled every open, not set once — the one shared sheet must revert
+  // for the next, non-compact caller (Comments/Notes/etc.) too.
+  document.getElementById('textEditorSheet').classList.toggle('compact', !!(opts && opts.compact));
+  updateTextEditorSaveGate();
   openSheet('textEditorSheet');
   // 250ms → 320ms, 2026-07-24 — same fix as openEdit() above, same root
   // cause: 250ms was shorter than .bottom-sheet's own 300ms transition,
@@ -2386,12 +2499,25 @@ function openTextEditor(key, title, onSaveCallback, initialOverride) {
   // got caught on a real device first.
   setTimeout(() => document.getElementById('textEditorTextarea').focus(), 320);
 }
+// Required-and-empty Save gate (added 2026-07-28, direct instruction) —
+// a required text field's own Save can't commit an empty/whitespace-only
+// value, same principle shouldHideClear() already applies to that
+// field's Clear button. Checked on open (in case a required field is
+// somehow already empty) and on every keystroke, not just on tap — the
+// button should already read as un-tappable before the user tries.
+function updateTextEditorSaveGate() {
+  const val = document.getElementById('textEditorTextarea').value;
+  const blocked = isRequiredField(textEditorKey) && !val.trim();
+  const btn = document.querySelector('#textEditorSheet .btn-save');
+  if (btn) btn.classList.toggle('disabled', blocked);
+}
 function textEditorInputChanged() {
   if (textEditorAwaitingDiscard) {
     textEditorAwaitingDiscard = false;
     document.getElementById('textEditorDiscard').classList.remove('show');
     document.getElementById('textEditorCloseBtn').style.display = '';
   }
+  updateTextEditorSaveGate();
 }
 function textEditorCloseTap() {
   const dirty = document.getElementById('textEditorTextarea').value !== textEditorInitial;
@@ -2409,6 +2535,10 @@ function textEditorConfirmDiscard() {
 }
 function saveTextEditor() {
   const val = document.getElementById('textEditorTextarea').value;
+  // Belt-and-suspenders — the disabled Save button (updateTextEditorSaveGate())
+  // already prevents this tap from firing; guarded here too in case
+  // something else ever calls saveTextEditor() directly.
+  if (isRequiredField(textEditorKey) && !val.trim()) return;
   if (textEditorOnSave) {
     textEditorOnSave(val);
   } else {

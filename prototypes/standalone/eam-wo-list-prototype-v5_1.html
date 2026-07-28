@@ -1059,10 +1059,10 @@ const SVGS={
 /* ══ LIST SEARCH SCREEN STANDARD (§8.3) — local copy of
    shared/eam-shared.js's own renderStdCard/renderStdTable, same
    convention as this file's other locally-copied shared components. ══ */
-// Status is the only field that ever keeps colour (§23 — a real
-// instrument), and only as the pill-fill/outline treatment below, never
-// as tinted text — so there's no more generic "tinted field" concept
-// here at all (Type's old text-tint died with its colour, above).
+// Status and Type are the two fields that keep colour (§23/WO Type Colour
+// + Icon Badge) — Status as the pill-fill/outline treatment below, Type
+// as a small dot ahead of its value (f.type==='wotype'), never as tinted
+// text (that scheme died with the old §6.7 and stays dead).
 function renderStdCard(fields) {
   const first6 = fields.slice(0, 6);
   const orgIdx = first6.findIndex(f => f.type === 'org');
@@ -1080,37 +1080,44 @@ function renderStdCard(fields) {
   if (sub) html += `<div class="ld-card-subline">${sub.value}</div>`;
   if (attrs.length) {
     html += '<div class="ld-card-attrs">' + attrs.map(f => `
-      <div class="ld-card-attr-row"><span class="field-label">${f.label}</span><span class="field-value">${f.value}</span></div>`).join('') + '</div>';
+      <div class="ld-card-attr-row"><span class="field-label">${f.label}</span><span class="field-value">${f.type === 'wotype' && f.color ? `<span class="wotype-dot" style="background:${f.color}"></span>` : ''}${f.value}</span></div>`).join('') + '</div>';
   }
   return html;
 }
 
 /* ══ DATA ════════════════════════════════════════════════ */
-// Type dropped its per-code colour (§23 supersedes §6.7's "Type and
-// Status both keep colour on this screen" — Type isn't one of the 3
-// instruments, same TYPE_META fix already applied on WO Record View/
-// WO List's own Insert Mode below). Name only now, no icon either —
-// this screen never rendered a Type icon, just the tinted text §6.7
-// used to call for.
+// Type regained its per-code colour 2026-07-28 (WO Type Colour + Icon
+// Badge, design-decisions-v3-1.md) — reads off the same curated
+// WO_TYPE_PALETTE eam-shared.js/the step rail/WO Record View's Type field
+// use, via woTypeBadgeMetaForCode(), rather than a screen-local scheme.
+// BK/CM/PM/ROUT map to the 3 system Types + the Corrective custom-code
+// example; CAL/INS/MOD keep no colour (outside that scope). Renders as a
+// small dot next to the value here (§6.7) — a full icon badge is too
+// heavy for a dense card/table row.
 const TM={
-  BK: {name:'Breakdown'},
+  BK: {name:'Breakdown',         color: woTypeBadgeMetaForCode('BK').color},
   CAL:{name:'Calibration'},
-  CM: {name:'Corrective maint'},
+  CM: {name:'Corrective maint',  color: woTypeBadgeMetaForCode('CM').color},
   INS:{name:'Inspection'},
   MOD:{name:'Modification'},
-  PM: {name:'Preventive maint'},
+  PM: {name:'Preventive maint',  color: woTypeBadgeMetaForCode('PM').color},
   // Added 2026-07-22 (punch-list item) — real WO Type for WO 20450, the
   // §11 fallback demo (no configured workflow). Matches data/wotype.js's
   // own ROUT ("Routine Maintenance") description.
-  ROUT:{name:'Routine maint'},
+  ROUT:{name:'Routine maint',    color: woTypeBadgeMetaForCode('ROUT').color},
 };
-// Description text only, no colour, no icon — priority is not one of the
-// two fields (Type, Status) that keep colour on this screen (§6.7).
+// Priority gained real colour 2026-07-28 (Primary palette pass) —
+// High/Critical now render as a small filled pill, same treatment Type's
+// dot gets on this screen; Low/Medium stay plain text. High's colour is
+// its own hue (--priority-high, a magenta/pink) rather than reusing
+// Breakdown's orange or Status's red — no two fields share a hue for two
+// different meanings (§23.3's rule, applied here too). Critical reuses
+// the app's one --red instrument, just bolder now (eam-shared.css).
 const PRI={
   '2':{label:'Low'},
   '3':{label:'Medium'},
-  '4':{label:'High'},
-  '5':{label:'Critical'},
+  '4':{label:'High', color:'var(--priority-high)'},
+  '5':{label:'Critical', color:'var(--red)'},
 };
 // Status keeps colour (it's a real §23 instrument) but now reads off the
 // same 3-tier fill vocabulary as WO Record View's header status pill
@@ -1140,15 +1147,20 @@ const STI={
 // concrete date the old relative labels map to.
 const TODAY = '07/20/2026';
 const WOS=[
-  {id:'WO-19257',desc:'Pump Cavitating; lost head',                    eq:'Pump, Centrifugal',      ec:'PUMP-C-0045',tp:'CM',pr:'4',st:'WAPPR',   loc:'PUMP-HOUSE-3',org:'FBPP',due:'07/20/2026',isP:false,pid:null},
+  // tp fixed CM->BK 2026-07-28: this is the Breakdown/BRKD demo WO
+  // (CLAUDE.md, resolveWoWorkflow's own jobType) — its List row's Type
+  // used to disagree (CM/Corrective) with its own step rail/workflow
+  // identity, invisible while Type carried no colour but a real
+  // contradiction the instant it does (WO Type Colour + Icon Badge).
+  {id:'WO-19257',desc:'Pump Cavitating; lost head',                    eq:'Pump, Centrifugal',      ec:'PUMP-C-0045',tp:'BK',pr:'4',st:'RELEASED',   loc:'PUMP-HOUSE-3',org:'FBPP',due:'07/20/2026',isP:false,pid:null},
   {id:'WO-19244',desc:'Quarterly preventive maintenance inspection',    eq:'Conveyor Drive Unit',     ec:'CONV-D-0012',tp:'PM',pr:'3',st:'RELEASED',loc:'LINE-B-WEST', org:'ORG1', due:'07/20/2026',isP:true, pid:null},
   {id:'WO-19243',desc:'Belt tension drifting out of spec',              eq:'Conveyor Belt Tensioner', ec:'CONV-T-0012',tp:'CM',pr:'3',st:'RELEASED',loc:'LINE-B-WEST', org:'ORG1', due:'07/20/2026',isP:false,pid:'WO-19244'},
-  {id:'WO-19242',desc:'Gearbox oil change and inspection',              eq:'Conveyor Drive Gearbox',  ec:'CONV-G-0012',tp:'PM',pr:'3',st:'WAPPR',   loc:'LINE-B-WEST', org:'ORG1', due:'07/21/2026',isP:false,pid:'WO-19244'},
+  {id:'WO-19242',desc:'Gearbox oil change and inspection',              eq:'Conveyor Drive Gearbox',  ec:'CONV-G-0012',tp:'PM',pr:'3',st:'RELEASED',   loc:'LINE-B-WEST', org:'ORG1', due:'07/21/2026',isP:false,pid:'WO-19244'},
   {id:'WO-19231',desc:'Annual preventive maintenance service',          eq:'Heat Exchanger',          ec:'HX-07',      tp:'PM',pr:'3',st:'RELEASED',loc:'UTIL-BLDG-2', org:'ORG1', due:'07/21/2026',isP:false,pid:null},
-  {id:'WO-19218',desc:'Panel tripping intermittently under load',       eq:'MCC Control Panel',       ec:'MCC-12',     tp:'BK',pr:'5',st:'WAPPR',   loc:'ELEC-ROOM-A', org:'ORG2', due:'07/20/2026',isP:false,pid:null},
-  {id:'WO-19205',desc:'Scheduled calibration verification',             eq:'Pressure Transmitter Bank',ec:'PIC-201',   tp:'CAL',pr:'2',st:'WMATL',  loc:'PROCESS-1A',  org:'ORG2',due:'07/24/2026',isP:false,pid:null},
+  {id:'WO-19218',desc:'Panel tripping intermittently under load',       eq:'MCC Control Panel',       ec:'MCC-12',     tp:'BK',pr:'5',st:'RELEASED',   loc:'ELEC-ROOM-A', org:'ORG2', due:'07/20/2026',isP:false,pid:null},
+  {id:'WO-19205',desc:'Scheduled calibration verification',             eq:'Pressure Transmitter Bank',ec:'PIC-201',   tp:'CAL',pr:'2',st:'RELEASED',loc:'PROCESS-1A',  org:'ORG2',due:'07/24/2026',isP:false,pid:null},
   {id:'WO-19187',desc:'Seal leaking, needs replacement',                eq:'Boiler Feed Pump',        ec:'BFP-2',      tp:'CM',pr:'4',st:'RELEASED',loc:'BOILER-ROOM', org:'FBPP',due:'07/23/2026',isP:false,pid:null},
-  {id:'WO-19173',desc:'Annual safety inspection due',                   eq:'Safety Valve',            ec:'SV-101',     tp:'INS',pr:'3',st:'WAPPR',  loc:'VESSEL-V3',   org:'ORG2',due:'07/23/2026',isP:false,pid:null},
+  {id:'WO-19173',desc:'Annual safety inspection due',                   eq:'Safety Valve',            ec:'SV-101',     tp:'INS',pr:'3',st:'RELEASED',  loc:'VESSEL-V3',   org:'ORG2',due:'07/23/2026',isP:false,pid:null},
   // WO-19831/WO-20450 added 2026-07-22 (punch-list item) — the other 2
   // demo WOs with real backing data (data/wo-19831.js, data/wo-20450.js)
   // now have real rows here too, not just 19257 — so "My Assigned WOs"
@@ -1294,7 +1306,7 @@ function woCardFields(w){
     {label:'Status',      value:st.label, type:'status', tier:st.tier},
     {label:'Description', value:w.desc},
     {label:'WO number',   value:woNum(w.id)},
-    {label:'Type',        value:tm.name},
+    {label:'Type',        value:tm.name, type:'wotype', color:tm.color},
     {label:'Due date',    value:w.due},
     {label:'Organization',value:w.org, type:'org'},
   ];
@@ -1307,8 +1319,8 @@ function woAllFields(w){
     {label:'WO number',     value:woNum(w.id)},
     {label:'Description',   value:w.desc},
     {label:'Status',        value:st.label, type:'status', tier:st.tier},
-    {label:'Type',          value:tm.name},
-    {label:'Priority',      value:pr.label},
+    {label:'Type',          value:tm.name, type:'wotype', color:tm.color},
+    {label:'Priority',      value:pr.label, type:'priority', color:pr.color},
     {label:'Due date',      value:w.due},
     {label:'Location',      value:w.loc},
     {label:'Organization',  value:w.org},
@@ -1344,6 +1356,8 @@ function tRow(w,isChild){
     :`<span class="ld-chev-ph"></span>`;
   let h=`<tr class="${isChild?'child-row':''}" onclick="openWO('${w.id}')">${fields.map((f,i)=>{
     if(f.type==='status')return`<td><span class="ld-table-pill pill-${f.tier}">${f.value}</span></td>`;
+    if(f.type==='wotype')return`<td>${f.color?`<span class="wotype-dot" style="background:${f.color}"></span>`:''}${f.value}</td>`;
+    if(f.type==='priority')return`<td>${f.color?`<span class="ld-table-pill" style="background:${f.color}">${f.value}</span>`:f.value}</td>`;
     const val=i===1?chevBtn+f.value:f.value; // chevron sits in front of Description, col index 1
     return`<td>${val}</td>`;
   }).join('')}</tr>`;

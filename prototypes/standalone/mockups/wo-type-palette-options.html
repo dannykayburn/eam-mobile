@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>WO Type — Palette Options (lightweight)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  WO TYPE — PALETTE OPTIONS, LIGHTWEIGHT (2026-07-28). Shape/badge/rail
+  treatment is locked (§23.3/§14.2) — this file changes ONLY the 4 hex
+  values behind Breakdown/PPM/Routine/Corrective, shown on the 3 real
+  surfaces at reduced scope (one icon swatch row + one step-rail pill +
+  one list dot per option) rather than rebuilding full screens. Real
+  classnames reused verbatim (.attr-badge/.attr-badge-fill, .wotype-dot,
+  .step-rail + --rail-glow-color) — only the --wo-type-* values change.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --white:#FFFFFF;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+[data-theme="dark"]{
+  --bg-page:#1A1A1F; --bg-card:#26252B; --border-strong:#4A4C55; --gray-2:#3E4047; --octave-black:#1A1A1F; --white:#FFFFFF;
+}
+[data-theme="dark"] body{color:var(--white);}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--octave-black);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:980px;width:100%;color:#fff;font-size:12px;line-height:1.6;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:12px 14px;}
+.legend code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:4px;font-family:var(--font-mono);font-size:11px;}
+.theme-row{display:flex;gap:8px;margin-bottom:16px;max-width:980px;width:100%;}
+.theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:5px 12px;cursor:pointer;}
+.wrap{max-width:980px;width:100%;display:flex;flex-wrap:wrap;gap:14px;}
+.opt-card{background:var(--bg-page);border-radius:14px;padding:14px 16px;width:300px;flex-shrink:0;}
+.opt-title{font-size:13px;font-weight:700;color:var(--octave-black);margin-bottom:2px;}
+[data-theme="dark"] .opt-title{color:var(--white);}
+.opt-desc{font-size:11px;color:var(--gray-4);line-height:1.45;margin-bottom:10px;}
+.swatch-row{display:flex;gap:8px;margin-bottom:10px;}
+.swatch{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;}
+.swatch-badge{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;}
+.swatch-badge svg{width:13px;height:13px;}
+.swatch-label{font-size:9px;color:var(--gray-4);text-align:center;}
+/* Real .step-rail shell (post-pill), verbatim */
+.step-rail{background:var(--bg-card);border-radius:20px;box-shadow:0 4px 14px var(--rail-glow-color, rgba(0,0,0,.12));padding:0 14px;}
+[data-theme="dark"] .step-rail{box-shadow:0 4px 16px var(--rail-glow-color, rgba(0,0,0,.4));}
+.step-rail-collapsed{height:44px;display:flex;align-items:center;gap:8px;}
+.step-name{flex:1;font-size:12.5px;font-weight:600;color:var(--octave-black);}
+[data-theme="dark"] .step-name{color:var(--white);}
+.step-rail-type-icon{display:flex;flex-shrink:0;}
+.step-chevron{color:var(--gray-4);flex-shrink:0;}
+/* Real .wotype-dot / list row, verbatim */
+.list-row{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--gray-4);margin-top:10px;}
+.wotype-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;display:inline-block;margin-right:0;}
+.list-row .field-value{font-weight:500;color:var(--octave-black);}
+[data-theme="dark"] .list-row .field-value{color:var(--white);}
+</style>
+</head>
+<body>
+<div class="theme-row">
+  <button class="theme-toggle" onclick="document.documentElement.removeAttribute('data-theme')">☀ Light</button>
+  <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme','dark')">🌙 Dark</button>
+</div>
+<div class="legend">
+  Shape/badge/rail treatment is locked (§14.2/§23.3) — only the 4 hex
+  values behind Breakdown/PPM/Routine/Corrective vary below. Each card:
+  the 4-Type swatch row, then Breakdown rendered on the real step-rail
+  pill (glow) and PPM rendered as the real WO List dot, so the palette is
+  judged on the actual surfaces, not swatches alone.
+</div>
+
+<div class="wrap">
+
+  <div class="opt-card">
+    <div class="opt-title">1 — Current (muted)</div>
+    <div class="opt-desc">Shipped today. Desaturated, sits quietly next to the app's disciplined palette — the safest, least "designed" option.</div>
+    <div class="swatch-row">
+      <div class="swatch"><div class="swatch-badge" style="background:#C9962E"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><span class="swatch-label">Breakdown</span></div>
+      <div class="swatch"><div class="swatch-badge" style="background:#1E9E8B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg></div><span class="swatch-label">PPM</span></div>
+      <div class="swatch"><div class="swatch-badge" style="background:#5B6B8C"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="5" y1="8" x2="19" y2="16"/><line x1="19" y1="8" x2="5" y2="16"/></svg></div><span class="swatch-label">Routine</span></div>
+      <div class="swatch"><div class="swatch-badge" style="background:#8B5FBF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="7" cy="7" r="3.4"/><line x1="9.5" y1="9.5" x2="19" y2="19"/></svg></div><span class="swatch-label">Corrective</span></div>
+    </div>
+    <div class="step-rail" style="--rail-glow-color:rgba(201,150,46,.32)">
+      <div class="step-rail-collapsed">
+        <span class="step-name">Activity Checklist</span>
+        <div class="step-rail-type-icon" style="color:#C9962E"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        <svg class="step-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="list-row"><span class="wotype-dot" style="background:#1E9E8B"></span>Type <span class="field-value">Preventive maint</span></div>
+  </div>
+
+  <div class="opt-card">
+    <div class="opt-title">2 — Vivid</div>
+    <div class="opt-desc">Same 4 hue families, saturation and lightness pushed up — more energy, still clear of green/red. Risk: starts competing with Priority Critical's red for attention.</div>
+    <div class="swatch-row">
+      <div class="swatch"><div class="swatch-badge" style="background:#E0A83B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><span class="swatch-label">Breakdown</span></div>
+      <div class="swatch"><div class="swatch-badge" style="background:#17B3A0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg></div><span class="swatch-label">PPM</span></div>
+      <div class="swatch"><div class="swatch-badge" style="background:#5C86C4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="5" y1="8" x2="19" y2="16"/><line x1="19" y1="8" x2="5" y2="16"/></svg></div><span class="swatch-label">Routine</span></div>
+      <div class="swatch"><div class="swatch-badge" style="background:#A855F7"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="7" cy="7" r="3.4"/><line x1="9.5" y1="9.5" x2="19" y2="19"/></svg></div><span class="swatch-label">Corrective</span></div>
+    </div>
+    <div class="step-rail" style="--rail-glow-color:rgba(224,168,59,.38)">
+      <div class="step-rail-collapsed">
+        <span class="step-name">Activity Checklist</span>
+        <div class="step-rail-type-icon" style="color:#E0A83B"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        <svg class="step-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="list-row"><span class="wotype-dot" style="background:#17B3A0"></span>Type <span class="field-value">Preventive maint</span></div>
+  </div>
+
+  <div class="opt-card">
+    <div class="opt-title">3 — Deep jewel</div>
+    <div class="opt-desc">Same 6-swatch family, deepened and enriched rather than brightened — reads as premium/serious rather than energetic. Glow reads richer, less "alert."</div>
+    <div class="swatch-row">
+      <div class="swatch"><div class="swatch-badge" style="background:#9C6B1F"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><span class="swatch-label">Breakdown</span></div>
+      <div class="swatch"><div class="swatch-badge" style="background:#0F6B5C"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg></div><span class="swatch-label">PPM</span></div>
+      <div class="swatch"><div class="swatch-badge" style="background:#33507A"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="5" y1="8" x2="19" y2="16"/><line x1="19" y1="8" x2="5" y2="16"/></svg></div><span class="swatch-label">Routine</span></div>
+      <div class="swatch"><div class="swatch-badge" style="background:#5B3A87"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="7" cy="7" r="3.4"/><line x1="9.5" y1="9.5" x2="19" y2="19"/></svg></div><span class="swatch-label">Corrective</span></div>
+    </div>
+    <div class="step-rail" style="--rail-glow-color:rgba(156,107,31,.34)">
+      <div class="step-rail-collapsed">
+        <span class="step-name">Activity Checklist</span>
+        <div class="step-rail-type-icon" style="color:#9C6B1F"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        <svg class="step-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="list-row"><span class="wotype-dot" style="background:#0F6B5C"></span>Type <span class="field-value">Preventive maint</span></div>
+  </div>
+
+  <div class="opt-card">
+    <div class="opt-title">4 — Warm earth</div>
+    <div class="opt-desc">Whole system shifts warm — terracotta/olive/sand/ochre instead of cool teal/slate/plum. Fits a field-maintenance/industrial mood; least likely of the 5 to feel "corporate."</div>
+    <div class="swatch-row">
+      <div class="swatch"><div class="swatch-badge" style="background:#B5652E"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><span class="swatch-label">Breakdown</span></div>
+      <div class="swatch"><div class="swatch-badge" style="background:#7A8C4E"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg></div><span class="swatch-label">PPM</span></div>
+      <div class="swatch"><div class="swatch-badge" style="background:#A68A6D"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="5" y1="8" x2="19" y2="16"/><line x1="19" y1="8" x2="5" y2="16"/></svg></div><span class="swatch-label">Routine</span></div>
+      <div class="swatch"><div class="swatch-badge" style="background:#B8862B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="7" cy="7" r="3.4"/><line x1="9.5" y1="9.5" x2="19" y2="19"/></svg></div><span class="swatch-label">Corrective</span></div>
+    </div>
+    <div class="step-rail" style="--rail-glow-color:rgba(181,101,46,.34)">
+      <div class="step-rail-collapsed">
+        <span class="step-name">Activity Checklist</span>
+        <div class="step-rail-type-icon" style="color:#B5652E"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        <svg class="step-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="list-row"><span class="wotype-dot" style="background:#7A8C4E"></span>Type <span class="field-value">Preventive maint</span></div>
+  </div>
+
+  <div class="opt-card">
+    <div class="opt-title">5 — Cool tech (single-hue family)</div>
+    <div class="opt-desc">All 4 Types are shades of blue only, differentiated by lightness/darkness, not hue — the most disciplined/minimal option. Real risk: at a glance two Types can read as "the same colour, different mood," which the other 4 options don't share.</div>
+    <div class="swatch-row">
+      <div class="swatch"><div class="swatch-badge" style="background:#1F3A5F"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><span class="swatch-label">Breakdown</span></div>
+      <div class="swatch"><div class="swatch-badge" style="background:#3E6FE0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg></div><span class="swatch-label">PPM</span></div>
+      <div class="swatch"><div class="swatch-badge" style="background:#6FA3D8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="5" y1="8" x2="19" y2="16"/><line x1="19" y1="8" x2="5" y2="16"/></svg></div><span class="swatch-label">Routine</span></div>
+      <div class="swatch"><div class="swatch-badge" style="background:#5B7FA6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="7" cy="7" r="3.4"/><line x1="9.5" y1="9.5" x2="19" y2="19"/></svg></div><span class="swatch-label">Corrective</span></div>
+    </div>
+    <div class="step-rail" style="--rail-glow-color:rgba(31,58,95,.34)">
+      <div class="step-rail-collapsed">
+        <span class="step-name">Activity Checklist</span>
+        <div class="step-rail-type-icon" style="color:#1F3A5F"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        <svg class="step-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div class="list-row"><span class="wotype-dot" style="background:#3E6FE0"></span>Type <span class="field-value">Preventive maint</span></div>
+  </div>
+
+</div>
+</body>
+</html>

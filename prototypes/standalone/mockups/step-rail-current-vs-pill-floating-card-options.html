@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Step Rail — Current vs. Pill Floating Card Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  STEP RAIL — CURRENT (SHIPPED) VS. PILL FLOATING CARD OPTIONS (2026-07-28).
+  Exploration only, nothing picked yet. Picks up two threads at once:
+
+  (1) wo-record-view-rail-3-vs-4-full-action.html's Option 3 ("card fill +
+      shadow," flush/full-bleed) is what actually shipped; its Option 4
+      ("inset floating card," 12px radius, margined) was the road not
+      taken. This file pushes that road further — an actual pill/capsule
+      shape (radius = half the collapsed row's own height, not just a
+      rounded rect), a few embellishment levels apart.
+  (2) The WO Type Colour + Icon Badge (design-decisions-v3-1.md §23.3,
+      built this session) shipped its edge-bar+icon/circle treatment onto
+      the CURRENT flush rail shape only. Option 1 below reproduces that
+      real, shipped result byte-for-byte (classnames/markup copied
+      verbatim from eam-shared.css/.js) — everything after it explores
+      what that same instrument looks like once the rail itself becomes a
+      pill, where a straight left-edge bar has nowhere sensible to sit.
+
+  Workflow case = WO 19257 (Breakdown, Amber); Free Form case = WO 20450
+  (Routine, Slate, §11 fallback) — the app's own two real states, same
+  demo identities used throughout. Free Form deliberately stays the
+  calmest state in every option (filled icon circle, never a coloured
+  ring) — same restraint §23.3 already applies on the shipped rail; only
+  the workflow case's embellishment level changes option to option.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --green:#00AA14; --red:#D91E30;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+  --wo-type-amber:#C9962E; --wo-type-teal:#1E9E8B; --wo-type-slate:#5B6B8C; --wo-type-plum:#8B5FBF;
+}
+[data-theme="dark"]{
+  --bg-page:#1A1A1F; --bg-card:#26252B; --bg-section:#302F33; --border:#3E4047; --border-strong:#4A4C55;
+  --gray-1:#2A2930; --gray-2:#3E4047; --gray-3:#6F7480; --gray-4:#B2B8C4; --octave-black:#1A1A1F;
+}
+[data-theme="dark"] body{color:var(--white);}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--octave-black);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:1000px;width:100%;color:#fff;font-size:12px;line-height:1.6;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:14px 16px;}
+.legend code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:4px;font-family:var(--font-mono);font-size:11px;}
+.theme-row{display:flex;gap:8px;margin-bottom:16px;max-width:1000px;width:100%;}
+.theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:5px 12px;cursor:pointer;}
+.spectrum{max-width:1000px;width:100%;display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.5);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin:2px 0 18px;}
+.spectrum-bar{flex:1;height:4px;border-radius:100px;background:linear-gradient(90deg,#6F7480,#B2B8C4 30%,#C9962E 65%,#C9962E 100%);}
+
+.wrap{max-width:1000px;width:100%;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;}
+.opt-card{background:var(--bg-page);border-radius:14px;padding:16px;width:460px;flex-shrink:0;}
+.opt-title{font-size:13px;font-weight:700;color:var(--octave-black);margin-bottom:2px;}
+[data-theme="dark"] .opt-title{color:var(--white);}
+.opt-risk{font-size:10.5px;font-weight:600;color:var(--gray-4);margin-bottom:10px;font-style:italic;}
+.opt-desc{font-size:11.5px;color:var(--gray-4);line-height:1.5;margin-bottom:12px;}
+.rail-block{margin-bottom:10px;background:var(--bg-section);border-radius:10px;padding:14px 0;}
+.rail-block:last-child{margin-bottom:0;}
+.rail-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-4);margin:0 14px 8px;}
+
+/* ── Real .step-rail shell, verbatim from eam-shared.css — Option 1 only ── */
+.step-rail{background:var(--bg-card);border:none;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:0 16px;}
+[data-theme="dark"] .step-rail{box-shadow:0 1px 6px rgba(0,0,0,.3);}
+.step-rail-collapsed{height:56px;display:flex;align-items:center;gap:10px;padding:4px 0;}
+.step-name{flex:1;text-align:left;font-size:15px;font-weight:600;color:var(--octave-black);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+[data-theme="dark"] .step-name{color:var(--white);}
+.step-rail-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.step-chevron{color:var(--gray-4);flex-shrink:0;}
+.step-segments{display:flex;gap:4px;padding:0 0 10px;}
+.seg{flex:1;height:7px;border-radius:100px;}
+.seg-done{background:var(--green);}
+.seg-active{background:var(--octave-black);}
+[data-theme="dark"] .seg-active{background:var(--white);}
+.seg-future{background:var(--gray-2);}
+[data-theme="dark"] .seg-future{background:var(--gray-5);}
+.seg-flat-dash{height:0;border-top:2px dashed var(--gray-3);}
+/* Real WO Type slot classes, verbatim from eam-shared.css */
+.step-rail-type-icon{display:flex;align-items:center;flex-shrink:0;}
+.step-rail-type-icon svg{display:block;}
+.step-rail-type-circle{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;}
+
+/* ── Pill floating card options 2-5 — new local shape, radius = half the
+     56px collapsed row (a real capsule, not just a rounded rect like
+     wo-record-view-rail-3-vs-4-full-action.html's Option 4) ── */
+.rail-pill{margin:0 14px;border-radius:28px;background:var(--bg-card);box-shadow:0 4px 14px rgba(0,0,0,.12);padding:0 18px;}
+[data-theme="dark"] .rail-pill{box-shadow:0 4px 16px rgba(0,0,0,.4);}
+/* Option 3 — tinted glow instead of a plain shadow, colour set inline per instance */
+.rail-pill.pill-glow{box-shadow:0 6px 18px var(--pill-glow-color, rgba(0,0,0,.12));}
+/* Option 4 — solid ring in the Type's own colour, colour set inline */
+.rail-pill.pill-ring{border:2px solid var(--pill-ring-color, transparent);}
+/* Option 5 — ring + an overlapping corner badge (most decorated) */
+.corner-badge-wrap{position:relative;}
+.corner-badge{position:absolute;top:-8px;left:10px;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25);border:2px solid var(--bg-page);}
+
+.arrow-note{font-size:10.5px;color:var(--gray-4);text-align:center;margin:2px 0 8px;}
+</style>
+</head>
+<body>
+<div class="theme-row">
+  <button class="theme-toggle" onclick="document.documentElement.removeAttribute('data-theme')">☀ Light</button>
+  <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme','dark')">🌙 Dark</button>
+</div>
+<div class="legend">
+  <b>What this compares:</b> Option 1 is the step rail exactly as shipped
+  today (flush, full-bleed, WO Type Colour + Icon Badge's edge-bar+icon /
+  circle treatment, §23.3) — reproduced byte-for-byte, not redrawn.
+  Options 2–5 push <code>wo-record-view-rail-3-vs-4-full-action.html</code>'s
+  Option 4 ("inset floating card") further into an actual pill/capsule
+  shape, at increasing embellishment levels, ending on Option 4's own ask:
+  the pill's outline itself carries the Type's curated colour.
+</div>
+<div class="spectrum">
+  <span>Shipped today</span>
+  <div class="spectrum-bar"></div>
+  <span>Most embellished pill</span>
+</div>
+
+<div class="wrap">
+
+  <!-- OPTION 1 — CURRENT / SHIPPED -->
+  <div class="opt-card">
+    <div class="opt-title">1 — Current (shipped)</div>
+    <div class="opt-risk">Reproduced exactly, not redrawn — the baseline everything else compares against</div>
+    <div class="opt-desc">Flush, full-bleed card (no margin/radius) — the "Option 3" shape from <code>wo-record-view-rail-3-vs-4-full-action.html</code>, which is what actually shipped. WO Type signal: a 3px left-edge colour bar + a plain colour-tinted icon for a real configured workflow; the same icon inside a solid filled circle (no edge bar) for the §11 Free Form fallback.</div>
+
+    <div class="rail-block" style="background:none;padding:0;">
+      <div class="rail-label">Workflow · WO 19257 (Breakdown)</div>
+      <div class="step-rail" style="border-left:3px solid var(--wo-type-amber)">
+        <div class="step-rail-collapsed">
+          <span class="step-name">Activity Checklist</span>
+          <div class="step-rail-right">
+            <span class="step-rail-type-icon" style="color:var(--wo-type-amber)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+      </div>
+    </div>
+
+    <div style="height:10px;"></div>
+
+    <div class="rail-block" style="background:none;padding:0;">
+      <div class="rail-label">Free Form · WO 20450 (Routine)</div>
+      <div class="step-rail">
+        <div class="step-rail-collapsed">
+          <span class="step-name">WO Record View</span>
+          <div class="step-rail-right">
+            <span class="step-rail-type-circle" style="background:var(--wo-type-slate)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="5" y1="8" x2="19" y2="16"/><line x1="19" y1="8" x2="5" y2="16"/></svg></span>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments"><div class="seg-flat-dash"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION 2 — PILL, NEUTRAL -->
+  <div class="opt-card">
+    <div class="opt-title">2 — Pill floating card, neutral</div>
+    <div class="opt-risk">Shape change only — isolates "does the pill itself read well" from any colour question</div>
+    <div class="opt-desc">The rail becomes a true capsule (radius = half the collapsed row's own height, not a rounded rect) with margin + a plain elevation shadow — genuinely floating over the page, not chrome flush with the screen edge. WO Type signal carries over unchanged from Option 1's icon treatment; no left-edge bar (nowhere sensible to put one on a rounded end), no colour on the pill's own shape yet.</div>
+
+    <div class="rail-block">
+      <div class="rail-label">Workflow · WO 19257 (Breakdown)</div>
+      <div class="step-rail rail-pill">
+        <div class="step-rail-collapsed">
+          <span class="step-name">Activity Checklist</span>
+          <div class="step-rail-right">
+            <span class="step-rail-type-icon" style="color:var(--wo-type-amber)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments" style="padding:0 0 12px;"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+      </div>
+    </div>
+
+    <div style="height:10px;"></div>
+
+    <div class="rail-block">
+      <div class="rail-label">Free Form · WO 20450 (Routine)</div>
+      <div class="step-rail rail-pill">
+        <div class="step-rail-collapsed">
+          <span class="step-name">WO Record View</span>
+          <div class="step-rail-right">
+            <span class="step-rail-type-circle" style="background:var(--wo-type-slate)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="5" y1="8" x2="19" y2="16"/><line x1="19" y1="8" x2="5" y2="16"/></svg></span>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments" style="padding:0 0 12px;"><div class="seg-flat-dash"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION 3 — PILL, TINTED GLOW -->
+  <div class="opt-card">
+    <div class="opt-title">3 — Pill + tinted glow shadow</div>
+    <div class="opt-risk">One step louder — colour spreads to the shadow, not a hard edge yet</div>
+    <div class="opt-desc">Same capsule as Option 2, but the elevation shadow itself tints toward the Type's curated colour instead of staying plain black/gray — a soft glow rather than a drawn line. No hard-edged colour anywhere on the shape; still reads as "elevated card," now with a hint of which Type it belongs to even before reading the icon. Free Form keeps a plain neutral shadow — no glow — same restraint as every other option.</div>
+
+    <div class="rail-block">
+      <div class="rail-label">Workflow · WO 19257 (Breakdown)</div>
+      <div class="step-rail rail-pill pill-glow" style="--pill-glow-color:rgba(201,150,46,.35)">
+        <div class="step-rail-collapsed">
+          <span class="step-name">Activity Checklist</span>
+          <div class="step-rail-right">
+            <span class="step-rail-type-icon" style="color:var(--wo-type-amber)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments" style="padding:0 0 12px;"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+      </div>
+    </div>
+
+    <div style="height:10px;"></div>
+
+    <div class="rail-block">
+      <div class="rail-label">Free Form · WO 20450 (Routine)</div>
+      <div class="step-rail rail-pill">
+        <div class="step-rail-collapsed">
+          <span class="step-name">WO Record View</span>
+          <div class="step-rail-right">
+            <span class="step-rail-type-circle" style="background:var(--wo-type-slate)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="5" y1="8" x2="19" y2="16"/><line x1="19" y1="8" x2="5" y2="16"/></svg></span>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments" style="padding:0 0 12px;"><div class="seg-flat-dash"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION 4 — PILL, TYPE-COLOURED OUTLINE (the requested one) -->
+  <div class="opt-card">
+    <div class="opt-title">4 — Pill outline = Type colour</div>
+    <div class="opt-risk">Directly requested — the pill's own outline carries the Type's curated colour</div>
+    <div class="opt-desc">A 2px solid ring in the Type's curated colour replaces the plain shadow-only edge — the capsule itself visibly "belongs" to a Type before a technician even reads the icon inside. Icon stays the same plain colour-tinted glyph as every other option (not re-tinted white/inverted — the ring is the new signal, the icon didn't need to also change). Free Form gets no ring (plain neutral pill, same shadow as Option 2) — the filled icon circle alone is enough there, matching every other option's restraint on that state.</div>
+
+    <div class="rail-block">
+      <div class="rail-label">Workflow · WO 19257 (Breakdown)</div>
+      <div class="step-rail rail-pill pill-ring" style="--pill-ring-color:var(--wo-type-amber)">
+        <div class="step-rail-collapsed">
+          <span class="step-name">Activity Checklist</span>
+          <div class="step-rail-right">
+            <span class="step-rail-type-icon" style="color:var(--wo-type-amber)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments" style="padding:0 0 12px;"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+      </div>
+    </div>
+
+    <div style="height:10px;"></div>
+
+    <div class="rail-block">
+      <div class="rail-label">Workflow · WO 19831 (PM — Teal, for contrast)</div>
+      <div class="step-rail rail-pill pill-ring" style="--pill-ring-color:var(--wo-type-teal)">
+        <div class="step-rail-collapsed">
+          <span class="step-name">Activity Checklist</span>
+          <div class="step-rail-right">
+            <span class="step-rail-type-icon" style="color:var(--wo-type-teal)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9,16 11,18 15,14"/></svg></span>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments" style="padding:0 0 12px;"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+      </div>
+    </div>
+
+    <div style="height:10px;"></div>
+
+    <div class="rail-block">
+      <div class="rail-label">Free Form · WO 20450 (Routine — no ring)</div>
+      <div class="step-rail rail-pill">
+        <div class="step-rail-collapsed">
+          <span class="step-name">WO Record View</span>
+          <div class="step-rail-right">
+            <span class="step-rail-type-circle" style="background:var(--wo-type-slate)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="5" y1="8" x2="19" y2="16"/><line x1="19" y1="8" x2="5" y2="16"/></svg></span>
+            <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <div class="step-segments" style="padding:0 0 12px;"><div class="seg-flat-dash"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION 5 — PILL, RING + OVERLAPPING CORNER BADGE (most embellished) -->
+  <div class="opt-card" style="width:100%">
+    <div class="opt-title">5 — Ring + overlapping corner badge</div>
+    <div class="opt-risk">Most decorated — shown for contrast, not a recommendation as-is</div>
+    <div class="opt-desc">Option 4's coloured ring, plus the Type icon moves out of the collapsed row entirely into its own small solid-fill circle straddling the pill's top-left edge — a "badge on a card" treatment, borrowed from notification-count badges elsewhere in the app but built solid/coloured instead of a plain count. Reads the most "designed," at the cost of being the loudest thing on the screen and adding a second focal point competing with the step name. Free Form keeps the same restraint as every other option — plain pill, filled icon circle in its ordinary spot, no corner badge (a corner badge with no ring anywhere else on the rail would read as a mistake, not a deliberate calm state).</div>
+
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+      <div style="flex:1;min-width:220px;">
+        <div class="rail-label">Workflow · WO 19257 (Breakdown)</div>
+        <div class="corner-badge-wrap">
+          <div class="step-rail rail-pill pill-ring" style="--pill-ring-color:var(--wo-type-amber);padding-left:26px;">
+            <div class="step-rail-collapsed">
+              <span class="step-name">Activity Checklist</span>
+              <div class="step-rail-right">
+                <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="step-segments" style="padding:0 0 12px;"><div class="seg seg-done"></div><div class="seg seg-active"></div><div class="seg seg-future"></div><div class="seg seg-future"></div><div class="seg seg-future"></div></div>
+          </div>
+          <div class="corner-badge" style="background:var(--wo-type-amber)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:220px;">
+        <div class="rail-label">Free Form · WO 20450 (Routine — no ring, no corner badge)</div>
+        <div class="step-rail rail-pill">
+          <div class="step-rail-collapsed">
+            <span class="step-name">WO Record View</span>
+            <div class="step-rail-right">
+              <span class="step-rail-type-circle" style="background:var(--wo-type-slate)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="12" y1="4" x2="12" y2="20"/><line x1="5" y1="8" x2="19" y2="16"/><line x1="19" y1="8" x2="5" y2="16"/></svg></span>
+              <svg class="step-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+          <div class="step-segments" style="padding:0 0 12px;"><div class="seg-flat-dash"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

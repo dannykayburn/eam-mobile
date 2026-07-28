@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Status / Type / Priority — Overall Palette Approaches</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  STATUS / TYPE / PRIORITY — OVERALL PALETTE APPROACHES (2026-07-28).
+  Not a hex-swap exercise — this asks what ROLE each of the app's 3
+  colorable fields should play relative to each other, given the app is
+  workflow-driven (Type determines steps/gating; Status is comparatively
+  binary). Today's allocation: Status = loudest (big header pill),
+  Type = medium (badge/dot/rail glow, built this session), Priority =
+  quietest (monochrome + one red exception). 4 approaches, each a
+  different answer to "how should the colour budget split," shown on the
+  2 real surfaces where all 3 fields actually sit near each other: the
+  Record View header, and a WO List row.
+
+  Cross-cutting observation, true regardless of which approach is picked:
+  Status's "blocked/down" tier and Priority's "Critical" both use the
+  exact same --red today — two different meanings sharing one hue by
+  accident, not by design. Approach 4 resolves it directly; the others
+  don't touch it (flagged per-option below).
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --white:#FFFFFF;
+  --green:#00AA14; --red:#E24B4A;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-nav:#1A1A1F; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+  --amber:#C9962E; --teal:#1E9E8B; --slate:#5B6B8C; --plum:#8B5FBF; --rose:#C25B7C; --blue:#3E6FE0;
+}
+[data-theme="dark"]{
+  --bg-page:#1A1A1F; --bg-card:#26252B; --border:#3E4047; --border-strong:#4A4C55; --gray-2:#3E4047; --octave-black:#1A1A1F;
+}
+[data-theme="dark"] body{color:var(--white);}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:var(--octave-black);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px;}
+.legend{max-width:1020px;width:100%;color:#fff;font-size:12px;line-height:1.6;margin-bottom:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:14px 16px;}
+.legend b{color:#fff;}
+.theme-row{display:flex;gap:8px;margin-bottom:16px;max-width:1020px;width:100%;}
+.theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:100px;padding:5px 12px;cursor:pointer;}
+.wrap{max-width:1020px;width:100%;display:flex;flex-wrap:wrap;gap:16px;}
+.opt-card{background:var(--bg-page);border-radius:14px;padding:16px;width:490px;flex-shrink:0;}
+.opt-title{font-size:13.5px;font-weight:700;color:var(--octave-black);margin-bottom:2px;}
+[data-theme="dark"] .opt-title{color:var(--white);}
+.opt-tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-4);margin-bottom:8px;}
+.opt-desc{font-size:11.5px;color:var(--gray-4);line-height:1.55;margin-bottom:12px;}
+.opt-risk{font-size:10.5px;color:var(--gray-4);font-style:italic;line-height:1.5;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+
+.mini-header{background:var(--bg-nav);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+.mh-row1{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.mh-num{font-family:var(--font-mono);font-size:16px;font-weight:700;color:#fff;}
+.mh-desc{font-size:11px;color:rgba(255,255,255,.6);}
+.mh-row2{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.mh-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;font-size:12.5px;font-weight:700;color:#fff;}
+.mh-pill.big{padding:9px 14px;font-size:13.5px;}
+.mh-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:100px;font-size:10.5px;font-weight:600;border:1.5px solid rgba(255,255,255,.35);color:rgba(255,255,255,.85);}
+.mh-badge{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;}
+.mh-badge svg{width:11px;height:11px;}
+.mh-wash{position:absolute;inset:0;opacity:.14;border-radius:10px;pointer-events:none;}
+
+.list-row-demo{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:11.5px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.lr-item{display:flex;align-items:center;gap:5px;color:var(--gray-4);}
+.lr-item .v{color:var(--octave-black);font-weight:600;}
+[data-theme="dark"] .lr-item .v{color:var(--white);}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.lr-pill{padding:2px 8px;border-radius:100px;font-size:10.5px;font-weight:700;color:#fff;}
+.lr-outline{padding:2px 8px;border-radius:100px;font-size:10.5px;font-weight:600;border:1.5px solid var(--border-strong);color:var(--gray-4);}
+</style>
+</head>
+<body>
+<div class="theme-row">
+  <button class="theme-toggle" onclick="document.documentElement.removeAttribute('data-theme')">☀ Light</button>
+  <button class="theme-toggle" onclick="document.documentElement.setAttribute('data-theme','dark')">🌙 Dark</button>
+</div>
+<div class="legend">
+  <b>The actual question:</b> not "what hex," but how the colour budget
+  splits across the 3 fields that can ever carry colour — Status, Type,
+  Priority. Today Status is loudest (header pill), Type is medium
+  (built this session), Priority is quietest. Each option below is a
+  different, complete answer — shown on the header (WO 19257, top) and a
+  WO List row (bottom) so the hierarchy is visible in context, not just
+  as swatches.
+</div>
+
+<div class="wrap">
+
+  <!-- APPROACH 1 -->
+  <div class="opt-card">
+    <div class="opt-tag">Approach 1</div>
+    <div class="opt-title">Hierarchy swap — Type leads</div>
+    <div class="opt-desc">Directly tests your premise. Type takes the header's loudest slot — a big solid-fill pill, same shape/size Status uses today. Status demotes to a small outline chip next to the org pill — still visible, still colour-coded, just no longer the first thing your eye hits. Priority unchanged.</div>
+
+    <div class="mini-header">
+      <div class="mh-row1">
+        <div><div class="mh-num">19257</div><div class="mh-desc">Pump Cavitating; lost head</div></div>
+      </div>
+      <div class="mh-row2">
+        <span class="mh-pill big" style="background:var(--amber)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Breakdown</span>
+        <span class="mh-chip">Released</span>
+      </div>
+    </div>
+
+    <div class="list-row-demo">
+      <span class="lr-item"><span class="lr-pill" style="background:var(--amber)">Breakdown</span></span>
+      <span class="lr-item"><span class="dot" style="background:var(--green)"></span>Status <span class="v">Released</span></span>
+      <span class="lr-item">Priority <span class="v">High</span></span>
+    </div>
+    <div class="opt-risk">Risk: Status still needs to read instantly when something's actually blocked (red) — a small outline chip has to work just as hard in that one moment as the old pill did the rest of the time. Doesn't touch the Status-red/Critical-red overlap.</div>
+  </div>
+
+  <!-- APPROACH 2 -->
+  <div class="opt-card">
+    <div class="opt-tag">Approach 2</div>
+    <div class="opt-title">Three grammars, same positions</div>
+    <div class="opt-desc">Leaves today's visual hierarchy untouched (Status keeps the big pill, Type keeps its badge) — the change is that each field now uses a genuinely different <i>kind</i> of colour logic, so your eye learns to read the grammar, not just the hue. Status = semantic (green/outline/red = state). Type = categorical (one arbitrary hue per Type = identity). Priority = sequential — new: a real intensity ramp within one hue instead of flat text, Low→Critical getting darker/more filled.</div>
+
+    <div class="mini-header">
+      <div class="mh-row1">
+        <div><div class="mh-num">19257</div><div class="mh-desc">Pump Cavitating; lost head</div></div>
+      </div>
+      <div class="mh-row2">
+        <span class="mh-pill big" style="background:var(--green)">Released</span>
+        <span class="mh-badge" style="background:var(--amber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+      </div>
+    </div>
+
+    <div class="list-row-demo">
+      <span class="lr-item"><span class="dot" style="background:var(--green)"></span>Status <span class="v">Released</span></span>
+      <span class="lr-item"><span class="dot" style="background:var(--amber)"></span>Type <span class="v">Breakdown</span></span>
+      <span class="lr-item">Priority <span class="lr-pill" style="background:#B5652E">High</span></span>
+    </div>
+    <div class="opt-risk">Risk: a 3rd colour grammar (sequential) is a real new rule to learn and maintain, not free. Doesn't touch the Status-red/Critical-red overlap — Priority's ramp still ends on the same --red Status uses.</div>
+  </div>
+
+  <!-- APPROACH 3 -->
+  <div class="opt-card">
+    <div class="opt-tag">Approach 3</div>
+    <div class="opt-title">Type as ambient theme</div>
+    <div class="opt-desc">Type stops being just a badge and becomes the screen's own quiet background colour — a soft wash behind the header, present the instant you land on the WO, before you've read a single field. Status and Priority stay exactly as focused, individual signals on top of it (unchanged pill/badge shapes) — this approach adds a layer, it doesn't reassign anyone's existing role.</div>
+
+    <div class="mini-header" style="position:relative;overflow:hidden;">
+      <div class="mh-wash" style="background:var(--amber)"></div>
+      <div class="mh-row1" style="position:relative;">
+        <div><div class="mh-num">19257</div><div class="mh-desc">Pump Cavitating; lost head</div></div>
+      </div>
+      <div class="mh-row2" style="position:relative;">
+        <span class="mh-pill big" style="background:var(--green)">Released</span>
+        <span class="mh-badge" style="background:var(--amber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+      </div>
+    </div>
+
+    <div class="list-row-demo" style="position:relative;overflow:hidden;">
+      <span class="mh-wash" style="background:var(--amber);opacity:.08;"></span>
+      <span class="lr-item" style="position:relative;"><span class="dot" style="background:var(--green)"></span>Status <span class="v">Released</span></span>
+      <span class="lr-item" style="position:relative;"><span class="dot" style="background:var(--amber)"></span>Type <span class="v">Breakdown</span></span>
+      <span class="lr-item" style="position:relative;">Priority <span class="v">High</span></span>
+    </div>
+    <div class="opt-risk">Risk: closest to reopening §23's "busy palette" complaint that started this whole discipline — a coloured wash behind every WO risks feeling like the old purple-everywhere era again, just in a new hue. Doesn't touch the Status-red/Critical-red overlap.</div>
+  </div>
+
+  <!-- APPROACH 4 -->
+  <div class="opt-card">
+    <div class="opt-tag">Approach 4 — resolves the red overlap</div>
+    <div class="opt-title">One shared wheel, no collisions</div>
+    <div class="opt-desc">Status keeps its current shape and prominence (still the big pill) — this approach isn't about hierarchy, it's about correctness. Today Status-blocked and Priority-Critical are both the literal same --red for two different meanings. Here, --red is Status's alone ("this record is stuck," an operational fact); Priority Critical moves to Rose — borrowed from Type's own curated wheel, since Priority's urgency is closer to Type's "identity/severity" story than to Status's "state" story. Type and Priority now visibly share one wheel; Status is deliberately the odd one out, because it's the one field whose colour is genuinely a different kind of fact.</div>
+
+    <div class="mini-header">
+      <div class="mh-row1">
+        <div><div class="mh-num">19257</div><div class="mh-desc">Pump Cavitating; lost head</div></div>
+      </div>
+      <div class="mh-row2">
+        <span class="mh-pill big" style="background:var(--green)">Released</span>
+        <span class="mh-badge" style="background:var(--amber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+        <span class="mh-chip" style="border-color:var(--rose);color:var(--rose)">Critical</span>
+      </div>
+    </div>
+
+    <div class="list-row-demo">
+      <span class="lr-item"><span class="dot" style="background:var(--green)"></span>Status <span class="v">Released</span></span>
+      <span class="lr-item"><span class="dot" style="background:var(--amber)"></span>Type <span class="v">Breakdown</span></span>
+      <span class="lr-item">Priority <span class="lr-pill" style="background:var(--rose)">Critical</span></span>
+    </div>
+    <div class="opt-risk">Risk: Rose is currently reserved (unassigned) in the curated wheel specifically for the next admin-added custom Type (§23.3) — using it for Priority Critical means picking one purpose for it now, not keeping it open for both.</div>
+  </div>
+
+</div>
+</body>
+</html>

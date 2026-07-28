@@ -595,10 +595,10 @@ Insert and Update are nearly identical screens.
 | **All Record View sections collapsed except the first** | Asset Details (or the equivalent lead section for any record type) opens by default; every other field-group section — including Comments and Documents — starts collapsed. |
 | **Header rev. 2 — status-forefront, scroll-collapsing** | Status is the single field a technician updates most often, so it's the focal, directly-editable control at rest: a large solid-colour button (not a subtle inline badge), code+description shown small above it. Scrolling the active tab's content collapses the status button away, leaving the code+description pinned under the nav bar. Location was dropped from the header entirely. Standard on every Record View. See §15.4 for the WO-specific Free Form rule governing whether this is editable or protected on WO Record View / WO Closing. Description renders at 15px, full row width (no leading icon — see §5.3). |
 | **Identifier + description are header-only — never duplicated in the record body** | The header's own record number and description are both shown and directly editable there, so the equivalent "Asset ID"/"Description" rows that might otherwise sit at the top of the first body section (e.g. Equipment's Asset Details) are omitted. One place to read it, one place to edit it. |
-| **Header description is editable — fundamental, module-agnostic behavior** | Editable using the same inline-edit pattern as any other ≤255-char text field (tap in place, no popup, no Clear since description is required). Only tappable while the header is **expanded** (status button visible) — while collapsed, tapping the description does nothing. Applies to every standard record view. |
+| **Header description is editable — fundamental, module-agnostic behavior** | **Always required** (direct instruction, 2026-07-28) — every header description is required, no per-screen opt-out. Edited via the shared long-text editor's `.compact` variant (`openDescEditor()`, `eam-shared.js`) — a modal popup, not inline-in-place — sized for a 1-2 line field rather than the default editor's full 88vh (built for Notes/Comments). No Clear, since description is required (`isRequiredField()`/`shouldHideClear()`); Save itself is also blocked while the textarea is empty (§3.4's new required-and-empty gate). Only tappable while the header is **expanded** (status button visible) — while collapsed, tapping the description does nothing. Applies to every standard record view. Superseded the original inline-edit pattern (tap in place, auto-growing textarea) — see §21's named "Header Description — Inline Edit" reference if that needs reverting. |
 | **Tapping the nav bar OR the collapsed identity header scrolls the form to top — fundamental, module-agnostic behavior** | Tapping anywhere in the nav bar (back button excluded) scrolls the record's content back to the top, which also re-expands the header (status button reappears) since expand/collapse is scroll-driven. The identity header block itself (`.rec-header`) does the same scroll-to-top while **collapsed** (it has no action of its own in that state); while **expanded**, its children (description edit, status button) keep their own specific actions instead. Applies to every standard record view. |
 | **Land the cursor on the first tap, always — fundamental, module-agnostic behavior** | Tapping any field that opens a text-entry surface (the shared Currency/Number edit sheet, the shared long-text editor, an inline text field) must land the cursor/keyboard inside it on that same tap — never a second tap just to start typing. `openEdit()`/`openTextEditor()` (`eam-shared.js`) delay focus by 320ms to let the sheet's slide-in transition finish first. **Deliberately not extended to the LOV picker's search bar** (`openLov()`) — that sheet's primary content is a scrollable option list; auto-raising the keyboard before the technician has seen the options would cover most of a phone screen. |
-| **Required-field navigation validation — not yet built** | When the user tries to navigate away from a record with a required field still unpopulated, don't just block silently — scroll to that field and make it visually obvious it's blocking navigation (flash/highlight the required left-bar, focus the row). The required-field visual marker exists; the navigate-away catch does not. |
+| **Required-field navigation validation — not yet built** | When the user tries to navigate away from a record with a required field still unpopulated, don't just block silently — scroll to that field and make it visually obvious it's blocking navigation (focus the row, briefly highlight its background). Was originally scoped around flashing the required left-bar; that static marker was removed 2026-07-28 (§21, §23), so this still-unbuilt behavior needs a different visual once it's actually built — not designed yet. |
 | **Required Entry — warning, not a hard block** | Default enforcement for a required field on a Standard Record View: an amber warning bar + override, not a hard block on saving/navigating. Distinct from the WO Workflow's own step-progression gate (§14.7), which *does* hard-lock advancing until required items are answered — a required field always warns at the field level; a workflow step can additionally gate progression on top of that. |
 | **LOV value clearing** | See the "'Clear' action on every field-edit sheet" row in §3.4. |
 | **Master field-type reference** | `screen-layout-field-behavior-prototype-v1.html` is the canonical §5.2 field-type reference (see the "Grid vs. List field-type consolidation" row below). `sample-screen-standard-model-prototype.html` is retired — see §21. |
@@ -827,25 +827,23 @@ layout. See §21 for the retired bespoke version.
 
 ## 6.7 WO colour language
 
-Superseded 2026-07-22 — see §21 for the old table. §23 is now the
-governing rule: colour is reserved for exactly 3 instruments, and Type
-isn't one of them, so it lost its colour entirely here too (it had
-already lost it on WO Record View and this screen's own Insert Mode —
-this section was the stale holdout). Status is a real instrument, so it
-keeps colour, but now reads off the same 3-tier fill vocabulary as the
-header status pill (§4.4.1/`STATUS_CLASS_MAP`) instead of its own 4-way
-scheme:
+Status reads off the same 3-tier fill vocabulary as the header status pill
+(§4.4.1/`STATUS_CLASS_MAP`). Type carries colour via the WO Type Colour +
+Icon Badge (§23), on this screen as a small dot ahead of its value — a
+full icon badge is too heavy for a dense card/table row (see §23 for the
+badge itself, and §14.2 for the step rail's own version of this signal):
 
 | Dimension | Mapping |
 | --- | --- |
-| **Type — any value** | No colour — plain text, name only (matches TYPE_META everywhere else) |
+| **Type — any value** | Small solid dot in the Type's curated colour (§23), ahead of the plain-text value; no icon at this size |
 | **Priority** | No colour, any level — plain description text ("Low"/"Medium"/"High"/"Critical") |
 | **Status — Released, Completed** | Green fill pill, white text (`.pill-green` — "operational/completed" tier) |
 | **Status — Waiting approval, Waiting materials** | Outlined pill, ink text (`.pill-outline` — "standby/waiting" tier; this screen's own two "blocked on something" statuses, not in the canonical 4, both map here) |
 | **Status — (any future "down"/failed status)** | Red fill pill, white text (`.pill-red` — not populated by this screen's current demo data, supported for when one exists) |
 
-Icons were already retired before this pass (§3.4 "No icons inside any
-pill or field") and stay retired.
+Icons stay retired everywhere else (§3.4 "No icons inside any pill or
+field") — Type's dot is colour only, no icon, so it doesn't reopen that
+rule.
 
 ## 6.8 Due date treatment
 
@@ -1939,12 +1937,27 @@ one consumer so far.
 - Tap or pull to expand full step map.
 - **No step-count pill ("2 of 5")** — the segment row and expanded step
   map already communicate progress; a numeric counter was redundant.
-- **Surface: `var(--bg-card)` fill + soft elevation shadow** (`0 1px 3px
-  rgba(0,0,0,.08)` light / `0 1px 6px rgba(0,0,0,.3)` dark), full-bleed,
-  no rounding or margin — reads as a raised control sitting above the
-  content, not a data card (this app's rounded-corner-with-margin
-  language is reserved for content — dataspy bar, filter chips, record
-  cards — not persistent nav chrome). No persistent colour wash and no
+- **Surface: `var(--bg-card)` fill, floating pill/capsule** (added
+  2026-07-28, picked from `step-rail-current-vs-pill-floating-card-
+  options.html`'s Option 3 — supersedes the original flush full-bleed
+  card; that style is preserved verbatim, by name, for an easy revert —
+  see §21's **"Step/Tab Rail Shell — Flush Full-Bleed Card"** entry).
+  `border-radius:28px` (half the collapsed row's own 56px height — a
+  true capsule, not just a rounded rect), floated off the screen edge
+  with `margin:10px 12px` (even top/bottom — 2026-07-28 follow-up: a
+  bottom-only gap of 0 was invisible while collapsed at the top of the
+  screen, but showed as a real gap once expanded or once scrolled
+  content reached the pill's own bottom edge). **Design rationale:** this
+  deliberately puts
+  the rail's shape in line with the pill selector at the top of Insert
+  Mode's own form (§9.4's entity pill) — both are now "a pill near the
+  top of a form," not two unrelated shapes that happen to share a
+  screen. Shadow is a soft elevation glow (`0 4px 14px` at low opacity,
+  `--rail-glow-color`, defaulting to a neutral black/gray) that, on the
+  step rail specifically, tints toward the current WO Type's own curated
+  colour whenever a real configured workflow is showing (§23.3) — the
+  Free Form fallback and Equipment RV's tab rail (no WO Type concept)
+  both keep the plain neutral default. No persistent colour wash and no
   `.tab-rail-icon` leading glyph (redundant next to the tab's own name).
   Hover deepens the shadow slightly. Shared `.tab-rail, .step-rail`
   compound rule in `eam-shared.css` — one shell for both components.
@@ -2262,11 +2275,12 @@ stack order). No Type line — it added no identifying value in a grid
 cell. Class/Category aren't shown on this screen — still visible via the
 Equipment Lookup sheet's Search results and Structure tree.
 
-**Equipment is always required** — the row carries `.attr-item.
-required`'s red left-bar unconditionally, like any other business-
-required grid field, not just when unset. Empty state renders "Tap to
-select equipment" as a plain muted `.attr-text` next to the empty badge
-box.
+**Equipment is always required** — the row carries `.attr-item.required`
+unconditionally, like any other business-required grid field, not just
+when unset (the class still gates Clear-visibility/the empty-save check;
+its own red left-bar was removed app-wide 2026-07-28, §23). Empty state
+renders "Tap to select equipment" as a plain muted `.attr-text` next to
+the empty badge box.
 
 **Record View and Insert Mode's Equipment fields are visually identical**
 — both render through the shared `equipSummaryCardHTML()`
@@ -2905,7 +2919,7 @@ Note: the WO Details section was removed from this screen — the tech already k
 - Code + description both shown, in the cell and in the LOV sheet rows (§3.4's always-code+description default). Code convention for these four lists is `<letter>-0xx` — `P-001`, `F-001`, `C-001`, `A-001` — a placeholder scheme standing in for the eventual admin-configured code lists.
 - LOV sheet includes a search row (filters on code + description), reusing the shared `.lov-search-row`/`.lov-search-input` CSS — but the sheet itself (`#codeLovSheet`) and its `openCodeLov`/`selectCodeLov`/`clearCodeLov`/`filterCodeLovOptions` functions stay local and distinctly named, since this is a 4-key cascading-clear shape the shared single-key `openLov()` has no equivalent for (and reusing the shared function names would shadow them once this file loads `eam-shared.js`).
 - Sequential unlock — each cell dims until the previous is set: Problem may be pre-filled; Failure unlocks on Problem, Cause on Failure, Action on Cause
-- **Required marker on unlock:** the moment a cell unlocks it gets the standard red required-bar (`.code-cell.required`, same rule as `.form-field.required`) — never shows while protected/locked, appears unconditionally once unlocked (regardless of fill state). Problem has it from load since it's never locked.
+- **Required marker on unlock:** the moment a cell unlocks it gets `.code-cell.required` (same rule as `.form-field.required`) — never applied while protected/locked, applied unconditionally once unlocked (regardless of fill state). Problem has it from load since it's never locked. The class's own red left-bar was removed app-wide 2026-07-28 (§23) — this rule now only governs Clear-visibility/the empty-save check, not a visual.
 - Lock indicator: small circular lock icon in cell footer when locked; swaps to chevron when unlocked
 - Each tap opens an LOV sheet
 - Cell label matches `.field-label` exactly — Inter, 13px, no bold, no letter-spacing, sentence case.
@@ -3034,11 +3048,16 @@ its original section with a note attached.
 | **Dataspy bar — live record count** (§6.3). | §8.3 — dropped entirely; one less number to keep accurate across sync tiers. |
 | **"WO Workflow Setup" — a bespoke 3-screen base-EAM admin entity**, with its own Steps tab and Screen Designer tab, invented from scratch alongside real EAM admin surfaces. | §11–§13 — no new admin screen; Screen Designer (§10) itself gains a WO Type selector. |
 | **Intermediate proposal: route each WO Type to its own distinct `FUN_CODE`**, mirroring this customer's real `CCJOBS`/`TRJOBS`/`ZJ1000`/`WSJODC` precedent. Technically sound and grounded in real data, but rejected. | §11–§13 — fragments the WO List dataspy mechanism (§6.3/§8.3) across multiple functions' dataspy sets for no benefit. Final answer stays on one function, `WSJOBS`, always — the WO-Type dimension comes from a new `PLO_WOTYPE` column plus the new WO Workflow Steps table (§12). |
-| **WO colour language — Type tinted, Status 4-way hex** (§6.7) — Type was a 6-way hex-per-code text tint; Status was a 4-way hex-per-code solid pill. | §6.7/§23 — Type loses colour entirely (not one of the 3 instruments); Status converges onto the app-wide 3-tier fill vocabulary (green/outlined/red). |
+| **WO colour language — Type tinted, Status 4-way hex** (§6.7) — Type was a 6-way hex-per-code text tint; Status was a 4-way hex-per-code solid pill. | §6.7/§23 (2026-07-22) — Type loses colour entirely (not one of the 3 instruments); Status converges onto the app-wide 3-tier fill vocabulary (green/outlined/red). |
+| **Type has no colour anywhere** (§6.7/§23, 2026-07-22) — the row directly above. Scoped to the rebuild exercise then underway, not meant as a permanent rule. | §23.3 "WO Type Colour + Icon Badge" (2026-07-28) — Type regains colour via a curated 5th instrument, reused identically across the Type field, WO List row, and step rail. |
 | **Comments & Documents reachable via an ellipsis-menu entry** (§14.8) — each menu row showed a trailing count; kept out of the step map to avoid implying sequence membership. | §14.8/§23 — a "Reference" group inside the step rail's own expanded map, pinned after the last numbered step, using a plain icon (not a numbered badge) so it doesn't imply sequence. |
 | **Equipment on-record display — standalone bordered card** (§15.5) — 40px class icon + Description/Code/Type + chevron, one tap target opening the Equipment Lookup sheet. | §15.5 — Equipment is now an ordinary full-width/required `.attr-item` inside the same grid as Type/Priority, 28px badge icon, Type line dropped, description-over-code stack. |
 | **Step rail colour keyed to Free Form/Not Free Form** — purple wash by default, Octave Yellow for Not Free Form workflows. | §3.2.2/§15.4 — removed outright; the rail now looks identical regardless of Free Form state. This is a real gap (no visual signal at all today), not a locked replacement — see §3.2.2's flagged-to-revisit note. |
 | **Tab rail / step rail background — purple-tinted wash** (collapsed bar wash/border/hover; a lighter wash on the expanded list's active row; a purple 3-sided frame around the expanded list matching the collapsed bar's own inset). | §14.2 — plain `var(--bg-card)` fill + elevation shadow, no colour wash at all (§23 retired purple as a UI-state accent). |
+| **"Step/Tab Rail Shell — Flush Full-Bleed Card"** (named for an easy revert, 2026-07-28) — the shape §14.2 described before the pill: `.tab-rail, .step-rail{background:var(--bg-card);border:none;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:0 16px;flex-shrink:0;cursor:pointer;transition:box-shadow .15s;}` (dark: `box-shadow:0 1px 6px rgba(0,0,0,.3);`), hover `box-shadow:0 2px 6px rgba(0,0,0,.14)` (dark `0 2px 10px rgba(0,0,0,.4)`) — full-bleed, no rounding, no margin, no WO Type glow (the Type instrument instead drew a 3px `border-left` edge bar via JS, `renderStepRailTypeSlot()`). To revert: paste this block back over the pill rule in `eam-shared.css` and drop the `--rail-glow-color` var usage. | §14.2 "Surface: floating pill/capsule" (2026-07-28) — `border-radius:28px`, `margin:10px 12px`, shadow tints toward the WO Type's curated colour on the step rail (§23.3). Picked to put the rail's shape in line with Insert Mode's own pill selector at the top of the form. |
+| **WO Type colour — Vivid** (§23.3, 2026-07-28 morning) — `wo-type-palette-options.html` Option 2: Breakdown `#E0A83B`, PPM `#17B3A0`, Routine `#5C86C4`, Corrective `#A855F7`, held in hue-named vars (`--wo-type-amber/teal/slate/plum`). | §23.3 "Primary" (2026-07-28, same day) — bolder still, vars renamed by family (`--wo-type-breakdown/-ppm/-routine/-corrective`). |
+| **"Required Field Marker"** (named for an easy revert, 2026-07-28) — a red left-bar on every required field (`.form-field.required::before`/`.attr-item.required::before`, `background:var(--red)`, same 3px/rounded shape both rules shared) plus a red outline-square count badge on any container holding one (`.required-count-badge`, `updateRequiredBadges()` in `eam-shared.js` used to create/insert it, not just remove it). To revert: restore both `::before` rules with that background, and restore `updateRequiredBadges()`'s create-badge branch (see its own comment in `eam-shared.js` for the exact prior body). | §23/§3.4 (2026-07-28) — removed outright: every required field's own edit popup already blocks Clear (`shouldHideClear()`/`isRequiredField()`), so the marker warned about a state that can't happen. The `.required` class itself is untouched, still gates Clear-visibility and the new empty-Save check (§3.4). |
+| **"Header Description — Inline Edit"** (named for an easy revert, 2026-07-28) — tap `#recDesc` in place, swap to an auto-growing `.rec-desc-edit` textarea (`onDescTap()`/`onDescBlur()`/`autoGrow()`), blur saves. No popup, no Clear (description was implicitly required but never enforced). To revert: restore `.rec-desc-edit`/`.rec-desc.hidden-while-editing` in `eam-shared.css`, restore `onDescTap()`/`onDescBlur()` in `eam-shared.js`, and point each header's `.rec-desc` `onclick` back at `onDescTap(event)`. | §5.3/§3.4 "Header description is editable" (2026-07-28) — `openDescEditor()` opens the shared long-text editor's `.compact` variant instead; description is now explicitly always-required (`ALWAYS_REQUIRED_LOVS`), gated by the same empty-Save block as any other required text field. |
 
 # 22. Custom Fields
 
@@ -3078,11 +3097,23 @@ never elsewhere:
    red (blocked/on hold), or an outlined neutral for "in progress"/
    standby.
 2. **Sync** (the nav-bar sync control, §4.4.1) — green/red/gray/gray-syncing.
-3. **Required** — a red left-bar on the field (`.form-field.required`/
-   `.attr-item.required`) and a red outline-square count badge
-   (`.required-count-badge`). Red also covers sync-error
-   (`.form-field.error`) — both "needs your attention" states share the
-   one hue on purpose.
+3. **Sync-error** — a red left-bar on the field a sync rejection flagged
+   (`.form-field.error`). This used to be bundled with a 2nd, static
+   "Required" marker under one instrument (a red left-bar on every
+   `.form-field.required`/`.attr-item.required`, plus a red
+   `.required-count-badge` on the container header) — that static marker
+   was **removed 2026-07-28** (direct instruction, see §21's named
+   "Required Field Marker" reference for the exact retired CSS): every
+   required field's own edit popup already blocks its Clear button
+   (`shouldHideClear()`/`isRequiredField()`, `eam-shared.js`), so the
+   marker was warning about a state the system never lets a technician
+   reach — pure visual noise, spending part of this one red instrument on
+   a redundant signal. Sync-error's red stays; it's a live, real-time
+   "needs your attention right now" signal, not a static label.
+
+Bumped bolder 2026-07-28 (Primary palette pass, `eam-shared.css`'s
+`--green`/`--red`) — was `#00AA14`/`#E24B4A`, both real but comparatively
+muted hues next to WO Type's own Primary colours (§23.3).
 
 **Everything else that used to carry a hue is now monochrome — ink
 (black in light mode, white in dark) for "selected/active/current," plain
@@ -3095,11 +3126,12 @@ outline for "this is an icon/chip," never a filled color:**
   as-yet-untouched screen as not-yet-converted, not intentional.
 - Icons/chips/badges that aren't one of the 3 instruments above are
   outlined (`1.5px solid var(--border-strong)`, `background:none`), never
-  filled with gray or a hue — equipment icons, Type badges, the org pill,
-  Comments/Documents count badges, the rail outline (§14.2). **Exception:**
+  filled with gray or a hue — equipment icons, the org pill, Comments/
+  Documents count badges, the rail outline (§14.2). **Exceptions:**
   Priority's Critical value keeps a solid red chip — a deliberate
   exception to "outline only," worth spending part of the red budget on;
-  every other Priority/Type value (including High) stays outlined.
+  every other Priority value (including High) stays outlined. WO Type is
+  a separate, larger exception — see §23.3.
 - Mono (`var(--font-mono)`) is reserved for identifiers only — record
   numbers, LOV codes, dates — and is always gray/black/white, never
   tinted.
@@ -3160,6 +3192,143 @@ limits, both direct user instruction:
   dimming the new black fill would have looked nothing like the
   original gray outline, both were rewritten to spell out their prior
   colors explicitly rather than relying on opacity alone.
+
+## 23.3 WO Type Colour + Icon Badge — a 5th instrument, Type only
+
+Added 2026-07-28 (direct instruction), picked from
+`prototypes/standalone/mockups/wo-type-badge-color-icon-options.html`'s
+Option 5. WO Type needed a real visual identity across the app — carrying
+it consistently across the 3 places a technician actually reads Type
+(the Type field, a WO List/Search row, the step rail) was judged
+important enough to justify a 5th scoped colour instrument, same
+precedent §23.2 already set for pill-fill. This directly reverses §6.7's
+2026-07-22 "Type loses colour entirely" call — that call was itself scoped
+to the rebuild exercise then underway, not a permanent rule, so this isn't
+tracked as a hedge or an open question; it's the current rule. (History
+only, not current: §21.)
+
+**The badge:** one icon + one curated colour per Type, reused identically
+everywhere it appears — only the *shape* changes by surface:
+- **Type field** (WO Record View, `.attr-item`/`.attr-badge`) — solid
+  fill, icon in white (`.attr-badge-fill`). The highest-legibility
+  surface, and the one place a technician is deliberately looking to
+  confirm what they're working on.
+- **WO List/Search row** (§6.7, §8.3's card/table standard) — a small
+  solid dot ahead of the plain-text value (`.wotype-dot`), not a full
+  badge — a dense card/table row is the wrong place for a 28px badge per
+  row, and the field's own label already says "Type."
+- **Step rail** (§14.2) — split by the rail's own two real states rather
+  than one shape for both. Revised 2026-07-28 (same session, direct
+  instruction) from a 3px left-edge colour bar to a Type-tinted glow on
+  the rail's own pill shadow — the bar mechanic only ever existed for a
+  few hours before the rail itself became a pill (§14.2), at which point
+  a straight edge bar had nowhere sensible to sit against a rounded end;
+  not tracked as a separate historical reversal, just this instrument's
+  own treatment catching up to §14.2's shape the same day:
+  - A **real configured workflow** (`renderStepRail()`) sets
+    `--rail-glow-color` on `#stepRail` (inline `style.setProperty` —
+    eam-shared.css's pill shadow reads this custom property, falling
+    back to a plain neutral shadow when unset) to the Type's own curated
+    `glow` value, plus a plain colour-tinted icon in `.step-rail-right`
+    (`.step-rail-type-icon`).
+  - The **§11 free-form fallback** (`renderFlatStepRail()`) gets the same
+    icon inside a solid filled circle instead (`.step-rail-type-circle`),
+    and leaves `--rail-glow-color` unset (plain neutral shadow, same as
+    Equipment RV's tab rail, which has no WO Type concept at all). The
+    circle shape doubles as the "no configured sequence" cue this rail
+    has needed since `step-rail-workflow-vs-freeform-options.html` first
+    raised the question (that file's own Options 1–3) — one element now
+    answers both "which Type" and "workflow vs. free form" at once,
+    instead of the two staying separate, unresolved questions they were
+    left as.
+
+**Colour source — curated, never a raw admin hex:** excludes green/red
+(§23's own reserved instruments), same discipline as every stage of this
+palette. Went through 3 rounds the same session: **Muted** (original
+pick) → **Vivid** (`wo-type-palette-options.html` Option 2, more
+saturated) → **Primary** (current, 2026-07-28, direct instruction —
+picked alongside removing the required-field marker, freeing part of the
+app's attention/colour budget to spend here instead; bold, saturated,
+closer to true primary hues than either earlier round). The 4 assigned
+vars were renamed by FAMILY rather than hue at the same time
+(`--wo-type-breakdown/-ppm/-routine/-corrective`, `eam-shared.css`) — the
+old hue-named vars (`--wo-type-amber/teal/slate/plum`) had drifted so far
+from their own names across 3 rounds (plum holding a gold, slate holding
+a violet) that keeping that convention was actively misleading. Today's
+assignment: Breakdown = orange (`#F5821F`), Preventative Maintenance
+(PPM) = royal blue (`#2563EB`), Routine (the WO Type LOV's own `*` code)
+= violet (`#7C3AED`), Corrective = gold (`#F2C94C`). `--wo-type-blue`/
+`--wo-type-rose` stay unassigned and untouched by the Primary pass,
+reserved for the next admin-added custom Type.
+
+**Corrective is a deliberate worked example, not a real 4th system Type.**
+In this customer's actual EAM data, Corrective work routes through the
+same function as Breakdown (`WSJOBS`, unchanged — §11–§13). Splitting it
+into its own coloured Type here demonstrates what an admin-added custom
+Type looks like riding the same curated palette as the 3 real system
+Types (Breakdown/PPM/Routine), per direct instruction — it is not a claim
+that Corrective is a distinct system Type in real EAM.
+
+**Two code namespaces, one badge — reconciled, not merged:** the badge
+needs to resolve from two genuinely different fields, kept as two small
+lookup tables (`eam-shared.js`) rather than one, so the distinction stays
+visible in code:
+- `JOBTYPE_TO_WOTYPE_FAMILY` — keyed by `jobType` (BRKD/PM/ROUT), the
+  internal EAM_WOTYPE workflow-routing key (§11–§13), always in sync with
+  whichever demo WO is loaded. Drives the step rail.
+- `TYPECODE_TO_WOTYPE_FAMILY` — keyed by the WO's own user-facing Type LOV
+  code (`RECORD.type.code` on WO Record View, WO List's own `tp`) — a
+  legitimately different field from `jobType` (see `applyDemoWoIdentity()`
+  in `eam-shared.js`), whose exact codes vary per screen's own demo LOV
+  list (BK/BREAKDOWN/CM/PM/ROUT). Drives the Type field and the List row.
+
+Both resolve into the same `WO_TYPE_PALETTE` (family → icon + colour), so
+the actual palette is defined once.
+
+**Bug, found + fixed 2026-07-28:** WO Record View's Type field used to
+not sync to the demo-WO selector at all — `RECORD.type` was a static
+default, so WO 19831 (PM) and WO 20450 (ROUT) both opened showing
+"Breakdown." Originally treated as an acceptable side effect of a
+pre-existing, separate limitation (deeper content not swapping across
+demo WOs, §11's own note) — but a highly-visible, now-coloured field
+showing the wrong value reads as a real bug, not an accepted gap, so it
+got its own fix rather than staying bundled with that limitation.
+`applyDemoWoType()` (WO Record View, screen-local — the Type LOV codes
+are this screen's own, not shared) now syncs `RECORD.type`/
+`LOV_CURRENT.type` and repaints the badge via the same `renderColorBadge()`
+used everywhere else. Added `ROUT` ("Routine Maintenance") to this
+screen's own `LOV_DATA.type`/`TYPE_META` as part of the fix — no demo WO
+had ever actually resolved to it before, so it didn't exist yet.
+
+**Icons are reused from the app's existing language, not invented fresh**
+— Breakdown and PPM/Preventative Maintenance keep the same
+`ico-alert`/`ico-cal-check` shapes already used by WO List's Type filter
+chips and WO Record View's own `TYPE_META`; Corrective keeps `ico-tool`.
+Routine is new — a plain asterisk, a deliberate literal nod to that
+Type's own real code, `*`. Calibration/Inspection/Modification stay
+outlined/monochrome, outside this pass's scope (not one of the 3 system
+Types or the Corrective example).
+
+**Not yet extended:** Insert Mode's own Type picker (§9.6/§9.7,
+`ENTITY_FIELD_META`) still renders its Type/Status badges outline-only —
+flagged as a follow-up in `eam-shared.js`, not done here.
+
+## 23.4 Priority Colour — High, a 6th instrument
+
+Added 2026-07-28 (Primary palette pass, direct instruction), Priority's
+first real colour past Critical's long-standing red exception (§23's own
+item 1 list). High now renders as a solid-fill badge/pill
+(`--priority-high`, a magenta/pink — `#DB2777`) via the same generalized
+`renderColorBadge()`/`fieldRowBadgeAttr()` path §23.3 already extended
+for WO Type — no new rendering code needed, only a `color` value added to
+`PRIORITY_META.HIGH` (WO Record View) and `PRI['4']` (WO List).
+
+**Deliberately not orange or red.** Breakdown already owns orange
+(§23.3); Status and Priority-Critical already own red. A different
+field's colour should never double as a different meaning — the same
+rule that motivated §23.3's own reconciliation between `jobType` and the
+Type LOV code applies here between Priority and both WO Type and Status.
+Low/Medium stay plain text, unchanged.
 
 # 24. Navigation — Record View Back Button + Home Tile Pattern
 

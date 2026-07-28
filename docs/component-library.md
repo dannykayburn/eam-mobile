@@ -372,6 +372,36 @@ schema).
 
 ---
 
+## WO Type Colour + Icon Badge
+
+**Built 2026-07-28** (design-decisions-v3-1.md §23.3), picked from
+`prototypes/standalone/mockups/wo-type-badge-color-icon-options.html`.
+One icon + one curated colour per WO Type (Breakdown/Preventative
+Maintenance/Routine, plus Corrective as a worked custom-Type example),
+reused identically across the 3 places a technician actually reads Type —
+only the badge *shape* changes by surface:
+
+- **WO Record View's Type field** — solid fill, `.attr-badge-fill`.
+- **WO List/Search row** — a small solid dot, `.wotype-dot` (a full badge
+  is too heavy for a dense card/table row).
+- **Step rail** — colour only, no icon in either shape's *edge*, but the
+  icon itself does appear here too, split by the rail's own two real
+  states: a real configured workflow gets a left-edge colour bar +
+  `.step-rail-type-icon`; the §11 free-form fallback gets the same icon
+  inside `.step-rail-type-circle` instead, no edge bar — the circle shape
+  doubles as the workflow-vs-free-form cue that rail previously had none
+  of.
+
+**Colour is curated, never a raw admin hex** — same 6-swatch set scoped
+for Screen Designer's future WO Type colour picker (`--wo-type-*` vars,
+`eam-shared.css`), excluding green/red (§23's reserved instruments).
+Reverses the 2026-07-22 "Type has no colour" call, which was itself
+scoped to the rebuild exercise then underway — see §23.3 for the full
+write-up, including the jobType-vs-Type-LOV-code reconciliation
+(`WO_TYPE_PALETTE`, `eam-shared.js`) and the Corrective worked example.
+
+---
+
 ## Index
 
 | Component | Screens | Status |
@@ -386,3 +416,4 @@ schema).
 | Action Row | Book Labor, Issue Parts | Merged + built 2026-07-24 (§17.4/§18.3) — real shared component, was "Labor Row"/"Part Card" |
 | Booked Labor List | Book Labor | Built (§18.3/§18.6); rows are Action Rows; correction sheet content hardcoded |
 | Entry Row (category term — Activity Row / Action Row) | WO Record View, Book Labor, Issue Parts | Category only; Action Row is a real merge, Activity Row stays a deliberate exception |
+| WO Type Colour + Icon Badge | WO Record View, WO List, all 5 WO workflow screens' step rail | Built 2026-07-28 (§23.3) — reverses the 2026-07-22 "Type has no colour" call |

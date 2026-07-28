@@ -969,8 +969,8 @@ function onDemoWoChanged() {
   // unnumbered, free-flow rail instead of the numbered rail's stale
   // hardcoded BRKD markup (renderStepRail() itself no-ops on an empty
   // step list).
-  if (workflow.configured) renderStepRail(workflow, 'closing');
-  else renderFlatStepRail('closing');
+  if (workflow.configured) renderStepRail(workflow, 'closing', jobType);
+  else renderFlatStepRail('closing', jobType);
   const isPM = jobType === 'PM';
   const codesCard = document.getElementById('closingCodesCard');
   const commentsArea = document.getElementById('commentsArea');

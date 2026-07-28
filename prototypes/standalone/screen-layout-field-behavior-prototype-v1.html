@@ -54,8 +54,7 @@
     <div class="rec-id-row">
       <div class="rec-id-text">
         <span class="rec-num" id="recNum">CODE-001</span>
-        <span class="rec-desc" id="recDesc" onclick="onDescTap(event)">[Click in here] Dummy record used only to carry the standard header — code, description, org, status. Not the subject of this file.</span>
-        <textarea class="rec-desc-edit" id="recDescEdit" maxlength="255" oninput="autoGrow(this)" onblur="onDescBlur()"></textarea>
+        <span class="rec-desc" id="recDesc" onclick="openDescEditor(event)">[Click in here] Dummy record used only to carry the standard header — code, description, org, status. Not the subject of this file.</span>
       </div>
       <div class="rec-header-actions">
         <button class="rec-ellipsis-btn" id="recEllipsisBtn" onclick="event.stopPropagation(); toggleRecActionsMenu()" aria-label="More actions">

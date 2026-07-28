@@ -115,7 +115,15 @@ view-prototype-v1.html` (Step 1), `eam-activity-checklist-prototype-v2.html`
 prototype-v2.html` (Step 4), `eam-wo-closing-prototype-v2.html` (Step 5).
 Shared chrome: step rail + timer pill (§14.2), a "Reference" group
 (Comments/Documents jump-shortcuts + an Equipment stub) pinned after the
-last numbered step (§14.8), and the per-step bottom bar (§14.5–§14.7).
+last numbered step (§14.8), and the per-step bottom bar (§14.5–§14.7). The
+rail (and Equipment RV's tab rail, same shared shell) is a floating pill/
+capsule, not the old flush full-bleed card (§14.2 — that old style is
+preserved by name, "Flush Full-Bleed Card," in §21 for an easy revert).
+The rail also carries the WO Type Colour + Icon Badge (§23.3) — a plain
+colour-tinted icon plus a Type-tinted glow on the pill's own shadow for a
+real configured workflow, or the same icon inside a solid filled circle
+for the §11 fallback (plain shadow, no glow) — doubling as the
+workflow-vs-free-form cue the rail previously had none of.
 
 Real cross-screen navigation exists end to end: each step's "Next" button
 carries the current WO's identity forward via `eamOpenDemoWo`. Demo data
@@ -131,7 +139,13 @@ falls back to 20450.
   List); the workflow's activity gets Completed forced true and its
   Activity #/Notes line renders with a strikethrough (§15.2/§19.7).
   Equipment field uses the shared Equipment Lookup popup (Search +
-  Structure tabs, §15.5) — the same component Insert Mode uses.
+  Structure tabs, §15.5) — the same component Insert Mode uses. Type
+  field's badge carries the WO Type Colour + Icon Badge's solid fill
+  (§23.3) — the one field on this screen where that instrument shows as a
+  full badge, not a dot. Header description opens the shared long-text
+  editor's compact variant (`openDescEditor()`), not an inline edit —
+  always required, Save blocked while empty, same as Equipment Record
+  View's own header (both share this behavior via `eam-shared.js`).
 - **Activity Checklist** ("Focused Stepper", v2, §16): one item at a time
   (Prev/Next), not a scrolling list. Notes is a real always-visible field;
   Comments/Documents are real per-item containers; an item's answer can
@@ -178,8 +192,9 @@ Search Screen standard (§8.3): card = up to 6 fields from the dataspy's own
 column order (pill headline / muted subline / up to 3 attribute rows,
 Organization as a corner badge); List mode shows every available field
 (tiered online/offline, §6.13); dataspy bar has a favorite star. Type
-renders as plain monochrome text (§23 overrides the earlier §6.7
-exception); Status uses the shared green/red/outline tier vocabulary. 3 of
+shows a small solid colour dot ahead of its plain-text value (WO Type
+Colour + Icon Badge, §23.3 — supersedes the earlier "plain monochrome
+text" call); Status uses the shared green/red/outline tier vocabulary. 3 of
 6 filter chips (Status/Type/Organization) have a real multi-select sheet
 driven by each dataspy's own code/description list; Description/WO
 number/Due date are still "coming soon" stubs — free-text and date-range
@@ -256,15 +271,27 @@ parts.js`/`parts_stock.js`/`wo_parts_lines.js`. **Don't assume a data
 file's existence means a screen uses it** — check per-screen.
 
 ### Palette & navigation (locked, app-wide)
-Color is exactly 3 instruments — status, sync, required (§23) — everywhere
-except Home (an explicit, named exception, see above). Purple is retired
-as a UI-state accent; mono is identifiers-only and never tinted; icons/
-chips are outlined, not filled, except Priority Critical's one deliberate
-red exception. Back buttons navigate for real on every screen (§24); every
-screen's sync icon opens the shared sync panel. One open item: "Not Free
-Form" currently has no visual signal in the step/tab rail at all (a prior
-yellow wash was removed and never replaced) — flagged in §3.2.2/§15.4, not
-resolved.
+Color is 2 core instruments now, not 3 — status and sync (§23); the 3rd
+("required") was a static red left-bar + count badge, **removed
+2026-07-28** (direct instruction) since every required field's own edit
+popup already blocks Clear, so the marker warned about a state that
+can't happen (named for revert in §21, "Required Field Marker"). Plus 3
+narrowly-scoped additions, all bold/saturated ("Primary") as of
+2026-07-28: editable-pill fill (§23.2), WO Type's own colour + icon
+badge (§23.3 — one curated colour per Type, reused identically across
+the Type field, WO List row, and step rail; see the WO workflow section
+above for the rail's own split treatment), and Priority High's own
+colour (§23.4). Home is an explicit, named exception to all of this, see
+above. Purple is retired as a UI-state accent; mono is identifiers-only
+and never tinted; icons/chips are outlined, not filled, except Priority
+Critical/High and WO Type's badge. Back buttons navigate for real on
+every screen (§24); every screen's sync icon opens the shared sync
+panel. One open item: "Not Free Form" (a configured-but-ungated workflow)
+still has no visual signal of its own in the step/tab rail (a prior yellow
+wash was removed and never replaced) — flagged in §3.2.2/§15.4, not
+resolved. This is separate from the rail's WO Type signal, which
+distinguishes a different axis (configured workflow vs. the §11 fallback),
+not Free Form vs. Not Free Form within a configured one.
 
 ### Dev/demo tooling
 No design-doc entries — same category as any other dev convenience. Every
@@ -272,7 +299,12 @@ screen's `.proto-theme-bar` carries a theme toggle, an online/offline
 toggle, and a "Restart Demo" button (navigates to login; the actual reset —
 `resetDemoState()` in `eam-shared.js`, clears all demo `localStorage` keys —
 runs on Log In). Cross-screen navigation reaches all 3 demo WO identities
-for real, so the old per-screen "cycle demo WO" pill was removed.
+for real, so the old per-screen "cycle demo WO" pill was removed. The
+online/offline toggle is now a 3-way cycle (Offline → Online → **Synced**
+→ Offline, `toggleDemoOnline()`) — Synced forces the nav-bar sync control
+green regardless of `SYNC_DEMO_ITEMS`' own seeded error rows, so a live
+demo doesn't show "Error" the whole time without manually clearing them
+first.
 
 ## Open / deferred work
 - **Activity Insert/Update Mode** — confirmed fully unbuilt (see

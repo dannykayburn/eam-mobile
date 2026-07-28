@@ -843,8 +843,8 @@ function onDemoWoChanged() {
   const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
   CURRENT_WORKFLOW = resolveWoWorkflow(jobType);
   applyDemoWoIdentity();
-  if (CURRENT_WORKFLOW.configured) renderStepRail(CURRENT_WORKFLOW, 'checklist');
-  else renderFlatStepRail('checklist');
+  if (CURRENT_WORKFLOW.configured) renderStepRail(CURRENT_WORKFLOW, 'checklist', jobType);
+  else renderFlatStepRail('checklist', jobType);
   renderPromptBar();
 }
 

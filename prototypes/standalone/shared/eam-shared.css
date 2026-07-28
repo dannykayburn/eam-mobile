@@ -12,8 +12,40 @@
   --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
   --octave-black: #1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
-  --purple:#9933FF; --orange:#F46600; --green:#00AA14; --red:#E24B4A; --teal:#007B87; --octave-yellow:#FFF500;
+  --purple:#9933FF; --orange:#F46600; --octave-yellow:#FFF500;
+  /* Bumped bolder 2026-07-28 (Primary palette pass) — was #00AA14/#E24B4A,
+     both real but comparatively muted hues. Global tokens, not Status-
+     local, so this also touches every other existing consumer (seg-done/
+     smi-done, timer pill, sync states, .pill-green/.pill-red,
+     .attr-badge-critical, .required-count-badge before its removal) —
+     a deliberate app-wide bolder pass, not a Status-only change. */
+  --green:#16C130; --red:#DC2626; --teal:#007B87;
   --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-nav:#1A1A1F; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  /* WO Type colour — curated set, not a raw admin hex/colour wheel
+     (design-decisions-v3-1.md's "WO Type Colour + Icon Badge") — the
+     same discipline §23 already applies to the other 3 instruments.
+     Renamed by FAMILY (not hue) 2026-07-28, Primary pass — the old hue-
+     named vars (--wo-type-amber/teal/slate/plum) had drifted so far from
+     their own names across Muted -> Vivid -> Primary (plum now holding a
+     gold, slate now holding a violet) that keeping the naming convention
+     was actively misleading. Every consumer (WO_TYPE_PALETTE in
+     eam-shared.js; nothing else references these var names directly)
+     updated in the same pass. */
+  --wo-type-breakdown:#F5821F; --wo-type-ppm:#2563EB;
+  --wo-type-routine:#7C3AED; --wo-type-corrective:#F2C94C;
+  --wo-type-breakdown-glow:rgba(245,130,31,.38); --wo-type-ppm-glow:rgba(37,99,235,.38);
+  --wo-type-routine-glow:rgba(124,58,237,.38); --wo-type-corrective-glow:rgba(242,201,76,.38);
+  /* Reserved for the next admin-added custom Type — untouched by the
+     Primary pass, still the original curated pick. */
+  --wo-type-blue:#3E6FE0; --wo-type-rose:#C25B7C;
+  /* Priority's own instrument (added 2026-07-28, Primary pass) — High
+     gets a real colour for the first time, deliberately NOT orange/red
+     (Breakdown already owns orange, Status/Critical already own red) so
+     Priority never accidentally shares a hue with a different field's
+     different meaning, the exact mistake §23.3 flagged and avoided for
+     WO Type vs. Status. Critical keeps its own long-standing --red
+     exception (`.attr-badge-critical`), now bolder via the bump above. */
+  --priority-high:#DB2777;
   --nav-height:52px; --sheet-radius:20px;
   --bar-height:72px;
 }
@@ -194,9 +226,10 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    originally) — reads cleanly wrapped at full 255-char length without the
    mini-icon block (removed same day) competing for space next to it. */
 .rec-desc{display:block;font-size:15px;font-weight:600;color:rgba(255,255,255,.65);line-height:1.3;cursor:pointer;}
-.rec-desc-edit{display:none;width:100%;border:none;background:none;outline:none;resize:none;font-family:var(--font-sans);font-size:15px;font-weight:600;color:white;line-height:1.3;padding:0;}
-.rec-desc-edit.editing{display:block;}
-.rec-desc.hidden-while-editing{display:none;}
+/* .rec-desc-edit/.rec-desc-edit.editing/.rec-desc.hidden-while-editing
+   REMOVED 2026-07-28 — Description now opens openDescEditor()'s compact
+   modal (eam-shared.js) instead of swapping to an inline textarea in
+   place; nothing renders these classes any more. */
 /* Protected variant (§8.1) — non-editable identity description used by the
    List/Detail header on every tab except Record View. */
 .rec-desc.protected{cursor:default;color:rgba(255,255,255,.5);}
@@ -300,15 +333,27 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    own content ("maybe it's the gray"). Swapped to the same var(--bg-card)
    fill every other card in the app uses, hard outline replaced by a soft
    elevation shadow — reads as a raised control sitting above the content
-   rather than a recessed one sitting in it, still full-bleed (no
-   rounding/margin — that's Option 4, explicitly not picked: an inset
-   rounded card borrows this app's own visual grammar for records/fields,
-   which risked this primary-navigation rail reading like content instead
-   of chrome). See design-decisions-v3-1.md §14.2 for the full writeup. */
-.tab-rail, .step-rail{background:var(--bg-card);border:none;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:0 16px;flex-shrink:0;cursor:pointer;transition:box-shadow .15s;}
-[data-theme="dark"] .tab-rail, [data-theme="dark"] .step-rail{box-shadow:0 1px 6px rgba(0,0,0,.3);}
-.tab-rail:hover, .step-rail:hover{box-shadow:0 2px 6px rgba(0,0,0,.14);}
-[data-theme="dark"] .tab-rail:hover, [data-theme="dark"] .step-rail:hover{box-shadow:0 2px 10px rgba(0,0,0,.4);}
+   rather than a recessed one sitting in it.
+   Shape promoted again 2026-07-28 (direct instruction) — full-bleed/no-
+   rounding is RETIRED, not current; that exact style is preserved by
+   name for an easy revert (design-decisions-v3-1.md §21, "Step/Tab Rail
+   Shell — Flush Full-Bleed Card"). Now a floating pill/capsule instead:
+   `border-radius:28px` (half the collapsed row's own 56px height — a
+   true capsule, not a rounded rect) + `margin` off the screen edge.
+   Design rationale: puts this rail's shape in line with Insert Mode's
+   own pill selector at the top of the form (§9.4) — both read as "a pill
+   near the top of a form" now, not two unrelated shapes. Shadow colour
+   is `--rail-glow-color`, a custom property so a Type-tinted glow can be
+   set inline per-element (renderStepRailTypeSlot(), §23.3) without a
+   second ruleset; unset, it falls back to the plain neutral default
+   below — Equipment RV's tab rail (no WO Type concept) always uses that
+   default. `overflow:hidden` clips the expanded step-map's square
+   corners to the pill's own rounding. See design-decisions-v3-1.md §14.2
+   for the full writeup. */
+.tab-rail, .step-rail{background:var(--bg-card);border:none;border-radius:28px;margin:10px 12px;overflow:hidden;box-shadow:0 4px 14px var(--rail-glow-color, rgba(0,0,0,.12));padding:0 18px;flex-shrink:0;cursor:pointer;transition:box-shadow .15s;}
+[data-theme="dark"] .tab-rail, [data-theme="dark"] .step-rail{box-shadow:0 4px 16px var(--rail-glow-color, rgba(0,0,0,.4));}
+.tab-rail:hover, .step-rail:hover{box-shadow:0 6px 20px var(--rail-glow-color, rgba(0,0,0,.16));}
+[data-theme="dark"] .tab-rail:hover, [data-theme="dark"] .step-rail:hover{box-shadow:0 6px 22px var(--rail-glow-color, rgba(0,0,0,.46));}
 /* Bug fix 2026-07-16: was padding-bottom:8px alone (no padding-top) — since
    align-items:center centers within the padded content box, the asymmetric
    padding pushed the icon/name/chevron visibly above true vertical center
@@ -406,6 +451,27 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .step-segments.flat{display:block;}
 .seg-flat-dash{height:0;border-top:2px dashed var(--gray-3);}
 .step-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
+/* WO Type signal on the step rail (design-decisions-v3-1.md "WO Type
+   Colour + Icon Badge") — two distinct shapes, deliberately not one:
+   a real configured workflow (renderStepRail()) gets a plain colour-
+   tinted icon in .step-rail-right, paired with a left-edge colour bar
+   set directly on #stepRail (inline style, not a class — always wins
+   over the shell's own `border:none` regardless of rule order). The §11
+   free-form fallback (renderFlatStepRail()) gets the same icon inside a
+   solid filled circle instead, no edge bar — the circle shape itself
+   doubles as the "no configured sequence" cue this rail has needed since
+   step-rail-workflow-vs-freeform-options.html first raised the question,
+   so one element now answers both questions at once. Colour is always a
+   --wo-type-* var, never a raw admin hex (§23 discipline). */
+.step-rail-type-icon{display:flex;align-items:center;flex-shrink:0;}
+.step-rail-type-icon svg{display:block;}
+.step-rail-type-circle{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;}
+/* Same WO Type colour, smallest surface — a plain solid dot next to the
+   Type value on a list/card row (WO List §6.7). No icon at this size;
+   the field label already says "Type," a dot is enough. Bumped 7px->10px
+   + given its own right margin 2026-07-28 (was flush against the value
+   text, no breathing room). */
+.wotype-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;display:inline-block;margin-right:6px;}
 .step-map{display:none;background:var(--bg-card);padding:10px 0 12px;border-top:1px solid var(--border);}
 .step-map.open{display:block;}
 .step-map-item{display:flex;align-items:center;gap:10px;padding:6px 14px;cursor:pointer;transition:background .1s;border-radius:4px;margin:0 6px;}
@@ -529,12 +595,11 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    inside that container is populated. Orange-tinted to match the
    required-field left-bar accent — this is a "still needs attention"
    signal, not a neutral label. */
-/* Outline square, not filled pill (palette pass, 2026-07-22 — locked
-   after comparing 4 options): red is one of this app's only 3 real
-   color instruments (status/sync/required), so it stays red, but no
-   longer competes as a filled colored surface the way every other
-   icon/chip on a rebuilt screen no longer does either. */
-.required-count-badge{font-family:var(--font-mono);font-size:10px;font-weight:700;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:6px;background:none;color:var(--red);border:1.5px solid var(--red);flex-shrink:0;}
+/* REMOVED 2026-07-28, direct instruction, same reasoning as the
+   required left-bar above (§21 if this needs reverting) —
+   updateRequiredBadges() (eam-shared.js) is now a no-op that only ever
+   removes a stray badge, never creates one, so no rule is needed here
+   any more. */
 
 /* ── Collapsible section with icon + count badge (§7.2) — Comments and
    Documents specifically; every other field group uses .fg-* above. ── */
@@ -662,7 +727,13 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .form-field{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);position:relative;min-height:48px;cursor:pointer;transition:background .12s;}
 .form-field:last-child{border-bottom:none;}
 .form-field:hover{background:var(--bg-section);}
-.form-field.required::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
+/* Red required left-bar REMOVED 2026-07-28, direct instruction — every
+   required field's own edit popup already blocks its Clear button
+   (shouldHideClear()/isRequiredField(), eam-shared.js), so the bar was
+   warning about a state the system doesn't let a technician reach. The
+   `.required` class itself stays (isRequiredField() and the new empty-
+   save gate both still read it) — only this visual disappears. See
+   design-decisions-v3-1.md §21 if this needs reverting. */
 .form-field.protected{background:var(--bg-section);opacity:.75;cursor:default;}
 [data-theme="dark"] .form-field.protected{background:rgba(255,255,255,.03);}
 .field-label{font-size:13px;color:var(--gray-4);width:128px;flex-shrink:0;line-height:1.35;}
@@ -923,8 +994,9 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    comes from the standard model (system design or Screen Designer), same
    as any other field, so it gets the identical red left-bar a
    .form-field.required row gets (was orange — palette pass, 2026-07-22,
-   see .form-field.required above) — just on this cell instead. */
-.attr-item.required::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
+   see .form-field.required above) — just on this cell instead.
+   REMOVED 2026-07-28 along with .form-field.required's own bar — same
+   reasoning, see that rule's comment above. */
 /* Protected, Grid version (§5.2 field-behavior consolidation, promoted
    2026-07-24 from screen-layout-field-behavior-prototype-v1.html) —
    mirrors .form-field.protected's exact recipe onto a grid cell. Lock
@@ -946,6 +1018,13 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .attr-badge-outline{border:1.5px solid var(--border-strong);color:var(--octave-black);}
 [data-theme="dark"] .attr-badge-outline{color:rgba(255,255,255,.9);}
 .attr-badge-critical{background:var(--red);border-color:var(--red);color:#fff;}
+/* WO Type colour badge (4th palette instrument, design-decisions-v3-1.md
+   "WO Type Colour + Icon Badge") — solid fill per Type family, same shape
+   as .attr-badge-critical's one-off red but the colour itself comes from
+   meta.color (a --wo-type-* var), set inline by whichever renderer built
+   this badge (renderColorBadge()/fieldRowBadgeAttr()), not a fixed class
+   per Type. */
+.attr-badge-fill{border:none;color:#fff;}
 /* §5.2: no configured colour → omit the badge entirely and left-align —
    renderColorBadge() (eam-shared.js) still emits an empty span when meta
    is falsy, so this needs to hide itself; :empty removing it from the
@@ -1204,6 +1283,13 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .edit-input[type=number]{-moz-appearance:textfield;}
 .btn-save{width:100%;height:50px;border-radius:100px;border:none;font-size:15px;font-weight:700;font-family:var(--font-sans);cursor:pointer;background:var(--octave-black);color:white;}
 [data-theme="dark"] .btn-save{background:var(--white);color:var(--octave-black);}
+/* Required-and-empty gate (added 2026-07-28) — textEditorInputChanged()
+   (eam-shared.js) toggles this whenever the field being edited is
+   required and the textarea is blank, so Save can't commit an empty
+   value. Dimmed, not hidden — the button stays in place, same "still
+   there, just not actionable yet" language .insert-save-btn's own
+   not-ready state already uses. */
+.btn-save.disabled{opacity:.4;cursor:default;pointer-events:none;}
 /* Btn: outlined (§3.4) — secondary action pill used outside sheets too (e.g.
    Add Parts, its first real consumer, §17.5) — flex row so an icon+label
    pair centers the same way a plain text label already did by default. */
@@ -1383,6 +1469,15 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .text-editor-body{flex:1;padding:14px 16px;}
 .text-editor-textarea{width:100%;height:100%;border:none;outline:none;resize:none;font-family:var(--font-sans);font-size:15px;color:var(--octave-black);background:transparent;line-height:1.5;}
 [data-theme="dark"] .text-editor-textarea{color:var(--white);}
+/* Compact variant (Description, added 2026-07-28) — same sheet/Save/
+   Discard mechanics as the full editor above, just a much shorter box:
+   Description is a 1-2 line field, not a long-text one, so the full
+   88vh sheet (sized for Notes/Comments) was oversized for it. Overrides
+   the fixed 88vh height entirely rather than shrinking it, so the sheet
+   sizes to its own (short) content instead of leaving empty space. */
+.text-editor-sheet.compact{height:auto;max-height:none;}
+.text-editor-sheet.compact .text-editor-body{flex:none;}
+.text-editor-sheet.compact .text-editor-textarea{height:96px;}
 .toast{position:absolute;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(26,26,31,.95);color:white;padding:9px 16px;border-radius:100px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;opacity:0;transition:all .25s;z-index:300;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .comment-add-row{display:flex;align-items:center;gap:6px;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;color:var(--octave-black);font-size:13px;font-weight:600;}

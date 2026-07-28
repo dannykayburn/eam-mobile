@@ -1396,8 +1396,8 @@ function onDemoWoChanged() {
   const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
   applyDemoWoIdentity();
   const workflow = resolveWoWorkflow(jobType);
-  if (workflow.configured) renderStepRail(workflow, 'issueparts');
-  else renderFlatStepRail('issueparts');
+  if (workflow.configured) renderStepRail(workflow, 'issueparts', jobType);
+  else renderFlatStepRail('issueparts', jobType);
 }
 
 /* Consume-once hand-off (same pattern as WO Record View's own read) —
