@@ -1589,6 +1589,38 @@ both, connected by a small chevron:
 - **Open:** which entities populate the Screen/entity pill's option list —
   only whatever Create actions are pinned to Home's own quick-create row,
   or every top-level record type with an Insert Mode at all. Not resolved.
+- **Open — non-WO/Equipment "system actions."** Noted 2026-07-28. The
+  legacy Mobile menu (`docs/existing_use_cases/
+  EAM.MOBILE.REQ.StandardModel.txt`) has several entry points that aren't
+  full Record-View entities in this rebuild's sense — **Meter Reading**
+  (`Replace Physical Meter`), **Work Request**, **Operator Checklist**, and
+  potentially others from that same list (Batch Book Labor, Hours Worked,
+  Permit to Work). Whether each becomes a real Screen/entity pill option
+  (full Insert Mode content per §9.3/§9.5) or a lighter-weight action sheet
+  (closer to §7's "log a Meter reading" quick-form aside than a full
+  Record View insert) is not decided — needs its own pass per action, not
+  a blanket answer. Ties directly into the previous open item: whichever
+  shape these take, they compete for the same "what's on Home's
+  quick-create row" slot. **Partial stub added 2026-07-28:** Meter Reading
+  and Operator Checklist now render at the bottom of Home's entity-pill
+  option list (`STUB_ENTITIES`, `eam-shared.js`) as coming-soon toast stubs
+  — no real Insert Mode content behind either yet, and Work Request isn't
+  in the list at all pending the shape decision above. Home-only by
+  construction: WO List/Equipment List still lock the pill
+  (`insertEntityLocked`), so the picker these render into never opens on
+  those screens.
+- **Open — base-admin configurability.** Whatever set of system actions
+  Home ends up exposing (previous bullet) shouldn't be hardcoded the way
+  today's prototype hardcodes WO/Equipment — real EAM has a base admin
+  screen (referred to informally as the "Home Icon" or "digital work
+  home" setup screen; not yet located/named precisely in `docs/Data_refs/`
+  or captured anywhere in this doc) that lets an admin pick which quick
+  actions surface on the mobile Home screen per user group/org. This
+  rebuild has no equivalent admin screen yet — it's a candidate addition
+  to the Screen Designer / Base Screens track (§10), analogous to §11's
+  "WO Workflow — Setup (Base EAM Admin)" pattern (a small admin config
+  screen driving mobile runtime behavior), but scoped to Home's action
+  set rather than WO workflow steps. Not scoped or prototyped.
 
 ## 9.5 Field sets — working defaults until Screen Designer exists
 

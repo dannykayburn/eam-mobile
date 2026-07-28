@@ -1425,6 +1425,17 @@ const ENTITY_META = {
   WO:    { desc: 'Work order', icon: 'tool' },
   EQUIP: { desc: 'Equipment',  icon: 'package' },
 };
+// Non-Record-View "system actions" (§9.4 open item, design-decisions-v3-1.md)
+// — Home-only entity-pill options, listed after every real ENTITY_META entry.
+// Selecting one is a coming-soon toast stub, not a real entity switch, so
+// they never touch currentEntity/ENTITY_FIELD_META/renderEntityFields().
+// Naturally Home-only already: WO List/Equipment List lock the pill
+// (openCreateSheet('WO'|'EQUIP') → insertEntityLocked), so onEntityPillTap
+// never even opens the picker these render into on those screens.
+const STUB_ENTITIES = {
+  METER: { desc: 'Meter Reading' },
+  OPCHK: { desc: 'Operator Checklist' },
+};
 // renderColorBadge() also reads `.color` now (WO Type colour badge, added
 // 2026-07-28) — none of these entries set it, so Insert Mode's own Type/
 // Status badges stay outline-only, same as before. Not yet extended to
@@ -1570,14 +1581,30 @@ function openEntityPicker() {
   document.getElementById('lovSheetTitle').textContent = 'Create';
   document.getElementById('lovClearBtn').classList.add('hidden');
   document.getElementById('lovSearchRow').classList.add('hidden');
-  document.getElementById('lovSheetBody').innerHTML = Object.entries(ENTITY_META).map(([code, m]) => `
+  const realOptions = Object.entries(ENTITY_META).map(([code, m]) => `
     <div class="lov-option ${code === currentEntity ? 'selected' : ''}" onclick="selectEntity('${code}')">
       <div class="lov-option-texts"><div class="lov-option-desc">${m.desc}</div></div>
       <div class="lov-check ${code === currentEntity ? 'checked' : ''}"></div>
     </div>`).join('');
+  // Stub "system action" options — always last, never selected/checked
+  // (selecting one is a toast, not a real entity switch — see STUB_ENTITIES).
+  const stubOptions = Object.entries(STUB_ENTITIES).map(([code, m]) => `
+    <div class="lov-option" onclick="selectEntity('${code}')">
+      <div class="lov-option-texts">
+        <div class="lov-option-desc">${m.desc}</div>
+        <div class="lov-option-code">Coming soon</div>
+      </div>
+      <div class="lov-check"></div>
+    </div>`).join('');
+  document.getElementById('lovSheetBody').innerHTML = realOptions + stubOptions;
   openSheet('lovSheet');
 }
 function selectEntity(code) {
+  if (STUB_ENTITIES[code]) {
+    closeAllSheets();
+    showToast(STUB_ENTITIES[code].desc + ' — coming soon');
+    return;
+  }
   currentEntity = code;
   document.getElementById('fv-insertEntity-desc').textContent = ENTITY_META[code].desc;
   document.getElementById('fv-insertEntity-icon').innerHTML = ICO(ENTITY_META[code].icon);

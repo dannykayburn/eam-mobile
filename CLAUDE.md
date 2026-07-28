@@ -325,6 +325,17 @@ was the one screen missing it).
   layout per selected Type — the same WOTYPE-driven page-layout mechanism
   already resolved for real screens (§11–§13), live inside Insert Mode
   itself rather than only visible after saving.
+- **Home's system-action entities + their base-admin config** — noted
+  2026-07-28, not scoped or built. Home's Screen/entity pill (§9.4) covers
+  WO/Equipment only; legacy non-WO/Equipment menu items — Meter Reading,
+  Work Request, Operator Checklist (and possibly Batch Book Labor/Hours
+  Worked/Permit to Work) — are candidates to add, each needing its own
+  call on full-Insert-Mode vs. lighter action-sheet shape. Separately,
+  whichever set Home exposes needs to be admin-configurable rather than
+  hardcoded — a base EAM admin screen (informally "Home Icon"/"digital
+  work home" setup) for picking which quick actions surface, not yet
+  located/named or built; candidate addition to the Screen Designer track
+  (§10). Full detail in `design-decisions-v3-1.md` §9.4.
 - **Activity Insert/Update Mode** — confirmed fully unbuilt (see
   `project_deferred_screens_backlog` memory).
 - **@mention tagging in Comments** — not built (see
