@@ -4,6 +4,7 @@
 <script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — Issue Parts (Step 3)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -704,10 +705,17 @@ function navBack() {
   location.href = 'eam-activity-checklist-prototype-v2.html';
 }
 
-// ─── TIMER — keeps running through Steps 2-4 (§6.2, §12.2). Engine
-// (start/pause/resume) lives in eam-shared.js — this screen just starts
-// it and supplies the Stop confirmation's outcomes. ───────────────────
-startStepTimer();
+// ─── TIMER — gated on eamTimerRunning as of 2026-07-24 (§15.4/§20), same
+// reasoning as Activity Checklist's own copy of this comment: a Free
+// Form WO only has a timer to keep running here if one was actually
+// started back on Record View (technician answered Yes). Engine (start/
+// pause/resume) lives in eam-shared.js — this screen just starts it, or
+// hides the pill if it isn't running. ───────────────────────────────────
+if (sessionStorage.getItem('eamTimerRunning') === 'true') {
+  startStepTimer();
+} else {
+  document.getElementById('timerPill').style.display = 'none';
+}
 
 function confirmStopTimer() {
   openQuestion('Stop working and book your current time?',

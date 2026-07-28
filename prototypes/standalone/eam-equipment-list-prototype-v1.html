@@ -4,6 +4,7 @@
 <script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — Equipment</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -495,21 +496,15 @@ const DSF = {
 // Same {id,name}-pairs-array shape, so Home's own favorites construction
 // can read this one the same way, just tagged screen:'equip'.
 const LS_FAVORITE_EQUIP_DS_KEY = 'eamFavoriteEquipDS';
-// Seeded once with 'pumps' on first-ever read (same trick WO List's own
-// getFavoriteDS() uses for ds3/ds6) — Home used to show a static
-// "Centrifugal Pumps" favorite unconditionally; this keeps that same
-// chip showing by default now that it's backed by this real mechanism,
-// rather than Home going favorite-less until someone visits this screen
-// and manually re-favorites it.
+// Reads-and-defaults-to-empty, matching WO List's own getFavoriteDS() (its
+// 'pumps'-style self-seed was found to cause a real asymmetry with Home,
+// which never seeds anything — Home would show zero favorites right
+// after a fresh login while this sheet already showed one starred, purely
+// because of visit order. No seeding here either, for the same reason.
 function getFavoriteEquipDS() {
   try {
     const raw = localStorage.getItem(LS_FAVORITE_EQUIP_DS_KEY);
-    if (raw === null) {
-      const seed = [{ id: 'pumps', name: 'Centrifugal Pumps' }];
-      localStorage.setItem(LS_FAVORITE_EQUIP_DS_KEY, JSON.stringify(seed));
-      return seed;
-    }
-    return JSON.parse(raw) || [];
+    return raw ? (JSON.parse(raw) || []) : [];
   } catch (e) { return []; }
 }
 function isFavoriteEquipDS(id) { return getFavoriteEquipDS().some(f => f.id === id); }

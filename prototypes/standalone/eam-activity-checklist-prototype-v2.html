@@ -4,6 +4,7 @@
 <script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — Activity Checklist (Step 2)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -181,9 +182,6 @@
 [data-theme="dark"] .f-num-in { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
 .f-num-in:focus { border-color: var(--octave-black); }
 [data-theme="dark"] .f-num-in:focus { border-color: var(--white); }
-/* Number fields — no native spinner arrows (design-decisions-v3-1.md §15). */
-.f-num-in::-webkit-outer-spin-button, .f-num-in::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.f-num-in { -moz-appearance: textfield; }
 .f-uom { font-size: 14px; color: var(--gray-4); font-weight: 600; }
 .f-range-hint { text-align: center; font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); margin-top: 10px; }
 .f-textarea { width: 100%; min-height: 120px; background: var(--bg-page); border: 2px solid var(--gray-2); border-radius: 10px; padding: 12px 13px; font-size: 15px; color: var(--octave-black); font-family: var(--font-sans); resize: none; outline: none; line-height: 1.5; }
@@ -489,12 +487,21 @@ function navBack() {
   location.href = 'eam-wo-record-view-prototype-v1.html';
 }
 
-/* ─── TIMER — auto-started on WO Record View "Start Work"; keeps running
-   through Steps 2-4, shown stopped from Book Labor onward (§6.2, §12.2).
-   Engine (start/pause/resume) lives in eam-shared.js — this screen just
-   starts it and supplies the Stop confirmation's outcomes. Unchanged
-   from v1. ── */
-startStepTimer();
+/* ─── TIMER — gated on eamTimerRunning as of 2026-07-24 (§15.4/§20), not
+   unconditional anymore. Not Free Form workflows set this implicitly on
+   Start Work; Free Form ones only set it if the technician answers Yes
+   to the "start the timer?" prompt there (eam-wo-record-view-prototype-
+   v1.html's startWork()) — a Free Form WO whose technician answered No,
+   or who free-flow-tapped straight into this step without going through
+   Start Work at all, never had a timer to start, so this screen must not
+   show one running. Engine (start/pause/resume) lives in eam-shared.js —
+   this screen just starts it, or hides the pill entirely if it isn't
+   running, and supplies the Stop confirmation's outcomes. ── */
+if (sessionStorage.getItem('eamTimerRunning') === 'true') {
+  startStepTimer();
+} else {
+  document.getElementById('timerPill').style.display = 'none';
+}
 
 function confirmStopTimer() {
   openQuestion('Stop working and book your current time?',
@@ -628,7 +635,14 @@ function controlHtml(it) {
       `<button class="f-opt ${it.value===label?cls:''}" onclick="setToggle('${label}','${cls}')">${label}</button>`).join('') + `</div>`;
   }
   if (it.type === 'num') {
-    return `<div class="f-num-row"><input class="f-num-in" type="number" value="${it.value}" placeholder="—" oninput="setNum(this)"><span class="f-uom">${it.uom}</span></div>`
+    // type="text" + inputmode="decimal" (2026-07-24, user direction) —
+    // matches the exact keypad combo Currency/Number fields already use
+    // app-wide (§5.2/§3.4), not the native type="number" this used to
+    // carry (a different, less consistent mobile keypad). Covers every
+    // checklist item type that renders through this one shared control
+    // — Nonconformity Measurement, Quantitative, Meter Reading, etc.
+    // (§16.3) are all just `type:'num'` here, one fix reaches all of them.
+    return `<div class="f-num-row"><input class="f-num-in" type="text" inputmode="decimal" value="${it.value}" placeholder="—" oninput="setNum(this)"><span class="f-uom">${it.uom}</span></div>`
       + (it.range ? `<p class="f-range-hint">Acceptable range: ${it.range}</p>` : '');
   }
   if (it.type === 'textarea') {

@@ -4,6 +4,7 @@
 <script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — Book Labor (Step 4)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -107,6 +108,14 @@
    consumers. Only the list container, the badge, and the correction-
    specific callout stay local here. ── */
 .labor-list { padding: 0 12px; display: flex; flex-direction: column; gap: 6px; margin: 14px 0 10px; }
+/* Slower slide-in for THIS sheet only (2026-07-24, user report — "comes
+   in hot") — scoped override, not a change to the shared .bottom-sheet
+   rule every other sheet in the app also uses at .3s. This one's worth
+   singling out because it's the one sheet that can open automatically,
+   with no tap to soften it (applyArrivalState() below, the timer-stop
+   hand-off) — a fast transition reads fine when the technician just
+   caused it, less fine when it happens to them on page load. */
+#addLaborSheet { transition: transform .5s cubic-bezier(.22,.8,.32,1); }
 .labor-hours-badge { font-family: var(--font-mono); font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 100px; white-space: nowrap; flex-shrink: 0; }
 /* .badge-green/.badge-red tint styling now lives in eam-shared.css's
    shared block (Phase 2b, 2026-07-22) — was byte-for-byte identical to
@@ -1467,11 +1476,26 @@ initSharedApp({ contentSelector: '.content' });
 // navigates here for real (first real inter-screen navigation edge in
 // these standalones; every other "Next" button elsewhere is still a
 // toast stub).
+// Second condition added 2026-07-24 (§15.4/§20): arriving via "Next" is
+// no longer sufficient on its own — a Free Form WO whose timer was never
+// actually started (technician answered No on Record View's "start the
+// timer?" prompt) has nothing to claim stopped here. eamTimerRunning is
+// the same real gate Activity Checklist/Issue Parts check before ever
+// starting the pill in the first place; if it was never set, there's no
+// timer in this workflow instance's story at all, guided or not.
 function applyArrivalState() {
   const arrivedViaNextStep = sessionStorage.getItem('eamArrivedViaNextStep') === 'true';
+  const timerWasRunning = sessionStorage.getItem('eamTimerRunning') === 'true';
   if (arrivedViaNextStep) sessionStorage.removeItem('eamArrivedViaNextStep');
-  document.getElementById('timerBanner').style.display = arrivedViaNextStep ? '' : 'none';
-  if (arrivedViaNextStep) openAddLaborSheet(true);
+  const showStoppedState = arrivedViaNextStep && timerWasRunning;
+  document.getElementById('timerBanner').style.display = showStoppedState ? '' : 'none';
+  // Short pause before the auto-open (2026-07-24, user report — "comes
+  // in hot") — this was firing synchronously on page load, before the
+  // technician had even seen the screen underneath it. Letting the
+  // banner/screen render first, then having the sheet follow a beat
+  // later, reads as an invitation rather than an ambush; #addLaborSheet's
+  // own slower transition (above) does the rest.
+  if (showStoppedState) setTimeout(() => openAddLaborSheet(true), 450);
 }
 applyArrivalState();
 </script>

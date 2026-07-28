@@ -4,6 +4,7 @@
 <script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — Home v1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -71,7 +72,7 @@
    match, causing clipping/scroll-length bugs. No other rule in this
    file changed — every spacing/size ratio below is exactly as it was,
    just uniformly bigger. */
-.home-body{flex:1;overflow-y:auto;padding:14px 14px 78px;zoom:1.15;}
+.home-body{flex:1;overflow-y:auto;padding:14px 14px 100px;zoom:1.15;}
 /* Section titles — bumped from a muted caption to a bold, high-contrast
    label (classic black/white, no color) so "Favorites"/"My Work"/
    "Reference" read as real section dividers rather than fine print. */
@@ -283,6 +284,14 @@
     <!-- Same building/factory glyph as eam-wo-list-prototype-v5_1.html's
          chip-sheet rows (#ico-building) — reused verbatim, new tile4b
          "Facilities" tile below (2026-07-23). -->
+    <!-- New (2026-07-24), tile7 "Field Definitions" below — a plain 2x2
+         grid, standing in for "field layout," no existing icon fit. -->
+    <symbol id="ico-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="8" height="8" rx="1"/>
+      <rect x="13" y="3" width="8" height="8" rx="1"/>
+      <rect x="3" y="13" width="8" height="8" rx="1"/>
+      <rect x="13" y="13" width="8" height="8" rx="1"/>
+    </symbol>
     <symbol id="ico-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <rect x="2" y="7" width="20" height="15" rx="1"/>
       <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
@@ -325,7 +334,7 @@
       <div class="rec-actions-divider"></div>
       <div class="rec-actions-item" onclick="closeProfileMenu();showToast('Settings — coming soon')">Settings</div>
       <div class="rec-actions-divider"></div>
-      <div class="rec-actions-item danger" onclick="closeProfileMenu();showToast('Logged out — coming soon')">Log out</div>
+      <div class="rec-actions-item danger" onclick="closeProfileMenu();goToLogin()">Log out</div>
     </div>
     <div class="nav-title">Home</div>
     <div class="nav-actions">
@@ -693,6 +702,7 @@ const SCREEN_META = {
 const SCREEN_PAGES = {
   wo:    'eam-wo-list-prototype-v5_1.html',
   equip: 'eam-equipment-list-prototype-v1.html',
+  fielddefs: 'screen-layout-field-behavior-prototype-v1.html',
 };
 // The target dataspy hands off via sessionStorage, NOT a ?spy= query
 // string — `npx serve`'s clean-URL redirect strips query strings on
@@ -756,6 +766,26 @@ let HOME_TILES = [
   // to the name" rule rather than inventing a 3rd near-duplicate.
   { id:'tile5', name:"My Closed WO's",    icon:'check',     color:'#9933FF', count:7,   group:'refsection',screen:'wo', spy:'ds10' },
   { id:'tile6', name:"Last Week's Work",  icon:'clock',     color:'#9933FF', count:4,   group:'refsection',screen:'wo', spy:'ds10' },
+  // Added 2026-07-24 (user direction) — jumps straight to the canonical
+  // §5.2 field-type/behavior reference (screen-layout-field-behavior-
+  // prototype-v1.html), no dataspy involved (SCREEN_PAGES.fielddefs, no
+  // `spy` key — goToScreen() already treats a missing spy as a no-op,
+  // same as tile3's Equipment entry above). Count (14) is real, not
+  // decorative — the number of field-type examples that file documents,
+  // same "count is exact where one exists" rule Facilities/tile4b uses.
+  // Yellow (#FFF500, the same real Octave Yellow brand hex already
+  // defined as --octave-yellow in eam-shared.css) — literal hex here,
+  // not the var(), on purpose: the tile-render fallback below computes
+  // the background tint as `t.color + '22'` when no explicit `tint` is
+  // given, and you can't string-concatenate a suffix onto a var()
+  // reference (the exact pitfall already flagged in this file's own
+  // Equipment-tint comment above, which is why that one carries its own
+  // separate `tint` variable instead). Every other non-theme-aware tile
+  // on this screen (tile1/1b/2/5/6) uses a literal hex for this same
+  // reason — this is a 4th tile colour, distinct from mywork's orange/
+  // green/red and reference's teal/purple, since this tile isn't "work"
+  // or "equipment," it's a dev/reference shortcut.
+  { id:'tile7', name:'Field Definitions', icon:'grid', color:'#FFF500', count:14, group:'refsection', screen:'fielddefs' },
 ];
 
 /* ═══ Local-only ordering (long-press reorder, §home riff) — persisted to

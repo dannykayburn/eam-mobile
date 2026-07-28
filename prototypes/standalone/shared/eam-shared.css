@@ -106,10 +106,24 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    saturate, brighter specular top edge, and stronger active-item
    highlight from the glass exploration are kept (icons/pill affordance
    unaffected by the opacity revert). */
-.bottom-nav{position:absolute;left:0;right:0;bottom:0;height:58px;background:color-mix(in srgb, var(--bg-nav) 96%, transparent);backdrop-filter:blur(28px) saturate(220%);-webkit-backdrop-filter:blur(28px) saturate(220%);display:flex;align-items:center;justify-content:center;gap:14px;flex-shrink:0;border-top:1px solid rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.15);z-index:50;}
+/* Height bumped 58px→80px and align-items switched center→flex-start
+   (2026-07-24, prototype-viewing fix only — not a design decision, see
+   the user's own framing). Real-device LAN testing showed the mobile
+   browser's own bottom URL/toolbar chrome sitting right on top of the
+   tappable icons, since this bar is pinned bottom:0 of .app. Growing the
+   bar and pinning content to its TOP (not centering) turns all of that
+   extra height into dead buffer space specifically below the icons/
+   labels, for the browser chrome to occupy, rather than splitting it
+   evenly above and below via centering. padding-top added to keep the
+   icons sitting at roughly their old visual position under the top
+   border. Screens with their own explicit bottom-clearance padding sized
+   to the old 58px height (Home's/WO List's .home-body/.wo-list, both
+   58+20=78px) were bumped by the same +22px this pass (→100px) so
+   scrolled-to-bottom content doesn't hide behind the now-taller bar. */
+.bottom-nav{position:absolute;left:0;right:0;bottom:0;height:80px;background:color-mix(in srgb, var(--bg-nav) 96%, transparent);backdrop-filter:blur(28px) saturate(220%);-webkit-backdrop-filter:blur(28px) saturate(220%);display:flex;align-items:flex-start;justify-content:center;gap:14px;padding-top:8px;flex-shrink:0;border-top:1px solid rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.15);z-index:50;}
 .bottom-nav.hidden{display:none;}
 .bottom-nav-item{width:84px;display:flex;flex-direction:column;align-items:center;gap:2px;color:rgba(255,255,255,.5);background:none;border:none;border-radius:100px;font-family:var(--font-sans);font-size:10.5px;font-weight:600;padding:7px 0;cursor:pointer;}
-.bottom-nav-item svg{width:20px;height:20px;}
+.bottom-nav-item svg{width:23px;height:23px;}
 .bottom-nav-item.active{color:#fff;background:rgba(255,255,255,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.25);}
 [data-theme="dark"] .bottom-nav-item.active{background:rgba(255,255,255,.2);}
 .bottom-nav-badge{position:absolute;top:-5px;right:-7px;min-width:15px;height:15px;background:var(--red);color:white;font-size:9px;font-weight:700;border-radius:100px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
@@ -1042,15 +1056,25 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    shared. See docs/component-library.md's "Equipment LOV" entry. ── */
 .tree-wrap { padding: 12px; }
 .tree-node { position: relative; }
-.tree-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: background 0.15s; border: 1px solid var(--border); background: var(--bg-card); margin-bottom: 8px; }
+/* Depth pass, 2026-07-24 (user report: "bit washed out, needs
+   definition") — .tree-row's border was var(--border), the lightest/
+   least-defined of the app's 2 border tokens, on a card whose background
+   already nearly matches the popup's own page background behind it
+   (bg-card vs bg-page, both near-white in light mode and close in value
+   in dark mode) — the row barely separated from its surroundings at
+   rest. Bumped to var(--border-strong) (the same token .tree-row.current
+   already keyed its own real distinction off of) plus a real, if
+   subtle, drop shadow so rows read as raised cards, not flat outlines. */
+.tree-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: background 0.15s, box-shadow .15s; border: 1px solid var(--border-strong); background: var(--bg-card); margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+[data-theme="dark"] .tree-row { box-shadow: none; }
 .tree-row:hover { background: var(--bg-section); }
 /* Was purple (current) / orange (focused) — same "no color outside the
    3 instruments" rule; both are just browsing-position indicators, not
    required/status/sync, so both go ink/neutral, not a 4th/5th hue. */
-.tree-row.current { border-color: var(--octave-black); background: var(--bg-section); }
-[data-theme="dark"] .tree-row.current { border-color: var(--white); }
+.tree-row.current { border-color: var(--octave-black); background: var(--bg-section); box-shadow: 0 2px 6px rgba(0,0,0,.1); }
+[data-theme="dark"] .tree-row.current { border-color: var(--white); box-shadow: none; }
 .tree-row.focused { border-color: var(--gray-3); }
-.tree-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-section); color: var(--gray-4); }
+.tree-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-section); color: var(--gray-4); border: 1px solid var(--border); }
 .tree-row.current .tree-icon { background: var(--bg-card); color: var(--octave-black); }
 [data-theme="dark"] .tree-row.current .tree-icon { color: var(--white); }
 .tree-body { flex: 1; min-width: 0; }
@@ -1059,7 +1083,10 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 [data-theme="dark"] .tree-desc { color: rgba(255,255,255,0.9); }
 .tree-row.current .tree-desc { font-weight: 700; }
 .tree-code { font-family: var(--font-mono); font-size: 11px; color: var(--gray-4); margin-top: 1px; }
-.tree-here { font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--octave-black); background: none; border: 1px solid var(--border-strong); padding: 2px 7px; border-radius: 100px; flex-shrink: 0; }
+/* Border bumped border-strong→2px (was 1px), same reasoning as .tree-row
+   above — this pill is the "you are here" marker, worth it standing out
+   more, not less, than the rows around it. */
+.tree-here { font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--octave-black); background: none; border: 2px solid var(--border-strong); padding: 2px 7px; border-radius: 100px; flex-shrink: 0; }
 [data-theme="dark"] .tree-here { color: var(--white); }
 .tree-guide { position: absolute; left: -14px; top: -8px; bottom: 24px; width: 14px; border-left: 2px solid var(--border-strong); border-bottom: 2px solid var(--border-strong); border-radius: 0 0 0 8px; }
 .tree-caret { width: 26px; height: 26px; border-radius: 6px; border: none; background: none; color: var(--gray-4); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: transform .15s; }
@@ -1093,12 +1120,28 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    local override of these same classes is covered too, not just today's
    known one. ── */
 #equipmentPopup .ds-bar { margin: 12px 12px 0; padding: 11px 14px; }
-#equipmentPopup .mode-tog { margin: 10px 12px 0; padding: 3px; }
+/* Depth pass, 2026-07-24 (user report: "bit washed out, needs
+   definition... toggles and some outlines on pills and search") — the
+   base .mode-tog/.mode-btn.active pairing (eam-shared.css) leans on a
+   near-1px, 10%-opacity shadow for its active/inactive contrast, tuned
+   for a compact toggle sitting on an already-busy list screen; this
+   popup's toggle is the first real control a technician sees, worth a
+   stronger outline and a real, not barely-there, active-state shadow.
+   Scoped to #equipmentPopup only — not a change to the shared .mode-tog/
+   .mode-btn base rule every other §8.2 List/Detail consumer also uses. */
+#equipmentPopup .mode-tog { margin: 10px 12px 0; padding: 3px; border-color: var(--border-strong); }
 #equipmentPopup .mode-btn { height: auto; padding: 7px 0; font-size: 12px; }
+#equipmentPopup .mode-btn.active { box-shadow: 0 2px 6px rgba(0,0,0,.16); }
 #equipmentPopup .res-row { padding: 10px 16px 4px; }
 #equipmentPopup .res-count { font-family: var(--font-sans); }
 #equipmentPopup .ld-card-subline { color: var(--gray-4); }
 #equipmentPopup .ld-table-wrap { margin: 10px 12px 0; }
+/* Search bar (.lov-search-row, shared with every LOV/date sheet's search
+   input app-wide) had no border at all — a plain tinted pill with
+   nothing separating it from the popup background behind it. Bordered
+   here, scoped to this popup only, not the shared base rule every other
+   sheet's search bar also uses. */
+#equipmentPopup .lov-search-row { border: 1.5px solid var(--border-strong); }
 .qr-scan-overlay { position: absolute; inset: 0; background: #0b0b0d; z-index: 230; display: flex; flex-direction: column; transform: translateY(100%); transition: transform .3s cubic-bezier(.32,.72,0,1); }
 .qr-scan-overlay.open { transform: translateY(0); }
 .qr-scan-header { display: flex; justify-content: flex-end; padding: 14px; flex-shrink: 0; }
@@ -1250,10 +1293,10 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .cal-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;}
 .cal-nav-btn{width:32px;height:32px;border-radius:50%;border:none;background:var(--bg-section);color:var(--octave-black);cursor:pointer;display:flex;align-items:center;justify-content:center;}
 [data-theme="dark"] .cal-nav-btn{color:var(--white);}
-.cal-month-label{font-size:15px;font-weight:700;color:var(--octave-black);font-family:var(--font-mono);}
+.cal-month-label{font-size:15px;font-weight:700;color:var(--octave-black);font-family:var(--font-sans);}
 [data-theme="dark"] .cal-month-label{color:var(--white);}
 .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);padding:0 12px;}
-.cal-weekday{text-align:center;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--gray-4);font-family:var(--font-mono);padding:4px 0 8px;}
+.cal-weekday{text-align:center;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--gray-4);font-family:var(--font-sans);padding:4px 0 8px;}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:0 12px 8px;}
 .cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:13px;border-radius:50%;cursor:pointer;color:var(--octave-black);}
 [data-theme="dark"] .cal-day{color:var(--white);}

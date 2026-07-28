@@ -4,6 +4,7 @@
 <script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — Equipment Record View (Standard)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -390,6 +391,14 @@ const FIELD_LABELS = {
   department:'Department', pmWoDepartment:'PM WO Department', criticality:'Criticality',
   assignedTo:'Assigned To', status:'Operational Status', class:'Class', category:'Category',
   costCode:'Cost Code', manufacturer:'Manufacturer',
+};
+// openLov() falls back to LOV_TITLES[key], then a `.field-label` ancestor,
+// then the raw key — this file's LOV fields render `.attr-label` (Grid),
+// not `.field-label`, so without this object the sheet title silently
+// showed the raw data key (e.g. "department") instead of a real label.
+const LOV_TITLES = {
+  __status: 'Operational Status', department: 'Department', criticality: 'Criticality',
+  class: 'Class', manufacturer: 'Manufacturer', category: 'Category',
 };
 // Every LOV field shows code + description by default (§3.4, D6 2026-07-16
 // — CODE_VISIBLE_FIELDS is retired). LOV_CURRENT seeds from RECORD's initial

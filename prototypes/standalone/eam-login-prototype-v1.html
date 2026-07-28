@@ -4,6 +4,7 @@
 <script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — Login v1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -170,9 +171,11 @@ function startLogin() {
   // later run with nothing left to demo. Theme is deliberately untouched
   // — it's a real preference, not demo progress, and survives a fresh
   // login same as it survives navigation. Reachable from anywhere via
-  // the "Restart Demo" button in every other screen's .proto-theme-bar
-  // (initRestartDemoButton(), eam-shared.js) — that button just
-  // navigates here; this is still the only place the reset itself runs.
+  // the "Reset" button in every other screen's .proto-theme-bar
+  // (initRestartDemoButton(), eam-shared.js) or the Profile menu's real
+  // Log out item (goToLogin(), wired 2026-07-24, same shared function
+  // both call) — either just navigates here; this is still the only
+  // place the reset itself runs.
   resetDemoState();
   const overlay = document.getElementById('loginLoading');
   overlay.classList.add('show');

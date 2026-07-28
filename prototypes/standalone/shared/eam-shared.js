@@ -847,25 +847,34 @@ function resetDemoState() {
    'eamFavoriteDataspies', 'eamFavoriteEquipDS', 'eamHomeFavOrder', 'eamHomeTileOrder']
     .forEach(k => localStorage.removeItem(k));
 }
-/* Dev-only "Restart Demo" button (2026-07-23, user direction) — injected
-   into every screen's .proto-theme-bar rather than hand-copied into each
-   of the ~15 standalone files' markup (same reasoning as promoting any
-   other 2nd/3rd+ consumer here: one function, applies everywhere
-   eam-shared.js already loads). Just a navigation shortcut past
-   manually re-opening the login screen from the standalone folder — the
-   actual reset happens where it already did, in startLogin() below via
-   resetDemoState(), when the technician taps Log In there (pre-filled
-   credentials, so it's one more tap after landing). Not shown on the
-   login screen itself since that screen never calls initSharedApp() (a
-   fully custom one-off, §4.1) — nothing to restart from there anyway. */
+// Shared navigation target for both the dev-only Reset button below and
+// the real Profile menu's Log out item (2026-07-24) — same path either
+// way: land on the login screen; the actual reset only happens where it
+// always did, in startLogin() below via resetDemoState(), when Log In
+// is actually tapped there.
+function goToLogin() { location.href = 'eam-login-prototype-v1.html'; }
+
+/* Dev-only "Reset" button (2026-07-23, user direction; relabeled from
+   "Restart Demo" 2026-07-24 — same button/behavior, shorter text) —
+   injected into every screen's .proto-theme-bar rather than hand-copied
+   into each of the ~15 standalone files' markup (same reasoning as
+   promoting any other 2nd/3rd+ consumer here: one function, applies
+   everywhere eam-shared.js already loads). Just a navigation shortcut
+   past manually re-opening the login screen from the standalone folder
+   — the actual reset happens where it always did, in startLogin() below
+   via resetDemoState(), when the technician taps Log In there (pre-
+   filled credentials, so it's one more tap after landing). Not shown on
+   the login screen itself since that screen never calls initSharedApp()
+   (a fully custom one-off, §4.1) — nothing to restart from there
+   anyway. */
 function initRestartDemoButton() {
   const bar = document.querySelector('.proto-theme-bar');
   if (!bar || document.getElementById('restartDemoBtn')) return;
   const btn = document.createElement('button');
   btn.className = 'theme-toggle';
   btn.id = 'restartDemoBtn';
-  btn.textContent = '⟲ Restart Demo';
-  btn.onclick = () => { location.href = 'eam-login-prototype-v1.html'; };
+  btn.textContent = '⟲ Reset';
+  btn.onclick = goToLogin;
   bar.appendChild(btn);
 }
 function syncErrorTierText(item) {
@@ -2114,12 +2123,16 @@ function openEdit(key, label, type) {
   openSheet('editSheet');
   // Real bug, found on a real device (2026-07-24): opening the sheet
   // never actually focused the input, so the keyboard/keypad only
-  // appeared after a 2nd, separate tap directly on the input. Delay
-  // matches openTextEditor()'s own proven pattern — the sheet is still
-  // sliding in when openSheet() returns, and an immediate focus() can be
-  // dropped by some mobile browsers if the element isn't yet considered
-  // "visible."
-  setTimeout(() => input.focus(), 250);
+  // appeared after a 2nd, separate tap directly on the input — the
+  // exact failure mode design-decisions-v3-1.md §3.4's "Land the cursor
+  // on the first tap, always" rule now exists specifically to prevent.
+  // First fix used a 250ms delay; that was still 50ms SHORTER than
+  // .bottom-sheet's own 300ms slide-in transition (eam-shared.css), so
+  // focus() was firing before the sheet finished animating in and still
+  // got dropped on some real devices/screens (WO Closing's Downtime
+  // Hours, found 2026-07-24). Bumped to 320ms — past the transition end,
+  // not just close to it — same value openTextEditor() below now uses.
+  setTimeout(() => input.focus(), 320);
 }
 function saveEdit() {
   const val = document.getElementById('editSheetInput').value;
@@ -2367,7 +2380,11 @@ function openTextEditor(key, title, onSaveCallback, initialOverride) {
   document.getElementById('textEditorDiscard').classList.remove('show');
   document.getElementById('textEditorCloseBtn').style.display = '';
   openSheet('textEditorSheet');
-  setTimeout(() => document.getElementById('textEditorTextarea').focus(), 250);
+  // 250ms → 320ms, 2026-07-24 — same fix as openEdit() above, same root
+  // cause: 250ms was shorter than .bottom-sheet's own 300ms transition,
+  // so this carried the identical latent race, just not the one that
+  // got caught on a real device first.
+  setTimeout(() => document.getElementById('textEditorTextarea').focus(), 320);
 }
 function textEditorInputChanged() {
   if (textEditorAwaitingDiscard) {

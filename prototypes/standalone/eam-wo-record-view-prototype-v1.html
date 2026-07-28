@@ -4,6 +4,7 @@
 <script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — WO Record View</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -404,6 +405,20 @@
     </div>
   </div>
 
+  <!-- Question message — 3-outcome Yes/No/Cancel modal (markup only,
+       behavior in eam-shared.js). New consumer 2026-07-24: startWork()'s
+       "start the timer?" prompt for Free Form WOs (§15.4/§20). -->
+  <div class="confirm-overlay" id="questionOverlay">
+    <div class="question-modal">
+      <div class="question-message" id="questionMessage">Are you sure?</div>
+      <div class="question-actions">
+        <button class="question-btn yes" onclick="questionAnswerYes()">Yes</button>
+        <button class="question-btn no" onclick="questionAnswerNo()">No</button>
+        <button class="question-btn cancel" onclick="closeQuestion()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <div class="bottom-sheet" id="commentActionsSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
@@ -722,7 +737,13 @@ const ACTIVITY_MATERIAL_LIST_OPTIONS = [
   { code: 'ML-PUMP-01', desc: 'Pump Rebuild Kit' },
 ];
 const LOV_DATA = {
-  __status: [{code:'WAPPR',desc:'Work Request'},{code:'RELEASED',desc:'Released'},{code:'CLOSE',desc:'Closed'}],
+  // COMPLETED added 2026-07-24 (§15.4/§20, closed-field-protection pass) —
+  // WO Closing's Option D can target Completed, but this header's own
+  // __status LOV never had a real code for it, only CLOSE (mapped from
+  // Closing's own 'closed' key) and RELEASED. Needed so re-opening the
+  // status picker after a Completed close shows the right value selected
+  // instead of silently falling back to whatever it was before closing.
+  __status: [{code:'WAPPR',desc:'Work Request'},{code:'RELEASED',desc:'Released'},{code:'CLOSE',desc:'Closed'},{code:'COMPLETED',desc:'Completed'}],
   type: [{code:'CM',desc:'Corrective Maintenance'},{code:'PM',desc:'Preventive Maintenance'},{code:'BREAKDOWN',desc:'Breakdown'}],
   priority: [{code:'LOW',desc:'Low'},{code:'MEDIUM',desc:'Medium'},{code:'HIGH',desc:'High'},{code:'CRITICAL',desc:'Critical'}],
   department: [{code:'WATER',desc:'Water Utility'},{code:'MAINT',desc:'Maintenance'},{code:'OPS',desc:'Operations'}],
@@ -773,7 +794,48 @@ const BADGE_LOV_META = { type: TYPE_META, priority: PRIORITY_META };
 // of that neutral/outlined tier into its own orange fill (st-waiting,
 // eam-shared.css) 2026-07-22, user direction — mirrors the same code's
 // "Waiting approval" fix already applied to WO List's status pill.
-const STATUS_CLASS_MAP = { WAPPR: 'st-waiting', RELEASED: 'st-operational', CLOSE: 'st-standby' };
+const STATUS_CLASS_MAP = { WAPPR: 'st-waiting', RELEASED: 'st-operational', CLOSE: 'st-standby', COMPLETED: 'st-standby' };
+// Closed/Completed field protection (§15.4, added 2026-07-24, user
+// direction): "all WO fields except Status are protected when the WO's
+// system status is Closed (Completed too)." Runs at load (see the
+// closedStatusKey hand-off below) and again on every real Status change
+// via LOV_ON_SELECT.__status — reopening to Released un-protects
+// everything live, not just after a fresh page load. Organization's own
+// pill is untouched either way — it's already permanently protected
+// regardless of WO status, a separate, pre-existing rule (§9.3).
+const CLOSED_STATUS_CODES = new Set(['COMPLETED', 'CLOSE']);
+// .attr-item fields (Type/Priority/Equipment) get the dim/no-pointer
+// .attr-item.protected treatment only — no lock-icon insertion, since
+// none of the 3 has an existing chevron/icon slot to swap it into (a
+// possible future polish, not done this pass). .form-field fields get
+// the fuller treatment: same .protected dimming, PLUS swapping their
+// trailing chevron for the real .field-lock icon and back, matching
+// every other protected List row in the app.
+const CLOSED_PROTECT_GRID_FIELDS = ['type', 'priority', 'equipment'];
+const CLOSED_PROTECT_LIST_FIELDS = ['department', 'assignedTo', 'reportedBy', 'dateReported', 'problemCode'];
+const FIELD_LOCK_SVG = '<span class="field-lock"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>';
+let closedFieldHandlers = {};
+function applyClosedFieldProtection() {
+  const isClosed = CLOSED_STATUS_CODES.has(LOV_CURRENT.__status);
+  [...CLOSED_PROTECT_GRID_FIELDS, ...CLOSED_PROTECT_LIST_FIELDS].forEach(key => {
+    const el = document.querySelector(`[data-field="${key}"]`);
+    if (!el) return;
+    el.classList.toggle('protected', isClosed);
+    if (isClosed) {
+      if (!(key in closedFieldHandlers)) closedFieldHandlers[key] = el.onclick;
+      el.onclick = () => showToast('WO is closed — fields are protected until reopened.');
+    } else if (key in closedFieldHandlers) {
+      el.onclick = closedFieldHandlers[key];
+    }
+    // List rows only (§20 note above) — swap the trailing chevron for the
+    // real lock icon and back, matching every other protected List row.
+    const trailIcon = el.querySelector('.field-chevron, .field-lock');
+    if (!trailIcon) return;
+    if (isClosed && trailIcon.classList.contains('field-chevron')) trailIcon.outerHTML = FIELD_LOCK_SVG;
+    else if (!isClosed && trailIcon.classList.contains('field-lock')) trailIcon.outerHTML = '<span class="field-chevron">›</span>';
+  });
+}
+const LOV_ON_SELECT = { __status: applyClosedFieldProtection };
 // Closing hand-off (2026-07-23) — maps WO Closing's own Option D target-
 // status keys (completed/closed/onhold, §19.2) onto this header's locked
 // 3-status vocabulary above for display only. Closing never produces the
@@ -785,9 +847,17 @@ const STATUS_CLASS_MAP = { WAPPR: 'st-waiting', RELEASED: 'st-operational', CLOS
 // this header's own __status LOV (WAPPR/RELEASED/CLOSE) — see
 // design-decisions-v3-1.md §15.4/§19.2 for the existing note on this gap.
 const CLOSING_STATUS_MAP = {
-  completed: { label: 'Completed', cls: 'st-standby' },
-  closed:    { label: 'Closed',    cls: 'st-standby' },
-  onhold:    { label: 'On hold',   cls: 'st-waiting' },
+  // `code` added 2026-07-24 (§15.4/§20) — this hand-off used to only ever
+  // touch the status button's own className/text directly, never the
+  // real LOV_CURRENT.__status value underneath, so re-opening the status
+  // picker after a close showed the WO's pre-close selection still
+  // checked, not Completed/Closed/On hold. Now keeps both in sync, and
+  // drives the new closed-field-protection sweep below (only COMPLETED/
+  // CLOSE count as "closed" for that purpose — On Hold does not, the WO
+  // is paused, not finished, every other field should stay editable).
+  completed: { label: 'Completed', cls: 'st-standby', code: 'COMPLETED' },
+  closed:    { label: 'Closed',    cls: 'st-standby', code: 'CLOSE' },
+  onhold:    { label: 'On hold',   cls: 'st-waiting',  code: 'WAPPR' },
 };
 // Custom Fields (§22) gating values — not user-visible/editable fields
 // on this screen (no design decision yet to add a Class picker here),
@@ -896,8 +966,15 @@ if (closedStatusKey) {
   if (mappedStatus) {
     document.getElementById('recStatusBtn').className = 'rec-status-btn ' + mappedStatus.cls;
     document.getElementById('recStatusBtnText').textContent = mappedStatus.label;
+    // Keep the real LOV value in sync with the button, not just its
+    // visual class/text (2026-07-24, see CLOSING_STATUS_MAP's own note).
+    LOV_CURRENT.__status = mappedStatus.code;
   }
 }
+// Closed/Completed field protection itself (applyClosedFieldProtection())
+// can't run yet — the fields it targets don't exist in the DOM until
+// renderRecordViewTab() actually runs, down in the init block below. See
+// that call for the real invocation and why.
 
 /* ═══════════════════════════════════════════════════════════════════════
    NAV
@@ -1251,6 +1328,28 @@ function startWork() {
   // WO status transition on Start (e.g. → "In Progress") depends on a field
   // on the not-yet-modeled WO Workflow Setup record (§15.4) — not
   // implemented here, flagged there rather than guessed at.
+  // Timer gate, added 2026-07-24 (user direction, §15.4/§20): a Not Free
+  // Form (guided) workflow keeps its existing implicit behavior — the
+  // timer is a real, enforced part of that workflow, so it starts the
+  // instant work starts, no prompt. A Free Form workflow does NOT get an
+  // implicit timer start anymore — it's real, deliberate work the
+  // technician has to opt into, via the same openQuestion() 3-outcome
+  // modal used elsewhere in this app, not a silent side effect of tapping
+  // Start Work. eamTimerRunning (sessionStorage) is the real gate every
+  // downstream screen checks — Activity Checklist/Issue Parts only call
+  // startStepTimer() when it's set, Book Labor only treats itself as
+  // "arrived after the timer stopped" when it was actually running to
+  // begin with (see those files' own init code).
+  if (CURRENT_WORKFLOW && CURRENT_WORKFLOW.freeForm) {
+    openQuestion('Start the timer for this work order?',
+      () => { sessionStorage.setItem('eamTimerRunning', 'true'); proceedStartWork(); },
+      () => { sessionStorage.removeItem('eamTimerRunning'); proceedStartWork(); });
+    return;
+  }
+  sessionStorage.setItem('eamTimerRunning', 'true');
+  proceedStartWork();
+}
+function proceedStartWork() {
   // Every configured workflow's 2nd step is Activity Checklist (both BRKD
   // and PM). Locked in 2026-07-22 (user direction): the §11 fallback
   // (ROUT) now keeps a real, working Start Work bar too instead of hiding
@@ -1408,6 +1507,16 @@ function renderRecordViewTab() {
 /* ── init ── */
 applyCustomFields('wo', RECORD_CLASS, RECORD_CLASS_ORG, (typeof WO_19257 !== 'undefined' && WO_19257.customFieldValues) || {});
 document.getElementById('recordContentSlot').innerHTML = renderRecordViewTab();
+// Closed/Completed field protection (§15.4, added 2026-07-24, user
+// direction) — must run after the render immediately above, not before:
+// Type/Priority/Equipment/Department/Assigned To/Reported By/Date
+// Reported/Problem Code don't exist in the DOM until this point. Covers
+// landing here via the WO Closing hand-off above, or any future path
+// that opens a WO already Closed/Completed; LOV_ON_SELECT.__status
+// (declared earlier) re-runs this same function live on every real
+// Status change, so reopening to Released un-protects everything
+// immediately, not just after a fresh page load.
+applyClosedFieldProtection();
 renderCommentsExcerptMount();
 renderDocumentsExcerptMount();
 updateStartGate();
