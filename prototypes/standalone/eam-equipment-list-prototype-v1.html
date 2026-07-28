@@ -511,8 +511,10 @@ function isFavoriteEquipDS(id) { return getFavoriteEquipDS().some(f => f.id === 
 function toggleFavEquipDS(id) {
   const list = getFavoriteEquipDS();
   const idx = list.findIndex(f => f.id === id);
+  // Toast added 2026-07-28, direct instruction — only on the add branch,
+  // same as WO List's own toggleFavDS().
   if (idx > -1) list.splice(idx, 1);
-  else { const d = DS.find(x => x.id === id); list.push({ id: d.id, name: d.name }); }
+  else { const d = DS.find(x => x.id === id); list.push({ id: d.id, name: d.name }); showToast('Added to your home screen.'); }
   localStorage.setItem(LS_FAVORITE_EQUIP_DS_KEY, JSON.stringify(list));
   openEquipDsSheet();
 }

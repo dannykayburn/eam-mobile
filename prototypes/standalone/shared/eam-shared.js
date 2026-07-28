@@ -206,6 +206,19 @@ function woTypeBadgeMetaForCode(code) {
 // asCircle=true (renderFlatStepRail, §11 fallback): the same icon inside
 // a solid filled circle instead — no glow (plain neutral shadow), the
 // circle itself is the free-form cue.
+// Icon glyph hides whenever the timer pill (Activity Checklist/Issue
+// Parts, #timerPill) is visible in this same .step-rail-right (added
+// 2026-07-28, direct instruction) — sitting right next to a coloured,
+// pulsing timer pill, the icon reads as part of that timer widget, not a
+// WO Type indicator. Colour still carries either way: the rail's own
+// glow for the icon case, this slot's own background fill for the
+// circle case — only the glyph itself disappears (empty span collapses
+// via .step-rail-type-icon:empty{display:none}, eam-shared.css; the
+// circle stays visible at its fixed size, now just a plain colour dot).
+// Only reflects the timer's state at the moment this function runs
+// (page load, via onDemoWoChanged()) — stopping the timer without
+// leaving the page doesn't currently re-trigger this (a pre-existing gap
+// in the timer's own stop handling, not introduced here).
 function renderStepRailTypeSlot(rail, jobType, asCircle) {
   if (!rail) return;
   const right = rail.querySelector('.step-rail-right');
@@ -223,7 +236,9 @@ function renderStepRailTypeSlot(rail, jobType, asCircle) {
   slot.className = 'step-rail-type-slot ' + (asCircle ? 'step-rail-type-circle' : 'step-rail-type-icon');
   slot.style.background = asCircle ? meta.color : '';
   slot.style.color = asCircle ? '' : meta.color;
-  slot.innerHTML = woTypeIconSvg(meta.family, asCircle ? 12 : 15);
+  const timerPill = right.querySelector('.timer-pill');
+  const timerShowing = !!timerPill && timerPill.style.display !== 'none';
+  slot.innerHTML = timerShowing ? '' : woTypeIconSvg(meta.family, asCircle ? 12 : 15);
 }
 /* Renders the step-rail's step-map + progress segments + step-name from a
    resolved workflow's own step list — replaces each of the 5 WO-workflow

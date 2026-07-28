@@ -1229,8 +1229,11 @@ function isFavoriteDS(id){ return getFavoriteDS().some(f=>f.id===id); }
 function toggleFavDS(id){
   const list=getFavoriteDS();
   const idx=list.findIndex(f=>f.id===id);
+  // Toast added 2026-07-28, direct instruction — only on the add branch;
+  // un-favoriting stays silent, same as before (removing something you
+  // just starred isn't a state worth announcing the same way).
   if(idx>-1) list.splice(idx,1);
-  else { const d=DS.find(x=>x.id===id); list.push({id:d.id,name:d.name}); }
+  else { const d=DS.find(x=>x.id===id); list.push({id:d.id,name:d.name}); showToast('Added to your home screen.'); }
   localStorage.setItem(LS_FAVORITE_DS_KEY,JSON.stringify(list));
   openDS();
 }

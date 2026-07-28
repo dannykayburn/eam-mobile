@@ -1457,7 +1457,12 @@ Replaces any screen's previously-fixed/hardcoded chip or sort list.
 - **Favorite.** Each row in the dataspy selector bottom sheet gets a
   star toggle; tapping favorites/unfavorites that dataspy. Favorited
   dataspies sort to the top of the sheet's list, above the rest (which
-  keep their existing order).
+  keep their existing order). **Toast on add, added 2026-07-28**
+  (`toggleFavDS()`/`toggleFavEquipDS()`) — "Added to your home screen."
+  confirms the dataspy now has a Home Favorites chip (§24.2), since the
+  star's own filled state is easy to miss inside a sheet that's about to
+  close. Un-favoriting stays silent — removing something you just
+  starred isn't a state worth announcing the same way.
 
 ### Applied to
 
@@ -3379,6 +3384,24 @@ Types or the Corrective example).
 **Not yet extended:** Insert Mode's own Type picker (§9.6/§9.7,
 `ENTITY_FIELD_META`) still renders its Type/Status badges outline-only —
 flagged as a follow-up in `eam-shared.js`, not done here.
+
+**Icon hides while the timer pill is showing, added 2026-07-28 (direct
+instruction).** On Activity Checklist/Issue Parts (the only 2 steps with
+a running-timer pill in `.step-rail-right`, §14.2/§18.2), the WO Type
+icon glyph sitting right next to a coloured, pulsing timer pill read as
+part of that timer widget, not a WO Type indicator — a real "which
+instrument is this" mix-up, not just a style nitpick. Fix: the icon
+glyph hides whenever `#timerPill` is visible in that same slot
+(`renderStepRailTypeSlot()`); the colour itself stays either way — the
+rail's own glow for a real configured workflow, or the circle's own
+background fill for the §11 free-form fallback (that shape stays visible
+at its fixed size with no icon inside; only the plain-icon case's now-
+empty span actually collapses, via `.step-rail-type-icon:empty`). Known
+limitation, not fixed here: this only reflects the timer's state as of
+the step rail's own render call (page load) — stopping the timer without
+leaving the page doesn't currently re-trigger it, a pre-existing gap in
+the timer's own stop handling (`stopStepTimer()` never touches
+`#timerPill`'s visibility or re-renders the rail).
 
 ## 23.4 Priority Colour — High, a 6th instrument
 

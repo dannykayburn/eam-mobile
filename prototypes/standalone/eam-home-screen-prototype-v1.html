@@ -739,7 +739,12 @@ function goToScreen(screen, spy) {
 // are new WO List dataspies added this same pass specifically to give
 // Corrective/Closed a real target — see eam-wo-list-prototype-v5_1.html.
 let HOME_TILES = [
-  { id:'tile1', name:"Corrective WO's",   icon:'tool',      color:'#F46600', count:18,  group:'mywork',   screen:'wo',    spy:'ds9' },
+  // tile1 replaced 2026-07-28 (prototype-only, direct instruction) —
+  // was "Corrective WO's" -> ds9. Now "My Assigned WO's" -> WO List's
+  // own ds1, its default dataspy (spy omitted, same "already matches
+  // the destination's default" convention as the Equipment tile below)
+  // — the same real 3-demo-WO dataspy WO List itself opens on.
+  { id:'tile1', name:"My Assigned WO's",  icon:'tool',      color:'#F46600', count:3,   group:'mywork',   screen:'wo' },
   { id:'tile2', name:"My PM WO's",        icon:'cal-check', color:'#00AA14', count:12,  group:'mywork',   screen:'wo',    spy:'ds8' },
   // Added 2026-07-23 (user direction) — same 'mywork' group as the 2
   // above, pointed at WO List's own ds3 ("High Priority — Open," already

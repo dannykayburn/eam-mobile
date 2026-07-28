@@ -475,6 +475,14 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    suspenders on top of .step-rail-right's inherited centering. */
 .step-rail-type-icon{display:flex;align-items:center;flex-shrink:0;align-self:center;}
 .step-rail-type-icon svg{display:block;}
+/* Empty while the timer pill is showing (renderStepRailTypeSlot(),
+   2026-07-28) — collapses the now-content-less span entirely rather
+   than leaving an invisible gap-sized gap in .step-rail-right, same
+   :empty convention .attr-badge:empty already uses. Deliberately not
+   applied to .step-rail-type-circle below — that shape stays visible at
+   its fixed size even with no icon inside, since its own background
+   fill is what carries the WO Type colour in the free-form case. */
+.step-rail-type-icon:empty{display:none;}
 .step-rail-type-circle{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;align-self:center;}
 /* Same WO Type colour, smallest surface — a plain solid dot next to the
    Type value on a list/card row (WO List §6.7). No icon at this size;
