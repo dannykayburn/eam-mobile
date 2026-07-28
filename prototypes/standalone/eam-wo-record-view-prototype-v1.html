@@ -1429,7 +1429,17 @@ function applyDemoWoType() {
   LOV_CURRENT.type = t.code;
   const badgeEl = document.getElementById('fv-type-badge');
   const descEl = document.getElementById('fv-type-desc');
-  if (badgeEl) badgeEl.outerHTML = renderColorBadge(TYPE_META[t.code]).replace('<span ', 'id="fv-type-badge" ');
+  // Bug fix 2026-07-28: the replacement string was missing the literal
+  // `<span` tag itself (just `'id="fv-type-badge" '`), so this deleted
+  // the opening tag entirely on every load -- the resulting garbage HTML
+  // showed as literal visible text where the badge should render, and
+  // left no element actually carrying id="fv-type-badge" in the DOM at
+  // all, so selectLov()'s later lookup of that id returned null and
+  // threw, silently aborting the rest of selectLov() (no toast, sheet
+  // never closed) -- "new Type values aren't selectable." Same pattern
+  // as eam-shared.js's own selectLov()/applyEntityConfig() calls, which
+  // were never broken -- this was the one place that dropped the tag.
+  if (badgeEl) badgeEl.outerHTML = renderColorBadge(TYPE_META[t.code]).replace('<span ', '<span id="fv-type-badge" ');
   if (descEl) descEl.textContent = t.desc;
 }
 let CURRENT_WORKFLOW = null;

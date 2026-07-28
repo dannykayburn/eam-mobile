@@ -303,6 +303,11 @@
 <div class="proto-theme-bar">
   <span class="proto-theme-label">Preview theme</span>
   <button class="theme-toggle" id="themeToggle">☀ Light</button>
+  <!-- Demo-only connectivity toggle (§4.5) — was missing on this screen
+       entirely (2026-07-28 fix); every other main screen already has one,
+       driving the same shared DEMO_ONLINE/DEMO_SYNCED_OVERRIDE flags
+       (eam-shared.js). -->
+  <button class="theme-toggle" id="onlineToggle" onclick="toggleDemoOnline()">🌐 Synced</button>
 </div>
 
 <div class="app" id="app">
@@ -978,6 +983,7 @@ let RECORD = {};
 renderEntityFields(); // pre-render defaults so the sheet isn't empty the first time it opens
 
 initSharedApp({ contentSelector: '.home-body' });
+initDemoOnlineToggle();
 </script>
 </body>
 </html>

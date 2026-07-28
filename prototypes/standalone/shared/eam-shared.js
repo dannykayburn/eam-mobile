@@ -258,6 +258,7 @@ function renderStepRail(workflow, activeStep, jobType) {
   }).join('') + STEP_MAP_REFERENCE_GROUP_HTML;
   if (seg) {
     seg.classList.remove('flat');
+    seg.style.display = ''; // undo renderFlatStepRail()'s display:none, in case this rail was flat a moment ago
     seg.innerHTML = steps.map((s, i) => `<div class="seg ${i < activeIdx ? 'seg-done' : i === activeIdx ? 'seg-active' : 'seg-future'}"></div>`).join('');
   }
 }
@@ -290,10 +291,14 @@ function renderFlatStepRail(activeStep, jobType) {
   if (nameEl) nameEl.textContent = WO_STEP_LABELS[activeStep] || '';
   rail.classList.remove('rail-not-free-form'); // §11 fallback is always Free Form
   renderStepRailTypeSlot(rail, jobType, true);
-  // No numbered progress bar in flat mode — a plain dashed divider instead
-  // (§14.2, 2026-07-23) so the row reads as "deliberately unstructured,"
-  // not "missing." Zero color, chosen from this session's mockup Option 3.
-  if (seg) { seg.classList.add('flat'); seg.innerHTML = '<div class="seg-flat-dash"></div>'; }
+  // No numbered progress bar in flat mode, and (2026-07-28, direct
+  // instruction) no dashed stand-in either any more — the 2026-07-23
+  // dashed divider is retired; the WO Type circle badge in
+  // .step-rail-right (renderStepRailTypeSlot(), §23.3) already carries
+  // the "this is free-form" cue on its own now, so a 2nd signal in this
+  // row was redundant. Hidden outright, not just emptied, so the pill
+  // doesn't keep the row's own bottom padding with nothing in it.
+  if (seg) { seg.classList.remove('flat'); seg.innerHTML = ''; seg.style.display = 'none'; }
   const timerPanel = map.querySelector('.step-timer-panel');
   map.innerHTML = (timerPanel ? timerPanel.outerHTML : '') + WO_FLAT_STEPS.map(s => `
     <div class="step-map-item${s === activeStep ? ' active' : ''}" onclick="${s === activeStep ? 'collapseCurrentRail()' : `goToWoStep('${s}')`}">
@@ -916,8 +921,10 @@ function persistSyncItems() { localStorage.setItem('eamSyncItems', JSON.stringif
    "does this actually look like a fresh start" a real question for the
    first time instead of a theoretical one). Clears all of it so the
    next load falls back to every file's own hardcoded seed data:
-   - eamSyncItems/eamSyncOnline — the sync outbox demo (2 errors,
-     offline), as before.
+   - eamSyncItems/eamSyncOnline/eamSyncForceSynced — the sync outbox
+     demo. Connectivity now defaults to Synced (2026-07-28), not
+     Offline-with-2-errors — flip the nav-bar toggle by hand to see the
+     real outbox/error state again.
    - eamNextWoNumber/eamNextEquipNumber — Insert Mode's auto-increment
      counters (Home/WO List's Create), so newly-inserted demo records
      restart from 19258/00067400 instead of continuing to climb.
@@ -1211,12 +1218,16 @@ function reviewSyncItem(id) {
 /* ── Demo connectivity toggle (2026-07-20) — this app has no real backend
    in prototype form, so "online" is a flag a reviewer flips by hand to
    see both Retry outcomes (§4.5): queued-while-offline vs. attempts-now-
-   and-succeeds. Defaults false — the whole outbox/error premise is that
-   the technician was offline when these were queued. ── */
-let DEMO_ONLINE = false;
+   and-succeeds. Default flipped to Synced 2026-07-28 (demo/prototype
+   convenience only, no design decision) — a live demo landing on
+   Offline/Error by default was the exact thing DEMO_SYNCED_OVERRIDE was
+   built to avoid; defaulting to it too means Reset/first-load starts
+   clean without an extra tap. Flip to Offline/Online by hand to show the
+   real outbox/error states again. ── */
+let DEMO_ONLINE = true;
 // 3rd toggle state, added 2026-07-28 (demo/prototype convenience only,
 // no design decision) — see syncOverallState()'s own comment for why.
-let DEMO_SYNCED_OVERRIDE = false;
+let DEMO_SYNCED_OVERRIDE = true;
 // Restored the same way as SYNC_DEMO_ITEMS above (separate IIFE since
 // DEMO_ONLINE isn't declared yet at that point in the file — let's TDZ
 // would throw if this ran any earlier).
@@ -1711,20 +1722,46 @@ function shouldHideClear(key, el) {
 
 /* ══════════════════════════════════════════════════════════════════════
    REQUIRED-FIELD-COUNT CONTAINER INDICATORS (§5.2, 2026-07-16; revised
-   2026-07-20) — REMOVED 2026-07-28, direct instruction: every required
-   field's own edit popup already blocks Clear (isRequiredField()/
+   2026-07-20) — REMOVED app-wide 2026-07-28, direct instruction: every
+   required field's own edit popup already blocks Clear (isRequiredField()/
    shouldHideClear() above), so this badge was counting a state that
-   can't happen — pure visual noise spending part of the app's red
-   instrument on a redundant signal. Kept as a no-op below (only ever
-   removes a stray badge, never creates one) rather than deleting the
-   function outright and its call sites — every save/select/clear/blur
-   path in this file still calls updateRequiredBadges(), and rewiring
-   all of them for one removed feature would be a much larger, unrelated
-   diff for no behavioral gain. See design-decisions-v3-1.md §21 if this
-   needs reverting.
+   can't happen on an existing record — pure visual noise spending part
+   of the app's red instrument on a redundant signal.
+   REINSTATED the same day for Insert Mode only (design-decisions-v3-1.md
+   §9.8) — a blank Insert form has no values yet and Clear isn't even
+   relevant, so the removal's own reasoning doesn't hold there; seeing
+   what's required before you start filling is genuinely useful. Every
+   save/select/clear/blur path in this file still calls
+   updateRequiredBadges() unconditionally (rewiring all of them to know
+   whether they're "inside Insert Mode" would be a much larger, unrelated
+   diff) — the scoping happens inside this one function instead: it
+   removes any stray badge everywhere else, and only counts/creates one
+   for containers within #insertModeSheet. See design-decisions-v3-1.md
+   §21 if the app-wide removal itself needs reverting.
    ══════════════════════════════════════════════════════════════════════ */
 function updateRequiredBadges() {
-  document.querySelectorAll('.required-count-badge').forEach(b => b.remove());
+  document.querySelectorAll('.required-count-badge').forEach(b => {
+    if (!b.closest('#insertModeSheet')) b.remove();
+  });
+  const insertSheet = document.getElementById('insertModeSheet');
+  if (!insertSheet) return;
+  insertSheet.querySelectorAll('.fg-section, .section-card').forEach(container => {
+    const header = container.querySelector(':scope > .fg-toggle-row, :scope > .section-card-header');
+    if (!header) return;
+    const requiredFields = container.querySelectorAll('.form-field.required, .attr-item.required');
+    let badge = header.querySelector('.required-count-badge');
+    if (!requiredFields.length) { if (badge) badge.remove(); return; }
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'required-count-badge';
+      // Insert before the chevron, not after — the chevron's own
+      // position must stay fixed regardless of whether a badge is
+      // present; the badge sits on the inside, next to the title.
+      const chev = header.querySelector('.fg-chev');
+      if (chev) header.insertBefore(badge, chev); else header.appendChild(badge);
+    }
+    badge.textContent = requiredFields.length;
+  });
 }
 
 /* ══════════════════════════════════════════════════════════════════════

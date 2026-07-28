@@ -225,6 +225,15 @@ to WO), Equipment List (locked to Equipment). Description is required,
 full-width, and pinned first; the Equipment field reuses the same
 Equipment Lookup component as WO Record View; flat fields sit in a
 collapsible section matching Record View's own "details" section pattern.
+**Renders the record's own screen design** (§9.8) — field set/placement/
+required-ness all come from `ENTITY_FIELD_META`/`ENTITY_FLAT_FIELDS`,
+standing in for a real Screen Designer layout. For the prototype: every
+grid field is required (both entities), plus exactly 2 flat fields per
+entity (WO: Department/Problem Code; Equipment: Department/Criticality).
+Insert Mode is also the **one documented exception** to the app-wide
+required-marker removal (§21/§23/§9.8) — the red left-bar and required-
+count badge still render, scoped to `#insertModeSheet`, since a blank
+form has nothing to Clear yet.
 
 ### Sync system
 Nav-bar sync control (`renderSyncControl()`, §4.4.1) shows 4 states
@@ -304,9 +313,18 @@ online/offline toggle is now a 3-way cycle (Offline → Online → **Synced**
 → Offline, `toggleDemoOnline()`) — Synced forces the nav-bar sync control
 green regardless of `SYNC_DEMO_ITEMS`' own seeded error rows, so a live
 demo doesn't show "Error" the whole time without manually clearing them
-first.
+first. **Defaults to Synced** (2026-07-28) — a fresh load/Reset no longer
+starts on Offline-with-2-errors; flip it by hand to see the real outbox
+state. Present on every main screen including Home (added 2026-07-28 —
+was the one screen missing it).
 
 ## Open / deferred work
+- **Insert Mode Type pill** — noted 2026-07-28, not scoped or built yet.
+  Add a 3rd pill to Insert Mode's entity→Organization pair (§9.4/§9.8),
+  for both WO and Equipment, that re-renders Insert Mode's own grid/flat
+  layout per selected Type — the same WOTYPE-driven page-layout mechanism
+  already resolved for real screens (§11–§13), live inside Insert Mode
+  itself rather than only visible after saving.
 - **Activity Insert/Update Mode** — confirmed fully unbuilt (see
   `project_deferred_screens_backlog` memory).
 - **@mention tagging in Comments** — not built (see

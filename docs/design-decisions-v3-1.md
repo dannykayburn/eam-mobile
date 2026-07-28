@@ -1687,6 +1687,63 @@ Equipment (both full-width, consecutive) since Description's
 always-first rule was already locked independently; revisit if the
 intended order was Equipment-then-Description.
 
+## 9.8 Insert Mode renders the record's own screen design
+
+Restated explicitly 2026-07-28 (direct instruction) — this was already
+true in substance (§9.5: "matching each entity's own real Record View
+fields, not invented"; §9.7: grid/collapsible shape matches WO Record
+View), but hadn't been stated as the governing principle on its own:
+**Insert Mode shows the same screen design the real Record View would
+use for that entity/Type** — field set, grid vs. flat-container
+placement, and required-ness all come from one config
+(`ENTITY_FIELD_META`/`ENTITY_FLAT_FIELDS`, `eam-shared.js`), standing in
+for what a real Screen Designer-authored page layout (§10) would define.
+Insert Mode is a preview of that layout with nothing filled in yet, not
+a separately-designed form.
+
+**Required-ness, locked for the prototype:**
+- **Every grid field is required** — both entities. WO: Description,
+  Equipment, Type, Status (4 of 4). Equipment: Description, Class
+  ("Type" relabeled), Status (3 of 3 — Equipment has no equipment-
+  reference field to itself require).
+- **Exactly 2 flat fields are required per entity** (§9.5's own "required-
+  first" list, unchanged, now stated as a deliberate count rather than
+  just "whichever ones happened to be required"): WO = Department +
+  Problem Code; Equipment = Department + Criticality.
+- This is a stated prototype simplification — a real customer's own
+  Screen Designer config could require anything, or nothing. The point
+  here is a rich-enough example to actually exercise the required-field
+  UI, not a claim about real-world defaults.
+
+**Required-field marker — Insert Mode is the one documented exception to
+§21/§23's app-wide removal.** The red left-bar (`.form-field.required`/
+`.attr-item.required::before`) and the collapsible section's
+`.required-count-badge` were removed everywhere else 2026-07-28 because
+every required field's own edit popup already blocks Clear on an
+*existing* record, making the marker redundant. Insert Mode is a **blank
+form** — nothing has a value yet, and Clear isn't even a relevant concept
+until something's been entered — so that reasoning doesn't hold here.
+Both markers still render, scoped to `#insertModeSheet` only
+(`eam-shared.css`'s scoped `.form-field.required::before`/
+`.attr-item.required::before` rule, and `updateRequiredBadges()`'s own
+Insert-Mode-only counting branch, both `eam-shared.js`/`.css`). §9.7's
+"working required-count badge even while collapsed" claim is this same
+mechanism — it's accurate again after this exception, having been
+briefly broken by the app-wide removal in between.
+
+**Open / deferred — Type pill next to the Org pill.** Noted for a later
+session, not scoped or built yet: add a 3rd pill to Insert Mode's
+`.im-pill-row` (§9.4), a Type pill chained after the existing entity→
+Organization pair, for both WO and Equipment. Selecting a Type there
+would re-render Insert Mode's own grid/flat layout to match that Type's
+own page layout — the same WOTYPE-driven per-field-layout mechanism
+already resolved for real screens (`PLO_WOTYPE` column on
+`R5PAGELAYOUT`, §11–§13) rendered live inside Insert Mode itself, not
+just on the saved record afterward. `.org-pill`'s locked "never carries a
+required marker" rule (§9.7-adjacent CSS comment) would need an explicit
+call on whether a required Type pill breaks that lock or stays exempt
+from it — not decided.
+
 # 10. Screen Designer — Standalone (Base Screens)
 
 Configures per-field layout for the standard model (which fields show,
@@ -1812,11 +1869,13 @@ ones a configured workflow gets.**
   `#stepRail`/`#stepMap` shell. Tapping a row is a real cross-file
   navigation (`goToWoStep()`), carrying the demo WO's identity forward via
   the same `eamOpenDemoWo` consume-once flag WO List's `openWO()` uses.
-  The segments row shows a single full-width dashed divider
-  (`.seg-flat-dash`) instead of rendering nothing — a positive "no
-  sequence" cue, deliberately zero color (an admin-set Type color on this
-  rail was explored and not adopted — risk of a picked hue clashing with
-  the app's palette).
+  The segments row itself is hidden outright (`display:none`, revised
+  2026-07-28, direct instruction) — it briefly showed a dashed divider
+  (`.seg-flat-dash`, 2026-07-23) as a positive "no sequence" cue instead
+  of rendering nothing, but that's now redundant: the WO Type circle
+  badge in `.step-rail-right` (§23.3, built after this bullet was
+  originally written) already signals "this is free-form" on its own,
+  so a 2nd cue in the segments row just duplicated it.
 - **Bottom bar:** stays real and working. WO Record View's bar reads
   "Start Work" exactly like a configured workflow's Step 1 (gated on "an
   activity is selected") and goes to Activity Checklist once tapped. Each
@@ -1966,6 +2025,14 @@ one consumer so far.
   15px so the "current screen name" text doesn't visibly shrink between
   collapsed and expanded. `.nav-title` (the header's own screen name)
   matches at 15px too (§4.2).
+- **Vertical centering, tightened 2026-07-28** — the collapsed row's own
+  `align-items:center` was already geometrically correct, but `.step-name`/
+  `.tab-rail-name`'s default line-height left extra invisible box space
+  that read as slightly off against the fixed-size WO Type icon/chevron
+  next to it. Both now set `line-height:1` + explicit `align-self:center`,
+  matched by `align-self:center` on `.step-rail-right` and the WO Type
+  icon/circle slots inside it — belt-and-suspenders on top of the
+  inherited centering, not a replacement for it.
 
 ## 14.3 Step map (expanded)
 

@@ -370,7 +370,14 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 /* 14px→15px, 2026-07-24 — matches .nav-title's own bump the same session
    (see that rule's comment), so the rail's current-screen name reads at
    the same size as the top-most header name it echoes. */
-.tab-rail-name{font-size:15px;font-weight:700;color:var(--octave-black);flex:1;}
+/* line-height:1 + align-self:center added 2026-07-28 (direct instruction)
+   — the collapsed row already had align-items:center, but this text's
+   own default line-height left extra box space above/below the glyphs
+   that flex centering centers along with, reading as slightly off
+   against the fixed-size type icon/chevron next to it; tightening the
+   line box makes the centering visually exact, not just geometrically
+   correct. */
+.tab-rail-name{font-size:15px;font-weight:700;line-height:1;color:var(--octave-black);flex:1;align-self:center;}
 [data-theme="dark"] .tab-rail-name{color:var(--white);}
 .tab-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
 .tab-rail.expanded, .step-rail.expanded{padding-bottom:14px;}
@@ -412,9 +419,11 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 /* 13px→15px, 2026-07-24, same rationale as .tab-rail-name above — also
    deduplicates this rule, which had been accidentally declared twice
    back to back (harmless, just redundant; caught while touching it). */
-.step-name{flex:1;text-align:left;font-size:15px;font-weight:600;color:var(--octave-black);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* line-height:1 + align-self:center added 2026-07-28 — same fix and same
+   reason as .tab-rail-name above. */
+.step-name{flex:1;text-align:left;font-size:15px;font-weight:600;line-height:1;color:var(--octave-black);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;align-self:center;}
 [data-theme="dark"] .step-name{color:var(--white);}
-.step-rail-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.step-rail-right{display:flex;align-items:center;gap:8px;flex-shrink:0;align-self:center;}
 /* Timer pill — moved into .step-rail-right (2026-07-22, was its own
    .step-rail-left slot on the opposite side) and recolored green: this
    is a live-running-time indicator, not a purple wash/section-badge
@@ -441,31 +450,32 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 [data-theme="dark"] .seg-active{background:var(--white);}
 .seg-future{background:var(--gray-2);}
 [data-theme="dark"] .seg-future{background:var(--gray-5);}
-/* Flat rail's own "no sequence" cue (§14.2, added 2026-07-23, chosen from
-   the step-rail-workflow-vs-freeform-options.html mockup's Option 3) — a
-   plain dashed divider standing in for the numbered segments, instead of
-   rendering nothing at all (renderFlatStepRail() previously just cleared
-   this row, seg.innerHTML=''). Signals "deliberately unstructured," not
-   "broken/missing." Zero color — same monochrome discipline as the rest
-   of this rail, no WO Type color involved. */
-.step-segments.flat{display:block;}
-.seg-flat-dash{height:0;border-top:2px dashed var(--gray-3);}
+/* Flat rail's dashed "no sequence" cue REMOVED 2026-07-28 (direct
+   instruction) — added 2026-07-23 from step-rail-workflow-vs-freeform-
+   options.html's Option 3, now redundant: the WO Type circle badge in
+   .step-rail-right (renderStepRailTypeSlot(), §23.3) already signals
+   "this is free-form" on its own. renderFlatStepRail() now hides
+   .step-segments outright (display:none) instead of rendering a dash. */
 .step-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
 /* WO Type signal on the step rail (design-decisions-v3-1.md "WO Type
    Colour + Icon Badge") — two distinct shapes, deliberately not one:
    a real configured workflow (renderStepRail()) gets a plain colour-
-   tinted icon in .step-rail-right, paired with a left-edge colour bar
-   set directly on #stepRail (inline style, not a class — always wins
-   over the shell's own `border:none` regardless of rule order). The §11
+   tinted icon in .step-rail-right, paired with a Type-tinted glow on the
+   rail's own pill shadow (--rail-glow-color, set via inline
+   style.setProperty on #stepRail — revised 2026-07-28, superseding the
+   left-edge colour bar this comment originally described, see §21's
+   named "Flush Full-Bleed Card" era for that retired mechanic). The §11
    free-form fallback (renderFlatStepRail()) gets the same icon inside a
-   solid filled circle instead, no edge bar — the circle shape itself
-   doubles as the "no configured sequence" cue this rail has needed since
+   solid filled circle instead, no glow — the circle shape itself doubles
+   as the "no configured sequence" cue this rail has needed since
    step-rail-workflow-vs-freeform-options.html first raised the question,
    so one element now answers both questions at once. Colour is always a
-   --wo-type-* var, never a raw admin hex (§23 discipline). */
-.step-rail-type-icon{display:flex;align-items:center;flex-shrink:0;}
+   --wo-type-* var, never a raw admin hex (§23 discipline). align-self:
+   center added 2026-07-28 alongside .step-name's own — belt-and-
+   suspenders on top of .step-rail-right's inherited centering. */
+.step-rail-type-icon{display:flex;align-items:center;flex-shrink:0;align-self:center;}
 .step-rail-type-icon svg{display:block;}
-.step-rail-type-circle{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;}
+.step-rail-type-circle{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;align-self:center;}
 /* Same WO Type colour, smallest surface — a plain solid dot next to the
    Type value on a list/card row (WO List §6.7). No icon at this size;
    the field label already says "Type," a dot is enough. Bumped 7px->10px
@@ -595,11 +605,18 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    inside that container is populated. Orange-tinted to match the
    required-field left-bar accent — this is a "still needs attention"
    signal, not a neutral label. */
-/* REMOVED 2026-07-28, direct instruction, same reasoning as the
+/* REMOVED app-wide 2026-07-28, direct instruction, same reasoning as the
    required left-bar above (§21 if this needs reverting) —
-   updateRequiredBadges() (eam-shared.js) is now a no-op that only ever
-   removes a stray badge, never creates one, so no rule is needed here
-   any more. */
+   updateRequiredBadges() (eam-shared.js) only ever removes a stray badge
+   outside Insert Mode now, never creates one there. REINSTATED for
+   Insert Mode only, same day (§9.8) — updateRequiredBadges() creates/
+   counts this badge again, but only for containers inside
+   #insertModeSheet, so this rule is still needed, just narrower in
+   practice than it used to be (only ever rendered there now). Outline
+   square, not filled pill (unchanged from the original palette-pass
+   rationale): red is one of this app's real color instruments, but
+   shouldn't compete as a filled surface. */
+.required-count-badge{font-family:var(--font-mono);font-size:10px;font-weight:700;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:6px;background:none;color:var(--red);border:1.5px solid var(--red);flex-shrink:0;}
 
 /* ── Collapsible section with icon + count badge (§7.2) — Comments and
    Documents specifically; every other field group uses .fg-* above. ── */
@@ -733,7 +750,13 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    warning about a state the system doesn't let a technician reach. The
    `.required` class itself stays (isRequiredField() and the new empty-
    save gate both still read it) — only this visual disappears. See
-   design-decisions-v3-1.md §21 if this needs reverting. */
+   design-decisions-v3-1.md §21 if this needs reverting.
+   REINSTATED the same day, scoped to Insert Mode only (#insertModeSheet
+   .form-field.required::before/.attr-item.required::before below,
+   grouped near the Grid variant) — a blank Insert form has nothing to
+   Clear yet, so the "will this block me" reasoning above doesn't apply
+   there; seeing what's required before you start filling is genuinely
+   useful. See design-decisions-v3-1.md §9.8. */
 .form-field.protected{background:var(--bg-section);opacity:.75;cursor:default;}
 [data-theme="dark"] .form-field.protected{background:rgba(255,255,255,.03);}
 .field-label{font-size:13px;color:var(--gray-4);width:128px;flex-shrink:0;line-height:1.35;}
@@ -996,7 +1019,16 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    .form-field.required row gets (was orange — palette pass, 2026-07-22,
    see .form-field.required above) — just on this cell instead.
    REMOVED 2026-07-28 along with .form-field.required's own bar — same
-   reasoning, see that rule's comment above. */
+   reasoning, see that rule's comment above. Also reinstated for Insert
+   Mode only, same day — see the rule immediately below. */
+/* Insert Mode's required-marker exception (design-decisions-v3-1.md
+   §9.8) — the only place in the app either bar still renders. Covers
+   both shapes (.form-field for flat fields, .attr-item for grid fields)
+   since Insert Mode uses both inside #insertModeSheet. Never applies to
+   .org-pill — pills are locked to never carry a required marker of any
+   kind (see that rule's own comment), unaffected by this exception. */
+#insertModeSheet .form-field.required::before,
+#insertModeSheet .attr-item.required::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
 /* Protected, Grid version (§5.2 field-behavior consolidation, promoted
    2026-07-24 from screen-layout-field-behavior-prototype-v1.html) —
    mirrors .form-field.protected's exact recipe onto a grid cell. Lock
