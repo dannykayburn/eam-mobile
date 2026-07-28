@@ -25,6 +25,78 @@ explicitly rather than silently documented as if it were settled.
 
 ---
 
+## Field Grid Container
+
+**Where:** the "Header Fields"/"Non-nullable Fields" box (§5.2) — any
+screen's `.section-card > .equip-attrs` (or equivalent), a 2-per-row grid
+of `.attr-item` cells. Real consumers: WO Record View, Equipment Record
+View, Insert Mode (WO/Equipment), the Activity Edit popup,
+`screen-layout-field-behavior-prototype-v1.html` (canonical reference).
+Distinct from a Collapsible Container (below) — this one has no header/
+chevron/toggle; it's a fixed, always-visible grid holding every
+non-nullable field on the screen.
+
+**Rules:** 2-per-row by default; a lone full-width field
+(`.attr-item.full-width`) spans the row — Notes/Description is always
+pinned first and full-width, Long-text always trails last and
+full-width. No section-card header of its own — the fields sit directly
+on the card. Membership doesn't imply required; a required field inside
+still gets its own left-bar treatment on just that cell. See §5.2's
+"Header Fields / Non-nullable Fields" and "Grid vs. List field-type
+consolidation" rows for the full rule set, and
+`screen-layout-field-behavior-prototype-v1.html` for a live example of
+every field type inside one.
+
+---
+
+## Collapsible Container
+
+**Where:** `.fg-section`/`.fg-toggle-row`/`.fg-collapse` — the
+expand/collapse shell used by every field-group section that isn't the
+Field Grid Container above: Equipment's Asset/Equipment/Tracking
+Details, Custom Fields, Insert Mode's flat-fields section, and the List
+half of `screen-layout-field-behavior-prototype-v1.html`'s reference
+(fields there render as `.form-field` rows, not `.attr-item` grid
+cells).
+
+**Rules:** has its own header (title + chevron), plus an optional
+required-count badge via `updateRequiredBadges()` (inserted before the
+chevron so the chevron stays at a fixed x-position whether or not a
+badge shows). All Record View sections start collapsed except the first
+(§5.2). Fields inside render as plain `.form-field` List rows, one per
+line — the "List" half of every Grid-vs-List field-type rule below.
+
+---
+
+## Field Types (category term, not a single component)
+
+**13 named field types**, each with a resolved Grid-container
+(`.attr-item`) vs. List-container (`.form-field`) rule, locked in
+design-decisions-v3-1.md §5.2's "Grid vs. List field-type consolidation"
+row. Canonical live reference:
+`screen-layout-field-behavior-prototype-v1.html` — one example of each,
+shown in both containers side by side (14 examples total; LOV — Code +
+Description is demoed twice, once generic and once identifier-shaped,
+since both are the same type).
+
+| Field type | Grid rule | List rule |
+| --- | --- | --- |
+| Notes / Description | Always full-width, pinned first | No-op (List rows are already full-width) |
+| Badge / Icon LOV | Standard Type/Priority-style badge | Icon leads, grouped right via `.field-badge-inline` |
+| LOV — Code Only | `.attr-text.mono`, 24px, line-height 1 | `.field-value.mono`, standard 14px |
+| LOV — Code + Description (a.k.a. "Identifier") | Description-over-code (`.attr-lov-stack`) | Code-over-description (`.field-lov-value`, pre-existing order) |
+| Inline Text | `flex:none` — grows taller instead of clipping | Same |
+| Currency | `type="text"` + `inputMode="decimal"` | Same |
+| Number | `type="text"` + `inputMode="decimal"` (matches Currency) | Same |
+| Date | Custom calendar sheet | Same |
+| Date/Time | Custom calendar sheet + native time row | Same |
+| Time Only | Right-aligned (iOS rendering is a known platform limit) | Right-aligned |
+| Checkbox | Dedicated right-hand zone row (`.checkbox-zone-row`) | Whole row is the tap target |
+| Protected | `.attr-item.protected`, lock icon on the label's own row | `.form-field.protected`, lock icon beside the value |
+| Long-text | Always full-width, trails last; collapsed view honors line breaks | No-op; collapsed view honors line breaks |
+
+---
+
 ## Equipment LOV
 
 **Decided 2026-07-21 (user direction):** what used to be two divergent
@@ -304,6 +376,9 @@ schema).
 
 | Component | Screens | Status |
 |---|---|---|
+| Field Grid Container | WO Record View, Equipment Record View, Insert Mode, field-behavior reference | Backfilled 2026-07-28 — always existed as a shape, never had a name entry here (§5.2) |
+| Collapsible Container | Equipment Record View, Custom Fields, Insert Mode, field-behavior reference | Backfilled 2026-07-28 — same gap as Field Grid Container (§5.2) |
+| Field Types (13, category term) | App-wide | Backfilled 2026-07-28 — locked rules already existed in §5.2, never indexed here |
 | Equipment LOV | WO Record View, WO Insert Mode | Converged 2026-07-21 — one shared picker, both screens (§7.4/§15.5) |
 | Equipment ID Badge | Activity Checklist | Built, read-only, deliberately separate from the LOV (§16) |
 | Notification Card | Notifications | Built 2026-07-22 (§25); single consumer so far |
