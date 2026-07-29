@@ -8,7 +8,10 @@
 //
 // BRKD runs the full 5-step flow. PM skips issueparts entirely — Issue
 // Parts is not a step of the PM workflow, not a step that's present but
-// hidden.
+// hidden. PM also has no closing row (removed 2026-07-29, direct
+// feedback) — Book Labor is PM's last step; it shows its own completion
+// popup (status edit + summary + green overlay, §14.7.1/§19.7) instead of
+// navigating to a Closing screen that doesn't exist for this WO Type.
 const EAM_WO_WORKFLOW_STEPS = [
   { woType: 'BRKD', userGroup: '*', step: 'record', sequence: 1 },
   { woType: 'BRKD', userGroup: '*', step: 'checklist', sequence: 2 },
@@ -19,5 +22,4 @@ const EAM_WO_WORKFLOW_STEPS = [
   { woType: 'PM', userGroup: '*', step: 'record', sequence: 1 },
   { woType: 'PM', userGroup: '*', step: 'checklist', sequence: 2 },
   { woType: 'PM', userGroup: '*', step: 'booklabor', sequence: 3 },
-  { woType: 'PM', userGroup: '*', step: 'closing', sequence: 4 },
 ];

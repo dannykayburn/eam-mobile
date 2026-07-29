@@ -29,7 +29,12 @@ const WO_19257 = {
   // Booked labor (Book Labor, Step 4) — seeds the initial labor list.
   // employeeCode resolves against data/employees.js; date is ISO, rendered
   // through the shared isoToDisplay() (MM/DD/YYYY app-wide, 2026-07-21).
-  labor: [
-    { employeeCode: 'BCAMPBELL', date: '2026-05-19', startTime: '08:00', endTime: '09:23', typeOfHoursCode: 'N', typeOfHoursDesc: 'Normal', deptCode: 'MAINT', tradeCode: 'TECH', isCorrection: false },
-  ],
+  // Emptied 2026-07-29 (prototype-only fix, no design decision behind it):
+  // this one seed row (BCAMPBELL) rendered on Book Labor regardless of
+  // which of the 3 demo WOs was actually open (renderSeedLabor() reads
+  // WO_19257.labor unconditionally), and saving a real "Add Labor" entry
+  // for the same person produced a confusing-looking duplicate. Book
+  // Labor now starts empty for every WO Type; add labor via the popup to
+  // see a real row.
+  labor: [],
 };

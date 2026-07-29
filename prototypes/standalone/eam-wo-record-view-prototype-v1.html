@@ -124,6 +124,13 @@
 .act-item:last-child { border-bottom: none; }
 .act-item:hover { background: var(--bg-section); }
 .act-item.selected { background: var(--bg-section); }
+/* Closed/Completed protection (added 2026-07-29, direct feedback) — same
+   .protected dimming every other locked field/row in the app already
+   uses (.attr-item.protected/.form-field.protected, eam-shared.css).
+   selectActivity() itself guards the actual selection; this is the
+   visual half. No hover wash while protected — nothing happens on tap. */
+.act-item.protected { opacity: .75; cursor: default; }
+.act-item.protected:hover { background: none; }
 .act-item.selected::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--octave-black); }
 [data-theme="dark"] .act-item.selected::before { background: var(--white); }
 .act-radio { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--border-strong); background: var(--bg-section); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .15s; }
@@ -854,6 +861,17 @@ function applyClosedFieldProtection() {
     if (isClosed && trailIcon.classList.contains('field-chevron')) trailIcon.outerHTML = FIELD_LOCK_SVG;
     else if (!isClosed && trailIcon.classList.contains('field-lock')) trailIcon.outerHTML = '<span class="field-chevron">›</span>';
   });
+  // Activities (§15.2, added 2026-07-29) — re-render so the protected
+  // class renderActivitiesListHTML() now computes itself actually lands;
+  // selectActivity() carries the real guard, this is the visual half.
+  const actMount = document.getElementById('rv-activities');
+  if (actMount) actMount.innerHTML = renderActivitiesListHTML();
+  // Collapsible container headers — grayed out as one whole-record
+  // "this is locked" signal, same .protected dimming every other locked
+  // control here already uses (eam-shared.css), not a new instrument.
+  document.querySelectorAll('.fg-toggle-row, .section-card-header, .rv-toggle-row').forEach(el => {
+    el.classList.toggle('protected', isClosed);
+  });
 }
 const LOV_ON_SELECT = { __status: applyClosedFieldProtection };
 // Closing hand-off (2026-07-23) — maps WO Closing's own Option D target-
@@ -1045,11 +1063,11 @@ function fieldRowBadgeAttr(key, metaMap, required, fullWidth) {
    ACTIVITIES (§15.2) — single-select, drives the bottom bar gate.
    ═══════════════════════════════════════════════════════════════════════ */
 function selectActivity(id) {
+  if (CLOSED_STATUS_CODES.has(LOV_CURRENT.__status)) { showToast('WO is closed — fields are protected until reopened.'); return; }
   RECORD.selectedActivity = id;
   document.querySelectorAll('.act-item').forEach(a => a.classList.remove('selected'));
   document.getElementById('act' + id)?.classList.add('selected');
   markDirty();
-  showToast('Activity selected');
   updateStartGate();
 }
 // Completed (2026-07-23) — checkbox true OR assignment status at system
@@ -1060,8 +1078,12 @@ function isActivityComplete(act) {
 }
 function renderActivitiesListHTML() {
   if (!ACTIVITIES.length) return `<div class="comment-add-row" onclick="showToast('Create activity — coming soon')"><span class="comment-add-plus">+</span> Add Activity</div>`;
+  // Closed/Completed protection (§20, added 2026-07-29) — computed here,
+  // not just toggled after the fact, so a later re-render (add/edit
+  // activity) can't accidentally drop the dimming while the WO is closed.
+  const isClosed = CLOSED_STATUS_CODES.has(LOV_CURRENT.__status);
   return ACTIVITIES.map(a => `
-    <div class="act-item${a.id===RECORD.selectedActivity?' selected':''}${a.name ? ' has-note' : ''}${isActivityComplete(a) ? ' completed' : ''}" id="act${a.id}" onclick="selectActivity('${a.id}')" data-act="${a.id}">
+    <div class="act-item${a.id===RECORD.selectedActivity?' selected':''}${a.name ? ' has-note' : ''}${isActivityComplete(a) ? ' completed' : ''}${isClosed ? ' protected' : ''}" id="act${a.id}" onclick="selectActivity('${a.id}')" data-act="${a.id}">
       <div class="act-radio"><svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
       <div class="act-num-big">${a.id}</div>
       <div class="act-info">

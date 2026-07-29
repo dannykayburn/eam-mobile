@@ -565,9 +565,18 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 [data-theme="dark"] .question-message{color:var(--white);}
 .question-actions{display:flex;flex-direction:column;gap:8px;}
 .question-btn{width:100%;height:44px;border-radius:100px;border:none;font-size:14px;font-weight:700;font-family:var(--font-sans);cursor:pointer;}
-.question-btn.yes{background:var(--green);color:white;}
-.question-btn.yes:hover{background:#00c418;}
+/* Both outcomes are neutral black/white pills (fixed 2026-07-29, direct
+   feedback) — green on "Yes" read as "this is the pre-selected/correct
+   answer," which isn't true for a real 2-way question. Same primary/
+   secondary pill pair as .btn-contained/.btn-outlined elsewhere in the
+   app, not a bespoke recipe, so neither outcome carries any implied
+   default. */
+.question-btn.yes{background:var(--octave-black);color:white;}
+.question-btn.yes:hover{background:#111114;}
+[data-theme="dark"] .question-btn.yes{background:rgba(255,255,255,0.12);}
+[data-theme="dark"] .question-btn.yes:hover{background:rgba(255,255,255,0.18);}
 .question-btn.no{background:var(--bg-section);border:1.5px solid var(--border-strong);color:var(--octave-black);}
+.question-btn.no:hover{background:var(--bg-card);}
 [data-theme="dark"] .question-btn.no{color:var(--white);}
 .question-btn.cancel{background:none;color:var(--gray-4);font-weight:600;height:36px;}
 .question-btn.cancel:hover{color:var(--octave-black);}
@@ -636,6 +645,14 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .rv-toggle-title{font-size:14px;font-weight:600;color:var(--octave-black);}
 [data-theme="dark"] .rv-toggle-title{color:var(--white);}
 .rv-toggle-right{display:flex;align-items:center;gap:8px;}
+/* Collapsible container headers, grayed out (added 2026-07-29, direct
+   feedback — WO Record View's Closed/Completed protection sweep,
+   applyClosedFieldProtection()) — one whole-record "this is locked"
+   signal across every collapsible header shape in the app, same
+   .protected dimming every other locked field/row already uses
+   (.attr-item.protected/.form-field.protected above), not a new
+   instrument. Still clickable — collapsing/expanding isn't an edit. */
+.fg-toggle-row.protected,.section-card-header.protected,.rv-toggle-row.protected{opacity:.6;}
 .rv-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:100px;font-family:var(--font-mono);background:none;color:var(--gray-4);border:1.5px solid var(--border-strong);}
 .rv-chev{color:var(--gray-4);transition:transform .2s;flex-shrink:0;}
 .rv-chev.open{transform:rotate(180deg);}
@@ -940,20 +957,46 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .org-pill.in-header:hover{border-color:rgba(255,255,255,.85);}
 .org-pill.in-header .field-value{color:rgba(255,255,255,.92);}
 
-/* ── INSERT MODE two-pill header (§9.4) — chains the Screen/entity pill
-   in front of the Organization pill, same .org-pill component reused for
-   both. Promoted here 2026-07-24 (was Home-local only) — Create is now
-   ONE shared implementation every screen's + button invokes
-   (openCreateSheet(), eam-shared.js), so this markup/CSS is a real,
-   multi-consumer shared component, not a single-screen local one anymore.
-   The entity pill's .protected state (List/Search-originated Create,
-   locked to that screen's entity) reuses .org-pill.protected verbatim —
-   no separate rule needed, its chevron already auto-hides the same way
-   every other protected org-pill's does. ── */
+/* ── INSERT MODE pill row (§9.4/§9.4.1/§9.4.2) — redesigned 2026-07-29,
+   2 rounds of direct feedback. Screen/entity moved to a small protected
+   badge in the sheet header instead of a pill here (.insert-mode-header,
+   next to the ✕/title — reuses .org-pill.protected verbatim) — every
+   entry point always opens Insert Mode already locked to an entity now,
+   so there's no live case left where it needs to be editable. This row
+   is Organization → Type, connected by the same .im-pill-connector
+   chevron the old Entity→Organization chain used (round 1 dropped the
+   connector for "two independent choices, not a drill-down" — round 2
+   put it back; visually reads better tied together than as two floating
+   pills). Both pills are held to the same overall height — Type's own
+   visual indicator is a small dot (below), not the larger grid-cell
+   badge it gets elsewhere, so Type never grows taller than
+   Organization's plain text+chevron. ── */
 .im-pill-row{display:flex;align-items:center;gap:8px;padding:14px 16px 6px;flex-wrap:wrap;}
 .im-pill-connector{color:var(--gray-3);flex-shrink:0;display:flex;}
 .im-pill-connector svg{width:13px;height:13px;}
-.im-entity-pill svg{width:13px;height:13px;color:var(--gray-4);}
+/* Type pill (§9.4.2/§9.4.3/§9.4.4, settled 2026-07-29 after 3 rounds of
+   direct feedback) — white fill, an outline colour-matched to the
+   selected Type, and a small solid colour dot ahead of the text instead
+   of an icon: the exact same "Type shows a small solid colour dot ahead
+   of its plain-text value" treatment WO List already uses (§23.3), not
+   a bespoke pill-only recipe. Colour-matched outline/dot are set inline
+   by applyTypePillColor() (eam-shared.js) from the real curated
+   WO_TYPE_PALETTE — this class only supplies the fallback: **no colour
+   present (Equipment's Asset/Position/System has none) → plain black
+   outline, no dot at all**, same "omit rather than fake it" rule
+   .attr-badge:empty already follows elsewhere. .attr-badge itself is
+   hidden here — Insert Mode's shared badge-render plumbing
+   (renderColorBadge()/selectLov(), generic across every screen that uses
+   it) still writes into #fv-insertType-badge same as before so nothing
+   else has to special-case Type; this is the one line that keeps its
+   output invisible now that the dot replaces it. */
+.org-pill[data-field="insertType"]{background:var(--bg-card);border-color:var(--octave-black);}
+[data-theme="dark"] .org-pill[data-field="insertType"]{background:var(--bg-card);border-color:var(--white);}
+.org-pill[data-field="insertType"] .field-value{color:var(--octave-black);}
+[data-theme="dark"] .org-pill[data-field="insertType"] .field-value{color:var(--white);}
+.org-pill[data-field="insertType"] .org-pill-chevron{color:var(--gray-4);}
+.org-pill[data-field="insertType"] .attr-badge{display:none;}
+.type-pill-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:none;}
 
 /* ── List Search Screen standard — the generic card (§8.3, locked
    2026-07-20, unified across WO List/Search and every child tab the same
@@ -1048,7 +1091,15 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 [data-theme="dark"] .attr-item.protected{background:rgba(255,255,255,.03);}
 .attr-label-row{display:flex;align-items:center;gap:6px;}
 .attr-label{font-size:13px;color:var(--gray-4);}
-.attr-value{display:flex;align-items:center;gap:6px;}
+/* min-height fix 2026-07-29: without it, a field whose badge is present
+   (28px tall) sits taller than a sibling field whose badge is empty/
+   hidden (.attr-badge:empty, text-only) — both rows start at the same
+   offset below the label, so the shorter row's own centered text ends up
+   sitting visibly higher than the taller row's (seen on Type vs Priority
+   when only one has a rendered badge). Pinning every .attr-value to the
+   badge's own height keeps every grid field's text vertically justified
+   the same way regardless of which objects that particular field has. */
+.attr-value{display:flex;align-items:center;gap:6px;min-height:28px;}
 .attr-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;flex-shrink:0;}
 /* Outline (not gray/color-filled) and critical-red-exception variants
    (palette pass, 2026-07-22) — used by renderColorBadge() (eam-shared.js)
@@ -1096,9 +1147,17 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .insert-mode-sheet{position:absolute;inset:0;background:var(--bg-page);transform:translateY(100%);transition:transform .32s cubic-bezier(.32,.72,0,1);z-index:199;display:flex;flex-direction:column;}
 .insert-mode-sheet.dragging{transition:none;}
 .insert-mode-sheet.open{transform:translateY(0);}
-.insert-mode-header{padding:6px 16px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg-card);touch-action:none;}
+/* position:relative + the title's own absolute centering (below) — fixed
+   2026-07-29, direct feedback: title was flex:1/text-align:center, which
+   only centers it in whatever space is LEFT after its siblings, not the
+   header as a whole. The ✕ button is a fixed ~30px, but the entity badge
+   next to it (§9.4.2) is a variable-width pill — different widths on
+   either side shifted "Create" off the header's true center. It's the
+   anchor: always dead-center of the header, regardless of what either
+   sibling's width happens to be. */
+.insert-mode-header{padding:6px 16px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg-card);touch-action:none;position:relative;}
 .insert-mode-handle-row{display:flex;justify-content:center;padding:8px 0 2px;flex-shrink:0;background:var(--bg-card);touch-action:none;cursor:grab;}
-.insert-mode-title{flex:1;text-align:center;font-size:17px;font-weight:700;color:var(--octave-black);}
+.insert-mode-title{position:absolute;left:0;right:0;text-align:center;font-size:17px;font-weight:700;color:var(--octave-black);pointer-events:none;}
 [data-theme="dark"] .insert-mode-title{color:var(--white);}
 .insert-mode-body{flex:1;overflow-y:auto;}
 .insert-mode-footer{padding:12px 16px 20px;border-top:1px solid var(--border);flex-shrink:0;background:var(--bg-card);}
@@ -1298,6 +1357,16 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .confirm-cancel{background:var(--bg-section);color:var(--octave-black);}
 [data-theme="dark"] .confirm-cancel{color:var(--white);}
 .confirm-danger{background:var(--red);color:white;}
+/* Non-destructive variant (added 2026-07-29, back-button timer prompt —
+   the first caller whose confirmed action isn't a delete-like "this is
+   bad/irreversible" action) — same black/white pill language as
+   .btn-contained rather than .confirm-danger's red, since red is reserved
+   for destructive actions elsewhere in the app (§23) and pausing a timer
+   to leave a screen isn't one. */
+.confirm-primary{background:var(--octave-black);color:white;}
+.confirm-primary:hover{background:#111114;}
+[data-theme="dark"] .confirm-primary{background:rgba(255,255,255,0.12);}
+[data-theme="dark"] .confirm-primary:hover{background:rgba(255,255,255,0.18);}
 /* Bottom padding unconditional, not just on footer-less sheets — harmless
    extra scroll-area breathing room when a footer follows, and directly
    fixes the "last row flush against the screen edge" bug (conformance
@@ -1661,4 +1730,92 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .sync-hydrate-label{font-size:12px;color:var(--gray-4);margin-bottom:5px;display:flex;justify-content:space-between;}
 .sync-hydrate-track{height:6px;border-radius:100px;background:var(--bg-section);overflow:hidden;}
 .sync-hydrate-fill{height:100%;background:var(--gray-4);border-radius:100px;}
+
+/* ══════════════════════════════════════════════════════════════════════
+   STATUS CHANGE CONTROL + COMPLETION OVERLAY (design-decisions-v3-1.md
+   §19.2/§19.7/§19.8) — promoted from WO Closing 2026-07-29, direct
+   feedback: Book Labor became a real 2nd consumer (PM WOs have no
+   Closing step at all now — §11-13 workflow-steps data — so Book Labor,
+   PM's last step, shows this same from/to status banner + confirm-
+   summary + green completion overlay itself). Identical CSS/markup
+   shape to what WO Closing always had; only the animation on the overlay
+   below is new. ══════════════════════════════════════════════════════ */
+.status-banner { margin: 12px 12px 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.status-banner-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.status-banner-icon { width: 30px; height: 30px; border-radius: 50%; background: rgba(0,170,20,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.status-banner-title { font-size: 13px; font-weight: 600; color: var(--octave-black); }
+[data-theme="dark"] .status-banner-title { color: var(--white); }
+.status-row { display: flex; align-items: center; gap: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.status-row-arrow { color: var(--gray-3); flex-shrink: 0; }
+/* Both pills share one box model so a <div> (from — never tappable) and a
+   <button> (to) line up exactly; a bare <button> otherwise picks up the
+   browser's default font/line-height, which caused an earlier vertical
+   mismatch between the two. */
+.status-pill {
+  flex: 1; height: 42px; box-sizing: border-box; margin: 0; border: none; padding: 0 12px;
+  border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-family: var(--font-sans); font-size: 14px; font-weight: 600; line-height: 1;
+}
+.status-pill.from { background: rgba(21,166,74,0.1); color: #157a35; cursor: default; }
+[data-theme="dark"] .status-pill.from { background: rgba(21,166,74,0.18); color: #4ade80; }
+.status-pill.to { cursor: pointer; transition: filter 0.15s; }
+.status-pill.to:hover { filter: brightness(0.95); }
+.status-pill.to.fill-completed { background: var(--green); color: white; }
+.status-pill.to.fill-closed    { background: var(--gray-5); color: white; }
+.status-pill.to.fill-onhold    { background: var(--red); color: white; }
+
+/* Confirm-summary sheet — rich summary content, its own bottom sheet. */
+.confirm-wording { padding: 16px; font-size: 14px; color: var(--gray-4); line-height: 1.6; border-bottom: 1px solid var(--border); }
+.confirm-wording strong { color: var(--octave-black); font-weight: 600; }
+[data-theme="dark"] .confirm-wording strong { color: var(--white); }
+.confirm-summary { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.confirm-summary-row { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; font-size: 13px; border-bottom: 1px solid var(--border); }
+.confirm-summary-row:last-child { border-bottom: none; }
+.confirm-summary-label { color: var(--gray-4); }
+.confirm-summary-value { font-family: var(--font-sans); font-size: 12px; color: var(--octave-black); font-weight: 500; }
+[data-theme="dark"] .confirm-summary-value { color: rgba(255,255,255,0.85); }
+.confirm-summary-value .mono { font-family: var(--font-mono); }
+.close-cancel-gap { margin-top: 8px; }
+
+/* Completion overlay — full-screen success state before navigating back
+   to Record View. Animated as of 2026-07-29 (direct feedback: "let's try
+   an animation here") — icon pops in with a slight overshoot, title/sub/
+   WO line stagger in just after. Gated behind the compound `.show`
+   selector (not on the bare .closed-icon/.closed-title/... rules) so the
+   animation actually restarts every time the overlay reopens — an
+   animation-name on the bare rule only plays once, the first time the
+   (otherwise display:none) element is ever painted. */
+.closed-overlay { position: absolute; inset: 0; background: rgba(0,170,20,0.97); z-index: 400; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; opacity: 0; transition: opacity .2s ease; }
+.closed-overlay.show { display: flex; opacity: 1; }
+.closed-icon { width: 72px; height: 72px; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; opacity: 0; transform: scale(0); }
+.closed-overlay.show .closed-icon { animation: closed-icon-pop .45s cubic-bezier(.34,1.56,.64,1) .1s forwards; }
+.closed-title { font-size: 24px; font-weight: 700; color: white; letter-spacing: -0.5px; opacity: 0; }
+.closed-overlay.show .closed-title { animation: closed-fade-up .35s ease .28s forwards; }
+.closed-sub { font-size: 14px; color: rgba(255,255,255,0.75); font-family: var(--font-mono); opacity: 0; }
+.closed-overlay.show .closed-sub { animation: closed-fade-up .35s ease .34s forwards; }
+.closed-wo { font-family: var(--font-mono); font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 4px; opacity: 0; }
+.closed-overlay.show .closed-wo { animation: closed-fade-up .35s ease .4s forwards; }
+@keyframes closed-icon-pop { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
+@keyframes closed-fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Source-option rows — promoted from WO Closing's attachment-source
+   picker 2026-07-29 (Home's new Create entity menu, §9.4.1, is a real 2nd
+   consumer): icon + title + optional sub-line, no checkmarks — for a
+   one-time action choice, not a persistent selection (that's .lov-option's
+   job instead). ── */
+.source-option { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
+.source-option:last-child { border-bottom: none; }
+.source-option:hover { background: var(--bg-section); }
+.source-option-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-section); color: var(--gray-4); border: 1.5px solid var(--border-strong); }
+.source-option-texts { flex: 1; }
+.source-option-title { font-size: 14px; font-weight: 600; color: var(--octave-black); }
+[data-theme="dark"] .source-option-title { color: rgba(255,255,255,0.9); }
+.source-option-sub { font-size: 12px; color: var(--gray-4); margin-top: 2px; }
+/* Stub rows (Meter Reading/Operator Checklist, §9.4 "system actions" —
+   same STUB_ENTITIES this sheet reuses) — muted title, same treatment
+   .lov-option's own stub rows already use in the LOV-shaped picker this
+   replaces. */
+.source-option.stub .source-option-title { color: var(--gray-4); font-weight: 500; }
+[data-theme="dark"] .source-option.stub .source-option-title { color: var(--gray-3); }
+.source-option-group-label { padding: 12px 16px 4px; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--gray-3); }
 .sync-panel-empty{padding:24px 16px 20px;text-align:center;font-size:13px;color:var(--gray-4);}

@@ -393,15 +393,95 @@
 
   </div><!-- /content -->
 
-  <!-- ── BOTTOM BAR — auto-ready, no gate (§14.7). Chrome is shared. ──── -->
+  <!-- ── BOTTOM BAR — auto-ready, no gate (§14.7). Chrome is shared.
+       Default markup is BRKD's "Next: WO Closing" — applyTerminalStepBar()
+       (below) overwrites this in place for a workflow with no Closing
+       step at all (PM, §14.7.1/§19.7), so this stays untouched for every
+       other WO Type. ──── -->
   <div class="bottom-bar">
-    <button class="bar-pill bar-pill-ready" onclick="sessionStorage.setItem('eamArrivedViaNextStep','true'); sessionStorage.setItem('eamOpenDemoWo', DEMO_WO); window.location.href=WO_STEP_FILES.closing;">
+    <button class="bar-pill bar-pill-ready" id="nextBtn" onclick="sessionStorage.setItem('eamArrivedViaNextStep','true'); sessionStorage.setItem('eamOpenDemoWo', DEMO_WO); window.location.href=WO_STEP_FILES.closing;">
       <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Next: WO Closing
     </button>
   </div>
 
   <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <!-- ══ COMPLETE WORK ORDER SHEET (§14.7.1/§19.7, added 2026-07-29) — PM's
+       terminal step (no Closing screen exists for it at all): same status
+       from/to banner + confirm-summary + green completion overlay Closing
+       always had, relocated into this one popup instead of a whole 2nd
+       page. Only ever opened when applyTerminalStepBar() below finds no
+       'closing' step configured. ══ -->
+  <div class="bottom-sheet" id="completeWoSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Confirm completion</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="status-banner" id="statusBanner">
+      <div class="status-banner-header">
+        <div class="status-banner-icon">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4" stroke="#00AA14" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="#00AA14" stroke-width="2"/></svg>
+        </div>
+        <div class="status-banner-title">Work Order Completion Status</div>
+      </div>
+      <div class="status-row">
+        <div class="status-pill from">Released</div>
+        <svg class="status-row-arrow" width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <button class="status-pill to fill-completed" id="statusTargetBtn" onclick="toggleStatusSheet()">
+          <span id="statusTargetLabel">Completed</span>
+          <span id="statusTargetIcon"><svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </button>
+      </div>
+    </div>
+    <div class="confirm-wording">
+      Completing <strong>WO# 19831</strong> will set the status to <strong id="confirmTargetStatus">Completed</strong> and lock the record for further field edits. Ensure all work has been recorded before proceeding.
+    </div>
+    <div class="confirm-summary" id="confirmSummary"></div>
+    <div class="sheet-footer" style="display:flex;flex-direction:column;gap:0;">
+      <button class="insert-save-btn ready" onclick="executeComplete()">Complete Work Order</button>
+      <button class="btn-outlined close-cancel-gap" onclick="closeAllSheets()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ══ STATUS PICKER SHEET — same shape as WO Closing's (§3.4), plain
+       description-only rows. ══ -->
+  <div class="bottom-sheet" id="statusSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeSheet('statusSheet')">✕</button>
+      <div class="sheet-title">Target status</div>
+      <button class="sheet-clear-btn hidden">Clear</button>
+    </div>
+    <div class="sheet-body">
+      <div class="lov-option selected" id="sOpt-completed" onclick="selectStatus('completed','Completed')">
+        <div class="lov-option-texts"><div class="lov-option-desc">Completed</div></div>
+        <div class="lov-check checked" id="sChk-completed">
+          <svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <div class="lov-option" id="sOpt-closed" onclick="selectStatus('closed','Closed')">
+        <div class="lov-option-texts"><div class="lov-option-desc">Closed</div></div>
+        <div class="lov-check unchecked" id="sChk-closed"></div>
+      </div>
+      <div class="lov-option" id="sOpt-onhold" onclick="selectStatus('onhold','On hold')">
+        <div class="lov-option-texts"><div class="lov-option-desc">On hold</div></div>
+        <div class="lov-check unchecked" id="sChk-onhold"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLOSED OVERLAY — same shape as WO Closing's. -->
+  <div class="closed-overlay" id="closedOverlay">
+    <div class="closed-icon">
+      <svg width="36" height="36" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="closed-title">Work Order Closed</div>
+    <div class="closed-sub" id="closedSub">Status: Completed</div>
+    <div class="closed-wo" id="closedWo">WO# 19831</div>
+  </div>
 
   <!-- Sync panel (§4.4.2) — opened from the sync icon in the header
        above. Content rendered by openSyncPanel() in eam-shared.js
@@ -786,12 +866,6 @@ const DEMO_LABOR_DATE_ISO = '2026-05-19';
 // two literals that happen to match.
 const STOPPED_TIMER_START = '08:00';
 const STOPPED_TIMER_END = '09:23';
-
-// Real navigation (2026-07-22 nav pass) — was a toast stub. This is a
-// workflow step, not a Record View, so back means the previous step.
-function navBack() {
-  location.href = 'eam-wo-prototype-issue-parts-v1.html';
-}
 
 // Labor row expand/collapse now uses the shared toggleActionRow()
 // (eam-shared.js) — see addLaborRow() below.
@@ -1440,12 +1514,61 @@ function updateSummary() {
    flat, unnumbered, free-flow rail instead of leaving the numbered
    rail's stale hardcoded BRKD markup in place (renderStepRail() itself
    no-ops on an empty step list). */
+let CURRENT_WORKFLOW = null;
 function onDemoWoChanged() {
   const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
   applyDemoWoIdentity();
   const workflow = resolveWoWorkflow(jobType);
+  CURRENT_WORKFLOW = workflow;
   if (workflow.configured) renderStepRail(workflow, 'booklabor', jobType);
   else renderFlatStepRail('booklabor', jobType);
+  applyTerminalStepBar();
+}
+
+/* Terminal-step bottom bar (design-decisions-v3-1.md §14.7.1/§19.7, added
+   2026-07-29) — a workflow with no configured Closing step (PM) makes
+   Book Labor its last step: the bar becomes "Complete Work Order,"
+   opening this screen's own completion sheet (status edit + summary +
+   green overlay, same shape Closing always had, promoted to
+   eam-shared.js/css) instead of navigating on. Every other WO Type
+   (Closing configured) leaves the default "Next: WO Closing" markup
+   completely untouched. */
+function applyTerminalStepBar() {
+  if (!(CURRENT_WORKFLOW.configured && !CURRENT_WORKFLOW.steps.includes('closing'))) return;
+  const btn = document.getElementById('nextBtn');
+  btn.innerHTML = '<svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Complete Work Order';
+  btn.onclick = onCompleteBarTap;
+  statusFieldProtected = !CURRENT_WORKFLOW.freeForm;
+  applyStatusProtection();
+}
+function onCompleteBarTap() {
+  buildCompletionSummary();
+  document.getElementById('confirmTargetStatus').textContent = statusOptions[currentStatusKey].label;
+  openSheet('completeWoSheet');
+}
+// Fixed RV-only rows (design-decisions-v3-1.md §19.7 follow-up, direct
+// feedback) — no closing codes exist for this path at all, so the
+// summary stays to the same 3 fields every WO has regardless of Type:
+// identity, equipment, completion date. Date completed has no editable
+// field on this screen (Closing's is its own dedicated field-edit sheet,
+// out of scope for this simplified popup) — defaults to today, same
+// "plainest literal rendering" convention the rest of this prototype's
+// demo data already follows.
+function buildCompletionSummary() {
+  const rec = demoWoRecord();
+  const mono = (s) => `<span class="mono">${s}</span>`;
+  const rows = [
+    { label:'Work order', value: mono(rec.woNumber) },
+    { label:'Equipment',  value: mono(rec.equipmentAssetId) + ' Pump, Centrifugal' },
+    { label:'Date completed', value: isoToDisplay(new Date().toISOString().slice(0,10)) },
+  ];
+  renderConfirmSummary('confirmSummary', rows);
+}
+function executeComplete() {
+  showCompletionOverlay({
+    subText: 'Status: ' + statusOptions[currentStatusKey].label,
+    woLine: 'WO# ' + demoWoRecord().woNumber,
+  });
 }
 
 /* Consume-once hand-off (same pattern as WO Record View's own read) —

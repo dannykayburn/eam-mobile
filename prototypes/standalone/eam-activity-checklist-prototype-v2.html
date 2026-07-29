@@ -210,19 +210,27 @@
 [data-theme="dark"] .snav-btn.next { background: var(--white); color: var(--octave-black); }
 .snav-btn:disabled { opacity: .35; cursor: default; }
 
-/* ─── PROMPT BAR — Option 4 segmented Yes/No (design-decisions-v3-1.md
-   §14.6). Unchanged from v1 — still local, no 2nd consumer yet. ── */
+/* ─── PROMPT BAR — Yes/No fork (design-decisions-v3-1.md §14.6). Still
+   local, no 2nd consumer yet. Restyled 2026-07-29, 2 rounds of direct
+   feedback: round 1 dropped a joined segmented control with Yes green-
+   filled (green read as "this is the pre-selected/correct answer," not
+   true for a real fork) for two standalone OUTLINED black/white pills.
+   Round 2 (this one) keeps the 2 standalone pills — still no colour, no
+   implied default either direction — but fills them solid black (white
+   text) in light mode instead of leaving them outlined, same
+   .org-pill/.btn-contained fill+flip convention used everywhere else in
+   the app; dark mode flips to solid white with black text, not a
+   translucent variant, matching .org-pill's own light/dark flip exactly. */
 .prompt-bar { position: absolute; bottom: 0; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border); padding: 10px 16px 16px; flex-shrink: 0; z-index: 51; display: none; }
 [data-theme="dark"] .prompt-bar { background: var(--octave-black); }
 .prompt-bar.show { display: block; }
 .prompt-question { font-family: var(--font-sans); font-size: 16px; font-weight: 700; color: var(--octave-black); text-align: center; margin-bottom: 10px; }
 [data-theme="dark"] .prompt-question { color: var(--white); }
-.prompt-seg { display: flex; border-radius: 100px; overflow: hidden; border: 1px solid var(--border); }
-.prompt-seg-btn { flex: 1; height: 48px; border: none; font-size: 15px; font-weight: 700; cursor: pointer; font-family: var(--font-sans); background: var(--bg-section); color: var(--octave-black); }
-[data-theme="dark"] .prompt-seg-btn { background: var(--gray-5); color: var(--white); }
-.prompt-seg-btn.yes { background: var(--green); color: white; }
-.prompt-seg-btn.yes:hover { background: #00c418; }
-.prompt-seg-divider { width: 1px; background: var(--border); flex-shrink: 0; }
+.prompt-seg { display: flex; gap: 8px; }
+.prompt-seg-btn { flex: 1; height: 48px; border-radius: 100px; border: 1px solid var(--octave-black); font-size: 15px; font-weight: 700; cursor: pointer; font-family: var(--font-sans); background: var(--octave-black); color: #fff; transition: background .15s; }
+[data-theme="dark"] .prompt-seg-btn { background: var(--white); border-color: var(--white); color: var(--octave-black); }
+.prompt-seg-btn:hover { background: #111114; }
+[data-theme="dark"] .prompt-seg-btn:hover { background: rgba(255,255,255,.85); }
 
 /* ─── "VIEW ALL" OVERVIEW — the escape hatch back to an at-a-glance
    list, and the only navigation that scales to a large checklist. ── */
@@ -480,12 +488,6 @@
 <script>
 /* ── screen-specific config/behavior — chrome (nav, header, step rail,
    confirm modal, toast, theme toggle) comes from eam-shared.js. ── */
-
-// Real navigation (2026-07-22 nav pass) — was a toast stub. This is a
-// workflow step, not a Record View, so back means the previous step.
-function navBack() {
-  location.href = 'eam-wo-record-view-prototype-v1.html';
-}
 
 /* ─── TIMER — gated on eamTimerRunning as of 2026-07-24 (§15.4/§20), not
    unconditional anymore. Not Free Form workflows set this implicitly on
@@ -763,23 +765,33 @@ function renderPromptBar() {
   document.getElementById('promptBar').innerHTML = includesIssueParts
     ? `<div class="prompt-question">Do you need to issue parts?</div>
        <div class="prompt-seg">
-         <button class="prompt-seg-btn yes" onclick="promptAnswer(true)">Yes</button>
-         <div class="prompt-seg-divider"></div>
-         <button class="prompt-seg-btn no" onclick="promptAnswer(false)">No</button>
+         <button class="prompt-seg-btn" onclick="promptAnswer(true)">Yes</button>
+         <button class="prompt-seg-btn" onclick="promptAnswer(false)">No</button>
        </div>`
-    : `<div class="prompt-question">Ready to continue</div>
-       <div class="prompt-seg">
-         <button class="prompt-seg-btn yes" style="flex:1" onclick="promptAnswer(false)">Continue to Book Labor</button>
+    : `<div class="prompt-seg">
+         <button class="bar-pill bar-pill-ready" onclick="promptAnswer(false)">Continue to Book Labor</button>
        </div>`;
 }
 
 function jumpTo(idx) { closeAllSheets(); cursor = idx; renderFocus(); }
 function goPrev() { if (cursor > 0) { closeAllSheets(); cursor--; renderFocus(); } }
+// Bug fix 2026-07-30 (reported: Finish silently refuses to proceed) — the
+// generic "Complete all required items first" toast was a dead end: it
+// never said WHICH item, so a required item that got added after the
+// fact (a dynamicRules follow-up, e.g. answering "Fail" on item 3) or
+// answered then un-answered (setCheck() toggles off on a 2nd tap) left
+// no way to find it short of paging through everything by hand. Now
+// jumps straight to the first incomplete required item and names it.
 function goNext() {
   closeAllSheets();
   if (cursor < ITEMS.length - 1) { cursor++; renderFocus(); return; }
   const req = ITEMS.filter(i => i.required);
-  if (req.filter(isDone).length < req.length) showToast('Complete all required items first');
+  const incomplete = req.find(i => !isDone(i));
+  if (incomplete) {
+    cursor = ITEMS.indexOf(incomplete);
+    renderFocus();
+    showToast(`Required: ${incomplete.label}`);
+  }
 }
 function setCheck() { const it = ITEMS[cursor]; it.value = !it.value; if (it.dynamicRules) syncDynamicChildren(it); renderFocus(); }
 function setToggle(label, cls) { const it = ITEMS[cursor]; it.value = label; if (it.dynamicRules) syncDynamicChildren(it); renderFocus(); }

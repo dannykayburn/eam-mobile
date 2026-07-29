@@ -41,15 +41,16 @@
     reordering is done via ‹ › arrows per item, not continuous drag —
     a deliberate, fully-working simplification rather than a half-built
     drag implementation.
-  - Insert Mode's Type/Status header box (§9.4) is genuinely wired per
-    entity: Work Order reuses the real TYPE_META colours from
-    eam-wo-record-view-prototype-v1.html and a real WO status set. For
-    Equipment, "Type" becomes "Class" (Equipment's closest real analog —
-    it has no colour-coded Type field of its own, §5.2's Class/Category/
-    Manufacturer/Criticality are all plain attr-text there) reusing the
-    real PUMP/VALVE/COMPRESSOR class values; its badge *colours* are new,
-    not reused, since none exist on the real screen to reuse. Status IS
-    fully reused for Equipment (real Operational/Down/Standby colours).
+  - Insert Mode's Type/Status fields (§9.4/§9.4.2 — Type is a pill now,
+    not a grid badge) are genuinely wired per entity: Work Order reuses
+    the real TYPE_META colours from eam-wo-record-view-prototype-v1.html
+    and a real WO status set. Equipment's own Type (Asset/Position/
+    System, changed 2026-07-29 — was a "Class" stand-in with Pump/Valve/
+    Compressor, a concept never modeled as a real field elsewhere in this
+    rebuild) is Insert-Mode-only demo data, not reused from any real
+    screen — Equipment Record View has no colour-coded Type field of its
+    own to reuse either way. Status IS fully reused for Equipment (real
+    Operational/Down/Standby colours).
 -->
 <style>
 /* ── BOTTOM NAV BAR (§4.2) — .bottom-nav/.bottom-nav-item/.bottom-nav-badge
@@ -348,10 +349,25 @@
   </header>
 
   <div class="create-bar scroll-collapse">
-    <button class="create-pill" onclick="openCreateSheet()">
+    <button class="create-pill" onclick="openCreateEntityMenu()">
       <svg viewBox="0 0 24 24"><use href="#ico-plus"/></svg>
       Create
     </button>
+  </div>
+
+  <!-- Create entity menu (§9.4.1, added 2026-07-29) — new entry point for
+       Home's Create icon specifically; renders from ENTITY_META/
+       STUB_ENTITIES in openCreateEntityMenu() (eam-shared.js). Picking a
+       real entity opens Insert Mode (#insertModeSheet, below) already
+       locked to it. -->
+  <div class="bottom-sheet" id="createEntityMenuSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Create</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sheet-body" id="createEntityMenuBody"></div>
   </div>
 
   <div class="home-body">
@@ -508,18 +524,21 @@
     <div class="insert-mode-header">
       <button class="sheet-close" onclick="closeInsertMode()">✕</button>
       <div class="insert-mode-title">Create</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <button class="org-pill protected im-entity-pill" id="insertEntityPill" data-field="insertEntity" onclick="onEntityPillTap()">
+        <span class="field-value" id="fv-insertEntity-desc">Work order</span>
+      </button>
     </div>
     <div class="insert-mode-body">
       <div class="im-pill-row">
-        <button class="org-pill im-entity-pill" id="insertEntityPill" data-field="insertEntity" onclick="onEntityPillTap()">
-          <span id="fv-insertEntity-icon"></span>
-          <span class="field-value" id="fv-insertEntity-desc">Work order</span>
+        <button class="org-pill" data-field="insertOrganization" onclick="openLov('insertOrganization')">
+          <span class="field-value" id="fv-insertOrganization-code">ORG1</span>
           <svg class="org-pill-chevron" width="12" height="12" viewBox="0 0 24 24"><use href="#ico-chevdown"/></svg>
         </button>
         <span class="im-pill-connector"><svg viewBox="0 0 24 24"><use href="#ico-chevright"/></svg></span>
-        <button class="org-pill" data-field="insertOrganization" onclick="openLov('insertOrganization')">
-          <span class="field-value" id="fv-insertOrganization-code">ORG1</span>
+        <button class="org-pill" data-field="insertType" onclick="openLov('insertType')">
+          <span class="attr-badge" id="fv-insertType-badge"></span>
+          <span class="type-pill-dot" id="fv-insertType-dot"></span>
+          <span class="field-value" id="fv-insertType-desc"></span>
           <svg class="org-pill-chevron" width="12" height="12" viewBox="0 0 24 24"><use href="#ico-chevdown"/></svg>
         </button>
       </div>
@@ -533,9 +552,12 @@
            "always required, not just empty-state" treatment). Equipment
            (§15.5/§9.3) follows, also full-width/required, opening the
            Equipment Lookup sheet instead of a standard LOV — the one
-           remaining exception. Then Type/Status as the ordinary 2-per-row
-           pair. Equipment's row is id-toggled hidden for the Equipment
-           entity, which has no equipment-reference field of its own. -->
+           remaining exception. Status is now the grid's only other field —
+           Type moved to the pill row above (§9.4.1, 2026-07-29) — so it's
+           full-width too rather than sitting alone in a 2-column row with
+           an empty cell beside it. Equipment's row is id-toggled hidden
+           for the Equipment entity, which has no equipment-reference
+           field of its own. -->
       <div class="section-card">
         <div class="equip-attrs">
           <div class="attr-item full-width required" data-field="insertDescription" onclick="focusInlineField(this)">
@@ -546,14 +568,7 @@
             <span class="attr-label">Equipment</span>
             <div class="attr-value" id="insertEquipMount"></div>
           </div>
-          <div class="attr-item required" data-field="insertType" onclick="openLov('insertType')">
-            <span class="attr-label" id="imTypeLabel">Type</span>
-            <div class="attr-value">
-              <span class="attr-badge" id="fv-insertType-badge"></span>
-              <span class="attr-text" id="fv-insertType-desc"></span>
-            </div>
-          </div>
-          <div class="attr-item required" data-field="insertStatus" onclick="openLov('insertStatus')">
+          <div class="attr-item full-width required" data-field="insertStatus" onclick="openLov('insertStatus')">
             <span class="attr-label">Status</span>
             <div class="attr-value">
               <span class="attr-badge" id="fv-insertStatus-badge"></span>
@@ -572,8 +587,10 @@
            View's own "Work order details" fg-section exactly, including
            starting collapsed (openCreateSheet() resets it closed on every
            fresh open). Title is entity-aware (renderEntityFields() sets
-           it — "Work order details" / "Equipment details"), same pattern
-           as imTypeLabel above. -->
+           it — "Work order details" / "Equipment details"). The field
+           set inside also varies by Type, not just entity, as of
+           2026-07-29 (§9.4.1) — renderFlatFields() resolves which variant
+           via currentTypeVariant(). -->
       <div class="fg-section">
         <div class="fg-toggle-row" onclick="toggleFg(this)">
           <span class="fg-toggle-title" id="imFlatFieldsLabel">Work order details</span>
@@ -632,6 +649,12 @@
 <script src="../../data/notifications.js"></script>
 <script src="shared/eam-shared.js"></script>
 <script>
+// Insert Mode's Type pill (§9.4.1, added 2026-07-29) re-scopes the flat
+// fields section on every change, not just on entity switch — same
+// optional per-key hook eam-shared.js's selectLov() already runs for any
+// screen that defines it (see e.g. Equipment Record View's own `class`
+// entry), applied here to `insertType` specifically.
+const LOV_ON_SELECT = { insertType: () => { renderFlatFields(); applyTypePillColor(); } };
 /* ═══════════════════════════════════════════════════════════════════════
    FAVORITES (dataspy chips), revised 2026-07-20 — see the note below for
    the WO List integration. All entries deliberately read narrower than
@@ -818,23 +841,42 @@ HOME_TILES = applyStoredOrder(HOME_TILES, LS_TILE_KEY);
 let reorderTarget = null; // null | 'fav' | 'tile'
 let pressTimer = null, pressStartXY = null, didLongPress = false;
 
+// Bug fix 2026-07-29: a scroll/drag that starts on a tile (e.g. the user
+// rests a finger on a tile, then scrolls the page — the create-bar's
+// scroll-collapse is what made this visible) used to still fire
+// onItemTap() on release, because moveHandler only cancelled the
+// long-press *reorder* timer, never the tap itself. A held-then-scrolled-
+// then-released gesture must never count as a tap — track real pointer
+// movement (didMove) same as didLongPress, and gate the tap on both, plus
+// clean up every listener on whichever terminal event fires first
+// (pointerup/pointercancel) so a scroll-away-without-release doesn't leak
+// a stale set per press.
 function onItemPointerDown(e, kind, id) {
   if (reorderTarget) return; // already reordering — arrows handle movement, ignore container presses
   didLongPress = false;
+  let didMove = false;
   pressStartXY = { x: e.clientX, y: e.clientY };
   const el = e.currentTarget;
   clearTimeout(pressTimer);
   pressTimer = setTimeout(() => { didLongPress = true; startReorder(kind); }, 500);
   const cancel = () => clearTimeout(pressTimer);
   const moveHandler = (ev) => {
-    if (Math.abs(ev.clientX - pressStartXY.x) > 8 || Math.abs(ev.clientY - pressStartXY.y) > 8) cancel();
+    if (Math.abs(ev.clientX - pressStartXY.x) > 8 || Math.abs(ev.clientY - pressStartXY.y) > 8) { cancel(); didMove = true; }
   };
-  el.addEventListener('pointerup', function up() {
+  const cleanup = () => {
     cancel();
     el.removeEventListener('pointermove', moveHandler);
-    if (!didLongPress) onItemTap(kind, id);
-  }, { once: true });
-  el.addEventListener('pointerleave', cancel, { once: true });
+    el.removeEventListener('pointerup', up);
+    el.removeEventListener('pointerleave', cleanup);
+    el.removeEventListener('pointercancel', cleanup);
+  };
+  function up() {
+    cleanup();
+    if (!didLongPress && !didMove) onItemTap(kind, id);
+  }
+  el.addEventListener('pointerup', up, { once: true });
+  el.addEventListener('pointerleave', cleanup, { once: true });
+  el.addEventListener('pointercancel', cleanup, { once: true });
   el.addEventListener('pointermove', moveHandler);
 }
 function startReorder(kind) {
@@ -969,6 +1011,14 @@ let LOV_CURRENT = { insertOrganization:'ORG1', insertEquipment:'' };
 let BADGE_LOV_META = {};
 const NO_SEARCH_LOVS = new Set(['insertOrganization', 'insertType', 'insertStatus']);
 const ORG_STYLE_LOVS = new Set(['insertOrganization']);
+// Type moved from a grid badge to a pill (§9.4.1, 2026-07-29) — pills are
+// always system-defaulted, never Clear-able (isRequiredField()/
+// shouldHideClear() below), same as insertOrganization gets via
+// ORG_STYLE_LOVS above. Not added to ORG_STYLE_LOVS itself — that set
+// also redirects selectLov()'s own render branch to the code-display
+// shape Organization uses, which isn't Type's (Type keeps its badge
+// branch via BADGE_LOV_META, renderEntityFields() above).
+const ALWAYS_REQUIRED_LOVS = new Set(['insertType']);
 const REF_CARD_FIELDS = { insertEquipment: { mountId: 'insertEquipMount', emptyLabel: 'Tap to select equipment' } };
 // eam-shared.js's openDate()/selectDate()/clearDate() read/write
 // RECORD[key] directly (§3.4) — needed for the WO entity's Date Reported

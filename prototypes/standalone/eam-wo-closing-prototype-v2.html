@@ -88,48 +88,8 @@
    copy (identical rules) instead of its own local one. ── */
 
 /* ── STATUS CHANGE CONTROL — Option D (design-decisions-v3-1.md §19.2,
-   §15.4). No shared equivalent — this banner's from/to-status shape is
-   unique to WO Closing. ── */
-.status-banner { margin: 12px 12px 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
-.status-banner-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.status-banner-icon { width: 30px; height: 30px; border-radius: 50%; background: rgba(0,170,20,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.status-banner-title { font-size: 13px; font-weight: 600; color: var(--octave-black); }
-[data-theme="dark"] .status-banner-title { color: var(--white); }
-.status-row { display: flex; align-items: center; gap: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
-.status-row-arrow { color: var(--gray-3); flex-shrink: 0; }
-/* Both pills share one box model so a <div> (from — never tappable) and a
-   <button> (to) line up exactly; a bare <button> otherwise picks up the
-   browser's default font/line-height, which caused an earlier vertical
-   mismatch between the two. */
-.status-pill {
-  flex: 1; height: 42px; box-sizing: border-box; margin: 0; border: none; padding: 0 12px;
-  border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;
-  font-family: var(--font-sans); font-size: 14px; font-weight: 600; line-height: 1;
-}
-/* Redesigned 2026-07-22 — status colour vocabulary unified with the
-   Record View header button's STATUS_CLASS_MAP (green=st-operational,
-   orange=st-standby, red=st-down), so the same status never shows two
-   different colours across screens. Real fix: On Hold was orange here
-   but red (st-down) on the header — now red in both places. "From" pill
-   is hardcoded to Released's colour (green) since this demo has no
-   mechanism to change the WO's own current status independent of the
-   close flow — still always non-interactive, unrelated to Free Form.
-   Closed has no header equivalent (the header's own status LOV never
-   offers it) so it keeps its own gray, not one of the 3 reused colours. */
-.status-pill.from { background: rgba(21,166,74,0.1); color: #157a35; cursor: default; }
-[data-theme="dark"] .status-pill.from { background: rgba(21,166,74,0.18); color: #4ade80; }
-.status-pill.to { cursor: pointer; transition: filter 0.15s; }
-.status-pill.to:hover { filter: brightness(0.95); }
-.status-pill.to.fill-completed { background: var(--green); color: white; }
-.status-pill.to.fill-closed    { background: var(--gray-5); color: white; }
-.status-pill.to.fill-onhold    { background: var(--red); color: white; }
-/* Protected (§15.4 Not Free Form, redesigned 2026-07-22) — no longer
-   grays out the fill colour (a status control that goes gray tells the
-   technician nothing about the WO's actual state). Still tappable;
-   tapping shows a toast explaining why instead of opening the status
-   picker (toggleStatusSheet() below). The lock-vs-chevron icon swap
-   already existed (applyStatusProtection()) — just needed wiring to the
-   real Free Form flag instead of a hardcoded false. */
+   §15.4) — promoted to eam-shared.css 2026-07-29, Book Labor is now a
+   real 2nd consumer (PM's completion popup, no Closing step). ── */
 
 /* ── CLOSING CODES — 2×2 grid, sequential unlock (§19.3). No shared
    equivalent — a 4-key cascading LOV shape unique to this screen. ── */
@@ -207,15 +167,9 @@
 .attach-add-btn-label { font-size: 13px; font-weight: 600; color: var(--octave-black); font-family: var(--font-sans); }
 [data-theme="dark"] .attach-add-btn-label { color: rgba(255,255,255,0.9); }
 
-/* Source picker sheet rows */
-.source-option { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
-.source-option:last-child { border-bottom: none; }
-.source-option:hover { background: var(--bg-section); }
-.source-option-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-section); color: var(--gray-4); border: 1.5px solid var(--border-strong); }
-.source-option-texts { flex: 1; }
-.source-option-title { font-size: 14px; font-weight: 600; color: var(--octave-black); }
-[data-theme="dark"] .source-option-title { color: rgba(255,255,255,0.9); }
-.source-option-sub { font-size: 12px; color: var(--gray-4); margin-top: 2px; }
+/* .source-option* promoted to eam-shared.css 2026-07-29 — Home's new
+   Create entity menu is a real 2nd consumer (design-decisions-v3-1.md
+   §9.4.1). */
 
 /* Attachment viewer sheet — its own 2-part header shape, distinct from the
    shared 3-part field-edit header. */
@@ -235,38 +189,8 @@
    Parts'/Book Labor's equivalent per-row tertiary action buttons at one
    size (34px/13px, was 44px/13px here). */
 
-/* ── CONFIRM CLOSE SHEET (§19.7) — rich summary content, its own bottom
-   sheet like Book Labor's Correction sheet, not the plain centered
-   confirm. No shared equivalent. ── */
-.confirm-wording { padding: 16px; font-size: 14px; color: var(--gray-4); line-height: 1.6; border-bottom: 1px solid var(--border); }
-.confirm-wording strong { color: var(--octave-black); font-weight: 600; }
-[data-theme="dark"] .confirm-wording strong { color: var(--white); }
-.confirm-summary { padding: 12px 16px; border-bottom: 1px solid var(--border); }
-.confirm-summary-row { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; font-size: 13px; border-bottom: 1px solid var(--border); }
-.confirm-summary-row:last-child { border-bottom: none; }
-.confirm-summary-label { color: var(--gray-4); }
-/* Inter by default — descriptions/dates/counts never render in mono. Rows
-   that need mono (WO#/asset identifiers) apply it via an inline span. */
-.confirm-summary-value { font-family: var(--font-sans); font-size: 12px; color: var(--octave-black); font-weight: 500; }
-[data-theme="dark"] .confirm-summary-value { color: rgba(255,255,255,0.85); }
-.confirm-summary-value .mono { font-family: var(--font-mono); }
-/* Were local .btn-close-wo/.btn-cancel — converged onto the shared
-   .insert-save-btn.ready and .btn-outlined respectively 2026-07-21 (UI
-   inventory pass): both were near-identical duplicates of those two
-   existing shared controls (same green-action/outlined-cancel roles used
-   elsewhere in the app) with slightly different specs. .btn-outlined
-   needs a small top margin here since it follows directly under the
-   full-width Close button with no other gap. */
-.close-cancel-gap { margin-top: 8px; }
-
-/* ── CLOSED overlay — full-screen success state before navigating to the
-   WO List. No shared equivalent. ── */
-.closed-overlay { position: absolute; inset: 0; background: rgba(0,170,20,0.97); z-index: 400; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
-.closed-overlay.show { display: flex; }
-.closed-icon { width: 72px; height: 72px; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; }
-.closed-title { font-size: 24px; font-weight: 700; color: white; letter-spacing: -0.5px; }
-.closed-sub { font-size: 14px; color: rgba(255,255,255,0.75); font-family: var(--font-mono); }
-.closed-wo { font-family: var(--font-mono); font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 4px; }
+/* ── CONFIRM CLOSE SHEET (§19.7) + CLOSED overlay — promoted to
+   eam-shared.css 2026-07-29, same reason as the status banner above. ── */
 </style>
 </head>
 <body>
@@ -540,7 +464,7 @@
   <div class="bottom-sheet" id="statusSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <button class="sheet-close" onclick="closeSheet('statusSheet')">✕</button>
       <div class="sheet-title">Target status</div>
       <button class="sheet-clear-btn hidden">Clear</button>
     </div>
@@ -741,12 +665,6 @@
    confirm modal, toast, theme toggle, date/edit sheets) comes from
    eam-shared.js. ── */
 
-// Real navigation (2026-07-22 nav pass) — was a toast stub. This is a
-// workflow step, not a Record View, so back means the previous step.
-function navBack() {
-  location.href = 'eam-book-labor-prototype-v2.html';
-}
-
 // toggleSectionCard() now lives in eam-shared.js (design-decisions-v3-1.md
 // §3.4) — promoted 2026-07-22, this screen was the first consumer.
 
@@ -862,67 +780,9 @@ function clearCodeLov() {
   showToast('Cleared');
 }
 
-// ── STATUS PICKER — Option D banner (§19.2). Each status keeps its own
-// accent colour, as the target pill's solid fill instead of a small chip.
-const statusOptions = {
-  completed: { label:'Completed', fillClass:'fill-completed' },
-  closed:    { label:'Closed',    fillClass:'fill-closed' },
-  onhold:    { label:'On hold',   fillClass:'fill-onhold' },
-};
-let currentStatusKey = 'completed';
-
-// Whether the WO Status field is protected per Screen/System Design — a
-// protected field is never user-editable (§5.2), so the target pill goes
-// static/locked and the picker sheet won't open. Same flag as §15.4's Free
-// Form/Not Free Form (protected = Not Free Form), just not modeled as a
-// real field yet (design-decisions-v3-1.md §20), so hardcoded here; flip
-// to true to preview the protected state.
-// statusFieldProtected (§15.4/§19.2, redesigned 2026-07-22) — now a real
-// flag driven by the resolved workflow's Free Form setting (onDemoWoChanged()
-// below), not a hardcoded stand-in.
-let statusFieldProtected = false;
-
-function applyStatusProtection() {
-  const btn = document.getElementById('statusTargetBtn');
-  const icon = document.getElementById('statusTargetIcon');
-  btn.classList.toggle('protected', statusFieldProtected);
-  icon.innerHTML = statusFieldProtected
-    ? '<svg width="12" height="12" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
-    : '<svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-}
-
-function toggleStatusSheet() {
-  if (statusFieldProtected) {
-    showToast('Status is determined by workflow. Cannot be updated.');
-    return;
-  }
-  openSheet('statusSheet');
-}
-
-function selectStatus(key, label) {
-  currentStatusKey = key;
-  const opt = statusOptions[key];
-  const btn = document.getElementById('statusTargetBtn');
-  btn.className = 'status-pill to ' + opt.fillClass;
-  document.getElementById('statusTargetLabel').textContent = label;
-  document.getElementById('confirmTargetStatus').textContent = label;
-  // Update check marks in sheet
-  Object.keys(statusOptions).forEach(k => {
-    const optEl  = document.getElementById('sOpt-'+k);
-    const chkEl  = document.getElementById('sChk-'+k);
-    if (k === key) {
-      optEl.classList.add('selected');
-      chkEl.className = 'lov-check checked';
-      chkEl.innerHTML = '<svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>';
-    } else {
-      optEl.classList.remove('selected');
-      chkEl.className = 'lov-check unchecked';
-      chkEl.innerHTML = '';
-    }
-  });
-  closeAllSheets();
-  showToast(`Target status: ${label}`);
-}
+// statusOptions/currentStatusKey/statusFieldProtected/
+// applyStatusProtection()/toggleStatusSheet()/selectStatus() promoted to
+// eam-shared.js 2026-07-29 — Book Labor is now a real 2nd consumer.
 
 // ── CLOSING COMMENTS + BAR GATING (§19.5/§19.8) ────────────────────────
 // PM_COMMENTS_OPTIONAL (§13, added 2026-07-22) — PM's Closing field
@@ -1000,11 +860,7 @@ function buildConfirmSummary() {
     { label:'Action',         value: codeDescState.action },
     { label:'Attachments',    value: attachments.length > 0 ? `${attachments.length} attached` : 'None' },
   ];
-  document.getElementById('confirmSummary').innerHTML = rows.map(r => `
-    <div class="confirm-summary-row">
-      <span class="confirm-summary-label">${r.label}</span>
-      <span class="confirm-summary-value">${r.value}</span>
-    </div>`).join('');
+  renderConfirmSummary('confirmSummary', rows);
 }
 
 // Close Work Order → brief success overlay, then return to this same WO's
@@ -1013,25 +869,18 @@ function buildConfirmSummary() {
 // marks this workflow instance's activity Completed regardless of its
 // prior status (design-decisions-v3-1.md §15.2/§19.8) — both hand off via
 // sessionStorage, consumed once on Record View's next load, since
-// ACTIVITIES/the header status button only exist on that page.
+// ACTIVITIES/the header status button only exist on that page. The
+// sessionStorage handoff + overlay + navigate sequence itself is now
+// showCompletionOverlay() (eam-shared.js, promoted 2026-07-29) — this is
+// just the Closing-specific text for it.
 function executeClose() {
-  closeAllSheets();
-  document.getElementById('closedSub').textContent = 'Status: ' + statusOptions[currentStatusKey].label;
   // Built from live state, not a static literal (design-decisions-v3-1.md
   // §20) — Date completed reflects whatever was actually entered above.
   const dateCompleted = document.getElementById('fv-dateCompleted').textContent;
-  document.getElementById('closedWo').textContent = 'WO# 19257' + (dateCompleted ? ' · ' + dateCompleted : '');
-  const activeActivityId = sessionStorage.getItem('eamActiveActivityId');
-  if (activeActivityId) {
-    sessionStorage.removeItem('eamActiveActivityId');
-    sessionStorage.setItem('eamActivityJustCompleted', activeActivityId);
-  }
-  sessionStorage.setItem('eamClosedStatusKey', currentStatusKey);
-  sessionStorage.setItem('eamOpenDemoWo', DEMO_WO);
-  setTimeout(() => {
-    document.getElementById('closedOverlay').classList.add('show');
-    setTimeout(() => { window.location.href = 'eam-wo-record-view-prototype-v1.html'; }, 1400);
-  }, 400);
+  showCompletionOverlay({
+    subText: 'Status: ' + statusOptions[currentStatusKey].label,
+    woLine: 'WO# 19257' + (dateCompleted ? ' · ' + dateCompleted : ''),
+  });
 }
 
 // ── ATTACHMENTS (§19.6) ─────────────────────────────────────────────────

@@ -903,18 +903,21 @@ body{
     <div class="insert-mode-header">
       <button class="sheet-close" onclick="closeInsertMode()">✕</button>
       <div class="insert-mode-title">Create</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <button class="org-pill protected im-entity-pill" id="insertEntityPill" data-field="insertEntity" onclick="onEntityPillTap()">
+        <span class="field-value" id="fv-insertEntity-desc">Work order</span>
+      </button>
     </div>
     <div class="insert-mode-body">
       <div class="im-pill-row">
-        <button class="org-pill im-entity-pill" id="insertEntityPill" data-field="insertEntity" onclick="onEntityPillTap()">
-          <span id="fv-insertEntity-icon"></span>
-          <span class="field-value" id="fv-insertEntity-desc">Work order</span>
+        <button class="org-pill" data-field="insertOrganization" onclick="openLov('insertOrganization')">
+          <span class="field-value" id="fv-insertOrganization-code">ORG1</span>
           <svg class="org-pill-chevron" width="12" height="12" viewBox="0 0 24 24"><use href="#ico-chevdown"/></svg>
         </button>
         <span class="im-pill-connector"><svg viewBox="0 0 24 24"><use href="#ico-chevright"/></svg></span>
-        <button class="org-pill" data-field="insertOrganization" onclick="openLov('insertOrganization')">
-          <span class="field-value" id="fv-insertOrganization-code">ORG1</span>
+        <button class="org-pill" data-field="insertType" onclick="openLov('insertType')">
+          <span class="attr-badge" id="fv-insertType-badge"></span>
+          <span class="type-pill-dot" id="fv-insertType-dot"></span>
+          <span class="field-value" id="fv-insertType-desc"></span>
           <svg class="org-pill-chevron" width="12" height="12" viewBox="0 0 24 24"><use href="#ico-chevdown"/></svg>
         </button>
       </div>
@@ -928,8 +931,10 @@ body{
            "always required, not just empty-state" treatment). Equipment
            (§15.5/§9.3) follows, also full-width/required, opening the
            Equipment Lookup sheet instead of a standard LOV — the one
-           remaining exception, WO entity only. Then Type/Status as the
-           ordinary 2-per-row pair. -->
+           remaining exception, WO entity only. Status is the grid's only
+           other field, full-width too — Type moved to the pill row above
+           (§9.4.1, 2026-07-29), so Status no longer has a 2nd column
+           partner to pair with. -->
       <div class="section-card">
         <div class="equip-attrs">
           <div class="attr-item full-width required" data-field="insertDescription" onclick="focusInlineField(this)">
@@ -940,11 +945,7 @@ body{
             <span class="attr-label">Equipment</span>
             <div class="attr-value" id="insertEquipMount"></div>
           </div>
-          <div class="attr-item required" data-field="insertType" onclick="openLov('insertType')">
-            <span class="attr-label" id="imTypeLabel">Type</span>
-            <div class="attr-value"><span class="attr-badge" id="fv-insertType-badge"></span><span class="attr-text" id="fv-insertType-desc"></span></div>
-          </div>
-          <div class="attr-item required" data-field="insertStatus" onclick="openLov('insertStatus')">
+          <div class="attr-item full-width required" data-field="insertStatus" onclick="openLov('insertStatus')">
             <span class="attr-label">Status</span>
             <div class="attr-value"><span class="attr-badge" id="fv-insertStatus-badge"></span><span class="attr-text" id="fv-insertStatus-desc"></span></div>
           </div>
@@ -957,7 +958,10 @@ body{
            .section-card with no toggle; now matches WO Record View's own
            "Work order details" fg-section exactly, including starting
            collapsed (openCreateSheet() resets it closed on every fresh
-           open). Title is entity-aware, same as imTypeLabel above. -->
+           open). Title is entity-aware (renderEntityFields()). The field
+           set inside also varies by Type, not just entity (§9.4.1,
+           2026-07-29) — renderFlatFields() resolves which variant via
+           currentTypeVariant(). -->
       <div class="fg-section">
         <div class="fg-toggle-row" onclick="toggleFg(this)">
           <span class="fg-toggle-title" id="imFlatFieldsLabel">Work order details</span>
@@ -1023,6 +1027,11 @@ body{
 <script src="../../data/notifications.js"></script>
 <script src="shared/eam-shared.js"></script>
 <script>
+// Insert Mode's Type pill (§9.4.1, added 2026-07-29) re-scopes the flat
+// fields section on every change, not just on entity switch — same
+// optional per-key hook eam-shared.js's selectLov() already runs for any
+// screen that defines it, applied here to `insertType` specifically.
+const LOV_ON_SELECT = { insertType: () => { renderFlatFields(); applyTypePillColor(); } };
 /* ══ THEME — real bug fixed 2026-07-23: this file used to also define its
    own local applyTheme()/toggleTheme() and attach a 2nd click listener to
    #themeToggle, on top of the one initSharedApp()/initThemeToggle()
@@ -1555,6 +1564,12 @@ let LOV_CURRENT = { insertOrganization:'ORG1', insertEquipment:'' };
 let BADGE_LOV_META = {};
 const NO_SEARCH_LOVS = new Set(['insertOrganization', 'insertType', 'insertStatus']);
 const ORG_STYLE_LOVS = new Set(['insertOrganization']);
+// Type moved from a grid badge to a pill (§9.4.1, 2026-07-29) — pills are
+// always system-defaulted, never Clear-able, same as insertOrganization
+// gets via ORG_STYLE_LOVS above. Not added to that set itself — it also
+// redirects selectLov()'s render branch to Organization's code-display
+// shape, not Type's badge branch (BADGE_LOV_META, renderEntityFields()).
+const ALWAYS_REQUIRED_LOVS = new Set(['insertType']);
 const REF_CARD_FIELDS = { insertEquipment: { mountId: 'insertEquipMount', emptyLabel: 'Tap to select equipment' } };
 // eam-shared.js's openDate()/selectDate()/clearDate() read/write
 // RECORD[key] directly (§3.4) — this file otherwise has no RECORD object
