@@ -1622,6 +1622,158 @@ both, connected by a small chevron:
   screen driving mobile runtime behavior), but scoped to Home's action
   set rather than WO workflow steps. Not scoped or prototyped.
 
+## 9.4.1 Home's Create icon — entity menu, not straight into Insert Mode
+
+Added 2026-07-29, direct feedback. Tapping Home's Create icon used to
+open Insert Mode straight away, defaulted to WO, with the Screen/entity
+pill above as the one (editable) way to notice a wrong default and fix
+it. Feedback: defaulting blindly and asking the technician to notice/
+correct it after the fact was the actual problem, and neither obvious
+fix was right either — Home's own colourful tiles (misleading, since
+those mean "go look at a list," not "start a new record") or reusing the
+LOV-shaped checkmark rows the pill's own picker already uses (a
+persistent-selection shape for what's actually a one-time choice).
+
+**New paradigm:** tapping Create opens a small `openCreateEntityMenu()`
+sheet first — one-time action rows (`.source-option`, promoted from WO
+Closing's attachment-source picker, §19.6 — icon + title, no checkmarks)
+for each real entity in `ENTITY_META`, then the `STUB_ENTITIES` (Meter
+Reading/Operator Checklist) below a "More" label, same coming-soon toast
+either way. Reads the exact same `ENTITY_META`/`STUB_ENTITIES` array as
+the pill's own picker (`openEntityPicker()`) — not a duplicate list.
+
+**Picking a real entity now locks it** — `openCreateSheet(code)`, the
+same call WO List/Equipment List's own Create already uses, so Home's
+Screen/entity pill goes `.protected` (same as those 2 screens) once
+Insert Mode opens, instead of staying the editable pill described in
+§9.4 above. Deliberate: once the technician has picked deliberately from
+a real chooser, a 2nd "tap here to change your mind" affordance on the
+same screen is redundant ceremony, not a safety net — this is a real
+behavior change from §9.4's original "Home's pill stays editable, WO
+List's/Equipment List's stay locked" framing, flagged here rather than
+silently narrowing that distinction. `onEntityPillTap()`/
+`openEntityPicker()` are otherwise unchanged — still Insert Mode's own
+pill-tap picker, unreachable now from Home specifically since its pill
+is always locked after this menu, same as it always was for List/Search-
+originated Creates.
+
+## 9.4.2 Type joins the pill row; entity badge moves to the header
+
+Added 2026-07-29, direct feedback. Insert Mode's header/pill area is
+restructured again, on top of §9.4.1's entity-menu change:
+
+- **Type moves from a grid badge row to a 2nd pill**, next to
+  Organization: `[Organization] [Type]` — see §9.4.3 for the connector
+  between them (added back one round later than this section originally
+  said).
+- **The Screen/entity pill moves into `.insert-mode-header`** (next to the
+  ✕ close button/"Create" title), rendered as a small `.org-pill.protected`
+  badge instead of a full pill in the body — every entry point now opens
+  Insert Mode already locked to an entity (§9.4.1 for Home; WO List/
+  Equipment List always were), so there is no live case left where this
+  needs to be a tappable, editable control. `onEntityPillTap()`/
+  `openEntityPicker()`/`selectEntity()` are unchanged but now effectively
+  unreachable in normal use — left in place, not removed.
+- **Equipment gains a real Type** (`ASSET`/`POSITION`/`SYSTEM`, default
+  `ASSET`) — was `Class` (`PUMP`/`VALVE`/`COMPRESSOR`, default `PUMP`), a
+  concept this rebuild never modeled as a real field elsewhere anyway.
+  WO's Type is unchanged in substance (`CM`/`PM`/`BK`, default `CM`) —
+  only `CM`'s pill text shortens to "Corrective" (was "Corrective
+  Maintenance"), since a pill's width budget is much tighter than a grid
+  cell's.
+- **Status is now the grid's only field** (Description and, for WO,
+  Equipment are the other 2, both already full-width) — marked
+  `full-width` too, so it doesn't sit alone in a 2-column row with an
+  empty cell beside it.
+- **Switching Type re-renders the flat-fields section** with a different
+  field set — the cheapest possible stand-in for a real Screen Designer
+  layout varying by Type (§11-13's actual mechanism, for WO/Equipment
+  Record View). Not one layout per Type code: just `'default'` (the
+  entity's own default Type) vs. `'alt'` (every other Type shares the one
+  alternate layout) — `ENTITY_FLAT_FIELDS[entity][variant]`,
+  `eam-shared.js`. Obvious, cheap differences only (required-ness + which
+  fields even appear), not a full invented field set per Type:
+  - **WO alt** (Preventive/Breakdown): Problem Code drops to optional;
+    Priority and Assigned To become required instead and move up front.
+  - **Equipment alt** (Position/System — a structural node, not a
+    physical asset): Manufacturer/Category/Cost Code are dropped
+    entirely; PM WO Department becomes required instead of Criticality.
+  - Both variants keep Department required — the one constant across
+    every Type for both entities.
+
+## 9.4.3 Header/pill polish pass
+
+Added 2026-07-29, direct feedback, one round after §9.4.2:
+
+- **"Create" is truly centered**, not just centered-in-whatever-space-
+  is-left. It was `flex:1;text-align:center` between the ✕ button (fixed
+  ~30px) and the entity badge (variable-width pill) — different widths on
+  either side pulled the visual center off the header's true center now
+  that the right side isn't a fixed spacer anymore. It's the anchor:
+  `position:absolute;left:0;right:0` on a `position:relative` header, so
+  it's dead-center regardless of either sibling's width.
+- **Entity badge loses its icon** — text only (`fv-insertEntity-desc`),
+  no `fv-insertEntity-icon` span at all. `selectEntity()`/
+  `openCreateSheet()` no longer set one.
+- **The chevron connector is back between Organization and Type** —
+  §9.4.2 removed it same-session ("two independent choices, not a
+  drill-down"); direct feedback the next round put it back (floating,
+  disconnected pills read as unbalanced/askew). `.im-pill-connector` never
+  left the CSS, just the markup between the 2 pills.
+- **Organization and Type are held to the same overall pill height** —
+  Type's own inner badge is sized down to 16×16 specifically inside a
+  pill (`.org-pill .attr-badge`), not the 28×28 it gets in a grid cell,
+  so it never grows taller than Organization's plain text+chevron.
+- **WO's Type pill colour is the real curated palette** — the exact same
+  `WO_TYPE_PALETTE` (§23.3) the step rail/WO List/WO Record View's own
+  Type field all read, not Insert Mode's previously separate, colourless
+  set. `ENTITY_FIELD_META.WO.typeOptions` now builds each entry via
+  `woTypeBadgeMetaForCode()` directly — single source of truth. This
+  round's own fill treatment (solid colour + white/black icon,
+  `applyTypePillFill()`/`.org-pill.type-fill`) didn't survive the next
+  round — see §9.4.4, which replaced it with white fill + colour-matched
+  outline + dot instead of an icon.
+
+## 9.4.4 Type pill settles: white fill, colour-matched outline, dot
+
+Added 2026-07-29, direct feedback, after mocking up several outline/icon/
+fill combinations for the Type pill. §9.4.3's solid-colour-fill treatment
+is retired — mocking it up next to alternatives surfaced a real problem:
+Corrective's own curated colour (`--wo-type-corrective`, a pale yellow)
+read badly with white icon/text on it, one of exactly the failure modes
+the mockup round existed to catch. Settled shape:
+
+- **White fill always** (`--bg-card`), not a solid colour fill — this
+  applies uniformly to both entities' Type pill now, replacing both the
+  previous "colour fill for WO" and "plain black like Organization for
+  Equipment" split. One rule, not two.
+- **Outline colour-matched to the selected Type's real curated
+  `WO_TYPE_PALETTE` colour.** No colour present (Equipment's Asset/
+  Position/System has none) → **plain black outline** — the fallback
+  rule, direct instruction. Same "omit rather than fake it" principle
+  `.attr-badge:empty` already follows elsewhere in the app, applied here
+  to the outline instead of an icon's presence.
+- **A small solid colour dot replaces the icon entirely** — not a
+  bespoke pill-only recipe, this is the exact same "Type shows a small
+  solid colour dot ahead of its plain-text value" treatment WO List
+  already uses (§8.3/§23.3). No colour present → no dot at all (not a
+  black dot) — same fallback as the outline.
+- `applyTypePillColor()` (`eam-shared.js`, renamed from
+  `applyTypePillFill()`) sets 2 inline overrides — the pill's
+  `border-color` and the dot's `background`/`display` — everything else
+  (white fill, black fallback outline, hidden-by-default dot) is the CSS
+  default (`.org-pill[data-field="insertType"]`, `eam-shared.css`), not
+  JS-toggled.
+- **`.attr-badge` (Insert Mode's shared icon-badge plumbing,
+  `renderColorBadge()`/`selectLov()`) still writes into
+  `#fv-insertType-badge` exactly as before** — that generic mechanism is
+  shared across every screen that uses badge-style fields (e.g. Equipment
+  Record View's Class), so it isn't special-cased for Type. It's just
+  hidden (`.org-pill[data-field="insertType"] .attr-badge{display:none}`)
+  now that the dot has taken over Type's actual visual — CSS-only fix,
+  no JS branch needed, and nothing else that reads `BADGE_LOV_META`/
+  `renderColorBadge()` had to change.
+
 ## 9.5 Field sets — working defaults until Screen Designer exists
 
 WO and Equipment Record View inserts (§9.1 standard 1) are both real, end
@@ -2078,9 +2230,15 @@ one consumer so far.
   light / white dark) filled circle, highlighted row background (not
   colour-instrument purple — §23). Locked steps: gray bordered circle
   with step number.
-- **Numbered rows are informational only, not tappable** — each step is
-  its own file, not an in-page tab, so jumping ahead isn't a same-page
-  interaction the way it is for `.tab-rail`.
+- **Numbered rows never navigate** — each step is its own file, not an
+  in-page tab, so jumping ahead isn't a same-page interaction the way it
+  is for `.tab-rail`. For a Not Free Form (gated) workflow, tapping a
+  non-active row is tappable as of 2026-07-29 to the extent of showing a
+  toast explaining why it didn't go anywhere ("Locked — finish X first" /
+  "Already completed — steps stay in a fixed order on this workflow") —
+  fixes the dead-end silent no-op tapping one used to be. A Free Form
+  configured workflow (e.g. PM) has no gating to explain, so its rows stay
+  a true no-op, no onclick at all.
 - **No footer note.** The map's final section is the "Reference" group
   (Comments, Documents, Equipment — §14.8/§23), which IS tappable and
   uses a plain icon instead of a numbered badge, unlike the steps above it.
@@ -2105,13 +2263,36 @@ one consumer so far.
 - Meta counter right of pill (e.g. "3 / 6 done") — turns green when ready
 - Tapping locked bar fires a toast: context-specific message per step
 
-## 14.6 Prompt bar — Yes/No (Option 4 segmented)
+## 14.6 Prompt bar — Yes/No fork
 
 - Replaces standard bar when a branching question is triggered (e.g. "Did you issue parts?")
-- Structure: monospace question label above, segmented control below
-- Segmented: Yes (green fill) | No (neutral) — separated by thin divider
-- Full-width edge-to-edge, border-radius on outer container only
+- Structure: question label above, two pills below
+- **Two standalone pills, not a joined segmented control** (changed
+  2026-07-29, direct feedback) — was one segmented control with Yes
+  green-filled; green read as "this is the pre-selected/correct answer"
+  for what's a real, undecided fork, and the joined-segment shape implied
+  the two outcomes were variants of one control rather than two separate
+  choices. Applies to `.question-btn` (the centered 3-outcome Yes/No/
+  Cancel modal used by the Stop-timer confirmation) too — same problem,
+  same fix.
+- **Solid black fill, white text in light mode** (2nd round, same day) —
+  round 1 landed on outlined/transparent pills for the "no colour, no
+  implied default" fix above; direct feedback moved them to a solid fill
+  instead, same `.org-pill`/`.btn-contained` fill+flip convention used
+  everywhere else in the app (dark mode flips to solid white/black text,
+  not a translucent variant) — still no colour, still no asymmetry
+  between the two, just filled instead of outlined.
+- Full-width edge-to-edge row, each pill its own rounded shape with a real
+  gap between them (not one outer border split by a divider)
 - Yes routes to Issue Parts screen; No skips to Book Labor
+- **No fork at all → no "Ready to continue" label, just a green "Continue
+  to Book Labor" pill** (changed 2026-07-29, direct feedback) — a
+  workflow with no Issue Parts step (PM) was showing a label + an
+  outlined/filled pill matching the 2-way fork's own visual weight for
+  what's actually a single, unambiguous next action. Reuses `.bar-pill
+  bar-pill-ready` verbatim (the same green "ready" pill the bottom bar
+  itself uses), not a bespoke recipe — green is fine here specifically
+  because there's no 2nd option for it to imply a false preference over.
 
 ## 14.7 Bar locking rules per step
 
@@ -2130,6 +2311,36 @@ the *step* (not the individual field) hard-gates progression until its
 required items are satisfied. A required checklist item can still render
 its field-level warning styling; the step bar is what actually stops the
 technician from moving on.
+
+## 14.7.1 Back button, Steps 2-5 — returns to WO Search, not the previous step
+
+Added 2026-07-29, direct feedback. Previously each of the 4 post-Record-
+View steps' top-left back button chained to the *previous* step's file
+(Closing→Book Labor→Issue Parts→Checklist→Record View) — 4 near-identical
+functions. Now every one of them returns straight to WO List/Search,
+matching what Record View's own back button already did:
+
+- **Once you're mid-workflow, back means "leave this WO," not "undo one
+  step."** This also resolves a real inconsistency: the step rail already
+  refuses to let you jump back into a done step (§14.3's gating toast) —
+  letting the physical back button quietly do that anyway was the actual
+  bug.
+- Applies uniformly to all 4 steps regardless of Free Form/Not Free Form
+  or the §11 fallback — one simple rule, not conditional on workflow type.
+- **If the WO's timer is running** (`eamTimerRunning` in sessionStorage),
+  back asks first: "Pause the timer and return to WO Search?" — a plain
+  2-button confirm (`openConfirm()`'s new `{primary:true}` neutral variant,
+  §14.6's comment above — not the red `.confirm-danger` style, this isn't
+  a destructive action). Confirming **pauses**, it does not stop/book time
+  — `eamTimerRunning` stays true so the timer is still considered "in
+  progress" if this WO is reopened later; declining leaves the technician
+  on the current step untouched.
+- Record View (Step 1) keeps its own separate, simpler `navBack()` — it
+  already always went to WO List, and never has a timer running while on
+  screen (Start Work hands off to Checklist immediately), so it never
+  needed the confirmation.
+- Implementation is one shared `navBack()` in `eam-shared.js` now, not 4
+  screen-local copies.
 
 ## 14.8 Comments & Documents — reachable from any step, always
 
@@ -2229,6 +2440,20 @@ confirmation.
   currently *selected* — not a per-row action. Tapping it with nothing
   selected toasts "Select an activity to edit." Name and Discipline are
   editable there; Date/Code 1/Code 2 stay protected/read-only.
+- **No confirmation toast on select** (removed 2026-07-29, direct
+  feedback) — selecting an activity is already visually obvious (radio
+  fill, selected-row background/left-bar); a toast on top of that was
+  noise, not new information.
+- **Protected when the WO is Closed/Completed** (added 2026-07-29, direct
+  feedback) — same `CLOSED_STATUS_CODES`/`applyClosedFieldProtection()`
+  sweep that already protects the header's Type/Priority/Equipment and
+  flat fields (§20). Tapping a row toasts the same "WO is closed —
+  fields are protected until reopened" message instead of changing the
+  selection; rows dim (`.act-item.protected`, same `.protected` opacity
+  every other locked field/row uses) so it reads as locked, not just
+  unresponsive. `renderActivitiesListHTML()` computes this itself (not a
+  separate DOM pass) so a later re-render — adding or editing an activity
+  — can't accidentally drop the protection while the WO stays closed.
 - **Completed state.** An activity is "complete" when its own Completed
   checkbox is checked, OR its assignment status is at system status 'C'
   (`ACTIVITY_STATUS_OPTIONS`' `COMP`/"Completed") — either is sufficient
@@ -2361,6 +2586,20 @@ runs once at load and again on every real Status change via the
 field immediately, live. **Known scope limit:** the Grid-shaped fields
 (Type/Priority/Equipment) only get the dimmed/non-tappable treatment, not
 a lock-icon insertion — none of the 3 has an existing icon slot for one.
+
+**Extended 2026-07-29, direct feedback** to 2 more surfaces, same sweep:
+
+- **Activity selector** (§15.2) — rows dim (`.act-item.protected`) and
+  tapping one toasts instead of changing the selection, same rule as
+  every other protected field above.
+- **Every collapsible container header** (`.fg-toggle-row`,
+  `.section-card-header`, `.rv-toggle-row` — Work order details, Custom
+  Fields, Activities/Comments/Documents) grays out (`.protected`, 60%
+  opacity, promoted to `eam-shared.css` since all 3 classes are already
+  shared) as one whole-record "this is locked" signal, layered on top of
+  the specific field-level protection above rather than replacing it.
+  Still tappable — collapsing/expanding a section isn't an edit, so
+  nothing about that interaction is actually blocked, only dimmed.
 
 ## 15.5 Equipment — Equipment Lookup (Search + Structure)
 
@@ -3067,6 +3306,59 @@ Note: the WO Details section was removed from this screen — the tech already k
   header's existing neutral CLOSE tier, On Hold reuses the orange
   "waiting" tier established for Work Request, and none of the 3 touch
   the header's own `LOV_CURRENT.__status` value (display-only).
+
+## 19.7.1 PM has no Closing step — Book Labor completes it instead
+
+Added 2026-07-29, direct feedback. PM's workflow-steps row for `closing`
+is removed (`data/wo-workflow-steps.js`) — PM now runs record → checklist
+→ booklabor only, same treatment Issue Parts already got for this WO
+Type. Book Labor becomes PM's terminal step, and its bottom bar reflects
+that (`applyTerminalStepBar()`, `eam-book-labor-prototype-v2.html`):
+
+- **Default ("Next: WO Closing") markup is untouched for every WO Type
+  that still has a configured Closing step** (BRKD) — the terminal-step
+  check only fires when `resolveWoWorkflow()` returns a configured
+  workflow with no `'closing'` in its step list.
+- **Terminal case swaps the bar to "Complete Work Order,"** opening a new
+  `#completeWoSheet` on Book Labor itself — not a 2nd Closing-shaped
+  screen. Reuses, verbatim, the exact from/to status banner + status
+  picker sheet + confirm-summary rows + green completion overlay WO
+  Closing already had (§19.2/§19.7) — this is why that whole component
+  set (CSS + the status/summary/overlay JS, not `buildConfirmSummary()`
+  itself, which stays screen-local since its rows are screen-specific)
+  got promoted to `eam-shared.css`/`.js` this same session: Book Labor is
+  a real 2nd consumer, not a one-off.
+- **Summary rows are fixed RV-only fields** (direct feedback, chosen over
+  a dynamic "show what changed" alternative) — Work order, Equipment,
+  Date completed. No closing codes (none exist for this path) and no
+  Attachments row (Book Labor has no attachments feature to summarize at
+  all, unlike WO Closing). Date completed has no editable field on this
+  simplified popup — defaults to today, same "plainest literal
+  rendering" convention as the rest of this prototype's demo data.
+- **Status edit only when not protected**, same `statusFieldProtected =
+  !workflow.freeForm` rule as WO Closing's own banner — PM is Free Form,
+  so this is always the editable case in practice today, but the check is
+  real, not hardcoded to PM.
+- Confirming reuses the identical green completion overlay (now animated,
+  see the eam-shared.css comment above it) and returns to Record View
+  with fields protected, exactly like a real Closing.
+
+**Bug fix, same day:** picking a status inside `#completeWoSheet`'s
+nested status picker locked the technician out of the whole completion
+popup — `selectStatus()` called the blanket `closeAllSheets()`, which
+closes *every* `.bottom-sheet`, not just the one the technician actually
+interacted with. On WO Closing this was harmless (its status banner
+lives directly on the page, never inside another sheet, so there was
+never a parent sheet to lose). On Book Labor's completion popup, the
+status picker opens *from inside* `completeWoSheet` — so closing
+everything dropped the technician all the way back out of the popup on a
+routine status pick, with no obvious way back in. Fixed with a new
+`closeSheet(id)` (`eam-shared.js`) that closes only the named sheet and
+only drops the shared overlay if nothing else is left open — used by
+`selectStatus()` and the status picker's own ✕ now, in both Closing and
+Book Labor. Behaves identically to `closeAllSheets()` whenever there's no
+parent sheet (Closing's case), and correctly preserves one when there is
+(Book Labor's).
 
 ## 19.8 Design decisions locked (WO Closing)
 

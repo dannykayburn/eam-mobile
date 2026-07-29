@@ -174,9 +174,12 @@ falls back to 20450.
 ### Home
 `eam-home-screen-prototype-v1.html`. Introduced the app-level nav shell
 (`.nav-avatar`, `.bottom-nav`, profile dropdown), now promoted to the
-shared files (§4.2/§4.3). Create bar opens the one shared Insert Mode
-(`openCreateSheet()`, §9.6) with an editable entity pill, defaulting to
-Work Order. Home is a **deliberate, named exception** to the app's
+shared files (§4.2/§4.3). Create bar opens a new entity-choice menu first
+(`openCreateEntityMenu()`, §9.4.1, changed 2026-07-29 — was straight into
+Insert Mode with an editable entity pill defaulting to Work Order);
+picking WO or Equipment opens the one shared Insert Mode
+(`openCreateSheet(code)`, §9.6) locked to that entity, same as WO List/
+Equipment List's own Create. Home is a **deliberate, named exception** to the app's
 otherwise-monochrome palette rule (§23) — tile/favorite icons keep real
 color. Tile/chip **content** (which dataspies, which tiles, counts) is
 still an open, unlocked design riff; only the layout mechanics
@@ -220,17 +223,28 @@ anywhere in the app yet, same as WO List).
 ### Insert Mode
 One shared implementation (§9.6/§9.7): `openCreateSheet(lockEntity)` in
 `eam-shared.js` is the single entry point every screen's `+`/Create action
-calls — Home (entity pill editable, defaults Work Order), WO List (locked
-to WO), Equipment List (locked to Equipment). Description is required,
+calls — WO List (locked to WO), Equipment List (locked to Equipment), and
+now Home too (§9.4.1, changed 2026-07-29): tapping Home's Create icon
+opens a new entity-choice menu (`openCreateEntityMenu()`, own component,
+not the old editable pill) first, and whichever entity gets picked opens
+Insert Mode locked to it, same as the List screens. Description is required,
 full-width, and pinned first; the Equipment field reuses the same
 Equipment Lookup component as WO Record View; flat fields sit in a
 collapsible section matching Record View's own "details" section pattern.
+Type is a pill now, not a grid field (§9.4.2, changed 2026-07-29) —
+paired with Organization (`[Organization] [Type]`, no connector between
+them) in the pill row; the Screen/entity choice itself moved to a small
+protected badge in the sheet header (always locked now, every entry point
+commits to an entity before Insert Mode opens). Grid is just Description/
+Equipment(WO)/Status now, all full-width.
 **Renders the record's own screen design** (§9.8) — field set/placement/
 required-ness all come from `ENTITY_FIELD_META`/`ENTITY_FLAT_FIELDS`,
-standing in for a real Screen Designer layout. For the prototype: every
-grid field is required (both entities), plus exactly 2 flat fields per
-entity (WO: Department/Problem Code; Equipment: Department/Criticality).
-Insert Mode is also the **one documented exception** to the app-wide
+standing in for a real Screen Designer layout, and now vary by **Type**
+too, not just entity (§9.4.2): each entity has a `default` flat-field
+variant (its own default Type) and one shared `alt` variant every other
+Type renders instead — obvious, cheap differences only (which fields
+appear + required-ness), not a bespoke layout per Type code. Insert Mode
+is also the **one documented exception** to the app-wide
 required-marker removal (§21/§23/§9.8) — the red left-bar and required-
 count badge still render, scoped to `#insertModeSheet`, since a blank
 form has nothing to Clear yet.
@@ -326,8 +340,8 @@ was the one screen missing it).
   already resolved for real screens (§11–§13), live inside Insert Mode
   itself rather than only visible after saving.
 - **Home's system-action entities + their base-admin config** — noted
-  2026-07-28, not scoped or built. Home's Screen/entity pill (§9.4) covers
-  WO/Equipment only; legacy non-WO/Equipment menu items — Meter Reading,
+  2026-07-28, not scoped or built. Home's Create entity menu (§9.4.1)
+  covers WO/Equipment only; legacy non-WO/Equipment menu items — Meter Reading,
   Work Request, Operator Checklist (and possibly Batch Book Labor/Hours
   Worked/Permit to Work) — are candidates to add, each needing its own
   call on full-Insert-Mode vs. lighter action-sheet shape. Separately,

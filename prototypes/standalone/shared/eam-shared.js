@@ -57,6 +57,24 @@ function openSheet(id) {
   if (overlay) overlay.classList.add('open');
   document.getElementById(id).classList.add('open');
 }
+// Closes just one sheet, not every open one (added 2026-07-29, bug fix) —
+// for a sheet opened from *inside* another already-open sheet (Book
+// Labor's completion popup opening its own status picker on top, §19.7
+// follow-up) closeAllSheets() was closing the parent sheet too, dropping
+// the technician all the way back out of the whole completion flow on a
+// routine status pick. Only drops the shared overlay once nothing else
+// is left open — leaves it (and whichever parent sheet is under this
+// one) alone otherwise. Safe to use in place of closeAllSheets() for any
+// sheet that closes itself/via selection, nested or not — when nothing
+// else is open it behaves identically to closeAllSheets().
+function closeSheet(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+  if (!document.querySelector('.bottom-sheet.open')) {
+    const overlay = document.getElementById('sheetOverlay');
+    if (overlay) overlay.classList.remove('open');
+  }
+}
 
 /* ══════════════════════════════════════════════════════════════════════
    TAB / STEP RAIL (§7.1/§14.1–§14.3) — generalized, no sequence/gating
@@ -94,8 +112,13 @@ function initTabRail() {
 }
 /* ── WO WORKFLOW STEP RAIL (§14.2/§14.3) — generalized 2026-07-16, same
    gated/numbered rail as .tab-rail's toggle but a distinct component (no
-   sequence in .tab-rail). Step map rows are informational only, not
-   tappable — each step is its own file, not a tab inside this one. ── */
+   sequence in .tab-rail). Step map rows don't navigate — each step is its
+   own file, not a tab inside this one — but a Not-Free-Form (gated)
+   workflow's non-active rows are still tappable as of 2026-07-29: tapping
+   one shows a toast explaining why it didn't go anywhere (renderStepRail()
+   below), rather than the dead-end silent no-op that shipped before. A
+   Free-Form configured workflow (e.g. PM) has no such gating concept, so
+   its rows stay a true no-op — no onclick at all. ── */
 function initStepRail() {
   const rail = document.getElementById('stepRail');
   if (!rail) return;
@@ -265,11 +288,16 @@ function renderStepRail(workflow, activeStep, jobType) {
   // out by the innerHTML overwrite below, which is why it looked like it
   // never got built at all (found + fixed 2026-07-22).
   const timerPanel = map.querySelector('.step-timer-panel');
+  // Gating toast only for Not Free Form (§14.2 comment above) — a Free
+  // Form configured workflow (PM) has nothing to explain, so its rows
+  // keep the old silent no-op (no onclick at all).
+  const gated = !workflow.freeForm;
+  const activeLabel = WO_STEP_LABELS[activeStep];
   map.innerHTML = (timerPanel ? timerPanel.outerHTML : '') + steps.map((s, i) => {
     const label = WO_STEP_LABELS[s];
-    if (i < activeIdx) return `<div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">${label}</span></div>`;
+    if (i < activeIdx) return `<div class="step-map-item"${gated ? ` onclick="showToast('Already completed — steps stay in a fixed order on this workflow')"` : ''}><div class="step-map-icon smi-done">✓</div><span class="step-map-label">${label}</span></div>`;
     if (i === activeIdx) return `<div class="step-map-item active"><div class="step-map-icon smi-active">${i + 1}</div><span class="step-map-label active-label">${label}</span></div>`;
-    return `<div class="step-map-item"><div class="step-map-icon smi-locked">${i + 1}</div><span class="step-map-label">${label}</span></div>`;
+    return `<div class="step-map-item"${gated ? ` onclick="showToast('Locked — finish ${activeLabel} first')"` : ''}><div class="step-map-icon smi-locked">${i + 1}</div><span class="step-map-label">${label}</span></div>`;
   }).join('') + STEP_MAP_REFERENCE_GROUP_HTML;
   if (seg) {
     seg.classList.remove('flat');
@@ -1409,8 +1437,9 @@ function discardFromBanner() {
    that reads/writes it by name" convention as everywhere else in this
    file, not a module-import pattern.
    Every consuming screen's own markup must carry the identical
-   #insertModeSheet shape (entity pill row `#insertEntityPill`/
-   `#fv-insertEntity-icon`/`#fv-insertEntity-desc`, Organization pill
+   #insertModeSheet shape (entity badge `#insertEntityPill`/
+   `#fv-insertEntity-desc` — icon-less as of 2026-07-29, direct feedback —
+   in the sheet header now, not this pill row; see §9.4.2), Organization pill
    `#fv-insertOrganization-code`, Equipment grid row `#insertEquipCard`
    (the `.attr-item` itself, id-toggled hidden per entity — rolled into
    the same grid as Type/Status 2026-07-24, no longer its own section-
@@ -1442,16 +1471,26 @@ const STUB_ENTITIES = {
 // Insert Mode's Type picker; flagged as a follow-up, not done here.
 const ENTITY_FIELD_META = {
   WO: {
+    // Was 'Corrective Maintenance' — shortened 2026-07-29 now that Type
+    // lives in a pill (§9.4.1) instead of a grid badge row; a pill's
+    // width is a much tighter budget than a grid cell's, and "Corrective"
+    // alone is unambiguous next to Preventive/Breakdown either way.
     typeLabel: 'Type',
     // Collapsible flat-fields section title (§9.6/§15.5, 2026-07-24) —
     // matches WO Record View's own real "Work order details" fg-section
     // verbatim, now that Insert Mode's grid+collapsible shape converges
     // with the real screen's.
     flatFieldsLabel: 'Work order details',
+    // Icon + colour now pulled from the real WO_TYPE_PALETTE/
+    // WO_TYPE_ICON_GLYPHS (§23.3, above) instead of Insert Mode's own
+    // separate hand-picked icons with no colour — direct feedback,
+    // 2026-07-29: "same colour and icon as defined elsewhere." Single
+    // source of truth, not a re-derivation — the step rail/WO List/WO
+    // Record View's Type field all read the exact same 2 maps.
     typeOptions: [
-      { code:'CM', desc:'Corrective Maintenance', icon:ICO('tool') },
-      { code:'PM', desc:'Preventive Maintenance',  icon:ICO('cal-check') },
-      { code:'BK', desc:'Breakdown',               icon:ICO('alert') },
+      { code:'CM', desc:'Corrective', icon:woTypeIconSvg(woTypeBadgeMetaForCode('CM').family), color:woTypeBadgeMetaForCode('CM').color },
+      { code:'PM', desc:'Preventive Maintenance', icon:woTypeIconSvg(woTypeBadgeMetaForCode('PM').family), color:woTypeBadgeMetaForCode('PM').color },
+      { code:'BK', desc:'Breakdown', icon:woTypeIconSvg(woTypeBadgeMetaForCode('BK').family), color:woTypeBadgeMetaForCode('BK').color },
     ],
     defaultType: 'CM',
     statusOptions: [
@@ -1462,16 +1501,21 @@ const ENTITY_FIELD_META = {
     defaultStatus: 'RELEASED',
   },
   EQUIP: {
-    typeLabel: 'Class',
-    // Same title Equipment Record View's own field-group already uses
-    // for this exact content (Department/Criticality/etc.), not invented.
+    // Was 'Class' with Pump/Valve/Compressor options — replaced 2026-07-29
+    // (direct feedback) with Equipment's real structural-node Type
+    // (Asset/Position/System), the same field WO's Type pill is now
+    // paired with in the header row (§9.4.1). Pump/Valve/Compressor was
+    // never a real Equipment field this rebuild modeled elsewhere (WO
+    // Record View's Class/Category attrs are the real analog for that
+    // concept) — no data lost, just a mislabeled placeholder corrected.
+    typeLabel: 'Type',
     flatFieldsLabel: 'Equipment details',
     typeOptions: [
-      { code:'PUMP',       desc:'Pump',       icon:ICO('droplet') },
-      { code:'VALVE',      desc:'Valve',      icon:ICO('tool') },
-      { code:'COMPRESSOR', desc:'Compressor', icon:ICO('package') },
+      { code:'ASSET',    desc:'Asset',    icon:ICO('package') },
+      { code:'POSITION', desc:'Position', icon:ICO('building') },
+      { code:'SYSTEM',   desc:'System',   icon:ICO('grid') },
     ],
-    defaultType: 'PUMP',
+    defaultType: 'ASSET',
     statusOptions: [
       { code:'OPERATIONAL', desc:'Operational', icon:ICO('check') },
       { code:'DOWN',        desc:'Down',         icon:ICO('alert') },
@@ -1481,28 +1525,60 @@ const ENTITY_FIELD_META = {
   },
 };
 let currentEntity = 'WO';
-// Flat fields (§9.3 point 5), per entity. Regenerated into
-// #insertFlatFieldsMount on every entity switch (renderFlatFields()
-// below), same "re-scope everything below the pill" principle §9.4
-// already documents for Type/Status.
+// Flat fields (§9.3 point 5), per entity, per Type variant (§9.4.1, added
+// 2026-07-29 — a real Screen Designer layout varies by WO Type/Equipment
+// Type, §11-13; this is that same idea's cheapest possible stand-in for
+// the prototype). Not one layout per Type code — just 'default' (the
+// entity's own defaultType, §9.4.1) vs. 'alt' (every other Type shares
+// the one alternate layout). Regenerated into #insertFlatFieldsMount on
+// every entity switch AND every Type switch (renderFlatFields() below),
+// same "re-scope everything below the pill" principle §9.4 already
+// documents for Type/Status themselves.
 const ENTITY_FLAT_FIELDS = {
-  WO: [
-    { key:'insertDepartment', label:'Department', required:true },
-    { key:'insertProblemCode', label:'Problem Code', required:true },
-    { key:'insertPriority', label:'Priority', required:false },
-    { key:'insertAssignedTo', label:'Assigned To', required:false },
-    { key:'insertReportedBy', label:'Reported By', required:false },
-    { key:'insertDateReported', label:'Date Reported', required:false, type:'date' },
-  ],
-  EQUIP: [
-    { key:'insertDepartment', label:'Department', required:true },
-    { key:'insertCriticality', label:'Criticality', required:true },
-    { key:'insertManufacturer', label:'Manufacturer', required:false },
-    { key:'insertCategory', label:'Category', required:false },
-    { key:'insertPmWoDepartment', label:'PM WO Department', required:false },
-    { key:'insertAssignedTo', label:'Assigned To', required:false },
-    { key:'insertCostCode', label:'Cost Code', required:false },
-  ],
+  WO: {
+    // Corrective (defaultType) — the original field set, unchanged.
+    default: [
+      { key:'insertDepartment', label:'Department', required:true },
+      { key:'insertProblemCode', label:'Problem Code', required:true },
+      { key:'insertPriority', label:'Priority', required:false },
+      { key:'insertAssignedTo', label:'Assigned To', required:false },
+      { key:'insertReportedBy', label:'Reported By', required:false },
+      { key:'insertDateReported', label:'Date Reported', required:false, type:'date' },
+    ],
+    // Preventive/Breakdown — Problem Code (a corrective-repair concept)
+    // drops to optional, Priority/Assigned To pick up the required-ness
+    // instead and move up front — deliberately just "obvious differences"
+    // (required-ness + order), not a whole invented field set.
+    alt: [
+      { key:'insertDepartment', label:'Department', required:true },
+      { key:'insertPriority', label:'Priority', required:true },
+      { key:'insertAssignedTo', label:'Assigned To', required:true },
+      { key:'insertProblemCode', label:'Problem Code', required:false },
+      { key:'insertReportedBy', label:'Reported By', required:false },
+      { key:'insertDateReported', label:'Date Reported', required:false, type:'date' },
+    ],
+  },
+  EQUIP: {
+    // Asset (defaultType) — a physical asset, the original field set.
+    default: [
+      { key:'insertDepartment', label:'Department', required:true },
+      { key:'insertCriticality', label:'Criticality', required:true },
+      { key:'insertManufacturer', label:'Manufacturer', required:false },
+      { key:'insertCategory', label:'Category', required:false },
+      { key:'insertPmWoDepartment', label:'PM WO Department', required:false },
+      { key:'insertAssignedTo', label:'Assigned To', required:false },
+      { key:'insertCostCode', label:'Cost Code', required:false },
+    ],
+    // Position/System — a structural node, not a physical asset: no
+    // Manufacturer/Category/Cost Code at all (they don't apply), PM WO
+    // Department becomes required instead of Criticality (routes PM work
+    // without needing a physical criticality rating).
+    alt: [
+      { key:'insertDepartment', label:'Department', required:true },
+      { key:'insertPmWoDepartment', label:'PM WO Department', required:true },
+      { key:'insertAssignedTo', label:'Assigned To', required:false },
+    ],
+  },
 };
 const ENTITY_FLAT_LOV_DATA = {
   WO: {
@@ -1522,8 +1598,18 @@ const ENTITY_FLAT_LOV_DATA = {
     insertCostCode: [{code:'100-100',desc:'General Maintenance'},{code:'100-200',desc:'Capital Repair'}],
   },
 };
+// Type-variant resolution (§9.4.1, added 2026-07-29) — 'default' for the
+// entity's own defaultType (ENTITY_FIELD_META), 'alt' for every other
+// Type. Both renderFlatFields() and updateInsertSaveGate() need the same
+// resolved field list, so it's factored out here rather than duplicated.
+function currentTypeVariant() {
+  return (LOV_CURRENT.insertType === ENTITY_FIELD_META[currentEntity].defaultType) ? 'default' : 'alt';
+}
+function currentFlatFields() {
+  return ENTITY_FLAT_FIELDS[currentEntity][currentTypeVariant()];
+}
 function renderFlatFields() {
-  const fields = ENTITY_FLAT_FIELDS[currentEntity];
+  const fields = currentFlatFields();
   const lovSets = ENTITY_FLAT_LOV_DATA[currentEntity];
   fields.forEach(f => { LOV_DATA[f.key] = lovSets[f.key]; LOV_TITLES[f.key] = f.label; LOV_CURRENT[f.key] = ''; RECORD[f.key] = ''; });
   document.getElementById('insertFlatFieldsMount').innerHTML = fields.map(f => f.type === 'date'
@@ -1538,10 +1624,14 @@ function renderFlatFields() {
          <span class="field-chevron">›</span>
        </div>`
   ).join('');
+  // Re-validate immediately — a Type switch regenerates this whole field
+  // set (including which fields are even required), so the Save gate's
+  // previous read is stale the instant this runs, not just on the next
+  // unrelated field edit.
+  updateInsertSaveGate();
 }
 function renderEntityFields() {
   const cfg = ENTITY_FIELD_META[currentEntity];
-  document.getElementById('imTypeLabel').textContent = cfg.typeLabel;
   LOV_TITLES.insertType = cfg.typeLabel;
   LOV_DATA.insertType = cfg.typeOptions.map(o => ({ code:o.code, desc:o.desc }));
   BADGE_LOV_META.insertType = Object.fromEntries(cfg.typeOptions.map(o => [o.code, o]));
@@ -1549,6 +1639,7 @@ function renderEntityFields() {
   const typeOpt = BADGE_LOV_META.insertType[cfg.defaultType];
   document.getElementById('fv-insertType-badge').outerHTML = renderColorBadge(typeOpt).replace('<span ', '<span id="fv-insertType-badge" ');
   document.getElementById('fv-insertType-desc').textContent = typeOpt.desc;
+  applyTypePillColor();
 
   LOV_DATA.insertStatus = cfg.statusOptions.map(o => ({ code:o.code, desc:o.desc }));
   BADGE_LOV_META.insertStatus = Object.fromEntries(cfg.statusOptions.map(o => [o.code, o]));
@@ -1576,6 +1667,62 @@ function renderEntityFields() {
   // regenerates (entity switch or initial render), same as any other
   // fg-section already gets on every field mutation.
   updateRequiredBadges();
+}
+// Type pill's outline + dot (§9.4.2/§9.4.4/§23.3, settled 2026-07-29
+// after 3 rounds of direct feedback) — white fill is the CSS default
+// (eam-shared.css); this only sets the 2 things that vary per Type: the
+// outline colour and the dot, both from the same real curated
+// WO_TYPE_PALETTE colour (BADGE_LOV_META.insertType[code].color — see
+// ENTITY_FIELD_META.WO.typeOptions above) the step rail/WO List/WO
+// Record View's Type field already use. No colour present (Equipment's
+// Asset/Position/System) → both inline overrides clear, falling back to
+// the CSS default: plain black outline, no dot at all. Called once on
+// every render (renderEntityFields()) and again whenever Type itself
+// changes (each screen's own LOV_ON_SELECT.insertType hook).
+function applyTypePillColor() {
+  const pill = document.querySelector('[data-field="insertType"]');
+  const dot = document.getElementById('fv-insertType-dot');
+  if (!pill || !dot) return;
+  const meta = BADGE_LOV_META.insertType && BADGE_LOV_META.insertType[LOV_CURRENT.insertType];
+  const color = meta && meta.color;
+  pill.style.borderColor = color || '';
+  dot.style.background = color || '';
+  dot.style.display = color ? '' : 'none';
+}
+/* Home's Create entity menu (design-decisions-v3-1.md §9.4.1, added
+   2026-07-29, direct feedback) — the entry point for Home's Create icon
+   specifically (openCreateSheet() itself, further down, is unchanged for
+   its other 2 callers, WO List/Equipment List, which lock straight to
+   their own entity and never show this menu at all). Old flow opened
+   Insert Mode straight to WO and made the technician notice + correct
+   the pill if they actually wanted Equipment; this asks up front instead.
+   Reads the exact same ENTITY_META/STUB_ENTITIES array
+   openEntityPicker() below reads for Insert Mode's own pill-tap picker —
+   not a duplicate list — but renders as one-time action rows
+   (.source-option, promoted from WO Closing's attachment-source picker)
+   rather than either Home's own tiles (misleading — those mean "go look
+   at a list," not "start a new record") or the LOV-shaped checkmark rows
+   below (a persistent-selection shape for what's actually a one-time
+   choice here). Picking a real entity commits to it immediately —
+   openCreateSheet(code) opens Insert Mode already locked to that entity,
+   same as a List-originated Create, no separate "now go fix the pill"
+   step. Picking a stub is the same coming-soon toast STUB_ENTITIES always
+   was. */
+function openCreateEntityMenu() {
+  const bigIco = k => `<svg width="20" height="20" viewBox="0 0 24 24"><use href="#ico-${k}"/></svg>`;
+  const realRows = Object.entries(ENTITY_META).map(([code, m]) => `
+    <div class="source-option" onclick="closeAllSheets(); openCreateSheet('${code}');">
+      <div class="source-option-icon">${bigIco(m.icon)}</div>
+      <div class="source-option-texts"><div class="source-option-title">${m.desc}</div></div>
+    </div>`).join('');
+  const stubRows = Object.entries(STUB_ENTITIES).map(([code, m]) => `
+    <div class="source-option stub" onclick="closeAllSheets(); showToast('${m.desc} — coming soon');">
+      <div class="source-option-icon"></div>
+      <div class="source-option-texts"><div class="source-option-title">${m.desc}</div></div>
+    </div>`).join('');
+  document.getElementById('createEntityMenuBody').innerHTML = realRows
+    + '<div class="source-option-group-label">More</div>' + stubRows;
+  openSheet('createEntityMenuSheet');
 }
 function openEntityPicker() {
   document.getElementById('lovSheetTitle').textContent = 'Create';
@@ -1607,7 +1754,6 @@ function selectEntity(code) {
   }
   currentEntity = code;
   document.getElementById('fv-insertEntity-desc').textContent = ENTITY_META[code].desc;
-  document.getElementById('fv-insertEntity-icon').innerHTML = ICO(ENTITY_META[code].icon);
   closeAllSheets();
   renderEntityFields();
   showToast('✓ ' + ENTITY_META[code].desc);
@@ -1636,7 +1782,6 @@ function openCreateSheet(lockEntity) {
   const pill = document.getElementById('insertEntityPill');
   if (pill) pill.classList.toggle('protected', insertEntityLocked);
   document.getElementById('fv-insertEntity-desc').textContent = ENTITY_META[currentEntity].desc;
-  document.getElementById('fv-insertEntity-icon').innerHTML = ICO(ENTITY_META[currentEntity].icon);
   LOV_CURRENT.insertOrganization = 'ORG1';
   document.getElementById('fv-insertOrganization-code').textContent = 'ORG1';
   LOV_CURRENT.insertEquipment = '';
@@ -1657,7 +1802,7 @@ function openCreateSheet(lockEntity) {
 function updateInsertSaveGate() {
   const btn = document.getElementById('insertSaveBtn');
   if (!btn) return;
-  const fields = ENTITY_FLAT_FIELDS[currentEntity] || [];
+  const fields = currentFlatFields();
   let ready = fields.every(f => !f.required || LOV_CURRENT[f.key]);
   if (currentEntity === 'WO') ready = ready && !!LOV_CURRENT.insertEquipment;
   // Description is now a required grid field (§9.6, 2026-07-24 — rolled
@@ -2801,9 +2946,16 @@ let confirmCallback = null;
 // dangerLabel is optional (defaults to 'Delete') — added 2026-07-16 for WO
 // Closing's "Remove attachment" confirm, the first caller whose destructive
 // verb isn't literally "delete." Existing calls with 2 args are unaffected.
-function openConfirm(message, onConfirm, dangerLabel) {
+// opts.primary (added 2026-07-29, back-button timer prompt) swaps the
+// button's class from .confirm-danger (red, destructive) to .confirm-
+// primary (black/white, neutral) — for a confirm whose action isn't
+// destructive, just needs a real "are you sure." Omitted opts preserves
+// every existing caller's red-danger button exactly as before.
+function openConfirm(message, onConfirm, dangerLabel, opts) {
   document.getElementById('confirmMessage').textContent = message;
-  document.getElementById('confirmDangerBtn').textContent = dangerLabel || 'Delete';
+  const btn = document.getElementById('confirmDangerBtn');
+  btn.textContent = dangerLabel || 'Delete';
+  btn.className = 'confirm-btn ' + ((opts && opts.primary) ? 'confirm-primary' : 'confirm-danger');
   confirmCallback = onConfirm;
   document.getElementById('confirmOverlay').classList.add('open');
 }
@@ -2900,6 +3052,119 @@ function toggleStepTimerPause() {
 function stopStepTimer() {
   clearInterval(stepTimerInterval);
   stepTimerRunning = false;
+}
+
+/* Back button, Steps 2-5 (Checklist/Issue Parts/Book Labor/Closing) —
+   generalized 2026-07-29, direct feedback: was 4 near-identical per-screen
+   functions each hardcoded to the *previous* step's file. Once you're
+   mid-workflow, back now always means "leave this WO" (WO List/Search),
+   not "undo one step" — consistent with the gated rail itself refusing to
+   let you jump back into a done step (initStepRail()'s comment above);
+   letting the physical back button quietly do what the rail just refused
+   was the actual inconsistency. Record View (step 1) keeps its own
+   separate navBack() — already goes to WO List unconditionally, and never
+   has a timer running while it's on screen (Start Work hands off to
+   Checklist immediately), so it never needs this confirmation. A screen
+   that defines its own navBack() after this file loads shadows this one,
+   same as any other override in this file — Record View's local copy is
+   what actually wins there, not a special-case here. */
+function navBack() {
+  if (sessionStorage.getItem('eamTimerRunning') === 'true') {
+    openConfirm('Pause the timer and return to WO Search?', () => {
+      location.href = 'eam-wo-list-prototype-v5_1.html';
+    }, 'Pause & Leave', { primary: true });
+    return;
+  }
+  location.href = 'eam-wo-list-prototype-v5_1.html';
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   STATUS CHANGE CONTROL + COMPLETION OVERLAY (design-decisions-v3-1.md
+   §19.2/§19.7/§19.8) — promoted from WO Closing 2026-07-29, Book Labor is
+   now a real 2nd consumer (PM's completion popup, no Closing step at
+   all). Screen supplies its own markup with the exact ids below
+   (#statusTargetBtn/#statusTargetLabel/#statusTargetIcon/#statusSheet/
+   #sOpt-{key}/#sChk-{key}/#confirmTargetStatus/#closedSub/#closedWo/
+   #closedOverlay — copy the shape verbatim, same convention as Insert
+   Mode's own header comment above) and calls renderConfirmSummary() for
+   its own summary rows, showCompletionOverlay() once confirmed. ══════ */
+const statusOptions = {
+  completed: { label:'Completed', fillClass:'fill-completed' },
+  closed:    { label:'Closed',    fillClass:'fill-closed' },
+  onhold:    { label:'On hold',   fillClass:'fill-onhold' },
+};
+let currentStatusKey = 'completed';
+// Whether the WO Status field is protected — same flag as §15.4's Free
+// Form/Not Free Form (protected = Not Free Form); screen sets this from
+// its own resolved workflow before calling applyStatusProtection().
+let statusFieldProtected = false;
+function applyStatusProtection() {
+  const btn = document.getElementById('statusTargetBtn');
+  const icon = document.getElementById('statusTargetIcon');
+  if (!btn || !icon) return;
+  btn.classList.toggle('protected', statusFieldProtected);
+  icon.innerHTML = statusFieldProtected
+    ? '<svg width="12" height="12" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+    : '<svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+function toggleStatusSheet() {
+  if (statusFieldProtected) {
+    showToast('Status is determined by workflow. Cannot be updated.');
+    return;
+  }
+  openSheet('statusSheet');
+}
+function selectStatus(key, label) {
+  currentStatusKey = key;
+  const opt = statusOptions[key];
+  const btn = document.getElementById('statusTargetBtn');
+  btn.className = 'status-pill to ' + opt.fillClass;
+  document.getElementById('statusTargetLabel').textContent = label;
+  const targetSpan = document.getElementById('confirmTargetStatus');
+  if (targetSpan) targetSpan.textContent = label;
+  Object.keys(statusOptions).forEach(k => {
+    const optEl = document.getElementById('sOpt-'+k);
+    const chkEl = document.getElementById('sChk-'+k);
+    if (k === key) {
+      optEl.classList.add('selected');
+      chkEl.className = 'lov-check checked';
+      chkEl.innerHTML = '<svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>';
+    } else {
+      optEl.classList.remove('selected');
+      chkEl.className = 'lov-check unchecked';
+      chkEl.innerHTML = '';
+    }
+  });
+  // closeSheet(), not closeAllSheets() (bug fix, 2026-07-29) — this can
+  // be opened from inside another already-open sheet (Book Labor's
+  // completion popup); closing only this one leaves that parent open.
+  closeSheet('statusSheet');
+  showToast(`Target status: ${label}`);
+}
+function renderConfirmSummary(containerId, rows) {
+  document.getElementById(containerId).innerHTML = rows.map(r => `
+    <div class="confirm-summary-row">
+      <span class="confirm-summary-label">${r.label}</span>
+      <span class="confirm-summary-value">${r.value}</span>
+    </div>`).join('');
+}
+// opts: { subText, woLine, nextUrl } — nextUrl defaults to Record View,
+// the destination every completion flow returns to today.
+function showCompletionOverlay(opts) {
+  closeAllSheets();
+  document.getElementById('closedSub').textContent = opts.subText;
+  document.getElementById('closedWo').textContent = opts.woLine;
+  const activeActivityId = sessionStorage.getItem('eamActiveActivityId');
+  if (activeActivityId) {
+    sessionStorage.removeItem('eamActiveActivityId');
+    sessionStorage.setItem('eamActivityJustCompleted', activeActivityId);
+  }
+  sessionStorage.setItem('eamClosedStatusKey', currentStatusKey);
+  sessionStorage.setItem('eamOpenDemoWo', DEMO_WO);
+  setTimeout(() => {
+    document.getElementById('closedOverlay').classList.add('show');
+    setTimeout(() => { window.location.href = opts.nextUrl || 'eam-wo-record-view-prototype-v1.html'; }, 1400);
+  }, 400);
 }
 
 /* ══════════════════════════════════════════════════════════════════════

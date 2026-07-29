@@ -699,12 +699,6 @@
 /* ── screen-specific config/behavior — chrome (nav, header, step rail,
    confirm modal, toast, theme toggle) comes from eam-shared.js. ── */
 
-// Real navigation (2026-07-22 nav pass) — was a toast stub. This is a
-// workflow step, not a Record View, so back means the previous step.
-function navBack() {
-  location.href = 'eam-activity-checklist-prototype-v2.html';
-}
-
 // ─── TIMER — gated on eamTimerRunning as of 2026-07-24 (§15.4/§20), same
 // reasoning as Activity Checklist's own copy of this comment: a Free
 // Form WO only has a timer to keep running here if one was actually
