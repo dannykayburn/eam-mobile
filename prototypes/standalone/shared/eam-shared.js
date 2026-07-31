@@ -2501,18 +2501,23 @@ function openEdit(key, label, type) {
   const raw = document.getElementById('fv-'+key).textContent.replace(/[$,]/g,'');
   input.value = raw;
   openSheet('editSheet');
-  // Real bug, found on a real device (2026-07-24): opening the sheet
-  // never actually focused the input, so the keyboard/keypad only
-  // appeared after a 2nd, separate tap directly on the input — the
-  // exact failure mode design-decisions-v3-1.md §3.4's "Land the cursor
-  // on the first tap, always" rule now exists specifically to prevent.
-  // First fix used a 250ms delay; that was still 50ms SHORTER than
-  // .bottom-sheet's own 300ms slide-in transition (eam-shared.css), so
-  // focus() was firing before the sheet finished animating in and still
-  // got dropped on some real devices/screens (WO Closing's Downtime
-  // Hours, found 2026-07-24). Bumped to 320ms — past the transition end,
-  // not just close to it — same value openTextEditor() below now uses.
-  setTimeout(() => input.focus(), 320);
+  // Reverted the 250ms→320ms setTimeout delay 2026-07-31 (direct
+  // instruction, real-device report: keyboard wasn't opening on tap for
+  // ANY field, app-wide, every time — the exact symptom the delay was
+  // originally meant to cure). Root cause was the delay itself, not the
+  // transition: mobile browsers only auto-raise the on-screen keyboard
+  // for a focus() call made synchronously inside the actual tap/click
+  // handler ("user activation") — a setTimeout-deferred focus(), even at
+  // 320ms, runs outside that window on most real devices, so DOM focus
+  // could land while the keyboard silently never popped, forcing the
+  // 2nd manual tap this rule exists to prevent. `.bottom-sheet` (eam-
+  // shared.css) is positioned via `transform`, not `display:none`, so
+  // the input is already focusable the instant `openSheet()` returns —
+  // no wait needed. If a real device ever reproduces the original 2026-
+  // 07-24 "focus dropped while off-screen" report again with THIS
+  // synchronous call, that's a different, narrower bug to diagnose on
+  // its own — don't reach for a delay as the fix a second time.
+  input.focus();
   updateEditSaveGate();
 }
 // Required-and-empty Save gate (added 2026-07-31, direct instruction) —
@@ -2784,11 +2789,15 @@ function openTextEditor(key, title, onSaveCallback, initialOverride, opts) {
   document.getElementById('textEditorSheet').classList.toggle('compact', !!(opts && opts.compact));
   updateTextEditorSaveGate();
   openSheet('textEditorSheet');
-  // 250ms → 320ms, 2026-07-24 — same fix as openEdit() above, same root
-  // cause: 250ms was shorter than .bottom-sheet's own 300ms transition,
-  // so this carried the identical latent race, just not the one that
-  // got caught on a real device first.
-  setTimeout(() => document.getElementById('textEditorTextarea').focus(), 320);
+  // Reverted the setTimeout delay 2026-07-31 — same fix, same reasoning
+  // as openEdit() above: a deferred focus() call falls outside the
+  // "user activation" window mobile browsers require to auto-raise the
+  // keyboard, which is exactly the app-wide "keyboard never opens on
+  // tap" regression this reverts. Synchronous focus() is safe here for
+  // the same reason — `.bottom-sheet`/`.compact` are transform-
+  // positioned, never display:none, so the textarea is already
+  // focusable the instant this line runs.
+  document.getElementById('textEditorTextarea').focus();
 }
 // Required-and-empty Save gate (added 2026-07-28, direct instruction) —
 // a required text field's own Save can't commit an empty/whitespace-only
