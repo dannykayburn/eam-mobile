@@ -1785,9 +1785,13 @@ function openCreateSheet(lockEntity) {
   LOV_CURRENT.insertOrganization = 'ORG1';
   document.getElementById('fv-insertOrganization-code').textContent = 'ORG1';
   LOV_CURRENT.insertEquipment = '';
+  // Description is a popup-edited field now (§9.6/§9.8 required-popup
+  // rule), same shape as the header's own openDescEditor() — reset its
+  // display span back to the empty/muted "Tap to add…" state on every
+  // open, same as any other reopened Insert Mode field.
   const descField = document.getElementById('fv-insertDescription');
-  descField.value = '';
-  descField.style.height = 'auto'; // reset autoGrow() height from any previous open's long value
+  descField.textContent = 'Tap to add…';
+  descField.classList.add('muted');
   document.getElementById('insertCommentsList').querySelectorAll('.comment-item').forEach(el => el.remove());
   // Flat-fields collapsible section (§9.6, 2026-07-24) always reopens
   // collapsed, matching WO Record View's own "Work order details"
@@ -1810,7 +1814,7 @@ function updateInsertSaveGate() {
   // treatment Equipment already has) — gate on it same as any other
   // required field.
   const descEl = document.getElementById('fv-insertDescription');
-  ready = ready && !!(descEl && descEl.value.trim());
+  ready = ready && !!(descEl && !fieldIsEmpty(descEl));
   btn.classList.toggle('ready', ready);
 }
 // §9.2 "After Save": navigate to the new record's own Record View in
@@ -1823,8 +1827,9 @@ function saveInsertRecord() {
   }
   if (currentEntity === 'WO' && !LOV_CURRENT.insertEquipment) { showToast('Equipment is required'); return; }
   const opt = (key) => { const o = (LOV_DATA[key] || []).find(o => o.code === LOV_CURRENT[key]); return o ? { code: o.code, desc: o.desc } : null; };
-  const desc = document.getElementById('fv-insertDescription').value;
-  if (!desc.trim()) { showToast('Description is required'); return; }
+  const descEl = document.getElementById('fv-insertDescription');
+  if (fieldIsEmpty(descEl)) { showToast('Description is required'); return; }
+  const desc = descEl.textContent;
   const comments = Array.from(document.querySelectorAll('#insertCommentsList .comment-item')).map(el => ({
     author: el.querySelector('.comment-author')?.textContent.replace(' (You)', '') || CURRENT_USER_NAME,
     text: el.querySelector('.comment-text')?.textContent || '',
@@ -1895,7 +1900,13 @@ function isRequiredField(key) {
   return !!el && el.classList.contains('required');
 }
 function fieldIsEmpty(el) {
-  return !el || el.classList.contains('muted') || el.textContent.trim() === '';
+  if (!el) return true;
+  // <input>/<textarea> targets (e.g. a still-inline, non-required Free
+  // Text field) hold their value in .value, not .textContent — added
+  // 2026-07-31 so this generalizes correctly instead of reading stale
+  // markup text off a live input.
+  if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') return el.value.trim() === '';
+  return el.classList.contains('muted') || el.textContent.trim() === '';
 }
 function shouldHideClear(key, el) {
   // Pills (§9.3, locked 2026-07-16) are always system-defaulted and never
@@ -1926,7 +1937,40 @@ function shouldHideClear(key, el) {
    for containers within #insertModeSheet. See design-decisions-v3-1.md
    §21 if the app-wide removal itself needs reverting.
    ══════════════════════════════════════════════════════════════════════ */
+// Required-but-Empty Marker (added 2026-07-31, direct instruction) — a
+// THIRD, distinct instrument from both of the above, not a reversal of
+// either. §21/§23's removal reasoning ("a required field can never go back
+// to empty once set, so the marker warns about a state that can't happen")
+// is still correct for a field that WAS set — it just never accounted for
+// a field that was never set in the first place. The WO Type × User Group
+// page-layout system (§11-13) means a field can be required under the
+// current user's own layout while a *different* user group's layout — the
+// one active when the record was actually created — didn't require it at
+// all, so it's empty and stays that way until someone with the stricter
+// layout fills it in. That's a real, reachable state on an existing
+// record after all. Unlike Insert Mode's own always-on marker below (a
+// blank form, shown unconditionally), this one is dynamic — shown only
+// while the field is actually empty, gone the instant it's filled — so it
+// never applies inside #insertModeSheet (already fully covered by that
+// separate, simpler rule) and never re-litigates the "required field's own
+// Clear is already blocked" reasoning §21/§23 rest on. Doesn't cover WO
+// Closing's `.code-cell` rows (Problem/Failure/Cause/Action) — that
+// component already keys its own required-toggle off `codeState[key]`
+// inside `refreshSequentialLocks()` (screen-local, distinct from
+// data-field/fv- like the rest of that file's own LOV wiring), so it sets
+// `.req-empty` itself rather than through this generic pass; the CSS rule
+// (eam-shared.css) still covers both shapes. See design-decisions-v3-1.md
+// §21/§23 for the full history.
+function updateRequiredEmptyMarkers() {
+  document.querySelectorAll('.form-field.required, .attr-item.required').forEach(row => {
+    if (row.closest('#insertModeSheet')) return;
+    const key = row.dataset.field;
+    const el = key ? document.getElementById('fv-' + key) : null;
+    row.classList.toggle('req-empty', !!el && fieldIsEmpty(el));
+  });
+}
 function updateRequiredBadges() {
+  updateRequiredEmptyMarkers();
   document.querySelectorAll('.required-count-badge').forEach(b => {
     if (!b.closest('#insertModeSheet')) b.remove();
   });
@@ -2422,6 +2466,12 @@ function formatCurrency(val) {
   return isNaN(n) ? val : '$' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
 function sanitizeCurrencyInput(input) {
+  // Also doubles as the edit sheet's only oninput hook (added 2026-07-31)
+  // — runs on every keystroke regardless of type, so the Save-block below
+  // applies to Number too, not just Currency. Kept on this existing
+  // handler rather than adding a 2nd oninput across every screen's
+  // #editSheetInput markup.
+  updateEditSaveGate();
   if (activeEditType !== 'currency') return;
   const fromEnd = input.value.length - input.selectionStart;
   let cleaned = input.value.replace(/[^0-9.]/g, '');
@@ -2463,9 +2513,26 @@ function openEdit(key, label, type) {
   // Hours, found 2026-07-24). Bumped to 320ms — past the transition end,
   // not just close to it — same value openTextEditor() below now uses.
   setTimeout(() => input.focus(), 320);
+  updateEditSaveGate();
+}
+// Required-and-empty Save gate (added 2026-07-31, direct instruction) —
+// mirrors updateTextEditorSaveGate() exactly, for the Number/Currency edit
+// sheet: a required field's Save can't commit a blank value, same
+// principle shouldHideClear() already applies to that field's Clear
+// button. Checked on open (openEdit() above) and on every keystroke
+// (sanitizeCurrencyInput()'s oninput), not just on tap.
+function updateEditSaveGate() {
+  const val = document.getElementById('editSheetInput').value;
+  const blocked = isRequiredField(activeEditKey) && !val.trim();
+  const btn = document.querySelector('#editSheet .btn-save');
+  if (btn) btn.classList.toggle('disabled', blocked);
 }
 function saveEdit() {
   const val = document.getElementById('editSheetInput').value;
+  // Belt-and-suspenders — the disabled Save button (updateEditSaveGate())
+  // already prevents this tap from firing; guarded here too in case
+  // something else ever calls saveEdit() directly.
+  if (isRequiredField(activeEditKey) && !val.trim()) return;
   const el = document.getElementById('fv-'+activeEditKey);
   el.textContent = activeEditType === 'currency' ? formatCurrency(val) : val;
   el.classList.remove('muted');
@@ -2772,6 +2839,13 @@ function saveTextEditor() {
   }
   closeAllSheets();
   showToast('Saved');
+  // Real gap, closed 2026-07-31 — every other save/select/clear path
+  // already refreshes both of these; this one never did, so a required
+  // long-text/description field (e.g. Insert Mode's own Description,
+  // §9.6/§9.8) never cleared its req-empty marker or updated the Insert
+  // Mode Save-ready pill purely from typing+saving text.
+  updateRequiredBadges();
+  updateInsertSaveGate();
 }
 
 /* ══════════════════════════════════════════════════════════════════════

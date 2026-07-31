@@ -597,9 +597,10 @@ Insert and Update are nearly identical screens.
 | **Identifier + description are header-only — never duplicated in the record body** | The header's own record number and description are both shown and directly editable there, so the equivalent "Asset ID"/"Description" rows that might otherwise sit at the top of the first body section (e.g. Equipment's Asset Details) are omitted. One place to read it, one place to edit it. |
 | **Header description is editable — fundamental, module-agnostic behavior** | **Always required** (direct instruction, 2026-07-28) — every header description is required, no per-screen opt-out. Edited via the shared long-text editor's `.compact` variant (`openDescEditor()`, `eam-shared.js`) — a modal popup, not inline-in-place — sized for a 1-2 line field rather than the default editor's full 88vh (built for Notes/Comments). No Clear, since description is required (`isRequiredField()`/`shouldHideClear()`); Save itself is also blocked while the textarea is empty (§3.4's new required-and-empty gate). Only tappable while the header is **expanded** (status button visible) — while collapsed, tapping the description does nothing. Applies to every standard record view. Superseded the original inline-edit pattern (tap in place, auto-growing textarea) — see §21's named "Header Description — Inline Edit" reference if that needs reverting. |
 | **Tapping the nav bar OR the collapsed identity header scrolls the form to top — fundamental, module-agnostic behavior** | Tapping anywhere in the nav bar (back button excluded) scrolls the record's content back to the top, which also re-expands the header (status button reappears) since expand/collapse is scroll-driven. The identity header block itself (`.rec-header`) does the same scroll-to-top while **collapsed** (it has no action of its own in that state); while **expanded**, its children (description edit, status button) keep their own specific actions instead. Applies to every standard record view. |
-| **Land the cursor on the first tap, always — fundamental, module-agnostic behavior** | Tapping any field that opens a text-entry surface (the shared Currency/Number edit sheet, the shared long-text editor, an inline text field) must land the cursor/keyboard inside it on that same tap — never a second tap just to start typing. `openEdit()`/`openTextEditor()` (`eam-shared.js`) delay focus by 320ms to let the sheet's slide-in transition finish first. **Deliberately not extended to the LOV picker's search bar** (`openLov()`) — that sheet's primary content is a scrollable option list; auto-raising the keyboard before the technician has seen the options would cover most of a phone screen. |
+| **Land the cursor on the first tap, always — fundamental, module-agnostic behavior** | Tapping any field that opens a text-entry surface (the shared Currency/Number edit sheet, the shared long-text editor, an inline text field) must land the cursor/keyboard inside it on that same tap — never a second tap just to start typing. `openEdit()`/`openTextEditor()` (`eam-shared.js`) delay focus by 320ms to let the sheet's slide-in transition finish first. **Any field routing through a popup must go through one of these two functions specifically** — not a bespoke direct-focus alternative — so this can't quietly regress as new fields/screens get added; confirmed 2026-07-31 by a full audit of every screen-local sheet/popup opener in the app (`openActivityAddPopup`/`openActivityEditPopup`, Book Labor's Add Labor/Correction/Crew sheets, Issue Parts' Issue/Ad-Hoc/Modify/LOV-field sheets, WO Closing's Code LOV, plus shared `openLov`/`openHyperlinkPopup`/`openConfirm`/`openInsertMode`/`openCreateSheet`/`openEquipmentLookup`/`openDataspySheet`): none of them autofocus anything at all on open — every one relies on the user manually tapping a field inside the already-open sheet/modal, which sidesteps the race entirely and is a deliberate category of its own (a multi-field modal auto-focusing its first field would auto-raise the keyboard before the technician has seen the rest of the form — same reasoning as the LOV search-bar exception below). **Deliberately not extended to the LOV picker's search bar** (`openLov()`) — that sheet's primary content is a scrollable option list; auto-raising the keyboard before the technician has seen the options would cover most of a phone screen. |
 | **Required-field navigation validation — not yet built** | When the user tries to navigate away from a record with a required field still unpopulated, don't just block silently — scroll to that field and make it visually obvious it's blocking navigation (focus the row, briefly highlight its background). Was originally scoped around flashing the required left-bar; that static marker was removed 2026-07-28 (§21, §23), so this still-unbuilt behavior needs a different visual once it's actually built — not designed yet. |
 | **Required Entry — warning, not a hard block** | Default enforcement for a required field on a Standard Record View: an amber warning bar + override, not a hard block on saving/navigating. Distinct from the WO Workflow's own step-progression gate (§14.7), which *does* hard-lock advancing until required items are answered — a required field always warns at the field level; a workflow step can additionally gate progression on top of that. |
+| **"Required-but-Empty Marker" — dynamic, app-wide, added 2026-07-31 (direct instruction)** | A red left-bar (`.form-field.required.req-empty::before`/`.attr-item.required.req-empty::before`, `eam-shared.css`), toggled by `updateRequiredEmptyMarkers()` (`eam-shared.js`, called from inside `updateRequiredBadges()` so every existing save/select/clear/blur/load call site picks it up for free) — shown only while a required field is genuinely empty, gone the instant it's filled. **A third instrument, not a reversal of §21's "Required Field Marker" removal**: that removal's own reasoning ("a required field can never go back to empty once set, so the marker warns about a state that can't happen") is still correct for a field that *was* set. It never accounted for a field that was **never set in the first place** — the WO Type × User Group page-layout system (§11-13) means a field can be required under the current user's own layout while a *different* user group's layout (the one active when the record was actually created) didn't require it at all, leaving it empty until someone with the stricter layout fills it in. That's a real, reachable state on an existing record. Never applies inside `#insertModeSheet` (already fully covered by that sheet's own separate, always-on marker, §9.8 — a blank form has nothing to hide yet, so that one stays unconditional/static, not dynamic). WO Closing's Closing Codes cells (`.code-cell.required`) get the same visual but via their own local toggle in `refreshSequentialLocks()` (keyed off `codeState[key]`, not `data-field`/`fv-`) — that screen-local rule used to show its red bar unconditionally the instant a cell unlocked, a stale holdover from before the app-wide static marker was removed that never got updated; now dynamic too, consistent with everywhere else. |
 | **LOV value clearing** | See the "'Clear' action on every field-edit sheet" row in §3.4. |
 | **Master field-type reference** | `screen-layout-field-behavior-prototype-v1.html` is the canonical §5.2 field-type reference (see the "Grid vs. List field-type consolidation" row below). `sample-screen-standard-model-prototype.html` is retired — see §21. |
 | **Type and Priority color badges** | Show the badge only if a color/icon is configured for that value; if not, omit the badge entirely and left-align the field value text under the label. Applies to any metadata field using optional color coding. WO Record View's `TYPE_META`/`PRIORITY_META` reuse the same icon+colour pairs as the §6.7 WO icon language rather than a second palette. |
@@ -616,8 +617,10 @@ Insert and Update are nearly identical screens.
 | **Protected — Grid gets its own `.attr-item.protected`, lock icon on the label's own row** | Mirrors `.form-field.protected`'s recipe (gray tint, dimmed, no pointer cursor) onto a grid cell. The lock icon sits on the label's own row (`.attr-label-row`) rather than beside the value below it, since Grid's label/value are two separate lines (List's single-row protected field already puts them together trivially). |
 | **Inline text — cursor always lands at end of existing text on tap** | Tapping anywhere in the row (not just the textarea) lands the cursor at the end of existing text, via `focusInlineField()` in `eam-shared.js` (same call site for all 6 real screens plus the shared `fieldRowInline()` template). `.field-inline-input` uses `flex:none` (not `flex:1`) in both the List (`.form-field.stacked`) and Grid (`.attr-item`) contexts specifically so a long value grows the row taller instead of clipping. |
 | **Currency / Number edit sheet — same numeric keypad** | Both Number and Currency use `type="text"` + `inputMode="decimal"` (not native `type="number"`, which pops a different mobile keypad). `openEdit()` focuses its input after a delay long enough for the sheet's own transition to finish (same as `openTextEditor()`, per the "land the cursor" rule above). |
+| **Currency / Number edit sheet — Save blocked while empty and required** (added 2026-07-31) | `updateEditSaveGate()` (`eam-shared.js`) mirrors `updateTextEditorSaveGate()` — disables `#editSheet .btn-save` while `isRequiredField(activeEditKey)` is true and the input is blank, checked on open and on every keystroke (`sanitizeCurrencyInput()`, which now doubles as this sheet's only oninput hook regardless of type). Closes a real gap: only Clear was ever gated for this sheet before (`shouldHideClear()`); Save had no equivalent block. |
+| **Required — popup only, never inline** (added 2026-07-31, direct instruction) | A required field never uses in-place/inline editing, regardless of its base field type — it must open one of the popup-editor sheets (`openLov`/`openEdit`/`openDate`/`openDateTime`/`openTextEditor`) like any other popup field, with Clear hidden (already true, `shouldHideClear()`) and Save blocked while empty (Long-text already had this via `updateTextEditorSaveGate()`; Number/Currency gained it the same day, row above). Closes off "Free Text (inline)" (`.field-inline-input`, tap-in-place auto-grow textarea) as an option the moment that field becomes required — see the canonical reference's new "Inline Text — Required" row (`screen-layout-field-behavior-prototype-v1.html`, §5.2). Real consumers converted: Insert Mode's own Description field (`insertDescription`, 3 files — WO List/Equipment List/Home — previously the one inline holdout after the header's own Description already made this exact move, §5.3/§21 "Header Description — Inline Edit"), and WO Record View's Activity Add/Edit popup (`activityNumber`/`activityPeopleRequired`/`activityEstimatedHours`, previously raw `<input>`s with no empty-Save gate at all). **Confirmed exceptions, not missed conversions:** Comments/Long-text areas (already a documented exception to "popup only," row below); Time Only (`type="time"`, §3.4/§18 — a locked, deliberate native-picker field type); numeric steppers (Issue Parts' qty rows — a stepper control, not free-text entry, same category as a checkbox); `openLovField()`/`openCodeLov()` (Issue Parts/WO Closing — already-documented local wrappers around the shared LOV sheet's own markup, still real popups). |
 | **Operational Status (or equivalent header-status field) is header-only — never duplicated as a body row** | Whatever field drives the header's `.rec-status-btn` (Equipment: Operational Status) is edited exclusively there — it must not also appear as a plain-LOV row in a field-group section or the Header Fields box. |
-| **Container required-field-count indicator** | Any `.fg-section`/`.section-card` with at least one required field inside shows a small count badge in its own header (e.g. "1", "2"), inserted before the chevron so every container's chevron stays at a fixed x-position whether or not a badge is showing. Implemented generically via `updateRequiredBadges()` in `eam-shared.js` — no per-screen config. The badge is a static "this container has N required fields" count, shown unconditionally whenever the container has ≥1 required field — not a completion tracker that disappears once fields are filled (a required field can never go back to empty once set, per the Clear-visibility rule in §3.4, so a disappearing badge would never come back). The Header Fields box is exempt by construction — no container header to attach a badge to. |
+| **Container required-field-count indicator** | Any `.fg-section`/`.section-card` with at least one required field inside shows a small count badge in its own header (e.g. "1", "2"), inserted before the chevron so every container's chevron stays at a fixed x-position whether or not a badge is showing. Implemented generically via `updateRequiredBadges()` in `eam-shared.js` — no per-screen config. The badge is a static "this container has N required fields" count, shown unconditionally whenever the container has ≥1 required field — not a completion tracker that disappears once fields are filled (a required field can never go back to empty once set, per the Clear-visibility rule in §3.4, so a disappearing badge would never come back). The Header Fields box is exempt by construction — no container header to attach a badge to. **Caveat added 2026-07-31:** "can never go back to empty once set" is still correct, but a required field can start empty — never set at all — if the WO Type × User Group layout that created the record didn't require it while the current layout does (§11-13). This badge (Insert-Mode-only in practice, §9.8) is unaffected since a blank Insert form has no such history to worry about; the per-field "Required-but-Empty Marker" (§3.4, 2026-07-31) is what actually covers that case elsewhere. |
 | **Documents** | Same add-affordance-on-top pattern as Comments; shows every document inline, no truncation (unlike Comments, see below). |
 | **Comments — Record View shows latest 3 only, links to a dedicated tab for the rest** | Below the third comment, a "View all comments" row navigates to a dedicated Comments tab showing the full list; the link only appears once there are more than 3. Comments and Documents both get a dedicated tab (§8.1, with a Plus that creates a comment/document directly rather than opening Insert Mode). A comment/document added or edited from either the Record View excerpt or the dedicated tab must stay in sync — one shared data source per record, not two independent copies. |
 | **Comment author — full description, "(You)" for your own, Edit/Delete gated on ownership** | Added 2026-07-16 (found not-yet-applied on both canonical files, fixed same day). Author always shows the commenter's full user description — never an abbreviation ("Bruce Campbell," not "B. Campbell"). If the comment is the current logged-in user's own (`mine: true`), the display appends `(You)` to their own full description (e.g. "Bruce Campbell (You)") — computed at render time from a screen-provided `CURRENT_USER_NAME` constant, not baked into the stored `author` string, so `COMMENTS_DATA` only ever holds plain full names. Ellipsis actions stay ownership-gated as already designed: your own comment gets Edit/Delete/Copy, anyone else's gets Copy only (`openCommentActions(btn, isMine)` in `eam-shared.js` — this part was already correct, just the author-string rule wasn't). Implemented generically in `eam-shared.js` (`renderCommentItemHTML`, `addComment`, `addCommentToData`) — no per-screen logic needed beyond declaring `CURRENT_USER_NAME`. Both canonical files set it to `'Bruce Campbell'`; Equipment's two pre-existing seed comments (previously "B. Campbell"/"J. Martinez") were expanded/renamed to "Meera Kumar"/"Jamie Martinez" to avoid a same-name collision with the current-user identity. |
@@ -1904,6 +1907,17 @@ a separately-designed form.
   here is a rich-enough example to actually exercise the required-field
   UI, not a claim about real-world defaults.
 
+**Description field now matches the header's own popup pattern (2026-07-31).**
+Insert Mode's Description grid field (`insertDescription`) was the one
+remaining "Free Text (inline)" holdout — a tap-in-place auto-grow textarea
+— after the Record View header's own Description already moved to a popup
+(`openDescEditor()`, §5.3/§21 "Header Description — Inline Edit"). Now
+opens the same shared long-text editor's `.compact` variant
+(`openTextEditor('insertDescription', 'Description', ..., { compact: true })`),
+per §3.4's "Required — popup only, never inline" rule — required fields
+don't get an inline-editing exception just because they live in Insert
+Mode.
+
 **Required-field marker — Insert Mode is the one documented exception to
 §21/§23's app-wide removal.** The red left-bar (`.form-field.required`/
 `.attr-item.required::before`) and the collapsible section's
@@ -2035,7 +2049,7 @@ screen.** Screen Designer already saves a field layout scoped to one or
 more Groups (Copy-from-Group/Save-to-Group(s)). It gains one more
 selector: **WO Type** (defaulting to "none" — the ungated fallback
 behavior). Picking an actual WO Type + Group(s) lets the admin configure,
-in that same authoring flow, the 3-tier model in §12, plus the field-level
+in that same authoring flow, the 2-tier model in §12, plus the field-level
 layout of the Record View and each included step — the existing
 `R5PAGELAYOUT` mechanism, extended with exactly one new column, `WOTYPE`,
 alongside its existing `PLO_USERGROUP`. `PLO_PAGENAME` stays `WSJOBS`
@@ -2079,21 +2093,26 @@ Issue Parts steps) — out of scope for initial release. Each of the 5 step
 types appears at most once per workflow; a WO Type that genuinely needs
 to revisit a step type mid-flow should use Free Form (§12) instead.
 
-# 12. WO Workflow — 3-tier data shape
+# 12. WO Workflow — 2-tier data shape
 
-Status-source is a structural fact about the WO Type itself (which status
-field is authoritative — it shouldn't vary by who's viewing), while Free
-Form is a genuine per-viewer permission-like setting (e.g. a supervisor
-group getting Free Form access to a WO Type locked for technicians) — the
-two don't share a grain, so they don't share a row. Three tiers, narrowest
-to broadest:
+**Revised 2026-07-29** — originally modeled as 3 tiers, with status-source
+(Completion Status Entity/Start Work Status/Completion Status) kept on
+`WOTYPE` itself (WO Type alone, no User Group) on the theory that it was a
+structural fact that shouldn't vary by viewer, separate from Free Form's
+genuine per-viewer grain (WO Type × User Group). That's wrong: status
+*authorization* in real EAM is already configured at the User Group level,
+so status-source shares Free Form's exact grain and shares its row. Two
+tiers, narrowest to broadest:
 
-1. **`WOTYPE`** (existing base table) — gains three columns, all keyed by
-   WO Type alone, no User Group dimension:
+1. **WO Workflow header** (new — base EAM has nothing like it) — keyed
+   **WO Type × User Group**. Holds:
+   - **Free Form / Not Free Form flag** (Y/N) — §15.4's status-field-
+     editability behavior. (Its step-rail colour effect is superseded —
+     see §21; the rail no longer varies visually by this flag.)
    - **Completion Status Entity** — which entity's status domain this WO
-     Type's workflow reads/writes: **Work Orders** (the `EVST` status
-     domain) or **Activities** (the `AAST` status domain: Not Started/In
-     Progress/Complete, not-yet-built Activity Screen §20).
+     Type × User Group's workflow reads/writes: **Work Orders** (the
+     `EVST` status domain) or **Activities** (the `AAST` status domain:
+     Not Started/In Progress/Complete, not-yet-built Activity Screen §20).
    - `EVST` has a 4th value, **In Progress**, nested under the Released
      system status (§15.4's system-status colour rule — Work
      Request/Released/Closed — is unaffected; In Progress is a *user*
@@ -2111,23 +2130,22 @@ to broadest:
      Activities tab (§20, unbuilt) serving as that WO Type's closing
      surface instead of WO Closing — a future scoping option, not
      designed or built.
-2. **WO Workflow header** (new — base EAM has nothing like it) — keyed
-   **WO Type × User Group**. Holds the **Free Form / Not Free Form flag**
-   (Y/N) — §15.4's status-field-editability behavior. (Its step-rail
-   colour effect is superseded — see §21; the rail no longer varies
-   visually by this flag.)
-3. **WO Workflow Steps** (new, child of #2) — keyed **WO Type × User
+2. **WO Workflow Steps** (new, child of #1) — keyed **WO Type × User
    Group × Step**. Holds, per step: **Visible**, **Sequence** (order),
    **Required** (§14.7-style bar-locking behavior). Book Labor gains one
    more, step-specific column: **Time Entry Mode** (Start/End Time — the
    only mode built in any prototype — vs. Direct Hours Entry).
 
-Only #2 and #3 are genuinely new entities; #1 is three columns on a table
-that already exists. Prototyped in `eam-screen-designer-v1.html`
-(`prototypes/standalone/base screens/`) — the left pane's Free Form
-toggle, Completion Status Entity/Start Work Status/Completion Status
-selects, and Book Labor's step-row gear icon (Time Entry Mode) map 1:1 to
-tiers 1–3 above.
+`WOTYPE` (the existing base table) is untouched by any of this — no new
+columns land on it; WO Type is just the shared FK every row of both new
+tables carries. Both are genuinely new entities, both composite-keyed
+(natural keys, no surrogate ID), consistent with how `R5PAGELAYOUT`/
+`R5FUNCTIONTABS`/`R5TABPERMISSIONS` already key themselves — #2's FK back
+to #1 is the 2-column composite `(WO Type, User Group)`, not a single
+column. Prototyped in `eam-screen-designer-v1.html` (`prototypes/
+standalone/base screens/`) — the left pane's Free Form toggle, Completion
+Status Entity/Start Work Status/Completion Status selects, and Book
+Labor's step-row gear icon (Time Entry Mode) map 1:1 to tiers 1–2 above.
 
 # 13. WO Workflow — Field Layout
 
@@ -2506,7 +2524,7 @@ superseded gray/inert version.
 One control, two states — the `statusFieldProtected` flag on WO Closing
 is this same Free Form/Not Free Form flag, inverted (`protected = Not
 Free Form`), wired to the resolved WO Workflow header's Free Form column
-(§12 tier 2).
+(§12 tier 1).
 
 **Which status field this section governs is itself a choice** — §13's
 Screen Designer lets the admin pick, per WO-type workflow, whether the WO
@@ -3145,7 +3163,7 @@ a collapsible container (§7.2 pattern), delivered collapsed.
   holding Start Time fixed (`recalcEndFromHours()`) — via the shared
   `EDIT_ON_SAVE` hook.
 - **No time entry mode toggle on this screen** — Start/End time only. The
-  config flag exists (§12 tier 3's Book Labor Time Entry Mode) but Direct
+  config flag exists (§12 tier 2's Book Labor Time Entry Mode) but Direct
   Hours Entry as an actual alternate form isn't built.
 - **"Add by Crew" button is removed from the main screen** — only "Add
   Labor" remains (full-width `.btn-contained`). The Add by Crew sheet
@@ -3248,7 +3266,7 @@ Note: the WO Details section was removed from this screen — the tech already k
   Tapping shows a toast explaining why instead of opening the picker — a
   deliberate exception to the general protected-field treatment (§5.2's
   usual gray/muted/inert). Toggled off `statusFieldProtected`, wired to
-  the resolved WO Workflow header's Free Form column (§12 tier 2).
+  the resolved WO Workflow header's Free Form column (§12 tier 1).
 - **Target-status picker sheet is the plain LOV sheet, not a bespoke
   design** — plain `sheet-header-fe` (close/title-center, Clear hidden
   since target status is always required), no search row (short fixed
@@ -3452,7 +3470,7 @@ its original section with a note attached.
 | **Tab rail / step rail background — purple-tinted wash** (collapsed bar wash/border/hover; a lighter wash on the expanded list's active row; a purple 3-sided frame around the expanded list matching the collapsed bar's own inset). | §14.2 — plain `var(--bg-card)` fill + elevation shadow, no colour wash at all (§23 retired purple as a UI-state accent). |
 | **"Step/Tab Rail Shell — Flush Full-Bleed Card"** (named for an easy revert, 2026-07-28) — the shape §14.2 described before the pill: `.tab-rail, .step-rail{background:var(--bg-card);border:none;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:0 16px;flex-shrink:0;cursor:pointer;transition:box-shadow .15s;}` (dark: `box-shadow:0 1px 6px rgba(0,0,0,.3);`), hover `box-shadow:0 2px 6px rgba(0,0,0,.14)` (dark `0 2px 10px rgba(0,0,0,.4)`) — full-bleed, no rounding, no margin, no WO Type glow (the Type instrument instead drew a 3px `border-left` edge bar via JS, `renderStepRailTypeSlot()`). To revert: paste this block back over the pill rule in `eam-shared.css` and drop the `--rail-glow-color` var usage. | §14.2 "Surface: floating pill/capsule" (2026-07-28) — `border-radius:28px`, `margin:10px 12px`, shadow tints toward the WO Type's curated colour on the step rail (§23.3). Picked to put the rail's shape in line with Insert Mode's own pill selector at the top of the form. |
 | **WO Type colour — Vivid** (§23.3, 2026-07-28 morning) — `wo-type-palette-options.html` Option 2: Breakdown `#E0A83B`, PPM `#17B3A0`, Routine `#5C86C4`, Corrective `#A855F7`, held in hue-named vars (`--wo-type-amber/teal/slate/plum`). | §23.3 "Primary" (2026-07-28, same day) — bolder still, vars renamed by family (`--wo-type-breakdown/-ppm/-routine/-corrective`). |
-| **"Required Field Marker"** (named for an easy revert, 2026-07-28) — a red left-bar on every required field (`.form-field.required::before`/`.attr-item.required::before`, `background:var(--red)`, same 3px/rounded shape both rules shared) plus a red outline-square count badge on any container holding one (`.required-count-badge`, `updateRequiredBadges()` in `eam-shared.js` used to create/insert it, not just remove it). To revert: restore both `::before` rules with that background, and restore `updateRequiredBadges()`'s create-badge branch (see its own comment in `eam-shared.js` for the exact prior body). | §23/§3.4 (2026-07-28) — removed outright: every required field's own edit popup already blocks Clear (`shouldHideClear()`/`isRequiredField()`), so the marker warned about a state that can't happen. The `.required` class itself is untouched, still gates Clear-visibility and the new empty-Save check (§3.4). |
+| **"Required Field Marker"** (named for an easy revert, 2026-07-28) — a red left-bar on every required field (`.form-field.required::before`/`.attr-item.required::before`, `background:var(--red)`, same 3px/rounded shape both rules shared) plus a red outline-square count badge on any container holding one (`.required-count-badge`, `updateRequiredBadges()` in `eam-shared.js` used to create/insert it, not just remove it). To revert: restore both `::before` rules with that background, and restore `updateRequiredBadges()`'s create-badge branch (see its own comment in `eam-shared.js` for the exact prior body). | §23/§3.4 (2026-07-28) — removed outright: every required field's own edit popup already blocks Clear (`shouldHideClear()`/`isRequiredField()`), so the marker warned about a state that can't happen. The `.required` class itself is untouched, still gates Clear-visibility and the new empty-Save check (§3.4). **Not reopened by, and not the same instrument as,** the "Required-but-Empty Marker" added 2026-07-31 (§3.4) — that one is dynamic (empty-only, app-wide outside Insert Mode) and exists for a case this removal's own reasoning never covered: a field that was never set in the first place under a looser WO Type × User Group layout (§11-13), not one that went from set back to empty. |
 | **"Header Description — Inline Edit"** (named for an easy revert, 2026-07-28) — tap `#recDesc` in place, swap to an auto-growing `.rec-desc-edit` textarea (`onDescTap()`/`onDescBlur()`/`autoGrow()`), blur saves. No popup, no Clear (description was implicitly required but never enforced). To revert: restore `.rec-desc-edit`/`.rec-desc.hidden-while-editing` in `eam-shared.css`, restore `onDescTap()`/`onDescBlur()` in `eam-shared.js`, and point each header's `.rec-desc` `onclick` back at `onDescTap(event)`. | §5.3/§3.4 "Header description is editable" (2026-07-28) — `openDescEditor()` opens the shared long-text editor's `.compact` variant instead; description is now explicitly always-required (`ALWAYS_REQUIRED_LOVS`), gated by the same empty-Save block as any other required text field. |
 
 # 22. Custom Fields

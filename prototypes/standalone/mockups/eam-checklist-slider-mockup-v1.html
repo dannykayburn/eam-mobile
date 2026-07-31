@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="format-detection" content="telephone=no">
+<title>HxGN EAM Mobile — Checklist Slider Behavior Mockup (Options A &amp; C)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/eam-shared.css">
+<!--
+  DESIGN EXPLORATION — NOT A LOCKED SCREEN, not wired into the real
+  eam-activity-checklist-prototype-v2.html. Standalone mockup of the
+  "numeric checklist item as slider" idea (meter/quantitative/OK-
+  adjustment measurement types can render as a slider instead of a
+  number field, with admin-configured min/max). Shows it seated inside
+  the real Activity Checklist shell (unchanged from v2) so it can be
+  judged in context rather than in isolation.
+
+  Only 2 of the 4 slider directions explored earlier are here, per
+  direct instruction:
+  - Item 1 — Option A, linear fill slider.
+  - Item 2 — Option C, vertical tank/thermometer fill.
+  Option B (arc/fuel-gauge dial) and Option D (zoned slider painting an
+  acceptable-range band on the track) are deliberately NOT included —
+  the product has no way to configure an acceptable range within the
+  slider's min/max today, so D's premise doesn't hold yet; flagged as a
+  gap, not solved here. Min/Max labels shown ARE real — those come from
+  the item's own required min/max slider bounds, not a range.
+-->
+<style>
+.content { padding: 0 0 calc(var(--bar-height) + 16px); display: flex; flex-direction: column; }
+
+.stepper-head { position: sticky; top: 0; z-index: 5; padding: 10px 16px 8px; background: var(--bg-card); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.stepper-head-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
+.stepper-head-left { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
+.stepper-group-name { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--octave-black); }
+[data-theme="dark"] .stepper-group-name { color: rgba(255,255,255,.9); }
+.stepper-item-count { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--gray-4); white-space: nowrap; }
+.view-all-btn { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: var(--octave-black); background: var(--bg-section); border: 1.5px solid var(--border-strong); border-radius: 100px; padding: 6px 13px; cursor: pointer; flex-shrink: 0; transition: background .15s, border-color .15s; }
+[data-theme="dark"] .view-all-btn { color: var(--white); }
+.view-all-btn:hover { background: var(--border-strong); }
+.view-all-btn:active { transform: scale(0.96); }
+.stepper-progress-bar { height: 4px; border-radius: 100px; background: var(--gray-1); overflow: hidden; }
+[data-theme="dark"] .stepper-progress-bar { background: var(--gray-5); }
+.stepper-progress-fill { height: 100%; background: var(--green); transition: width .3s; }
+
+.focus-wrap { flex: 1; padding: 14px 0 4px; }
+.focus-label-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 0 16px; margin-bottom: 10px; }
+.focus-label { flex: 1; font-size: 19px; font-weight: 700; color: var(--octave-black); line-height: 1.3; }
+[data-theme="dark"] .focus-label { color: var(--white); }
+.focus-req-tag { flex-shrink: 0; margin-top: 2px; display: inline-flex; align-items: center; font-family: var(--font-sans); font-size: 11px; font-weight: 600; color: var(--red); background: none; border: 1px solid var(--red); border-radius: 999px; padding: 4px 9px; }
+
+.focus-control { padding: 18px 16px; }
+
+.f-num-row { display: flex; align-items: center; gap: 12px; justify-content: center; }
+.f-num-in { width: 150px; background: var(--bg-page); border: 2px solid var(--gray-2); border-radius: 10px; padding: 16px 14px; font-size: 22px; font-weight: 700; color: var(--octave-black); font-family: var(--font-mono); text-align: center; outline: none; }
+[data-theme="dark"] .f-num-in { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
+.f-uom { font-size: 14px; color: var(--gray-4); font-weight: 600; }
+
+/* ─── Option A — linear fill slider ── */
+.f-slider-value { text-align: center; font-family: var(--font-mono); font-size: 26px; font-weight: 700; color: var(--octave-black); margin-bottom: 20px; }
+[data-theme="dark"] .f-slider-value { color: var(--white); }
+.f-slider-track { position: relative; height: 8px; border-radius: 100px; background: var(--gray-1); margin: 0 8px; cursor: pointer; touch-action: none; }
+[data-theme="dark"] .f-slider-track { background: var(--gray-5); }
+.f-slider-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 100px; background: var(--gray-3); }
+.f-slider-track.answered .f-slider-fill { background: var(--octave-black); }
+[data-theme="dark"] .f-slider-track.answered .f-slider-fill { background: var(--white); }
+.f-slider-thumb { position: absolute; top: 50%; width: 26px; height: 26px; background: var(--bg-card); border: 3px solid var(--gray-3); border-radius: 50%; transform: translate(-50%,-50%); box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+.f-slider-track.answered .f-slider-thumb { border-color: var(--octave-black); }
+[data-theme="dark"] .f-slider-track.answered .f-slider-thumb { border-color: var(--white); }
+.f-slider-minmax { display: flex; justify-content: space-between; margin: 10px 8px 0; font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); }
+
+/* ─── Option C — vertical tank fill ── */
+.f-tank-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.f-tank-value { font-family: var(--font-mono); font-size: 26px; font-weight: 700; color: var(--octave-black); }
+[data-theme="dark"] .f-tank-value { color: var(--white); }
+.f-tank-row { position: relative; width: 64px; }
+.f-tank-track { position: relative; width: 64px; height: 180px; border-radius: 16px; background: var(--gray-1); cursor: pointer; touch-action: none; overflow: hidden; flex-shrink: 0; }
+[data-theme="dark"] .f-tank-track { background: var(--gray-5); }
+.f-tank-fill { position: absolute; left: 0; bottom: 0; width: 100%; background: var(--gray-3); }
+.f-tank-track.answered .f-tank-fill { background: var(--octave-black); }
+[data-theme="dark"] .f-tank-track.answered .f-tank-fill { background: var(--white); }
+.f-tank-thumb { position: absolute; left: 50%; width: 26px; height: 26px; background: var(--bg-card); border: 3px solid var(--gray-3); border-radius: 50%; transform: translate(-50%,50%); box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+.f-tank-track.answered .f-tank-thumb { border-color: var(--octave-black); }
+[data-theme="dark"] .f-tank-track.answered .f-tank-thumb { border-color: var(--white); }
+.f-tank-scale { position: absolute; left: 100%; margin-left: 16px; top: 0; height: 180px; display: flex; flex-direction: column; justify-content: space-between; font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); white-space: nowrap; }
+
+.followup-btn-lg { margin: 12px 12px 0; display: flex; align-items: center; justify-content: center; gap: 8px; width: calc(100% - 24px); padding: 13px 0; border-radius: 10px; border: 1.5px solid var(--red); background: var(--bg-card); color: var(--red); font-size: 14px; font-weight: 700; cursor: pointer; transition: all .15s; font-family: var(--font-sans); }
+.followup-btn-lg:hover { background: rgba(228,75,74,.08); }
+.followup-btn-lg.on { background: var(--red); color: #fff; }
+[data-theme="dark"] .followup-btn-lg { background: var(--bg-section); }
+.create-fu-wo-btn { margin: 10px 12px 0; width: calc(100% - 24px); animation: fuBtnIn .2s ease; }
+@keyframes fuBtnIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+.stepper-nav { position: absolute; bottom: 0; left: 0; right: 0; height: var(--bar-height); background: var(--bg-card); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; padding: 0 14px; z-index: 50; }
+.snav-btn { flex: 1; height: 46px; border-radius: 12px; border: none; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.snav-btn.prev { background: var(--bg-section); color: var(--octave-black); flex: 0 0 46px; }
+[data-theme="dark"] .snav-btn.prev { color: var(--white); }
+.snav-btn.next { background: var(--octave-black); color: #fff; }
+[data-theme="dark"] .snav-btn.next { background: var(--white); color: var(--octave-black); }
+.snav-btn:disabled { opacity: .35; cursor: default; }
+
+.prompt-bar { position: absolute; bottom: 0; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border); padding: 10px 16px 16px; flex-shrink: 0; z-index: 51; display: none; }
+[data-theme="dark"] .prompt-bar { background: var(--octave-black); }
+.prompt-bar.show { display: block; }
+.prompt-question { font-family: var(--font-sans); font-size: 16px; font-weight: 700; color: var(--octave-black); text-align: center; margin-bottom: 10px; }
+[data-theme="dark"] .prompt-question { color: var(--white); }
+.prompt-seg { display: flex; gap: 8px; }
+.prompt-seg-btn { flex: 1; height: 48px; border-radius: 100px; border: 1px solid var(--octave-black); font-size: 15px; font-weight: 700; cursor: pointer; font-family: var(--font-sans); background: var(--octave-black); color: #fff; transition: background .15s; }
+[data-theme="dark"] .prompt-seg-btn { background: var(--white); border-color: var(--white); color: var(--octave-black); }
+.prompt-seg-btn:hover { background: #111114; }
+[data-theme="dark"] .prompt-seg-btn:hover { background: rgba(255,255,255,.85); }
+
+.overview-overlay { position: absolute; inset: 0; background: var(--bg-page); z-index: 90; display: none; flex-direction: column; }
+.overview-overlay.open { display: flex; }
+.overview-head { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--bg-card); }
+.overview-title { font-size: 15px; font-weight: 700; color: var(--octave-black); }
+[data-theme="dark"] .overview-title { color: var(--white); }
+.overview-body { flex: 1; overflow-y: auto; }
+.ov-group-hdr { padding: 7px 16px; font-size: 12px; font-weight: 700; color: var(--gray-4); background: var(--bg-section); }
+.ov-row { display: flex; align-items: center; gap: 10px; padding: 11px 16px; border-bottom: 1px solid var(--border); background: var(--bg-card); cursor: pointer; }
+.ov-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-2); flex-shrink: 0; }
+.ov-status-dot.green { background: var(--green); } .ov-status-dot.red { background: var(--red); }
+.ov-label { flex: 1; font-size: 13.5px; font-weight: 500; color: var(--octave-black); }
+[data-theme="dark"] .ov-label { color: rgba(255,255,255,0.9); }
+.ov-close-btn { width: 30px; height: 30px; border-radius: 50%; background: var(--bg-section); border: none; display: flex; align-items: center; justify-content: center; color: var(--gray-4); cursor: pointer; }
+
+.toast { bottom: calc(var(--bar-height) + 10px); }
+</style>
+</head>
+<body>
+
+<div class="proto-theme-bar">
+  <span class="proto-theme-label">Preview theme</span>
+  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+</div>
+
+<div class="app" id="app">
+
+  <header class="nav" onclick="scrollFormToTop()">
+    <div class="nav-left">
+      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation(); navBack()">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+          <path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <span class="prototype-label">PROTOTYPE</span>
+    </div>
+    <div class="nav-title">Work Orders</div>
+    <div class="nav-actions">
+      <span id="syncCtrl"></span>
+    </div>
+  </header>
+
+  <div class="rec-header" id="recHeader" onclick="scrollFormToTop()">
+    <div class="rec-id-row">
+      <div class="rec-id-text">
+        <span class="rec-num" id="recNum">19257</span>
+        <span class="rec-desc protected" id="recDesc">Pump Cavitating; lost head</span>
+      </div>
+      <div class="rec-header-actions">
+        <button class="rec-ellipsis-btn" id="recEllipsisBtn" onclick="event.stopPropagation(); toggleRecActionsMenu()" aria-label="More actions">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+        </button>
+        <div class="rec-actions-menu" id="recActionsMenu">
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyLink()">Copy Link</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyRecord()">Copy</div>
+            <div class="rec-actions-item danger" onclick="recDeleteRecord()">Delete</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group" id="recActionsScreenSpecific">
+            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Printing work order — coming soon')">Print Work Order</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-rail" id="stepRail">
+    <div class="step-rail-collapsed">
+      <div class="step-name">Activity Checklist</div>
+      <div class="step-rail-right">
+        <div class="timer-pill" id="timerPill"><div class="timer-dot"></div><span id="timerText">00:00:00</span></div>
+        <svg class="step-chevron" id="stepChevron" width="16" height="16" fill="none" viewBox="0 0 24 24">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+    <div class="step-segments">
+      <div class="seg seg-done"></div>
+      <div class="seg seg-active"></div>
+      <div class="seg seg-future"></div>
+      <div class="seg seg-future"></div>
+      <div class="seg seg-future"></div>
+    </div>
+    <div class="step-map" id="stepMap">
+      <div class="step-timer-panel">
+        <div class="step-timer-value" id="stepTimerValue">00:00:00</div>
+        <div class="step-timer-actions">
+          <button class="step-timer-btn" onclick="toggleStepTimerPause()">
+            <span id="stepPauseBtnIcon"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="5" x2="8" y2="19"/><line x1="16" y1="5" x2="16" y2="19"/></svg></span>
+            <span id="stepPauseBtnLabel">Pause</span>
+          </button>
+          <button class="step-timer-btn danger" onclick="confirmStopTimer()">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+            Stop
+          </button>
+        </div>
+      </div>
+      <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
+      <div class="step-map-item active"><div class="step-map-icon smi-active">2</div><span class="step-map-label active-label">Activity Checklist</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-locked">3</div><span class="step-map-label">Issue Parts</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-locked">4</div><span class="step-map-label">Book Labor</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-locked">5</div><span class="step-map-label">WO Closing</span></div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="stepper-head">
+      <div class="stepper-head-row">
+        <div class="stepper-head-left">
+          <span class="stepper-group-name" id="curGroupName">Readings</span>
+          <span class="stepper-item-count" id="stepperItemCount">· Item 01 of 02</span>
+        </div>
+        <button class="view-all-btn" onclick="openOverview()">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          View all
+        </button>
+      </div>
+      <div class="stepper-progress-bar"><div class="stepper-progress-fill" id="stepperProgressFill" style="width:0%"></div></div>
+    </div>
+
+    <div class="focus-wrap" id="focusWrap"></div>
+  </div>
+
+  <div class="stepper-nav" id="stepperNav">
+    <button class="snav-btn prev" id="prevBtn" onclick="goPrev()">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="snav-btn next" id="nextBtn" onclick="goNext()">Next<svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+
+  <div class="prompt-bar" id="promptBar"></div>
+
+  <div class="overview-overlay" id="overviewOverlay">
+    <div class="overview-head">
+      <span class="overview-title">All items</span>
+      <button class="ov-close-btn" onclick="closeOverview()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="overview-body" id="overviewBody"></div>
+  </div>
+
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <div class="bottom-sheet" id="syncPanelSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Sync Status</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sync-panel-state" id="syncPanelStateLabel"></div>
+    <div class="sheet-body" id="syncPanelList"></div>
+    <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
+  </div>
+
+  <div class="bottom-sheet text-editor-sheet" id="textEditorSheet">
+    <div class="text-editor-header">
+      <div class="text-editor-left">
+        <button class="text-editor-close" id="textEditorCloseBtn" onclick="textEditorCloseTap()">✕</button>
+        <button class="text-editor-discard" id="textEditorDiscard" onclick="textEditorConfirmDiscard()">Discard unsaved changes</button>
+      </div>
+      <div class="text-editor-title" id="textEditorTitle">Edit</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="text-editor-body"><textarea class="text-editor-textarea" id="textEditorTextarea" oninput="textEditorInputChanged()" placeholder="Type here…"></textarea></div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveTextEditor()">Save</button></div>
+  </div>
+
+  <div class="bottom-sheet" id="commentActionsSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Comment Actions</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sheet-body" id="commentActionsBody"></div>
+  </div>
+
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-modal">
+      <div class="confirm-message" id="confirmMessage">Are you sure?</div>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="confirm-btn confirm-danger" id="confirmDangerBtn" onclick="confirmDangerAction()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="confirm-overlay" id="questionOverlay">
+    <div class="question-modal">
+      <div class="question-message" id="questionMessage">Are you sure?</div>
+      <div class="question-actions">
+        <button class="question-btn yes" onclick="questionAnswerYes()">Yes</button>
+        <button class="question-btn no" onclick="questionAnswerNo()">No</button>
+        <button class="question-btn cancel" onclick="closeQuestion()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+</div>
+
+<script src="../../../data/wo-19257.js"></script>
+<script src="../../../data/wo-19831.js"></script>
+<script src="../../../data/wo-20450.js"></script>
+<script src="../../../data/wotype.js"></script>
+<script src="../../../data/wo-workflow.js"></script>
+<script src="../../../data/wo-workflow-steps.js"></script>
+<script src="../shared/eam-shared.js"></script>
+<script>
+if (sessionStorage.getItem('eamTimerRunning') === 'true') {
+  startStepTimer();
+} else {
+  document.getElementById('timerPill').style.display = 'none';
+}
+
+function confirmStopTimer() {
+  openQuestion('Stop working and book your current time?',
+    () => { stopStepTimer(); showToast('Time booked — moving to Book Labor…'); },
+    () => { stopStepTimer(); showToast('Time captured — resume later from Book Labor'); }
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// MOCKUP DATA — just the 2 items under review. Slider items carry the
+// same min/max the real feature requires an admin to configure; there is
+// no "acceptable range" field here, because the product has no way to
+// set one within that min/max today.
+// ═══════════════════════════════════════════════════════════════════════
+const ITEMS = [
+  { id:1, group:'main', label:'Coolant reservoir level', equipId:'A-00067333', equipDesc:'Pump, Centrifugal', required:true,
+    type:'slider', min:0, max:100, uom:'%', value:null,
+    documents:[], comments:[], note:'', followup:false },
+  { id:2, group:'main', label:'Hydraulic tank level', equipId:'A-00067333', equipDesc:'Pump, Centrifugal', required:true,
+    type:'tank', min:0, max:100, uom:'%', value:null,
+    documents:[], comments:[], note:'', followup:false },
+];
+const GROUP_NAMES = { main:'Readings' };
+let cursor = 0;
+
+const BRANCH_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>';
+
+const CURRENT_USER_NAME = 'Bruce Campbell';
+let commentIdSeq = 100;
+let COMMENTS_DATA = [];
+let DOCUMENTS_DATA = [];
+const COMMENTS_EXCERPT_MOUNT = 'itemCommentsMount';
+const COMMENTS_BADGE_ID = 'itemCommentsBadge';
+const DOCUMENTS_EXCERPT_MOUNT = 'itemDocumentsMount';
+const DOCUMENTS_BADGE_ID = 'itemDocumentsBadge';
+
+function isDone(it) {
+  if (it.type === 'slider' || it.type === 'tank') return it.value != null;
+  return false;
+}
+function dotClass(it) {
+  return isDone(it) ? 'done-green' : '';
+}
+
+function renderStepperHead() {
+  const it = ITEMS[cursor];
+  document.getElementById('curGroupName').textContent = GROUP_NAMES[it.group];
+  document.getElementById('stepperItemCount').textContent = `· Item ${String(cursor+1).padStart(2,'0')} of ${String(ITEMS.length).padStart(2,'0')}`;
+  const doneCount = ITEMS.filter(isDone).length;
+  document.getElementById('stepperProgressFill').style.width = Math.round(doneCount / ITEMS.length * 100) + '%';
+}
+
+// ─── Shared drag mechanics for both Option A (horizontal) and Option C
+// (vertical) — same math, only which axis/dimension differs. ──────────
+function pctFromEvent(clientX, clientY, trackEl, vertical) {
+  const r = trackEl.getBoundingClientRect();
+  const p = vertical ? (r.bottom - clientY) / r.height : (clientX - r.left) / r.width;
+  return Math.max(0, Math.min(1, p));
+}
+function applySliderValue(it, pct) {
+  it.value = Math.round(it.min + pct * (it.max - it.min));
+  const donePct = Math.round((it.value - it.min) / (it.max - it.min) * 100);
+  const track = document.getElementById('track-' + it.id);
+  const fill = document.getElementById('fill-' + it.id);
+  const thumb = document.getElementById('thumb-' + it.id);
+  const valEl = document.getElementById('val-' + it.id);
+  track.classList.add('answered');
+  if (it.type === 'tank') { fill.style.height = donePct + '%'; thumb.style.bottom = donePct + '%'; }
+  else { fill.style.width = donePct + '%'; thumb.style.left = donePct + '%'; }
+  valEl.innerHTML = it.value + '<span class="f-uom">' + it.uom + '</span>';
+  renderStepperHead();
+  updateFooter();
+}
+function sliderDragStart(e, itemId) {
+  e.preventDefault();
+  const it = ITEMS.find(x => x.id === itemId);
+  const track = document.getElementById('track-' + itemId);
+  const vertical = it.type === 'tank';
+  function move(ev) {
+    const p = ev.touches ? ev.touches[0] : ev;
+    applySliderValue(it, pctFromEvent(p.clientX, p.clientY, track, vertical));
+  }
+  move(e);
+  function up() { document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); }
+  document.addEventListener('pointermove', move);
+  document.addEventListener('pointerup', up);
+}
+
+function controlHtml(it) {
+  const valueDisplay = it.value != null ? `${it.value}<span class="f-uom">${it.uom}</span>` : '—';
+  const pct = it.value != null ? Math.round((it.value - it.min) / (it.max - it.min) * 100) : 0;
+  const answered = it.value != null ? 'answered' : '';
+  if (it.type === 'slider') {
+    return `<div class="f-slider-value" id="val-${it.id}">${valueDisplay}</div>
+      <div class="f-slider-track ${answered}" id="track-${it.id}" onpointerdown="sliderDragStart(event,${it.id})">
+        <div class="f-slider-fill" id="fill-${it.id}" style="width:${pct}%"></div>
+        <div class="f-slider-thumb" id="thumb-${it.id}" style="left:${pct}%"></div>
+      </div>
+      <div class="f-slider-minmax"><span>Min ${it.min}</span><span>Max ${it.max}</span></div>`;
+  }
+  if (it.type === 'tank') {
+    return `<div class="f-tank-wrap">
+        <div class="f-tank-value" id="val-${it.id}">${valueDisplay}</div>
+        <div class="f-tank-row">
+          <div class="f-tank-track ${answered}" id="track-${it.id}" onpointerdown="sliderDragStart(event,${it.id})">
+            <div class="f-tank-fill" id="fill-${it.id}" style="height:${pct}%"></div>
+            <div class="f-tank-thumb" id="thumb-${it.id}" style="bottom:${pct}%"></div>
+          </div>
+          <div class="f-tank-scale"><span>Max ${it.max}</span><span>Min ${it.min}</span></div>
+        </div>
+      </div>`;
+  }
+  return '';
+}
+
+function renderFocus() {
+  const it = ITEMS[cursor];
+  let html = `
+    <div class="focus-label-row">
+      <p class="focus-label">${it.label}</p>
+      ${it.required ? '<span class="focus-req-tag">Required</span>' : ''}
+    </div>
+
+    <div class="section-card"><div class="focus-control">${controlHtml(it)}</div></div>
+
+    <div class="section-card">
+      <div class="form-field stacked" data-field="itemNotes" onclick="focusInlineField(this)">
+        <span class="field-label">Notes</span>
+        <textarea class="field-inline-input" id="fv-itemNotes" rows="1" maxlength="255" placeholder="Add a note…" oninput="updateInlineFieldLayout(this); setNote(this)" onfocus="onInlineFocus()" onblur="onInlineBlur(this)">${it.note}</textarea>
+      </div>
+    </div>
+
+    <button class="followup-btn-lg ${it.followup?'on':''}" onclick="toggleFollowup()">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 22V15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      ${it.followup ? 'Flagged for Follow-up' : 'Flag for Follow-up'}
+    </button>
+
+    ${it.followup ? `<button class="btn-contained create-fu-wo-btn" onclick="createFollowupWO()">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      Create Follow-up WO
+    </button>` : ''}
+
+    ${it.equipId ? `<div class="section-card">
+      <div class="form-field protected" data-field="equipment">
+        <span class="field-label">Equipment</span>
+        <span class="field-value">${it.equipId} — ${it.equipDesc || ''}</span>
+      </div>
+    </div>` : ''}
+
+    <div class="rv-section">
+      <div class="rv-toggle-row" onclick="rvToggle('comments')">
+        <div class="rv-toggle-left">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="rv-toggle-title">Comments</span>
+        </div>
+        <div class="rv-toggle-right">
+          <span class="rv-badge" id="itemCommentsBadge">${it.comments.length}</span>
+          <svg class="rv-chev" id="rv-chev-comments" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="rv-collapse" id="rv-comments"><div id="itemCommentsMount"></div></div>
+    </div>
+
+    <div class="rv-section">
+      <div class="rv-toggle-row" onclick="rvToggle('documents')">
+        <div class="rv-toggle-left">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="rv-toggle-title">Documents</span>
+        </div>
+        <div class="rv-toggle-right">
+          <span class="rv-badge" id="itemDocumentsBadge">${it.documents.length}</span>
+          <svg class="rv-chev" id="rv-chev-documents" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="rv-collapse" id="rv-documents"><div id="itemDocumentsMount"></div></div>
+    </div>
+    <div style="height:16px;"></div>`;
+
+  document.getElementById('focusWrap').innerHTML = html;
+  const notesEl = document.getElementById('fv-itemNotes');
+  if (notesEl) autoGrow(notesEl);
+
+  COMMENTS_DATA = it.comments;
+  DOCUMENTS_DATA = it.documents;
+  renderCommentsExcerptMount();
+  renderDocumentsExcerptMount();
+
+  document.getElementById('prevBtn').disabled = cursor === 0;
+  const isLast = cursor === ITEMS.length - 1;
+  document.getElementById('nextBtn').innerHTML = isLast
+    ? 'Finish'
+    : 'Next <svg width="16" height="16" fill="none" viewBox="0 0 24 24" style="margin-left:4px"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  renderStepperHead();
+  updateFooter();
+}
+
+function updateFooter() {
+  const req = ITEMS.filter(i => i.required);
+  const reqDone = req.filter(isDone).length;
+  const showPrompt = reqDone === req.length && cursor === ITEMS.length - 1;
+  document.getElementById('promptBar').classList.toggle('show', showPrompt);
+  document.getElementById('stepperNav').style.display = showPrompt ? 'none' : 'flex';
+}
+function renderPromptBar() {
+  const includesIssueParts = !CURRENT_WORKFLOW || CURRENT_WORKFLOW.steps.includes('issueparts');
+  document.getElementById('promptBar').innerHTML = includesIssueParts
+    ? `<div class="prompt-question">Do you need to issue parts?</div>
+       <div class="prompt-seg">
+         <button class="prompt-seg-btn" onclick="promptAnswer(true)">Yes</button>
+         <button class="prompt-seg-btn" onclick="promptAnswer(false)">No</button>
+       </div>`
+    : `<div class="prompt-seg">
+         <button class="bar-pill bar-pill-ready" onclick="promptAnswer(false)">Continue to Book Labor</button>
+       </div>`;
+}
+
+function jumpTo(idx) { closeAllSheets(); cursor = idx; renderFocus(); }
+function goPrev() { if (cursor > 0) { closeAllSheets(); cursor--; renderFocus(); } }
+function goNext() {
+  closeAllSheets();
+  if (cursor < ITEMS.length - 1) { cursor++; renderFocus(); return; }
+  const req = ITEMS.filter(i => i.required);
+  const incomplete = req.find(i => !isDone(i));
+  if (incomplete) {
+    cursor = ITEMS.indexOf(incomplete);
+    renderFocus();
+    showToast(`Required: ${incomplete.label}`);
+  }
+}
+function setNote(el) { ITEMS[cursor].note = el.value; }
+function toggleFollowup() { ITEMS[cursor].followup = !ITEMS[cursor].followup; renderFocus(); }
+function createFollowupWO() { showToast('Creating follow-up work order — coming soon'); }
+
+function openOverview() {
+  let html = '';
+  let lastGroup = null;
+  ITEMS.forEach((it, idx) => {
+    if (it.group !== lastGroup) { html += `<div class="ov-group-hdr">${GROUP_NAMES[it.group]}</div>`; lastGroup = it.group; }
+    html += `<div class="ov-row" onclick="jumpTo(${idx}); closeOverview();">
+      <span class="ov-status-dot ${dotClass(it).replace('done-','')}"></span>
+      <span class="ov-label">${idx+1} — ${it.label}</span>
+      ${it.required ? '<span style="color:var(--red);font-weight:700;font-size:12px;">*</span>' : ''}
+    </div>`;
+  });
+  document.getElementById('overviewBody').innerHTML = html;
+  document.getElementById('overviewOverlay').classList.add('open');
+}
+function closeOverview() { document.getElementById('overviewOverlay').classList.remove('open'); }
+
+function promptAnswer(issuedParts) {
+  sessionStorage.setItem('eamArrivedViaNextStep', 'true');
+  sessionStorage.setItem('eamOpenDemoWo', DEMO_WO);
+  window.location.href = issuedParts ? WO_STEP_FILES.issueparts : WO_STEP_FILES.booklabor;
+}
+
+let CURRENT_WORKFLOW = null;
+function onDemoWoChanged() {
+  const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
+  CURRENT_WORKFLOW = resolveWoWorkflow(jobType);
+  applyDemoWoIdentity();
+  if (CURRENT_WORKFLOW.configured) renderStepRail(CURRENT_WORKFLOW, 'checklist', jobType);
+  else renderFlatStepRail('checklist', jobType);
+  renderPromptBar();
+}
+
+const OPEN_DEMO_WO = sessionStorage.getItem('eamOpenDemoWo');
+if (OPEN_DEMO_WO) {
+  sessionStorage.removeItem('eamOpenDemoWo');
+  DEMO_WO = OPEN_DEMO_WO;
+}
+
+renderFocus();
+onDemoWoChanged();
+initSharedApp({ contentSelector: '.content' });
+</script>
+</body>
+</html>

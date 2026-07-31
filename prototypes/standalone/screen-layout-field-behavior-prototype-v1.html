@@ -125,6 +125,16 @@
           <span class="attr-label">Inline Text</span>
           <textarea class="field-inline-input" id="fv-g_inline" rows="1" maxlength="255" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus(this)" onblur="onInlineBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">Sample text</textarea>
         </div>
+        <!-- Inline Text — Required variant (§3.4/§5.2, added 2026-07-31).
+             Required Free Text never edits in place — same "popup only,
+             never inline" rule Long-text already follows, just applied to
+             this field type too once it's required. Layout is unaffected
+             (still a plain 2-up cell, not forced full-width like Long-text
+             — only the editing mechanism changes). -->
+        <div class="attr-item required" data-field="g_inline_required" onclick="openTextEditor('g_inline_required','Inline Text — Required', null, undefined, { compact: true })">
+          <span class="attr-label">Inline Text — Required</span>
+          <div class="attr-value"><span class="attr-text" id="fv-g_inline_required">Required — opens the popup editor, same as Long-text.</span></div>
+        </div>
         <div class="attr-item" data-field="g_currency" onclick="openEdit('g_currency','Currency','currency')">
           <span class="attr-label">Currency</span>
           <div class="attr-value"><span class="attr-text" id="fv-g_currency">$1,250.00</span></div>
@@ -213,6 +223,12 @@ Second line — carriage returns are preserved here, unlike Inline Text.</span><
         <div class="form-field stacked" data-field="l_inline" onclick="focusInlineField(this)">
           <span class="field-label">Inline Text</span>
           <textarea class="field-inline-input" id="fv-l_inline" rows="1" maxlength="255" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus(this)" onblur="onInlineBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">Sample text</textarea>
+        </div>
+        <!-- Inline Text — Required variant (§3.4/§5.2, added 2026-07-31) — see the Grid version's comment above for the rule. -->
+        <div class="form-field required" data-field="l_inline_required" onclick="openTextEditor('l_inline_required','Inline Text — Required', null, undefined, { compact: true })">
+          <span class="field-label">Inline Text — Required</span>
+          <span class="field-value" id="fv-l_inline_required">Required — opens the popup editor, same as Long-text.</span>
+          <span class="field-chevron">›</span>
         </div>
 
         <div class="form-field" data-field="l_currency" onclick="openEdit('l_currency','Currency','currency')">

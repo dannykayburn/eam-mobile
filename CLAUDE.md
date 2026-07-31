@@ -31,12 +31,13 @@ already built, untouched. A real EAM precedent for routing WO Types to
 distinct `FUN_CODE`s does exist in this customer's data (`docs/Data_refs/
 Page Layouts perms/`) but was rejected specifically because it would've
 fragmented the dataspy mechanism across multiple functions for no benefit
-here. The WO-Type dimension instead comes from two small additions: a new
-`WOTYPE` column on the existing `R5PAGELAYOUT` (field-level layout), and one
-genuinely new small table, **WO Workflow Steps** (tab visibility/order/
-required + the Free Form flag + status source, keyed WO Type × User Group ×
-Step) — both authored through Screen Designer (§10) itself, which gains a
-WO Type selector; no new admin screen. Full resolution in
+here. The WO-Type dimension instead comes from three small additions: a new
+`WOTYPE` column on the existing `R5PAGELAYOUT` (field-level layout), and two
+genuinely new small tables — a **WO Workflow header** (Free Form flag +
+status source, keyed WO Type × User Group) and **WO Workflow Steps** (tab
+visibility/order/required, keyed WO Type × User Group × Step) — all
+authored through Screen Designer (§10) itself, which gains a WO Type
+selector; no new admin screen. Full resolution in
 `docs/design-decisions-v3-1.md` §11–§13. Existing `R5FUNCTIONTABS`/
 `R5TABPERMISSIONS` (real tab-level access control) are completely untouched
 by any of this.
