@@ -356,6 +356,23 @@
     <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
   </div>
 
+  <!-- Number/Currency edit sheet (§3.4/§5.2) — added 2026-07-31; this
+       screen had no Number-type field routing through openEdit() until
+       the Activity Add/Edit popup's Activity/People Required/Estimated
+       Hours fields converted off raw inline <input>s onto the standard
+       Number field type (§9.8-adjacent required-popup rule). Standard
+       markup, copied from eam-equipment-record-view-prototype-v1.html. -->
+  <div class="bottom-sheet" id="editSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="editSheetTitle">Edit field</div>
+      <button class="sheet-clear-btn" id="editClearBtn" onclick="clearEdit()">Clear</button>
+    </div>
+    <div class="edit-input-wrap"><input class="edit-input" id="editSheetInput" type="text" oninput="sanitizeCurrencyInput(this)"></div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveEdit()">Save</button></div>
+  </div>
+
   <div class="bottom-sheet" id="lovSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
@@ -503,9 +520,9 @@
       <div style="width:30px;flex-shrink:0;"></div>
     </div>
     <div class="insert-mode-body">
-      <div class="form-field required" data-field="activityNumber" onclick="this.querySelector('input').focus()">
+      <div class="form-field required" data-field="activityNumber" onclick="openEdit('activityNumber','Activity','number')">
         <span class="field-label">Activity</span>
-        <input class="act-num-big-input" id="fv-activityNumber" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,''); markDirty();">
+        <span class="act-num-big-input" id="fv-activityNumber"></span>
       </div>
 
       <div class="section-card">
@@ -534,13 +551,13 @@
             <span class="attr-label">End Date</span>
             <div class="attr-value"><span class="attr-text" id="fv-activityEndDate"></span></div>
           </div>
-          <div class="attr-item required" data-field="activityPeopleRequired" onclick="this.querySelector('input').focus()">
+          <div class="attr-item required" data-field="activityPeopleRequired" onclick="openEdit('activityPeopleRequired','People Required','number')">
             <span class="attr-label">People Required</span>
-            <div class="attr-value"><input class="attr-text-input" id="fv-activityPeopleRequired" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,''); markDirty();"></div>
+            <div class="attr-value"><span class="attr-text-input" id="fv-activityPeopleRequired"></span></div>
           </div>
-          <div class="attr-item required" data-field="activityEstimatedHours" onclick="this.querySelector('input').focus()">
+          <div class="attr-item required" data-field="activityEstimatedHours" onclick="openEdit('activityEstimatedHours','Estimated Hours','number')">
             <span class="attr-label">Estimated Hours</span>
-            <div class="attr-value"><input class="attr-text-input" id="fv-activityEstimatedHours" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,''); markDirty();"></div>
+            <div class="attr-value"><span class="attr-text-input" id="fv-activityEstimatedHours"></span></div>
           </div>
           <div class="attr-item" data-field="activityTaskPlan" onclick="openLov('activityTaskPlan')">
             <span class="attr-label">Task Plan</span>
@@ -1158,7 +1175,9 @@ function openActivityEditPopup() {
 // Details" and "Activity Comments" are reset collapsed on every open
 // (delivered collapsed), regardless of how they were left last time.
 function populateActivityPopup(act) {
-  document.getElementById('fv-activityNumber').value = act.id;
+  const numEl = document.getElementById('fv-activityNumber');
+  numEl.textContent = act.id;
+  numEl.classList.toggle('muted', !act.id);
 
   const nameInput = document.getElementById('activityEditName');
   nameInput.value = act.name || '';
@@ -1173,8 +1192,11 @@ function populateActivityPopup(act) {
   document.getElementById('fv-activityStartDate').textContent = act.date ? isoToDisplay(act.date) : '';
   document.getElementById('fv-activityEndDate').textContent = act.endDate ? isoToDisplay(act.endDate) : '';
 
-  document.getElementById('fv-activityPeopleRequired').value = act.peopleRequired ?? '';
-  document.getElementById('fv-activityEstimatedHours').value = act.estimatedHours ?? '';
+  const pr = act.peopleRequired ?? '', eh = act.estimatedHours ?? '';
+  const prEl = document.getElementById('fv-activityPeopleRequired');
+  const ehEl = document.getElementById('fv-activityEstimatedHours');
+  prEl.textContent = pr; prEl.classList.toggle('muted', pr === '');
+  ehEl.textContent = eh; ehEl.classList.toggle('muted', eh === '');
 
   LOV_CURRENT.activityTaskPlan = act.taskPlan || '';
   const tpOpt = ACTIVITY_TASK_PLAN_OPTIONS.find(o => o.code === act.taskPlan);
@@ -1201,6 +1223,11 @@ function populateActivityPopup(act) {
   setActivityChecked('activityCompleted', act.completed);
 
   document.getElementById('activityCommentsBody').innerHTML = renderActivityCommentsHTML(act);
+  // Required-but-empty markers (eam-shared.js) need one initial pass on
+  // every open, same reasoning initSharedApp()'s own bootstrap pass uses —
+  // Activity/People Required/Estimated Hours are populated above but this
+  // keeps the marker correct even if a future edge case leaves one blank.
+  updateRequiredBadges();
 }
 // Small helper for the LOV grid cells that show code (mono, small) above
 // description — Trade/Task Plan/Material List all use this same shape.
@@ -1268,14 +1295,14 @@ function saveActivityEdit() {
   const supplierVal = document.getElementById('fv-activitySupplier').textContent;
   const laborTypeVal = document.getElementById('fv-activityLaborType').textContent;
   const data = {
-    id: document.getElementById('fv-activityNumber').value.trim(),
-    num: 'Activity ' + document.getElementById('fv-activityNumber').value.trim(),
+    id: document.getElementById('fv-activityNumber').textContent.trim(),
+    num: 'Activity ' + document.getElementById('fv-activityNumber').textContent.trim(),
     name: document.getElementById('activityEditName').value,
     discipline: tradeOpt ? tradeOpt.desc : '',
     date: RECORD.activityStartDate || '',
     endDate: RECORD.activityEndDate || '',
-    peopleRequired: document.getElementById('fv-activityPeopleRequired').value,
-    estimatedHours: document.getElementById('fv-activityEstimatedHours').value,
+    peopleRequired: document.getElementById('fv-activityPeopleRequired').textContent,
+    estimatedHours: document.getElementById('fv-activityEstimatedHours').textContent,
     assignmentStatus: document.getElementById('fv-activityStatus-desc').textContent,
     taskPlan: LOV_CURRENT.activityTaskPlan || '',
     materialList: LOV_CURRENT.activityMaterialList || '',

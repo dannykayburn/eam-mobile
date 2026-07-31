@@ -782,6 +782,21 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    Clear yet, so the "will this block me" reasoning above doesn't apply
    there; seeing what's required before you start filling is genuinely
    useful. See design-decisions-v3-1.md §9.8. */
+/* Required-but-Empty Marker (added 2026-07-31, direct instruction) — a
+   THIRD instrument, distinct from both of the above: dynamic, app-wide
+   (outside #insertModeSheet, which keeps its own separate always-on
+   marker above), toggled by updateRequiredEmptyMarkers() (eam-shared.js)
+   only while the field's own value is genuinely empty — disappears the
+   instant it's filled. Exists because a WO Type × User Group page layout
+   (§11-13) can leave a field required under the current layout while it
+   was empty/optional under whichever layout actually created the record
+   — a real, reachable state §21/§23's removed static marker's own
+   reasoning didn't cover. Same red left-bar recipe as that removed rule
+   and as Insert Mode's own, just gated on `.req-empty` instead of
+   unconditional or scoped-by-container. See design-decisions-v3-1.md §21. */
+.form-field.required.req-empty::before,
+.attr-item.required.req-empty::before,
+.code-cell.required.req-empty::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
 .form-field.protected{background:var(--bg-section);opacity:.75;cursor:default;}
 [data-theme="dark"] .form-field.protected{background:rgba(255,255,255,.03);}
 .field-label{font-size:13px;color:var(--gray-4);width:128px;flex-shrink:0;line-height:1.35;}

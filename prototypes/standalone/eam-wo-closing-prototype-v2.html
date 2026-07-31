@@ -105,10 +105,15 @@
 }
 .code-cell:hover:not(.field-locked) { background: var(--bg-section); }
 .code-cell.field-locked { opacity: 0.38; pointer-events: none; cursor: default; }
-/* Required marker — never shows while the cell is protected (field-locked);
-   appears the instant a cell unlocks, same red-bar rule as .form-field (§23).
-   Toggled in lockstep with field-locked in refreshSequentialLocks(). */
-.code-cell.required::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 100px 100px 0; background: var(--red); }
+/* Required-but-Empty Marker (design-decisions-v3-1.md §21/§23, made
+   dynamic 2026-07-31 — this rule used to be unconditional the instant a
+   cell unlocked, a stale holdover from before the app-wide static marker
+   was removed 2026-07-28 that never got updated here). Now only shows
+   while the cell is both unlocked AND still empty — hides the moment a
+   code is picked. Toggled in lockstep with field-locked/required in
+   refreshSequentialLocks(). The actual `::before` recipe lives in the
+   shared `.code-cell.required.req-empty` rule (eam-shared.css) now, not
+   duplicated here. */
 /* Matches .field-label exactly (§3.4) — sentence case, not the ALL CAPS
    mini-eyebrow style this cell briefly had. */
 .code-cell-label { font-size: 13px; color: var(--gray-4); }
@@ -696,10 +701,14 @@ function refreshSequentialLocks() {
     const cell = document.getElementById('field' + cap(key));
     const isLocked = !states[key];
     cell.classList.toggle('field-locked', isLocked);
-    // Required marker: never shows while protected (locked); appears the
-    // instant the cell unlocks — same rule as any other standard-model
-    // required field, regardless of whether it's been filled in yet.
+    // Required marker: the class itself is unconditional on unlock — never
+    // applied while locked, applied regardless of fill state once unlocked
+    // (same rule as any other standard-model required field). The VISUAL
+    // (.req-empty, eam-shared.css) is dynamic though — only while this
+    // specific cell is both unlocked and still empty (§21/§23, made
+    // dynamic 2026-07-31).
     cell.classList.toggle('required', !isLocked);
+    cell.classList.toggle('req-empty', !isLocked && !codeState[key]);
     // Footer: show lock icon when locked, chevron when unlocked
     const footer = document.getElementById(key + 'Footer');
     if (footer) {
