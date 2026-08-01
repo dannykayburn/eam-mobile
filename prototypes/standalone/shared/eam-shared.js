@@ -1813,13 +1813,9 @@ function openCreateSheet(lockEntity) {
   LOV_CURRENT.insertOrganization = 'ORG1';
   document.getElementById('fv-insertOrganization-code').textContent = 'ORG1';
   LOV_CURRENT.insertEquipment = '';
-  // Description is a popup-edited field now (§9.6/§9.8 required-popup
-  // rule), same shape as the header's own openDescEditor() — reset its
-  // display span back to the empty/muted "Tap to add…" state on every
-  // open, same as any other reopened Insert Mode field.
   const descField = document.getElementById('fv-insertDescription');
-  descField.textContent = 'Tap to add…';
-  descField.classList.add('muted');
+  descField.value = '';
+  descField.style.height = 'auto'; // reset autoGrow() height from any previous open's long value
   document.getElementById('insertCommentsList').querySelectorAll('.comment-item').forEach(el => el.remove());
   // Flat-fields collapsible section (§9.6, 2026-07-24) always reopens
   // collapsed, matching WO Record View's own "Work order details"
@@ -1842,7 +1838,7 @@ function updateInsertSaveGate() {
   // treatment Equipment already has) — gate on it same as any other
   // required field.
   const descEl = document.getElementById('fv-insertDescription');
-  ready = ready && !!(descEl && !fieldIsEmpty(descEl));
+  ready = ready && !!(descEl && descEl.value.trim());
   btn.classList.toggle('ready', ready);
 }
 // §9.2 "After Save": navigate to the new record's own Record View in
@@ -1855,9 +1851,8 @@ function saveInsertRecord() {
   }
   if (currentEntity === 'WO' && !LOV_CURRENT.insertEquipment) { showToast('Equipment is required'); return; }
   const opt = (key) => { const o = (LOV_DATA[key] || []).find(o => o.code === LOV_CURRENT[key]); return o ? { code: o.code, desc: o.desc } : null; };
-  const descEl = document.getElementById('fv-insertDescription');
-  if (fieldIsEmpty(descEl)) { showToast('Description is required'); return; }
-  const desc = descEl.textContent;
+  const desc = document.getElementById('fv-insertDescription').value;
+  if (!desc.trim()) { showToast('Description is required'); return; }
   const comments = Array.from(document.querySelectorAll('#insertCommentsList .comment-item')).map(el => ({
     author: el.querySelector('.comment-author')?.textContent.replace(' (You)', '') || CURRENT_USER_NAME,
     text: el.querySelector('.comment-text')?.textContent || '',

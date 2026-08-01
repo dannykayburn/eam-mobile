@@ -560,9 +560,9 @@
            field of its own. -->
       <div class="section-card">
         <div class="equip-attrs">
-          <div class="attr-item full-width required" data-field="insertDescription" onclick="openTextEditor('insertDescription','Description', null, undefined, { compact: true })">
+          <div class="attr-item full-width required" data-field="insertDescription" onclick="focusInlineField(this)">
             <span class="attr-label">Description</span>
-            <div class="attr-value"><span class="attr-text muted" id="fv-insertDescription">Tap to add…</span></div>
+            <textarea class="field-inline-input" id="fv-insertDescription" rows="1" maxlength="255" placeholder="Tap to add…" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus()" onblur="onInlineBlur(this)"></textarea>
           </div>
           <div class="attr-item full-width required" id="insertEquipCard" data-field="insertEquipment" onclick="openEquipmentLookup('insertEquipment')">
             <span class="attr-label">Equipment</span>

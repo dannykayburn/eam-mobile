@@ -520,9 +520,9 @@
       <div style="width:30px;flex-shrink:0;"></div>
     </div>
     <div class="insert-mode-body">
-      <div class="form-field required" data-field="activityNumber" onclick="openEdit('activityNumber','Activity','number')">
+      <div class="form-field required" data-field="activityNumber" onclick="this.querySelector('input').focus()">
         <span class="field-label">Activity</span>
-        <span class="act-num-big-input" id="fv-activityNumber"></span>
+        <input class="act-num-big-input" id="fv-activityNumber" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,''); markDirty();">
       </div>
 
       <div class="section-card">
@@ -551,13 +551,13 @@
             <span class="attr-label">End Date</span>
             <div class="attr-value"><span class="attr-text" id="fv-activityEndDate"></span></div>
           </div>
-          <div class="attr-item required" data-field="activityPeopleRequired" onclick="openEdit('activityPeopleRequired','People Required','number')">
+          <div class="attr-item required" data-field="activityPeopleRequired" onclick="this.querySelector('input').focus()">
             <span class="attr-label">People Required</span>
-            <div class="attr-value"><span class="attr-text-input" id="fv-activityPeopleRequired"></span></div>
+            <div class="attr-value"><input class="attr-text-input" id="fv-activityPeopleRequired" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,''); markDirty();"></div>
           </div>
-          <div class="attr-item required" data-field="activityEstimatedHours" onclick="openEdit('activityEstimatedHours','Estimated Hours','number')">
+          <div class="attr-item required" data-field="activityEstimatedHours" onclick="this.querySelector('input').focus()">
             <span class="attr-label">Estimated Hours</span>
-            <div class="attr-value"><span class="attr-text-input" id="fv-activityEstimatedHours"></span></div>
+            <div class="attr-value"><input class="attr-text-input" id="fv-activityEstimatedHours" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,''); markDirty();"></div>
           </div>
           <div class="attr-item" data-field="activityTaskPlan" onclick="openLov('activityTaskPlan')">
             <span class="attr-label">Task Plan</span>
@@ -1175,9 +1175,7 @@ function openActivityEditPopup() {
 // Details" and "Activity Comments" are reset collapsed on every open
 // (delivered collapsed), regardless of how they were left last time.
 function populateActivityPopup(act) {
-  const numEl = document.getElementById('fv-activityNumber');
-  numEl.textContent = act.id;
-  numEl.classList.toggle('muted', !act.id);
+  document.getElementById('fv-activityNumber').value = act.id;
 
   const nameInput = document.getElementById('activityEditName');
   nameInput.value = act.name || '';
@@ -1192,11 +1190,8 @@ function populateActivityPopup(act) {
   document.getElementById('fv-activityStartDate').textContent = act.date ? isoToDisplay(act.date) : '';
   document.getElementById('fv-activityEndDate').textContent = act.endDate ? isoToDisplay(act.endDate) : '';
 
-  const pr = act.peopleRequired ?? '', eh = act.estimatedHours ?? '';
-  const prEl = document.getElementById('fv-activityPeopleRequired');
-  const ehEl = document.getElementById('fv-activityEstimatedHours');
-  prEl.textContent = pr; prEl.classList.toggle('muted', pr === '');
-  ehEl.textContent = eh; ehEl.classList.toggle('muted', eh === '');
+  document.getElementById('fv-activityPeopleRequired').value = act.peopleRequired ?? '';
+  document.getElementById('fv-activityEstimatedHours').value = act.estimatedHours ?? '';
 
   LOV_CURRENT.activityTaskPlan = act.taskPlan || '';
   const tpOpt = ACTIVITY_TASK_PLAN_OPTIONS.find(o => o.code === act.taskPlan);
@@ -1295,14 +1290,14 @@ function saveActivityEdit() {
   const supplierVal = document.getElementById('fv-activitySupplier').textContent;
   const laborTypeVal = document.getElementById('fv-activityLaborType').textContent;
   const data = {
-    id: document.getElementById('fv-activityNumber').textContent.trim(),
-    num: 'Activity ' + document.getElementById('fv-activityNumber').textContent.trim(),
+    id: document.getElementById('fv-activityNumber').value.trim(),
+    num: 'Activity ' + document.getElementById('fv-activityNumber').value.trim(),
     name: document.getElementById('activityEditName').value,
     discipline: tradeOpt ? tradeOpt.desc : '',
     date: RECORD.activityStartDate || '',
     endDate: RECORD.activityEndDate || '',
-    peopleRequired: document.getElementById('fv-activityPeopleRequired').textContent,
-    estimatedHours: document.getElementById('fv-activityEstimatedHours').textContent,
+    peopleRequired: document.getElementById('fv-activityPeopleRequired').value,
+    estimatedHours: document.getElementById('fv-activityEstimatedHours').value,
     assignmentStatus: document.getElementById('fv-activityStatus-desc').textContent,
     taskPlan: LOV_CURRENT.activityTaskPlan || '',
     materialList: LOV_CURRENT.activityMaterialList || '',
