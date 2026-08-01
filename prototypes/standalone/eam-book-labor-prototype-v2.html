@@ -893,6 +893,11 @@ function closeAllSheets() {
   }
   document.getElementById('sheetOverlay').classList.remove('open');
   ['addLaborSheet','correctionSheet','crewSheet'].forEach(id => document.getElementById(id).classList.remove('open'));
+  // This screen shadows the shared closeAllSheets() (own nested-sheet
+  // handling above) — mirror its --kb-inset reset (eam-shared.css/js,
+  // 2026-07-31) too, so a sheet closed right after editing Hours Worked/
+  // Type of Hours doesn't leave the keyboard-inset offset lingering.
+  document.documentElement.style.setProperty('--kb-inset', '0px');
 }
 
 // Date field re-sync (§18.4) — the shared calendar sheet writes the
