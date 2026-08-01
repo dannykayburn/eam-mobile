@@ -325,121 +325,6 @@ body{
 [data-theme="dark"] .ds-fav-star.favorited{color:var(--white);}
 [data-theme="dark"] .ds-fav-star.favorited svg{fill:var(--white);}
 
-/* ── SEARCH ───────────────────────────────────────────── */
-.s-wrap{padding:12px 14px 6px;flex-shrink:0;}
-.s-row{position:relative;display:flex;align-items:center;}
-.s-inp{width:100%;height:48px;border-radius:100px;
-  border:1.5px solid var(--border-strong);background:var(--bg-card);
-  font-family:var(--font-sans);font-size:15px;color:var(--text-body);
-  padding:0 46px 0 46px;outline:none;
-  transition:border-color 0.15s,box-shadow 0.15s;
-  box-shadow:0 1px 3px rgba(0,0,0,0.05);}
-.s-inp::placeholder{color:var(--text-faint);}
-.s-inp:focus{border-color:var(--octave-black);}
-[data-theme="dark"] .s-inp:focus{border-color:var(--white);}
-.s-ico{position:absolute;left:15px;pointer-events:none;}
-.s-clr{position:absolute;right:12px;width:28px;height:28px;border-radius:50%;
-  background:var(--gray-3);border:none;cursor:pointer;display:none;
-  align-items:center;justify-content:center;transition:background 0.15s;}
-.s-clr.vis{display:flex;}
-.s-clr:hover{background:var(--gray-4);}
-[data-theme="dark"] .s-clr{background:var(--gray-5);}
-
-/* ── CHIPS — dataspy-driven, same 6 fields as the card (§8.3/§6.11);
-   no icons (superseded 2026-07-20, see §21) — text + optional count badge
-   only. ── */
-.chips{padding:8px 14px 6px;display:flex;gap:7px;overflow-x:auto;flex-shrink:0;}
-.chips::-webkit-scrollbar{display:none;}
-.chip{display:flex;align-items:center;gap:5px;padding:0 13px;height:34px;
-  border-radius:100px;border:1.5px solid var(--border-strong);background:var(--bg-card);
-  font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;
-  white-space:nowrap;transition:all 0.15s;flex-shrink:0;font-family:var(--font-sans);
-  box-shadow:0 1px 2px rgba(0,0,0,0.04);}
-.chip:hover{border-color:var(--gray-3);}
-.chip.active{border-color:var(--octave-black);background:var(--bg-section);color:var(--octave-black);font-weight:700;}
-[data-theme="dark"] .chip.active{border-color:var(--white);color:var(--white);}
-.chip-badge{background:var(--octave-black);color:#fff;font-size:9px;font-weight:800;
-  width:17px;height:17px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;}
-[data-theme="dark"] .chip-badge{background:var(--white);color:var(--octave-black);}
-.s-rhdr{padding:2px 16px 6px;display:flex;align-items:center;
-  justify-content:space-between;flex-shrink:0;}
-.s-rc{font-size:12px;color:var(--text-muted);font-family:var(--font-mono);}
-
-/* ── SHEETS ───────────────────────────────────────────── */
-.ov{position:absolute;inset:0;background:rgba(0,0,0,0.50);z-index:200;
-  display:none;align-items:flex-end;backdrop-filter:blur(2px);}
-.ov.open{display:flex;}
-.sheet{background:var(--bg-card);border-radius:20px 20px 0 0;width:100%;
-  max-height:76%;display:flex;flex-direction:column;
-  animation:slideUp 0.24s cubic-bezier(.34,1.16,.64,1);
-  border-top:1px solid var(--border);}
-@keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
-.sh-hr{padding:10px 0 4px;display:flex;justify-content:center;flex-shrink:0;}
-.sh-h{width:38px;height:4px;border-radius:2px;background:var(--border-strong);}
-.sh-hdr{padding:4px 16px 13px;display:flex;align-items:center;
-  justify-content:space-between;flex-shrink:0;border-bottom:1px solid var(--border);}
-.sh-title{font-size:16px;font-weight:700;color:var(--text-body);letter-spacing:-0.3px;}
-.sh-close{width:30px;height:30px;border-radius:50%;background:var(--bg-section);
-  border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
-  transition:background 0.15s;}
-.sh-close:hover{background:var(--border-strong);}
-.lov-row{display:flex;align-items:center;gap:14px;padding:14px 18px;
-  border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s;}
-.lov-row:hover{background:var(--bg-section);}
-.lov-row:last-child{border-bottom:none;}
-.lov-body{flex:1;}
-/* Dataspy selector row (§8.3, revised 2026-07-20) — description is the
-   only text now (no scope sub-line, no count); sized up to actually fill
-   the row it has all to itself. */
-.lov-name{font-size:18px;font-weight:700;color:var(--text-body);}
-.lov-check{width:24px;height:24px;border-radius:50%;display:flex;
-  align-items:center;justify-content:center;flex-shrink:0;
-  border:2px solid var(--border-strong);transition:all 0.15s;}
-.lov-check.on{border-color:var(--octave-black);background:var(--octave-black);}
-[data-theme="dark"] .lov-check.on{border-color:var(--white);background:var(--white);}
-.sh-sr{padding:10px 16px;flex-shrink:0;}
-.sh-sw{position:relative;}
-.sh-sw .ic{position:absolute;left:13px;top:50%;transform:translateY(-50%);pointer-events:none;}
-.sh-si{width:100%;height:42px;border-radius:100px;border:1.5px solid var(--border-strong);
-  background:var(--bg-section);font-family:var(--font-sans);font-size:14px;color:var(--text-body);
-  padding:0 14px 0 38px;outline:none;transition:border-color 0.15s;}
-.sh-si:focus{border-color:var(--octave-black);}
-[data-theme="dark"] .sh-si:focus{border-color:var(--white);}
-.sh-cr-row{padding:0 16px 6px;display:flex;justify-content:flex-end;}
-.sh-cb{background:none;border:none;font-size:13px;font-weight:600;
-  color:var(--text-muted);cursor:pointer;font-family:var(--font-sans);}
-.sh-cb:hover{color:var(--octave-black);}
-[data-theme="dark"] .sh-cb:hover{color:var(--white);}
-.sh-list{overflow-y:auto;flex:1;}
-.sh-list::-webkit-scrollbar{display:none;}
-.sh-row{display:flex;align-items:center;gap:12px;padding:13px 16px;
-  border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.12s;}
-.sh-row:hover{background:var(--bg-section);}
-.sh-row:last-child{border-bottom:none;}
-.sh-ri{width:36px;height:36px;border-radius:10px;display:flex;
-  align-items:center;justify-content:center;flex-shrink:0;
-  background:var(--bg-section);color:var(--gray-4);border:1.5px solid var(--border-strong);}
-.sh-rb{flex:1;}
-.sh-rn{font-size:14px;font-weight:600;color:var(--text-body);}
-.sh-rc{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-top:2px;}
-.sh-radio{width:24px;height:24px;border-radius:50%;border:2px solid var(--border-strong);
-  flex-shrink:0;display:flex;align-items:center;justify-content:center;
-  transition:all 0.15s;}
-.sh-radio.on{border-color:var(--octave-black);background:var(--octave-black);}
-[data-theme="dark"] .sh-radio.on{border-color:var(--white);background:var(--white);}
-.sh-radio.on::after{content:'';width:9px;height:9px;border-radius:50%;background:#fff;}
-[data-theme="dark"] .sh-radio.on::after{background:var(--octave-black);}
-.sh-apply{margin:12px 16px 16px;height:52px;border-radius:100px;
-  background:var(--octave-black);color:#fff;border:none;font-size:15px;font-weight:700;
-  cursor:pointer;font-family:var(--font-sans);flex-shrink:0;width:calc(100% - 32px);
-  transition:background 0.15s,box-shadow 0.15s;
-  box-shadow:0 4px 16px rgba(0,0,0,0.20);
-  display:flex;align-items:center;justify-content:center;gap:8px;}
-.sh-apply:hover{background:#111114;box-shadow:0 6px 20px rgba(0,0,0,0.28);}
-[data-theme="dark"] .sh-apply{background:rgba(255,255,255,0.12);}
-[data-theme="dark"] .sh-apply:hover{background:rgba(255,255,255,0.18);}
-
 /* ── EMPTY ────────────────────────────────────────────── */
 .empty{flex:1;display:flex;flex-direction:column;align-items:center;
   justify-content:center;gap:12px;padding:48px;}
@@ -449,15 +334,6 @@ body{
 .empty-title{font-size:16px;font-weight:700;color:var(--text-body);}
 .empty-sub{font-size:13px;color:var(--text-muted);text-align:center;line-height:1.55;}
 
-/* ── TOAST ────────────────────────────────────────────── */
-.toast{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);
-  background:var(--octave-black);color:#fff;font-size:13px;font-weight:600;
-  padding:11px 20px;border-radius:100px;white-space:nowrap;
-  opacity:0;transition:opacity 0.2s;pointer-events:none;font-family:var(--font-sans);
-  z-index:300;box-shadow:0 6px 24px rgba(0,0,0,0.35);
-  display:flex;align-items:center;gap:8px;}
-.toast.show{opacity:1;}
-[data-theme="dark"] .toast{background:var(--gray-5);}
 </style>
 </head>
 <body id="body">
@@ -645,7 +521,7 @@ body{
 
     <div class="res-row">
       <span class="res-count" id="s1Count">8 work orders</span>
-      <button class="sort-btn" onclick="showT1('Sort options — coming soon')">
+      <button class="sort-btn" onclick="showToast('Sort options — coming soon')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-sort"/></svg>
         Due date
       </button>
@@ -654,22 +530,16 @@ body{
     <div class="wo-list" id="s1DL"></div>
     <div id="s1TW" style="display:none"></div>
 
-    <!-- DS sheet -->
-    <div class="ov" id="dsOv" onclick="dsOvTap(event)">
-      <div class="sheet">
-        <div class="sh-hr"><div class="sh-h"></div></div>
-        <div class="sh-hdr">
-          <span class="sh-title">Select dataspy</span>
-          <button class="sh-close" onclick="closeDS()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><use href="#ico-x"/></svg>
-          </button>
-        </div>
-        <div class="sh-list" id="dsList"></div>
+    <!-- Dataspy sheet (favorite star per row persisted to localStorage
+         so it surfaces on Home's Favorites row). -->
+    <div class="bottom-sheet" id="dsSheet">
+      <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+      <div class="sheet-header">
+        <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+        <div class="sheet-title">Select dataspy</div>
+        <div style="width:30px;flex-shrink:0;"></div>
       </div>
-    </div>
-
-    <div class="toast" id="t1">
-      <span id="t1m"></span>
+      <div class="sheet-body" id="dsList"></div>
     </div>
   </div>
 
@@ -691,17 +561,10 @@ body{
       </div>
     </header>
 
-    <div class="s-wrap">
-      <div class="s-row">
-        <span class="s-ico ic">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-search"/></svg>
-        </span>
-        <input class="s-inp" id="sInp" type="text" placeholder="Search work orders…"
-          oninput="onSearch(this.value)" autocomplete="off">
-        <button class="s-clr" id="sClr" onclick="clearSearch()" aria-label="Clear">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><use href="#ico-x"/></svg>
-        </button>
-      </div>
+    <div class="ld-search-bar" style="margin:12px 14px 0;">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input class="ld-search-input" id="sInp" type="text" placeholder="Search work orders…" oninput="onSearch(this.value)" autocomplete="off">
+      <button class="ld-search-close" id="sClr" onclick="clearSearch()" aria-label="Clear" style="display:none;">✕</button>
     </div>
 
     <!-- Filter chips — dataspy-driven, the same 6 fields the card uses
@@ -714,51 +577,37 @@ body{
          replaced Priority here 2026-07-22 (punch-list item), reusing the
          exact same chip-sheet mechanism Priority had, just repointed at
          TM's Type codes instead of PRI's priority codes. -->
-    <div class="chips" id="chipsRow">
-      <div class="chip" id="cStatus" onclick="openCS('status')">Status</div>
-      <div class="chip" onclick="showT2('Description filter — coming soon')">Description</div>
-      <div class="chip" onclick="showT2('WO number filter — coming soon')">WO number</div>
-      <div class="chip" id="cType" onclick="openCS('type')">Type</div>
-      <div class="chip" onclick="showT2('Due date filter — coming soon')">Due date</div>
-      <div class="chip" id="cOrg" onclick="openCS('org')">Organization</div>
+    <div class="filter-chip-row" id="chipsRow">
+      <button class="filter-chip" id="cStatus" onclick="openCS('status')">Status</button>
+      <button class="filter-chip" onclick="showToast('Description filter — coming soon')">Description</button>
+      <button class="filter-chip" onclick="showToast('WO number filter — coming soon')">WO number</button>
+      <button class="filter-chip" id="cType" onclick="openCS('type')">Type</button>
+      <button class="filter-chip" onclick="showToast('Due date filter — coming soon')">Due date</button>
+      <button class="filter-chip" id="cOrg" onclick="openCS('org')">Organization</button>
     </div>
 
-    <div class="s-rhdr">
-      <span class="s-rc" id="s2Count">8 work orders</span>
-    </div>
+    <div class="res-row"><span class="res-count" id="s2Count">8 work orders</span></div>
 
     <div class="wo-list" id="s2DL"></div>
     <div id="s2TW" style="display:none"></div>
 
-    <!-- Chip sheet -->
-    <div class="ov" id="csOv" onclick="csOvTap(event)">
-      <div class="sheet">
-        <div class="sh-hr"><div class="sh-h"></div></div>
-        <div class="sh-hdr">
-          <span class="sh-title" id="csTitle">Dataspy</span>
-          <button class="sh-close" onclick="closeCS()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><use href="#ico-x"/></svg>
-          </button>
-        </div>
-        <div class="sh-sr">
-          <div class="sh-sw">
-            <span class="ic" style="position:absolute;left:13px;top:50%;transform:translateY(-50%);pointer-events:none;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-search"/></svg>
-            </span>
-            <input class="sh-si" id="csSearch" type="text" placeholder="Search…" oninput="filterCSRows(this.value)">
-          </div>
-        </div>
-        <div class="sh-cr-row"><button class="sh-cb" onclick="clearCS()">Clear</button></div>
-        <div class="sh-list" id="csList"></div>
-        <button class="sh-apply" onclick="applyCS()">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-check"/></svg>
-          Apply filter
-        </button>
+    <!-- Filter chip sheet — reused for whichever of the 3 real chips
+         (Status/Type/Organization) is currently open. Keeps its own
+         in-sheet search row (§6.11) — a WO-specific feature Equipment
+         List's own copy of this sheet doesn't have. -->
+    <div class="bottom-sheet" id="csSheet">
+      <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+      <div class="sheet-header">
+        <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+        <div class="sheet-title" id="csTitle">Filter</div>
+        <button class="sheet-clear-btn" onclick="clearCS()">Clear</button>
       </div>
-    </div>
-
-    <div class="toast" id="t2">
-      <span id="t2m"></span>
+      <div class="lov-search-row">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input class="lov-search-input" id="csSearch" placeholder="Search…" oninput="filterCSRows(this.value)">
+      </div>
+      <div class="sheet-body" id="csList"></div>
+      <div class="sheet-footer"><button class="btn-contained" onclick="applyCS()">Apply</button></div>
     </div>
   </div>
 
@@ -1438,20 +1287,14 @@ function toggleP(id){exp[id]=!exp[id];refS1();refS2();}
 function openDS(){
   const sorted=[...DS].sort((a,b)=>(isFavoriteDS(b.id)?1:0)-(isFavoriteDS(a.id)?1:0));
   document.getElementById('dsList').innerHTML=sorted.map(d=>`
-    <div class="lov-row">
+    <div class="lov-option">
       <button class="ds-fav-star${isFavoriteDS(d.id)?' favorited':''}" onclick="event.stopPropagation();toggleFavDS('${d.id}')" aria-label="Favorite">${SVGS.star}</button>
-      <div class="lov-body" onclick="selDS('${d.id}')">
-        <div class="lov-name">${d.name}</div>
-      </div>
-      <div class="lov-check${curDS===d.id?' on':''}" onclick="selDS('${d.id}')">
-        ${curDS===d.id?SVGS.chkmark:''}
-      </div>
+      <div class="lov-option-texts" onclick="selDS('${d.id}')"><div class="lov-option-desc">${d.name}</div></div>
+      <div class="lov-check${curDS===d.id?' checked':''}" onclick="selDS('${d.id}')"></div>
     </div>`).join('');
-  document.getElementById('dsOv').classList.add('open');
+  openSheet('dsSheet');
 }
-function closeDS(){document.getElementById('dsOv').classList.remove('open');}
-function dsOvTap(e){if(e.target===document.getElementById('dsOv'))closeDS();}
-function selDS(id){curDS=id;document.getElementById('dsName').textContent=DS.find(d=>d.id===id).name;closeDS();refS1();}
+function selDS(id){curDS=id;document.getElementById('dsName').textContent=DS.find(d=>d.id===id).name;closeAllSheets();refS1();}
 
 /* ══ SEARCH ══════════════════════════════════════════════ */
 function goSearch(){
@@ -1460,8 +1303,8 @@ function goSearch(){
   refS2();setTimeout(()=>document.getElementById('sInp').focus(),80);
 }
 function closeSearch(){document.getElementById('s2').classList.remove('active');document.getElementById('s1').classList.add('active');}
-function onSearch(v){sv=v.toLowerCase();document.getElementById('sClr').classList.toggle('vis',v.length>0);refS2();}
-function clearSearch(){document.getElementById('sInp').value='';sv='';document.getElementById('sClr').classList.remove('vis');refS2();}
+function onSearch(v){sv=v.toLowerCase();document.getElementById('sClr').style.display=v.length>0?'flex':'none';refS2();}
+function clearSearch(){document.getElementById('sInp').value='';sv='';document.getElementById('sClr').style.display='none';refS2();}
 
 /* ══ CHIP SHEET (§6.11 — Status/Type/Organization only; the other 3
    dataspy-driven chips are toast stubs, wired directly in their markup).
@@ -1474,35 +1317,30 @@ function openCS(k){
   document.getElementById('csTitle').textContent=CD[k].title;
   document.getElementById('csSearch').value='';
   renderCSRows(CD[k].rows);
-  document.getElementById('csOv').classList.add('open');
+  openSheet('csSheet');
 }
 function renderCSRows(rows){
   document.getElementById('csList').innerHTML=rows.map(r=>`
-    <div class="sh-row" onclick="togCS('${r.code}')">
-      <div class="sh-ri">
-        ${SVGS[r.svg]||''}
-      </div>
-      <div class="sh-rb"><div class="sh-rn">${r.name}</div><div class="sh-rc">${r.code}</div></div>
-      <div class="sh-radio${csel[r.code]?' on':''}" id="csr-${r.code}"></div>
+    <div class="lov-option" onclick="togCS('${r.code}')">
+      <div class="lov-option-texts"><div class="lov-option-desc">${r.name}</div></div>
+      <div class="lov-check${csel[r.code]?' checked':''}" id="csr-${r.code}"></div>
     </div>`).join('');
 }
 function filterCSRows(v){
   const q=v.toLowerCase();
   renderCSRows(CD[ack].rows.filter(r=>r.name.toLowerCase().includes(q)||r.code.toLowerCase().includes(q)));
 }
-function togCS(c){csel[c]=!csel[c];const el=document.getElementById('csr-'+c);if(el)el.className='sh-radio'+(csel[c]?' on':'');}
+function togCS(c){csel[c]=!csel[c];const el=document.getElementById('csr-'+c);if(el)el.className='lov-check'+(csel[c]?' checked':'');}
 function clearCS(){csel={};renderCSRows(CD[ack].rows);}
 function applyCS(){
   const sel=Object.keys(csel).filter(k=>csel[k]);
   cf[ack]=sel;
   const el=document.getElementById(CID[ack]);
   el.classList.toggle('active',sel.length>0);
-  el.innerHTML=CLB[ack]+(sel.length>0?`<span class="chip-badge">${sel.length}</span>`:'');
-  refS2();closeCS();
-  if(sel.length)showT2(sel.length+' filter'+(sel.length>1?'s':'')+' applied');
+  el.innerHTML=CLB[ack]+(sel.length>0?`<span class="chip-count">${sel.length}</span>`:'');
+  refS2();closeAllSheets();
+  if(sel.length)showToast(sel.length+' filter'+(sel.length>1?'s':'')+' applied');
 }
-function closeCS(){document.getElementById('csOv').classList.remove('open');}
-function csOvTap(e){if(e.target===document.getElementById('csOv'))closeCS();}
 
 // Real navigation (2026-07-22, nav-bug fix; extended same day — punch-
 // list item, real type-based routing). This file only has real backing
@@ -1532,9 +1370,6 @@ function openWO(id){
   location.href = 'eam-wo-record-view-prototype-v1.html';
 }
 
-function showToast(msg){showT1(msg);}
-function showT1(msg){document.getElementById('t1m').textContent=msg;const el=document.getElementById('t1');el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2400);}
-function showT2(msg){document.getElementById('t2m').textContent=msg;const el=document.getElementById('t2');el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2400);}
 
 /* ══════════════════════════════════════════════════════════════════════
    INSERT MODE (§9.1–§9.4) — converged 2026-07-24 onto the ONE shared

@@ -201,25 +201,6 @@
 [data-theme="dark"] .f-slider-track.answered .f-slider-thumb { border-color: var(--white); }
 .f-slider-minmax { display: flex; justify-content: space-between; margin: 10px 8px 0; font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); }
 
-/* Option C's track is the thing that must center under the value, not
-   the track+scale-label bounding box — .f-tank-row is pinned to the
-   track's own width so the wrap's flex centering resolves against that,
-   and the scale sits outside via position:absolute so it never widens
-   the box being centered. */
-.f-tank-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.f-tank-value { font-family: var(--font-mono); font-size: 26px; font-weight: 700; color: var(--octave-black); }
-[data-theme="dark"] .f-tank-value { color: var(--white); }
-.f-tank-row { position: relative; width: 64px; }
-.f-tank-track { position: relative; width: 64px; height: 180px; border-radius: 16px; background: var(--gray-1); cursor: pointer; touch-action: none; overflow: hidden; }
-[data-theme="dark"] .f-tank-track { background: var(--gray-5); }
-.f-tank-fill { position: absolute; left: 0; bottom: 0; width: 100%; background: var(--gray-3); }
-.f-tank-track.answered .f-tank-fill { background: var(--octave-black); }
-[data-theme="dark"] .f-tank-track.answered .f-tank-fill { background: var(--white); }
-.f-tank-thumb { position: absolute; left: 50%; width: 26px; height: 26px; background: var(--bg-card); border: 3px solid var(--gray-3); border-radius: 50%; transform: translate(-50%,50%); box-shadow: 0 1px 4px rgba(0,0,0,.2); }
-.f-tank-track.answered .f-tank-thumb { border-color: var(--octave-black); }
-[data-theme="dark"] .f-tank-track.answered .f-tank-thumb { border-color: var(--white); }
-.f-tank-scale { position: absolute; left: 100%; margin-left: 16px; top: 0; height: 180px; display: flex; flex-direction: column; justify-content: space-between; font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); white-space: nowrap; }
-
 .f-textarea { width: 100%; min-height: 120px; background: var(--bg-page); border: 2px solid var(--gray-2); border-radius: 10px; padding: 12px 13px; font-size: 15px; color: var(--octave-black); font-family: var(--font-sans); resize: none; outline: none; line-height: 1.5; }
 [data-theme="dark"] .f-textarea { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
 
@@ -590,14 +571,12 @@ const ITEMS = [
   { id:5, group:'main', label:'Bearing temperature — post run', equipId:'A-00067333', equipDesc:'Pump, Centrifugal', required:false, type:'num', uom:'°F', range:'60 – 180 °F',
     documents:[], comments:[], note:'', followup:false, value:'' },
   // Slider answer-control exercise (2026-07-31) — Option A (linear fill)
-  // and Option C (vertical tank fill) from the earlier mockup, now live
-  // as real checklist items. No acceptable-range concept here — the
-  // product has no way to configure one within a slider's min/max yet.
+  // from the earlier mockup, now live as a real checklist item. Option C
+  // (vertical tank fill) was removed from consideration 2026-07-31. No
+  // acceptable-range concept here — the product has no way to configure
+  // one within a slider's min/max yet.
   { id:8, group:'main', label:'Coolant reservoir level', equipId:'A-00067333', equipDesc:'Pump, Centrifugal', required:false,
     type:'slider', min:0, max:100, uom:'%', value:null,
-    documents:[], comments:[], note:'', followup:false },
-  { id:9, group:'main', label:'Hydraulic tank level', equipId:'A-00067333', equipDesc:'Pump, Centrifugal', required:false,
-    type:'tank', min:0, max:100, uom:'%', value:null,
     documents:[], comments:[], note:'', followup:false },
   { id:6, group:'close', label:'Area restored and barricades removed?', required:false, type:'toggle2',
     options:[['Yes','sel-green'],['No','sel-red']],
@@ -652,34 +631,39 @@ function isDone(it) {
   if (it.type === 'check') return !!it.value;
   if (it.type === 'toggle2' || it.type === 'toggle3') return it.value != null;
   if (it.type === 'num' || it.type === 'textarea') return String(it.value).trim() !== '';
-  if (it.type === 'slider' || it.type === 'tank') return it.value != null;
+  if (it.type === 'slider') return it.value != null;
   return false;
 }
 function dotClass(it) {
   if (!isDone(it)) return '';
-  if (it.type === 'check' || it.type === 'textarea' || it.type === 'num' || it.type === 'slider' || it.type === 'tank') return 'done-green';
+  if (it.type === 'check' || it.type === 'textarea' || it.type === 'num' || it.type === 'slider') return 'done-green';
   const opt = it.options.find(o => o[0] === it.value);
   return opt[1] === 'sel-green' ? 'done-green' : opt[1] === 'sel-red' ? 'done-red' : opt[1] === 'sel-orange' ? 'done-orange' : 'done-green';
 }
 
-// ─── Shared drag mechanics for both Option A (horizontal fill slider)
-// and Option C (vertical tank fill) — same math, only which axis/
-// dimension differs. Exercise addition alongside the ITEMS above. ────
-function pctFromEvent(clientX, clientY, trackEl, vertical) {
+// ─── Drag mechanics for Option A (horizontal fill slider). ──────────
+function pctFromEvent(clientX, trackEl) {
   const r = trackEl.getBoundingClientRect();
-  const p = vertical ? (r.bottom - clientY) / r.height : (clientX - r.left) / r.width;
-  return Math.max(0, Math.min(1, p));
+  return Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+}
+// Fires a tiny vibration each time the dragged value ticks over to a new
+// integer — many quick pulses in a row during a drag read as a rumble/
+// texture rather than a single click. No-op on browsers without the
+// Vibration API (notably iOS Safari — accepted platform limitation).
+function rumble() {
+  if (navigator.vibrate) navigator.vibrate(3);
 }
 function applySliderValue(it, pct) {
+  const prevValue = it.value;
   it.value = Math.round(it.min + pct * (it.max - it.min));
+  if (it.value !== prevValue) rumble();
   const donePct = Math.round((it.value - it.min) / (it.max - it.min) * 100);
   const track = document.getElementById('track-' + it.id);
   const fill = document.getElementById('fill-' + it.id);
   const thumb = document.getElementById('thumb-' + it.id);
   const valEl = document.getElementById('val-' + it.id);
   track.classList.add('answered');
-  if (it.type === 'tank') { fill.style.height = donePct + '%'; thumb.style.bottom = donePct + '%'; }
-  else { fill.style.width = donePct + '%'; thumb.style.left = donePct + '%'; }
+  fill.style.width = donePct + '%'; thumb.style.left = donePct + '%';
   valEl.innerHTML = it.value + '<span class="f-uom">' + it.uom + '</span>';
   renderStepperHead();
   updateFooter();
@@ -688,10 +672,9 @@ function sliderDragStart(e, itemId) {
   e.preventDefault();
   const it = ITEMS.find(x => x.id === itemId);
   const track = document.getElementById('track-' + itemId);
-  const vertical = it.type === 'tank';
   function move(ev) {
     const p = ev.touches ? ev.touches[0] : ev;
-    applySliderValue(it, pctFromEvent(p.clientX, p.clientY, track, vertical));
+    applySliderValue(it, pctFromEvent(p.clientX, track));
   }
   move(e);
   function up() { document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); }
@@ -736,28 +719,16 @@ function controlHtml(it) {
     return `<div class="f-num-row"><input class="f-num-in" type="text" inputmode="decimal" value="${it.value}" placeholder="—" oninput="setNum(this)"><span class="f-uom">${it.uom}</span></div>`
       + (it.range ? `<p class="f-range-hint">Acceptable range: ${it.range}</p>` : '');
   }
-  if (it.type === 'slider' || it.type === 'tank') {
+  if (it.type === 'slider') {
     const valueDisplay = it.value != null ? `${it.value}<span class="f-uom">${it.uom}</span>` : '—';
     const pct = it.value != null ? Math.round((it.value - it.min) / (it.max - it.min) * 100) : 0;
     const answered = it.value != null ? 'answered' : '';
-    if (it.type === 'slider') {
-      return `<div class="f-slider-value" id="val-${it.id}">${valueDisplay}</div>
-        <div class="f-slider-track ${answered}" id="track-${it.id}" onpointerdown="sliderDragStart(event,${it.id})">
-          <div class="f-slider-fill" id="fill-${it.id}" style="width:${pct}%"></div>
-          <div class="f-slider-thumb" id="thumb-${it.id}" style="left:${pct}%"></div>
-        </div>
-        <div class="f-slider-minmax"><span>Min ${it.min}</span><span>Max ${it.max}</span></div>`;
-    }
-    return `<div class="f-tank-wrap">
-        <div class="f-tank-value" id="val-${it.id}">${valueDisplay}</div>
-        <div class="f-tank-row">
-          <div class="f-tank-track ${answered}" id="track-${it.id}" onpointerdown="sliderDragStart(event,${it.id})">
-            <div class="f-tank-fill" id="fill-${it.id}" style="height:${pct}%"></div>
-            <div class="f-tank-thumb" id="thumb-${it.id}" style="bottom:${pct}%"></div>
-          </div>
-          <div class="f-tank-scale"><span>Max ${it.max}</span><span>Min ${it.min}</span></div>
-        </div>
-      </div>`;
+    return `<div class="f-slider-value" id="val-${it.id}">${valueDisplay}</div>
+      <div class="f-slider-track ${answered}" id="track-${it.id}" onpointerdown="sliderDragStart(event,${it.id})">
+        <div class="f-slider-fill" id="fill-${it.id}" style="width:${pct}%"></div>
+        <div class="f-slider-thumb" id="thumb-${it.id}" style="left:${pct}%"></div>
+      </div>
+      <div class="f-slider-minmax"><span>Min ${it.min}</span><span>Max ${it.max}</span></div>`;
   }
   if (it.type === 'textarea') {
     return `<textarea class="f-textarea" placeholder="Describe work performed and any findings…" oninput="setText(this)">${it.value}</textarea>`;
