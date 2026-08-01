@@ -51,11 +51,38 @@ function closeAllSheets() {
   document.querySelectorAll('.bottom-sheet').forEach(s => s.classList.remove('open'));
   const overlay = document.getElementById('sheetOverlay');
   if (overlay) overlay.classList.remove('open');
+  document.documentElement.style.setProperty('--kb-inset', '0px');
 }
 function openSheet(id) {
   const overlay = document.getElementById('sheetOverlay');
   if (overlay) overlay.classList.add('open');
   document.getElementById(id).classList.add('open');
+}
+// Keyboard-inset sync (added 2026-07-31, direct instruction) — keeps
+// --kb-inset (eam-shared.css, .bottom-sheet's own `bottom` offset) in
+// step with the on-screen keyboard's real height via the VisualViewport
+// API. Needed once the "keyboard never opens on first tap" fix actually
+// let the keyboard appear: the layout viewport (body's own 100vh) never
+// shrinks when the keyboard shows, so a .bottom-sheet pinned to its
+// bottom:0 was sitting right underneath the keyboard, hiding whatever
+// field the technician just tapped. Raising the sheet by the keyboard's
+// own measured height (rather than a guessed fixed offset, which would
+// be wrong across devices/keyboard types) keeps the input visible above
+// it instead. Guarded for browsers without window.visualViewport (none
+// on real mobile hardware this app targets) — inset just stays 0 there.
+function syncKeyboardInset() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const inset = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
+  document.documentElement.style.setProperty('--kb-inset', inset + 'px');
+}
+function initKeyboardInsetSync() {
+  if (!window.visualViewport) return;
+  // Android fires 'resize' when the keyboard opens/closes; iOS Safari
+  // sometimes only fires 'scroll' on the visualViewport instead (a known
+  // platform quirk) — listening to both covers either behavior.
+  window.visualViewport.addEventListener('resize', syncKeyboardInset);
+  window.visualViewport.addEventListener('scroll', syncKeyboardInset);
 }
 // Closes just one sheet, not every open one (added 2026-07-29, bug fix) —
 // for a sheet opened from *inside* another already-open sheet (Book
@@ -73,6 +100,7 @@ function closeSheet(id) {
   if (!document.querySelector('.bottom-sheet.open')) {
     const overlay = document.getElementById('sheetOverlay');
     if (overlay) overlay.classList.remove('open');
+    document.documentElement.style.setProperty('--kb-inset', '0px');
   }
 }
 
@@ -3450,6 +3478,7 @@ function initSharedApp(opts) {
   initRecHeaderScroll(opts.contentSelector);
   initHeaderMenuOutsideClick();
   initInsertModeDrag();
+  initKeyboardInsetSync();
   renderSyncControl();
   updateNotifBadge();
   // Pre-filled inline (≤255-char) fields need their height set on load too,

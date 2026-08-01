@@ -1150,7 +1150,19 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 /* ── SHEETS (§3.4) ── */
 .sheet-overlay{position:absolute;inset:0;background:rgba(0,0,0,0);z-index:200;pointer-events:none;transition:background .3s;}
 .sheet-overlay.open{background:rgba(0,0,0,.45);pointer-events:all;}
-.bottom-sheet{position:absolute;bottom:0;left:0;right:0;background:var(--bg-card);border-radius:var(--sheet-radius) var(--sheet-radius) 0 0;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);z-index:201;max-height:80vh;display:flex;flex-direction:column;}
+/* --kb-inset (added 2026-07-31, direct instruction) — the on-screen
+   keyboard's own height, kept in sync live by syncKeyboardInset()
+   (eam-shared.js, driven off window.visualViewport). Fixing the "keyboard
+   never opens on first tap" bug exposed this as the next real problem:
+   the keyboard covers whatever sat at the bottom of the (unchanged)
+   layout viewport, which is exactly where an absolutely-positioned,
+   bottom:0 sheet lives — so the field the technician just tapped ends up
+   hidden under the keyboard the instant it appears. Raising the sheet by
+   the keyboard's own height keeps it (and the input inside it) above the
+   keyboard instead of guessing a fixed offset. Defaults to 0 — a sheet
+   with no focused input, or on a browser without the VisualViewport API,
+   renders exactly as before. */
+.bottom-sheet{position:absolute;bottom:var(--kb-inset,0px);left:0;right:0;background:var(--bg-card);border-radius:var(--sheet-radius) var(--sheet-radius) 0 0;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1),bottom .15s ease-out;z-index:201;max-height:80vh;display:flex;flex-direction:column;}
 .bottom-sheet.open{transform:translateY(0);}
 /* Insert Mode (§9.2) — full-screen sheet, not the compact .bottom-sheet. */
 /* z-index 199 — deliberately BELOW every transient overlay it can trigger

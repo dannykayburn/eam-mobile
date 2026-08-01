@@ -853,6 +853,11 @@ function closeSheet() {
   // openSheet()) — this screen's overlay-tap-to-dismiss was local-only
   // and never touched it, which would've left it visually stuck open.
   document.getElementById('syncPanelSheet')?.classList.remove('open');
+  // This screen shadows the shared closeSheet() (own no-arg signature
+  // above) — mirror its --kb-inset reset (eam-shared.css/js, 2026-07-31)
+  // too, so a sheet closed right after editing a qty field doesn't leave
+  // the keyboard-inset offset lingering.
+  document.documentElement.style.setProperty('--kb-inset', '0px');
   currentPartId = null;
 }
 
