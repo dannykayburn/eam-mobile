@@ -42,6 +42,23 @@
      from §8.2's inline-collapsing search bar inside a record's tab). */
   .screen{display:none;flex-direction:column;flex:1;overflow:hidden;}
   .screen.active{display:flex;}
+
+  /* Detailed/List mode toggle — copied verbatim from eam-wo-list-
+     prototype-v5_1.html's own local override (that file is this screen's
+     explicit template per CLAUDE.md). The base .mode-tog/.mode-btn pair
+     in eam-shared.css is a plainer fallback; every real top-level list
+     screen consumer restates this same spacing/shadow locally rather
+     than changing the shared base rule (WO List's own comment: not yet
+     promoted, still copy-per-screen for this component). */
+  .mode-tog{margin:10px 14px 0;display:flex;background:var(--bg-section);
+    border-radius:11px;padding:3px;flex-shrink:0;border:1px solid var(--border);}
+  .mode-btn{flex:1;height:36px;border:none;border-radius:9px;
+    font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);
+    background:transparent;color:var(--text-muted);transition:all 0.18s;}
+  .mode-btn.active{background:var(--bg-card);color:var(--text-body);
+    box-shadow:0 1px 5px rgba(0,0,0,0.10),0 0 0 1px var(--border);}
+  [data-theme="dark"] .mode-btn.active{background:var(--gray-2);color:var(--white);
+    box-shadow:0 1px 4px rgba(0,0,0,0.3);}
 </style>
 <!--
   EQUIPMENT SEARCH LIST (2026-07-22, 2nd correction pass) — this is the
@@ -132,6 +149,15 @@
       <svg class="ds-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
 
+    <!-- Detailed/List mode toggle (§8.3) — same single-toggle-in-Screen-1
+         pattern as eam-wo-list-prototype-v5_1.html: one global `mode`
+         state drives both Screen 1 and Screen 2's rendering; Screen 2
+         has no toggle buttons of its own, matching the template. -->
+    <div class="mode-tog">
+      <button class="mode-btn active" id="modeD" onclick="setMode('detailed')">Detailed</button>
+      <button class="mode-btn" id="modeL" onclick="setMode('list')">List</button>
+    </div>
+
     <div class="res-row">
       <span class="res-count" id="s1Count"></span>
       <button class="sort-btn" onclick="showToast('Sort options — coming soon')">
@@ -141,6 +167,7 @@
     </div>
 
     <div class="content" id="listContent"></div>
+    <div class="content" id="listTable" style="display:none;"></div>
   </div>
 
   <!-- ═══════════════════════ SCREEN 2 — SEARCH EQUIPMENT ═══════════════════════ -->
@@ -201,6 +228,7 @@
          own #listContent already carried class="content" for exactly
          this reason; this one was missing it. -->
     <div class="content" id="s2List"></div>
+    <div class="content" id="s2Table" style="display:none;"></div>
   </div>
 
   <!-- Dataspy sheet (favorite star per row persisted to a separate
@@ -553,7 +581,7 @@ const CID = { organization: 'cOrg', class: 'cClass', assignedTo: 'cAssigned' };
 const CLB = { organization: 'Organization', class: 'Class', assignedTo: 'Assigned To' };
 
 /* ══ STATE ══ */
-let curDS = 'all', sv = '', cf = {}, ack = null, csel = {};
+let curDS = 'all', sv = '', cf = {}, ack = null, csel = {}, mode = 'detailed';
 
 /* ══ FILTERING ══ */
 function dsFilt() { return EQUIPS.filter(DSF[curDS] || DSF.all); }
@@ -583,18 +611,51 @@ function equipCardFields(e) {
 function card(e) {
   return renderStdCard(equipCardFields(e)).replace('<div class="ld-card">', '<div class="ld-card" onclick="goEquipmentRecord()">');
 }
+// List mode's all-fields table (§8.3) — this demo's data model has no
+// fields beyond the 6 the card already shows, so List mode presents the
+// same set as a table rather than revealing extra columns (unlike WO
+// List's own woAllFields(), which has real extra fields to show). Every
+// field gets an explicit label here since renderStdTable() headers every
+// column, unlike renderStdCard()'s headline/subline/org treatment.
+function equipAllFields(e) {
+  return [
+    { label: 'Description',  value: e.desc },
+    { label: 'Asset ID',     value: e.assetId },
+    { label: 'Organization', value: e.organization },
+    { label: 'Class',        value: e.class },
+    { label: 'Category',     value: e.category },
+    { label: 'Assigned To',  value: e.assignedTo },
+  ];
+}
 
 /* ══ RENDER ══ */
 function emptyMsg() { return `<div style="padding:40px 20px;text-align:center;color:var(--text-faint);font-size:14px;">No equipment found</div>`; }
 function refS1() {
   const rows = dsFilt();
-  document.getElementById('listContent').innerHTML = rows.map(card).join('') || emptyMsg();
+  const d = mode === 'detailed';
+  document.getElementById('listContent').style.display = d ? '' : 'none';
+  document.getElementById('listTable').style.display = d ? 'none' : '';
+  if (d) document.getElementById('listContent').innerHTML = rows.map(card).join('') || emptyMsg();
+  else document.getElementById('listTable').innerHTML = rows.length ? renderStdTable(rows.map(equipAllFields), 'goEquipmentRecord()') : emptyMsg();
   document.getElementById('s1Count').textContent = rows.length + ' equipment record' + (rows.length === 1 ? '' : 's');
 }
 function refS2() {
   const rows = sFilt();
-  document.getElementById('s2List').innerHTML = rows.map(card).join('') || emptyMsg();
+  const d = mode === 'detailed';
+  document.getElementById('s2List').style.display = d ? '' : 'none';
+  document.getElementById('s2Table').style.display = d ? 'none' : '';
+  if (d) document.getElementById('s2List').innerHTML = rows.map(card).join('') || emptyMsg();
+  else document.getElementById('s2Table').innerHTML = rows.length ? renderStdTable(rows.map(equipAllFields), 'goEquipmentRecord()') : emptyMsg();
   document.getElementById('s2Count').textContent = rows.length + ' equipment record' + (rows.length === 1 ? '' : 's');
+}
+
+/* ══ MODE (§8.3) — same setMode() shape as eam-wo-list-prototype-v5_1.html,
+   screen-local since that toggle has no shared JS equivalent yet either. ══ */
+function setMode(m) {
+  mode = m;
+  document.getElementById('modeD').classList.toggle('active', m === 'detailed');
+  document.getElementById('modeL').classList.toggle('active', m === 'list');
+  refS1(); refS2();
 }
 
 /* ══ TAP HEADER TO SCROLL TO TOP (§4.2, locked, universal) — local
@@ -604,7 +665,7 @@ function refS2() {
 function scrollListToTop() {
   const screen = document.querySelector('.screen.active');
   if (!screen) return;
-  const list = screen.querySelector('#listContent, #s2List');
+  const list = [...screen.querySelectorAll('#listContent, #s2List, #listTable, #s2Table')].find(el => el.style.display !== 'none');
   if (list) list.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
