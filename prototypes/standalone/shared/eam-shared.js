@@ -2365,22 +2365,75 @@ function simulateQrScan() {
    above the grid before this, see design-decisions-v3-1.md §15.5) —
    same badge + .attr-lov-stack shape any other Badge/Icon + Code+
    Description field would use elsewhere in a grid. Type is dropped
-   entirely (was a 3rd line, "Asset" — added no identifying value); the
-   icon shrinks to the same 28px .attr-badge-outline every other grid
-   badge field (Type/Priority) already uses, not a bespoke larger size.
-   The ONLY thing that stays special about Equipment: its .attr-item
-   wrapper's onclick calls openEquipmentLookup(key), not openLov(key) —
-   written directly in each screen's own static markup like any other
-   field's onclick, not decided by this function. */
-const EQUIP_ICON_SVG = '<svg width="14" height="14" fill="none" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+   entirely (was a 3rd line, "Asset" — added no identifying value).
+   Badge re-derived 2026-08-10 (§7.5) — Equipment's badge stands in for a
+   record photo, not a status-style icon, so it's its own larger
+   .attr-badge-photo tile (44px, filled), not the shared 28px
+   .attr-badge-outline box Type/Priority use. The ONLY thing that stays
+   special about Equipment: its .attr-item wrapper's onclick calls
+   openEquipmentLookup(key), not openLov(key) — written directly in each
+   screen's own static markup like any other field's onclick, not
+   decided by this function. */
+const EQUIP_ICON_SVG = '<svg fill="none" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 const EQUIP_CLASS_ICONS = { Pump: EQUIP_ICON_SVG, Motor: EQUIP_ICON_SVG, Compressor: EQUIP_ICON_SVG, Blower: EQUIP_ICON_SVG };
 function equipSummaryCardHTML(e, emptyLabel) {
-  const badge = `<span class="attr-badge attr-badge-outline">${(e && EQUIP_CLASS_ICONS[e.class]) || ''}</span>`;
+  // Photo tap-target carve-out (§7.5) — the badge itself intercepts the
+  // tap (stopPropagation so the surrounding .attr-item's own
+  // openEquipmentLookup(key) doesn't also fire): a stored photo opens the
+  // full-screen viewer, no photo skips straight to the source-picker.
+  // Only wired when equipment is actually selected (e truthy) — an empty
+  // badge is hidden entirely (.attr-badge:empty) and has nothing to tap.
+  const photoTap = e ? ` onclick="event.stopPropagation(); openEquipPhotoTap('${(e.photoUrl || '').replace(/'/g, "\\'")}')"` : '';
+  const badge = `<span class="attr-badge attr-badge-photo"${photoTap}>${(e && EQUIP_CLASS_ICONS[e.class]) || ''}</span>`;
   if (!e) {
     return `${badge}<span class="attr-text muted">${emptyLabel || 'Tap to select equipment'}</span>`;
   }
   return `${badge}<div class="attr-lov-stack"><span class="attr-text">${e.desc}</span><span class="attr-lov-stack-code">${e.code}</span></div>`;
 }
+
+/* ── EQUIPMENT PHOTO — full-screen viewer + source-picker (§7.5, wired
+   2026-08-10). No real photo storage exists in this prototype — a
+   placeholder-image-service URL stands in for "a real photo on file,"
+   with an embedded SVG data-URI fallback (via <img onerror>) so the
+   viewer never shows a broken image if the network is unavailable, which
+   this app otherwise assumes is the normal case. Committing a new photo
+   from the source-picker always resolves to this same demo photo,
+   same convention as openEquipmentLookup()'s own simulateQrScan(). */
+const EQUIP_PHOTO_DEMO_URL = 'https://placehold.co/720x540/007B87/FFFFFF?text=Centrifugal+Pump';
+const EQUIP_PHOTO_FALLBACK_DATA_URI = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="720" height="540" viewBox="0 0 720 540"><rect width="720" height="540" fill="%23007B87"/><text x="360" y="276" font-family="Arial,sans-serif" font-size="30" fill="%23ffffff" text-anchor="middle">Centrifugal Pump</text><text x="360" y="312" font-family="Arial,sans-serif" font-size="16" fill="%23ffffff" opacity="0.75" text-anchor="middle">Photo unavailable offline</text></svg>';
+// Optional screen-provided hook, same shape as LOV_ON_SELECT/LOV_ON_CLEAR
+// — called with the new photo URL once one is "picked" from the source
+// sheet, so the screen can write it onto its own RECORD and re-render.
+// A screen that never sets this (e.g. Insert Mode, today) just gets an
+// honest "coming soon" toast instead of a false "✓ Photo updated."
+let equipPhotoOnSet = null;
+function openEquipPhotoTap(url) {
+  if (url) openEquipPhotoViewer(url);
+  else openSheet('equipPhotoSourceSheet');
+}
+function openEquipPhotoViewer(url) {
+  const img = document.getElementById('equipPhotoViewerImg');
+  if (!img) return;
+  img.onerror = () => { img.onerror = null; img.src = EQUIP_PHOTO_FALLBACK_DATA_URI; };
+  img.src = url;
+  document.getElementById('equipPhotoViewerOverlay').classList.add('open');
+}
+function closeEquipPhotoViewer() {
+  document.getElementById('equipPhotoViewerOverlay').classList.remove('open');
+}
+// Reopens the source-picker on top of the viewer — same sheet the empty
+// state uses, so "replace this photo" and "set a first photo" are one
+// path, not two.
+function modifyEquipPhoto() {
+  closeEquipPhotoViewer();
+  openSheet('equipPhotoSourceSheet');
+}
+function setEquipPhoto(source) {
+  closeAllSheets();
+  if (typeof equipPhotoOnSet === 'function') { equipPhotoOnSet(EQUIP_PHOTO_DEMO_URL); showToast('✓ Photo updated'); }
+  else showToast('Photo selected — coming soon');
+}
+
 /* ── REFERENCE CARD FIELDS (§15.5, promoted 2026-07-20) — a field whose
    value is a small record (e.g. WO Insert Mode's Equipment field), not a
    plain code+desc row. Screen provides:

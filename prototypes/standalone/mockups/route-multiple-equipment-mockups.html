@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Route / Multiple Equipment Child — Mockup Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  ROUTE / MULTIPLE EQUIPMENT CHILD (MEC) — MOCKUP OPTIONS (2026-08-10,
+  exploration only, nothing here is decided or wired into a real screen).
+
+  Real EAM functionality being visualized: when a technician populates a
+  Route LOV on a WO, post-insert adds every piece of equipment listed on
+  the Route into that WO's Equipment tab, AND spins up one child WO per
+  equipment (WO Type "Multiple Equipment Child"), each with the parent's
+  WO number written into its own Parent WO field. The parent WO's own
+  checklist can then carry one equipment-scoped item per piece of
+  equipment on the Route — this is why the checklist item's equipment
+  code+description needs to actually be legible, not just technically
+  present.
+
+  3 sections, each a separate open question:
+  1 — WO Record View's Equipment field, when the WO is a Route-driven MEC
+      parent. RESOLVED 2026-08-10 (design-decisions-v3-1.md §16.9), now
+      real. None of options 1–4 below were right as drawn — the header
+      Equipment field does NOT hold "multiple equipment," it stays exactly
+      what it is today (§15.5), a single required value, set independently
+      of Route (a separate LOV field, not modeled in this prototype). What
+      shipped: a pill (.equip-route-pill) alongside Equipment, inside the
+      same .attr-item — "Route: <code> - <description>" when RECORD.route
+      is set, "Multiple Equipment" when it's an MEC parent without a route,
+      else no pill at all. Tapping it always jumps to the Equipment tab
+      (toast stub, that screen doesn't exist yet) — never lists inline,
+      since that tab's own list can run into the hundreds. Equipment
+      stayed in the grid fields, not pulled into a separate section — see
+      record-photo-section-equipment-and-profile-options.html for the
+      follow-up exploration that resolved Equipment's own photo/icon
+      treatment instead (folded into §7.5, not a new component).
+  2 — Activity Checklist's "View all" overlay, grouped by Equipment
+      (collapsible) instead of by workflow group. CHOSEN 2026-08-10:
+      option 3, the Step/Equipment toggle — promoted into the real
+      eam-activity-checklist-prototype-v2.html (§16.8). Options 1/2 below
+      are NOT chosen, reference only.
+  3 — The focused checklist item's own Equipment context (§16.2 item 7)
+      "doctored up" to be more evident — was a plain, low-emphasis
+      .form-field.protected row well below the label. CHOSEN 2026-08-10:
+      option 1, the chip above the label — promoted into the real file as
+      `.focus-equip-chip` (§16.8), superseding §16.2 item 7's old shape.
+      This does revisit a previously-locked call (a dark identity-banner
+      and a collapsible-section treatment were both tried and rejected
+      during the v2 rebuild) — the chip is deliberately neither of those
+      two rejected shapes. Options 2/4 below are NOT chosen, reference only.
+
+  Sample data invented for this mockup only: Route RT-1044 ("Zone 3 Pump
+  Skid Round"), 5 equipment (Pump/Motor/Gearbox/Valve/Conveyor) — not real
+  IDs, not wired into data/equipment.js.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --green:#00AA14; --red:#E24B4A; --orange:#F46600; --teal:#007B87;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-nav:#1A1A1F; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:#fff;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px 70px;}
+h1{font-size:18px;margin:0 0 4px;color:#fff;}
+.top-legend{max-width:520px;width:100%;color:#fff;font-size:12.5px;line-height:1.6;margin-bottom:26px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:14px 16px;}
+.top-legend b{color:#fff;}
+.top-legend .flag{margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,.18);color:#FFD166;}
+
+.section-block{width:100%;max-width:430px;margin-bottom:56px;display:flex;flex-direction:column;align-items:center;}
+.section-title{font-size:15px;font-weight:800;color:#fff;margin:0 0 6px;align-self:flex-start;}
+.section-sub{font-size:12px;line-height:1.55;color:rgba(255,255,255,.65);margin:0 0 16px;align-self:flex-start;}
+
+.frame{width:390px;height:680px;border-radius:44px;background:#000;padding:10px;box-shadow:0 20px 60px rgba(0,0,0,.5);position:relative;flex-shrink:0;}
+.screen{width:100%;height:100%;border-radius:36px;overflow:hidden;position:relative;background:var(--bg-page);display:flex;flex-direction:column;}
+.hdr{background:var(--bg-nav);flex-shrink:0;padding-top:22px;}
+.hdr-row{height:44px;display:flex;align-items:center;justify-content:center;padding:0 14px;}
+.hdr-title{color:#fff;font-size:14px;font-weight:700;}
+.body{flex:1;overflow-y:auto;padding:14px 0 24px;}
+
+.switcher{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;justify-content:center;max-width:430px;}
+.switch-btn{font-size:11.5px;font-weight:700;color:#fff;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.2);border-radius:100px;padding:7px 13px;cursor:pointer;}
+.switch-btn.on{background:#fff;color:#111;border-color:#fff;}
+.opt-label{margin-top:10px;font-size:12px;color:rgba(255,255,255,.65);text-align:center;max-width:410px;}
+
+/* ═══ shared field/card primitives ═══ */
+.section-card{margin:10px 14px 0;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.mono{font-family:var(--font-mono);}
+.lock-ic{color:var(--gray-4);flex-shrink:0;}
+
+/* ═══ SECTION 1 — Equipment field with multiple equipment ═══ */
+.s1-field-row{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;}
+.s1-field-text{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0;}
+.s1-field-label{font-size:11px;font-weight:600;color:var(--gray-4);}
+.s1-field-value{font-size:14px;font-weight:600;color:var(--octave-black);}
+.s1-field-sub{display:block;font-size:11.5px;font-weight:500;color:var(--gray-4);margin-top:2px;}
+.s1-chev{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
+.s1-expand-list{border-top:1px solid var(--border);}
+.s1-expand-row{display:flex;align-items:center;gap:8px;padding:9px 14px 9px 30px;border-bottom:1px solid var(--border);font-size:12.5px;}
+.s1-expand-row:last-child{border-bottom:none;}
+.s1-expand-row .mono{color:var(--octave-black);font-weight:600;font-size:12px;}
+.s1-expand-row .desc{color:var(--gray-4);}
+.s1-stack{display:flex;flex-shrink:0;}
+.s1-stack-dot{width:26px;height:26px;border-radius:50%;background:var(--teal);border:2px solid var(--bg-card);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700;margin-left:-8px;}
+.s1-stack-dot:first-child{margin-left:0;}
+.s1-stack-dot.more{background:var(--gray-4);}
+.s1-route-tag{font-size:11.5px;font-weight:700;color:var(--gray-4);font-family:var(--font-mono);flex-shrink:0;}
+.s1-hint{padding:0 14px 12px;font-size:11.5px;color:var(--gray-4);font-style:italic;}
+.s1-card-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;border-bottom:1px solid var(--border);}
+.s1-card-hdr-text{font-size:13px;font-weight:700;color:var(--octave-black);}
+.s1-card-hdr-sub{font-size:11px;font-weight:500;color:var(--gray-4);margin-top:1px;}
+.s1-card-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;font-family:var(--font-mono);background:var(--bg-section);color:var(--gray-4);border:1px solid var(--border);}
+.s1-card-row{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:12.5px;}
+.s1-card-row:last-child{border-bottom:none;}
+.s1-route-pill{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--octave-black);background:var(--bg-section);border:1px solid var(--border-strong);border-radius:100px;padding:6px 12px;flex-shrink:0;}
+
+/* ═══ SECTION 2 — View all, grouped by Equipment ═══ */
+.ov-group-hdr{padding:7px 14px;font-size:12px;font-weight:700;color:var(--gray-4);background:var(--bg-section);}
+.ov-equip-hdr{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg-section);border-top:1px solid var(--border);border-bottom:1px solid var(--border);cursor:pointer;}
+.ov-equip-hdr-text{flex:1;min-width:0;}
+.ov-equip-code{font-size:12.5px;font-weight:700;color:var(--octave-black);font-family:var(--font-mono);}
+.ov-equip-desc{font-size:11px;color:var(--gray-4);}
+.ov-equip-badge{font-size:10.5px;font-weight:700;font-family:var(--font-mono);color:var(--gray-4);background:var(--bg-card);border:1px solid var(--border);border-radius:100px;padding:2px 8px;flex-shrink:0;}
+.ov-equip-chev{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
+.ov-equip-chev.collapsed{transform:rotate(-90deg);}
+.ov-equip-body.collapsed{display:none;}
+.ov-row{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--border);background:var(--bg-card);}
+.ov-row.indent{padding-left:34px;}
+.ov-status-dot{width:8px;height:8px;border-radius:50%;background:var(--gray-2);flex-shrink:0;}
+.ov-status-dot.green{background:var(--green);} .ov-status-dot.red{background:var(--red);}
+.ov-label{flex:1;font-size:13.5px;font-weight:500;color:var(--octave-black);}
+.ov-label-sub{font-size:11px;color:var(--gray-4);font-family:var(--font-mono);}
+.s2-seg-wrap{display:flex;padding:10px 14px;gap:0;background:var(--bg-card);border-bottom:1px solid var(--border);}
+.s2-seg-btn{flex:1;text-align:center;padding:8px 0;font-size:12.5px;font-weight:700;color:var(--gray-4);background:var(--bg-section);cursor:pointer;border:1px solid var(--border-strong);}
+.s2-seg-btn:first-child{border-radius:8px 0 0 8px;}
+.s2-seg-btn:last-child{border-radius:0 8px 8px 0;border-left:none;}
+.s2-seg-btn.on{background:var(--octave-black);color:#fff;border-color:var(--octave-black);}
+
+/* ═══ SECTION 3 — focused item, equipment context visibility ═══ */
+.focus-label-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:0 14px;margin-bottom:10px;}
+.focus-label{flex:1;font-size:18px;font-weight:700;color:var(--octave-black);line-height:1.3;}
+.focus-control{padding:16px 14px;}
+.f-toggle{display:flex;flex-direction:column;gap:10px;}
+.f-opt{padding:16px 0;text-align:center;font-size:15px;font-weight:700;border-radius:10px;border:2px solid var(--gray-2);color:var(--octave-black);background:var(--bg-page);}
+.f-opt.sel-green{background:var(--green);border-color:var(--green);color:#fff;}
+.f-opt.sel-red{background:var(--red);border-color:var(--red);color:#fff;}
+.f-opt.sel-gray{background:var(--gray-4);border-color:var(--gray-4);color:#fff;}
+.s3-stepper-head{padding:10px 14px 8px;background:var(--bg-card);border-bottom:1px solid var(--border);}
+.s3-stepper-head-row{display:flex;align-items:baseline;justify-content:space-between;gap:6px;margin-bottom:7px;}
+.s3-stepper-left{display:flex;align-items:baseline;gap:5px;min-width:0;flex-wrap:wrap;}
+.s3-group-name{font-size:12px;font-weight:700;color:var(--octave-black);}
+.s3-item-count{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--gray-4);}
+.s3-equip-inline{font-size:11.5px;font-weight:600;color:var(--gray-4);}
+.s3-equip-inline .mono{color:var(--octave-black);}
+.s3-view-all{font-size:11px;font-weight:700;color:var(--octave-black);background:var(--bg-section);border:1.5px solid var(--border-strong);border-radius:100px;padding:5px 11px;flex-shrink:0;}
+.s3-progress-bar{height:4px;border-radius:100px;background:var(--gray-1);overflow:hidden;}
+.s3-progress-fill{height:100%;width:25%;background:var(--green);}
+.s3-equip-chip{display:inline-flex;align-items:center;gap:6px;margin:12px 14px 10px;font-size:12px;font-weight:600;color:var(--gray-4);background:var(--bg-card);border:1px solid var(--border-strong);border-radius:100px;padding:6px 12px;}
+.s3-equip-chip .mono{color:var(--octave-black);font-weight:700;}
+.s3-equip-strip{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--bg-section);border-bottom:1px solid var(--border);font-size:12px;}
+.s3-equip-strip .mono{color:var(--octave-black);font-weight:700;}
+.s3-equip-strip .desc{color:var(--gray-4);}
+.s3-protected-field{display:flex;flex-direction:column;gap:4px;padding:11px 14px;}
+.s3-protected-label{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--gray-4);}
+.s3-protected-value{font-size:13.5px;font-weight:600;color:var(--octave-black);}
+</style>
+</head>
+<body>
+
+<h1>Route / Multiple Equipment Child — mockup options</h1>
+<div class="top-legend">
+  Exploring 3 open questions raised together, all tied to the Route→
+  Multiple-Equipment-Child flow: a Route LOV adds every piece of its
+  equipment to the WO's Equipment tab and spins up one child WO per
+  equipment; the parent WO's checklist can carry one equipment-scoped
+  item per Route equipment. <b>Nothing on this page is decided</b> —
+  reference only, same convention as every other file in
+  <span class="mono" style="font-family:monospace;">prototypes/standalone/mockups/</span>.
+  Sample data (Route RT-1044, 5 invented equipment) exists only on this page.
+  <div class="flag">⚠ Section 3 revisits a <b>locked</b> decision
+    (design-decisions-v3-1.md §16.2 item 7) — the real checklist file's
+    equipment field is intentionally plain/low-emphasis today, and a dark
+    banner + a collapsible treatment were both already tried and
+    rejected. Flagging before anything here gets promoted.</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SECTION 1 — WO Record View's Equipment field w/ multiple equipment
+     ══════════════════════════════════════════════════════════════════ -->
+<div class="section-block">
+  <div class="section-title">1 — Equipment field, holding multiple equipment (via Route)</div>
+  <div class="section-sub" style="color:#8FE38F;">✓ RESOLVED 2026-08-10 — now real in eam-wo-record-view-prototype-v1.html (design-decisions-v3-1.md §16.9). None of these 4 as-drawn were right: the header Equipment field stays a single required value, unaffected by Route; what actually shipped is a pill ALONGSIDE it inside the same .attr-item — "Route: &lt;code&gt; - &lt;description&gt;" or "Multiple Equipment," always deep-linking to the (still-stub) Equipment tab, never listing inline. Equipment's own icon separately grew into a 44px photo-slot tile (§7.5), via the follow-up mockup below. Kept below for historical reference only.</div>
+  <div class="section-sub">Today's real Equipment field (§15.5) only knows how to show one code + description. These 4 options show how it could represent "5 equipment via Route RT-1044" instead.</div>
+  <div class="frame"><div class="screen">
+    <div class="hdr"><div class="hdr-row"><span class="hdr-title">WO Record View — 19257</span></div></div>
+    <div class="body">
+      <div class="section-card" id="s1-card">
+        <!-- option content injected here -->
+      </div>
+    </div>
+  </div></div>
+  <div class="switcher" id="s1-switcher"></div>
+  <div class="opt-label" id="s1-label"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SECTION 2 — "View all" grouped by Equipment, collapsible
+     ══════════════════════════════════════════════════════════════════ -->
+<div class="section-block">
+  <div class="section-title">2 — "View all," grouped by Equipment (collapsible)</div>
+  <div class="section-sub">A Route-driven checklist repeats "Visual condition"/readings once per equipment — Equipment is the more useful axis to scan and jump by than the existing Safety/Inspection/Close-out step grouping.</div>
+  <div class="frame"><div class="screen">
+    <div class="hdr"><div class="hdr-row"><span class="hdr-title">All items</span></div></div>
+    <div class="body" id="s2-body" style="padding:0;"></div>
+  </div></div>
+  <div class="switcher" id="s2-switcher"></div>
+  <div class="opt-label" id="s2-label"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SECTION 3 — focused item's own Equipment context, "doctored up"
+     ══════════════════════════════════════════════════════════════════ -->
+<div class="section-block">
+  <div class="section-title">3 — Focused item's Equipment context, doctored up</div>
+  <div class="section-sub">Same item (Bearing housing — visual condition, on A-00067333) every time — only where/how the equipment identity shows changes.</div>
+  <div class="frame"><div class="screen">
+    <div class="hdr"><div class="hdr-row"><span class="hdr-title">Activity Checklist</span></div></div>
+    <div id="s3-content" style="display:flex;flex-direction:column;flex:1;overflow-y:auto;"></div>
+  </div></div>
+  <div class="switcher" id="s3-switcher"></div>
+  <div class="opt-label" id="s3-label"></div>
+</div>
+
+<script>
+/* ═══════════════════ SECTION 1 ═══════════════════ */
+const s1Labels = {
+  1: 'Multiple (N) + inline expand — the field value itself reads "Multiple Equipment (5) · via Route RT-1044"; tapping expands the full roster inline, right under the field, no navigation. Cheapest new-affordance option; collapsed by default so it doesn\'t grow the record view.',
+  2: 'Avatar stack + tap-to-sheet — a small overlapping icon cluster ("+2" tail) previews there are several, Route code sits beside it; tapping opens a bottom sheet with the full roster (sheet not rendered here, noted below). Reads the most "polished," but is the one option that hides the full list behind a tap.',
+  3: 'Full inline list card (always visible) — closest to this app\'s own bias (§16.2: "equipment context should never require a tap to see"): every piece of equipment is just listed, plainly, with no interaction needed. Heaviest option — a 5-equipment Route makes this a tall card on the record view.',
+  4: 'Route pill → jumps to Equipment tab — the field itself stays tiny (a Route-badged pill, count only), and tapping deep-links to the WO\'s real Equipment tab where the actual list already lives. Avoids duplicating the roster in two places, but means Record View never shows who\'s actually on it without leaving the screen.'
+};
+let s1Expanded = false;
+function s1Render(n){
+  const equip = [
+    ['A-00067333','Pump, Centrifugal'],['A-00067812','Motor, 50HP Drive'],
+    ['A-00068021','Gearbox, Reduction'],['A-00068134','Valve, Control 6in'],
+    ['A-00068290','Conveyor, Belt Section 3'],
+  ];
+  const chev = `<svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const card = document.getElementById('s1-card');
+  if (n===1){
+    card.innerHTML = `
+      <div class="s1-field-row" onclick="s1Expanded=!s1Expanded;s1Render(1);">
+        <div class="s1-field-text">
+          <span class="s1-field-label">Equipment</span>
+          <span class="s1-field-value">Multiple Equipment (5)<span class="s1-field-sub">via Route RT-1044</span></span>
+        </div>
+        <span class="s1-chev" style="${s1Expanded?'transform:rotate(180deg)':''}">${chev}</span>
+      </div>
+      ${s1Expanded ? `<div class="s1-expand-list">${equip.map(([c,d])=>`<div class="s1-expand-row"><span class="mono">${c}</span><span class="desc">— ${d}</span></div>`).join('')}</div>` : ''}`;
+  } else if (n===2){
+    card.innerHTML = `
+      <div class="s1-field-row">
+        <div class="s1-field-text"><span class="s1-field-label">Equipment</span></div>
+        <div class="s1-stack">
+          <span class="s1-stack-dot" style="background:#007B87;">P</span>
+          <span class="s1-stack-dot" style="background:#F46600;">M</span>
+          <span class="s1-stack-dot" style="background:#9933FF;">G</span>
+          <span class="s1-stack-dot more">+2</span>
+        </div>
+        <span class="s1-route-tag">RT-1044</span>
+        <span class="s1-chev">${chev}</span>
+      </div>
+      <div class="s1-hint">Tap → opens a bottom sheet listing all 5 (sheet not shown in this mockup)</div>`;
+  } else if (n===3){
+    card.innerHTML = `
+      <div class="s1-card-hdr">
+        <div><div class="s1-card-hdr-text">Equipment</div><div class="s1-card-hdr-sub">via Route RT-1044</div></div>
+        <span class="s1-card-badge">5</span>
+      </div>
+      ${equip.map(([c,d])=>`<div class="s1-card-row"><span class="mono" style="font-weight:600;">${c}</span><span style="color:var(--gray-4);">— ${d}</span></div>`).join('')}`;
+  } else if (n===4){
+    card.innerHTML = `
+      <div class="s1-field-row">
+        <div class="s1-field-text"><span class="s1-field-label">Equipment</span></div>
+        <div class="s1-route-pill"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg> RT-1044 · 5 Equipment</div>
+        <span class="s1-chev">${chev}</span>
+      </div>
+      <div class="s1-hint">Tap → jumps to the Equipment tab (full roster lives there, not duplicated here)</div>`;
+  }
+  document.getElementById('s1-label').textContent = s1Labels[n];
+}
+function s1Show(n,btn){ s1Expanded=false; s1Render(n); [...document.getElementById('s1-switcher').children].forEach(b=>b.classList.remove('on')); btn.classList.add('on'); }
+(function s1Init(){
+  const sw = document.getElementById('s1-switcher');
+  ['1 — Multiple (N) + expand','2 — Avatar stack + sheet','3 — Full inline list card','4 — Route pill → Equipment tab'].forEach((t,i)=>{
+    const b=document.createElement('button'); b.className='switch-btn'+(i===0?' on':''); b.textContent=t; b.onclick=()=>s1Show(i+1,b); sw.appendChild(b);
+  });
+  s1Render(1);
+})();
+
+/* ═══════════════════ SECTION 2 ═══════════════════ */
+const S2_EQUIP = [
+  ['A-00067333','Pump, Centrifugal'],['A-00067812','Motor, 50HP Drive'],
+  ['A-00068021','Gearbox, Reduction'],['A-00068134','Valve, Control 6in'],
+  ['A-00068290','Conveyor, Belt Section 3'],
+];
+const S2_GENERAL = [
+  {label:'Confirm LOTO applied to all energy sources', status:'green'},
+  {label:'PPE check — gloves, goggles, steel-cap boots', status:'green'},
+];
+const S2_EQUIP_ITEMS = {
+  'A-00067333': [{label:'Visual condition', status:'red'},{label:'Vibration reading', status:''}],
+  'A-00067812': [{label:'Visual condition', status:'green'},{label:'Winding temperature', status:''}],
+  'A-00068021': [{label:'Visual condition', status:''},{label:'Oil level', status:''}],
+  'A-00068134': [{label:'Visual condition', status:''},{label:'Actuator response', status:''}],
+  'A-00068290': [{label:'Visual condition', status:''},{label:'Belt tension', status:''}],
+};
+let s2CollapsedEquip = new Set(S2_EQUIP.slice(1).map(e=>e[0])); // all but first collapsed by default
+let s2Mode = 'equipment'; // for option C's toggle
+
+function s2RowHtml(it, indent){
+  return `<div class="ov-row${indent?' indent':''}">
+    <span class="ov-status-dot ${it.status}"></span>
+    <span class="ov-label">${it.label}</span>
+  </div>`;
+}
+function s2EquipGroupHtml(code, desc, collapsibleSet){
+  const items = S2_EQUIP_ITEMS[code];
+  const done = items.filter(i=>i.status).length;
+  const collapsed = collapsibleSet.has(code);
+  return `<div class="ov-equip-hdr" onclick="s2ToggleEquip('${code}')">
+      <div class="ov-equip-hdr-text"><div class="ov-equip-code">${code}</div><div class="ov-equip-desc">${desc}</div></div>
+      <span class="ov-equip-badge">${done}/${items.length}</span>
+      <span class="ov-equip-chev ${collapsed?'collapsed':''}"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    </div>
+    <div class="ov-equip-body ${collapsed?'collapsed':''}">${items.map(i=>s2RowHtml(i,true)).join('')}</div>`;
+}
+function s2ToggleEquip(code){
+  if (s2CollapsedEquip.has(code)) s2CollapsedEquip.delete(code); else s2CollapsedEquip.add(code);
+  s2Render(s2CurrentOption);
+}
+let s2CurrentOption = 1;
+function s2Render(n){
+  s2CurrentOption = n;
+  const body = document.getElementById('s2-body');
+  if (n===1){
+    body.innerHTML = `<div class="ov-group-hdr">General</div>${S2_GENERAL.map(i=>s2RowHtml(i,false)).join('')}`
+      + S2_EQUIP.map(([c,d])=>s2EquipGroupHtml(c,d,s2CollapsedEquip)).join('');
+  } else if (n===2){
+    body.innerHTML = `<div class="ov-group-hdr">Safety checks</div>${S2_GENERAL.map(i=>s2RowHtml(i,false)).join('')}`
+      + `<div class="ov-group-hdr">Inspection</div>`
+      + S2_EQUIP.map(([c,d])=>s2EquipGroupHtml(c,d,s2CollapsedEquip)).join('');
+  } else if (n===3){
+    const seg = `<div class="s2-seg-wrap">
+        <div class="s2-seg-btn ${s2Mode==='step'?'on':''}" onclick="s2Mode='step';s2Render(3);">Group by Step</div>
+        <div class="s2-seg-btn ${s2Mode==='equipment'?'on':''}" onclick="s2Mode='equipment';s2Render(3);">Group by Equipment</div>
+      </div>`;
+    let list;
+    if (s2Mode==='step'){
+      list = `<div class="ov-group-hdr">Safety checks</div>${S2_GENERAL.map(i=>s2RowHtml(i,false)).join('')}`
+        + `<div class="ov-group-hdr">Inspection</div>`
+        + S2_EQUIP.map(([c,d])=>S2_EQUIP_ITEMS[c].map(i=>s2RowHtml({label:`${d} — ${i.label}`,status:i.status},false)).join('')).join('');
+    } else {
+      list = `<div class="ov-group-hdr">General</div>${S2_GENERAL.map(i=>s2RowHtml(i,false)).join('')}`
+        + S2_EQUIP.map(([c,d])=>s2EquipGroupHtml(c,d,s2CollapsedEquip)).join('');
+    }
+    body.innerHTML = seg + list;
+  }
+  document.getElementById('s2-label').textContent = s2Labels[n];
+}
+const s2Labels = {
+  1: 'Equipment-only grouping — the workflow group headers (Safety checks/Inspection/Close-out) are replaced entirely by Equipment group headers, each collapsible with a "done/total" badge. Simplest single grouping, but drops the workflow-step framing entirely. NOT chosen.',
+  2: 'Two-level — keeps the existing Step headers (Safety checks/Inspection/Close-out) as the outer structure, unchanged, and nests collapsible Equipment sub-headers only inside the step that actually has equipment-scoped items. Preserves today\'s framing, adds the new axis underneath it. NOT chosen.',
+  3: 'CHOSEN 2026-08-10, now real (design-decisions-v3-1.md §16.8). Toggle: Group by Step | Equipment — a segmented control lets the technician pick either the existing flat step list or the new collapsible-by-Equipment view.'
+};
+function s2Show(n,btn){ s2CollapsedEquip = new Set(S2_EQUIP.slice(1).map(e=>e[0])); s2Render(n); [...document.getElementById('s2-switcher').children].forEach(b=>b.classList.remove('on')); btn.classList.add('on'); }
+(function s2Init(){
+  const sw = document.getElementById('s2-switcher');
+  ['1 — Equipment-only grouping','2 — Two-level (Step → Equipment)','3 — Toggle: Step | Equipment ✓ chosen'].forEach((t,i)=>{
+    const b=document.createElement('button'); b.className='switch-btn'+(i===2?' on':''); b.textContent=t; b.onclick=()=>s2Show(i+1,b); sw.appendChild(b);
+  });
+  s2Render(3);
+})();
+
+/* ═══════════════════ SECTION 3 ═══════════════════ */
+const s3Labels = {
+  1: 'CHOSEN 2026-08-10, now real (.focus-equip-chip, design-decisions-v3-1.md §16.8, supersedes §16.2 item 7). Context chip above the label — a small muted outlined pill (wrench icon + code + description) sits directly above the item label, before anything else renders.',
+  2: 'Folded into the stepper-head — no new component: the sticky "Item X of Y" line simply grows to include the equipment ("Inspection · Item 03 of 12 · A-00067333 — Pump, Centrifugal"). Equipment is visible the instant you land on the screen, permanently pinned, but shares space with the counter it already has to fit. NOT chosen.',
+  3: 'Light equipment strip — a full-width strip directly under the stepper-head, above the item itself. Deliberately light (bg-section tint, outlined icon), not the dark identity-banner treatment §16.2 already rejected — same always-visible goal, different (lighter) execution. NOT chosen.',
+  4: 'Reorder only — the exact same .form-field.protected row that exists today, just moved up to sit directly under the label instead of down near Comments/Documents. Zero new visual language, cheapest possible change, purely a position fix. NOT chosen.'
+};
+function s3Render(n){
+  const stepHead = (extra) => `<div class="s3-stepper-head">
+      <div class="s3-stepper-head-row">
+        <div class="s3-stepper-left"><span class="s3-group-name">Inspection</span><span class="s3-item-count">· Item 03 of 12</span>${extra||''}</div>
+        <span class="s3-view-all">View all</span>
+      </div>
+      <div class="s3-progress-bar"><div class="s3-progress-fill"></div></div>
+    </div>`;
+  const label = `<div class="focus-label-row" style="margin-top:14px;"><p class="focus-label">Bearing housing — visual condition</p></div>`;
+  const control = `<div class="section-card"><div class="focus-control"><div class="f-toggle">
+      <button class="f-opt sel-red">Fail</button><button class="f-opt">Pass</button><button class="f-opt">N/A</button>
+    </div></div></div>`;
+  const protectedField = `<div class="section-card"><div class="s3-protected-field">
+      <span class="s3-protected-label"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg> Equipment</span>
+      <span class="s3-protected-value mono">A-00067333 — Pump, Centrifugal</span>
+    </div></div>`;
+  let html;
+  if (n===1){
+    html = stepHead() + `<div style="padding:0 0;">
+      <span class="s3-equip-chip"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span class="mono">A-00067333</span> — Pump, Centrifugal</span>
+    </div>` + label + control;
+  } else if (n===2){
+    html = stepHead(`<span class="s3-equip-inline">· <span class="mono">A-00067333</span> — Pump, Centrifugal</span>`) + label + control;
+  } else if (n===3){
+    html = stepHead() + `<div class="s3-equip-strip"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span class="mono">A-00067333</span><span class="desc">— Pump, Centrifugal</span></div>` + label + control;
+  } else if (n===4){
+    html = stepHead() + label + protectedField + control;
+  }
+  document.getElementById('s3-content').innerHTML = html;
+  document.getElementById('s3-label').textContent = s3Labels[n];
+}
+function s3Show(n,btn){ s3Render(n); [...document.getElementById('s3-switcher').children].forEach(b=>b.classList.remove('on')); btn.classList.add('on'); }
+(function s3Init(){
+  const sw = document.getElementById('s3-switcher');
+  ['1 — Chip above label ✓ chosen','2 — Folded into stepper-head','3 — Light equipment strip','4 — Reorder only (no new component)'].forEach((t,i)=>{
+    const b=document.createElement('button'); b.className='switch-btn'+(i===0?' on':''); b.textContent=t; b.onclick=()=>s3Show(i+1,b); sw.appendChild(b);
+  });
+  s3Render(1);
+})();
+</script>
+</body>
+</html>

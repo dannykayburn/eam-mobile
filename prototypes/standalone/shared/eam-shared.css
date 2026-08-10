@@ -1131,6 +1131,17 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    this badge (renderColorBadge()/fieldRowBadgeAttr()), not a fixed class
    per Type. */
 .attr-badge-fill{border:none;color:#fff;}
+/* Equipment "photo slot" (§7.5, re-derived 2026-08-10 against the current
+   28px grid badge — the flag left on that section since 2026-07-24).
+   Equipment is the one grid field whose badge stands in for a record
+   photo, not a small status-style icon, so it gets its own larger,
+   filled tile instead of the shared 28px .attr-badge-outline box every
+   other grid field (Type/Priority) uses. Filled gradient today (no real
+   photo asset in this prototype, and the tap-to-preview/edit interaction
+   §7.5 also specifies is still unbuilt) — a stored photo would replace
+   this fill with an <img> without touching layout. */
+.attr-badge-photo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#007B87,#00AA9E);color:#fff;}
+.attr-badge-photo svg{width:22px;height:22px;}
 /* §5.2: no configured colour → omit the badge entirely and left-align —
    renderColorBadge() (eam-shared.js) still emits an empty span when meta
    is falsy, so this needs to hide itself; :empty removing it from the
@@ -1358,6 +1369,25 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .qr-scan-reticle::after { bottom: 0; right: 0; border-left: none; border-top: none; }
 .qr-scan-hint { color: rgba(255,255,255,.75); font-size: 14px; text-align: center; }
 .qr-scan-footer { flex-shrink: 0; padding: 20px 20px 30px; }
+/* Equipment photo viewer (§7.5) — full screen, slide-up like the QR scan
+   overlay, but close top-LEFT (direct user instruction, 2026-08-10) —
+   don't "fix" this to match .qr-scan-header's own right-aligned close,
+   they're deliberately different. Plain <img>, not a background-image or
+   inline SVG, so the OS's native long-press menu (Share/Copy/Save) works
+   for free — never add oncontextmenu or a touch/hold handler here, that
+   would block it. */
+.photo-viewer-overlay { position: absolute; inset: 0; background: #0b0b0d; z-index: 240; display: flex; flex-direction: column; transform: translateY(100%); transition: transform .3s cubic-bezier(.32,.72,0,1); }
+.photo-viewer-overlay.open { transform: translateY(0); }
+.photo-viewer-header { display: flex; justify-content: flex-start; padding: 14px; flex-shrink: 0; }
+.photo-viewer-close { background: rgba(255,255,255,.12); border: none; color: white; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; line-height: 1; }
+.photo-viewer-body { flex: 1; display: flex; align-items: center; justify-content: center; padding: 0 16px; overflow: hidden; }
+.photo-viewer-body img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 10px; }
+.photo-viewer-footer { flex-shrink: 0; padding: 16px 20px 30px; }
+/* Always light-filled, regardless of app theme — this overlay's own
+   backdrop is always near-black (like .qr-scan-overlay), so the usual
+   .btn-contained (dark fill) would nearly disappear against it here. */
+.photo-viewer-modify-btn { width: 100%; height: 46px; border-radius: 100px; border: none; background: var(--white); color: var(--octave-black); font-size: 14px; font-weight: 700; font-family: var(--font-sans); cursor: pointer; }
+.photo-viewer-modify-btn:hover { background: rgba(255,255,255,.85); }
 .sheet-handle-row{display:flex;justify-content:center;padding:10px 0 4px;flex-shrink:0;}
 .sheet-handle{width:36px;height:4px;background:var(--gray-2);border-radius:100px;}
 [data-theme="dark"] .sheet-handle{background:var(--gray-5);}
