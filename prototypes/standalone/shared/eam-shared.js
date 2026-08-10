@@ -300,7 +300,7 @@ function renderStepRailTypeSlot(rail, jobType, asCircle) {
    steps at all (the §11 fallback) — screens handle that case themselves,
    typically by hiding the whole rail (it has nothing to show). jobType
    (optional) drives the WO Type colour+icon signal above. */
-function renderStepRail(workflow, activeStep, jobType) {
+function renderStepRail(workflow, activeStep, jobType, activeRef) {
   const rail = document.getElementById('stepRail');
   const map = document.getElementById('stepMap');
   if (!rail || !map || !workflow || !workflow.steps.length) return;
@@ -308,7 +308,13 @@ function renderStepRail(workflow, activeStep, jobType) {
   const nameEl = rail.querySelector('.step-name');
   const steps = workflow.steps;
   const activeIdx = steps.indexOf(activeStep);
-  if (nameEl) nameEl.textContent = WO_STEP_LABELS[activeStep] || '';
+  woCurrentStep = activeStep;
+  // activeRef (2026-08-10): the screen on display is a Reference destination
+  // (the Equipment tab), not a numbered step. activeStep still drives the
+  // segments and each step's done/locked state — it's the WO's real position,
+  // the step the user came from — but the *highlight* moves to the Reference
+  // row, so the rail never shows two active rows at once.
+  if (nameEl) nameEl.textContent = activeRef ? (WO_REFERENCE_LABELS[activeRef] || '') : (WO_STEP_LABELS[activeStep] || '');
   rail.classList.toggle('rail-not-free-form', !workflow.freeForm);
   renderStepRailTypeSlot(rail, jobType, false);
   // Preserve the expanded-rail timer panel (Steps 2–3's hardcoded first
@@ -323,10 +329,16 @@ function renderStepRail(workflow, activeStep, jobType) {
   const activeLabel = WO_STEP_LABELS[activeStep];
   map.innerHTML = (timerPanel ? timerPanel.outerHTML : '') + steps.map((s, i) => {
     const label = WO_STEP_LABELS[s];
-    if (i < activeIdx) return `<div class="step-map-item"${gated ? ` onclick="showToast('Already completed — steps stay in a fixed order on this workflow')"` : ''}><div class="step-map-icon smi-done">✓</div><span class="step-map-label">${label}</span></div>`;
-    if (i === activeIdx) return `<div class="step-map-item active"><div class="step-map-icon smi-active">${i + 1}</div><span class="step-map-label active-label">${label}</span></div>`;
+    // On a Reference destination (§16.10) the rail is the ONLY way back into
+    // the flow, so every step at or before the WO's current position becomes
+    // a real navigation. Without this the numbered rail is display-only —
+    // fine on a step screen, where the bottom bar moves you, but a dead end
+    // on a side screen that has no bottom bar at all.
+    const backNav = activeRef && i <= activeIdx ? ` onclick="goToWoStep('${s}')"` : '';
+    if (i < activeIdx) return `<div class="step-map-item"${backNav || (gated ? ` onclick="showToast('Already completed — steps stay in a fixed order on this workflow')"` : '')}><div class="step-map-icon smi-done">✓</div><span class="step-map-label">${label}</span></div>`;
+    if (i === activeIdx) return `<div class="step-map-item${activeRef ? '' : ' active'}"${backNav}><div class="step-map-icon smi-active">${i + 1}</div><span class="step-map-label${activeRef ? '' : ' active-label'}">${label}</span></div>`;
     return `<div class="step-map-item"${gated ? ` onclick="showToast('Locked — finish ${activeLabel} first')"` : ''}><div class="step-map-icon smi-locked">${i + 1}</div><span class="step-map-label">${label}</span></div>`;
-  }).join('') + STEP_MAP_REFERENCE_GROUP_HTML;
+  }).join('') + stepMapReferenceGroupHtml(activeRef);
   if (seg) {
     seg.classList.remove('flat');
     seg.style.display = ''; // undo renderFlatStepRail()'s display:none, in case this rail was flat a moment ago
@@ -353,13 +365,14 @@ function renderStepRail(workflow, activeStep, jobType) {
    cross-file navigation (goToWoStep() below) — there's no gating concept
    for this fallback case at all, by design. */
 const WO_FLAT_STEPS = ['record', 'checklist', 'issueparts', 'booklabor', 'closing'];
-function renderFlatStepRail(activeStep, jobType) {
+function renderFlatStepRail(activeStep, jobType, activeRef) {
   const rail = document.getElementById('stepRail');
   const map = document.getElementById('stepMap');
   if (!rail || !map) return;
   const seg = rail.querySelector('.step-segments');
   const nameEl = rail.querySelector('.step-name');
-  if (nameEl) nameEl.textContent = WO_STEP_LABELS[activeStep] || '';
+  woCurrentStep = activeStep;
+  if (nameEl) nameEl.textContent = activeRef ? (WO_REFERENCE_LABELS[activeRef] || '') : (WO_STEP_LABELS[activeStep] || '');
   rail.classList.remove('rail-not-free-form'); // §11 fallback is always Free Form
   renderStepRailTypeSlot(rail, jobType, true);
   // No numbered progress bar in flat mode, and (2026-07-28, direct
@@ -371,12 +384,18 @@ function renderFlatStepRail(activeStep, jobType) {
   // doesn't keep the row's own bottom padding with nothing in it.
   if (seg) { seg.classList.remove('flat'); seg.innerHTML = ''; seg.style.display = 'none'; }
   const timerPanel = map.querySelector('.step-timer-panel');
-  map.innerHTML = (timerPanel ? timerPanel.outerHTML : '') + WO_FLAT_STEPS.map(s => `
-    <div class="step-map-item${s === activeStep ? ' active' : ''}" onclick="${s === activeStep ? 'collapseCurrentRail()' : `goToWoStep('${s}')`}">
+  map.innerHTML = (timerPanel ? timerPanel.outerHTML : '') + WO_FLAT_STEPS.map(s => {
+    // With a Reference destination on screen no step is "current", so every
+    // step row stays freely navigable — which is the whole point of the flat
+    // rail anyway (§11 fallback is ungated).
+    const isCurrent = !activeRef && s === activeStep;
+    return `
+    <div class="step-map-item${isCurrent ? ' active' : ''}" onclick="${isCurrent ? 'collapseCurrentRail()' : `goToWoStep('${s}')`}">
       <span class="step-map-dot"></span>
-      <span class="step-map-label${s === activeStep ? ' active-label' : ''}">${WO_STEP_LABELS[s]}</span>
+      <span class="step-map-label${isCurrent ? ' active-label' : ''}">${WO_STEP_LABELS[s]}</span>
       <span class="step-map-ref-icon"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-    </div>`).join('') + STEP_MAP_REFERENCE_GROUP_HTML;
+    </div>`;
+  }).join('') + stepMapReferenceGroupHtml(activeRef);
 }
 // Real navigation, not a same-page tab switch — each WO step is its own
 // file. Carries the demo WO's identity forward via the same
@@ -395,20 +414,30 @@ function goToWoStep(step) {
    Record View, just jump" and "on a different step, navigate there and
    jump after load" from the exact same call. Equipment is a real future
    destination, stubbed for now. */
-const STEP_MAP_REFERENCE_GROUP_HTML = `
+const WO_REFERENCE_LABELS = { comments: 'Comments', documents: 'Documents', equipment: 'Equipment' };
+/* Was a plain const string; became a function 2026-08-10 so a Reference
+   destination that is a REAL SCREEN can mark itself active in the rail. The
+   WO Equipment tab (§16.10) is reached from this group and keeps the whole
+   step rail, because it's part of the WO workflow shell — the technician
+   still has to be able to get back to Record View or any step from it. */
+function stepMapReferenceGroupHtml(activeRef) {
+  const rowCls = (k) => 'step-map-item' + (activeRef === k ? ' active' : '');
+  const lblCls = (k) => 'step-map-label' + (activeRef === k ? ' active-label' : '');
+  return `
   <div class="step-map-group-label">Reference</div>
-  <div class="step-map-item" onclick="jumpToRvSection('comments')">
+  <div class="${rowCls('comments')}" onclick="jumpToRvSection('comments')">
     <span class="step-map-ref-icon"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></span>
-    <span class="step-map-label">Comments</span>
+    <span class="${lblCls('comments')}">Comments</span>
   </div>
-  <div class="step-map-item" onclick="jumpToRvSection('documents')">
+  <div class="${rowCls('documents')}" onclick="jumpToRvSection('documents')">
     <span class="step-map-ref-icon"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg></span>
-    <span class="step-map-label">Documents</span>
+    <span class="${lblCls('documents')}">Documents</span>
   </div>
-  <div class="step-map-item" onclick="jumpToEquipmentStub()">
+  <div class="${rowCls('equipment')}" onclick="jumpToEquipmentStub()">
     <span class="step-map-ref-icon"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke-linecap="round"/></svg></span>
-    <span class="step-map-label">Equipment</span>
+    <span class="${lblCls('equipment')}">Equipment</span>
   </div>`;
+}
 // Collapses whichever rail (step or tab) is present on this screen —
 // used after a Reference-group jump so the rail gets out of the way,
 // same as a real navigation implicitly would.
@@ -436,7 +465,224 @@ function jumpToRvSection(key) {
   sessionStorage.setItem('eamJumpToSection', key);
   location.href = 'eam-wo-record-view-prototype-v1.html';
 }
-function jumpToEquipmentStub() { showToast('Equipment — coming soon'); }
+/* The WO's Equipment tab (§8 child tab + §16.9), built 2026-08-10 — a real
+   destination now, not a toast. Not a member of WO_STEP_FILES above: it's a
+   child tab of the WO, never a numbered/gated workflow step, so it must not
+   appear in the step rail's own sequence. Carries the WO identity forward
+   the same consume-once way goToWoStep() does. Both entry points route
+   here — the step rail's Reference group (every workflow screen) and WO
+   Record View's Route/MEC pill. */
+const WO_EQUIPMENT_TAB_FILE = 'eam-wo-equipment-tab-prototype-v1.html';
+// Which step the rail is currently showing as the WO's position. Set by both
+// rail renderers, so any screen can hand its own step off without having to
+// restate a literal it already passed once.
+let woCurrentStep = null;
+function goToWoEquipmentTab(fromStep) {
+  sessionStorage.setItem('eamOpenDemoWo', DEMO_WO);
+  // The Equipment tab renders the full step rail (§16.10) and needs to know
+  // the WO's position to render it the same way the screen you left did.
+  sessionStorage.setItem('eamEquipTabOrigin', fromStep || woCurrentStep || 'record');
+  location.href = WO_EQUIPMENT_TAB_FILE;
+}
+function jumpToEquipmentStub() { goToWoEquipmentTab(); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   WO EQUIPMENT STORE (§16.9/§16.10) — locked 2026-08-10, direct instruction.
+   ONE source of truth for a WO's equipment associations, shared by WO
+   Record View (which shows the Route/MEC pill on its Equipment field) and
+   the WO Equipment tab (which lists/adds/deletes the rows). Persisted in
+   localStorage because those two live in separate files — before this each
+   kept its own copy and they could disagree outright.
+
+   The model:
+   - The Equipment tab is EMPTY unless a Route is selected on the WO header.
+   - Selecting a Route inserts every piece of that Route's equipment AND
+     spins up one MEC child WO per row, each associated to the header WO
+     (which thereby becomes a parent).
+   - Manually adding equipment on the tab does the same for those rows: the
+     system creates the MEC child WO and associates it to the header.
+   - The pill on WO Record View shows **if and only if rows exist**.
+     Deleting every row hides it; clearing the Route removes that Route's
+     own rows, which hides it too unless manual rows remain.
+
+   ** SUPERSEDES §16.9's original rule ** that clearing Route deliberately
+   left `equipmentTabTotal` untouched so a since-cleared Route still fell
+   through to a "Multiple Equipment" pill. The pill is now a pure function
+   of the stored rows, so a cleared Route can no longer leave a stale one.
+
+   NOT BUILT: the MEC child WOs minted here are recorded (number + parent)
+   but do not yet appear in WO List's own search results — WO List still
+   renders a hardcoded WO set. See §20.
+   ══════════════════════════════════════════════════════════════════════ */
+const WO_EQUIP_STORE_KEY = 'eamWoEquipment';
+const MEC_CHILD_WO_START = 20451;
+// Demo equipment per Route code, matching WO Record View's own LOV_DATA.route
+// counts (PUMPS 24 / FIREEXT 156) — generated rather than hand-listed so the
+// real "this list runs into the hundreds" case (§16.9) is actually reachable.
+const ROUTE_EQUIPMENT_DEFS = {
+  PUMPS: { count: 24, prefix: 'P-', start: 1042, dept: 'ENG', descs: [
+    'Pump, Centrifugal — 3in Inlet', 'Pump, Centrifugal — 2in Inlet',
+    'Pump, Booster — North Header', 'Pump, Sump — Basement',
+    'Pump, Transfer — Tank Farm', 'Pump, Dosing — Chem Feed'] },
+  FIREEXT: { count: 156, prefix: 'FE-', start: 2001, dept: 'FAC', descs: [
+    'Extinguisher, ABC Dry Chem 10lb', 'Extinguisher, CO2 15lb',
+    'Extinguisher, Water Mist 2.5gal', 'Extinguisher, Foam 6L',
+    'Extinguisher, ABC Dry Chem 20lb'] },
+};
+function routeEquipmentRows(routeCode) {
+  const d = ROUTE_EQUIPMENT_DEFS[routeCode];
+  if (!d) return [];
+  const rows = [];
+  for (let i = 0; i < d.count; i++) {
+    rows.push({ equip: d.prefix + (d.start + i), desc: d.descs[i % d.descs.length],
+                dept: d.dept, org: 'FBPP', type: 'Asset', source: 'route' });
+  }
+  return rows;
+}
+function woEquipStore() {
+  try { return JSON.parse(localStorage.getItem(WO_EQUIP_STORE_KEY)) || {}; } catch (e) { return {}; }
+}
+function woEquipSaveStore(s) { localStorage.setItem(WO_EQUIP_STORE_KEY, JSON.stringify(s)); }
+function woEquipState(wo) { return woEquipStore()[wo] || { route: null, rows: [] }; }
+function woEquipRows(wo) { return woEquipState(wo).rows; }
+function woEquipRoute(wo) { return woEquipState(wo).route; }
+// MEC child WO numbers must be unique across every parent, so the counter
+// is global to the store rather than per-WO. '__' prefix keeps it out of the
+// WO-keyed namespace.
+function woEquipMintChildWo(store) {
+  const next = Math.max(store.__nextChildWo || MEC_CHILD_WO_START, MEC_CHILD_WO_START);
+  store.__nextChildWo = next + 1;
+  return String(next);
+}
+// Selecting a Route replaces the previous Route's rows and keeps manual ones.
+function woEquipApplyRoute(wo, routeOpt) {
+  const store = woEquipStore();
+  const state = store[wo] || { route: null, rows: [] };
+  const manual = state.rows.filter(r => r.source !== 'route');
+  const fresh = routeEquipmentRows(routeOpt.code)
+    .filter(r => !manual.some(m => m.equip === r.equip))
+    .map(r => Object.assign({}, r, { childWo: woEquipMintChildWo(store), parentWo: wo }));
+  state.route = { code: routeOpt.code, desc: routeOpt.desc };
+  state.rows = fresh.concat(manual);
+  store[wo] = state;
+  woEquipSaveStore(store);
+  return fresh.length;
+}
+function woEquipClearRoute(wo) {
+  const store = woEquipStore();
+  const state = store[wo] || { route: null, rows: [] };
+  const removed = state.rows.filter(r => r.source === 'route').length;
+  state.route = null;
+  state.rows = state.rows.filter(r => r.source !== 'route');
+  store[wo] = state;
+  woEquipSaveStore(store);
+  return removed;
+}
+// Manual add — one MEC child WO per new row, same as a Route import.
+// Equipment already on the tab is skipped; a WO can't carry it twice.
+function woEquipAddManual(wo, picks) {
+  const store = woEquipStore();
+  const state = store[wo] || { route: null, rows: [] };
+  const added = [];
+  picks.forEach(o => {
+    if (state.rows.some(r => r.equip === o.code)) return;
+    added.push({ equip: o.code, desc: o.desc, dept: o.department || '', org: o.organization || 'FBPP',
+                 type: o.type || 'Asset', childWo: woEquipMintChildWo(store), parentWo: wo, source: 'manual' });
+  });
+  state.rows = added.concat(state.rows);
+  store[wo] = state;
+  woEquipSaveStore(store);
+  return added;
+}
+function woEquipDelete(wo, codes) {
+  const store = woEquipStore();
+  const state = store[wo] || { route: null, rows: [] };
+  const before = state.rows.length;
+  state.rows = state.rows.filter(r => !codes.includes(r.equip));
+  store[wo] = state;
+  woEquipSaveStore(store);
+  return before - state.rows.length;
+}
+// The single pill rule: rows exist or there's no pill.
+function woEquipPillLabel(wo) {
+  const st = woEquipState(wo);
+  if (!st.rows.length) return null;
+  return st.route ? `Route: ${st.route.code} - ${st.route.desc}` : 'Multiple Equipment';
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   MULTI-SELECT DELETE (§16.10, new paradigm 2026-08-10) — the mirror of the
+   multi-select LOV: instead of picking records to ADD out of a lookup, it
+   surfaces the records ALREADY on the screen so several can be removed in
+   one pass. A header action, not a row action, per §8.4 (it opens a popup
+   and doesn't require a pre-selected row), so it lives in the ellipsis.
+   Confirmation is mandatory — this is the only destructive control in the
+   pattern. Screen supplies the sheet markup (#multiDeleteSheet/-Title/
+   -Body/-Count/-Btn) plus #confirmOverlay; every function no-ops without
+   them, same convention as the multi-select LOV's own footer.
+     openMultiDelete({ title, label, rows:[{code,title,sub}], onDelete(codes) })
+   ══════════════════════════════════════════════════════════════════════ */
+let multiDeleteRows = [];
+let multiDeleteSelected = [];
+let multiDeleteOnDelete = null;
+let multiDeleteLabel = 'record';
+function openMultiDelete(opts) {
+  multiDeleteRows = opts.rows || [];
+  multiDeleteSelected = [];
+  multiDeleteOnDelete = opts.onDelete || null;
+  multiDeleteLabel = opts.label || 'record';
+  const title = document.getElementById('multiDeleteTitle');
+  if (title) title.textContent = opts.title || 'Delete records';
+  renderMultiDelete();
+  openSheet('multiDeleteSheet');
+}
+function isMultiDeleteSelected(code) { return multiDeleteSelected.indexOf(code) > -1; }
+function toggleMultiDelete(code) {
+  const i = multiDeleteSelected.indexOf(code);
+  if (i > -1) multiDeleteSelected.splice(i, 1); else multiDeleteSelected.push(code);
+  renderMultiDelete();
+}
+function toggleMultiDeleteAll() {
+  multiDeleteSelected = (multiDeleteSelected.length === multiDeleteRows.length)
+    ? [] : multiDeleteRows.map(r => r.code);
+  renderMultiDelete();
+}
+function renderMultiDelete() {
+  const body = document.getElementById('multiDeleteBody');
+  if (!body) return;
+  const allOn = multiDeleteRows.length > 0 && multiDeleteSelected.length === multiDeleteRows.length;
+  body.innerHTML = !multiDeleteRows.length
+    ? '<div class="ld-table-empty">Nothing to delete</div>'
+    : `<div class="md-selectall" onclick="toggleMultiDeleteAll()">
+         <div class="lov-check ${allOn ? 'checked' : ''}"></div>
+         <span>${allOn ? 'Clear selection' : 'Select all'}</span>
+       </div>` + multiDeleteRows.map(r => `
+        <div class="md-row${isMultiDeleteSelected(r.code) ? ' selected' : ''}" onclick="toggleMultiDelete('${r.code}')">
+          <div class="lov-check ${isMultiDeleteSelected(r.code) ? 'checked' : ''}"></div>
+          <div class="md-texts">
+            <div class="md-title">${r.title}</div>
+            ${r.sub ? `<div class="md-sub">${r.sub}</div>` : ''}
+          </div>
+        </div>`).join('');
+  const n = multiDeleteSelected.length;
+  const count = document.getElementById('multiDeleteCount');
+  const btn = document.getElementById('multiDeleteBtn');
+  if (count) count.textContent = `${n} selected`;
+  if (btn) {
+    btn.textContent = n ? `Delete ${n}` : 'Delete';
+    btn.disabled = !n;
+    btn.classList.toggle('ready', n > 0);
+  }
+}
+function commitMultiDelete() {
+  const n = multiDeleteSelected.length;
+  if (!n) return;
+  const codes = multiDeleteSelected.slice();
+  closeAllSheets();
+  openConfirm(`Delete ${n} ${multiDeleteLabel}${n === 1 ? '' : 's'}?`, () => {
+    if (multiDeleteOnDelete) multiDeleteOnDelete(codes);
+  });
+}
 // Called once at WO Record View's own init — consumes the flag
 // jumpToRvSection() sets when Comments/Documents are tapped from any of
 // the OTHER 4 workflow screens, so arriving here actually lands on the
@@ -751,27 +997,47 @@ function renderStdCard(fields) {
   html += '<div class="ld-card-top">';
   if (head) {
     html += head.type === 'status'
-      ? `<span class="ld-card-headline pill pill-${head.tier}">${head.value}</span>`
-      : `<div class="ld-card-headline">${head.value}</div>`;
+      ? `<span class="ld-card-headline pill pill-${head.tier}">${fieldDisplay(head)}</span>`
+      : `<div class="ld-card-headline">${fieldDisplay(head)}</div>`;
   }
-  if (org) html += `<span class="ld-card-org">${org.value}</span>`;
+  if (org) html += `<span class="ld-card-org">${fieldDisplay(org)}</span>`;
   html += '</div>';
-  if (sub) html += `<div class="ld-card-subline">${sub.value}</div>`;
+  if (sub) html += `<div class="ld-card-subline">${fieldDisplay(sub)}</div>`;
   if (attrs.length) {
     html += '<div class="ld-card-attrs">' + attrs.map(f => `
-      <div class="ld-card-attr-row"><span class="field-label">${f.label}</span><span class="field-value">${f.value}</span></div>`).join('') + '</div>';
+      <div class="ld-card-attr-row"><span class="field-label">${f.label}</span><span class="field-value">${fieldDisplay(f)}</span></div>`).join('') + '</div>';
   }
   html += '</div>';
   return html;
 }
+/* A field's DISPLAY form vs. its TEXT form, split 2026-08-10.
+   `value` must always be PLAIN TEXT — it's what feeds the `data-search`
+   attribute and List mode's table — and an optional `html` carries markup
+   for display only (a nested tap target, a colour dot, a chip).
+   Why this exists: putting markup straight into `value` breaks the
+   data-search attribute it gets interpolated into. A value containing
+   class="…" closed data-search early, dumped the rest of the card into the
+   page as visible text, and mangled the row's own onclick (found on the WO
+   Equipment tab, §16.10). Never put markup in `value`. */
+function fieldDisplay(f) { return f.html != null ? f.html : f.value; }
+function ldSearchText(fields) {
+  return fields.map(f => f.value).join(' ').toLowerCase().replace(/"/g, '&quot;');
+}
+/* rowOnclick is either a string (one handler for every row, the original
+   behavior) or — added 2026-08-10 for the WO Equipment tab (§16.10), whose
+   rows each navigate somewhere row-specific — a function
+   (rowIndex) => handlerString. */
 function renderStdTable(rowsOfFields, rowOnclick) {
   if (!rowsOfFields.length) return '<div class="ld-table-empty"></div>';
   const labels = rowsOfFields[0].map(f => f.label);
-  const onclickAttr = rowOnclick ? ` onclick="${rowOnclick.replace(/"/g, '&quot;')}"` : '';
+  const onclickAttrFor = (i) => {
+    const h = typeof rowOnclick === 'function' ? rowOnclick(i) : rowOnclick;
+    return h ? ` onclick="${h.replace(/"/g, '&quot;')}"` : '';
+  };
   return `<div class="ld-table-wrap"><table class="ld-table"><thead><tr>${labels.map(l => `<th>${l}</th>`).join('')}</tr></thead><tbody>${
-    rowsOfFields.map(fields => `<tr data-search="${fields.map(f => f.value).join(' ').toLowerCase()}"${onclickAttr}>${fields.map(f => f.type === 'status'
-      ? `<td><span class="ld-table-pill pill-${f.tier}">${f.value}</span></td>`
-      : `<td>${f.value}</td>`).join('')}</tr>`).join('')
+    rowsOfFields.map((fields, i) => `<tr data-search="${ldSearchText(fields)}"${onclickAttrFor(i)}>${fields.map(f => f.type === 'status'
+      ? `<td><span class="ld-table-pill pill-${f.tier}">${fieldDisplay(f)}</span></td>`
+      : `<td>${fieldDisplay(f)}</td>`).join('')}</tr>`).join('')
   }</tbody></table></div>`;
 }
 /* Filter chips + sort options are dataspy-driven off the same field list
@@ -811,7 +1077,7 @@ function renderListDetailShell(tabKey, extraTopHtml) {
   const dsKey = state.dataspy || cfg.dataspies[0].key;
   const mode = state.mode || 'detailed';
   const ds = cfg.dataspies.find(d => d.key === dsKey) || cfg.dataspies[0];
-  const rows = cfg.rows.filter(r => r.ds.includes(dsKey));
+  const rows = ldVisibleRows(tabKey);
   return `
     ${extraTopHtml || ''}
     ${state.searchOpen ? `
@@ -835,9 +1101,29 @@ function renderListDetailShell(tabKey, extraTopHtml) {
       <button class="sort-btn" onclick="showToast('Sort — coming soon')">${LD_ICONS.sort}${cfg.sortLabel}</button>
     </div>
     ${mode === 'detailed'
-      ? rows.map(r => r.fields ? `<div class="ld-card-wrap" data-search="${r.fields.map(f => f.value).join(' ').toLowerCase()}" onclick="showToast('Opens this record in Update Mode — code/PK protected there (coming soon)')">${renderStdCard(r.fields)}</div>` : '').join('')
-      : renderStdTable(rows.map(r => r.allFields || r.fields), "showToast('Opens this record in Update Mode — code/PK protected there (coming soon)')")}
+      ? rows.map((r, i) => r.fields ? `<div class="ld-card-wrap" data-search="${ldSearchText(r.fields)}" onclick="onListDetailRowTap('${tabKey}', ${i})">${renderStdCard(r.fields)}</div>` : '').join('')
+      : renderStdTable(rows.map(r => r.allFields || r.fields), (i) => `onListDetailRowTap('${tabKey}', ${i})`)}
     <div style="height:16px;"></div>`;
+}
+/* The dataspy-filtered row set for a tab — one definition shared by the
+   shell's own render and by onListDetailRowTap below, so a row index means
+   the same thing in both places. */
+function ldVisibleRows(tabKey) {
+  const cfg = LIST_DETAIL_TABS[tabKey];
+  const state = listDetailState[tabKey] || {};
+  const dsKey = state.dataspy || cfg.dataspies[0].key;
+  return cfg.rows.filter(r => r.ds.includes(dsKey));
+}
+/* Row tap (§8's "opens this record" rule). Screen-provided
+   ROW_TAP_HANDLERS = { tabKey: (row, idx) => {...} } is checked first —
+   same override idiom as TAB_PLUS_HANDLERS above — so a tab whose row has
+   more than one meaningful destination (WO's Equipment tab: the equipment
+   record vs. its related child WO, §16.10) can decide for itself. Every
+   tab that doesn't override it keeps the original Update Mode stub. */
+function onListDetailRowTap(tabKey, idx) {
+  const row = ldVisibleRows(tabKey)[idx];
+  if (typeof ROW_TAP_HANDLERS !== 'undefined' && ROW_TAP_HANDLERS[tabKey]) { ROW_TAP_HANDLERS[tabKey](row, idx); return; }
+  showToast('Opens this record in Update Mode — code/PK protected there (coming soon)');
 }
 let activeDataspyTabKey = null;
 function openDataspySheet(tabKey) {
@@ -1014,7 +1300,11 @@ function persistSyncItems() { localStorage.setItem('eamSyncItems', JSON.stringif
    as it survives navigation. */
 function resetDemoState() {
   ['eamSyncItems', 'eamSyncOnline', 'eamSyncForceSynced', 'eamNextWoNumber', 'eamNextEquipNumber',
-   'eamFavoriteDataspies', 'eamFavoriteEquipDS', 'eamHomeFavOrder', 'eamHomeTileOrder']
+   'eamFavoriteDataspies', 'eamFavoriteEquipDS', 'eamHomeFavOrder', 'eamHomeTileOrder',
+   // eamWoEquipment (2026-08-10) — the per-WO equipment/Route associations
+   // and their minted MEC child WO numbers (§16.10). A fresh demo must start
+   // with every WO's Equipment tab empty and no Route/MEC pill anywhere.
+   WO_EQUIP_STORE_KEY]
     .forEach(k => localStorage.removeItem(k));
 }
 // Shared navigation target for both the dev-only Reset button below and
@@ -2205,12 +2495,87 @@ function equipmentLookupCurrent(key) {
   if (typeof EQUIP_LOOKUP_CURRENT !== 'undefined' && EQUIP_LOOKUP_CURRENT[key]) return EQUIP_LOOKUP_CURRENT[key]();
   return null;
 }
+/* ── MULTI-SELECT variant (§16.10, added 2026-08-10) — same component, same
+   two tabs, same result cards; the only differences are that a result row
+   TOGGLES instead of committing, and a footer accumulates the picks behind
+   one "Add N" action. First consumer: the WO Equipment tab's Plus, which
+   adds many equipment rows in one pass (adding 24 Route pumps one modal at
+   a time is not a flow). Screens consume it with:
+     const EQUIP_LOOKUP_ON_MULTI_SELECT = { key: (arrayOfEquipment) => {...} };
+   The footer markup (#equipMultiFooter) is per-screen, same convention as
+   #equipmentPopup itself — every function here no-ops when it's absent, so
+   single-select consumers are completely unaffected. ── */
+let equipMultiMode = false;
+let equipMultiSelected = [];
+function isEquipMultiSelected(code) { return equipMultiSelected.some(o => o.code === code); }
+// A code can come from either tab's dataset — flat search list or tree.
+function equipByCode(code) {
+  const flat = EQUIPMENT_LOOKUP_DATA.find(x => x.code === code);
+  if (flat) return flat;
+  const node = Object.values(TREE_NODE_MAP).find(n => n.code === code);
+  return node ? { code: node.code, desc: node.desc, class: node.class, category: node.category, type: node.type, organization: 'FBPP' } : null;
+}
+function openEquipmentMultiLookup(key) {
+  activeEquipLovKey = key;
+  equipMultiMode = true;
+  equipMultiSelected = [];
+  treeFocusedId = null;
+  // Always leads with Search here (unlike single-select's §15.5 rule of
+  // defaulting to Structure around an existing selection) — a multi-select
+  // pass starts with nothing picked, so there's nothing to orient around.
+  switchEquipTab('search');
+  equipSearchState = { mode: 'detailed', search: '' };
+  renderEquipSearchShell();
+  updateEquipMultiFooter();
+  openHyperlinkPopup('equipmentPopup');
+}
+function toggleEquipMultiSelect(code) {
+  const i = equipMultiSelected.findIndex(o => o.code === code);
+  if (i > -1) equipMultiSelected.splice(i, 1);
+  else { const o = equipByCode(code); if (o) equipMultiSelected.push(o); }
+  renderEquipSearchResults();
+  const structure = document.getElementById('equipTabStructure');
+  if (structure && structure.style.display !== 'none') renderEquipTree();
+  updateEquipMultiFooter();
+}
+// List mode: Code is always the 2nd cell, same assumption
+// selectEquipmentFromSearchByRow() already makes.
+function toggleEquipMultiSelectByRow(tr) { toggleEquipMultiSelect(tr.children[1].textContent); }
+function updateEquipMultiFooter() {
+  const footer = document.getElementById('equipMultiFooter');
+  if (!footer) return;
+  footer.style.display = equipMultiMode ? '' : 'none';
+  const n = equipMultiSelected.length;
+  const count = document.getElementById('equipMultiCount');
+  const btn = document.getElementById('equipMultiAddBtn');
+  if (count) count.textContent = `${n} selected`;
+  if (btn) {
+    btn.textContent = n ? `Add ${n} equipment` : 'Add';
+    btn.classList.toggle('ready', n > 0);
+    btn.disabled = !n;
+  }
+}
+function commitEquipmentMultiSelection() {
+  if (!equipMultiSelected.length) return;
+  const key = activeEquipLovKey;
+  const picked = equipMultiSelected.slice();
+  closeEquipScan();
+  if (document.getElementById('equipmentPopup').classList.contains('open')) closeHyperlinkPopup('equipmentPopup');
+  equipMultiMode = false;
+  equipMultiSelected = [];
+  updateEquipMultiFooter();
+  if (typeof EQUIP_LOOKUP_ON_MULTI_SELECT !== 'undefined' && EQUIP_LOOKUP_ON_MULTI_SELECT[key]) EQUIP_LOOKUP_ON_MULTI_SELECT[key](picked);
+  else showToast(`${picked.length} equipment selected`);
+}
 function openEquipmentLookup(key) {
   // §15.5: when equipment is already selected, default straight to
   // Structure, badged to that equipment's own node — Search only leads
   // with itself when there's nothing yet to orient around (e.g. Insert
   // Mode's empty state).
   activeEquipLovKey = key;
+  equipMultiMode = false;
+  equipMultiSelected = [];
+  updateEquipMultiFooter();
   treeFocusedId = null;
   switchEquipTab(equipmentLookupCurrent(key) ? 'structure' : 'search');
   equipSearchState = { mode: 'detailed', search: '' };
@@ -2266,8 +2631,13 @@ function renderEquipSearchResults() {
   document.getElementById('equipResultsBody').innerHTML = !rows.length
     ? `<div class="ld-table-empty">No matches</div>`
     : equipSearchState.mode === 'list'
-      ? renderStdTable(rows.map(equipTableFields), "selectEquipmentFromSearchByRow(this)")
-      : rows.map(o => `<div class="ld-card-wrap" onclick="selectEquipmentFromSearch('${o.code}')">${renderStdCard(equipCardFields(o))}</div>`).join('');
+      ? renderStdTable(rows.map(equipTableFields), equipMultiMode ? "toggleEquipMultiSelectByRow(this)" : "selectEquipmentFromSearchByRow(this)")
+      : rows.map(o => equipMultiMode
+          ? `<div class="equip-multi-row${isEquipMultiSelected(o.code) ? ' selected' : ''}" onclick="toggleEquipMultiSelect('${o.code}')">
+               <div class="lov-check ${isEquipMultiSelected(o.code) ? 'checked' : ''}"></div>
+               <div class="equip-multi-card">${renderStdCard(equipCardFields(o))}</div>
+             </div>`
+          : `<div class="ld-card-wrap" onclick="selectEquipmentFromSearch('${o.code}')">${renderStdCard(equipCardFields(o))}</div>`).join('');
 }
 function setEquipSearchMode(mode) { equipSearchState.mode = mode; renderEquipSearchShell(); }
 function filterEquipSearch(value) { equipSearchState.search = value; renderEquipSearchResults(); }
@@ -2300,8 +2670,10 @@ function renderTreeNode(node, depth) {
         <div class="tree-desc">${node.desc}</div>
         <div class="tree-code">${node.code}</div>
       </div>
-      ${node.current ? `<span class="tree-here">Selected</span>` : ''}
-      ${focused ? `<button class="tree-select-btn" onclick="event.stopPropagation(); selectTreeNode('${node.id}')">Select</button>` : ''}
+      ${node.current && !equipMultiMode ? `<span class="tree-here">Selected</span>` : ''}
+      ${equipMultiMode
+        ? `<button class="tree-select-btn${isEquipMultiSelected(node.code) ? ' added' : ''}" onclick="event.stopPropagation(); toggleEquipMultiSelect('${node.code}')">${isEquipMultiSelected(node.code) ? 'Added' : 'Add'}</button>`
+        : (focused ? `<button class="tree-select-btn" onclick="event.stopPropagation(); selectTreeNode('${node.id}')">Select</button>` : '')}
       ${hasChildren ? `<button class="tree-caret${expanded ? ' expanded' : ''}" onclick="event.stopPropagation(); toggleTreeNode('${node.id}')" aria-label="Expand"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>` : ''}
     </div>`;
   const childrenHtml = hasChildren && expanded
@@ -3227,14 +3599,25 @@ function stopStepTimer() {
    that defines its own navBack() after this file loads shadows this one,
    same as any other override in this file — Record View's local copy is
    what actually wins there, not a special-case here. */
+/* eamNavReturnUrl (2026-08-10) — a consume-once "come back here" override,
+   same shape as eamSyncReturnUrl. Without it, a record reached by drilling
+   sideways out of some other screen always backed out to that entity's own
+   search list instead of where the user actually came from. Found on the WO
+   Equipment tab (§16.10): tapping an equipment row opened Equipment Record
+   View, and Back then landed on a list that looks like a near-twin of the
+   tab you left, which reads as "the screen changed under me." Any screen
+   that hands off sideways should set this immediately before navigating. */
 function navBack() {
+  const ret = sessionStorage.getItem('eamNavReturnUrl');
+  const target = ret || 'eam-wo-list-prototype-v5_1.html';
+  if (ret) sessionStorage.removeItem('eamNavReturnUrl');
   if (sessionStorage.getItem('eamTimerRunning') === 'true') {
     openConfirm('Pause the timer and return to WO Search?', () => {
-      location.href = 'eam-wo-list-prototype-v5_1.html';
+      location.href = target;
     }, 'Pause & Leave', { primary: true });
     return;
   }
-  location.href = 'eam-wo-list-prototype-v5_1.html';
+  location.href = target;
 }
 
 /* ══════════════════════════════════════════════════════════════════════

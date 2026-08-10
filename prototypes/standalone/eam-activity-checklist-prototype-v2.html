@@ -277,7 +277,10 @@
 .ov-group-hdr-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ov-group-hdr-code { font-family: var(--font-mono); font-weight: 700; color: var(--octave-black); }
 [data-theme="dark"] .ov-group-hdr-code { color: var(--white); }
-.ov-group-badge { font-size: 10.5px; font-weight: 700; font-family: var(--font-mono); color: var(--gray-4); background: var(--bg-card); border: 1px solid var(--border); border-radius: 100px; padding: 2px 8px; flex-shrink: 0; }
+/* Counter Badge convention (§23.5) — outlined, transparent, black/white,
+   never a gray fill. See eam-shared.css's .section-card-badge comment. */
+.ov-group-badge { font-size: 10.5px; font-weight: 700; font-family: var(--font-mono); color: var(--octave-black); background: transparent; border: 1px solid var(--border-strong); border-radius: 100px; padding: 2px 8px; flex-shrink: 0; }
+[data-theme="dark"] .ov-group-badge { color: var(--white); }
 .ov-group-chev { flex-shrink: 0; transition: transform .2s; }
 .ov-group-chev.collapsed { transform: rotate(-90deg); }
 .ov-group-body.collapsed { display: none; }

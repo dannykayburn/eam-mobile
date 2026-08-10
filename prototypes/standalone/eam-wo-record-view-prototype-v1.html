@@ -224,14 +224,42 @@
 .rv-icon-btn:hover { background: var(--bg-section); color: var(--octave-black); }
 [data-theme="dark"] .rv-icon-btn:hover { color: var(--white); }
 
+/* Empty-value state for a badge-less grid cell (Route defaults empty on
+   every WO). Mirrors .field-lov-desc.muted's role on the List rows;
+   selectLov() removes this class on pick, clearLov() puts it back. */
+.attr-text.muted { color: var(--gray-3); }
+
 /* Route / MEC indicator pill (§16.9) — inside Equipment's own .attr-item,
    below the badge+value row. Screen-local (no 2nd consumer yet) — see
    renderEquipRoutePill() for the two states this can show. */
-.equip-route-pill { display: flex; align-items: center; gap: 7px; margin-top: 6px; padding: 8px 11px; background: var(--bg-section); border: 1px solid var(--border-strong); border-radius: 8px; font-size: 12.5px; font-weight: 700; color: var(--octave-black); cursor: pointer; }
-[data-theme="dark"] .equip-route-pill { color: var(--white); }
-.equip-route-pill svg { flex-shrink: 0; color: var(--gray-4); }
-.equip-route-pill svg:last-child { margin-left: auto; }
-.equip-route-pill:hover { background: var(--border-strong); }
+/* Restyled 2026-08-10 — it was a gray rounded-rect that didn't read as a
+   pill at all, and the --bg-section fill was muddy in light mode. Now a
+   genuine pill: full radius, card fill so it lifts off the section instead
+   of sinking into it, a filled monochrome icon well (same idea as .ds-icon-w
+   but solid), the Route code in mono per §3.4, and a count badge for how
+   many equipment records sit behind it. Still strictly monochrome — this is
+   navigation, not one of §23's colour instruments. */
+.equip-route-pill { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 5px 8px 5px 5px; background: var(--bg-card); border: 1.5px solid var(--border-strong); border-radius: 100px; font-size: 12.5px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.06); transition: border-color .15s, box-shadow .15s, transform .1s; }
+.equip-route-pill:hover { border-color: var(--octave-black); box-shadow: 0 2px 9px rgba(0,0,0,.11); }
+[data-theme="dark"] .equip-route-pill:hover { border-color: var(--white); }
+.equip-route-pill:active { transform: scale(0.985); }
+.erp-icon { width: 24px; height: 24px; border-radius: 50%; background: var(--octave-black); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+[data-theme="dark"] .erp-icon { background: var(--white); color: var(--octave-black); }
+/* All three text parts share ONE font-size and line-height:1, differing only
+   by family/weight/colour — the first pass mixed 9.5px uppercase, 12px mono
+   and 12.5px bold, which read as unbalanced and sat on visibly different
+   baselines (the tiny uppercase kicker was the worst offender). line-height:1
+   plus the row's align-items:center is what actually gets mono and sans
+   glyphs optically centred against each other. */
+.erp-kicker { font-size: 12.5px; font-weight: 600; line-height: 1; color: var(--gray-4); flex-shrink: 0; }
+.erp-code { font-family: var(--font-mono); font-size: 12.5px; font-weight: 600; line-height: 1; color: var(--octave-black); flex-shrink: 0; }
+[data-theme="dark"] .erp-code { color: var(--white); }
+.erp-desc { font-size: 12.5px; font-weight: 700; line-height: 1; color: var(--octave-black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+[data-theme="dark"] .erp-desc { color: rgba(255,255,255,.92); }
+/* Counter Badge convention (§23.5) — org-pill recipe, no gray fill. */
+.erp-count { margin-left: auto; flex-shrink: 0; background: transparent; border: 1px solid var(--border-strong); border-radius: 100px; padding: 3px 9px; font-family: var(--font-mono); font-size: 11px; font-weight: 700; line-height: 1; color: var(--octave-black); }
+[data-theme="dark"] .erp-count { color: var(--white); }
+.equip-route-pill > svg:last-child { flex-shrink: 0; color: var(--gray-4); margin-right: 1px; }
 </style>
 </head>
 <body>
@@ -951,8 +979,11 @@ const CLOSED_STATUS_CODES = new Set(['COMPLETED', 'CLOSE']);
 // the fuller treatment: same .protected dimming, PLUS swapping their
 // trailing chevron for the real .field-lock icon and back, matching
 // every other protected List row in the app.
-const CLOSED_PROTECT_GRID_FIELDS = ['type', 'priority', 'equipment'];
-const CLOSED_PROTECT_LIST_FIELDS = ['department', 'assignedTo', 'reportedBy', 'dateReported', 'problemCode'];
+// department + route joined the GRID list 2026-08-10 when both moved into the
+// Header Fields grid — they're .attr-item cells now, so they take the grid's
+// dim/no-pointer treatment rather than the .form-field chevron→lock swap.
+const CLOSED_PROTECT_GRID_FIELDS = ['type', 'priority', 'equipment', 'department', 'route'];
+const CLOSED_PROTECT_LIST_FIELDS = ['assignedTo', 'reportedBy', 'dateReported', 'problemCode'];
 const FIELD_LOCK_SVG = '<span class="field-lock"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>';
 let closedFieldHandlers = {};
 function applyClosedFieldProtection() {
@@ -997,15 +1028,31 @@ function applyClosedFieldProtection() {
 // correctly fall through to the "Multiple Equipment" pill state.
 const LOV_ON_SELECT = {
   __status: applyClosedFieldProtection,
+  // Selecting a Route really populates the Equipment tab now (§16.10, locked
+  // 2026-08-10): woEquipApplyRoute() inserts one row per piece of the
+  // Route's equipment and mints one MEC child WO for each, associating them
+  // to this WO as their parent. The pill then follows from the stored rows.
   route: () => {
     const opt = LOV_DATA.route.find(o => o.code === LOV_CURRENT.route);
     RECORD.route = opt ? { code: opt.code, desc: opt.desc } : { code: '', desc: '' };
-    if (opt) RECORD.equipmentTabTotal = opt.equipmentCount;
+    if (opt) {
+      const n = woEquipApplyRoute(DEMO_WO, opt);
+      showToast(`${n} equipment added · ${n} child work order${n === 1 ? '' : 's'} created`);
+    }
     renderEquipRoutePill();
   },
 };
 const LOV_ON_CLEAR = {
-  route: () => { RECORD.route = { code: '', desc: '' }; renderEquipRoutePill(); },
+  // Clearing the Route removes that Route's own rows (manual ones survive),
+  // so the pill disappears unless something was added by hand. This
+  // deliberately REVERSES the old §16.9 behavior, which kept a stale
+  // "Multiple Equipment" pill alive after a Route was cleared.
+  route: () => {
+    RECORD.route = { code: '', desc: '' };
+    const removed = woEquipClearRoute(DEMO_WO);
+    if (removed) showToast(`${removed} Route equipment removed`);
+    renderEquipRoutePill();
+  },
 };
 // Closing hand-off (2026-07-23) — maps WO Closing's own Option D target-
 // status keys (completed/closed/onhold, §19.2) onto this header's locked
@@ -1186,6 +1233,21 @@ function fieldRowBadgeAttr(key, metaMap, required, fullWidth) {
   return `<div class="attr-item${fullWidth ? ' full-width' : ''}${required ? ' required' : ''}" data-field="${key}" onclick="openLov('${key}')">
     <span class="attr-label">${FIELD_LABELS[key]}</span>
     <div class="attr-value">${badge}<span class="attr-text" id="fv-${key}-desc">${v.desc}</span></div>
+  </div>`;
+}
+
+/* Badge-less grid cell for an LOV field (2026-08-10) — Department and Route
+   moved up into the Header Fields grid and neither has a badge vocabulary,
+   unlike Type/Priority. Same `.attr-item` shell + `openLov()` handler as
+   fieldRowBadgeAttr() above, so grid protection/required behavior is
+   identical; only the badge is dropped. Keeps the `fv-<key>-desc` id
+   selectLov()/clearLov() write to (its generic branch is null-safe about the
+   missing `fv-<key>-code`, so no hidden code span is needed here). */
+function attrItemLov(key, required) {
+  const v = RECORD[key] || {};
+  return `<div class="attr-item${required ? ' required' : ''}" data-field="${key}" onclick="openLov('${key}')">
+    <span class="attr-label">${FIELD_LABELS[key]}</span>
+    <div class="attr-value"><span class="attr-text${v.desc ? '' : ' muted'}" id="fv-${key}-desc">${v.desc || ''}</span></div>
   </div>`;
 }
 
@@ -1489,27 +1551,35 @@ function renderEquipCard() {
    fire the parent .attr-item's openEquipmentLookup('equipment'). */
 const ROUTE_PILL_ICON = '<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>';
 const ROUTE_PILL_CHEV = '<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
+/* Reads the shared WO equipment store, not this screen's own RECORD fields
+   (§16.10, 2026-08-10) — the Equipment tab can add or delete rows, so the
+   pill has to reflect what's actually associated rather than what this
+   screen last remembered. One rule: rows exist or there's no pill. */
 function renderEquipRoutePill() {
   const mount = document.getElementById('equipRoutePillMount');
   if (!mount) return;
-  let label = null;
-  if (RECORD.route && RECORD.route.code) label = `Route: ${RECORD.route.code} - ${RECORD.route.desc}`;
-  else if (RECORD.equipmentTabTotal > 1) label = 'Multiple Equipment';
-  mount.innerHTML = label ? `<div class="equip-route-pill" onclick="event.stopPropagation(); goToEquipmentTab();">
-      ${ROUTE_PILL_ICON}<span>${label}</span>${ROUTE_PILL_CHEV}
-    </div>` : '';
+  const st = woEquipState(DEMO_WO);
+  if (!st.rows.length) { mount.innerHTML = ''; return; }
+  // Route case keeps code and description as separate parts so the code can
+  // be mono (§3.4) instead of baked into one string; the MEC case has no code.
+  const body = st.route
+    ? `<span class="erp-kicker">Route</span><span class="erp-code">${st.route.code}</span><span class="erp-desc">${st.route.desc}</span>`
+    : `<span class="erp-desc">Multiple Equipment</span>`;
+  mount.innerHTML = `<div class="equip-route-pill" onclick="event.stopPropagation(); goToEquipmentTab();">
+      <span class="erp-icon">${ROUTE_PILL_ICON}</span>${body}
+      <span class="erp-count">${st.rows.length}</span>${ROUTE_PILL_CHEV}
+    </div>`;
 }
-// Equipment tab doesn't exist as a real screen yet (a WO's own per-record
-// list of equipment, distinct from Equipment Record View) — toast stub,
-// same convention as Print Work Order/Comments-Documents/camera scan
-// elsewhere in this app until it's built. Real EAM behavior this stands
-// in for: selecting/clearing Route only ever updates the pill locally,
-// optimistic-UI style — the actual server transaction (adding every
-// Route equipment to the Equipment tab, spinning up its child WOs) isn't
-// committed until the technician actually leaves this screen, which
-// tapping this same pill also counts as (it navigates away, same as any
-// other "Next"/back exit would).
-function goToEquipmentTab() { showToast('Opening Equipment tab — coming soon'); }
+// The Equipment tab is a real screen as of 2026-08-10 (§8 child tab +
+// §16.10) — eam-wo-equipment-tab-prototype-v1.html, reached through the
+// shared goToWoEquipmentTab() so this pill and the step rail's
+// Reference-group Equipment item can't drift apart. Real EAM behavior the
+// navigation stands in for: selecting/clearing Route only ever updates the
+// pill locally, optimistic-UI style — the actual server transaction
+// (adding every Route equipment to the Equipment tab, spinning up its
+// child WOs) isn't committed until the technician actually leaves this
+// screen, which tapping this pill counts as, since it navigates away.
+function goToEquipmentTab() { goToWoEquipmentTab(); }
 // Equipment's own photo (§7.5) — screen-local hook, called by the shared
 // setEquipPhoto() once a source is picked. Insert Mode has no equivalent
 // hook defined, so the exact same tap there falls back to eam-shared.js's
@@ -1694,6 +1764,16 @@ function renderRecordViewTab() {
           </div>
           ${fieldRowBadgeAttr('type', TYPE_META, true)}
           ${fieldRowBadgeAttr('priority', PRIORITY_META, false)}
+          <!-- Bottom row of the grid (2026-08-10, prototype-only request):
+               Department (required) + Route (optional), paired. Department
+               moving up here is what §5.2 always wanted — it's non-nullable,
+               so the Header Fields grid is its right home, and §20 already
+               tracked its being stranded in the details card as a gap. Route
+               is the deliberate exception: it's OPTIONAL, and it's here
+               because it pairs naturally with Department and sits next to the
+               Equipment row whose pill it drives. -->
+          ${attrItemLov('department', true)}
+          ${attrItemLov('route', false)}
         </div>
       </div>
 
@@ -1709,19 +1789,16 @@ function renderRecordViewTab() {
           <span class="fg-toggle-title">Work order details</span>
           <svg class="fg-chev" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
+        <!-- Department and Route both moved UP into the Header Fields grid
+             2026-08-10 (see the grid's own comment). Route's old note here —
+             "optional, own row, deliberately NOT in the grid alongside
+             Equipment" — is superseded by that move; it's still a separate
+             field from Equipment, it just shares the grid now. -->
         <div class="fg-collapse">
-          ${fieldRowLov('department', true)}
           ${fieldRowLov('assignedTo', false)}
           ${fieldRowLov('reportedBy', false)}
           ${fieldRowEdit('dateReported', 'Date Reported', 'date', false)}
           ${fieldRowLov('problemCode', true)}
-          <!-- Route (§16.9) — optional, own row here, deliberately NOT in
-               the Header Fields grid alongside Equipment: Route drives
-               the pill on Equipment's own row (renderEquipRoutePill()),
-               but is a genuinely separate value/field from Equipment
-               itself, same "different field, different row" rule as any
-               other 2 fields that happen to interact. -->
-          ${fieldRowLov('route', false)}
         </div>
       </div>
 
@@ -1815,6 +1892,15 @@ if (OPEN_DEMO_WO) {
   sessionStorage.removeItem('eamOpenDemoWo');
   DEMO_WO = OPEN_DEMO_WO;
 }
+// Route lives in the shared WO equipment store now (§16.10), not in this
+// screen's own memory — the Equipment tab can add/delete rows and clear the
+// association while this screen isn't loaded, so pull it back in before the
+// record renders rather than trusting RECORD's own seed value.
+(function syncRouteFromStore() {
+  const stored = woEquipRoute(DEMO_WO);
+  LOV_CURRENT.route = stored ? stored.code : '';
+  RECORD.route = stored ? { code: stored.code, desc: stored.desc } : { code: '', desc: '' };
+})();
 onDemoWoChanged();
 // Arrived here via the step rail's Reference-group Comments/Documents
 // shortcut from one of the other 4 workflow screens (§14.2, 2026-07-22)?
