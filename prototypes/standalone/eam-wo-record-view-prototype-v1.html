@@ -223,6 +223,15 @@
 .rv-icon-btn { background: none; border: none; color: var(--gray-4); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; transition: background .15s; flex-shrink: 0; }
 .rv-icon-btn:hover { background: var(--bg-section); color: var(--octave-black); }
 [data-theme="dark"] .rv-icon-btn:hover { color: var(--white); }
+
+/* Route / MEC indicator pill (§16.9) — inside Equipment's own .attr-item,
+   below the badge+value row. Screen-local (no 2nd consumer yet) — see
+   renderEquipRoutePill() for the two states this can show. */
+.equip-route-pill { display: flex; align-items: center; gap: 7px; margin-top: 6px; padding: 8px 11px; background: var(--bg-section); border: 1px solid var(--border-strong); border-radius: 8px; font-size: 12.5px; font-weight: 700; color: var(--octave-black); cursor: pointer; }
+[data-theme="dark"] .equip-route-pill { color: var(--white); }
+.equip-route-pill svg { flex-shrink: 0; color: var(--gray-4); }
+.equip-route-pill svg:last-child { margin-left: auto; }
+.equip-route-pill:hover { background: var(--border-strong); }
 </style>
 </head>
 <body>
@@ -496,6 +505,68 @@
     </div>
   </div>
 
+  <!-- EQUIPMENT PHOTO VIEWER (§7.5) — full screen, close top-left, a
+       single Modify action at the bottom. Populated state only; the
+       empty state (no photo yet) skips straight to
+       #equipPhotoSourceSheet below, same tap (openEquipPhotoTap() in
+       eam-shared.js). Plain <img> — long-press invokes the OS's own
+       native Share/Copy/Save menu, nothing custom wired for it. -->
+  <div class="photo-viewer-overlay" id="equipPhotoViewerOverlay">
+    <div class="photo-viewer-header">
+      <button class="photo-viewer-close" onclick="closeEquipPhotoViewer()" aria-label="Close">✕</button>
+    </div>
+    <div class="photo-viewer-body"><img id="equipPhotoViewerImg" src="" alt="Equipment photo"></div>
+    <div class="photo-viewer-footer">
+      <button class="photo-viewer-modify-btn" onclick="modifyEquipPhoto()">Modify</button>
+    </div>
+  </div>
+
+  <!-- EQUIPMENT PHOTO SOURCE PICKER (§7.5) — same shape as WO Closing's
+       Attachments source-picker (Camera/Photo library/File), reusing the
+       already-shared .source-option* markup/CSS rather than a bespoke
+       one. Opens directly (empty state) or from the viewer's Modify
+       button (replacing an existing photo) — one sheet, two entry paths. -->
+  <div class="bottom-sheet" id="equipPhotoSourceSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Set Equipment Photo</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sheet-body">
+      <div class="source-option" onclick="setEquipPhoto('camera')">
+        <div class="source-option-icon">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13" r="4" stroke="currentColor" stroke-width="2"/></svg>
+        </div>
+        <div class="source-option-texts">
+          <div class="source-option-title">Camera</div>
+          <div class="source-option-sub">Take a photo now</div>
+        </div>
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="var(--gray-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="source-option" onclick="setEquipPhoto('library')">
+        <div class="source-option-icon">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="source-option-texts">
+          <div class="source-option-title">Photo library</div>
+          <div class="source-option-sub">Choose from device photos</div>
+        </div>
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="var(--gray-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="source-option" onclick="setEquipPhoto('file')">
+        <div class="source-option-icon">
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="source-option-texts">
+          <div class="source-option-title">File or document</div>
+          <div class="source-option-sub">PDF, Word, or other file</div>
+        </div>
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="var(--gray-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+  </div>
+
   <!-- ACTIVITY INSERT/UPDATE MODE POPUP — non-standard, unique to
        Activities on WO Record View (§15.2). Built out 2026-07-22 from the
        full real-desktop Activity field set (Trade/Start Date/End Date/
@@ -740,6 +811,16 @@ const RECORD = NEW_RECORD ? {
   type: NEW_RECORD.type || { code: 'CM', desc: 'Corrective Maintenance' },
   priority: NEW_RECORD.priority || { code: '', desc: '' },
   equipment: NEW_RECORD.equipment || null,
+  // Route / Multiple Equipment Child (§16.9) — every WO defaults to an
+  // empty Route, real LOV field now, own row in Work order details
+  // below. Equipment above stays exactly what it is regardless — single,
+  // required, set independently of Route; Route only ever drives the
+  // pill (renderEquipRoutePill()), never the header Equipment value
+  // itself. equipmentTabTotal (including the header equipment) is what
+  // the no-route "Multiple Equipment" pill state checks — 1 means "just
+  // the header equipment, nothing else," the ordinary case.
+  route: { code: '', desc: '' },
+  equipmentTabTotal: 1,
   selectedActivity: null,
 } : {
   number: '19257', desc: 'Pump Cavitating; lost head',
@@ -751,7 +832,13 @@ const RECORD = NEW_RECORD ? {
   problemCode: { code: 'MECH', desc: 'Mechanical' },
   type: { code: 'BREAKDOWN', desc: 'Breakdown' },
   priority: { code: 'HIGH', desc: 'High' },
-  equipment: { code: '00067333', desc: 'Pump, Centrifugal', class: 'Pump', category: 'Centrifugal', type: 'Asset' },
+  equipment: { code: '00067333', desc: 'Pump, Centrifugal', class: 'Pump', category: 'Centrifugal', type: 'Asset', photoUrl: EQUIP_PHOTO_DEMO_URL },
+  // Route / Multiple Equipment Child (§16.9) — starts empty like every
+  // other WO (direct instruction); pick a Route from Work order details
+  // below to see the pill appear live. See LOV_ON_SELECT.route/
+  // LOV_ON_CLEAR.route further down for the actual wiring.
+  route: { code: '', desc: '' },
+  equipmentTabTotal: 1,
   selectedActivity: null, // set below, once ACTIVITIES exists — §15.2: auto-selected only when exactly one activity exists.
 };
 // Activity Insert/Update Mode's own LOV domains (§15.2, built out
@@ -790,6 +877,12 @@ const LOV_DATA = {
   assignedTo: [{code:'BCAMPBELL',desc:'Bruce Campbell'},{code:'JRODRIGUEZ',desc:'Juan Rodriguez'},{code:'MKUMAR',desc:'Meera Kumar'}],
   reportedBy: [{code:'DKILBURN',desc:'Danny Kilburn'},{code:'RSMITH',desc:'Rachel Smith'},{code:'PJONES',desc:'Pat Jones'}],
   problemCode: [{code:'MECH',desc:'Mechanical'},{code:'ELEC',desc:'Electrical'},{code:'HYDRAULIC',desc:'Hydraulic'}],
+  // Route (§16.9) — real LOV field now, own row in Work order details.
+  // equipmentCount is this screen's own flavor data (not consumed by
+  // openLov()/selectLov() at all), read by LOV_ON_SELECT.route below to
+  // set RECORD.equipmentTabTotal — a rough stand-in for "how much
+  // equipment this Route actually adds to the tab post-insert."
+  route: [{code:'PUMPS',desc:'Pumps',equipmentCount:24},{code:'FIREEXT',desc:'Fire Extinguishers',equipmentCount:156}],
   activityTrade: ACTIVITY_TRADE_OPTIONS,
   activityStatus: ACTIVITY_STATUS_OPTIONS,
   activityTaskPlan: ACTIVITY_TASK_PLAN_OPTIONS,
@@ -797,22 +890,25 @@ const LOV_DATA = {
 };
 const FIELD_LABELS = {
   department: 'Department', assignedTo: 'Assigned To', reportedBy: 'Reported By',
-  problemCode: 'Problem Code', type: 'Type', priority: 'Priority',
+  problemCode: 'Problem Code', type: 'Type', priority: 'Priority', route: 'Route',
 };
 const LOV_CURRENT = {
   department: RECORD.department.code, assignedTo: RECORD.assignedTo.code,
   reportedBy: RECORD.reportedBy.code, problemCode: RECORD.problemCode.code,
-  type: RECORD.type.code, priority: RECORD.priority.code,
+  type: RECORD.type.code, priority: RECORD.priority.code, route: RECORD.route.code,
   __status: (NEW_RECORD && NEW_RECORD.status && NEW_RECORD.status.code) || 'RELEASED',
   activityTrade: '', activityStatus: '', activityTaskPlan: '', activityMaterialList: '',
 };
 const LOV_TITLES = {
   department: 'Department', assignedTo: 'Assigned To', reportedBy: 'Reported By',
   problemCode: 'Problem Code', type: 'Type', priority: 'Priority', __status: 'Status',
+  route: 'Route',
   activityTrade: 'Trade', activityStatus: 'Assignment Status',
   activityTaskPlan: 'Task Plan', activityMaterialList: 'Material List',
 };
-const NO_SEARCH_LOVS = new Set(['__status', 'type', 'priority', 'activityTrade', 'activityStatus', 'activityTaskPlan', 'activityMaterialList']);
+// route joins type/priority/__status here — a small fixed list (2 today),
+// same reasoning: search adds nothing for a handful of options.
+const NO_SEARCH_LOVS = new Set(['__status', 'type', 'priority', 'route', 'activityTrade', 'activityStatus', 'activityTaskPlan', 'activityMaterialList']);
 // Only __status is listed here — it drives the header status button, which
 // has no data-field element to carry a 'required' class on. Every other
 // required field (Department, Problem Code, Type below) is marked via the
@@ -890,7 +986,27 @@ function applyClosedFieldProtection() {
     el.classList.toggle('protected', isClosed);
   });
 }
-const LOV_ON_SELECT = { __status: applyClosedFieldProtection };
+// route (§16.9) — selecting a Route surfaces the pill immediately
+// (optimistic UI); the real transaction (adding every Route equipment to
+// the Equipment tab, spinning up child WOs) commits when the technician
+// actually leaves this screen, not on selection itself — see
+// goToEquipmentTab()'s own comment. equipmentTabTotal is set here too
+// (from the Route's own invented equipmentCount) and deliberately NOT
+// reset by LOV_ON_CLEAR.route below — clearing Route doesn't retroactively
+// remove equipment already added to the tab, so a cleared Route can still
+// correctly fall through to the "Multiple Equipment" pill state.
+const LOV_ON_SELECT = {
+  __status: applyClosedFieldProtection,
+  route: () => {
+    const opt = LOV_DATA.route.find(o => o.code === LOV_CURRENT.route);
+    RECORD.route = opt ? { code: opt.code, desc: opt.desc } : { code: '', desc: '' };
+    if (opt) RECORD.equipmentTabTotal = opt.equipmentCount;
+    renderEquipRoutePill();
+  },
+};
+const LOV_ON_CLEAR = {
+  route: () => { RECORD.route = { code: '', desc: '' }; renderEquipRoutePill(); },
+};
 // Closing hand-off (2026-07-23) — maps WO Closing's own Option D target-
 // status keys (completed/closed/onhold, §19.2) onto this header's locked
 // 3-status vocabulary above for display only. Closing never produces the
@@ -1337,11 +1453,13 @@ function saveActivityEdit() {
 
    Class icon — per-class, not universal (2026-07-20, 6th pass): only
    classes with a real icon defined in EQUIP_CLASS_ICONS get one. "Valve"
-   deliberately has none, to exercise the fallback: no icon → the
-   .attr-badge-outline box still renders (same as Type/Priority's own
-   badge when their meta lookup misses), just empty inside. An unset
-   equipment (Insert Mode's empty state) has no class either, so the same
-   rule applies there.
+   deliberately has none, to exercise the fallback: no icon → the badge
+   span is truly empty and `.attr-badge:empty` hides the whole box, same
+   rule as Type/Priority's own badge when their meta lookup misses.
+   2026-08-10's §7.5 resize (28px outline → 44px filled photo tile) only
+   changed the populated look; this empty-state rule is untouched. An
+   unset equipment (Insert Mode's empty state) has no class either, so
+   the same rule applies there.
    ═══════════════════════════════════════════════════════════════════════ */
 // EQUIP_ICON_SVG/EQUIP_CLASS_ICONS and the value markup itself now live in
 // eam-shared.js's equipSummaryCardHTML() (2026-07-22 convergence with WO
@@ -1351,6 +1469,56 @@ function saveActivityEdit() {
 function renderEquipCard() {
   return equipSummaryCardHTML(RECORD.equipment, 'Tap to select equipment');
 }
+/* ── ROUTE / MULTIPLE EQUIPMENT CHILD (MEC) INDICATOR (§16.9, added
+   2026-08-10) — a pill inside the same full-width Equipment .attr-item,
+   below the badge+value row, NOT a replacement for it: the header
+   Equipment field stays exactly what it is above (single, required, set
+   independently of Route). Route is populated by its own separate LOV
+   elsewhere on the record (not modeled in this prototype yet) — this
+   pill only ever reflects RECORD.route/equipmentTabTotal, never sets
+   them. Two states, one pill:
+     - RECORD.route set → "Route: <code> - <description>"
+     - RECORD.route unset but equipmentTabTotal > 1 (an MEC parent whose
+       equipment arrived some other way, not via Route) → "Multiple
+       Equipment"
+     - Neither → no pill at all (the ordinary single-equipment case).
+   Tapping the pill always jumps to the Equipment tab (goToEquipmentTab()
+   below) regardless of which text is showing — that tab's own list can
+   run into the hundreds, so it's a deep link, never an inline list here.
+   Own onclick with stopPropagation() so tapping the pill doesn't also
+   fire the parent .attr-item's openEquipmentLookup('equipment'). */
+const ROUTE_PILL_ICON = '<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>';
+const ROUTE_PILL_CHEV = '<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
+function renderEquipRoutePill() {
+  const mount = document.getElementById('equipRoutePillMount');
+  if (!mount) return;
+  let label = null;
+  if (RECORD.route && RECORD.route.code) label = `Route: ${RECORD.route.code} - ${RECORD.route.desc}`;
+  else if (RECORD.equipmentTabTotal > 1) label = 'Multiple Equipment';
+  mount.innerHTML = label ? `<div class="equip-route-pill" onclick="event.stopPropagation(); goToEquipmentTab();">
+      ${ROUTE_PILL_ICON}<span>${label}</span>${ROUTE_PILL_CHEV}
+    </div>` : '';
+}
+// Equipment tab doesn't exist as a real screen yet (a WO's own per-record
+// list of equipment, distinct from Equipment Record View) — toast stub,
+// same convention as Print Work Order/Comments-Documents/camera scan
+// elsewhere in this app until it's built. Real EAM behavior this stands
+// in for: selecting/clearing Route only ever updates the pill locally,
+// optimistic-UI style — the actual server transaction (adding every
+// Route equipment to the Equipment tab, spinning up its child WOs) isn't
+// committed until the technician actually leaves this screen, which
+// tapping this same pill also counts as (it navigates away, same as any
+// other "Next"/back exit would).
+function goToEquipmentTab() { showToast('Opening Equipment tab — coming soon'); }
+// Equipment's own photo (§7.5) — screen-local hook, called by the shared
+// setEquipPhoto() once a source is picked. Insert Mode has no equivalent
+// hook defined, so the exact same tap there falls back to eam-shared.js's
+// own "coming soon" toast instead of silently doing nothing.
+equipPhotoOnSet = (url) => {
+  RECORD.equipment.photoUrl = url;
+  document.getElementById('equipCardMount').innerHTML = renderEquipCard();
+  markDirty();
+};
 // Equipment LOV glue (§15.5, promoted 2026-07-21 — see eam-shared.js's
 // openEquipmentLookup()/commitEquipmentSelection()): this screen's
 // Equipment is a plain RECORD field, not a REF_CARD_FIELDS key, so it
@@ -1522,6 +1690,7 @@ function renderRecordViewTab() {
           <div class="attr-item full-width required" data-field="equipment" onclick="openEquipmentLookup('equipment')">
             <span class="attr-label">Equipment</span>
             <div class="attr-value" id="equipCardMount">${renderEquipCard()}</div>
+            <div id="equipRoutePillMount"></div>
           </div>
           ${fieldRowBadgeAttr('type', TYPE_META, true)}
           ${fieldRowBadgeAttr('priority', PRIORITY_META, false)}
@@ -1546,6 +1715,13 @@ function renderRecordViewTab() {
           ${fieldRowLov('reportedBy', false)}
           ${fieldRowEdit('dateReported', 'Date Reported', 'date', false)}
           ${fieldRowLov('problemCode', true)}
+          <!-- Route (§16.9) — optional, own row here, deliberately NOT in
+               the Header Fields grid alongside Equipment: Route drives
+               the pill on Equipment's own row (renderEquipRoutePill()),
+               but is a genuinely separate value/field from Equipment
+               itself, same "different field, different row" rule as any
+               other 2 fields that happen to interact. -->
+          ${fieldRowLov('route', false)}
         </div>
       </div>
 
@@ -1624,6 +1800,7 @@ document.getElementById('recordContentSlot').innerHTML = renderRecordViewTab();
 // Status change, so reopening to Released un-protects everything
 // immediately, not just after a fresh page load.
 applyClosedFieldProtection();
+renderEquipRoutePill();
 renderCommentsExcerptMount();
 renderDocumentsExcerptMount();
 updateStartGate();

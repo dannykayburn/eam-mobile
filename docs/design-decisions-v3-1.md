@@ -997,16 +997,30 @@ connector lines and a status dot per node — not Octave-styled and not
 mobile-vertical-optimized as-is.
 
 ## 7.5 Equipment Photo — icon, preview pop-out, and edit (decided
-2026-07-22, not yet built)
+2026-07-22; badge, viewer, and source-picker all built 2026-08-10 for the
+WO Record View consumer — Equipment Record View's own header icon slot
+still open)
 
-**Flagged, not re-solved, 2026-07-24:** this section's WO Record View
-consumer still assumes the old standalone `.equip-summary-card`/40px icon
-and its "no photo, no class icon → no icon at all" fallback — both
-superseded by §15.5's 2026-07-24 change (Equipment rolled into the
-Header Fields grid, a fixed 28px `.attr-badge-outline` box that always
-renders regardless of whether a class icon fills it). Whoever builds this
-still-unbuilt spec needs to re-derive the tap-target/fallback details
-below against the current 28px badge shape, not the sizes/rules quoted
+**Re-derived 2026-08-10** (resolves the 2026-07-24 flag below): WO Record
+View's Equipment icon is now a 44px `.attr-badge-photo` tile (filled
+gradient, up from the 28px `.attr-badge-outline` box shared with Type/
+Priority) — big enough to actually read as a photo slot, per this
+section's own original concern. No real photo *storage* exists in this
+prototype — `EQUIP_PHOTO_DEMO_URL` (`eam-shared.js`) is a placeholder-
+image-service URL standing in for "a real photo on file" (this demo's own
+Equipment, 00067333 Pump Centrifugal, carries it via
+`RECORD.equipment.photoUrl`), with an embedded SVG data-URI fallback
+(`img.onerror`) so the viewer never shows a broken image if the network
+is unavailable — this app otherwise assumes offline is the normal case.
+Equipment Record View's own header icon slot (the 2nd consumer below) is
+untouched by this pass, still open.
+
+**Flagged 2026-07-24, resolved 2026-08-10 above:** this section's WO
+Record View consumer used to still assume the old standalone
+`.equip-summary-card`/40px icon and its "no photo, no class icon → no
+icon at all" fallback — both superseded by §15.5's 2026-07-24 change
+(Equipment rolled into the Header Fields grid). The re-derivation above
+is against the grid's current badge shape, not the sizes/rules quoted
 here.
 
 New named component, raised this session, not yet prototyped in either
@@ -1036,32 +1050,47 @@ drop back to; what it shows with neither a photo nor (whatever, if
 anything, ends up gating an icon there) is an open question, not answered
 here.
 
-**Populated state — tap opens a pop-out preview, not the Equipment
-Lookup sheet.** A full-image pop-out reusing §19.6's full-screen
-viewer-sheet shell (a real image here, not a coloured placeholder, since
-this is an actual per-record photo) with one action added: **Edit**,
-which opens the exact same attachment source-picker sheet Attachments
-already uses (§19.6 — Camera / Photo library / File or document) to take
-or choose a replacement photo; committing replaces the stored photo and
-updates the icon immediately. This is a new variant of the §19.6 viewer
-shell, not a verbatim reuse — the existing viewer's action is Remove,
-this one needs Edit instead. Whether Remove should also be offered here
-is open, not decided.
+**Populated state — tap opens a pop-out preview, built 2026-08-10 as its
+own new shared component (`.photo-viewer-overlay`, eam-shared.css/.js),
+NOT a §19.6 reuse after all** — a genuine full-screen overlay (not a
+bottom sheet), close **top-left** (`.photo-viewer-close`, direct
+instruction — deliberately not `.qr-scan-overlay`'s own top-right close,
+the two are allowed to differ), a plain `<img>` filling the body, and a
+single **Modify** button pinned at the bottom (`.photo-viewer-modify-
+btn`, always light-filled regardless of app theme, since this overlay's
+own backdrop is always near-black like `.qr-scan-overlay` — the ordinary
+`.btn-contained` dark fill would nearly disappear against it). Modify
+reopens the same source-picker sheet the empty state uses (below) —
+one sheet, two entry paths, not two components. **Long-press is
+deliberately unhandled** — a real `<img>` with no `oncontextmenu`/touch
+override lets the OS's own native context menu (Share/Copy/Save, etc.)
+fire for free; don't add a custom long-press handler here, it would only
+ever make this worse. Remove is not offered here (unlike §19.6's own
+viewer) — not decided against, just not asked for.
 
 **Empty state — tap goes straight to the source-picker, skipping the
 preview.** Nothing to preview yet, so tapping an icon with no photo set
-opens the same §19.6 source-picker sheet directly, to set a first photo —
-same shortcut logic as any other unset-required-field tap, just without
-an intermediate empty-preview step.
+opens `#equipPhotoSourceSheet` directly (Camera / Photo library / File or
+document — reuses the already-shared `.source-option*` markup/CSS §19.6's
+own Attachments picker uses, not a new visual pattern) to set a first
+photo — same shortcut logic as any other unset-required-field tap, just
+without an intermediate empty-preview step. Picking any source in this
+prototype always resolves to the same `EQUIP_PHOTO_DEMO_URL` (same
+convention as `simulateQrScan()`), via a screen-supplied `equipPhotoOnSet`
+hook (`eam-shared.js`) — a screen that never defines this hook (Insert
+Mode, today) gets an honest "coming soon" toast instead of a false
+"✓ Photo updated."
 
-**Tap-target carve-out, WO Record View specifically:** `.equip-summary-
-card` is currently one uniform tap target — tapping anywhere on the card
-opens the Equipment Lookup sheet (§15.5). This adds a second, smaller tap
-target: the icon itself, which now intercepts the tap for photo
-preview/edit instead. Tapping anywhere else on the card is unchanged.
-Same "separate controls so browsing one thing never collides with a
-different action" precedent already set by the Structure tab's
-text-vs-caret disambiguation (§15.5).
+**Tap-target carve-out, built 2026-08-10 inside `equipSummaryCardHTML()`
+itself (eam-shared.js), not screen-local:** the Equipment `.attr-item`'s
+own tap still opens the Equipment Lookup sheet (§15.5); the badge/icon
+now carries its own `onclick` (`openEquipPhotoTap()`, `stopPropagation()`)
+that intercepts the tap for photo preview/set instead. Because this lives
+in the shared function both WO Record View and Insert Mode call, both
+consumers get the carve-out automatically — no per-screen wiring beyond
+the `equipPhotoOnSet` hook above. Same "separate controls so browsing one
+thing never collides with a different action" precedent already set by
+the Structure tab's text-vs-caret disambiguation (§15.5).
 
 # 8. Standard Model — Record View › Child Tabs
 
@@ -2178,6 +2207,147 @@ Screen Designer's own UI (§10), with its new WO Type selector, is the only
 authoring surface — no separate "Screen Designer tab" sub-surface, no
 second emulator.
 
+## 13.1 Conditional field rules — evaluation model
+
+**Status: analysis only, added 2026-08-10. Nothing in §13.1–§13.4 is a
+locked decision** — no table shape, column name, or tier is committed, and
+none of it is built. It exists so the question "can this foundation carry
+field-level conditions later" has a recorded answer instead of being
+re-derived. Tracked as open in §20.
+
+The question: extend the WO-Type layout mechanism into genuinely dynamic
+per-field behavior — *if field X is Y, make Z required; if X is Y, surface
+another tab/step.*
+
+**Why this is a different evaluation model, not a bigger table.** Every
+configuration key in §11–§13 resolves **before the record renders**:
+`R5PAGELAYOUT` on `PLO_PAGENAME` × `PLO_USERGROUP` × `PLO_WOTYPE`, the WO
+Workflow header on WO Type × User Group, WO Workflow Steps on WO Type ×
+User Group × Step. All three are functions of *who is looking* and *what
+kind of record it is* — nothing in the key can change while the technician
+is on the screen. That's why the whole thing is a pure lookup with a
+blank-row fallback cascade, costs nothing at runtime, and is offline-safe
+for free. A conditional rule moves a **mutable record value into the key**:
+resolve-once becomes resolve-on-every-change, and layout stops being
+configuration and becomes derived state. That shift, not the table design,
+is the actual decision.
+
+**The existing model is a sound base — don't redo it.** Three properties
+already hold:
+
+1. **The effect vocabulary is already correct.** Screen Designer's
+   Required/Protected/Optional/Hidden/Not Available (§10) is exactly the
+   output alphabet a rule needs. A rule should never invent new behavior —
+   it flips a field from one already-declared state to another. Base layout
+   = default state, rules = deltas over it.
+2. **The fallback cascade already exists.** `R5PAGELAYOUT`'s blank-key
+   fallback (§13) means a narrower key is additive — rows that don't
+   specify the new dimension keep working unchanged.
+3. **A dynamic-insertion precedent already exists and works.** Activity
+   Checklist's follow-on item insertion (§16.5) *is* "field X is Y,
+   therefore more work appears." Generalize that pattern rather than
+   inventing a second one.
+
+## 13.2 Conditional field rules — option ladder
+
+Four tiers, escalating capability. Each names what base-product paradigm it
+leans on, since aligning with base EAM rather than inventing an engine is
+the constraint (§11's "extend Screen Designer, don't build a new admin
+screen").
+
+**Tier 1 — widen the composite key; no engine at all.** Add another
+dimension to `R5PAGELAYOUT` alongside `PLO_WOTYPE` (Class, or Status),
+declare a small closed set of *layout-driving fields*, and re-run the same
+lookup when one changes. Base precedent is strong and already live in this
+app: **Custom Fields are keyed Class + Organization** (§22) — record-value-
+derived configuration resolved by lookup, no rule engine. Buys equality-on-
+declared-key cases ("Breakdown + Electrical Class shows these fields").
+Costs: row count multiplies per dimension, no operators (`>`, `is not
+null`), realistically caps at 2–3 extra dimensions.
+
+**Tier 2 — a declarative condition table.** The real answer for the stated
+requirement. A new sibling table keyed the way the others key themselves
+(natural composite, §12): `(Page, WO Type, User Group, Sequence)` →
+`Trigger Field, Operator, Value, Target Kind, Target, Effect`. Evaluated
+client-side on field change. Three constraints are what keep it
+serializable, offline-evaluable, and comprehensible to whoever configures
+it — they are the point of the tier, not incidental:
+
+- predicates over **same-record fields only** — no cross-entity lookups, no
+  SQL, no scripting;
+- effects drawn **only** from the existing layout vocabulary (§13.1 item 1),
+  plus step `Visible`, which WO Workflow Steps already carries as a column
+  (§12 tier 2) — so "pop off another tab" needs no new concept;
+- ordered by `Sequence`, single pass, no rule-triggering-rule cascades
+  (termination and ordering stay trivially provable).
+
+Authoring surface is Screen Designer — right-click a field → *Add
+Condition*, alongside the existing Required/Protected/Optional/Hidden/Not
+Available right-click menu (§10). No new admin screen, consistent with §11.
+
+**Tier 3 — status-driven, server-authoritative.** When a condition depends
+on data the device cannot see — approval limits, another user's action,
+cost thresholds — it cannot live client-side at all. Base EAM already
+supplies the paradigm: **status transitions authorized per User Group**,
+which §12 already leans on for the header's status-source columns. Model
+these as gates on *status change*, not on field edit, and let the server
+own them. The rejection path already exists: sync trouble-field surfacing
+(§4.4) is the right landing spot for a server-side rule refusing a record
+that was accepted offline.
+
+**Tier 4 — expression/script hooks.** The escape hatch base EAM provides
+via add-ins/user exits. Record where it would plug in; don't build it. An
+on-device interpreter breaks the "rules are data you can sync" property
+that makes Tiers 1–2 safe offline.
+
+## 13.3 Conditional field rules — prerequisites
+
+Cheap now, expensive later. Items 1–2 are worth doing independent of
+whether any tier is ever built — they are refactors of what already exists.
+
+1. **Introduce a single resolution seam.** Today layout facts are read
+   directly at each point of use — `ENTITY_FLAT_FIELDS[currentEntity]
+   [currentTypeVariant()]` in `eam-shared.js`, and required/protected
+   hardcoded inline across the record views. Every screen is its own
+   consumer of the layout table. If all of them resolved through one
+   `resolveFieldState(field, context)` — where `context` is a single named
+   object (entity, Type, Class, Org, User Group, Status, **and the record's
+   current values**) — then static → conditional is one function in one
+   file. Without the seam it is a retrofit across every screen, and that
+   cost is what kills the feature. **This, not the table design, is the
+   real foundation question.**
+2. **Separate *declared* state from *effective* state.** A field has a base
+   state from layout and an effective state after rules, and both must stay
+   distinct — otherwise you cannot revert cleanly when a trigger flips
+   back, cannot explain to the technician why a field just became required,
+   and risk writing rule output back as though it were configuration.
+3. **Name which gate `Required` feeds.** There are three and they are not
+   interchangeable: required-at-save, required-at-step-completion (WO
+   Workflow Steps already has its own `Required` column driving §14.7's
+   bar-locking), and required-at-status-change. "Make Z required" is
+   ambiguous across all three; a rule row has to say which. Deciding late
+   means re-keying the table.
+4. **Field effects and step/tab effects are not the same mechanism.** Do
+   not merge them. Flipping a field to Hidden is stateless and reversible —
+   recompute freely. Flipping a step to hidden is a **data** problem: that
+   step may already hold booked labor or issued parts, or already be
+   marked complete, and un-hiding one the technician has passed has no
+   defined meaning. Step-level rules should therefore **add** rather than
+   retract — the shape §16.5's follow-on insertion already uses.
+5. **Version the ruleset against the offline payload.** Pin a ruleset
+   version to the downloaded record set and send it back on sync, so the
+   server can flag a record validated against stale rules rather than
+   silently accepting it. Consistent with §2's hydration model.
+
+## 13.4 Conditional field rules — verification owed
+
+Before committing to any table design: check `docs/Data_refs/Page Layouts
+perms/` for condition-shaped columns already present in this customer's
+real export. §11 established that nothing native carries a WO Type
+dimension, but that audit did not ask whether base EAM ships a named
+conditional-field-rules feature — worth confirming, so a Tier 2 table
+extends the base product rather than duplicating something already in it.
+
 # 14. WO Workflow — Runtime Shell
 
 **Navigation & Guided Workflow**
@@ -2648,12 +2818,20 @@ not back-arrow), not the old read-only "View full record" stub (§21).
 ordinary full-width `.attr-item` inside the SAME grid as Type/Priority
 (WO Record View) or Type/Status (WO Insert Mode) — first row, spanning
 both columns, same double-wide trick Notes/Long-text use elsewhere in a
-grid (§5.2). Content: a 28px `.attr-badge-outline` icon (same size/style
-as Type/Priority's own badge, always shown even with no class icon to
-fill it) + a description-over-code `.attr-lov-stack` (§5.2's Grid LOV
-stack order). No Type line — it added no identifying value in a grid
-cell. Class/Category aren't shown on this screen — still visible via the
-Equipment Lookup sheet's Search results and Structure tree.
+grid (§5.2). **Equipment LOV is required to be double-wide (full-width)
+in the grid fields** — its photo tile + Route/MEC pill (below, and §16.9)
+need the room a single-width grid cell doesn't have; this whole richer
+treatment does not occur if Equipment is ever positioned single-width in
+a grid, or anywhere outside the grid-fields paradigm entirely (neither
+case exists in either real consumer today, both are always full-width,
+but a future Screen Designer layout must not assume the treatment travels
+with the field regardless of placement). Content: a 44px
+`.attr-badge-photo` tile (§7.5, re-derived 2026-08-10 — was a 28px
+`.attr-badge-outline` icon matching Type/Priority's own badge) + a
+description-over-code `.attr-lov-stack` (§5.2's Grid LOV stack order).
+No Type line — it added no identifying value in a grid cell. Class/
+Category aren't shown on this screen — still visible via the Equipment
+Lookup sheet's Search results and Structure tree.
 
 **Equipment is always required** — the row carries `.attr-item.required`
 unconditionally, like any other business-required grid field, not just
@@ -2669,11 +2847,14 @@ surrounding `.attr-item`. The one remaining difference: the row's
 `onclick` calls `openEquipmentLookup(key)` (statically written, like any
 other field's `onclick`) instead of the generic `openLov(key)`.
 
-**Icon-as-photo-slot (§7.5) is still unbuilt** — its spec assumed the old
-40px standalone icon as the tap target; that target is now the 28px
-`.attr-badge-outline` box shared with Type/Priority, worth re-checking
-before §7.5 is built (a badge that small may not read well as a photo
-thumbnail).
+**Icon-as-photo-slot (§7.5) — badge sizing/placement built 2026-08-10,
+the tap-to-preview/edit interaction itself still isn't.** The icon is now
+a 44px `.attr-badge-photo` tile, not the 28px `.attr-badge-outline` box
+shared with Type/Priority — big enough to read as a photo thumbnail, the
+concern this note originally flagged. Tapping it still just opens the
+Equipment Lookup sheet along with the rest of the row (§7.5's own
+carved-out 2nd tap target — icon opens photo preview/edit, separate from
+the row's Equipment Lookup — is not wired up yet).
 
 **Picker — two tabs in one full-screen sheet:**
 
@@ -2799,13 +2980,14 @@ Top to bottom, per focused item:
    inline-text example (§5.2): a `.form-field` with a
    `.field-inline-input` textarea, 255 chars, auto-grow. Not hidden
    behind a tap-to-expand trigger.
-7. **Equipment** (only on an equipment-scoped item) — a plain, always-
-   visible `.form-field.protected` row, code + description, same shape
-   as any other protected field in the app — equipment context for the
-   item being answered should never require a tap to see. Different
-   component from the checklist's older `.item-equip` badge (retired
-   with v1) and unrelated to Insert Mode's Equipment LOV (§9.3) — this
-   one is read-only and scoped to one checklist item.
+7. **Equipment** (only on an equipment-scoped item) — **superseded
+   2026-08-10, see §16.8**: now a muted outlined chip (`.focus-equip-chip`)
+   above the item label, the very first thing rendered, rather than a
+   `.form-field.protected` row below the answer control. Still read-only,
+   still scoped to one checklist item, still unrelated to Insert Mode's
+   Equipment LOV (§9.3) — only the shape/position changed. Equipment
+   context for the item being answered should never require a tap to
+   see; that rule survives, the component implementing it doesn't.
 8. **Comments** and **Documents** (`.rv-section`/`.rv-toggle-row`/
    `.rv-collapse`) — real per-item containers, reusing the exact shared
    §7.2 data-driven pattern (`renderCommentsExcerptMount()`/
@@ -2897,6 +3079,197 @@ list, not completing requirements while still browsing, is what
 triggers it now. If you reach the last item with required items still
 outstanding, "Next" reads "Finish" and just toasts "Complete all
 required items first" rather than showing the prompt bar.
+
+## 16.7 Task Plan Instructions — pre-checklist screen (added 2026-08-10)
+
+A **task plan** (the admin-configured object a checklist is generated
+from) can carry its own free-text/HTML instructions, separate from any
+individual item. When present, they render as a one-time screen shown
+*before* item 1 — `showingInstructions` state in the prototype, checked
+first thing in `renderFocus()`/`renderStepperHead()`. This is a different
+concept from §16.2's retired per-*item* Instructions field (still gone,
+still not reintroduced) — this one is per-*task-plan*, shown once, ahead
+of the whole checklist, not attached to any single item.
+
+- **Not editable** — read-only, potentially-HTML content, no add/edit
+  affordance. Reuses the exact §7.2 Comments card shape (`.comment-item`/
+  `.comment-header`/`.comment-text`) rather than new chrome — "the same
+  paradigm as a single comment" — just swaps the author/time/ellipsis for
+  a label + a muted "Not editable" tag.
+- **Label — "Task Instructions"** (renamed 2026-08-10, was "Task Plan
+  Instructions" on the card / plain "Instructions" on the stepper-head and
+  "View all" row — all 3 now read identically).
+- **Navigation** — the stepper's Prev/Next nav treats it as a real step:
+  Next reads "Start Checklist" and advances to item 1; Prev from item 1
+  returns to it (only skipped entirely if a task plan has none). It also
+  gets its own row at the top of "View all" so it stays reachable after
+  moving on.
+- **Stepper-wide rail** — while showing, the group-name reads "Task
+  Instructions" and the `Item X of Y` counter is blank (it isn't item 0
+  and doesn't change that denominator).
+- Skipped entirely — no row, no screen — when a task plan has no
+  instructions configured (`TASK_PLAN_INSTRUCTIONS` empty).
+
+## 16.8 Equipment context chip + "View all" grouped by Equipment (added 2026-08-10)
+
+Raised alongside the Route → Multiple Equipment Child (MEC) exploration
+(mockups in `prototypes/standalone/mockups/route-multiple-equipment-
+mockups.html`, still open — see §16.9): a Route-driven checklist can carry
+one equipment-scoped item *per equipment on the Route*, which makes an
+item's own equipment identity, and the ability to scan/jump by it, matter
+more than they did for a single-equipment WO. Both changes below apply
+regardless of whether the checklist actually came from a Route — chosen
+from mockup options, promoted into the real file.
+
+- **Equipment context chip** (`.focus-equip-chip`, supersedes §16.2 item
+  7's `.form-field.protected` row) — a muted outlined chip, wrench icon +
+  mono code + description, rendered first — above the dynamic-provenance
+  tag, above the label — on any equipment-scoped item. This revisits a
+  previously-locked call (§16.2's own history: a dark identity-banner and
+  a collapsible-section treatment were both tried and rejected during the
+  v2 rebuild); the chip is deliberately neither of those two rejected
+  shapes.
+- **"View all" grouped by Equipment** (`#overviewOverlay`) — a segmented
+  toggle (`.ov-seg-wrap`, "Group by Step" | "Group by Equipment") sits
+  below the dataspy/search bar (added 2026-08-10, below) and above the
+  grouped list. **Step** groups by `GROUP_NAMES`/`it.group`. **Equipment**
+  groups by `it.equipId` instead, in first-seen `ITEMS` order (not
+  alphabetical, so equipment appear in the order the Route actually lists
+  them), plus a `General` bucket for items with no `equipId`. Both modes
+  share one row renderer (`ovItemRowHtml()`) so dynamic-item indent/
+  branch-cue/ghost-row behavior (§16.5) can't drift between them.
+- **Unified group header (2026-08-10)** — the two modes' headers used to
+  look meaningfully different (Step: a plain thin muted label strip, not
+  collapsible; Equipment: a heavier bordered card with a code/description
+  stack, a done/total badge, and a collapse chevron) — flagged by the
+  user as a real mismatch. Resolved with one shared renderer
+  (`ovGroupHeaderHtml()`): **Step's own thin/plain visual style**, kept as
+  the base, **plus Equipment's own done/total badge and collapse
+  chevron**, now on *every* group in *either* mode — Step groups are
+  collapsible and badged too now, not just Equipment's. Collapse state
+  (`overviewCollapsedGroups`, one `Set` for both modes, keys mode-prefixed
+  — `step:main` / `equip:A-00067333` — so the two modes' own raw keys can
+  never collide) persists across mode switches and filter/search changes
+  made *while the sheet is open*. **`openOverview()` itself recomputes it
+  fresh on every open** (`computeDefaultOverviewCollapse()`, direct
+  instruction, 2026-08-10): only the group the currently-focused item
+  (`ITEMS[cursor]`) belongs to starts expanded, every other group in
+  *both* modes' key spaces starts collapsed — so switching Group-by mode
+  right after opening still shows exactly one expanded group (the current
+  item's own) with no extra logic needed at the mode switch itself.
+- **Dataspy filter + search (2026-08-10)**, above the Group-by toggle —
+  raised together with a real ask that this behave like a standard §8.3
+  List Search Screen, while the checklist's own content (grouped,
+  collapsible, jump-to-item rows with status dots/badges/required
+  markers/dynamic ghost rows) stays fundamentally non-standard. Several
+  gotchas fell out of reconciling the two, worth restating since they
+  drove real implementation choices, not just cosmetics:
+  - **Dataspy is a real filter, dressed as a dataspy.** "All Checklist
+    Items" / "Uncompleted checklist items" (`overviewDataspy`) is
+    functionally a 2-state done/not-done filter — it reuses the app's
+    real shared `.ds-bar` pill (§8.3, same component WO List/Equipment
+    List use) purely for visual consistency, opening a small sheet of
+    `.lov-option` rows, not the full dataspy-picker sheet (no favorite-
+    star or distinct-underlying-query concept applies to a fixed 2-option
+    toggle).
+  - **Search is icon-triggered, not always-visible — a deliberate
+    divergence from every other §8.3 consumer**, which shows its search
+    bar inline, always. Flagged, not resolved either way: this header
+    already stacks Instructions (§16.7) + dataspy/search + Group-by
+    before any real content, and an always-visible bar would add a 4th
+    permanent row. Revisit if that stack proves too tall in practice.
+  - **Group-emptying rule** (`buildStepGroupedBody()`/
+    `buildEquipmentGroupedBody()`) — same precedent as §8.3's own "cards
+    drop a null row entirely": a group with zero rows matching the active
+    filter/search doesn't render at all, badge and all, rather than
+    showing an empty header over nothing.
+  - **Badges always show true totals, never the filtered count** — a
+    group's `done/total` badge reflects real progress regardless of
+    what's currently hidden by the filter/search; showing a filtered
+    subset's own count there would misrepresent actual completion.
+  - **Ghost rows (§16.5) follow their trigger, not their own filter
+    match** — a ghost isn't a real `ITEMS` entry, so it's never run
+    through `itemMatchesFilter()` itself; it shows or hides purely based
+    on whether its *trigger* item passed the filter (a filtered-out
+    trigger takes its ghost preview with it).
+  - **Search matches item label text only** — not equipment code/
+    description, even under Group by Equipment. Judgment call, not
+    exhaustively decided: matching equipment metadata too could make a
+    result appear under a group whose own visible text doesn't contain
+    the typed term, which seemed more confusing than useful, but worth
+    revisiting if real use shows otherwise.
+
+## 16.9 Route / Multiple Equipment Child (MEC)
+
+Real EAM functionality: populating a Route LOV on a WO, post-insert, adds
+every piece of equipment on that Route into the WO's own Equipment tab,
+and spins up one child WO per equipment (WO Type "Multiple Equipment
+Child"), each child's own Parent WO field set to the parent's WO number.
+§16.8 above (checklist chip + "View all" toggle) and the Equipment-field
+indicator below are both now real, promoted out of
+`prototypes/standalone/mockups/route-multiple-equipment-mockups.html`
+and `record-photo-section-equipment-and-profile-options.html`. Only the
+Equipment-photo/Profile-Picture linkage those mockups also explored
+remains open (last bullet).
+
+- **The WO Record View Equipment field itself, built 2026-08-10, wired to
+  a real Route LOV 2026-08-10** — confirmed **not** replaced or
+  repurposed by Route: Equipment stays exactly what it is today (§15.5),
+  a single required value, set independently of Route. **Route is a real
+  optional LOV field** (`fieldRowLov('route', false)`), its own row in
+  Work order details (below Problem Code, NOT in the Header Fields grid —
+  a different field from Equipment, even though it drives Equipment's own
+  pill). `LOV_DATA.route` seeds 2 demo options, `Pumps`/`Fire
+  Extinguishers`, each carrying an invented `equipmentCount` (24/156) —
+  screen-local flavor data, not consumed by the generic LOV machinery,
+  only read by `LOV_ON_SELECT.route` to set `RECORD.equipmentTabTotal`.
+  Alongside Equipment, inside the same full-width `.attr-item`, a pill
+  (`.equip-route-pill`, `renderEquipRoutePill()` in
+  `eam-wo-record-view-prototype-v1.html`):
+  - `RECORD.route` set → **"Route: `<code>` - `<description>`"**
+  - `RECORD.route` unset but `RECORD.equipmentTabTotal > 1` (an MEC
+    parent whose equipment arrived some other way, not via Route) →
+    **"Multiple Equipment"**
+  - Neither → no pill at all (the ordinary single-equipment case, and
+    every WO's real default — "default all WO's to have route empty,"
+    direct instruction).
+  Tapping the pill **always** jumps to the Equipment tab
+  (`goToEquipmentTab()`) regardless of which text is showing — that tab
+  doesn't exist as a real screen yet, so this is a toast stub for now,
+  same convention as Print Work Order/camera scan elsewhere. That tab's
+  own list can run into the hundreds, which is exactly why it's a deep
+  link and not an inline list/expand/sheet (every option the first
+  mockup pass tried assumed a handful of equipment and was rejected for
+  this reason).
+  **Commit timing (real EAM behavior, not modeled by a real server
+  here):** selecting/clearing Route only updates the pill locally,
+  optimistic-UI style, the instant it's picked. The actual transaction —
+  adding every one of the Route's equipment to the Equipment tab, and
+  spinning up its child WOs — only commits once the technician actually
+  **leaves this screen**, which tapping the pill itself also counts as
+  (it navigates away, same as any other exit). Clearing Route does
+  **not** retroactively remove equipment already committed to the tab —
+  `equipmentTabTotal` is deliberately left untouched by
+  `LOV_ON_CLEAR.route`, so a since-cleared Route correctly falls through
+  to the "Multiple Equipment" pill state rather than losing the signal
+  entirely.
+- **Equipment's own "photo"** — the Framed Record Card direction (chosen
+  from `record-photo-section-equipment-and-profile-options.html`) folded
+  into §7.5's existing Equipment Photo spec instead of becoming a new
+  standalone section: Equipment's grid badge grew from 28px→44px
+  (`.attr-badge-photo`, filled tile) specifically so it reads as a photo
+  slot, not a status icon — see §7.5/§15.5. **This is Equipment-only** —
+  a literal photo of the physical asset (a truck, pump, compressor),
+  same concept as the nav Avatar (§4.3) but different data on a different
+  record, never conflated with it. **Equipment stays in the grid fields**
+  — not pulled into a separate section/card outside that paradigm (§15.5's
+  double-wide-required rule covers why). **Profile Picture** (viewing/
+  setting the tech's own avatar photo, today a tiny nav-bar icon that
+  "adds no real value on mobile") is a **separate, still-fully-open**
+  problem — floated alongside Equipment's photo purely because the two
+  seemed like they might share a component shape; not resolved, not
+  scoped, nothing promoted for it. The Hero Photo Header / Compact Row +
+  Expand Sheet directions in the same mockup file were not chosen either.
 
 # 17. WO Workflow — Step 3: Issue Parts
 
@@ -3456,6 +3829,7 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **Booked Labor's Correction sheet content is hardcoded demo data** | The always-ready red Save button is intentional (§18.6), but the sheet's employee/hours-type/department/trade/duration values are fixed demo constants, not technician-entered. |
 | **Booked Labor List has no defined sort/grouping rule** | Rows render in pure insertion order. Fine at today's scale; flag if this list needs to hold more in a real deployment. |
 | **Shared `showToast()`'s actual duration contradicts §3.4's locked spec** | §3.4 "Toast style" locks "2.4s auto-dismiss," but `eam-shared.js`'s real `showToast()` (line 42) auto-dismisses at 1800ms. Found 2026-07-31 while migrating WO List's local 2400ms toast onto the shared one (§21) — that migration exposed the drift but didn't cause it; it's pre-existing and already affects every screen already on the shared toast (Home, Equipment List, WO Record View, etc.), not just WO List. Not fixed here since changing the shared timeout changes behavior app-wide — needs its own decision (bump the shared value to 2400ms, or relax the doc's locked spec to match reality). |
+| **Conditional field rules — no tier chosen, nothing built** | §13.1–§13.4 records the evaluation model, a 4-tier option ladder, and 5 prerequisites for field-level conditions ("if field X is Y, make Z required / surface another step"). Analysis only as of 2026-08-10 — no table shape or tier is locked. Two prerequisites are worth doing regardless of whether any tier ships: the single `resolveFieldState(field, context)` seam (§13.3 item 1) and the declared-vs-effective state split (item 2). Also owed: the `docs/Data_refs/Page Layouts perms/` check in §13.4. |
 | **Equipment List's filter-chip sheet has no in-sheet search box** | §6.11 locks one as part of the List Search Screen standard ("search-within field, Clear, icon-tinted rows..., radio-style toggles, Apply") — WO List's own chip sheet has always had one (`filterCSRows()`/`#csSearch`, preserved through its 2026-07-31 shared-component migration, §21); Equipment List's copy of the same sheet (`#csSheet`) never got one. Found during that same migration; not fixed on Equipment's side here — scoped to WO List only. |
 
 # 21. Superseded Design Decisions

@@ -140,8 +140,23 @@ falls back to 20450.
   List); the workflow's activity gets Completed forced true and its
   Activity #/Notes line renders with a strikethrough (§15.2/§19.7).
   Equipment field uses the shared Equipment Lookup popup (Search +
-  Structure tabs, §15.5) — the same component Insert Mode uses. Type
-  field's badge carries the WO Type Colour + Icon Badge's solid fill
+  Structure tabs, §15.5) — the same component Insert Mode uses. Equipment's
+  grid badge is now a 44px photo-slot tile (`.attr-badge-photo`, §7.5/
+  §15.5 — was a 28px outline icon); tapping the tile itself (not the rest
+  of the row) opens a full-screen photo viewer (close top-left, single
+  Modify button, real `<img>` so native long-press Share/Copy/Save works
+  for free) when a photo's set, or the Camera/Photo library/File source
+  picker when it isn't — built shared in `eam-shared.css`/`.js`, only
+  wired up (`equipPhotoOnSet`) on this screen so far. A conditional
+  Route/MEC pill sits below the badge+value row (§16.9) — "Route:
+  `<code>` - `<description>`" when `RECORD.route` is set, "Multiple
+  Equipment" when it's an MEC parent without a route, tapping either
+  always jumps to the (not-yet-built) Equipment tab. Route itself is a
+  real optional LOV field now (Work order details section, 2 demo
+  options — Pumps/Fire Extinguishers), defaulting empty on every WO.
+  Equipment itself stays unaffected by any of this — still single,
+  required, stays in the grid fields (not pulled into its own section).
+  Type field's badge carries the WO Type Colour + Icon Badge's solid fill
   (§23.3) — the one field on this screen where that instrument shows as a
   full badge, not a dot. Header description opens the shared long-text
   editor's compact variant (`openDescEditor()`), not an inline edit —
@@ -151,10 +166,25 @@ falls back to 20450.
   (Prev/Next), not a scrolling list. Notes is a real always-visible field;
   Comments/Documents are real per-item containers; an item's answer can
   insert dynamic follow-on items (§16.5). No separate "Instructions"
-  field — an item's description is the only instructional text (see
-  `feedback_checklist_field_model` memory). The Yes/No prompt bar (§14.6)
-  only appears once the last item is reached with all required items
-  complete (§16.6).
+  field on an item — an item's description is the only instructional text
+  (see `feedback_checklist_field_model` memory). A *task plan's own*
+  instructions (a different, per-plan concept, §16.7) render as a
+  one-time, read-only, comment-card-styled screen before item 1 when
+  configured, labeled "Task Instructions" everywhere it appears
+  (renamed 2026-08-10) — "Start Checklist" advances past it, Prev from
+  item 1 returns to it. The Yes/No prompt bar (§14.6) only appears once
+  the last item is reached with all required items complete (§16.6). An
+  equipment-scoped item's own equipment identity is a chip
+  (`.focus-equip-chip`) above the label — supersedes the old low-emphasis
+  protected-field row (§16.2 item 7 → §16.8). "View all" has a
+  Step/Equipment group-by toggle (§16.8) — Equipment mode groups by
+  `equipId`, for checklists carrying one item per piece of Route
+  equipment (§16.9, still open/unresolved end to end) — both modes now
+  share one group-header component (thin/plain style + a done/total badge
+  + collapse chevron on every group, not just Equipment's), and a dataspy
+  filter (All/Uncompleted, real `.ds-bar` pill) + icon-triggered search
+  sit above that toggle (§16.8 — several filtering/search gotchas
+  recorded there, worth reading before touching this area again).
 - **Issue Parts** (§17): Store/Bin/Lot picking is screen-local (dynamic
   per-sheet options), reusing shared sheet/lov-option markup. Parts rows
   use the shared Action Row component (§17.4) — tap reveals a detail list
@@ -351,6 +381,17 @@ was the one screen missing it).
   work home" setup) for picking which quick actions surface, not yet
   located/named or built; candidate addition to the Screen Designer track
   (§10). Full detail in `design-decisions-v3-1.md` §9.4.
+- **Conditional field rules** — analysis written up 2026-08-10 in
+  `design-decisions-v3-1.md` §13.1–§13.4; **no tier chosen, nothing built,
+  nothing locked.** Field-level conditions ("if field X is Y, make Z
+  required / surface another step") would move a mutable record value into
+  a config key that today always resolves before render — a different
+  evaluation model, not a bigger table. The §11–§13 foundation holds up;
+  the two prerequisites worth doing regardless are a single
+  `resolveFieldState(field, context)` seam (screens read
+  `ENTITY_FLAT_FIELDS`/inline required-ness directly today) and a
+  declared-vs-effective field-state split. Read §13.1–§13.4 rather than
+  re-deriving the options.
 - **Activity Insert/Update Mode** — confirmed fully unbuilt (see
   `project_deferred_screens_backlog` memory).
 - **@mention tagging in Comments** — not built (see
@@ -369,6 +410,25 @@ was the one screen missing it).
 - Remaining per-screen conformance findings from earlier audits are
   tracked in `docs/design-decisions-v3-1.md` §20 — check there rather than
   re-auditing.
+- **Route → Multiple Equipment Child (MEC)** — mostly built now (§16.9),
+  2026-08-10. Real: the checklist's equipment-context chip + "View all"
+  Step/Equipment toggle (§16.8); WO Record View's real Route LOV field
+  (Work order details, 2 demo options, defaults empty on every WO) and
+  its Route/MEC pill next to Equipment ("Route: `<code>` -
+  `<description>`" or "Multiple Equipment," always jumps to the — still
+  not built — Equipment tab); and Equipment's photo — enlarged 44px
+  badge (§7.5/§15.5) plus a full-screen tap-to-view/Modify photo viewer
+  and Camera/Library/File source-picker (shared component, only wired up
+  on this one screen so far). Equipment itself stays untouched by any of
+  this — single, required, stays in the grid fields. **Still open:** the
+  separate **Profile Picture** problem
+  (viewing/setting the tech's own avatar photo — today's tiny nav-bar
+  icon "adds no real value on mobile") — floated alongside Equipment's
+  photo as a possible shared pattern, explored together in
+  `prototypes/standalone/mockups/record-photo-section-equipment-and-
+  profile-options.html`, but nothing promoted for it; Equipment's own
+  photo treatment ended up folding into §7.5 instead of becoming a new
+  shared component. Full detail in `design-decisions-v3-1.md` §16.9.
 
 ## Prototype conventions
 - Each prototype is one HTML file per screen, loading the two shared files

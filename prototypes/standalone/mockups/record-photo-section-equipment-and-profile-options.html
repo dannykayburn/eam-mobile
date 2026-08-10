@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Record Photo Section — Equipment + Profile Picture Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  RECORD PHOTO SECTION — EQUIPMENT + PROFILE PICTURE, EXPLORED TOGETHER.
+  RESOLVED 2026-08-10 for Equipment (design-decisions-v3-1.md §16.9/§7.5) —
+  Profile Picture stays open. Direct follow-up to route-multiple-
+  equipment-mockups.html's Section 1, which concluded none of its 4
+  options were right as drawn — the header Equipment field stays
+  single-value/required/unaffected by Route, and what actually shipped
+  there (§16.9) is a pill alongside it, deep-linking to the Equipment tab.
+
+  That reopened a bigger question, explored here: pulling Equipment out
+  of the flat grid-fields paradigm into its own dedicated section, with
+  room for things a plain grid field can't hold — and the user separately
+  floated a real photo/thumbnail component as one of those things, which
+  is also exactly what's missing for Profile Picture (today a tiny
+  nav-bar icon that "adds no real value on mobile"). User asked to
+  explore both together as one shared pattern rather than as two separate
+  mockups, then clarified: the photo idea was Equipment-only ("literally
+  a picture of a truck, pump, compressor") — Profile Picture was the
+  analogy that inspired it, not something to decide alongside it here.
+  **Outcome:** Equipment liked option 1 (Framed Record Card), but Equipment
+  did NOT move out of the grid fields after all — its "photo" folded into
+  §7.5's existing Equipment Photo spec instead (grid badge 28px→44px,
+  `.attr-badge-photo`), staying inside the same `.attr-item` alongside the
+  Route/MEC pill (§16.9). **Profile Picture remains fully open, not
+  scoped, nothing chosen for it** — this file is still the only reference
+  for it, kept below as-is.
+
+  3 shapes, applied identically to both contexts so they can be judged
+  side by side, not in isolation (Equipment resolved per above; Profile
+  Picture still open, unresolved, reference only):
+  1 — Framed Record Card: photo/icon tile + text block in one card, MEC
+      pill or camera-badge attached directly to it.
+  2 — Hero Photo Header: the photo becomes a large banner-style block,
+      caption/actions below it.
+  3 — Compact Row + Expand Sheet: today's small-footprint row stays on
+      the base screen; the photo + actions live in a sheet that opens
+      from it (shown here already "open," stacked below the row, rather
+      than as a real overlay — still a mockup, not a working sheet).
+
+  No real photo assets exist for either context — equipment gets a
+  generic equipment-silhouette icon standing in for "photo," Profile gets
+  an initials avatar. Equipment/Route sample data (A-00067333, Route
+  RT-1044, "214 Equipment" — an invented large count specifically to
+  make the "never render inline" constraint from the prior mockup visible)
+  carries over from route-multiple-equipment-mockups.html.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --green:#00AA14; --red:#E24B4A; --orange:#F46600; --teal:#007B87;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-nav:#1A1A1F; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:#fff;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:28px 12px 70px;}
+h1{font-size:18px;margin:0 0 4px;color:#fff;}
+.top-legend{max-width:560px;width:100%;color:#fff;font-size:12.5px;line-height:1.6;margin-bottom:26px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:14px 16px;}
+.top-legend b{color:#fff;}
+
+.pair-row{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;width:100%;max-width:900px;}
+.pair-col{display:flex;flex-direction:column;align-items:center;}
+.pair-title{font-size:12px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;}
+
+.frame{width:340px;height:600px;border-radius:38px;background:#000;padding:9px;box-shadow:0 20px 60px rgba(0,0,0,.5);position:relative;flex-shrink:0;}
+.screen{width:100%;height:100%;border-radius:30px;overflow:hidden;position:relative;background:var(--bg-page);display:flex;flex-direction:column;}
+.hdr{background:var(--bg-nav);flex-shrink:0;padding-top:20px;}
+.hdr-row{height:40px;display:flex;align-items:center;justify-content:center;padding:0 14px;}
+.hdr-title{color:#fff;font-size:13px;font-weight:700;}
+.body{flex:1;overflow-y:auto;padding:14px 0 24px;}
+
+.switcher{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap;justify-content:center;max-width:430px;}
+.switch-btn{font-size:11.5px;font-weight:700;color:#fff;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.2);border-radius:100px;padding:7px 13px;cursor:pointer;}
+.switch-btn.on{background:#fff;color:#111;border-color:#fff;}
+.opt-label{margin-top:12px;font-size:12px;color:rgba(255,255,255,.65);text-align:center;max-width:560px;}
+
+.section-card{margin:0 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.mono{font-family:var(--font-mono);}
+.section-label{font-size:11px;font-weight:700;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.04em;margin:0 14px 8px;}
+
+/* generic icon tiles standing in for "photo" (no real asset) */
+.icon-tile{border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:linear-gradient(135deg,#007B87,#00AA9E);color:#fff;}
+.avatar-circle{border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:linear-gradient(135deg,#9933FF,#C266FF);color:#fff;font-weight:700;font-family:var(--font-sans);}
+
+/* ═══ OPTION 1 — Framed Record Card ═══ */
+.o1-card-row{display:flex;align-items:center;gap:12px;padding:14px;}
+.o1-photo{width:56px;height:56px;}
+.o1-avatar{width:56px;height:56px;font-size:17px;position:relative;}
+.o1-cam-badge{position:absolute;bottom:-3px;right:-3px;width:22px;height:22px;border-radius:50%;background:var(--octave-black);border:2px solid var(--bg-card);display:flex;align-items:center;justify-content:center;color:#fff;}
+.o1-text{flex:1;min-width:0;}
+.o1-title{font-size:14.5px;font-weight:700;color:var(--octave-black);}
+.o1-sub{font-size:11.5px;color:var(--gray-4);margin-top:2px;}
+.o1-req{display:inline-flex;font-size:10px;font-weight:600;color:var(--red);border:1px solid var(--red);border-radius:999px;padding:2px 7px;margin-left:6px;vertical-align:middle;}
+.o1-mec-pill{display:flex;align-items:center;gap:6px;margin:0 14px 14px;padding:10px 12px;background:var(--bg-section);border:1px solid var(--border-strong);border-radius:10px;font-size:12px;font-weight:700;color:var(--octave-black);cursor:pointer;}
+.o1-mec-pill svg{flex-shrink:0;color:var(--gray-4);}
+.o1-mec-pill .count{margin-left:auto;color:var(--gray-4);font-family:var(--font-mono);font-weight:600;}
+
+/* ═══ OPTION 2 — Hero Photo Header ═══ */
+.o2-hero{position:relative;margin:0 14px 12px;border-radius:14px;overflow:hidden;height:130px;display:flex;align-items:center;justify-content:center;}
+.o2-hero-icon{width:64px;height:64px;}
+.o2-hero-cap{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.55));padding:24px 12px 10px;}
+.o2-hero-cap .t{color:#fff;font-size:14px;font-weight:700;}
+.o2-hero-cap .s{color:rgba(255,255,255,.8);font-size:11px;margin-top:2px;}
+.o2-hero-mec{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.92);color:var(--octave-black);font-size:10.5px;font-weight:700;border-radius:999px;padding:4px 10px;display:flex;align-items:center;gap:4px;}
+.o2-avatar-wrap{display:flex;flex-direction:column;align-items:center;padding:16px 14px 6px;}
+.o2-avatar{width:88px;height:88px;font-size:26px;position:relative;}
+.o2-cam-link{margin-top:10px;font-size:12.5px;font-weight:700;color:var(--teal);cursor:pointer;}
+.o2-name{font-size:15px;font-weight:700;color:var(--octave-black);margin-top:8px;}
+.o2-role{font-size:11.5px;color:var(--gray-4);margin-top:2px;}
+
+/* ═══ OPTION 3 — Compact Row + Expand Sheet ═══ */
+.o3-row{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;}
+.o3-avatar-sm{width:34px;height:34px;font-size:12px;}
+.o3-text{flex:1;min-width:0;}
+.o3-title{font-size:13.5px;font-weight:700;color:var(--octave-black);}
+.o3-sub{font-size:11px;color:var(--gray-4);}
+.o3-chev{color:var(--gray-4);flex-shrink:0;}
+.o3-sheet-label{font-size:10.5px;font-weight:700;color:var(--gray-4);text-transform:uppercase;letter-spacing:.03em;margin:16px 14px 8px;}
+.o3-sheet{margin:0 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px 16px;display:flex;flex-direction:column;align-items:center;}
+.o3-sheet-photo{width:96px;height:96px;font-size:28px;margin-bottom:12px;}
+.o3-sheet-title{font-size:14px;font-weight:700;color:var(--octave-black);}
+.o3-sheet-sub{font-size:11.5px;color:var(--gray-4);margin-top:2px;margin-bottom:14px;}
+.o3-sheet-actions{display:flex;flex-direction:column;gap:8px;width:100%;}
+.o3-sheet-btn{width:100%;padding:11px 0;border-radius:10px;font-size:13px;font-weight:700;text-align:center;cursor:pointer;border:1px solid var(--border-strong);color:var(--octave-black);background:var(--bg-section);}
+.o3-sheet-btn.primary{background:var(--octave-black);color:#fff;border-color:var(--octave-black);}
+.o3-sheet-btn.danger{color:var(--red);border-color:var(--red);background:var(--bg-card);}
+</style>
+</head>
+<body>
+
+<h1>Record photo section — Equipment + Profile Picture, explored together</h1>
+<div class="top-legend" style="border-color:rgba(143,227,143,.4);">
+  <b style="color:#8FE38F;">✓ Equipment side RESOLVED 2026-08-10</b> — option 1
+  (Framed Record Card) was the direction, but Equipment did NOT move out
+  of the grid fields: its photo/badge and the MEC pill both folded into
+  the existing Equipment `.attr-item` instead (design-decisions-v3-1.md
+  §7.5/§16.9), not a new standalone section. <b style="color:#FFD166;">Profile
+  Picture side is still fully open</b> — it was the analogy that inspired
+  exploring a photo component at all, not something decided alongside
+  Equipment; nothing below is chosen for it. Kept as reference only. No
+  real photo assets — equipment uses a generic icon tile, Profile uses an
+  initials avatar.
+</div>
+
+<div class="pair-row">
+  <div class="pair-col">
+    <div class="pair-title">Equipment section — WO Record View</div>
+    <div class="frame"><div class="screen">
+      <div class="hdr"><div class="hdr-row"><span class="hdr-title">WO Record View — 19257</span></div></div>
+      <div class="body" id="equip-body"></div>
+    </div></div>
+  </div>
+  <div class="pair-col">
+    <div class="pair-title">Profile picture — Account / nav</div>
+    <div class="frame"><div class="screen">
+      <div class="hdr"><div class="hdr-row"><span class="hdr-title">My Profile</span></div></div>
+      <div class="body" id="profile-body"></div>
+    </div></div>
+  </div>
+</div>
+
+<div class="switcher" id="switcher"></div>
+<div class="opt-label" id="opt-label"></div>
+
+<script>
+const EQUIP_ICON = `<svg viewBox="0 0 24 24" width="60%" height="60%" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`;
+const CAM_ICON = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>`;
+const MEC_ICON = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>`;
+const CHEV = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>`;
+
+function equipHtml(n){
+  if (n===1){
+    return `<div class="section-label">Equipment</div>
+    <div class="section-card">
+      <div class="o1-card-row">
+        <div class="icon-tile o1-photo">${EQUIP_ICON}</div>
+        <div class="o1-text">
+          <div class="o1-title mono">A-00067333 <span class="o1-req">Required</span></div>
+          <div class="o1-sub">Pump, Centrifugal — Rotating Equipment</div>
+        </div>
+      </div>
+      <div class="o1-mec-pill">${MEC_ICON}<span>Parent WO — Route RT-1044</span><span class="count">214 →</span></div>
+    </div>`;
+  }
+  if (n===2){
+    return `<div class="section-label">Equipment</div>
+    <div class="o2-hero" style="background:linear-gradient(135deg,#007B87,#00AA9E);">
+      <div class="o2-hero-icon" style="color:#fff;">${EQUIP_ICON}</div>
+      <div class="o2-hero-mec">${MEC_ICON} Parent WO · 214 →</div>
+      <div class="o2-hero-cap"><div class="t mono">A-00067333</div><div class="s">Pump, Centrifugal — Required</div></div>
+    </div>`;
+  }
+  return `<div class="section-label">Equipment</div>
+    <div class="section-card"><div class="o3-row">
+      <div class="icon-tile o3-avatar-sm">${EQUIP_ICON}</div>
+      <div class="o3-text"><div class="o3-title mono">A-00067333</div><div class="o3-sub">Pump, Centrifugal · Required</div></div>
+      <span class="o3-chev">${CHEV}</span>
+    </div></div>
+    <div class="o3-sheet-label">Sheet (opens on tap)</div>
+    <div class="o3-sheet">
+      <div class="icon-tile o3-sheet-photo" style="background:linear-gradient(135deg,#007B87,#00AA9E);">${EQUIP_ICON}</div>
+      <div class="o3-sheet-title mono">A-00067333</div>
+      <div class="o3-sheet-sub">Pump, Centrifugal — Rotating Equipment</div>
+      <div class="o3-sheet-actions">
+        <div class="o3-sheet-btn">View Full Photo</div>
+        <div class="o3-sheet-btn primary">${MEC_ICON} Go to Equipment Tab (214)</div>
+      </div>
+    </div>`;
+}
+function profileHtml(n){
+  if (n===1){
+    return `<div class="section-label">Profile</div>
+    <div class="section-card"><div class="o1-card-row">
+      <div class="avatar-circle o1-avatar">BC<span class="o1-cam-badge">${CAM_ICON}</span></div>
+      <div class="o1-text"><div class="o1-title">Bruce Campbell</div><div class="o1-sub">Field Technician · EMP-10432</div></div>
+    </div></div>`;
+  }
+  if (n===2){
+    return `<div class="section-label">Profile</div>
+    <div class="o2-avatar-wrap">
+      <div class="avatar-circle o2-avatar">BC</div>
+      <div class="o2-name">Bruce Campbell</div>
+      <div class="o2-role">Field Technician · EMP-10432</div>
+      <div class="o2-cam-link">${CAM_ICON} Change Photo</div>
+    </div>`;
+  }
+  return `<div class="section-label">Profile</div>
+    <div class="section-card"><div class="o3-row">
+      <div class="avatar-circle o3-avatar-sm">BC</div>
+      <div class="o3-text"><div class="o3-title">Bruce Campbell</div><div class="o3-sub">Field Technician</div></div>
+      <span class="o3-chev">${CHEV}</span>
+    </div></div>
+    <div class="o3-sheet-label">Sheet (opens on tap)</div>
+    <div class="o3-sheet">
+      <div class="avatar-circle o3-sheet-photo">BC</div>
+      <div class="o3-sheet-title">Bruce Campbell</div>
+      <div class="o3-sheet-sub">Field Technician · EMP-10432</div>
+      <div class="o3-sheet-actions">
+        <div class="o3-sheet-btn">View Full Photo</div>
+        <div class="o3-sheet-btn primary">${CAM_ICON} Take / Choose Photo</div>
+        <div class="o3-sheet-btn danger">Remove Photo</div>
+      </div>
+    </div>`;
+}
+const labels = {
+  1: 'Framed Record Card — photo/icon tile + text in one card. Equipment gets a full-width MEC pill underneath (only when Route is present) that deep-links to the Equipment tab; Profile gets a small camera badge on the avatar\'s own corner. Cheapest new chrome, closest to today\'s field shape, just bigger and photo-capable.',
+  2: 'Hero Photo Header — the photo becomes the dominant element (a banner for Equipment, a large centered circle for Profile), identity text as a caption below/inside it. Best for actually *seeing* a photo, but is a bigger footprint on both screens — Equipment\'s header would need to make room for it every time.',
+  3: 'Compact Row + Expand Sheet — the base screen keeps today\'s small footprint (one row); tapping opens a sheet holding the real photo + actions (View Full Photo / Go to Equipment Tab for MEC; Take-Choose-Remove Photo for Profile). Smallest on-screen cost, but the photo itself is one tap away rather than always visible.'
+};
+function render(n){
+  document.getElementById('equip-body').innerHTML = equipHtml(n);
+  document.getElementById('profile-body').innerHTML = profileHtml(n);
+  document.getElementById('opt-label').textContent = labels[n];
+}
+function show(n,btn){
+  render(n);
+  [...document.getElementById('switcher').children].forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+(function init(){
+  const sw = document.getElementById('switcher');
+  ['1 — Framed Record Card','2 — Hero Photo Header','3 — Compact Row + Expand Sheet'].forEach((t,i)=>{
+    const b=document.createElement('button'); b.className='switch-btn'+(i===0?' on':''); b.textContent=t; b.onclick=()=>show(i+1,b); sw.appendChild(b);
+  });
+  render(1);
+})();
+</script>
+</body>
+</html>
