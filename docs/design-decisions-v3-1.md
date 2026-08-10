@@ -1527,6 +1527,39 @@ per this section's scope note). Prototyped in isolation at
 `eam-card-standard-prototype-v1.html`, an active standalone reference file
 (not a throwaway).
 
+## 8.4 Which surface a button belongs on — Action Row vs. header ellipsis
+
+**Locked 2026-08-10 (direct instruction).** A general rule for placing any
+base-EAM link/action button on mobile, not specific to one screen. It
+replaces per-screen judgement calls, and the test comes from the base
+product's own behavior:
+
+- **If the button errors with "Record must be selected before performing
+  this action" when nothing is selected, it is row-scoped** — it acts on
+  one record in the grid. That makes it a candidate for the **Action Row**
+  (§17.4/§18.3): tap the row, it expands in place and transacts through its
+  own action button(s), no navigation.
+- **Every other button is a header action** — the ones that, 9 times out of
+  10, open a popup. These belong in the **vertical ellipsis at the top of
+  the screen**, and they stay header actions **even when they live on a
+  tab** rather than on the record's own header.
+
+Consequences worth stating, because they're easy to get wrong:
+- A tab's buttons are not automatically "tab actions." Being on a tab says
+  nothing about scope; only the selection test above does.
+- The ellipsis is therefore not just a leftovers drawer for Sort/View — it
+  is the real home of a screen's header actions, listed above the
+  list-level ones with a divider between.
+- The **Plus** stays what §8 already says it is (Insert Mode for this child
+  type) and is never used as a shortcut menu for header actions.
+
+Worked example: the WO Equipment tab (§16.10). Its base screen's Actions
+menu holds Add WO Header Equipment, Import Route Equipment, and Linear
+Location Details. None of them requires a selected row, so all are header
+actions and sit in that screen's ellipsis — not behind its Plus, which
+opens the multi-select Equipment LOV instead. (Linear Location Details is
+out of scope and excluded entirely.)
+
 # 9. Standard Model — Insert Mode
 
 There are two standards, not one — Insert Mode from a list/detail tab vs.
@@ -3241,18 +3274,36 @@ remains open (last bullet).
   link and not an inline list/expand/sheet (every option the first
   mockup pass tried assumed a handful of equipment and was rejected for
   this reason).
-  **Commit timing (real EAM behavior, not modeled by a real server
-  here):** selecting/clearing Route only updates the pill locally,
+  **⚠ SUPERSEDED 2026-08-10 — both the commit-timing and the
+  cleared-Route rules below were replaced by §16.10's real state model
+  (direct instruction). Kept here for the rationale trail only; see §21.**
+  ~~Commit timing: selecting/clearing Route only updates the pill locally,
   optimistic-UI style, the instant it's picked. The actual transaction —
   adding every one of the Route's equipment to the Equipment tab, and
   spinning up its child WOs — only commits once the technician actually
-  **leaves this screen**, which tapping the pill itself also counts as
-  (it navigates away, same as any other exit). Clearing Route does
-  **not** retroactively remove equipment already committed to the tab —
-  `equipmentTabTotal` is deliberately left untouched by
-  `LOV_ON_CLEAR.route`, so a since-cleared Route correctly falls through
-  to the "Multiple Equipment" pill state rather than losing the signal
-  entirely.
+  leaves this screen. Clearing Route does **not** retroactively remove
+  equipment already committed to the tab — `equipmentTabTotal` is
+  deliberately left untouched by `LOV_ON_CLEAR.route`, so a since-cleared
+  Route correctly falls through to the "Multiple Equipment" pill state
+  rather than losing the signal entirely.~~
+
+  **Pill restyled 2026-08-10** (direct instruction — "isn't looking very…
+  pilly," and the gray was muddy in light mode). It was a gray rounded-rect
+  filled with `--bg-section`. Now a genuine pill: full radius, `--bg-card`
+  fill with a 1.5px `--border-strong` edge and a soft shadow so it lifts off
+  the section instead of sinking into it, a **solid monochrome icon well**
+  (`.erp-icon` — same idea as `.ds-icon-w`, filled), the Route **code in
+  mono** as its own part rather than baked into one string (§3.4), and a
+  **count badge** showing how many equipment records sit behind it. Strictly
+  monochrome: this pill is navigation, not one of §23's colour instruments.
+
+  **What replaced it (§16.10):** selecting a Route commits **immediately** —
+  it inserts every piece of that Route's equipment into the shared WO
+  equipment store and mints one MEC child WO per row, parented to this WO.
+  Clearing the Route **does** remove that Route's rows (manual ones
+  survive). The pill is now a pure function of the stored rows — **rows
+  exist or there is no pill** — so a cleared Route can no longer leave a
+  stale "Multiple Equipment" behind, and `equipmentTabTotal` is gone.
 - **Equipment's own "photo"** — the Framed Record Card direction (chosen
   from `record-photo-section-equipment-and-profile-options.html`) folded
   into §7.5's existing Equipment Photo spec instead of becoming a new
@@ -3270,6 +3321,237 @@ remains open (last bullet).
   seemed like they might share a component shape; not resolved, not
   scoped, nothing promoted for it. The Hero Photo Header / Compact Row +
   Expand Sheet directions in the same mockup file were not chosen either.
+
+## 16.10 WO › Equipment tab
+
+Built 2026-08-10: `eam-wo-equipment-tab-prototype-v1.html`. Closes the
+stub §16.9 left behind — both entry points now navigate for real, through
+one shared function (`goToWoEquipmentTab()`, `eam-shared.js`) so they can't
+drift apart:
+- WO Record View's Route/MEC pill (`goToEquipmentTab()` → the shared
+  function), and
+- the step rail's Reference-group **Equipment** item
+  (`jumpToEquipmentStub()`, present on all 5 workflow screens, §14.8).
+
+**Its own file, not a section inside WO Record View** — §16.9's locked
+reason: this list runs into the hundreds (a Route carries 24/156 equipment
+in the demo data), so it's a deep link, never an inline list/expand/sheet
+on the record. It is **not** a member of `WO_STEP_FILES` either: a child
+tab of the WO, never a numbered/gated workflow step, so it must not appear
+in the step rail's own sequence.
+
+**But it IS part of the WO workflow shell, and keeps the step rail
+(corrected 2026-08-10, direct instruction).** The first build omitted the
+rail, treating this as a standalone screen — wrong. It's reached *from* the
+rail's own Reference group, and it has no bottom bar, so the rail is the
+only way back to Record View or any step; without it the screen is a dead
+end. The rail therefore sits above the dataspy bar exactly as on any step
+screen, with **no timer pill** (the timer belongs to the working steps,
+§14.2, not to a reference lookup).
+
+How the shared rail supports this — a real generalization, not a one-off:
+- `renderStepRail(workflow, activeStep, jobType, **activeRef**)` and
+  `renderFlatStepRail(activeStep, jobType, **activeRef**)` take a 4th
+  argument naming the Reference destination on screen. The collapsed rail
+  shows that destination's label ("Equipment"), the Reference row is the
+  one `.active` row, and the numbered step keeps its position/segments but
+  **loses** the highlight — the rail never shows two active rows.
+- `STEP_MAP_REFERENCE_GROUP_HTML` (a const string) became
+  `stepMapReferenceGroupHtml(activeRef)` so a Reference row can mark itself.
+- **Steps at or before the WO's position become real navigations** when
+  `activeRef` is set. The numbered rail is otherwise display-only (you move
+  via the bottom bar), which is fine on a step screen and a dead end on a
+  side screen. Future steps keep their locked toast on a gated workflow.
+- `woCurrentStep` is now tracked by both rail renderers, so
+  `goToWoEquipmentTab()` can record the WO's position
+  (`eamEquipTabOrigin`) without every caller restating a literal it already
+  passed. That origin also drives this screen's own Back button, so Back
+  returns to the step you actually came from rather than always Record View.
+
+**Conforms to §8 with no new components.** Header is §8.1's protected
+identity (the *parent WO's* number + its description rendered protected/
+non-editable, no status button, no pin) plus Plus/Search/Ellipsis. Body is
+the shared List/Detail shell (`renderListDetailShell()`) — dataspy bar +
+favourites, Detailed/List toggle, record count + sort, icon-triggered
+inline search — driven purely by `LIST_DETAIL_TABS` config.
+
+**Gotcha for the next child-tab screen built this way:** `eam-shared.css`
+hides `#listDetailHeader` by default (`display:none`) and only
+`.rec-header#listDetailHeader.active` shows it, because on Equipment Record
+View that header *alternates* with `#recHeader` and `goToTab()` toggles the
+class. A standalone child-tab screen has no tab rail and never calls
+`goToTab()`, so it must carry `active` in its own markup — otherwise the
+entire header (Plus, Search, Ellipsis, the parent identity) renders but
+stays invisible, which is exactly what happened here on first build.
+Related: `onRecContentScroll()`'s collapse-on-scroll only targets
+`#recHeader`, so this header stays pinned — correct for a list this long,
+since the actions must stay reachable.
+
+**Field set is the real base-EAM screen's own grid**, whose columns are
+exactly: Equipment, Description, Department, Equipment Org., Type, Related
+Work Order, WO Status. Two orders, deliberately:
+- **Detailed (card)** uses a mobile-first order so §8.3's card anatomy
+  lands on the right fields — **Status as the pill headline**, equipment
+  Description as the subline, Equipment / Type / Related Work Order as the
+  3 attribute rows, Equipment Org. as the corner badge. Department falls
+  outside the card's 6.
+- **List mode** uses the real grid's column order verbatim (§8.3 — List
+  mode shows every available field).
+- **Status is the EQUIPMENT's own status, and it is "Installed" on every
+  row** (direct instruction, 2026-08-10, prototype data) — deliberately
+  *not* the child WO's status, which this screen no longer models at all;
+  Related Work Order stays on the card as the identifier only. Rendered at
+  the **outline/steady pill tier**, not green: Installed is a steady-state
+  fact about the asset rather than an alert, and a column of identical
+  green pills would out-shout everything else on the card. Base EAM's 7th
+  grid column is WO Status; List mode carries this Status there instead.
+- Dataspies: **All Equipment** (the real one off the base screen), Route
+  Equipment, Without Work Order.
+
+**Buttons follow §8.4's placement rule, not a per-screen call.** None of
+the base screen's Actions-menu buttons requires a selected row, so all of
+them are **header actions and live in the vertical ellipsis** — **Add WO
+Header Equipment** and **Import Route Equipment**, above a divider from the
+list-level actions (Sort). **Linear Location Details is deliberately
+excluded — out of scope** (direct instruction, 2026-08-10). They are *not*
+behind the Plus: an earlier pass put them there and that was wrong (§8.4 —
+being on a tab doesn't make a button a tab action).
+
+**Plus opens the multi-select Equipment LOV, and that picker *is* the
+insert.** §8's content-driven rule grants this tab a Plus (the real screen
+has an insert-capable Equipment Details section below its grid), but that
+section has exactly one required field — Equipment — so wrapping a single
+picker in an Insert Mode sheet would be pure ceremony. Multi-select rather
+than single is the point: adding 24 Route pumps one modal at a time is not
+a flow. See the new component note below.
+
+**New paradigm: multi-select LOV** (`openEquipmentMultiLookup(key)`,
+`eam-shared.js`; CSS `.equip-multi-row`/`.equip-multi-footer`). The *same*
+Equipment LOV component as WO Record View's own Equipment field (§15.5) —
+same two tabs, same search/scan/tree, same result cards — with exactly two
+differences: a result row **toggles** instead of committing (reusing the
+existing `.lov-check` control, and an Add/Added toggle on Structure rows in
+place of the focused-row-only Select button), and a footer accumulates the
+picks behind one **"Add N equipment"** action. It always leads with the
+Search tab, unlike single-select's §15.5 rule of defaulting to Structure
+around an existing selection — a multi-select pass starts with nothing
+picked, so there is nothing to orient around. Screens consume it via
+`EQUIP_LOOKUP_ON_MULTI_SELECT = { key: (arrayOfEquipment) => {...} }`.
+Single-select consumers are untouched: the footer markup is per-screen
+(same convention as `#equipmentPopup` itself) and every multi-select
+function no-ops when it's absent.
+
+**State model — locked 2026-08-10, direct instruction.** The screen has no
+seed data of its own. Everything lives in a shared, persisted **WO equipment
+store** (`eam-shared.js`: `woEquipRows/woEquipApplyRoute/woEquipClearRoute/
+woEquipAddManual/woEquipDelete/woEquipPillLabel`, localStorage key
+`eamWoEquipment`, cleared by `resetDemoState()`), so this tab and WO Record
+View's pill are one truth instead of two copies that could disagree:
+
+1. **Empty unless a Route is selected on the WO header.** Route defaults
+   empty on every WO, so a fresh demo starts empty everywhere — which is
+   also base EAM's own default for this tab ("Records: 0 of 0"). The shared
+   shell has no empty state, so that one branch is screen-local
+   (`emptyStateHTML()`).
+2. **Selecting a Route inserts every piece of its equipment and mints one
+   MEC child WO per row**, each parented to the header WO — which is what
+   makes that WO a parent. Route equipment is generated from
+   `ROUTE_EQUIPMENT_DEFS` to the counts WO Record View's own `LOV_DATA.route`
+   already claims (PUMPS 24 / FIREEXT 156), so the "runs into the hundreds"
+   case is genuinely reachable rather than asserted.
+3. **Manually adding equipment here does the same thing** for those rows:
+   the system creates the MEC child WO and associates it to the header.
+   Equipment already on the tab is skipped, never duplicated.
+4. **Deleting rows, or clearing the Route, takes the pill away** — the pill
+   is `rows.length > 0`, nothing else. Clearing a Route removes that Route's
+   rows and keeps manual ones, so the pill can legitimately fall back from
+   "Route: …" to "Multiple Equipment".
+5. MEC child WO numbers start at **20451** and are unique across *all*
+   parents (a store-global counter, not per-WO).
+
+**NOT BUILT — the MEC children don't reach WO List yet.** Their numbers and
+parent links are recorded, but WO List still renders a hardcoded WO set, so
+they don't show up as child records in its search results. Tracked in §20.
+
+**Multi-select delete — new paradigm, 2026-08-10.** A header action in the
+ellipsis (§8.4: it opens a popup and needs no pre-selected row) that
+surfaces the records **already on the screen** so several can be removed in
+one pass — the mirror of the multi-select LOV, which picks records to *add*
+out of a lookup. Shared: `openMultiDelete({title,label,rows,onDelete})` in
+`eam-shared.js`, CSS `.md-row`/`.md-selectall`/`.md-footer`, with a
+**mandatory** `openConfirm()` step (the only destructive control in the
+pattern, and its commit button is the one red one). Sheet markup is
+per-screen, same convention as the LOV's own footer.
+
+**Row tap — still open, but the default flipped.** A row here is a join
+record with **two** useful destinations (the equipment master record, and
+the child WO Route spun up for it), so §8's plain "tapping a row opens this
+record" doesn't resolve it. Both flows are built and switchable live from a
+dev toggle in this screen's `.proto-theme-bar`:
+- **`chooser` — now the DEFAULT (changed 2026-08-10, user feedback).** The
+  card body opens a 2-option sheet (Equipment record / Related work order).
+  The whole card is the target.
+- **`split`** — the card body opens the Related Work Order (the dominant
+  intent: a tech on a Route WO is here to do the work, and the card leads
+  with that WO's own pill), and the Equipment code carries its own tap
+  target for the equipment record. Precedent for splitting one row into two
+  targets: the Structure tab's text-vs-caret disambiguation and Equipment's
+  photo-badge carve-out (§15.5/§7.5). **Why it lost the default:** in real
+  use the code's underline "must be hit exactly" — too fine a target on a
+  phone. Its hit area is now padded to ~32px, but the precision problem is
+  inherent to putting a second target inside a card row, so `chooser` leads
+  until proven otherwise.
+Tracked as open in §20.
+
+**Sideways navigation must set a return URL.** Opening the equipment record
+from here used to back out to Equipment List — a screen that looks enough
+like this tab to read as "the screen changed under me" (user feedback). Now
+`eamNavReturnUrl` (consume-once, same shape as the existing
+`eamSyncReturnUrl`) is set before navigating and honoured by the shared
+`navBack()`, alongside `eamOpenDemoWo` so the tab restores its parent WO on
+return. Generic, not screen-local: any screen handing off sideways should
+set it.
+
+**Two self-inflicted bugs worth remembering, both now fixed.** They cost a
+full round trip each and are the kind of thing to check first on any new
+standalone screen:
+1. **No `#toast`/`#toastMsg` in the markup.** `showToast()` opens with
+   `if (!t) return;`, so *every* toast on the screen was a silent no-op —
+   which presented as "tapping a record does nothing," since the row tap's
+   only visible output is a toast.
+2. **`#listDetailHeader` needs `active` in the markup** — see the gotcha
+   note above.
+
+**Shared-file changes, all backward compatible.**
+1. **Row tap** was hardcoded to an Update Mode toast inside
+   `renderListDetailShell()`. Now a screen-provided `ROW_TAP_HANDLERS =
+   { tabKey: (row, idx) => {...} }` override — the same idiom
+   `TAB_PLUS_HANDLERS` already uses — with the original toast as the
+   fallback for every tab that doesn't override it (Equipment RV's 6
+   List/Detail tabs unchanged). Plus `ldVisibleRows(tabKey)`, one
+   definition of the dataspy-filtered row set so a row index means the
+   same thing in the renderer and the tap handler, and `renderStdTable()`'s
+   `rowOnclick` now accepts a function `(rowIndex) => handlerString` as
+   well as a plain string (Equipment List passes strings; unaffected).
+2. **A field's display form is now separate from its text form** —
+   `fieldDisplay(f)` returns `f.html ?? f.value`, and `ldSearchText(fields)`
+   builds `data-search` from `f.value` only. **`value` must always be plain
+   text; markup goes in `html`.** This is a real bug fix, not a
+   refactor: this screen put a nested tap target (markup containing
+   `class="…"`) into `value`, which is interpolated into the
+   `data-search="…"` attribute — the first quote closed the attribute early,
+   dumped the rest of the card into the page as visible text, and mangled
+   the row's own `onclick`. Applies to `renderStdCard`, `renderStdTable`,
+   and the shell's card wrapper.
+3. **Multi-select mode on the Equipment LOV** — see the paradigm note above.
+
+**Honest about what isn't real.** The child WOs (20451+) aren't in
+`data/wo-registry.js`, and WO List's unrecognized-number fallback would
+silently open 20450 — a wrong record is worse than a stub, so opening a
+child WO toasts. The equipment record link *does* navigate for real, with
+the same limitation Equipment List already has: no per-record routing
+exists anywhere in this app yet, so every row lands on the same demo
+Equipment record.
 
 # 17. WO Workflow — Step 3: Issue Parts
 
@@ -3829,6 +4111,8 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **Booked Labor's Correction sheet content is hardcoded demo data** | The always-ready red Save button is intentional (§18.6), but the sheet's employee/hours-type/department/trade/duration values are fixed demo constants, not technician-entered. |
 | **Booked Labor List has no defined sort/grouping rule** | Rows render in pure insertion order. Fine at today's scale; flag if this list needs to hold more in a real deployment. |
 | **Shared `showToast()`'s actual duration contradicts §3.4's locked spec** | §3.4 "Toast style" locks "2.4s auto-dismiss," but `eam-shared.js`'s real `showToast()` (line 42) auto-dismisses at 1800ms. Found 2026-07-31 while migrating WO List's local 2400ms toast onto the shared one (§21) — that migration exposed the drift but didn't cause it; it's pre-existing and already affects every screen already on the shared toast (Home, Equipment List, WO Record View, etc.), not just WO List. Not fixed here since changing the shared timeout changes behavior app-wide — needs its own decision (bump the shared value to 2400ms, or relax the doc's locked spec to match reality). |
+| **WO › Equipment tab — row-tap destination not locked** | A row is a join record with two useful destinations (equipment master vs. the child WO Route created for it), so §8's "tapping a row opens this record" doesn't settle it. Both flows are built and live-switchable from the screen's dev toggle: `chooser` (**now the default** — card body → 2-option sheet) vs. `split` (card body → related WO, equipment code → equipment record; lost the default because the code target is too fine on a phone). Pick one on a device, then lock it in §16.10 and drop this row. |
+| **MEC child WOs don't reach WO List** | The WO Equipment tab mints real MEC child WO numbers with parent links (§16.10) and they're persisted, but WO List still renders a hardcoded WO set, so the children never appear as child records in its search results — and they aren't in `data/wo-registry.js` either, which is why tapping one toasts instead of navigating. Two pieces of the same gap: register the minted children, then let WO List read them. |
 | **Conditional field rules — no tier chosen, nothing built** | §13.1–§13.4 records the evaluation model, a 4-tier option ladder, and 5 prerequisites for field-level conditions ("if field X is Y, make Z required / surface another step"). Analysis only as of 2026-08-10 — no table shape or tier is locked. Two prerequisites are worth doing regardless of whether any tier ships: the single `resolveFieldState(field, context)` seam (§13.3 item 1) and the declared-vs-effective state split (item 2). Also owed: the `docs/Data_refs/Page Layouts perms/` check in §13.4. |
 | **Equipment List's filter-chip sheet has no in-sheet search box** | §6.11 locks one as part of the List Search Screen standard ("search-within field, Clear, icon-tinted rows..., radio-style toggles, Apply") — WO List's own chip sheet has always had one (`filterCSRows()`/`#csSearch`, preserved through its 2026-07-31 shared-component migration, §21); Equipment List's copy of the same sheet (`#csSheet`) never got one. Found during that same migration; not fixed on Equipment's side here — scoped to WO List only. |
 
@@ -4159,6 +4443,32 @@ field's colour should never double as a different meaning — the same
 rule that motivated §23.3's own reconciliation between `jobType` and the
 Type LOV code applies here between Priority and both WO Type and Status.
 Low/Medium stay plain text, unchanged.
+
+## 23.5 Counter Badge — one recipe, no gray fills
+
+**Locked 2026-08-10 (direct instruction).** Every "how many of these are
+there" badge takes the **Organization pill's recipe** (`.ld-card-org`):
+transparent fill, 1px outline (`--border-strong`), full radius, mono — with
+**black/white text, never gray**. Gray-filled counters read as muddy in
+light mode and make the badge look disabled, which is the opposite of what a
+count is for.
+
+- **The one exception is red:** the required-count badge stays
+  red-on-outline (`.required-count-badge`), scoped to Insert Mode per §9.8.
+  Red is the only colour a counter is ever allowed to take.
+- **Normalized:** `.section-card-badge` (Comments/Documents counts on Record
+  Views — was a `--bg-section` gray fill), `.rv-badge` (was gray text),
+  `.ov-group-badge` (Activity Checklist's done/total group badge, screen-
+  local — was a `--bg-card` fill with gray text), `.erp-count` (the Route/MEC
+  pill's own count, §16.9). `.qty-badge-planned` (Issue Parts) already
+  followed the recipe and is unchanged.
+- **Explicitly NOT covered: `.chip-count`.** That's a *filled* black/white
+  marker riding on an already-outlined active filter chip — an active-state
+  indicator, not a standalone counter. Outlining it would nest two borders
+  and weaken the "this filter is on" signal.
+
+Applied as a visual normalization of the existing class names rather than a
+new shared class, so no screen's markup had to change.
 
 # 24. Navigation — Record View Back Button + Home Tile Pattern
 

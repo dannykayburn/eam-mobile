@@ -145,6 +145,37 @@ type), Insert Mode shows `.equip-card` (headline/subline/attrs). Only the
 ask — the on-record card's look was not part of this decision and stays
 as its own open question if it ever needs revisiting.
 
+### Multi-Select mode (added 2026-08-10)
+
+**Where:** the WO Equipment tab's Plus
+(`eam-wo-equipment-tab-prototype-v1.html`, §16.10) — first and so far only
+consumer. `openEquipmentMultiLookup(key)` in `eam-shared.js`; CSS
+`.equip-multi-row`/`.equip-multi-card`/`.equip-multi-footer`.
+
+**What it is:** the *same* Equipment LOV — same two tabs, same search bar
+and QR scan, same tree, same result cards — with exactly two behavioral
+differences:
+1. A result row **toggles** its selection instead of committing and
+   closing. Reuses the existing `.lov-check` control in a left gutter
+   beside the untouched standard card; Structure rows get a persistent
+   **Add / Added** toggle in place of the focused-row-only Select button.
+2. A footer accumulates the picks behind one **"Add N equipment"** action.
+
+**Always leads with the Search tab**, unlike single-select's rule of
+defaulting to Structure around an existing selection — a multi-select pass
+starts with nothing picked, so there's nothing to orient around.
+
+**How a screen wires into it:** call `openEquipmentMultiLookup(key)` and
+supply `EQUIP_LOOKUP_ON_MULTI_SELECT = { key: (arrayOfEquipment) => {...} }`.
+The footer markup (`#equipMultiFooter`/`#equipMultiCount`/
+`#equipMultiAddBtn`) lives in the screen's own `#equipmentPopup`, same
+per-screen convention as the popup itself; every multi-select function
+no-ops when it's absent, so single-select consumers need no changes.
+
+**Why it exists:** adding a Route's 24 pieces of equipment one modal at a
+time is not a flow. Deduplication is the *consumer's* job, not the
+picker's — the WO Equipment tab skips codes already on the tab.
+
 ## Equipment ID Badge (separate — not part of the Equipment LOV)
 
 **Where:** Activity Checklist (`eam-activity-checklist-prototype-v1.html`,
@@ -243,6 +274,36 @@ inconsistency.
 
 **Not merged:** Activity Row (see Entry Row above) — different shape,
 no action button, explicit user call to keep it separate.
+
+---
+
+## Multi-Select Delete
+
+**Where:** the WO Equipment tab's ellipsis
+(`eam-wo-equipment-tab-prototype-v1.html`, §16.10) — first consumer.
+`openMultiDelete({title,label,rows,onDelete})` in `eam-shared.js`; CSS
+`.md-row`/`.md-selectall`/`.md-texts`/`.md-footer`.
+
+**What it is:** the **mirror of the multi-select LOV**. Where that one picks
+records to *add* out of a lookup, this one surfaces the records **already on
+the screen** so several can be removed in one pass. A checkable list plus a
+Select all / Clear selection row, a running "N selected" count, and a single
+`Delete N` commit.
+
+**A header action, not a row action** (§8.4) — it opens a popup and needs no
+pre-selected record, so it belongs in the vertical ellipsis. Deleting *one*
+row is a different question and is not what this is for.
+
+**Confirmation is mandatory.** `commitMultiDelete()` always routes through
+`openConfirm()`; the commit button is the only red one in the multi-select
+family (`.md-footer .insert-save-btn.ready`), deliberately distinct from the
+LOV's neutral Add.
+
+**How a screen wires into it:** supply the sheet markup (`#multiDeleteSheet`
+/`-Title`/`-Body`/`-Count`/`-Btn`) **and** `openConfirm()`'s own shell
+(`#confirmOverlay`/`#confirmMessage`/`#confirmDangerBtn` — note that's not a
+`.bottom-sheet`), then pass rows as `{code, title, sub}` and a callback
+taking the selected codes. Every function no-ops without the markup.
 
 ---
 
@@ -410,6 +471,8 @@ write-up, including the jobType-vs-Type-LOV-code reconciliation
 | Collapsible Container | Equipment Record View, Custom Fields, Insert Mode, field-behavior reference | Backfilled 2026-07-28 — same gap as Field Grid Container (§5.2) |
 | Field Types (13, category term) | App-wide | Backfilled 2026-07-28 — locked rules already existed in §5.2, never indexed here |
 | Equipment LOV | WO Record View, WO Insert Mode | Converged 2026-07-21 — one shared picker, both screens (§7.4/§15.5) |
+| Equipment LOV — Multi-Select mode | WO Equipment tab (Plus) | New paradigm 2026-08-10 (§16.10) — same picker, rows toggle + "Add N" footer; single consumer so far |
+| Multi-Select Delete | WO Equipment tab (ellipsis) | New paradigm 2026-08-10 (§16.10) — mirror of the above over records already on screen; mandatory confirm; single consumer so far |
 | Equipment ID Badge | Activity Checklist | Built, read-only, deliberately separate from the LOV (§16) |
 | Notification Card | Notifications | Built 2026-07-22 (§25); single consumer so far |
 | Activity Selector (rows = Activity Rows) | WO Record View | Built (§15.2); cross-screen hand-off undefined |

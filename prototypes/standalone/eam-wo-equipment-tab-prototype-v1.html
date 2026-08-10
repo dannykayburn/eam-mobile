@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="format-detection" content="telephone=no">
+<title>HxGN EAM Mobile — Work Order › Equipment Tab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-shared.css">
+<!--
+  WORK ORDER › EQUIPMENT TAB (built 2026-08-10) — the destination the
+  Route/MEC pill (§16.9) and the step rail's Reference-group Equipment item
+  (§14.8) have both been pointing at as a toast stub since 2026-08-10.
+
+  Built as its own file, not a section inside WO Record View, for the reason
+  §16.9 already locked: this list can run into the hundreds (a Route carries
+  24/156 equipment in the demo data), so it's a deep link, never an inline
+  list/expand/sheet on the record.
+
+  CONFORMS TO §8 (Record View › Child Tabs) with no new components:
+  - Header = protected identity (§8.1): the PARENT WO's number + its
+    description rendered protected/non-editable, + Plus/Search/Ellipsis. No
+    status button, no pin — both are Record-View-level controls.
+  - Body = the shared List/Detail shell (renderListDetailShell in
+    eam-shared.js): dataspy bar + favourites, Detailed/List mode toggle,
+    record count + sort, icon-triggered inline search. Config only
+    (LIST_DETAIL_TABS) — no markup is re-derived here.
+
+  FIELD SET comes from the real base-EAM screen (WO › Equipment tab
+  screenshot, 2026-08-10), whose grid columns are exactly: Equipment,
+  Description, Department, Equipment Org., Type, Related Work Order, WO
+  Status. Two orders, deliberately:
+  - Detailed (card) uses a mobile-first order so the card's own anatomy
+    (§8.3: pill headline / muted subline / up to 3 attribute rows / Org as
+    corner badge) lands on the right fields — WO Status as the pill
+    headline, same shape WO List's card already uses.
+  - List mode uses the real grid's column order verbatim, all 7 fields.
+
+  ACTIONS come from the same screenshot's Actions menu — "Add WO Header
+  Equipment" and "Import Route Equipment". "Linear Location Details" is
+  deliberately excluded: out of scope (direct instruction, 2026-08-10).
+
+  STATE lives in the shared WO equipment store (`woEquipRows()` etc. in
+  eam-shared.js), NOT in this file — so this screen and WO Record View's
+  Route/MEC pill are one truth (§16.10, locked 2026-08-10):
+  - empty unless a Route is selected on the WO header;
+  - selecting a Route inserts all its equipment + mints one MEC child WO per
+    row, parented to this WO;
+  - adding equipment here does the same for those rows (that's what makes
+    this WO a parent);
+  - the pill on WO Record View shows iff rows exist, so deleting them all —
+    or clearing the Route — takes it away.
+
+  ROW TAP is the one genuinely open design call — a row here is a join
+  record with TWO useful destinations (the equipment master record, and the
+  child WO that Route spun up for it), so §8's plain "tapping a row opens
+  this record" doesn't resolve it on its own. Both candidate flows are
+  built, switchable live from the dev toggle in the theme bar:
+  - 'chooser' (DEFAULT as of 2026-08-10) — card body opens a 2-option sheet
+                (Equipment record / Related work order). The whole card is
+                the target. Became the default after 'split' proved too
+                fiddly in real use ("must be hit exactly").
+  - 'split'   — card body opens the Related Work Order (the dominant
+                intent: a tech on a Route WO is here to do the work), and
+                the Equipment code carries its own padded tap target for
+                the equipment record. Precedent for splitting one row into
+                two targets: the Structure tab's text-vs-caret
+                disambiguation and Equipment's own photo-badge carve-out
+                (§15.5/§7.5), both cited as "separate controls so browsing
+                one thing never collides with a different action."
+  Nothing here is locked yet — see design-decisions-v3-1.md §16.10.
+
+  STUBS, honest about what isn't real: the child WOs (20451+) aren't in
+  data/wo-registry.js, so opening one toasts rather than navigating to a
+  wrong record. The equipment record link DOES navigate for real, with the
+  same limitation Equipment List already has (no per-record routing exists
+  anywhere in the app yet — every equipment row opens the same demo record).
+-->
+<style>
+/* Screen-local only — no 2nd consumer yet, per the shared-file discipline
+   in CLAUDE.md. Promote if a second child tab ever needs the same. */
+
+/* The Equipment code's own tap target inside the card (tap mode 'split').
+   Dotted underline + chevron so it reads as a second destination rather
+   than as plain field text. */
+/* Padded out 2026-08-10 (user feedback: "must be hit exactly") so the code
+   is a real ~32px-tall target rather than a line of text with an underline.
+   Only used in tap mode 'split', which is no longer the default. */
+.eq-link { font-family: var(--font-mono); border-bottom: 1px dashed var(--gray-3); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 7px 8px 6px; margin: -7px -8px -6px; border-radius: 6px; }
+.eq-link:active { background: var(--bg-section); }
+.eq-link svg { color: var(--gray-4); flex-shrink: 0; }
+
+/* Mono identifier inside a card attribute row. renderStdCard() owns the
+   .field-value span, so `.field-value.mono` can't be reached from here —
+   this wraps the value instead. */
+.eq-mono { font-family: var(--font-mono); }
+
+/* Subtitle line under a .source-option-title in this screen's two local
+   action sheets — the base .source-option component has a title only. */
+.eq-opt-sub { font-size: 11.5px; color: var(--gray-4); margin-top: 2px; line-height: 1.35; }
+
+/* Empty state. Base EAM's own default for this tab really is "Records: 0
+   of 0" — the tab stays empty until equipment is added or a Route is
+   imported — so this is the faithful zero state, not just a safety net. */
+.eq-empty { margin: 28px 20px; text-align: center; }
+.eq-empty-icon { color: var(--gray-3); margin-bottom: 10px; }
+.eq-empty-title { font-size: 14px; font-weight: 700; color: var(--octave-black); }
+[data-theme="dark"] .eq-empty-title { color: var(--white); }
+.eq-empty-sub { font-size: 12.5px; color: var(--gray-4); margin-top: 5px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div class="proto-theme-bar">
+  <span class="proto-theme-label">Preview theme</span>
+  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+  <button class="theme-toggle" id="onlineToggle" onclick="toggleDemoOnline()">🌐 Offline</button>
+  <!-- Dev-only, this screen only: flips the two candidate row-tap flows so
+       both can be felt on a real device before either gets locked. -->
+  <button class="theme-toggle" id="tapModeToggle" onclick="toggleRowTapMode()">Tap: Split</button>
+</div>
+
+<div class="app" id="app">
+
+  <header class="nav" onclick="scrollFormToTop()">
+    <div class="nav-left">
+      <!-- §24: back navigates for real — returns to the parent WO's Record
+           View carrying the WO identity forward, same consume-once
+           eamOpenDemoWo hand-off every other cross-screen jump uses. -->
+      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation(); goToWoStep(ORIGIN_STEP)">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="prototype-label">PROTOTYPE</span>
+    </div>
+    <div class="nav-title">Equipment</div>
+    <div class="nav-actions">
+      <span id="syncCtrl"></span>
+    </div>
+  </header>
+
+  <!-- List/Detail header (§8.1) — parent identity, description protected.
+       `active` is REQUIRED in the markup here: eam-shared.css hides
+       #listDetailHeader by default (display:none) and only
+       .rec-header#listDetailHeader.active shows it, because on Equipment
+       Record View this header alternates with #recHeader and goToTab()
+       adds/removes the class. This screen has no tab rail and never calls
+       goToTab(), so without `active` the whole header — Plus, Search,
+       Ellipsis and the WO identity — renders but stays invisible. -->
+  <div class="rec-header active" id="listDetailHeader" onclick="scrollFormToTop()">
+    <div class="rec-id-row">
+      <div class="rec-id-text">
+        <span class="rec-num" id="ldNum">19257</span>
+        <span class="rec-desc protected" id="ldDesc">Pump Cavitating; lost head</span>
+      </div>
+      <div class="rec-header-actions">
+        <!-- Plus = Insert Mode for this child type (§8). Opens the Equipment
+             LOV in its new multi-select mode (§16.10) rather than a
+             one-field Insert Mode sheet: the real base screen's Equipment
+             Details section has exactly one required field (Equipment), so
+             a sheet wrapping a single picker would be pure ceremony — and
+             adding 24 Route pumps one modal at a time is not a flow. -->
+        <button class="rec-ellipsis-btn" onclick="event.stopPropagation(); onListDetailPlusTap()" aria-label="Add equipment">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button class="rec-ellipsis-btn" id="listDetailSearchBtn" onclick="event.stopPropagation(); onListDetailSearchTap()" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        </button>
+        <button class="rec-ellipsis-btn" onclick="event.stopPropagation(); toggleListDetailMenu()" aria-label="More actions">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+        </button>
+        <!-- HEADER ACTIONS live here, per the Action Row vs. ellipsis rule
+             (2026-08-10, §8.4): a link button that errors with "Record must
+             be selected before performing this action" is row-scoped and
+             belongs in an Action Row; every other button — the ones that
+             9/10 times open a popup — is a HEADER action and belongs in
+             this vertical ellipsis, even on a tab. Both of the base
+             screen's own Actions-menu buttons are header actions, so both
+             sit here rather than behind the Plus. (Linear Location Details:
+             excluded, out of scope.) List-level actions follow, below the
+             divider; the parent record's Copy/Delete set is never repeated
+             here. -->
+        <div class="rec-actions-menu" id="listDetailMenu">
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="closeListDetailMenu(); addHeaderEquipment()">Add WO Header Equipment</div>
+            <div class="rec-actions-item" onclick="closeListDetailMenu(); importRouteEquipment()">Import Route Equipment</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="closeListDetailMenu(); openDeleteEquipment()">Delete Equipment</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group"><div class="rec-actions-item" onclick="closeListDetailMenu(); showToast('Sort — coming soon')">Sort</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WO STEP RAIL (§14.2) — this screen is part of the WO workflow shell,
+       reached from the rail's own Reference group, so the rail stays. Without
+       it the tab is a dead end: it has no bottom bar, so the rail is the only
+       way back to Record View or any step. Rendered by the shared
+       renderStepRail()/renderFlatStepRail() with activeRef='equipment', which
+       highlights the Reference row and keeps the numbered steps showing the
+       WO's real position. No timer pill here — the timer belongs to the
+       working steps (§14.2), not to a reference lookup. -->
+  <div class="step-rail" id="stepRail">
+    <div class="step-rail-collapsed">
+      <div class="step-name">Equipment</div>
+      <div class="step-rail-right">
+        <svg class="step-chevron" id="stepChevron" width="16" height="16" fill="none" viewBox="0 0 24 24">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+    <div class="step-segments"></div>
+    <div class="step-map" id="stepMap"></div>
+  </div>
+
+  <div class="content">
+    <div class="tab-content active" data-tab="equipment"></div>
+  </div>
+
+  <!-- ── SHEETS (shared shells — behavior in eam-shared.js) ── -->
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <div class="bottom-sheet" id="syncPanelSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Sync Status</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sync-panel-state" id="syncPanelStateLabel"></div>
+    <div class="sheet-body" id="syncPanelList"></div>
+    <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
+  </div>
+
+  <div class="bottom-sheet" id="dataspySheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Select dataspy</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sheet-body" id="dataspySheetBody"></div>
+  </div>
+
+  <!-- EQUIPMENT LOV — MULTI-SELECT (§16.10). Same component/markup as WO
+       Record View's own Equipment field (§15.5), Search + Structure tabs
+       verbatim; the only addition is the #equipMultiFooter below, which the
+       shared code shows only in multi-select mode. Popup markup stays
+       per-screen, same convention as #lovSheet/#equipmentPopup elsewhere. -->
+  <div class="hyperlink-popup" id="equipmentPopup">
+    <div class="insert-mode-header">
+      <button class="sheet-close" onclick="closeHyperlinkPopup('equipmentPopup')">✕</button>
+      <div class="insert-mode-title">Add Equipment</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="mode-tog">
+      <button class="mode-btn active" id="equipTabBtnSearch" onclick="switchEquipTab('search')">Search</button>
+      <button class="mode-btn" id="equipTabBtnStructure" onclick="switchEquipTab('structure')">Structure</button>
+    </div>
+    <div class="insert-mode-body" id="equipmentPopupBody">
+      <div id="equipTabSearch">
+        <div id="equipSearchShell"></div>
+      </div>
+      <div id="equipTabStructure" style="display:none;">
+        <div class="tree-wrap" id="equipTreeBody"></div>
+      </div>
+    </div>
+    <div class="equip-multi-footer" id="equipMultiFooter" style="display:none;">
+      <span class="equip-multi-count" id="equipMultiCount">0 selected</span>
+      <button class="insert-save-btn" id="equipMultiAddBtn" onclick="commitEquipmentMultiSelection()">Add</button>
+    </div>
+  </div>
+
+  <div class="qr-scan-overlay" id="qrScanOverlay">
+    <div class="qr-scan-header">
+      <button class="qr-scan-close" onclick="closeEquipScan()" aria-label="Close scanner">✕</button>
+    </div>
+    <div class="qr-scan-body">
+      <div class="qr-scan-reticle"></div>
+      <div class="qr-scan-hint">Point camera at the equipment's QR code</div>
+    </div>
+    <div class="qr-scan-footer">
+      <button class="insert-save-btn ready" onclick="simulateQrScan()">Simulate scan</button>
+    </div>
+  </div>
+
+  <!-- Local: row-tap destination chooser, used only in tap mode 'chooser'. -->
+  <div class="bottom-sheet" id="rowTargetSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="rowTargetTitle">Open</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sheet-body" id="rowTargetBody"></div>
+  </div>
+
+  <!-- MULTI-SELECT DELETE (§16.10) — surfaces the records already on this
+       screen so several can be removed in one pass. Shared behavior, markup
+       per-screen (same convention as #equipmentPopup). -->
+  <div class="bottom-sheet" id="multiDeleteSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title" id="multiDeleteTitle">Delete equipment</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sheet-body" id="multiDeleteBody"></div>
+    <div class="md-footer">
+      <span class="equip-multi-count" id="multiDeleteCount">0 selected</span>
+      <button class="insert-save-btn" id="multiDeleteBtn" onclick="commitMultiDelete()">Delete</button>
+    </div>
+  </div>
+
+  <!-- openConfirm()'s shell — required by multi-select delete, and it wants
+       these exact ids (NOT a .bottom-sheet). -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-modal">
+      <div class="confirm-message" id="confirmMessage">Are you sure?</div>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="confirm-btn confirm-danger" id="confirmDangerBtn" onclick="confirmDangerAction()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- showToast() starts with `if (!t) return;` — without this element every
+       toast on the screen is a silent no-op, which is exactly why tapping a
+       row appeared to do nothing on the first build. -->
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+</div>
+
+<script src="../../data/equipment.js"></script>
+<!-- Needed by resolveWoWorkflow() for the step rail, same set every WO
+     workflow screen loads. -->
+<script src="../../data/wotype.js"></script>
+<script src="../../data/wo-workflow.js"></script>
+<script src="../../data/wo-workflow-steps.js"></script>
+<script src="shared/eam-shared.js"></script>
+<script>
+/* ══ PARENT WO IDENTITY ══════════════════════════════════════════════
+   The 3 demo WO identities, same set every other workflow screen carries.
+   Descriptions match data/wo-19257.js / wo-19831.js / wo-20450.js. */
+const WO_META = {
+  '19257': { desc: 'Pump Cavitating; lost head' },
+  '19831': { desc: 'General inspection request' },
+  '20450': { desc: 'Replace batteries in lobby TV remote' },
+};
+// The WO's own header Equipment — what "Add WO Header Equipment" inserts.
+// Reads the real record in data/equipment.js rather than restating it.
+const HEADER_EQUIP = { '19257': '00067333', '19831': '00067333', '20450': 'BLDG-A' };
+
+/* ══ STATUS ══════════════════════════════════════════════════════════
+   The EQUIPMENT's own status — 'Installed' for every row in this prototype
+   (direct instruction, 2026-08-10). Deliberately NOT the child WO's status
+   anymore: Related Work Order stays on the card as the identifier only.
+   Rendered on the shared pill vocabulary (§23) at the outline/steady tier
+   rather than green — Installed is a steady-state fact about the asset, not
+   an alert, and a column of identical green pills would out-shout
+   everything else on the card. */
+const EQUIP_STATUS = { tier: 'outline', label: 'Installed' };
+
+/* ══ ROWS ════════════════════════════════════════════════════════════
+   No local seed data at all — rows live in the shared WO equipment store
+   (`woEquipRows()`, eam-shared.js), which WO Record View writes when a Route
+   is selected. So this screen is EMPTY until a Route is picked on the header
+   or equipment is added here by hand (§16.10, locked 2026-08-10). Each row:
+     source: 'route'  — inserted by selecting a Route on the WO header
+     source: 'manual' — added here; the system minted its MEC child WO
+   Both carry `childWo` (the MEC child) and `parentWo` (this WO). */
+function equipRows() { return woEquipRows(DEMO_WO); }
+
+/* ══ ROW TAP MODE (open design call — see the header comment) ═════════
+   Default flipped to 'chooser' 2026-08-10 (user feedback): in 'split' the
+   equipment code's underline "must be hit exactly," which is too fine a
+   target on a phone. 'chooser' makes the whole card one big target and asks.
+   'split' stays available on the dev toggle, now with a padded hit area. */
+let ROW_TAP_MODE = 'chooser';
+function toggleRowTapMode() {
+  ROW_TAP_MODE = ROW_TAP_MODE === 'split' ? 'chooser' : 'split';
+  document.getElementById('tapModeToggle').textContent = ROW_TAP_MODE === 'split' ? 'Tap: Split' : 'Tap: Chooser';
+  rebuildRows();
+  showToast(ROW_TAP_MODE === 'split'
+    ? 'Card opens the work order; equipment code opens the asset'
+    : 'Card asks which record to open');
+  renderActiveTabContent();
+}
+
+/* ══ DESTINATIONS ════════════════════════════════════════════════════
+   Equipment record: a real navigation. Carries the same limitation
+   Equipment List already has — no per-record routing exists anywhere in
+   this app yet, so every row lands on the same demo record.
+   Child WO: a toast. These MEC children aren't in data/wo-registry.js,
+   and WO List's unrecognized-number fallback would silently open 20450 —
+   a wrong record is worse than an honest stub. */
+function openEquipmentRecord(code) {
+  closeAllSheets();
+  // Come back HERE on that screen's Back, not to Equipment List — which
+  // looks enough like this tab to read as "the screen changed under me"
+  // (user feedback 2026-08-10). eamNavReturnUrl is consumed once by
+  // navBack(); eamOpenDemoWo restores this tab's parent WO on return.
+  sessionStorage.setItem('eamNavReturnUrl', WO_EQUIPMENT_TAB_FILE);
+  sessionStorage.setItem('eamOpenDemoWo', DEMO_WO);
+  location.href = 'eam-equipment-record-view-prototype-v1.html';
+}
+function openChildWo(wo) {
+  closeAllSheets();
+  if (!wo) { showToast('No related work order for this equipment yet'); return; }
+  showToast('Opening WO ' + wo + ' — coming soon');
+}
+
+const CHEV_SM = '<svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
+
+/* ══ FIELD SETS ══════════════════════════════════════════════════════ */
+// Detailed/card order (mobile-first, §8.3's card anatomy).
+// `value` is ALWAYS plain text (it feeds data-search); `html` carries the
+// display-only markup — the split enforced in eam-shared.js's fieldDisplay()
+// after markup-in-`value` broke this very card on 2026-08-10.
+function cardFields(r) {
+  const equipHtml = ROW_TAP_MODE === 'split'
+    ? `<span class="eq-link" onclick="event.stopPropagation(); openEquipmentRecord('${r.equip}')">${r.equip}${CHEV_SM}</span>`
+    : `<span class="eq-mono">${r.equip}</span>`;
+  return [
+    { label: 'Status',              value: EQUIP_STATUS.label, type: 'status', tier: EQUIP_STATUS.tier },
+    { label: 'Description',         value: r.desc },
+    { label: 'Equipment',           value: r.equip, html: equipHtml },
+    { label: 'Type',                value: r.type },
+    { label: 'Related Work Order',  value: r.childWo || '—', html: r.childWo ? `<span class="eq-mono">${r.childWo}</span>` : '—' },
+    { label: 'Equipment Org.',      value: r.org, type: 'org' },
+  ];
+}
+// List mode: the real base-EAM grid's own column order (§8.3 — List mode
+// shows every available field). Its 7th column is WO Status in base EAM;
+// this prototype no longer models the child WO's status, so it carries the
+// equipment's own Status there instead. Plain values only — the whole table
+// row is the tap target in this mode.
+function allFields(r) {
+  return [
+    { label: 'Equipment',           value: r.equip },
+    { label: 'Description',         value: r.desc },
+    { label: 'Department',          value: r.dept || '—' },
+    { label: 'Equipment Org.',      value: r.org },
+    { label: 'Type',                value: r.type },
+    { label: 'Related Work Order',  value: r.childWo || '—' },
+    { label: 'Status',              value: EQUIP_STATUS.label, type: 'status', tier: EQUIP_STATUS.tier },
+  ];
+}
+function ldRow(r) {
+  const ds = ['all'];
+  if (r.source === 'route') ds.push('route');
+  if (!r.childWo) ds.push('nowo');
+  return { ds, r, fields: cardFields(r), allFields: allFields(r) };
+}
+
+/* ══ LIST/DETAIL CONFIG (§8.2/§8.3) ══════════════════════════════════
+   "All Equipment" is the real dataspy name off the base screen; the other
+   two are the obvious mobile companions for a Route WO. fieldDefs drives
+   the filter chips, which are §8.3's own coming-soon stubs app-wide. */
+const LIST_DETAIL_TABS = {
+  equipment: {
+    label: 'Equipment',
+    sortLabel: 'Equipment',
+    dataspies: [
+      { key: 'all',   name: 'All Equipment' },
+      { key: 'route', name: 'Route Equipment' },
+      { key: 'nowo',  name: 'Without Work Order' },
+    ],
+    fieldDefs: [
+      { key: 'status',  label: 'Status' },
+      { key: 'desc',    label: 'Description' },
+      { key: 'equip',   label: 'Equipment' },
+      { key: 'type',    label: 'Type' },
+      { key: 'childWo', label: 'Related WO' },
+      { key: 'org',     label: 'Equipment Org.' },
+    ],
+    rows: [],
+  },
+};
+// Re-reads the store and repaints — every mutation path calls just this.
+function rebuildRows() {
+  LIST_DETAIL_TABS.equipment.rows = equipRows().map(ldRow);
+  renderActiveTabContent();
+}
+
+/* ══ ROW TAP (§8) ════════════════════════════════════════════════════
+   Overrides the shared shell's default Update-Mode stub via the same
+   ROW_TAP_HANDLERS idiom TAB_PLUS_HANDLERS already uses. */
+const ROW_TAP_HANDLERS = {
+  equipment: (row) => {
+    const r = row.r;
+    if (ROW_TAP_MODE === 'split') { openChildWo(r.childWo); return; }
+    document.getElementById('rowTargetTitle').textContent = r.equip;
+    document.getElementById('rowTargetBody').innerHTML = `
+      <div class="source-option" onclick="openEquipmentRecord('${r.equip}')">
+        <div class="source-option-icon"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke-linecap="round"/></svg></div>
+        <div class="source-option-texts">
+          <div class="source-option-title">Equipment record</div>
+          <div class="eq-opt-sub">${r.equip} — ${r.desc}</div>
+        </div>
+      </div>
+      <div class="source-option${r.childWo ? '' : ' stub'}" onclick="openChildWo(${r.childWo ? `'${r.childWo}'` : 'null'})">
+        <div class="source-option-icon"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+        <div class="source-option-texts">
+          <div class="source-option-title">Related work order</div>
+          <div class="eq-opt-sub">${r.childWo ? 'WO ' + r.childWo : 'None created for this equipment yet'}</div>
+        </div>
+      </div>`;
+    openSheet('rowTargetSheet');
+  },
+};
+
+/* ══ PLUS → INSERT (multi-select Equipment LOV, §16.10) ══════════════
+   §8's Plus for this child type. Opens the shared Equipment LOV in its new
+   multi-select mode — the picker itself IS the insert here, since the real
+   base screen's Equipment Details section has exactly one required field. */
+const TAB_PLUS_HANDLERS = { equipment: () => openEquipmentMultiLookup('woEquipment') };
+const EQUIP_LOOKUP_ON_MULTI_SELECT = {
+  // Manually adding equipment here makes this WO a parent: the store mints
+  // one MEC child WO per new row and associates it back (§16.10). Equipment
+  // already on the tab is skipped, not duplicated.
+  woEquipment: (picked) => {
+    const added = woEquipAddManual(DEMO_WO, picked);
+    const skipped = picked.length - added.length;
+    rebuildRows();
+    if (!added.length) { showToast('Already on this tab'); return; }
+    showToast(`Added ${added.length} · ${added.length} child work order${added.length === 1 ? '' : 's'} created${skipped ? ` · ${skipped} skipped` : ''}`);
+  },
+};
+
+/* ══ MULTI-SELECT DELETE (§16.10) ════════════════════════════════════
+   Header action in the ellipsis. Deleting every row also takes the Route/MEC
+   pill off WO Record View, since that pill is now purely "rows exist." */
+function openDeleteEquipment() {
+  const rows = equipRows();
+  if (!rows.length) { showToast('No equipment to delete'); return; }
+  openMultiDelete({
+    title: 'Delete equipment',
+    label: 'equipment record',
+    rows: rows.map(r => ({ code: r.equip, title: r.desc, sub: r.childWo ? `${r.equip} · WO ${r.childWo}` : r.equip })),
+    onDelete: (codes) => {
+      const n = woEquipDelete(DEMO_WO, codes);
+      rebuildRows();
+      const left = equipRows().length;
+      showToast(`${n} deleted${left ? '' : ' · no equipment left, pill removed'}`);
+    },
+  });
+}
+
+/* ══ HEADER ACTIONS (vertical ellipsis, §8.4) ════════════════════════
+   Both of the base screen's Actions-menu buttons. Real, not toasts: Add WO
+   Header Equipment inserts the WO's own equipment (the row that then has no
+   related WO — the honest "added by hand" state); Import Route Equipment
+   reports the already-imported set rather than silently duplicating rows. */
+// Goes through the same manual-add path, so it mints an MEC child WO too.
+function addHeaderEquipment() {
+  const code = HEADER_EQUIP[DEMO_WO];
+  const eq = (typeof EAM_EQUIPMENT !== 'undefined' && EAM_EQUIPMENT[code]) || {};
+  const added = woEquipAddManual(DEMO_WO, [{
+    code, desc: eq.desc || code, department: eq.department || '',
+    organization: eq.organization || 'FBPP', type: 'Asset',
+  }]);
+  if (!added.length) { showToast(code + ' is already on this tab'); return; }
+  rebuildRows();
+  showToast(`Added ${code} · child WO ${added[0].childWo} created`);
+}
+// The Route itself is selected on the WO header (§16.10) — this re-runs the
+// import for whatever Route is already associated, for rows deleted since.
+function importRouteEquipment() {
+  const route = woEquipRoute(DEMO_WO);
+  if (!route) { showToast('No Route on this work order — select one on the WO header'); return; }
+  const before = equipRows().length;
+  const n = woEquipApplyRoute(DEMO_WO, route);
+  rebuildRows();
+  const gained = equipRows().length - before;
+  showToast(gained
+    ? `${gained} equipment re-imported from Route ${route.code}`
+    : `Route ${route.code} already imported — ${n} records`);
+}
+
+/* ══ RENDER ══════════════════════════════════════════════════════════
+   The shell handles everything except the zero state, which it has no
+   concept of — hence the local branch. */
+const TAB_RENDERERS = {
+  equipment: () => {
+    if (!ldVisibleRows('equipment').length) return emptyStateHTML();
+    return renderListDetailShell('equipment');
+  },
+};
+function emptyStateHTML() {
+  return `
+    <div class="eq-empty">
+      <div class="eq-empty-icon"><svg width="34" height="34" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke-linecap="round"/></svg></div>
+      <div class="eq-empty-title">No equipment on this work order</div>
+      <div class="eq-empty-sub">Select a Route on the work order header to add every piece of equipment on it, or use <strong>+</strong> to add equipment here.</div>
+    </div>`;
+}
+// Both `currentTab` and `renderActiveTabContent()` already live in
+// eam-shared.js — a screen only ever ASSIGNS currentTab (a second `let`
+// would be a redeclaration SyntaxError), and shared's renderer also
+// re-applies an open search query after each re-render, which a local copy
+// would silently lose. One tab here, so it's set once and never changes.
+currentTab = 'equipment';
+
+/* ══ INIT ════════════════════════════════════════════════════════════ */
+// Consume-once WO identity hand-off, same pattern as every other screen.
+const OPEN_DEMO_WO = sessionStorage.getItem('eamOpenDemoWo');
+if (OPEN_DEMO_WO) {
+  sessionStorage.removeItem('eamOpenDemoWo');
+  DEMO_WO = OPEN_DEMO_WO;
+}
+// No per-WO seeding at all: every WO's tab is empty until a Route is selected
+// on its header or equipment is added here (§16.10). Route defaults empty on
+// every demo WO, so a fresh demo starts empty everywhere — which is also base
+// EAM's own default for this tab ("Records: 0 of 0").
+const PARENT_WO = WO_META[DEMO_WO] || WO_META['19257'];
+document.getElementById('ldNum').textContent = DEMO_WO;
+document.getElementById('ldDesc').textContent = PARENT_WO.desc;
+rebuildRows();
+
+/* Step rail (§14.2/§16.10) — rendered exactly as the screen we came from
+   would have, with the highlight moved to the Reference group's Equipment
+   row. ORIGIN_STEP is the WO's position, handed over by
+   goToWoEquipmentTab(); it survives a reload (sessionStorage, not consumed)
+   so the rail doesn't collapse to a guess if this screen is refreshed. */
+const ORIGIN_STEP = sessionStorage.getItem('eamEquipTabOrigin') || 'record';
+const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
+const workflow = resolveWoWorkflow(jobType);
+if (workflow.configured) renderStepRail(workflow, ORIGIN_STEP, jobType, 'equipment');
+else renderFlatStepRail(ORIGIN_STEP, jobType, 'equipment');
+
+initDemoOnlineToggle();
+initSharedApp({ contentSelector: '.content' });
+</script>
+</body>
+</html>

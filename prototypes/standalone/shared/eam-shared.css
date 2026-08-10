@@ -653,7 +653,9 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    (.attr-item.protected/.form-field.protected above), not a new
    instrument. Still clickable — collapsing/expanding isn't an edit. */
 .fg-toggle-row.protected,.section-card-header.protected,.rv-toggle-row.protected{opacity:.6;}
-.rv-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:100px;font-family:var(--font-mono);background:none;color:var(--gray-4);border:1.5px solid var(--border-strong);}
+/* Counter Badge convention — see the .section-card-badge comment below. */
+.rv-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:100px;font-family:var(--font-mono);background:none;color:var(--octave-black);border:1.5px solid var(--border-strong);}
+[data-theme="dark"] .rv-badge{color:var(--white);}
 .rv-chev{color:var(--gray-4);transition:transform .2s;flex-shrink:0;}
 .rv-chev.open{transform:rotate(180deg);}
 .rv-collapse{display:none;border-top:1px solid var(--border);}
@@ -749,7 +751,18 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .section-card-header{padding:10px 14px 8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .section-card-title{font-size:14px;font-weight:600;color:var(--octave-black);}
 [data-theme="dark"] .section-card-title{color:var(--white);}
-.section-card-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:100px;font-family:var(--font-mono);background:var(--bg-section);color:var(--gray-4);border:1px solid var(--border);}
+/* COUNTER BADGE convention (locked 2026-08-10, direct instruction): every
+   "how many of these are there" badge takes the Organization pill's recipe
+   (.ld-card-org) — transparent fill, outlined, mono, full radius — with
+   black/white text rather than gray. No gray fills: they read as muddy in
+   light mode and make the badge look disabled. The ONE exception is the
+   required-count badge, which stays red-on-outline (§21). Applies to
+   .section-card-badge, .rv-badge, .ov-group-badge (Activity Checklist),
+   .erp-count (the Route/MEC pill) and .qty-badge-planned, which already
+   followed it. NOT .chip-count — that's a filled active-state marker riding
+   on an already-outlined active filter chip, a different instrument. */
+.section-card-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:100px;font-family:var(--font-mono);background:transparent;color:var(--octave-black);border:1px solid var(--border-strong);}
+[data-theme="dark"] .section-card-badge{color:var(--white);}
 /* ── Every container is collapsible (design-decisions-v3-1.md §3.4) —
    promoted here 2026-07-22 on its 2nd real consumer (WO Record View's
    Activity Insert/Update Mode popup; WO Closing was the first, now
@@ -1494,6 +1507,45 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .row-action-btn.danger{border-color:rgba(228,75,74,0.35);color:var(--red);background:rgba(228,75,74,0.04);}
 .row-action-btn.danger:hover{background:rgba(228,75,74,0.1);border-color:var(--red);}
 .row-action-btn svg{flex-shrink:0;}
+
+/* ── MULTI-SELECT DELETE (§16.10, added 2026-08-10) — rows of what's
+   already on screen, checkable, behind a mandatory confirm. Reuses
+   .lov-check like every other multi-select surface here. ── */
+.md-selectall{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;font-weight:700;color:var(--octave-black);}
+[data-theme="dark"] .md-selectall{color:var(--white);}
+.md-row{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;border-bottom:1px solid var(--border);}
+.md-row:last-child{border-bottom:none;}
+.md-row.selected{background:var(--bg-section);}
+[data-theme="dark"] .md-row.selected{background:rgba(255,255,255,.04);}
+.md-texts{flex:1;min-width:0;}
+.md-title{font-size:13.5px;font-weight:600;color:var(--octave-black);}
+[data-theme="dark"] .md-title{color:rgba(255,255,255,.9);}
+.md-sub{font-size:11.5px;color:var(--gray-4);margin-top:1px;font-family:var(--font-mono);}
+/* Danger-tinted commit, unlike the multi-select LOV's neutral Add. */
+.md-footer{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--border);}
+.md-footer .insert-save-btn{flex:1;margin:0;}
+.md-footer .insert-save-btn.ready{background:var(--red);border-color:var(--red);}
+
+/* ── EQUIPMENT LOV — MULTI-SELECT (§16.10, added 2026-08-10) — the same
+   Equipment LOV component in a mode where a result row toggles instead of
+   committing, and a footer accumulates the picks behind one "Add N" action.
+   Reuses .lov-check (the same checkmark control the dataspy sheet uses) and
+   the standard result card untouched — this only adds the check gutter and
+   the footer. ── */
+.equip-multi-row{display:flex;align-items:center;gap:0;cursor:pointer;}
+.equip-multi-row .lov-check{flex-shrink:0;margin-left:14px;}
+.equip-multi-card{flex:1;min-width:0;}
+/* The card carries its own 12px side margins; kill the left one so the
+   check gutter sets the row's left edge instead of doubling up. */
+.equip-multi-card .ld-card{margin-left:8px;}
+.equip-multi-row.selected .ld-card{border-color:var(--octave-black);}
+[data-theme="dark"] .equip-multi-row.selected .ld-card{border-color:var(--white);}
+.equip-multi-footer{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--border);background:var(--bg-card);flex-shrink:0;}
+.equip-multi-count{font-size:12.5px;font-weight:600;color:var(--gray-4);flex-shrink:0;}
+.equip-multi-footer .insert-save-btn{flex:1;margin:0;}
+/* Tree rows in multi-select mode get a persistent Add/Added toggle rather
+   than the focused-row-only Select button. */
+.tree-select-btn.added{background:var(--green);border-color:var(--green);color:#fff;}
 
 /* ── ACTION ROW (promoted 2026-07-24) — the real component behind what
    used to be Issue Parts' Part Card and Book Labor's Labor Row: "a
