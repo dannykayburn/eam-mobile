@@ -283,6 +283,37 @@ still an open, unlocked design riff; only the layout mechanics
 locked. The Favorites section (label + row) hides entirely when there are
 zero favorites, reappearing once one exists (§24.2).
 
+### Comments & Documents (locked 2026-08-11, app-wide)
+§7.2. **Top 3 inline on the Record View + a `View more` footer** that opens the
+matching full tab, everything newest-first. Resolves the old "which record
+types get a tab vs. inline" question — it's **both**, for every record type
+with these sections. WO Record View lost its old "render every comment inline"
+exception. Destinations: Equipment RV uses its existing Comments/Documents
+tabs; **WO uses `eam-wo-reference-tab-prototype-v1.html`** — one child-tab
+screen carrying *both* tabs (copied from the WO Equipment tab, which is still
+the §8 child-tab template). The step rail's Reference group now navigates there
+instead of scrolling to the inline section.
+- **The View more row is emitted by the shared excerpt renderers**, never
+  appended by a screen — appending died on any re-render, and adding a comment
+  triggers one. Tabbed screen → set `COMMENTS_TAB_KEY` (uses `goToTab()`);
+  untabbed → set `COMMENTS_VIEW_MORE_ONCLICK`/`DOCUMENTS_VIEW_MORE_ONCLICK`.
+- **Comments** are chat-style cards, own comments tinted, action ellipsis
+  pinned top-right of the card. Actions unchanged: Edit+Delete on your own,
+  Copy on everyone's.
+- **Documents** carry `Source:` and group by the base-EAM hierarchy (WO /
+  Equipment / Project / Department / Parent WO / Location / PM Schedule). **A
+  level with no documents renders no group at all** — no "No Document"
+  placeholder, deliberately unlike the base screen.
+- **The preview slot is a fixed 38px box that degrades to a file-type badge,
+  and its size must never depend on whether an image loaded.** Thumbnails
+  can't be load-bearing: S3 generates none for `.sql`/`.dwg`/most CAD-office
+  types, previews are unavailable offline (the normal state), and presigned
+  URLs expire so offline caching must key on a document id, not the URL.
+- **One open flag:** §7.2 separately locks *no avatar* on comments, and the new
+  card shows a 26px initials avatar. The original reasoning (it would compete
+  with the ellipsis) no longer holds now the ellipsis is in the corner, but the
+  supersession isn't confirmed — see the ⚠ note in §7.2.
+
 ### WO List / WO Search
 `eam-wo-list-prototype-v5_1.html` — **treat this file as the template for
 any top-level record-list screen**; copy its dataspy-bar/card-list/nav
@@ -308,6 +339,17 @@ the canonical full-record-view reference (§5.3) — copy its header/section
 pattern for any new record view. Custom Fields (admin-defined fields per
 record Class+Org, §22) are built for both WO and Equipment Record View,
 sourced from `data/custom_field_defs.js`.
+**Equipment photo is built here now** (§7.5, option A2, 2026-08-11): a 74px
+slot (`.rec-id-split` + `.rec-photo-slot`, `renderRecordPhotoMount()`) left of
+code/description, stretching down beside the status row and **collapsing away
+with status on scroll** — status and the Org pill already vanish together, so
+the photo goes with them. No photo set → camera glyph on a neutral fill, which
+also closes the "what does it show when empty" half of that item. Tapping
+routes into the same shared `openEquipPhotoTap()` flow as WO RV's own 44px
+badge, so there's one photo mechanic, not two. Rejected alternatives (persist-
+shrunk, 44px identity tile, body container, cover strip) are drawn in
+`mockups/equipment-photo-header-placement-options.html`, which has real scroll
+in every frame.
 
 Equipment List (`eam-equipment-list-prototype-v1.html`) has a real dataspy
 bar/favorites, a Search screen, and — as of 2026-08-11 — **all 6 filter
@@ -466,15 +508,19 @@ was the one screen missing it).
   work home" setup) for picking which quick actions surface, not yet
   located/named or built; candidate addition to the Screen Designer track
   (§10). Full detail in `design-decisions-v3-1.md` §9.4.
-- **Conditional field rules** — "if field X is Y, make Z required / surface
-  another step." Options ladder + prerequisites are written up in
-  `design-decisions-v3-1.md` §13.1–§13.4; **no tier chosen, nothing built,
-  nothing locked.** Read that rather than re-deriving it. Two prerequisites
-  are worth doing regardless of which tier ever ships: a single
-  `resolveFieldState(field, context)` seam, and a declared-vs-effective
-  field-state split.
-- **Activity Insert/Update Mode** — confirmed fully unbuilt (see
-  `project_deferred_screens_backlog` memory).
+- **Conditional field rules — Phase 4+, deliberately deprioritised**
+  (2026-08-11): "if field X is Y, make Z required / surface another step."
+  Options ladder + prerequisites are in `design-decisions-v3-1.md`
+  §13.1–§13.4; no tier chosen, nothing built. **Don't spend design time
+  picking a tier** — the only thing owed up front is naming the **one-way
+  doors**. Two prerequisites qualify, because retrofitting either later
+  touches every field on every screen: a single `resolveFieldState(field,
+  context)` seam, and a declared-vs-effective field-state split.
+- **Offline-search surfacing needs dev involvement** (2026-08-11) — the
+  per-row sync affordance and the "results as of \<time\>" freshness caption
+  (§6.13) are specified but unbuilt, and shouldn't be prototyped from the
+  design side alone: what a row can honestly claim about its freshness
+  depends on how the real sync/index layer behaves. §20.
 - **@mention tagging in Comments** — not built (see
   `project_comment_tagging_circleback` memory).
 - **Insert Mode's Equipment Type vs. Equipment List's Class** — Insert Mode's

@@ -243,6 +243,30 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .rec-desc.protected{cursor:default;color:rgba(255,255,255,.5);}
 .rec-status-row{overflow:hidden;transition:height .22s ease,opacity .18s ease;height:58px;opacity:1;}
 .rec-header.scrolled .rec-status-row{height:0;opacity:0;}
+
+/* ── Record-header photo slot (§7.5, locked 2026-08-11 — option A2 from
+   mockups/equipment-photo-header-placement-options.html) ──
+   A 74px tile left of code/description that stretches down alongside the
+   status row, and COLLAPSES WITH STATUS on scroll. Chosen over keeping it
+   visible-but-shrunk: status and the Organization pill already share
+   .rec-status-row and vanish together, so collapsing the photo too makes it
+   one gesture with one result, and code+description already answer "which
+   record am I on" once you're reading. Rejected alternatives (a 44px identity-
+   row tile, a separate body container, a full-width cover strip) are in the
+   mockup; the body-container option is the one that fails hardest with no
+   photo set — 150px of empty card on every asset that hasn't got one yet.
+   Only Equipment Record View uses this today; the markup is opt-in, so no
+   other header changes by inheriting it. */
+.rec-id-split{display:flex;gap:12px;padding:0 16px;}
+.rec-id-split .rec-id-row{flex:1;min-width:0;padding-left:0;padding-right:0;}
+.rec-photo-slot{width:74px;min-height:74px;border-radius:10px;align-self:stretch;flex-shrink:0;position:relative;overflow:hidden;background:var(--gray-5);display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:width .22s ease,min-height .22s ease,opacity .18s ease,margin-left .22s ease;}
+.rec-photo-slot img{width:100%;height:100%;object-fit:cover;display:block;}
+.rec-photo-slot .rec-photo-empty{color:rgba(255,255,255,.4);}
+/* Negative margin collapses the flex gap too, or a 12px ghost gutter would
+   survive the animation and leave the identity text visibly inset. */
+.rec-header.scrolled .rec-photo-slot{width:0;min-height:0;opacity:0;margin-left:-12px;}
+.rec-photo-cam{position:absolute;right:3px;bottom:3px;width:17px;height:17px;border-radius:50%;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;color:var(--white);}
 /* Org pill moved into this row (§5.2/§9.3, 2026-07-16) — justified opposite
    the status button so the two read as one balanced row, and so the pill
    collapses on scroll exactly like status does (it's the same .rec-status-
@@ -1719,18 +1743,40 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 [data-theme="dark"] .comment-add-row{color:var(--white);}
 .comment-add-row:hover{background:var(--bg-section);}
 .comment-add-plus{font-size:15px;font-weight:700;line-height:1;}
-.comment-item{padding:11px 14px;border-bottom:1px solid var(--border);}
-.comment-item:last-child{border-bottom:none;}
-.comment-header{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
-.comment-author{font-size:12px;font-weight:600;color:var(--octave-black);}
+/* Comment card — chat-style (§7.2, restyled 2026-08-11, direct instruction).
+   Was a flat row separated by hairlines with the ellipsis inline beside the
+   timestamp. Now a discrete card per comment with the action ellipsis pinned
+   TOP-RIGHT, an author avatar, and the technician's own comments tinted so
+   "mine vs theirs" reads before any text is parsed. Actions themselves are
+   unchanged (openCommentActions: Edit+Delete on own, Copy on others'). */
+.comment-item{position:relative;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:11px 12px 12px;margin:0 0 8px;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+.comment-item:last-child{margin-bottom:0;}
+.comment-item[data-mine="true"]{background:#F4F8FF;border-color:#D6E4FA;}
+[data-theme="dark"] .comment-item[data-mine="true"]{background:#22293A;border-color:#33405C;}
+.comment-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;padding-right:22px;}
+.comment-avatar{width:26px;height:26px;border-radius:50%;background:var(--gray-5);color:var(--white);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.comment-item[data-mine="true"] .comment-avatar{background:#2F6FB2;}
+.comment-author{font-size:12.5px;font-weight:700;color:var(--octave-black);}
 [data-theme="dark"] .comment-author{color:rgba(255,255,255,.9);}
+.comment-you{font-size:10.5px;font-weight:600;color:var(--gray-4);}
 .comment-time-actions{margin-left:auto;display:flex;align-items:center;gap:6px;}
-.comment-time{font-size:10px;color:var(--gray-4);font-family:var(--font-mono);}
-.comment-ellipsis{background:none;border:none;color:var(--gray-4);font-size:15px;font-weight:700;cursor:pointer;padding:2px 4px;line-height:1;}
-.comment-ellipsis:hover{color:var(--octave-black);}
+.comment-time{font-size:10.5px;color:var(--gray-4);font-family:var(--font-mono);}
+/* Pinned to the card's own top-right corner, out of the header's flow. */
+.comment-ellipsis{position:absolute;top:7px;right:7px;background:none;border:none;color:var(--gray-4);font-size:15px;font-weight:700;cursor:pointer;padding:2px 5px;line-height:1;border-radius:5px;}
+.comment-ellipsis:hover{color:var(--octave-black);background:var(--bg-section);}
 [data-theme="dark"] .comment-ellipsis:hover{color:var(--white);}
 .comment-text{font-size:13px;color:var(--octave-black);line-height:1.55;}
 [data-theme="dark"] .comment-text{color:rgba(255,255,255,.8);}
+/* Wraps the cards so they sit on the page background with real gutters,
+   rather than butting against a .section-card's own edges. */
+.comment-card-list{padding:9px 12px 4px;}
+
+/* "View more" footer (§7.2, 2026-08-11) — the Record View shows the top 3 of
+   Comments/Documents and this opens the full tab. Deliberately NOT styled as
+   a .comment-add-row: adding and navigating are different intents and were
+   previously the same-looking row, which made "View all" read as an action. */
+.view-more-row{display:flex;align-items:center;justify-content:center;gap:5px;padding:11px;font-size:12.5px;font-weight:700;color:var(--teal);cursor:pointer;border-top:1px solid var(--border);}
+.view-more-row:hover{background:var(--bg-section);}
 
 /* Documents (§7.2, D7/D9 2026-07-16) — pulled from Equipment's existing
    pattern into the shared library; every standard record view gets this,
@@ -1747,6 +1793,42 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 [data-theme="dark"] .doc-name{color:rgba(255,255,255,.9);}
 .doc-meta{font-size:11px;color:var(--gray-4);font-family:var(--font-mono);}
 .doc-arrow{color:var(--gray-4);flex-shrink:0;}
+
+/* ── Document preview slot + source hierarchy tree (§7.2, 2026-08-11) ──
+   The slot is a FIXED 38px box that shows a thumbnail when one exists and the
+   file's type badge when it doesn't. That's the whole point and it's load-
+   bearing: these are S3 documents whose thumbnails (a) don't exist at all for
+   most non-image/PDF types, and (b) are unavailable offline, which is this
+   app's normal state, not an edge case. Because the box never changes size,
+   neither case looks like a failure and a late-arriving image can't reflow
+   the list. Never make this slot's size depend on whether an image loaded. */
+.doc-slot{width:38px;height:38px;border-radius:7px;background:var(--bg-section);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;position:relative;}
+.doc-slot img{width:100%;height:100%;object-fit:cover;display:block;}
+.doc-slot-ext{font-family:var(--font-mono);font-size:8.5px;font-weight:700;letter-spacing:.3px;color:var(--gray-4);text-transform:uppercase;}
+/* Source group — one per hierarchy level that ACTUALLY has documents. A level
+   with none is omitted entirely (no "No Document" placeholder, unlike the base
+   EAM screen), so this never renders an empty group. */
+.doc-group{margin-bottom:2px;}
+.doc-group-row{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;}
+.doc-group-row:hover{background:var(--bg-section);}
+.doc-group-chev{color:var(--gray-4);display:flex;flex-shrink:0;transition:transform .18s ease;}
+.doc-group.open .doc-group-chev{transform:rotate(90deg);}
+.doc-group-label{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--gray-4);}
+.doc-group-value{font-size:12px;font-weight:600;color:var(--octave-black);font-family:var(--font-mono);}
+[data-theme="dark"] .doc-group-value{color:rgba(255,255,255,.9);}
+.doc-group-count{margin-left:auto;font-family:var(--font-mono);font-size:10.5px;font-weight:600;color:var(--octave-black);border:1px solid var(--border-strong);border-radius:100px;padding:1px 7px;background:transparent;}
+[data-theme="dark"] .doc-group-count{color:var(--white);}
+.doc-group-body{display:none;}
+.doc-group.open .doc-group-body{display:block;}
+/* Indented past the chevron so the nesting reads without connector lines. */
+.doc-tree-item{display:flex;align-items:center;gap:10px;padding:9px 14px 9px 34px;background:var(--bg-card);border-top:1px solid var(--border);cursor:pointer;}
+.doc-tree-item:hover{background:var(--bg-section);}
+.doc-group-body .doc-tree-item:last-child{border-bottom:1px solid var(--border);}
+/* Source line on an inline (non-tree) document row — the Record View excerpt
+   shows only 3 documents with no tree around them, so each one has to say
+   where it came from on its own. */
+.doc-source{font-size:11px;color:var(--gray-4);}
+.doc-source .mono{font-family:var(--font-mono);}
 
 /* ══════════════════════════════════════════════════════════════════════
    SYNC ERROR BANNER (§4.5) — rendered by eam-shared.js's

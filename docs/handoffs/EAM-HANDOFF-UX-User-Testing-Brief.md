@@ -85,6 +85,15 @@ Both landed 2026-08-11 and are the most complete threads in the prototype:
    moment you navigated away, so "create a work order" was an unusable task.
    It's a good one now.
 
+### Comments and Documents (new 2026-08-11)
+
+Both Record Views show the **top 3** with a **View more** footer that opens the
+full tab, newest first. Comments are chat-style cards — your own are tinted and
+their ellipsis offers Edit and Delete; others' offer Copy. Documents group by
+where they came from (Work Order / Equipment / Parent WO / Location), with
+`Source:` shown inline, and each row has a preview slot that falls back to a
+file-type badge. Good material for tasks; just note that *uploading* is stubbed.
+
 ### Filters and sort are fully real now
 
 Every filter chip on both WO List and Equipment List does something, and so
@@ -116,14 +125,21 @@ back to change sort order.
   filters on PUMP/MOTOR/VALVE/… — an unresolved modelling question, not a
   display bug. So "create equipment, then filter the list to find it by
   Class" will fail. Filtering by Description or Asset ID works.
-- **Activity Insert/Update Mode doesn't exist.** Testers can *answer*
-  checklist items but cannot add, edit, or reorder the items themselves.
+- **Checklist items themselves can't be added or edited.** Testers can
+  *answer* items but not author them. (Adding and editing **Activities** on
+  the WO — the Plus and pencil icons on the Activities block — *is* built and
+  fine to test; it's the checklist item list that isn't editable.)
 
 **Fine to let testers hit — expected, not findings:**
 
 - Issue Parts uses fixed local demo parts data, so every WO shows the same
   parts options and the same Store/Bin/Lot choices.
 - @mention tagging in Comments isn't built; Comments take plain text only.
+- Attaching a document is a stub — the **Add document** row and "Upload
+  Multiple Documents" both toast. Documents are readable and browsable
+  (including the source-hierarchy tree), just not uploadable.
+- Document previews are placeholder images, so the file-type badge you'll see
+  on most rows is the real intended behaviour, not a loading failure.
 - No profile photo / avatar upload.
 - Book Labor's "Correction" sheet shows fixed demo values rather than
   tester-entered ones.

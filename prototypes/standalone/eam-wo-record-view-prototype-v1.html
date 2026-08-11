@@ -1102,24 +1102,53 @@ let COMMENTS_DATA = NEW_RECORD ? (NEW_RECORD.comments || []).map((c, i) => ({
   { id: 'c2', mine: false, author: 'Meera Kumar', time: 'Nov 7 · 13:45', text: 'Sourced replacement bearing from IND-MAIN store. Parts staged at Mech B.' },
   { id: 'c3', mine: false, author: 'Jamie Martinez', time: 'Jan 15 · 07:14', text: 'On site. Proceeding with LOTO before disassembly.' },
 ];
-// No COMMENTS_EXCERPT_LIMIT / COMMENTS_TAB_KEY — this screen has no tab
-// system at all (§15.1/§15.3): Comments render fully inline, every entry,
-// inside the same collapsible section, not a "latest 3 + link" excerpt.
+/* Top 3 + View more (§7.2, changed 2026-08-11, direct instruction). This
+   screen used to render EVERY comment inline on the reasoning that it has no
+   tab system of its own — that's now solved by a real destination
+   (WO_REFERENCE_TAB_FILE, the shared reference-tab screen), so it follows the
+   same top-3 rule as Equipment RV instead of being an exception.
+   COMMENTS_TAB_KEY is unset because goToTab() only works on a tabbed screen;
+   the View more row is injected by this file's own renderReferenceViewMore()
+   below, which navigates instead. */
 const COMMENTS_EXCERPT_MOUNT = 'rv-comments';
+const COMMENTS_EXCERPT_LIMIT = 3;
 const COMMENTS_BADGE_ID = 'commentsBadgeCount';
 
+/* `source` drives the Documents tab's hierarchy grouping. Spread across four
+   levels on purpose — including a Parent WO document, which is how a Route/MEC
+   child inherits paperwork — so the tree has real structure and the
+   empty-group rule is visible (Project/Department/PM Schedule render nothing).
+   The one image row carries a thumbUrl so the fixed slot's populated state is
+   exercised alongside the PDFs' degraded state. */
 const DOCUMENTS_DATA = NEW_RECORD ? [] : [
-  { icon: 'pdf', name: 'Pump_Assembly_PMP3042_Rev4.pdf', meta: 'PDF · 2.4 MB · Nov 2024' },
-  { icon: 'pdf', name: 'LOTO_Procedure_WWTP_Rev2.pdf', meta: 'PDF · 890 KB · Mar 2024' },
-  { icon: 'img', name: 'Site_Photo_20251107.jpg', meta: 'JPG · 1.1 MB · Nov 2025' },
-  { icon: 'pdf', name: 'Bearing_6205-2RS_Spec.pdf', meta: 'PDF · 340 KB · Jan 2023' },
+  { icon: 'pdf', name: 'Pump_Assembly_PMP3042_Rev4.pdf', meta: 'PDF · 2.4 MB · Nov 2024', updated: '2024-11-02', source: { level: 'equipment', code: '00067333' } },
+  { icon: 'pdf', name: 'LOTO_Procedure_WWTP_Rev2.pdf',   meta: 'PDF · 890 KB · Mar 2024', updated: '2024-03-11', source: { level: 'wo', code: '19257' } },
+  { icon: 'img', name: 'Site_Photo_20251107.jpg',        meta: 'JPG · 1.1 MB · Nov 2025', updated: '2025-11-07', source: { level: 'wo', code: '19257' }, thumbUrl: EQUIP_PHOTO_DEMO_URL },
+  { icon: 'pdf', name: 'Bearing_6205-2RS_Spec.pdf',      meta: 'PDF · 340 KB · Jan 2023', updated: '2023-01-19', source: { level: 'equipment', code: '00067333' } },
+  { icon: 'pdf', name: 'Calibration_Cert_2025.pdf',      meta: 'PDF · 180 KB · Oct 2025', updated: '2025-10-04', source: { level: 'parentWo', code: '19244' } },
+  { icon: 'pdf', name: 'Pump_House_Access_Permit.pdf',   meta: 'PDF · 96 KB · Aug 2025',  updated: '2025-08-01', source: { level: 'location', code: 'PUMP-HOUSE-3' } },
 ];
 const DOC_ICON_SVG = {
   pdf: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
   img: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
 };
 const DOCUMENTS_EXCERPT_MOUNT = 'rv-documents';
+const DOCUMENTS_EXCERPT_LIMIT = 3;
 const DOCUMENTS_BADGE_ID = 'documentsBadgeCount';
+// A WO's own documents when a row carries no explicit source.
+const DOCUMENTS_OWN_LEVEL = 'wo';
+
+/* View more → the shared reference-tab screen (§7.2, 2026-08-11). This screen
+   isn't tabbed, so instead of goToTab() it hands the shared excerpt renderers
+   its own navigation expression. Set as globals rather than appended after the
+   render, so re-rendering the mount (adding a comment calls
+   refreshAllCommentViews()) can't drop the row. */
+const COMMENTS_VIEW_MORE_ONCLICK  = "goToWoReferenceTab('comments')";
+const DOCUMENTS_VIEW_MORE_ONCLICK = "goToWoReferenceTab('documents')";
+function renderReferenceExcerpts() {
+  renderCommentsExcerptMount();
+  renderDocumentsExcerptMount();
+}
 
 // Activity 10's discipline corrected Technician → Mechanical (the
 // activity IS a bearing replacement — a mechanical task); Activity 20
@@ -1882,8 +1911,7 @@ document.getElementById('recordContentSlot').innerHTML = renderRecordViewTab();
 // immediately, not just after a fresh page load.
 applyClosedFieldProtection();
 renderEquipRoutePill();
-renderCommentsExcerptMount();
-renderDocumentsExcerptMount();
+renderReferenceExcerpts();
 updateStartGate();
 applySyncErrorBanner();
 initDemoOnlineToggle();
