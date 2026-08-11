@@ -116,12 +116,22 @@ re-investigation every time it comes up.
   (the checklist overview) needs `closeAllSheets()` instead, since it isn't a
   `.bottom-sheet` itself. Exclusivity is opt-in because some flows legitimately
   nest sheets (§18).
+- **A CLOSED sheet must hide past its own height PLUS `--kb-inset`** — the
+  costliest bug of the lot, and the real cause of three "popup showing behind"
+  reports. `bottom:var(--kb-inset)` lifts every sheet whether open or not, while
+  a closed one is hidden only by `translateY(100%)` (its own height). With the
+  keyboard up, any sheet shorter than the inset peeks above it. **The sheets
+  were closed, not open** — which is why `closeAllSheets()` and then
+  `openSheetExclusive()` both failed to fix it. The closed transform adds the
+  inset back: `translateY(calc(100% + var(--kb-inset,0px)))`. If a "showing
+  behind" report ever recurs, check whether the surface is actually *open*
+  before reaching for a stacking fix.
 - **Run `check-keyboard.js` after touching any sheet holding a text input.**
-  Three patterns, every one of which reached a device before being caught: a
-  control at a sheet's bottom edge (collides with iOS's accessory bar), a
-  surface that opens without closing others, and `bottom:0` defeating
-  `--kb-inset` so the keyboard covers the sheet. The script is verified to
-  catch each — re-introduce one and it reports it.
+  Four patterns, every one of which reached a device before being caught: the
+  closed-transform one above, a control at a sheet's bottom edge (collides with
+  iOS's accessory bar), a surface opening without closing others, and `bottom:0`
+  defeating `--kb-inset`. The script is verified to catch each — re-introduce
+  one and it reports it.
 - `prototypes/wo-workflow/index.html` (the prior unified compile) is
   **intentionally frozen** — it's a hand-merged monolith with no live
   connection to the standalone source files and is the *wrong* model to
