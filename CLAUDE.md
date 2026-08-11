@@ -309,10 +309,10 @@ instead of scrolling to the inline section.
   can't be load-bearing: S3 generates none for `.sql`/`.dwg`/most CAD-office
   types, previews are unavailable offline (the normal state), and presigned
   URLs expire so offline caching must key on a document id, not the URL.
-- **One open flag:** §7.2 separately locks *no avatar* on comments, and the new
-  card shows a 26px initials avatar. The original reasoning (it would compete
-  with the ellipsis) no longer holds now the ellipsis is in the corner, but the
-  supersession isn't confirmed — see the ⚠ note in §7.2.
+- **Comment cards carry a 26px initials avatar** — confirmed 2026-08-11,
+  superseding §7.2's earlier "no avatar" call (relocated to §21 with its revert
+  recipe). That call's stated reason was that an avatar would compete with the
+  ellipsis, which stopped being true once the ellipsis moved to the card corner.
 
 ### WO List / WO Search
 `eam-wo-list-prototype-v5_1.html` — **treat this file as the template for

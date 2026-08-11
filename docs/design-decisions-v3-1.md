@@ -958,17 +958,21 @@ Asset record view screen (desktop):
   Equipment-specific. Same collapsible pattern as WO Record View's
   Comments/Documents.
 - **Comment author label, avatar, and actions — locked, module-agnostic.**
-  A comment's header row shows exactly two things next to its timestamp:
-  the commenting user's **description** (their display name — same
-  "description, not code/ID" philosophy as every LOV field, §3.4) and the
-  ellipsis for Edit/Delete/Copy. **No avatar/profile picture** — name text
-  alone carries enough identity for a comment thread, and dropping it
-  keeps the row from competing visually with the ellipsis. The ellipsis's
-  own actions sheet uses the exact same `.sheet-header` (✕ + title) every
-  other sheet in the app uses — any sheet lacking a proper header should
-  be treated as a defect. Two example comments per demo record (one Copy-
-  only, one Edit/Delete/Copy) make the ownership-permission rule visible
-  on sight without adding a comment first — a single-example version
+  A comment shows the commenting user's **description** (their display name —
+  same "description, not code/ID" philosophy as every LOV field, §3.4), a
+  timestamp, and the ellipsis for Edit/Delete/Copy. **An initials avatar
+  (26px) precedes the name** — confirmed 2026-08-11 as part of the chat-style
+  card; this reverses an earlier "no avatar" call whose stated reason was that
+  an avatar would compete with the ellipsis, which stopped being true once the
+  ellipsis moved out of the header row to the card's own corner (superseded
+  decision relocated to §21). Initials are derived from the name, with a
+  first-two-characters fallback for a single-word name and `?` for an empty
+  one — a blank circle reads as a broken image rather than an unknown author.
+  The ellipsis's own actions sheet uses the exact same `.sheet-header`
+  (✕ + title) every other sheet in the app uses — any sheet lacking a proper
+  header should be treated as a defect. Two example comments per demo record
+  (one Copy-only, one Edit/Delete/Copy) make the ownership-permission rule
+  visible on sight without adding a comment first — a single-example version
   reads as though Edit/Delete were missing entirely rather than
   permission-gated.
 - Desktop's "quick links" panel (Hierarchy, Reliability Ranking Details,
@@ -1020,17 +1024,10 @@ sections, not a per-entity choice:
   Images are `loading="lazy"`.
 - Applies to **Equipment as well as WO**.
 
-**⚠ FLAGGED CONFLICT, not yet confirmed — comment avatar.** The bullet above
-("Comment author label, avatar, and actions") locks **no avatar/profile
-picture**, on the reasoning that the name alone carries enough identity and an
-avatar would "compete visually with the ellipsis." The 2026-08-11 chat-style
-card as built **does** show a 26px initials avatar. The original reasoning's
-second half no longer holds — the ellipsis moved out of the header row to the
-card's corner, so there is nothing left for an avatar to compete with — but
-this has **not** been explicitly confirmed as a supersession. Either confirm
-it (and relocate the old decision to §21 per the reorg convention) or drop
-`.comment-avatar` from `renderCommentItemHTML()` and its CSS; the rest of the
-card treatment is independent of that call.
+**Comment avatar — confirmed 2026-08-11.** The chat-style card's 26px initials
+avatar was raised as a conflict with this section's earlier "no avatar" lock and
+has been explicitly confirmed; the superseded decision is relocated to §21 per
+the reorg convention, and the bullet above now states the current rule.
 
 ## 7.3 Sibling tabs (Equipment)
 
@@ -4326,6 +4323,7 @@ its original section with a note attached.
 
 | Former decision | Superseded by |
 | --- | --- |
+| **Comment header — no avatar/profile picture** (§7.2). A comment's header row showed exactly two things beside its timestamp: the author's display name and the Edit/Delete/Copy ellipsis. Reasoning given: name text alone carries enough identity for a comment thread, and omitting an avatar "keeps the row from competing visually with the ellipsis." | §7.2 (2026-08-11, confirmed after being flagged) — the chat-style comment card shows a **26px initials avatar** before the name. The first half of the old reasoning was a judgement call; the second half became factually obsolete when the card moved the ellipsis out of the header row entirely and pinned it to the card's top-right corner, so there is nothing left in that row for an avatar to compete with. To revert: drop `.comment-avatar` / `.comment-item[data-mine="true"] .comment-avatar` from `eam-shared.css` and the `<span class="comment-avatar">` (plus `commentInitials()`) from `renderCommentItemHTML()` in `eam-shared.js` — the rest of the card treatment is independent of this call. |
 | **Sync control — five states** (Synced/Syncing/Offline/Pending/Error), with a separate orange "Pending" state ("reconnected, outbox flushing in order") distinct from purple "Syncing" ("outbox draining right now"). | §4.4.1 — four states (Synced/Offline/Syncing/Error). Pending and Syncing described the same event; connectivity alone now decides Offline vs. Syncing. Syncing itself moved off purple onto a distinct gray shade (§23). |
 | **Master field-type reference — `sample-screen-standard-model-prototype.html`** — one canonical example of every field type, rule written as an inline caption, plus the full List/Detail header + Insert Mode reference build. | §5.2 "Grid vs. List field-type consolidation" — `screen-layout-field-behavior-prototype-v1.html` replaces it (every type shown in both Grid and List, not just one); the old scaffolding (header actions, tab rail, Insert Mode, Comments/Documents) is dropped since each has its own canonical home elsewhere. Retired to `prototypes/standalone/old versions/`. |
 | **LOV description-first**, then **LOV row: description only** (with a `CODE_VISIBLE_FIELDS` opt-in exception list for Cost Code/Store). | §3.4 "LOV field: code + description" — code + description is now the default for every plain LOV field. Organization (§3.4.1) is its own stricter case — code only, no description. |
