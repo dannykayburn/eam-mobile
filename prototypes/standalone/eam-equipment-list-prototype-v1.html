@@ -87,14 +87,16 @@
   over-Home affordance.
 
   Copies eam-wo-list-prototype-v5_1.html's §8.3 card pattern
-  (renderStdCard()) — deliberately MINIMAL beyond that:
-  - The dataspy bar is still a label, not a real switcher/sheet (tapping
-    it is still a "coming soon" stub) — but it's no longer always static:
-    a Home tile/favorite can now pre-run this screen to a 2nd dataspy
-    ("Centrifugal Pumps", ?spy=pumps, filtering by category) via the same
-    URL-param convention WO List uses (§24 rule 2). There's still no real
-    filter state to persist across a visit to Record View and back —
-    when real filtering lands here, it needs that treatment too.
+  (renderStdCard()). NOTE: the bullets below describe this file's ORIGINAL
+  minimal scope and are kept for history — every one of them has since been
+  built (dataspy sheet + favorites, Search screen, all 6 filter chips, Sort,
+  List/Detail mode toggle, its own Insert Mode entry point). Read the code,
+  not this list. Still genuinely open: filter/dataspy state isn't persisted
+  across a round trip to Record View and back (§20, app-wide).
+  - The dataspy bar was a label, not a real switcher/sheet — though even
+    then a Home tile/favorite could pre-run this screen to a 2nd dataspy
+    ("Centrifugal Pumps", ?spy=pumps) via the same URL-param convention WO
+    List uses (§24 rule 2).
   - No search, filter chips, sort, or List/Detail mode toggle.
   - No Insert Mode entry point here (Equipment's only Create is still
     Home's Create bar, unchanged).
@@ -160,9 +162,9 @@
 
     <div class="res-row">
       <span class="res-count" id="s1Count"></span>
-      <button class="sort-btn" onclick="showToast('Sort options — coming soon')">
+      <button class="sort-btn" onclick="openSort()">
         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="11" y2="12"/><line x1="4" y1="18" x2="8" y2="18"/><path d="M17 4v16m0 0l3-3m-3 3l-3-3"/></svg>
-        Description
+        <span class="sort-btn-label">Description</span>
       </button>
     </div>
 
@@ -211,10 +213,10 @@
     <div class="filter-chip-row" id="chipsRow">
       <button class="filter-chip" id="cOrg" onclick="openCS('organization')">Organization</button>
       <button class="filter-chip" id="cClass" onclick="openCS('class')">Class</button>
-      <button class="filter-chip" onclick="showToast('Category filter — coming soon')">Category</button>
+      <button class="filter-chip" id="cCategory" onclick="openCS('category')">Category</button>
       <button class="filter-chip" id="cAssigned" onclick="openCS('assignedTo')">Assigned To</button>
-      <button class="filter-chip" onclick="showToast('Description filter — coming soon')">Description</button>
-      <button class="filter-chip" onclick="showToast('Asset ID filter — coming soon')">Asset ID</button>
+      <button class="filter-chip" id="cDesc" onclick="openTextChip('desc')">Description</button>
+      <button class="filter-chip" id="cAsset" onclick="openTextChip('assetId')">Asset ID</button>
     </div>
 
     <div class="res-row"><span class="res-count" id="s2Count"></span></div>
@@ -254,6 +256,13 @@
       <button class="sheet-close" onclick="closeAllSheets()">✕</button>
       <div class="sheet-title" id="csTitle">Filter</div>
       <button class="sheet-clear-btn" onclick="clearCS()">Clear</button>
+    </div>
+    <!-- Search-within row (§6.11, added 2026-08-11) — part of the List Search
+         Screen standard; WO List's own copy of this sheet always had one, this
+         one never got it. -->
+    <div class="lov-search-row">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input class="lov-search-input" id="csSearch" placeholder="Search…" oninput="filterCSRows(this.value)">
     </div>
     <div class="sheet-body" id="csList"></div>
     <div class="sheet-footer"><button class="btn-contained" onclick="applyCS()">Apply</button></div>
@@ -467,10 +476,18 @@
 // optional per-key hook eam-shared.js's selectLov() already runs for any
 // screen that defines it, applied here to `insertType` specifically.
 const LOV_ON_SELECT = { insertType: () => { renderFlatFields(); applyTypePillColor(); } };
-function goEquipmentRecord() {
-  // No per-record routing exists anywhere in this app yet (a pre-existing
-  // limitation, not introduced here) — every card opens the one hardcoded
-  // demo record the Equipment Record View screen already renders.
+/* Per-record routing (2026-08-11). Hands the tapped row's own identity to
+   Equipment Record View, which overlays it onto the canonical demo record —
+   so a card opens as the asset that was actually tapped. Before this, every
+   row opened 00067333 regardless, which read as the app ignoring the tap.
+   Deep content (comments, documents, child tabs) is still the demo record's;
+   this is identity + header fields only. */
+function goEquipmentRecord(assetId) {
+  // Created in-app? Open the real record by replaying Insert Mode's own
+  // hand-off, rather than overlaying an identity onto the demo record.
+  if (typeof openCreatedEquip === 'function' && openCreatedEquip(assetId)) return;
+  const e = EQUIPS.find(x => x.assetId === assetId);
+  if (e) sessionStorage.setItem('eamOpenEquipment', JSON.stringify(e));
   location.href = 'eam-equipment-record-view-prototype-v1.html';
 }
 
@@ -501,6 +518,28 @@ const EQUIPS = [
   { assetId:'00071358', desc:'Blower, Centrifugal',         organization:'ORG2', class:'BLOWER',     category:'CENTRIFUGAL',  assignedTo:'BCAMPBELL' },
   { assetId:'BLDG-A',   desc:'Building A — Main Lobby',     organization:'FBPP', class:'FACILITY',   category:'BUILDING',     assignedTo:'BCAMPBELL' },
 ];
+
+/* Created equipment (2026-08-11) — an Equipment record a technician actually
+   creates through Insert Mode now persists (eamCreatedRecords) and shows up
+   here, rather than existing only for the one navigation after Save. Its
+   `class` is Insert Mode's own record-type vocabulary (Asset/Position/System),
+   not this list's PUMP/MOTOR/… classes, so it won't match a Class filter —
+   that mismatch is Insert Mode's, tracked rather than papered over here. */
+function mergeCreatedEquipment() {
+  if (typeof createdRecords !== 'function') return;
+  createdRecords().EQUIP.forEach(rec => {
+    if (EQUIPS.some(e => e.assetId === rec.asset)) return;
+    EQUIPS.unshift({
+      assetId: rec.asset, desc: rec.desc,
+      organization: (rec.organization && rec.organization.code) || 'FBPP',
+      class: (rec.class && rec.class.code) || '—',
+      category: (rec.category && rec.category.code) || '—',
+      assignedTo: (rec.assignedTo && rec.assignedTo.code) || '—',
+      created: true,
+    });
+  });
+}
+mergeCreatedEquipment();
 
 // Dataspies — 'all'/'pumps' ids kept unchanged from before (Home's
 // goToScreen()/sessionStorage 'eamPendingSpy' pre-run already targets
@@ -576,12 +615,23 @@ const CD = {
     { code: 'JRODRIGUEZ', name: 'Juan Rodriguez' },
     { code: 'MKUMAR', name: 'Meera Kumar' },
   ] },
+  // Category promoted from toast stub to a real multi-select 2026-08-11 — it's
+  // a small fixed code list like Class, so it never needed to be a stub.
+  category: { title: 'Filter by category', rows: [
+    { code: 'CENTRIFUGAL', name: 'Centrifugal' },
+    { code: 'INDUCTION', name: 'Induction' },
+    { code: 'GATE', name: 'Gate' },
+    { code: 'ROTARY SCREW', name: 'Rotary Screw' },
+    { code: 'BUILDING', name: 'Building' },
+  ] },
 };
-const CID = { organization: 'cOrg', class: 'cClass', assignedTo: 'cAssigned' };
-const CLB = { organization: 'Organization', class: 'Class', assignedTo: 'Assigned To' };
+const CID = { organization: 'cOrg', class: 'cClass', assignedTo: 'cAssigned', category: 'cCategory' };
+const CLB = { organization: 'Organization', class: 'Class', assignedTo: 'Assigned To', category: 'Category' };
 
 /* ══ STATE ══ */
 let curDS = 'all', sv = '', cf = {}, ack = null, csel = {}, mode = 'detailed';
+// Free-text chips + sort (2026-08-11) — `cf` stays the code-list multi-selects.
+let tf = {}, sortBy = 'desc', sortDir = 'asc';
 
 /* ══ FILTERING ══ */
 function dsFilt() { return EQUIPS.filter(DSF[curDS] || DSF.all); }
@@ -591,7 +641,52 @@ function sFilt() {
   if (cf.organization?.length) rows = rows.filter(e => cf.organization.includes(e.organization));
   if (cf.class?.length)        rows = rows.filter(e => cf.class.includes(e.class));
   if (cf.assignedTo?.length)   rows = rows.filter(e => cf.assignedTo.includes(e.assignedTo));
+  if (cf.category?.length)     rows = rows.filter(e => cf.category.includes(e.category));
+  if (tf.desc)    rows = rows.filter(e => e.desc.toLowerCase().includes(tf.desc.toLowerCase()));
+  if (tf.assetId) rows = rows.filter(e => e.assetId.toLowerCase().includes(tf.assetId.toLowerCase()));
   return rows;
+}
+
+/* ══ FREE-TEXT CHIPS + SORT (§8.3, 2026-08-11) ═══════════════════════════
+   Were "coming soon" toasts. Sheets are shared components (openTextFilter/
+   openSortSheet, eam-shared.js); this screen supplies labels + state. Mirrors
+   WO List's own implementation of the same pattern — keep the two in step. ══ */
+const TEXT_CHIP_META = {
+  desc:    { id: 'cDesc',  label: 'Description', title: 'Filter by description', ph: 'Description contains…' },
+  assetId: { id: 'cAsset', label: 'Asset ID',    title: 'Filter by asset ID',    ph: 'Asset ID contains…' },
+};
+function openTextChip(key) {
+  const m = TEXT_CHIP_META[key];
+  openTextFilter({ title: m.title, value: tf[key] || '', placeholder: m.ph, onApply: v => {
+    if (v) tf[key] = v; else delete tf[key];
+    paintChip(m.id, m.label, !!v, v);
+    refS2();
+    showToast(v ? m.label + ': "' + v + '"' : m.label + ' filter cleared');
+  } });
+}
+// Active text chip shows its own value, not a count — see WO List's own copy.
+function paintChip(id, label, active, valueText) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('active', active);
+  const short = (valueText || '').length > 14 ? valueText.slice(0, 13) + '…' : valueText;
+  el.textContent = active ? label + ': ' + short : label;
+}
+const SORT_FIELDS = [
+  { key: 'desc', label: 'Description' }, { key: 'assetId', label: 'Asset ID' },
+  { key: 'organization', label: 'Organization' }, { key: 'class', label: 'Class' },
+  { key: 'category', label: 'Category' }, { key: 'assignedTo', label: 'Assigned To' },
+];
+function openSort() {
+  openSortSheet({ fields: SORT_FIELDS, key: sortBy, dir: sortDir, onApply: (k, d) => {
+    sortBy = k; sortDir = d;
+    const sign = d === 'asc' ? 1 : -1;
+    EQUIPS.sort((a, b) => sign * String(a[k] || '').localeCompare(String(b[k] || ''), undefined, { numeric: true }));
+    const f = SORT_FIELDS.find(x => x.key === k);
+    document.querySelectorAll('.sort-btn-label').forEach(el => { el.textContent = f.label; });
+    refS1(); refS2();
+    showToast('Sorted by ' + f.label + (d === 'asc' ? ' (ascending)' : ' (descending)'));
+  } });
 }
 
 /* ══ CARD (§8.3 6-field set, unchanged from before this build) ══ */
@@ -609,7 +704,7 @@ function equipCardFields(e) {
 // wrapper (not just inner content) — the .replace() below is how the
 // original stub injected its onclick too, kept the same way here.
 function card(e) {
-  return renderStdCard(equipCardFields(e)).replace('<div class="ld-card">', '<div class="ld-card" onclick="goEquipmentRecord()">');
+  return renderStdCard(equipCardFields(e)).replace('<div class="ld-card">', `<div class="ld-card" onclick="goEquipmentRecord('${e.assetId}')">`);
 }
 // List mode's all-fields table (§8.3) — this demo's data model has no
 // fields beyond the 6 the card already shows, so List mode presents the
@@ -636,7 +731,7 @@ function refS1() {
   document.getElementById('listContent').style.display = d ? '' : 'none';
   document.getElementById('listTable').style.display = d ? 'none' : '';
   if (d) document.getElementById('listContent').innerHTML = rows.map(card).join('') || emptyMsg();
-  else document.getElementById('listTable').innerHTML = rows.length ? renderStdTable(rows.map(equipAllFields), 'goEquipmentRecord()') : emptyMsg();
+  else document.getElementById('listTable').innerHTML = rows.length ? renderStdTable(rows.map(equipAllFields), i => `goEquipmentRecord('${rows[i].assetId}')`) : emptyMsg();
   document.getElementById('s1Count').textContent = rows.length + ' equipment record' + (rows.length === 1 ? '' : 's');
 }
 function refS2() {
@@ -645,7 +740,7 @@ function refS2() {
   document.getElementById('s2List').style.display = d ? '' : 'none';
   document.getElementById('s2Table').style.display = d ? 'none' : '';
   if (d) document.getElementById('s2List').innerHTML = rows.map(card).join('') || emptyMsg();
-  else document.getElementById('s2Table').innerHTML = rows.length ? renderStdTable(rows.map(equipAllFields), 'goEquipmentRecord()') : emptyMsg();
+  else document.getElementById('s2Table').innerHTML = rows.length ? renderStdTable(rows.map(equipAllFields), i => `goEquipmentRecord('${rows[i].assetId}')`) : emptyMsg();
   document.getElementById('s2Count').textContent = rows.length + ' equipment record' + (rows.length === 1 ? '' : 's');
 }
 
@@ -716,8 +811,13 @@ function openCS(k) {
   ack = k;
   csel = Object.fromEntries((cf[k] || []).map(v => [v, true]));
   document.getElementById('csTitle').textContent = CD[k].title;
+  document.getElementById('csSearch').value = '';
   renderCSRows(CD[k].rows);
   openSheet('csSheet');
+}
+function filterCSRows(v) {
+  const q = v.toLowerCase();
+  renderCSRows(CD[ack].rows.filter(r => r.name.toLowerCase().includes(q) || r.code.toLowerCase().includes(q)));
 }
 function renderCSRows(rows) {
   document.getElementById('csList').innerHTML = rows.map(r => `

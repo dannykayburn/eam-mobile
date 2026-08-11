@@ -1514,6 +1514,48 @@ Replaces any screen's previously-fixed/hardcoded chip or sort list.
   close. Un-favoriting stays silent — removing something you just
   starred isn't a state worth announcing the same way.
 
+### Filter-chip shapes — all three now real (locked 2026-08-11)
+
+A dataspy's 6 chips aren't all code lists, and the two that aren't were
+"coming soon" toasts on both list screens until now. There are exactly
+three chip shapes, and every chip is one of them:
+
+- **Code-list chip** — multi-select sheet with a search-within field
+  (`openCS()`, per-screen). Already existed. Equipment List's **Category**
+  was a toast purely by omission and is now one of these too; it was always
+  a small fixed code list, like Class beside it.
+- **Free-text chip** — `openTextFilter()`, shared. A single "contains"
+  field, Clear in the header, Apply in the footer, Enter submits. Covers
+  Description and WO number / Asset ID. Case-insensitive substring match,
+  not a tokenizer — this is a filter, not a search engine.
+- **Date-range chip** — `openDateRangeFilter()`, shared. Two bounds
+  (From/To), either side optional for an open-ended range, and a backwards
+  range silently swaps rather than returning nothing (a filter that
+  returns zero rows for a plausible input reads as broken). Uses native
+  date inputs, not this app's own calendar sheet (§3.4): a range needs
+  both bounds visible at once, which the single-value sheet can't express.
+  Carries the same accepted platform limitation as the Time field —
+  mobile browsers style native date controls their own way.
+
+**An active free-text or range chip shows its own value, not a count**
+("Description: bearing hou…", truncated at 14 chars). `.chip-count` stays
+exclusive to code-list chips, where a number genuinely means "n of m
+options selected"; on a text filter a count would read as a selection it
+isn't.
+
+**Sort is real too** — `openSortSheet()`, shared: a radio-style field list
+built from the same 6 dataspy fields the chips use, plus an
+Ascending/Descending toggle on the standard `.mode-tog` control, and the
+sort button's own label updates to the chosen field.
+
+All three sheets **build their own markup on first use** and inject it into
+`.app` (not `document.body` — `.bottom-sheet` is positioned against the app
+frame). Three sheets across two screens would otherwise be six
+near-identical markup blocks to keep in step, which is the hand-copying the
+shared-component rule exists to prevent. This is a deliberate departure
+from `openMultiDelete()`'s "screen supplies the markup" precedent (§16.10);
+prefer self-injection for any new shared sheet with more than one consumer.
+
 ### Applied to
 
 `eam-wo-list-prototype-v5_1.html` (both the WO List and Search screens —
@@ -1898,6 +1940,33 @@ simple incrementing counter (`eamNextWoNumber`/`eamNextEquipNumber` in
 Equipment Record View's non-Record-View tabs (Events, PM Schedules,
 Depreciation, Meters, Warranties, Parts Associated, Costs) render empty
 for a freshly-created record — a 0-second-old asset has no history.
+
+**A created record persists into the demo loop (locked 2026-08-11).** Save
+used to hand the record forward for exactly one navigation and then lose it,
+so a technician who created a WO watched it vanish from WO List — the app
+looked like it had discarded their work. Created records now go to a shared
+`localStorage` store (`eamCreatedRecords`, `createdRecordAdd()`/
+`createdRecordFind()` in `eam-shared.js`) alongside the `sessionStorage`
+hand-off, and:
+
+- **WO List and Equipment List merge them in at load**
+  (`mergeCreatedWos()`/`mergeCreatedEquipment()`), same pattern as the MEC
+  children (§16.10). A created WO also stays visible in WO List's default
+  dataspy — someone who just created one and lands back there expects to see
+  it, whatever the dataspy's normal scope.
+- **Re-opening one replays the hand-off it was born with**
+  (`openCreatedWo()`/`openCreatedEquip()`) rather than adding a second
+  rendering path. The Record Views already know how to render a
+  handed-over record; a created record simply *is* one, permanently.
+- Cleared by `resetDemoState()`, so a fresh demo starts with only the
+  seeded records.
+
+Two vocabulary mismatches this exposed, both real and both fixed on the list
+side rather than papered over: Insert Mode's status codes
+(`RELEASED`/`IN_PROGRESS`/`HOLD`) had no entry in WO List's own status map,
+so a created WO rendered as "Waiting approval" — a status nobody picked; and
+its priority codes (`LOW`…`CRITICAL`) are its own vocabulary, not the list's
+1–5 scale, so they're mapped on merge. A third is **still open** — see §20.
 
 ## 9.6 One shared implementation across every entry point
 
@@ -3254,26 +3323,23 @@ remains open (last bullet).
   a different field from Equipment, even though it drives Equipment's own
   pill). `LOV_DATA.route` seeds 2 demo options, `Pumps`/`Fire
   Extinguishers`, each carrying an invented `equipmentCount` (24/156) —
-  screen-local flavor data, not consumed by the generic LOV machinery,
-  only read by `LOV_ON_SELECT.route` to set `RECORD.equipmentTabTotal`.
+  screen-local flavor data, not consumed by the generic LOV machinery.
   Alongside Equipment, inside the same full-width `.attr-item`, a pill
   (`.equip-route-pill`, `renderEquipRoutePill()` in
-  `eam-wo-record-view-prototype-v1.html`):
-  - `RECORD.route` set → **"Route: `<code>` - `<description>`"**
-  - `RECORD.route` unset but `RECORD.equipmentTabTotal > 1` (an MEC
-    parent whose equipment arrived some other way, not via Route) →
+  `eam-wo-record-view-prototype-v1.html`). It reads off the shared WO
+  equipment store, not this screen's own memory (§16.10):
+  - rows exist and a Route is set → **"Route: `<code>` - `<description>`"**
+  - rows exist with no Route (equipment arrived some other way) →
     **"Multiple Equipment"**
-  - Neither → no pill at all (the ordinary single-equipment case, and
+  - no rows → no pill at all (the ordinary single-equipment case, and
     every WO's real default — "default all WO's to have route empty,"
     direct instruction).
   Tapping the pill **always** jumps to the Equipment tab
-  (`goToEquipmentTab()`) regardless of which text is showing — that tab
-  doesn't exist as a real screen yet, so this is a toast stub for now,
-  same convention as Print Work Order/camera scan elsewhere. That tab's
-  own list can run into the hundreds, which is exactly why it's a deep
-  link and not an inline list/expand/sheet (every option the first
-  mockup pass tried assumed a handful of equipment and was rejected for
-  this reason).
+  (`goToEquipmentTab()`) regardless of which text is showing — a real
+  screen since 2026-08-10 (§16.10). That tab's own list can run into the
+  hundreds, which is exactly why it's a deep link and not an inline
+  list/expand/sheet (every option the first mockup pass tried assumed a
+  handful of equipment and was rejected for this reason).
   **Commit timing and pill visibility:** selecting a Route commits
   **immediately** — it inserts every piece of that Route's equipment into
   the shared WO equipment store and mints one MEC child WO per row,
@@ -3305,6 +3371,47 @@ remains open (last bullet).
   seemed like they might share a component shape; not resolved, not
   scoped, nothing promoted for it. The Hero Photo Header / Compact Row +
   Expand Sheet directions in the same mockup file were not chosen either.
+
+### Checklist items fan out per equipment (locked 2026-08-11)
+
+The piece that made this thread work end to end, and the thing §16.8's
+Equipment group-by mode was built for but was never actually fed.
+
+**The rule:** when a WO carries equipment on its Equipment tab, every
+**equipment-scoped** checklist item (an item with its own `equipId`) becomes
+one item **per piece of equipment**. Items with no equipment scope — safety
+checks, close-out — stay single. A technician walking a Route inspects the
+same points on each asset, so the item set is the template and the
+equipment list is the multiplier.
+
+- **Order is equipment-major** — every point for asset 1, then asset 2 —
+  because that's the order the route is physically walked. Not
+  all-of-one-check-across-every-asset, which would mean revisiting each
+  asset once per item.
+- **The copies are inserted where the template sat**, so group membership
+  and the surrounding safety/close-out structure are unchanged. Step mode
+  still groups them under their original group; Equipment mode (§16.8)
+  groups by `equipId`.
+- **Removing the equipment removes its items, with no separate teardown
+  path.** The fan-out is recomputed from the live store at load, so the
+  copies exist only because a row exists — the same "pure function of the
+  stored rows" discipline the Route/MEC pill uses (§16.10). There is no
+  stored, diverged copy of the item list to keep in sync.
+- **A MEC child WO fans out to exactly one asset** — the one it was minted
+  for — not the parent's whole set.
+- **Dynamic follow-on items (§16.5) still work per copy.** Each copy is a
+  deep clone, so answering "Fail" on asset 3 inserts follow-ons under asset
+  3 only. The fan-out reserves its own id range and pushes
+  `dynamicIdSeq` past it, because a long Route mints hundreds of items and
+  an id collision would make `syncDynamicChildren()` delete the wrong row.
+
+**Known scale consequence, accepted:** the demo Routes are 24 (`PUMPS`) and
+156 (`FIREEXT`) equipment against 4 equipment-scoped items, so a fanned-out
+checklist is ~96 or ~624 items. That is the real case §16.9 always said this
+tab has to survive, and it's why "View all" + Equipment group-by exists —
+but it does mean the one-at-a-time stepper is not a sensible way to traverse
+a long Route front to back. Not treated as a bug; flagged so nobody
+"fixes" the scale by capping the fan-out.
 
 ## 16.10 WO › Equipment tab
 
@@ -3459,9 +3566,41 @@ View's pill are one truth instead of two copies that could disagree:
 5. MEC child WO numbers start at **20451** and are unique across *all*
    parents (a store-global counter, not per-WO).
 
-**NOT BUILT — the MEC children don't reach WO List yet.** Their numbers and
-parent links are recorded, but WO List still renders a hardcoded WO set, so
-they don't show up as child records in its search results. Tracked in §20.
+**MEC children are real, navigable records (built 2026-08-11).** WO List
+merges them out of the shared store at load (`mergeMecChildWos()`) as child
+rows under their parent — the parent gains its expand chevron, and the
+children inherit the parent's Type, Priority, Location, Org and due date,
+which is what a Route child actually does. Their description is the Route's
+own description plus the equipment code (`Monthly Pump Inspections — P-1042`),
+so 24 siblings stay tellable apart on a card that doesn't surface Equipment.
+
+**A child WO opens as itself, borrowing only its parent's workflow.** These
+records have no data file, so a shared, session-scoped **WO identity
+override** (`woIdentitySet()`/`woIdentity()`/`woIdentityClear()`) carries the
+child's number, description and equipment while `eamOpenDemoWo` still points
+at the parent for workflow resolution. Consequences, all deliberate:
+
+- Every one of the 5 workflow steps picks the override up for free —
+  they all paint `recNum`/`recDesc` through the shared
+  `applyDemoWoIdentity()`. The Equipment tab's §8.1 header (`ldNum`/`ldDesc`)
+  is the one screen that needed it applied by hand.
+- **A child never shows the parent's Route or equipment set.** The
+  Route/MEC pill is suppressed, `RECORD.route` is blank, and the Equipment
+  tab shows exactly the one asset the child was minted for. A child is a
+  leaf, so that tab's insert/delete actions are guarded with a toast rather
+  than silently mutating the parent's rows.
+- The override is held for the whole session (so Next/Back across the
+  workflow keeps the child's identity) and cleared by any entry point that
+  opens a *different* WO — WO List's `openWO()`, Notifications, and
+  `resetDemoState()`.
+
+Both entry points — a WO List child row and the Equipment tab's own row tap
+— go through the same hand-off, so a child opens identically either way. The
+Equipment tab's child-WO destination is real navigation now, not the honest
+toast stub it carried while this was unbuilt.
+
+**Equipment-scoped checklist items fan out per equipment (built
+2026-08-11)** — see §16.9.
 
 **Multi-select delete — new paradigm, 2026-08-10.** A header action in the
 ellipsis (§8.4: it opens a popup and needs no pre-selected row) that
@@ -4066,7 +4205,6 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **New checklist item type: Slider** | Addition to §16.3's 17 checklist item types — a draggable slider/scale control. Needs a comparison mockup before being built, specifically covering the *resting* (untouched) state's affordance (handle/track/shadow) so it reads as interactive, not as a read-only gauge. |
 | **Equipment Photo — Equipment RV's own header slot still unbuilt** | Built on **WO Record View** only (§7.5/§15.5): 44px `.attr-badge-photo` tile, full-screen viewer with a single Modify action (no Remove), Camera/Library/File source picker. Still open, all specific to **Equipment Record View**: exact placement/size for an icon slot in its header (`.rec-id-row` has none today), and what that icon shows with no photo set — unlike WO Record View it has no prior fallback to drop back to. |
 | **Unified prototype compile** | A real compiled shell that invokes the standalone files rather than duplicating them is still being proven out — see `docs/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md` §7–§8 for the current plan; don't build toward the old `prototypes/wo-workflow/index.html` monolith pattern. |
-| **Date fields still show stale spelled-month literals on 2 screens** | `isoToDisplay()` renders numeric dates app-wide (§3.4), but `eam-wo-record-view-prototype-v1.html` and `eam-equipment-record-view-prototype-v1.html` still have hardcoded spelled-month text baked into initial markup, not generated through the function at load. Only re-picking a date via the shared calendar sheet shows the new format on those two files. |
 | **Date/time formatting is hardcoded to `en-US`, not actually locale-driven** | `isoToDisplay()` and `saveDateTime()` hardcode `'en-US'`. The real rule: dates should follow the logged-in user's own locale (this app targets North America/Europe/Asia — DD/MM/YYYY and YYYY/MM/DD are real cases); time-of-day stays fixed 24-hour regardless of locale (deliberate, not a gap — §3.4). No per-user locale/session concept exists yet to drive the date-format switch. |
 | **Activity Screen** | Timer, task plan reference, assignment status (ref: `Activity_Selector.png`). A future standalone Activities tab could double as the real closing surface for Activity-driven WO Types instead of WO Closing (§12) — not designed, not built. |
 | **Per-row sync affordance (WO List)** | Map the 3 offline-search row states (stub / hydrated / ephemeral) onto the existing 4-state sync control language at row level. Specified in the offline search architecture (§6.13); not yet in the v5.1 prototype. |
@@ -4075,6 +4213,9 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **Record-view child tabs — generic-case ellipsis menu contents** | §8's ellipsis menu for a generic child list/detail tab has no locked content yet (Equipment's own instance ships toast-stub candidates only). |
 | **Activity Selector — no cross-screen hand-off for `selectedActivity`** | Once a technician moves past WO Record View into Activity Checklist, Issue Parts, or Book Labor, none of those screens shows which Activity is in scope, and no session/URL hand-off mechanism for `RECORD.selectedActivity` exists. Harmless today (every demo WO has exactly 1 Activity, which auto-selects) but undefined once a WO has 2+. |
 | **Structure Details tree pattern** | Still an open design problem — see §7.4. |
+| **Insert Mode's Equipment "Type" isn't the Equipment List's Class vocabulary** | Insert Mode offers Asset/Position/System (`ENTITY_FIELD_META.EQUIP.typeOptions`) and `saveInsertRecord()` stores that value as the record's **`class`** — but Equipment List's Class column and its Class filter chip are PUMP/MOTOR/VALVE/COMPRESSOR/BLOWER/FACILITY. So an Equipment record created in-app shows a Class no filter can select, and Custom Fields (§22, gated on Class) never match it. Surfaced 2026-08-11 by making created records persist into the list (§9.5). The real question is which field Insert Mode's third pill actually *is* — a record Type (Asset/Position/System is a genuine EAM distinction) or a Class — not just which list to widen. Not decided, nothing changed on the Insert Mode side. |
+| **Equipment Record View's routed-in record is an identity overlay, not a real record** | Per-record routing (2026-08-11) hands the tapped Equipment List row over (`eamOpenEquipment`) and overlays asset/description/organization/class/category/assigned-to onto the canonical demo record, clearing the nameplate fields (alias/serial/model/manufacturer/value) that belong to 00067333 specifically. Everything deeper — Comments, Documents, and all 7 child tabs — is still the demo record's. Enough that a card opens as the asset that was tapped; not enough to claim per-record data. A real fix needs per-asset records in `data/equipment.js` (only 00067333 and BLDG-A exist) or a generated set. |
+| **WO List's Search screen shows one sort control but Screen 1 owns it** | The sort button lives in Screen 1's `.res-row`; the Search screen (Screen 2) has a result-count row with no sort control of its own, so a technician filtering on Screen 2 can't reorder those results without going back. `openSortSheet()` and `applySortOrder()` are already shared and re-render both screens, so this is a markup gap, not a behavior one — Equipment List has the same shape. |
 | **Login** | Not started. See §4.1. |
 | **Profile screen contents** | Beyond the identity row/Settings/Log out shell (§4.3), full scope (session/tenant display, theme preference) is still undecided. |
 | **WO List's Search sub-screen still shows a back button instead of the avatar** | Per §4.2's browsing-tier rule, it should show the avatar like WO List's own main screen. |
@@ -4084,17 +4225,13 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **WO Record View Comments — no interactivity yet** | Has a Comments section (§15.1) but no add/edit/delete/copy — the ellipsis/edit/delete mechanics built for Equipment (§7.2) haven't been ported here. |
 | **WO timer placement + pause/resume** | Two open questions: (1) keep the timer in the step rail or move it to the nav bar so it stays visible while the rail is scrolled/collapsed; (2) whether pause/resume should exist, and if so whether it's a per-WO-type config flag alongside Free Form (§15.4). Not designed, not prototyped. |
 | **Activity Checklist's Checkbox-type control vs. the generic checkbox pattern** | §3.4's generic checkbox rule makes the whole row a compact tap target; the Checkbox-type item's control (§16.3) is a large, centered, full-width tap target instead, since the focused one-item-at-a-time screen has the room. Open call: is this divergence justified by context, or should it converge? |
-| **Stale ellipsis Comments/Documents entries** | Activity Checklist, Issue Parts, and Book Labor still carry an inert Comments(3)/Documents(4) toast-stub entry in their ellipsis menu — superseded by the step rail's Reference group (§14.8). Not urgent; remove on next touch. |
 | **Search List screen dataspy/filter persistence** | §24's rule that a Record View's back button returns to the entity's Search List "maintaining the user's dataspy and persisting any filters" isn't wired up yet — WO List's and Equipment List's dataspy bars and filter chips are real and functional, but nothing carries the active dataspy/filter selection across the round trip to Record View and back. The navigation target is correct and built; the persistence mechanism isn't. |
 | **WO Record View — missing Notes section** | §15.1 lists "Notes — renamed from 'Description'" as part of the screen's section order; no such field exists in `eam-wo-record-view-prototype-v1.html`. |
 | **WO Record View — field set vs. §15.1 conflict** | §15.1's prose says Work Order Details should show "asset, location, assigned to, reported by, est. duration, created"; the actual screen shows Assigned To/Reported By/Date Reported/Problem Code (no location or est. duration). Needs a decision on which is stale before "fixing" either side. **Partly resolved 2026-08-10:** Department moved out of that card and up into the Header Fields grid, which is what §5.2 wanted for a non-nullable field. **Problem Code is still required and still stranded in the details card** — same gap, now the only instance of it. |
 | **Booked Labor's Correction sheet content is hardcoded demo data** | The always-ready red Save button is intentional (§18.6), but the sheet's employee/hours-type/department/trade/duration values are fixed demo constants, not technician-entered. |
 | **Booked Labor List has no defined sort/grouping rule** | Rows render in pure insertion order. Fine at today's scale; flag if this list needs to hold more in a real deployment. |
-| **Shared `showToast()`'s actual duration contradicts §3.4's locked spec** | §3.4 "Toast style" locks "2.4s auto-dismiss," but `eam-shared.js`'s real `showToast()` (line 42) auto-dismisses at 1800ms. Found 2026-07-31 while migrating WO List's local 2400ms toast onto the shared one (§21) — that migration exposed the drift but didn't cause it; it's pre-existing and already affects every screen already on the shared toast (Home, Equipment List, WO Record View, etc.), not just WO List. Not fixed here since changing the shared timeout changes behavior app-wide — needs its own decision (bump the shared value to 2400ms, or relax the doc's locked spec to match reality). |
-| **WO › Equipment tab — row-tap destination not locked** | A row is a join record with two useful destinations (equipment master vs. the child WO Route created for it), so §8's "tapping a row opens this record" doesn't settle it. Both flows are built and live-switchable from the screen's dev toggle: `chooser` (**now the default** — card body → 2-option sheet) vs. `split` (card body → related WO, equipment code → equipment record; lost the default because the code target is too fine on a phone). Pick one on a device, then lock it in §16.10 and drop this row. |
-| **MEC child WOs don't reach WO List** | The WO Equipment tab mints real MEC child WO numbers with parent links (§16.10) and they're persisted, but WO List still renders a hardcoded WO set, so the children never appear as child records in its search results — and they aren't in `data/wo-registry.js` either, which is why tapping one toasts instead of navigating. Two pieces of the same gap: register the minted children, then let WO List read them. |
+| **WO › Equipment tab — row-tap destination not locked** | A row is a join record with two useful destinations (equipment master vs. the child WO Route created for it), so §8's "tapping a row opens this record" doesn't settle it. Both flows are built and live-switchable from the screen's dev toggle: `chooser` (**now the default** — card body → 2-option sheet) vs. `split` (card body → related WO, equipment code → equipment record; lost the default because the code target is too fine on a phone). **Both destinations are now real navigation** (2026-08-11 — the child WO was a toast stub until then), so this is finally a fair comparison on a device. Pick one, then lock it in §16.10 and drop this row. |
 | **Conditional field rules — no tier chosen, nothing built** | §13.1–§13.4 records the evaluation model, a 4-tier option ladder, and 5 prerequisites for field-level conditions ("if field X is Y, make Z required / surface another step"). Analysis only as of 2026-08-10 — no table shape or tier is locked. Two prerequisites are worth doing regardless of whether any tier ships: the single `resolveFieldState(field, context)` seam (§13.3 item 1) and the declared-vs-effective state split (item 2). Also owed: the `docs/Data_refs/Page Layouts perms/` check in §13.4. |
-| **Equipment List's filter-chip sheet has no in-sheet search box** | §6.11 locks one as part of the List Search Screen standard ("search-within field, Clear, icon-tinted rows..., radio-style toggles, Apply") — WO List's own chip sheet has always had one (`filterCSRows()`/`#csSearch`, preserved through its 2026-07-31 shared-component migration, §21); Equipment List's copy of the same sheet (`#csSheet`) never got one. Found during that same migration; not fixed on Equipment's side here — scoped to WO List only. |
 
 # 21. Superseded Design Decisions
 

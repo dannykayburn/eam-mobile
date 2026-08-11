@@ -381,11 +381,56 @@ const LOV_DATA = {
   criticality:    [{code:'1',desc:'1 - Low'},{code:'2',desc:'2 - Medium'},{code:'3',desc:'3 - High'},{code:'4',desc:'4 - Critical'}],
   status:         [{code:'PENDING',desc:'Pending'},{code:'INSTALLED',desc:'Installed'},{code:'IN_SERVICE',desc:'In Service'},{code:'WITHDRAWN',desc:'Withdrawn'}],
   __status:       [{code:'OPERATIONAL',desc:'Installed'},{code:'DOWN',desc:'Down'},{code:'STANDBY',desc:'Withdrawn'}],
-  class:          [{code:'PUMP',desc:'Pump'},{code:'VALVE',desc:'Valve'},{code:'COMPRESSOR',desc:'Compressor'}],
-  category:       [{code:'CENTRIFUGAL',desc:'Centrifugal'},{code:'RECIPROCATING',desc:'Reciprocating'}],
+  // MOTOR/BLOWER/FACILITY and the 4 extra categories added 2026-08-11 alongside
+  // per-record routing: Equipment List offers rows in all of these, so without
+  // them this screen's own Class/Category LOV couldn't represent a record the
+  // list can open.
+  class:          [{code:'PUMP',desc:'Pump'},{code:'VALVE',desc:'Valve'},{code:'COMPRESSOR',desc:'Compressor'},{code:'MOTOR',desc:'Motor'},{code:'BLOWER',desc:'Blower'},{code:'FACILITY',desc:'Facility'}],
+  category:       [{code:'CENTRIFUGAL',desc:'Centrifugal'},{code:'RECIPROCATING',desc:'Reciprocating'},{code:'INDUCTION',desc:'Induction'},{code:'GATE',desc:'Gate'},{code:'ROTARY SCREW',desc:'Rotary Screw'},{code:'BUILDING',desc:'Building'}],
   costCode:       [{code:'100-100',desc:'General Maintenance'},{code:'100-200',desc:'Capital Repair'}],
   manufacturer:   [{code:'DAYTON',desc:'Dayton Electric Mfg.'},{code:'GRUNDFOS',desc:'Grundfos'},{code:'GOULDS',desc:'Goulds Pumps'}],
 };
+
+/* ══ PER-RECORD ROUTING (2026-08-11) ══════════════════════════════════════
+   Equipment List hands over the tapped row (eamOpenEquipment, consume-once,
+   same pattern as eamNewEquipRecord above); this overlays that row's identity
+   onto the canonical demo record. Previously every card opened 00067333, so
+   the app looked like it ignored which row you tapped.
+
+   Placed here deliberately — after LOV_DATA (so a code can be resolved to its
+   real description) and before LOV_CURRENT below (which seeds from RECORD, so
+   the LOV sheets pre-check the right option). Moving it either side breaks one
+   of those two. Identity + header fields only; deep content (comments,
+   documents, child tabs) stays the demo record's.
+   ══════════════════════════════════════════════════════════════════════════ */
+const OPEN_EQUIP_RAW = sessionStorage.getItem('eamOpenEquipment');
+if (OPEN_EQUIP_RAW) sessionStorage.removeItem('eamOpenEquipment');
+(function applyOpenedEquipment() {
+  if (NEW_RECORD || !OPEN_EQUIP_RAW) return;
+  let e;
+  try { e = JSON.parse(OPEN_EQUIP_RAW); } catch (err) { return; }
+  if (!e || !e.assetId) return;
+  const lov = (key, code) => {
+    const hit = (LOV_DATA[key] || []).find(o => o.code === code);
+    return { code: code || '', desc: hit ? hit.desc : '' };
+  };
+  const master = (typeof EAM_EQUIPMENT !== 'undefined' && EAM_EQUIPMENT[e.assetId]) || {};
+  RECORD.asset = e.assetId;
+  RECORD.desc = e.desc || master.desc || '';
+  RECORD.organization = lov('organization', e.organization || master.organization);
+  RECORD.class = lov('class', e.class || master.class);
+  RECORD.category = lov('category', e.category || master.category);
+  RECORD.assignedTo = lov('assignedTo', e.assignedTo || master.assignedTo);
+  if (master.department) RECORD.department = lov('department', master.department);
+  if (master.costCode) RECORD.costCode = lov('costCode', master.costCode);
+  // Nameplate/identity values that belong to 00067333 specifically and would
+  // read as flatly wrong on a valve or a building. Cleared rather than faked.
+  if (e.assetId !== '00067333') {
+    RECORD.alias = ''; RECORD.serialNumber = ''; RECORD.model = '';
+    RECORD.equipmentValue = ''; RECORD.manufacturer = { code: '', desc: '' };
+  }
+})();
+
 const FIELD_LABELS = {
   department:'Department', pmWoDepartment:'PM WO Department', criticality:'Criticality',
   assignedTo:'Assigned To', status:'Operational Status', class:'Class', category:'Category',
@@ -455,12 +500,14 @@ function refreshCustomFieldsSection() {
 }
 const LOV_ON_SELECT = { class: () => refreshCustomFieldsSection() };
 
-// Header identity + status button reflect a freshly-created record — both
-// header spans (record-view header and the List/Detail header's own
+// Header identity + status button reflect the record actually being opened —
+// both header spans (record-view header and the List/Detail header's own
 // duplicate) and the status button are plain markup in this file (not
-// generated from RECORD at render time), so a new record needs one
-// explicit sync pass here, same as eam-wo-record-view-prototype-v1.html.
-if (NEW_RECORD) {
+// generated from RECORD at render time), so they need one explicit sync pass
+// here, same as eam-wo-record-view-prototype-v1.html. Runs for a freshly-
+// created record AND (since 2026-08-11) for one routed in from Equipment
+// List — both cases are "RECORD isn't the hardcoded 00067333 anymore."
+if (NEW_RECORD || OPEN_EQUIP_RAW) {
   document.getElementById('recNum').textContent = RECORD.asset;
   document.getElementById('recDesc').textContent = RECORD.desc || 'Untitled equipment';
   if (!RECORD.desc) document.getElementById('recDesc').classList.add('muted');
@@ -768,7 +815,7 @@ function renderRecordViewTab() {
         <div class="form-field"><span class="field-label">MTBF</span><span class="field-value">4,200 hrs</span></div>
         <div class="form-field"><span class="field-label">MTTR</span><span class="field-value">3.5 hrs</span></div>
         <div class="form-field"><span class="field-label">Availability</span><span class="field-value">98.2%</span></div>
-        <div class="form-field"><span class="field-label">Last Failure Date</span><span class="field-value">May 19, 2026</span></div>
+        <div class="form-field"><span class="field-label">Last Failure Date</span><span class="field-value">05/19/2026</span></div>
         `}
       </div>
     </div>

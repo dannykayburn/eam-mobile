@@ -279,6 +279,10 @@ function openNotification(id) {
   if (!n.read) { n.read = true; renderNotifList(); }
   if (!n.wo) { showToast('No linked record for this notification'); return; }
   const demoWo = ['19257', '19831', '20450'].includes(n.wo) ? n.wo : '19257';
+  // Opening a fresh WO from outside the workflow drops any MEC child identity
+  // still held from a previous navigation (§16.10) — otherwise this parent WO
+  // would render under the child's number/description.
+  woIdentityClear();
   sessionStorage.setItem('eamOpenDemoWo', demoWo);
   location.href = 'eam-wo-record-view-prototype-v1.html';
 }

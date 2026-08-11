@@ -374,7 +374,22 @@ const EQUIP_STATUS = { tier: 'outline', label: 'Installed' };
      source: 'route'  — inserted by selecting a Route on the WO header
      source: 'manual' — added here; the system minted its MEC child WO
    Both carry `childWo` (the MEC child) and `parentWo` (this WO). */
-function equipRows() { return woEquipRows(DEMO_WO); }
+function equipRows() {
+  // On a minted MEC child WO (§16.10) this tab shows exactly the one piece of
+  // equipment that child was created for — never the parent's whole Route set,
+  // which belongs to the parent record.
+  const ov = woIdentity();
+  if (ov && ov.equipment) return woEquipRows(ov.parentWo).filter(r => r.equip === ov.equipment);
+  return woEquipRows(DEMO_WO);
+}
+// A child WO is a leaf: its equipment is fixed at mint time, so the insert/
+// delete paths would otherwise silently mutate the PARENT's set.
+function isChildWo() { return !!woIdentity(); }
+function guardChildWo() {
+  if (!isChildWo()) return false;
+  showToast('This work order covers one piece of equipment — edit the parent instead');
+  return true;
+}
 
 /* ══ ROW TAP MODE (open design call — see the header comment) ═════════
    Default flipped to 'chooser' 2026-08-10 (user feedback): in 'split' the
@@ -401,6 +416,14 @@ function toggleRowTapMode() {
    a wrong record is worse than an honest stub. */
 function openEquipmentRecord(code) {
   closeAllSheets();
+  // Per-record routing (2026-08-11) — hand the row's own identity over so
+  // Equipment Record View opens as THIS asset. Route equipment (P-1042 etc.)
+  // isn't in data/equipment.js, so the store row is the only source for its
+  // description; that's fine, the receiving screen treats it as an overlay.
+  const r = equipRows().find(x => x.equip === code);
+  if (r) sessionStorage.setItem('eamOpenEquipment', JSON.stringify({
+    assetId: r.equip, desc: r.desc, organization: r.org, class: '', category: '', assignedTo: '',
+  }));
   // Come back HERE on that screen's Back, not to Equipment List — which
   // looks enough like this tab to read as "the screen changed under me"
   // (user feedback 2026-08-10). eamNavReturnUrl is consumed once by
@@ -409,10 +432,24 @@ function openEquipmentRecord(code) {
   sessionStorage.setItem('eamOpenDemoWo', DEMO_WO);
   location.href = 'eam-equipment-record-view-prototype-v1.html';
 }
-function openChildWo(wo) {
+/* Real navigation as of 2026-08-11 (was a toast stub). A minted child has no
+   data file, so it borrows this parent's workflow via eamOpenDemoWo and
+   carries its own number/description via the shared identity override — the
+   same hand-off WO List's own openWO() uses for these rows, so a child opens
+   identically from either entry point. Description is built to match WO
+   List's row exactly; the two must not drift. */
+function childWoDesc(r) {
+  const route = woEquipRoute(DEMO_WO);
+  const routePart = (r.source === 'route' && route) ? route.desc + ' — ' : '';
+  return routePart + r.equip;
+}
+function openChildWo(wo, equipCode) {
   closeAllSheets();
   if (!wo) { showToast('No related work order for this equipment yet'); return; }
-  showToast('Opening WO ' + wo + ' — coming soon');
+  const r = equipRows().find(x => x.equip === equipCode) || { equip: equipCode, source: 'manual' };
+  woIdentitySet({ number: wo, desc: childWoDesc(r), parentWo: DEMO_WO, equipment: r.equip, equipDesc: r.desc });
+  sessionStorage.setItem('eamOpenDemoWo', DEMO_WO);
+  location.href = WO_STEP_FILES.record;
 }
 
 const CHEV_SM = '<svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
@@ -494,7 +531,7 @@ function rebuildRows() {
 const ROW_TAP_HANDLERS = {
   equipment: (row) => {
     const r = row.r;
-    if (ROW_TAP_MODE === 'split') { openChildWo(r.childWo); return; }
+    if (ROW_TAP_MODE === 'split') { openChildWo(r.childWo, r.equip); return; }
     document.getElementById('rowTargetTitle').textContent = r.equip;
     document.getElementById('rowTargetBody').innerHTML = `
       <div class="source-option" onclick="openEquipmentRecord('${r.equip}')">
@@ -504,7 +541,7 @@ const ROW_TAP_HANDLERS = {
           <div class="eq-opt-sub">${r.equip} — ${r.desc}</div>
         </div>
       </div>
-      <div class="source-option${r.childWo ? '' : ' stub'}" onclick="openChildWo(${r.childWo ? `'${r.childWo}'` : 'null'})">
+      <div class="source-option${r.childWo ? '' : ' stub'}" onclick="openChildWo(${r.childWo ? `'${r.childWo}'` : 'null'}, '${r.equip}')">
         <div class="source-option-icon"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
         <div class="source-option-texts">
           <div class="source-option-title">Related work order</div>
@@ -519,7 +556,7 @@ const ROW_TAP_HANDLERS = {
    §8's Plus for this child type. Opens the shared Equipment LOV in its new
    multi-select mode — the picker itself IS the insert here, since the real
    base screen's Equipment Details section has exactly one required field. */
-const TAB_PLUS_HANDLERS = { equipment: () => openEquipmentMultiLookup('woEquipment') };
+const TAB_PLUS_HANDLERS = { equipment: () => { if (!guardChildWo()) openEquipmentMultiLookup('woEquipment'); } };
 const EQUIP_LOOKUP_ON_MULTI_SELECT = {
   // Manually adding equipment here makes this WO a parent: the store mints
   // one MEC child WO per new row and associates it back (§16.10). Equipment
@@ -537,6 +574,7 @@ const EQUIP_LOOKUP_ON_MULTI_SELECT = {
    Header action in the ellipsis. Deleting every row also takes the Route/MEC
    pill off WO Record View, since that pill is now purely "rows exist." */
 function openDeleteEquipment() {
+  if (guardChildWo()) return;
   const rows = equipRows();
   if (!rows.length) { showToast('No equipment to delete'); return; }
   openMultiDelete({
@@ -559,6 +597,7 @@ function openDeleteEquipment() {
    reports the already-imported set rather than silently duplicating rows. */
 // Goes through the same manual-add path, so it mints an MEC child WO too.
 function addHeaderEquipment() {
+  if (guardChildWo()) return;
   const code = HEADER_EQUIP[DEMO_WO];
   const eq = (typeof EAM_EQUIPMENT !== 'undefined' && EAM_EQUIPMENT[code]) || {};
   const added = woEquipAddManual(DEMO_WO, [{
@@ -572,6 +611,7 @@ function addHeaderEquipment() {
 // The Route itself is selected on the WO header (§16.10) — this re-runs the
 // import for whatever Route is already associated, for rows deleted since.
 function importRouteEquipment() {
+  if (guardChildWo()) return;
   const route = woEquipRoute(DEMO_WO);
   if (!route) { showToast('No Route on this work order — select one on the WO header'); return; }
   const before = equipRows().length;
@@ -619,8 +659,12 @@ if (OPEN_DEMO_WO) {
 // every demo WO, so a fresh demo starts empty everywhere — which is also base
 // EAM's own default for this tab ("Records: 0 of 0").
 const PARENT_WO = WO_META[DEMO_WO] || WO_META['19257'];
-document.getElementById('ldNum').textContent = DEMO_WO;
-document.getElementById('ldDesc').textContent = PARENT_WO.desc;
+// This screen's header is ldNum/ldDesc (§8.1's protected identity), not the
+// recNum/recDesc that applyDemoWoIdentity() paints, so the MEC child override
+// has to be applied here by hand.
+const CHILD_IDENTITY = woIdentity();
+document.getElementById('ldNum').textContent = CHILD_IDENTITY ? CHILD_IDENTITY.number : DEMO_WO;
+document.getElementById('ldDesc').textContent = CHILD_IDENTITY ? CHILD_IDENTITY.desc : PARENT_WO.desc;
 rebuildRows();
 
 /* Step rail (§14.2/§16.10) — rendered exactly as the screen we came from

@@ -55,7 +55,15 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;}
-body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-black);-webkit-font-smoothing:antialiased;overflow:hidden;transition:background .2s,color .2s;display:flex;flex-direction:column;height:100vh;}
+/* dvh, not vh (fixed 2026-08-11). On iOS Safari/Android Chrome `100vh` is the
+   LARGE viewport — the height with the URL bar collapsed — so while the bar is
+   still showing, this box is taller than what's actually visible. Combined
+   with `overflow:hidden` that pushed the bottom nav below the fold with no way
+   to scroll to it, which is how a real device reported the app as "not
+   rendering properly / not auto-formatting" off the public URL. `100dvh`
+   tracks the live visible height instead. The `100vh` line above it is the
+   fallback for browsers without dvh, and must stay first. */
+body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-black);-webkit-font-smoothing:antialiased;overflow:hidden;transition:background .2s,color .2s;display:flex;flex-direction:column;height:100vh;height:100dvh;}
 [data-theme="dark"] body{color:var(--white);}
 .proto-theme-bar{flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 0;}
 .proto-theme-label{font-size:10px;font-weight:600;letter-spacing:.3px;color:var(--gray-4);font-family:var(--font-mono);text-transform:uppercase;}
@@ -381,7 +389,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 [data-theme="dark"] .tab-rail-name{color:var(--white);}
 .tab-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
 .tab-rail.expanded, .step-rail.expanded{padding-bottom:14px;}
-.tab-map{display:none;background:var(--bg-card);padding:8px 0 12px;border-top:1px solid var(--border);max-height:45vh;overflow-y:auto;}
+.tab-map{display:none;background:var(--bg-card);padding:8px 0 12px;border-top:1px solid var(--border);max-height:45vh;max-height:45dvh;overflow-y:auto;}
 .tab-map.open{display:block;}
 .tab-map-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-radius:4px;margin:0 6px;transition:background .1s;color:var(--gray-4);}
 .tab-map-item:hover{background:var(--bg-section);}
@@ -1186,7 +1194,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    keyboard instead of guessing a fixed offset. Defaults to 0 — a sheet
    with no focused input, or on a browser without the VisualViewport API,
    renders exactly as before. */
-.bottom-sheet{position:absolute;bottom:var(--kb-inset,0px);left:0;right:0;background:var(--bg-card);border-radius:var(--sheet-radius) var(--sheet-radius) 0 0;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1),bottom .15s ease-out;z-index:201;max-height:80vh;display:flex;flex-direction:column;}
+.bottom-sheet{position:absolute;bottom:var(--kb-inset,0px);left:0;right:0;background:var(--bg-card);border-radius:var(--sheet-radius) var(--sheet-radius) 0 0;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1),bottom .15s ease-out;z-index:201;max-height:80vh;max-height:80dvh;display:flex;flex-direction:column;}
 .bottom-sheet.open{transform:translateY(0);}
 /* Insert Mode (§9.2) — full-screen sheet, not the compact .bottom-sheet. */
 /* z-index 199 — deliberately BELOW every transient overlay it can trigger
@@ -1410,6 +1418,15 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .sheet-close{width:30px;height:30px;border-radius:50%;background:var(--bg-section);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gray-4);}
 .sheet-clear-btn{font-size:15px;font-weight:500;color:var(--gray-4);background:none;border:none;cursor:pointer;padding:4px 2px;flex-shrink:0;}
 .sheet-clear-btn.hidden{visibility:hidden;}
+/* Date-range filter sheet (§8.3, 2026-08-11) — the two-bound companion to the
+   single-value calendar sheet. Only consumer is openDateRangeFilter(). */
+.range-row{display:flex;gap:10px;padding:4px 16px 0;}
+.range-field{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
+.range-label{font-size:11px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;color:var(--gray-4);font-family:var(--font-mono);}
+.range-input{width:100%;padding:10px 12px;background:var(--bg-section);border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:var(--font-sans);color:var(--octave-black);outline:none;}
+[data-theme="dark"] .range-input{color:var(--white);}
+.range-input:focus{border-color:var(--border-strong);}
+.range-hint{padding:12px 16px 4px;font-size:12px;color:var(--gray-4);}
 .lov-search-row{display:flex;align-items:center;gap:8px;margin:2px 16px 10px;padding:9px 14px;background:var(--bg-section);border-radius:100px;color:var(--gray-4);flex-shrink:0;}
 .lov-search-row.hidden{display:none;}
 .lov-search-input{flex:1;border:none;background:none;outline:none;font-size:14px;font-family:var(--font-sans);color:var(--octave-black);}
@@ -1676,7 +1693,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .attr-item.checkbox-zone-row .attr-label{flex:1;}
 .attr-checkbox-zone{width:28%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .attr-checkbox-zone .field-checkbox{width:24px;height:24px;}
-.text-editor-sheet{height:88vh;max-height:88vh;}
+.text-editor-sheet{height:88vh;height:88dvh;max-height:88vh;max-height:88dvh;}
 .text-editor-header{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);gap:10px;}
 .text-editor-left{display:flex;align-items:center;gap:10px;flex-shrink:0;min-width:30px;}
 .text-editor-close{width:30px;height:30px;border-radius:50%;background:var(--bg-section);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gray-4);flex-shrink:0;}
