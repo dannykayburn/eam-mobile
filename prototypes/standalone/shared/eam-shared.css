@@ -1717,7 +1717,21 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .attr-item.checkbox-zone-row .attr-label{flex:1;}
 .attr-checkbox-zone{width:28%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .attr-checkbox-zone .field-checkbox{width:24px;height:24px;}
-.text-editor-sheet{height:88vh;height:88dvh;max-height:88vh;max-height:88dvh;}
+/* ── Keyboard-editing popups: controls in the TOP CORNERS (§3.4, reworked
+   2026-08-11 after a real-device report) ──
+   The bottom Save pill was the whole problem. `.bottom-sheet` lifts itself by
+   `--kb-inset` when the keyboard opens, which parked the Save pill exactly
+   where iOS puts its own keyboard accessory bar (the ^ v ✓ row) — two
+   affirmative controls stacked on each other, ours partly behind theirs.
+   Fix: the long-text editor is now a FULL-COVER surface anchored top and
+   bottom, with ✕ top-left and a ✓ confirm top-right, and no footer at all.
+   Nothing of ours sits near the keyboard, so there is nothing left to collide.
+   `--kb-inset` deliberately does NOT apply to it (the `bottom:0` below wins on
+   specificity) — the keyboard covering the lower part of a full-height
+   textarea is correct behaviour, not something to compensate for.
+   NOTE: iOS's own accessory bar cannot be suppressed from a web page. This
+   doesn't remove it; it stops us putting anything underneath it. */
+.text-editor-sheet{top:0;bottom:0;height:auto;max-height:none;border-radius:0;}
 .text-editor-header{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);gap:10px;}
 .text-editor-left{display:flex;align-items:center;gap:10px;flex-shrink:0;min-width:30px;}
 .text-editor-close{width:30px;height:30px;border-radius:50%;background:var(--bg-section);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gray-4);flex-shrink:0;}
@@ -1728,15 +1742,33 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .text-editor-body{flex:1;padding:14px 16px;}
 .text-editor-textarea{width:100%;height:100%;border:none;outline:none;resize:none;font-family:var(--font-sans);font-size:15px;color:var(--octave-black);background:transparent;line-height:1.5;}
 [data-theme="dark"] .text-editor-textarea{color:var(--white);}
-/* Compact variant (Description, added 2026-07-28) — same sheet/Save/
-   Discard mechanics as the full editor above, just a much shorter box:
-   Description is a 1-2 line field, not a long-text one, so the full
-   88vh sheet (sized for Notes/Comments) was oversized for it. Overrides
-   the fixed 88vh height entirely rather than shrinking it, so the sheet
-   sizes to its own (short) content instead of leaving empty space. */
-.text-editor-sheet.compact{height:auto;max-height:none;}
+/* Compact variant (Description, added 2026-07-28) — same ✕/✓ mechanics as the
+   full editor above, just a much shorter box: Description is a 1-2 line field,
+   not a long-text one, so a full-cover editor is oversized for it. This one
+   stays a genuine bottom sheet (`top:auto`, so `--kb-inset` applies again and
+   it rides above the keyboard) — safe now that its confirm control is in the
+   header, not the footer. */
+.text-editor-sheet.compact{top:auto;height:auto;max-height:none;border-radius:var(--sheet-radius) var(--sheet-radius) 0 0;}
 .text-editor-sheet.compact .text-editor-body{flex:none;}
 .text-editor-sheet.compact .text-editor-textarea{height:96px;}
+
+/* ── Confirm (✓) button — the single affirmative control on any sheet that
+   raises the keyboard (§3.4, 2026-08-11) ──
+   Replaces the bottom Save pill on both the long-text editor and the
+   single-line edit sheet; "we don't need both."
+   Green because green is already an established convention in this app (§23:
+   step-rail done, timer running) — this is a REUSE of existing colour, NOT a
+   new palette instrument and NOT a §23 exception, deliberately. The reference
+   design this came from used blue; blue isn't in the palette at all.
+   Carries the identical gating the Save pill had: `.disabled` when a required
+   field is empty (updateTextEditorSaveGate / updateEditSaveGate), dropping to
+   gray rather than a faded green — faded green still reads as "go." */
+.sheet-confirm-btn{width:34px;height:34px;border-radius:50%;background:var(--green);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--white);flex-shrink:0;transition:opacity .15s,background .15s;}
+.sheet-confirm-btn:active{opacity:.82;}
+.sheet-confirm-btn.disabled{background:var(--gray-2);color:var(--gray-4);pointer-events:none;}
+[data-theme="dark"] .sheet-confirm-btn.disabled{background:var(--gray-2);color:var(--gray-3);}
+/* Right-hand cluster when a sheet needs Clear AND confirm (the edit sheet). */
+.sheet-header-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 .toast{position:absolute;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(26,26,31,.95);color:white;padding:9px 16px;border-radius:100px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;opacity:0;transition:all .25s;z-index:300;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .comment-add-row{display:flex;align-items:center;gap:6px;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;color:var(--octave-black);font-size:13px;font-weight:600;}

@@ -102,6 +102,17 @@ re-investigation every time it comes up.
 - **A card field's `value` must be plain text** — markup goes in a separate
   `html` property (`fieldDisplay()`). `value` feeds the `data-search`
   attribute, so markup in it breaks the row outright.
+- **Never put a button at the bottom edge of a sheet that raises the
+  keyboard** (§3.4, learned on device 2026-08-11). `.bottom-sheet` lifts by
+  `--kb-inset` when the keyboard opens, which parks that button exactly where
+  iOS draws its own accessory bar. Both keyboard editors now use a ✕/✓ pair in
+  the top corners and no footer; the long-text editor is anchored `top:0;
+  bottom:0` so `--kb-inset` can't lift it at all. iOS's accessory bar itself
+  cannot be suppressed from a web page — the rule is to not collide with it.
+- **A full-attention sheet should open via `openSheetExclusive()`**, not
+  `openSheet()`, or a previously-opened sheet stays visible underneath (this
+  happened: "Set Equipment Photo" showing through the comment editor).
+  Exclusivity is opt-in because some flows legitimately nest sheets (§18).
 - `prototypes/wo-workflow/index.html` (the prior unified compile) is
   **intentionally frozen** — it's a hand-merged monolith with no live
   connection to the standalone source files and is the *wrong* model to
@@ -465,7 +476,11 @@ Critical/High and WO Type's badge. **Counter badges** (§23.5, locked
 2026-08-10) all take the Organization pill's recipe — transparent fill,
 outlined, mono, **black/white text, never gray** — the sole exception being
 the red required-count badge; `.chip-count` is excluded (it's a filled
-active-filter marker, not a counter). Back buttons navigate for real on
+active-filter marker, not a counter). **Green is reused, never re-invented**
+— step-rail done, the running timer, and (2026-08-11) the **confirm ✓** on
+keyboard-editing sheets all share the existing green; that ✓ is explicitly
+**not** a new §23 instrument or exception, and its disabled state is gray, not
+a faded green. Back buttons navigate for real on
 every screen (§24); every screen's sync icon opens the shared sync
 panel. One open item: "Not Free Form" (a configured-but-ungated workflow)
 still has no visual signal of its own in the step/tab rail (a prior yellow

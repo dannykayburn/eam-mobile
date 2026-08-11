@@ -14,6 +14,16 @@ function makeStyle() {
     set: () => true,
   });
 }
+/* Registry for the run in progress, so an element can register ids found in
+   markup it was just handed. Without this, the three self-injecting shared
+   sheets (sort / text filter / date range, built by ensureSharedSheet) are
+   untestable: their ids only ever exist inside an innerHTML string, so
+   getElementById returns null and the component throws on its first render. */
+let REG = null;
+function harvestIds(html) {
+  if (!REG) return;
+  for (const m of String(html).matchAll(/\bid="([^"]+)"/g)) REG.pageIds.add(m[1]);
+}
 function makeEl(id) {
   const attrs = {};
   const el = {
@@ -30,7 +40,7 @@ function makeEl(id) {
     children: [], childNodes: [], parentElement: null, parentNode: null,
     firstChild: null, nextSibling: null, previousSibling: null,
     get innerHTML(){ return this._html; },
-    set innerHTML(v){ this._html = String(v); },
+    set innerHTML(v){ this._html = String(v); harvestIds(v); },
     get outerHTML(){ return ''; }, set outerHTML(v){},
     appendChild(c){ this.children.push(c); if (c) c.parentElement = this; return c; },
     insertAdjacentHTML(){}, insertAdjacentElement(){},
@@ -69,15 +79,60 @@ function runScreen(file, seed) {
   const srcTags = [...src.matchAll(/<script[^>]*\bsrc="([^"]+)"[^>]*>/g)].map(m => m[1]);
   const inline = [...src.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
 
+  /* getElementById returns null for an id the page does not actually contain.
+     A shim that vends an element for every id looks friendlier but is worse: it
+     walks straight past guard clauses like `if (!btn) return;`, so a screen
+     without Insert Mode appeared to crash in saveTextEditor() when the real
+     browser exits early. It also hides the genuine "shared behaviour silently
+     no-ops without this markup" traps (#toast, #listDetailHeader.active) that
+     §16.10 documents. Ids are harvested from the page plus any injected by
+     ensureSharedSheet()-style code at runtime. */
+  const pageIds = new Set([...src.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]));
   const elCache = new Map();
-  const getEl = id => { if (!elCache.has(id)) elCache.set(id, makeEl(id)); return elCache.get(id); };
+  REG = { pageIds, elCache };
+  const getEl = id => {
+    if (elCache.has(id)) return elCache.get(id);
+    if (!pageIds.has(id)) return null;
+    const el = makeEl(id);
+    elCache.set(id, el);
+    return el;
+  };
+  /* Which ids are .bottom-sheet elements, harvested from the markup, so
+     `querySelectorAll('.bottom-sheet.open')` can answer truthfully. Without
+     this, sheet-exclusivity logic (openSheetExclusive) is untestable — the
+     selector returns nothing and the function looks like a no-op. Class and id
+     appear in either order in this codebase, so both are matched. */
+  const sheetIds = new Set();
+  for (const m of src.matchAll(/<div[^>]*>/g)) {
+    const tag = m[0];
+    if (!/class="[^"]*\bbottom-sheet\b/.test(tag)) continue;
+    const idm = tag.match(/\bid="([^"]+)"/);
+    if (idm) sheetIds.add(idm[1]);
+  }
   const document = {
     documentElement: makeEl('html'),
     body: makeEl('body'),
     getElementById: id => getEl(id),
     querySelector: () => makeEl('qs'),
-    querySelectorAll: () => [],
-    createElement: t => makeEl(t),
+    querySelectorAll: (sel) => {
+      if (sel === '.bottom-sheet.open') {
+        return [...sheetIds].map(id => elCache.get(id))
+          .filter(el => el && el.classList.contains('open'));
+      }
+      return [];
+    },
+    // An element created and appended at runtime becomes findable by id, so
+    // self-injecting shared sheets (ensureSharedSheet) behave realistically.
+    createElement: t => {
+      const el = makeEl(t);
+      const orig = el.setAttribute;
+      el.setAttribute = (k, v) => { if (k === 'id') { pageIds.add(String(v)); elCache.set(String(v), el); } orig(k, v); };
+      Object.defineProperty(el, 'id', {
+        get(){ return el._id || ''; },
+        set(v){ el._id = String(v); pageIds.add(String(v)); elCache.set(String(v), el); },
+      });
+      return el;
+    },
     addEventListener(){}, removeEventListener(){},
     createTextNode: () => makeEl('text'),
   };

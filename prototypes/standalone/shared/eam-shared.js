@@ -60,6 +60,20 @@ function openSheet(id) {
   if (overlay) overlay.classList.add('open');
   document.getElementById(id).classList.add('open');
 }
+/* Opens a sheet as the ONLY open sheet (2026-08-11, real-device report: the
+   "Set Equipment Photo" sheet was visible underneath the comment editor, its
+   title and Camera row showing through). Deliberately NOT folded into
+   openSheet() itself — some flows legitimately open a sheet from inside
+   another one (Book Labor's completion popup opens a nested status picker, and
+   §18 records a bug caused by closing the parent there). So exclusivity is
+   opt-in, used by the two full-attention keyboard editors, which can never
+   sensibly be a child of another sheet. */
+function openSheetExclusive(id) {
+  document.querySelectorAll('.bottom-sheet.open').forEach(s => {
+    if (s.id !== id) s.classList.remove('open');
+  });
+  openSheet(id);
+}
 // Keyboard-inset sync (added 2026-07-31, direct instruction) — keeps
 // --kb-inset (eam-shared.css, .bottom-sheet's own `bottom` offset) in
 // step with the on-screen keyboard's real height via the VisualViewport
@@ -3259,7 +3273,7 @@ function openEdit(key, label, type) {
   input.placeholder = type === 'currency' ? '0.00' : '';
   const raw = document.getElementById('fv-'+key).textContent.replace(/[$,]/g,'');
   input.value = raw;
-  openSheet('editSheet');
+  openSheetExclusive('editSheet');
   // Reverted the 250ms→320ms setTimeout delay 2026-07-31 (direct
   // instruction, real-device report: keyboard wasn't opening on tap for
   // ANY field, app-wide, every time — the exact symptom the delay was
@@ -3288,7 +3302,9 @@ function openEdit(key, label, type) {
 function updateEditSaveGate() {
   const val = document.getElementById('editSheetInput').value;
   const blocked = isRequiredField(activeEditKey) && !val.trim();
-  const btn = document.querySelector('#editSheet .btn-save');
+  // Same migration fallback as updateTextEditorSaveGate() above.
+  const btn = document.getElementById('editConfirmBtn')
+           || document.querySelector('#editSheet .btn-save');
   if (btn) btn.classList.toggle('disabled', blocked);
 }
 function saveEdit() {
@@ -3547,7 +3563,7 @@ function openTextEditor(key, title, onSaveCallback, initialOverride, opts) {
   // for the next, non-compact caller (Comments/Notes/etc.) too.
   document.getElementById('textEditorSheet').classList.toggle('compact', !!(opts && opts.compact));
   updateTextEditorSaveGate();
-  openSheet('textEditorSheet');
+  openSheetExclusive('textEditorSheet');
   // Reverted the setTimeout delay 2026-07-31 — same fix, same reasoning
   // as openEdit() above: a deferred focus() call falls outside the
   // "user activation" window mobile browsers require to auto-raise the
@@ -3567,7 +3583,11 @@ function openTextEditor(key, title, onSaveCallback, initialOverride, opts) {
 function updateTextEditorSaveGate() {
   const val = document.getElementById('textEditorTextarea').value;
   const blocked = isRequiredField(textEditorKey) && !val.trim();
-  const btn = document.querySelector('#textEditorSheet .btn-save');
+  // The ✓ in the header is the control now (2026-08-11); `.btn-save` is still
+  // queried so a screen whose markup hasn't been migrated still gets gated
+  // rather than silently allowing an empty required save.
+  const btn = document.getElementById('textEditorConfirmBtn')
+           || document.querySelector('#textEditorSheet .btn-save');
   if (btn) btn.classList.toggle('disabled', blocked);
 }
 function textEditorInputChanged() {
