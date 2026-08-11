@@ -93,7 +93,9 @@ body{
   -webkit-font-smoothing:antialiased;
   overflow:hidden;
   transition:background 0.2s,color 0.2s;
-  display:flex;flex-direction:column;height:100vh;
+  /* dvh fallback pair — see eam-shared.css's own body rule for why. This
+     file still carries a local body rule, so it needs the same fix. */
+  display:flex;flex-direction:column;height:100vh;height:100dvh;
 }
 
 /* ── PROTOTYPE-ONLY THEME PREVIEW BAR — outside the app frame. Real app
@@ -521,9 +523,9 @@ body{
 
     <div class="res-row">
       <span class="res-count" id="s1Count">8 work orders</span>
-      <button class="sort-btn" onclick="showToast('Sort options — coming soon')">
+      <button class="sort-btn" onclick="openSort()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-sort"/></svg>
-        Due date
+        <span class="sort-btn-label">Due date</span>
       </button>
     </div>
 
@@ -568,21 +570,23 @@ body{
     </div>
 
     <!-- Filter chips — dataspy-driven, the same 6 fields the card uses
-         (§8.3/§6.11): Status/Type/Organization keep a real multi-select
-         sheet (CD-driven, unchanged mechanism); Description/WO number/
-         Due date are toast stubs — no multi-select LOV makes sense for
-         free text/an identifier/a date, so there's nothing to build yet,
-         same "coming soon" precedent already used for Sort. All 6 still
-         show, uniformly — no field-type exclusions per instruction. Type
-         replaced Priority here 2026-07-22 (punch-list item), reusing the
-         exact same chip-sheet mechanism Priority had, just repointed at
-         TM's Type codes instead of PRI's priority codes. -->
+         (§8.3/§6.11). All 6 are real as of 2026-08-11, in the three shapes
+         §8.3 locks: Status/Type/Organization are code lists (openCS, this
+         screen's own multi-select sheet); Description/WO number are free
+         text (shared openTextFilter); Due date is a range (shared
+         openDateRangeFilter). They were toast stubs until then on the
+         reasoning that no multi-select LOV makes sense for free text or a
+         date — true, but the answer was a different sheet shape, not no
+         sheet. All 6 show uniformly — no field-type exclusions per
+         instruction. Type replaced Priority here 2026-07-22 (punch-list
+         item), reusing the exact same chip-sheet mechanism Priority had,
+         just repointed at TM's Type codes instead of PRI's priority codes. -->
     <div class="filter-chip-row" id="chipsRow">
       <button class="filter-chip" id="cStatus" onclick="openCS('status')">Status</button>
-      <button class="filter-chip" onclick="showToast('Description filter — coming soon')">Description</button>
-      <button class="filter-chip" onclick="showToast('WO number filter — coming soon')">WO number</button>
+      <button class="filter-chip" id="cDesc" onclick="openTextChip('desc')">Description</button>
+      <button class="filter-chip" id="cNum" onclick="openTextChip('num')">WO number</button>
       <button class="filter-chip" id="cType" onclick="openCS('type')">Type</button>
-      <button class="filter-chip" onclick="showToast('Due date filter — coming soon')">Due date</button>
+      <button class="filter-chip" id="cDue" onclick="openDueChip()">Due date</button>
       <button class="filter-chip" id="cOrg" onclick="openCS('org')">Organization</button>
     </div>
 
@@ -991,6 +995,12 @@ const STI={
   WAPPR:   {tier:'orange', label:'Waiting approval'},
   WMATL:   {tier:'outline',label:'Waiting materials'},
   COMP:    {tier:'green',  label:'Completed'},
+  // IN_PROGRESS/HOLD added 2026-08-11: Insert Mode offers exactly these 3
+  // statuses (Released/In Progress/On Hold), so without them a WO created in
+  // the app fell through to STI.WAPPR and rendered as "Waiting approval" —
+  // a status the technician never picked.
+  IN_PROGRESS:{tier:'outline',label:'In Progress'},
+  HOLD:    {tier:'red',    label:'On Hold'},
 };
 
 // desc is the WO's own problem/work description — the card headline's
@@ -1027,6 +1037,62 @@ const WOS=[
   {id:'WO-19831',desc:'General inspection request',                     eq:'Pump, Centrifugal',       ec:'PUMP-C-0045',tp:'PM',pr:'2',st:'RELEASED',loc:'PUMP-HOUSE-3',org:'FBPP', due:'07/22/2026',isP:false,pid:null},
   {id:'WO-20450',desc:'Replace batteries in lobby TV remote',            eq:'Building A — Main Lobby', ec:'BLDG-A',     tp:'ROUT',pr:'2',st:'RELEASED',loc:'MAIN-LOBBY', org:'FBPP', due:'07/25/2026',isP:false,pid:null},
 ];
+/* MEC child WOs (§16.10) — the WO Equipment tab mints one child WO per piece
+   of equipment on the header WO and persists them in the shared store. They
+   are real records with real numbers, so they belong in this list as child
+   rows under their parent, not only inside that tab. Merged from the store at
+   load rather than hardcoded, because the set doesn't exist until a
+   technician actually picks a Route or adds equipment by hand. */
+function mergeMecChildWos() {
+  if (typeof woEquipStore !== 'function') return;
+  const store = woEquipStore();
+  Object.keys(store).forEach(parentNum => {
+    if (parentNum.indexOf('__') === 0) return; // store's own counter key
+    const state = store[parentNum] || {};
+    const parent = WOS.find(w => woNum(w.id) === parentNum);
+    if (!parent || !(state.rows || []).length) return;
+    parent.isP = true;
+    (state.rows || []).forEach(r => {
+      if (!r.childWo || WOS.some(w => woNum(w.id) === r.childWo)) return;
+      // Description reads as work, not as an asset name: the Route's own
+      // description plus the equipment code, so 24 siblings stay tellable
+      // apart on a card that doesn't surface Equipment at all.
+      const routePart = (r.source === 'route' && state.route) ? state.route.desc + ' — ' : '';
+      WOS.push({
+        id: 'WO-' + r.childWo, desc: routePart + r.equip,
+        eq: r.desc, ec: r.equip,
+        tp: parent.tp, pr: parent.pr, st: 'RELEASED',
+        loc: parent.loc, org: r.org || parent.org, due: parent.due,
+        isP: false, pid: parent.id, mec: true,
+      });
+    });
+  });
+}
+mergeMecChildWos();
+
+/* Created WOs (2026-08-11) — a WO a technician actually creates through Insert
+   Mode now persists (eamCreatedRecords) and shows up here, instead of existing
+   only for the one navigation right after Save. Insert Mode's priority codes
+   (LOW/MEDIUM/HIGH/CRITICAL) are its own vocabulary, not this screen's 1-5
+   scale, so they're mapped rather than passed through. */
+const INSERT_PRIORITY_TO_CODE = { LOW:'2', MEDIUM:'3', HIGH:'4', CRITICAL:'5' };
+function mergeCreatedWos() {
+  if (typeof createdRecords !== 'function') return;
+  createdRecords().WO.forEach(rec => {
+    if (WOS.some(w => woNum(w.id) === rec.number)) return;
+    WOS.push({
+      id: 'WO-' + rec.number, desc: rec.desc,
+      eq: (rec.equipment && rec.equipment.desc) || '—',
+      ec: (rec.equipment && rec.equipment.code) || '—',
+      tp: (rec.type && rec.type.code) || 'CM',
+      pr: INSERT_PRIORITY_TO_CODE[rec.priority && rec.priority.code] || '3',
+      st: (rec.status && rec.status.code) || 'RELEASED',
+      loc: '—', org: (rec.organization && rec.organization.code) || 'FBPP',
+      due: TODAY, isP: false, pid: null, created: true,
+    });
+  });
+}
+mergeCreatedWos();
 function dueSortKey(w) { return w.due; } // already MM/DD/YYYY — string-sortable within one year
 WOS.sort((a, b) => dueSortKey(a).localeCompare(dueSortKey(b)));
 
@@ -1053,7 +1119,9 @@ const DS=[
 // eam-shared.js's DEMO_WO_JOBTYPES), so every card here is guaranteed to
 // open as itself and show the correct workflow, not the generic fallback.
 const DSF={
-  ds1:w=>['WO-19257','WO-19831','WO-20450'].includes(w.id), ds2:w=>w.due===TODAY, ds3:w=>['4','5'].includes(w.pr),
+  // w.created keeps a just-created WO visible in the default dataspy — a
+  // technician who creates one and lands back here expects to see it.
+  ds1:w=>w.created||['WO-19257','WO-19831','WO-20450'].includes(w.id), ds2:w=>w.due===TODAY, ds3:w=>['4','5'].includes(w.pr),
   ds4:w=>w.org==='FBPP', ds5:w=>w.tp==='BK', ds6:w=>w.st==='WAPPR',
   ds7:w=>w.st!=='COMP', ds8:w=>w.tp==='PM',
   ds9:w=>w.tp==='CM', ds10:w=>w.st==='COMP',
@@ -1133,6 +1201,9 @@ const CD={
 
 /* ══ STATE ═══════════════════════════════════════════════ */
 let mode='detailed',curDS='ds1',exp={},sv='',cf={},ack=null,csel={};
+// Free-text chips, due-date range, and sort (2026-08-11) — each chip owns its
+// own slice of state; `cf` stays the code-list multi-selects only.
+let tf={},dr={from:'',to:''},sortBy='due',sortDir='asc';
 
 /* ══ HELPERS ═════════════════════════════════════════════ */
 const roots=wos=>wos.filter(w=>!w.pid);
@@ -1144,15 +1215,33 @@ function dsFilt(){
     if(!w.pid&&fn(w))ids.add(w.id);
     if(w.pid&&fn(w)){ids.add(w.id);ids.add(w.pid);}
   });
+  /* A matched parent brings its own children along. Without this the expand
+     chevron — which is computed from the FULL set, not the filtered one —
+     renders on a parent whose children the dataspy excluded, so tapping it
+     opened onto nothing. Most visible on "My Assigned WOs" (an explicit
+     3-id list, so no MEC child ever matched it) once Route equipment
+     started minting real child WOs. */
+  WOS.forEach(w=>{ if(w.pid&&ids.has(w.pid))ids.add(w.id); });
   return WOS.filter(w=>ids.has(w.id));
 }
 function sFilt(){
   let wos=WOS;
-  if(sv)wos=wos.filter(w=>w.id.toLowerCase().includes(sv)||w.eq.toLowerCase().includes(sv)||w.ec.toLowerCase().includes(sv));
+  if(sv)wos=wos.filter(w=>w.id.toLowerCase().includes(sv)||w.eq.toLowerCase().includes(sv)||w.ec.toLowerCase().includes(sv)||w.desc.toLowerCase().includes(sv));
   if(cf.status?.length)  wos=wos.filter(w=>cf.status.includes(w.st));
   if(cf.org?.length)     wos=wos.filter(w=>cf.org.includes(w.org));
   if(cf.type?.length)     wos=wos.filter(w=>cf.type.includes(w.tp));
-  return wos;
+  // Free-text + date-range chips (2026-08-11) — previously toast stubs.
+  if(tf.desc) wos=wos.filter(w=>w.desc.toLowerCase().includes(tf.desc.toLowerCase()));
+  if(tf.num)  wos=wos.filter(w=>woNum(w.id).includes(tf.num));
+  if(dr.from) wos=wos.filter(w=>dueToIso(w.due)>=dr.from);
+  if(dr.to)   wos=wos.filter(w=>dueToIso(w.due)<=dr.to);
+  /* A matched CHILD has to drag its parent in, and force that parent open:
+     a child only ever renders nested inside its parent, so roots() would
+     otherwise drop it and searching a real child WO number returned "no
+     work orders found". */
+  const ids=new Set(wos.map(w=>w.id));
+  wos.forEach(w=>{ if(w.pid&&!ids.has(w.pid)){ids.add(w.pid);exp[w.pid]=true;} });
+  return WOS.filter(w=>ids.has(w.id));
 }
 
 /* ══ CARD / TABLE FIELDS (§8.3) ══════════════════════════
@@ -1270,6 +1359,75 @@ function refS2(){
   document.getElementById('s2Count').textContent=n+' work order'+(n===1?'':'s');
 }
 
+/* ══ FREE-TEXT / DATE-RANGE / SORT CHIPS (§8.3, 2026-08-11) ═══════════════
+   All three were "coming soon" toasts. The sheets themselves are shared
+   components (openTextFilter/openDateRangeFilter/openSortSheet,
+   eam-shared.js) — this screen supplies labels, its own state, and what to
+   re-render. dueToIso() exists because WOS holds display-format dates
+   (MM/DD/YYYY, §8.3) while the range sheet's native inputs are ISO. ══ */
+function dueToIso(d){const p=d.split('/');return p[2]+'-'+p[0]+'-'+p[1];}
+const TEXT_CHIP_META={
+  desc:{id:'cDesc',label:'Description',title:'Filter by description',ph:'Description contains…'},
+  num: {id:'cNum', label:'WO number',  title:'Filter by WO number',  ph:'Number contains…'},
+};
+function openTextChip(key){
+  const m=TEXT_CHIP_META[key];
+  openTextFilter({title:m.title,value:tf[key]||'',placeholder:m.ph,onApply:v=>{
+    if(v)tf[key]=v;else delete tf[key];
+    paintChip(m.id,m.label,!!v,v);
+    refS2();
+    showToast(v?m.label+': "'+v+'"':m.label+' filter cleared');
+  }});
+}
+function openDueChip(){
+  openDateRangeFilter({title:'Filter by due date',from:dr.from,to:dr.to,onApply:(from,to)=>{
+    dr={from,to};
+    const on=!!(from||to);
+    paintChip('cDue','Due date',on,on?(isoToDisplay(from)||'Any')+' – '+(isoToDisplay(to)||'Any'):'');
+    refS2();
+    showToast(on?'Due date range applied':'Due date filter cleared');
+  }});
+}
+/* An active free-text/range chip shows its own value instead of a count — a
+   count would read as "1 of something selected," which isn't what a text
+   filter is. Truncated so one long description can't push the row sideways. */
+function paintChip(id,label,active,valueText){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.classList.toggle('active',active);
+  const short=(valueText||'').length>14?valueText.slice(0,13)+'…':valueText;
+  el.textContent=active?label+': '+short:label;
+}
+const SORT_FIELDS=[
+  {key:'due',label:'Due date'},{key:'desc',label:'Description'},
+  {key:'id',label:'WO number'},{key:'st',label:'Status'},
+  {key:'tp',label:'Type'},{key:'pr',label:'Priority'},
+];
+function openSort(){
+  openSortSheet({fields:SORT_FIELDS,key:sortBy,dir:sortDir,onApply:(k,d)=>{
+    sortBy=k;sortDir=d;applySortOrder();
+    const f=SORT_FIELDS.find(x=>x.key===k);
+    document.querySelectorAll('.sort-btn-label').forEach(el=>{el.textContent=f.label;});
+    refS1();refS2();
+    showToast('Sorted by '+f.label+(d==='asc'?' (ascending)':' (descending)'));
+  }});
+}
+/* Sorts WOS in place — roots()/kids() read from it directly, so re-sorting is
+   what actually changes the rendered order. Children keep rendering under
+   their own parent regardless of position (roots() filters on pid). */
+function applySortOrder(){
+  const val=w=>{
+    if(sortBy==='due')return dueToIso(w.due);
+    if(sortBy==='id')return woNum(w.id);
+    if(sortBy==='st')return (STI[w.st]||STI.WAPPR).label;
+    if(sortBy==='tp')return (TM[w.tp]||TM.CM).name;
+    if(sortBy==='pr')return w.pr;
+    return (w[sortBy]||'').toString().toLowerCase();
+  };
+  const sign=sortDir==='asc'?1:-1;
+  WOS.sort((a,b)=>sign*String(val(a)).localeCompare(String(val(b)),undefined,{numeric:true}));
+}
+
 /* ══ MODE ════════════════════════════════════════════════ */
 function setMode(m){
   mode=m;
@@ -1359,11 +1517,26 @@ function applyCS(){
 const TYPE_TO_DEMO_WO = { BK: '19257', PM: '19831' };
 function openWO(id){
   const num = woNum(id);
+  const w = WOS.find(x => woNum(x.id) === num);
+  // A WO created in-app opens as the real record it is, by replaying the same
+  // hand-off Insert Mode's Save used (openCreatedWo(), eam-shared.js).
+  if (w && w.created && openCreatedWo(num)) return;
+  /* A minted MEC child (§16.10) has no data file of its own. It borrows its
+     parent's workflow — which is correct, a Route child inherits the parent's
+     type — but carries its own number/description through the shared identity
+     override so it opens as ITSELF rather than silently as the parent. This
+     replaces the honest-but-dead-end toast the Equipment tab used to show. */
+  if (w && w.mec) {
+    woIdentitySet({ number: num, desc: w.desc, parentWo: woNum(w.pid), equipment: w.ec, equipDesc: w.eq });
+    sessionStorage.setItem('eamOpenDemoWo', woNum(w.pid));
+    location.href = 'eam-wo-record-view-prototype-v1.html';
+    return;
+  }
+  woIdentityClear();
   let demoWo;
   if (num === '19257' || num === '19831' || num === '20450') {
     demoWo = num;
   } else {
-    const w = WOS.find(x => woNum(x.id) === num);
     demoWo = (w && TYPE_TO_DEMO_WO[w.tp]) || '20450';
   }
   sessionStorage.setItem('eamOpenDemoWo', demoWo);

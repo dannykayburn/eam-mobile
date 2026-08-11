@@ -45,7 +45,9 @@ function showToast(msg) {
   document.getElementById('toastMsg').textContent = msg;
   t.classList.add('show');
   clearTimeout(window._toastTimer);
-  window._toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+  // 2400ms is §3.4's locked "2.4s auto-dismiss" — this had drifted to 1800ms
+  // app-wide, so every toast in the app was dismissing faster than spec.
+  window._toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
 }
 function closeAllSheets() {
   document.querySelectorAll('.bottom-sheet').forEach(s => s.classList.remove('open'));
@@ -611,6 +613,152 @@ function woEquipPillLabel(wo) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
+   LIST FILTER SHEETS — FREE TEXT, DATE RANGE, SORT (§8.3, 2026-08-11)
+
+   The three filter-chip shapes the List Search Screen standard called for and
+   nothing in the app had: every non-code-list chip (Description, WO number,
+   Asset ID) and every date chip (Due date) was a "coming soon" toast, as was
+   Sort, on both WO List and Equipment List.
+
+   Unlike openMultiDelete() above, these BUILD THEIR OWN SHEET MARKUP on first
+   use rather than requiring per-screen HTML. Three sheets × two screens would
+   otherwise be six near-identical markup blocks to keep in sync — exactly the
+   hand-copying that CLAUDE.md's shared-component rule exists to stop. Injected
+   into `.app`, not `document.body`: `.bottom-sheet` is absolutely positioned
+   against the app frame, so appending to body would pin it to the viewport.
+
+   Each screen owns its own filter state and passes an onApply callback; these
+   functions hold no filter state of their own beyond the sheet being edited.
+   ══════════════════════════════════════════════════════════════════════ */
+function ensureSharedSheet(id, innerHTML) {
+  let el = document.getElementById(id);
+  if (el) return el;
+  const host = document.querySelector('.app') || document.body;
+  el = document.createElement('div');
+  el.className = 'bottom-sheet';
+  el.id = id;
+  el.innerHTML = innerHTML;
+  host.appendChild(el);
+  return el;
+}
+const SHEET_SEARCH_ICO = '<svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+
+/* ── Free-text filter ── */
+let textFilterOnApply = null;
+function openTextFilter(opts) {
+  ensureSharedSheet('textFilterSheet', `
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">&#10005;</button>
+      <div class="sheet-title" id="textFilterTitle">Filter</div>
+      <button class="sheet-clear-btn" onclick="clearTextFilter()">Clear</button>
+    </div>
+    <div class="lov-search-row">${SHEET_SEARCH_ICO}
+      <input class="lov-search-input" id="textFilterInput" placeholder="Contains…"
+             onkeydown="if(event.key==='Enter')applyTextFilter()">
+    </div>
+    <div class="sheet-footer"><button class="btn-contained" onclick="applyTextFilter()">Apply</button></div>`);
+  textFilterOnApply = opts.onApply || null;
+  document.getElementById('textFilterTitle').textContent = opts.title || 'Filter';
+  const input = document.getElementById('textFilterInput');
+  input.value = opts.value || '';
+  input.placeholder = opts.placeholder || 'Contains…';
+  openSheet('textFilterSheet');
+  // Focus after the slide-up settles, or mobile Safari drops the keyboard.
+  setTimeout(() => input.focus(), 250);
+}
+function clearTextFilter() { document.getElementById('textFilterInput').value = ''; }
+function applyTextFilter() {
+  const v = document.getElementById('textFilterInput').value.trim();
+  closeAllSheets();
+  if (textFilterOnApply) textFilterOnApply(v);
+}
+
+/* ── Date-range filter ──
+   Native date inputs rather than this app's own calendar sheet (openDate): a
+   range needs two bounds visible at once, which that single-value sheet can't
+   express. Carries the same accepted platform limitation as the Time field
+   (§3.4) — mobile browsers style native date controls their own way. */
+let dateRangeOnApply = null;
+function openDateRangeFilter(opts) {
+  ensureSharedSheet('dateRangeSheet', `
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">&#10005;</button>
+      <div class="sheet-title" id="dateRangeTitle">Filter</div>
+      <button class="sheet-clear-btn" onclick="clearDateRange()">Clear</button>
+    </div>
+    <div class="sheet-body">
+      <div class="range-row">
+        <label class="range-field"><span class="range-label">From</span>
+          <input type="date" class="range-input" id="dateRangeFrom"></label>
+        <label class="range-field"><span class="range-label">To</span>
+          <input type="date" class="range-input" id="dateRangeTo"></label>
+      </div>
+      <div class="range-hint" id="dateRangeHint"></div>
+    </div>
+    <div class="sheet-footer"><button class="btn-contained" onclick="applyDateRange()">Apply</button></div>`);
+  dateRangeOnApply = opts.onApply || null;
+  document.getElementById('dateRangeTitle').textContent = opts.title || 'Filter by date';
+  document.getElementById('dateRangeFrom').value = opts.from || '';
+  document.getElementById('dateRangeTo').value = opts.to || '';
+  document.getElementById('dateRangeHint').textContent =
+    'Leave either side empty for an open-ended range.';
+  openSheet('dateRangeSheet');
+}
+function clearDateRange() {
+  document.getElementById('dateRangeFrom').value = '';
+  document.getElementById('dateRangeTo').value = '';
+}
+function applyDateRange() {
+  let from = document.getElementById('dateRangeFrom').value;
+  let to = document.getElementById('dateRangeTo').value;
+  // A backwards range returns nothing and reads as a broken filter, so swap it.
+  if (from && to && from > to) { const t = from; from = to; to = t; }
+  closeAllSheets();
+  if (dateRangeOnApply) dateRangeOnApply(from, to);
+}
+
+/* ── Sort ── */
+let sortOnApply = null, sortFields = [], sortKey = '', sortDir = 'asc';
+function openSortSheet(opts) {
+  ensureSharedSheet('sortSheet', `
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">&#10005;</button>
+      <div class="sheet-title">Sort by</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="mode-tog" id="sortDirTog">
+      <button class="mode-btn" id="sortAsc" onclick="setSortDir('asc')">Ascending</button>
+      <button class="mode-btn" id="sortDesc" onclick="setSortDir('desc')">Descending</button>
+    </div>
+    <div class="sheet-body" id="sortList"></div>
+    <div class="sheet-footer"><button class="btn-contained" onclick="applySort()">Apply</button></div>`);
+  sortOnApply = opts.onApply || null;
+  sortFields = opts.fields || [];
+  sortKey = opts.key || (sortFields[0] && sortFields[0].key) || '';
+  sortDir = opts.dir || 'asc';
+  renderSortSheet();
+  openSheet('sortSheet');
+}
+function setSortDir(d) { sortDir = d; renderSortSheet(); }
+function pickSortKey(k) { sortKey = k; renderSortSheet(); }
+function renderSortSheet() {
+  document.getElementById('sortAsc').classList.toggle('active', sortDir === 'asc');
+  document.getElementById('sortDesc').classList.toggle('active', sortDir === 'desc');
+  document.getElementById('sortList').innerHTML = sortFields.map(f => `
+    <div class="lov-option" onclick="pickSortKey('${f.key}')">
+      <div class="lov-option-texts"><div class="lov-option-desc">${f.label}</div></div>
+      <div class="lov-check${sortKey === f.key ? ' checked' : ''}"></div>
+    </div>`).join('');
+}
+function applySort() {
+  closeAllSheets();
+  if (sortOnApply) sortOnApply(sortKey, sortDir);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
    MULTI-SELECT DELETE (§16.10, new paradigm 2026-08-10) — the mirror of the
    multi-select LOV: instead of picking records to ADD out of a lookup, it
    surfaces the records ALREADY on the screen so several can be removed in
@@ -718,13 +866,28 @@ function demoWoRecord() {
   };
   return map[DEMO_WO];
 }
+/* MEC child WO identity (§16.10) — a minted child has no data file of its
+   own, so it borrows a parent's workflow (DEMO_WO) but must still read as
+   ITSELF in the header. Set by WO List's openWO() before navigating and
+   held for the rest of the session, so Next/Back across all 5 steps keeps
+   the child's identity instead of snapping back to the parent's. Opening
+   any ordinary WO clears it. */
+const WO_IDENTITY_KEY = 'eamWoIdentity';
+function woIdentity() {
+  try { return JSON.parse(sessionStorage.getItem(WO_IDENTITY_KEY)); } catch (e) { return null; }
+}
+function woIdentitySet(o) { sessionStorage.setItem(WO_IDENTITY_KEY, JSON.stringify(o)); }
+function woIdentityClear() { sessionStorage.removeItem(WO_IDENTITY_KEY); }
 function applyDemoWoIdentity() {
   const rec = demoWoRecord();
   const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
   const numEl = document.getElementById('recNum');
   const descEl = document.getElementById('recDesc');
-  if (rec && numEl) numEl.textContent = rec.woNumber;
-  if (rec && descEl) descEl.textContent = rec.description;
+  const ov = woIdentity();
+  const num = ov ? ov.number : (rec && rec.woNumber);
+  const desc = ov ? ov.desc : (rec && rec.description);
+  if (num && numEl) numEl.textContent = num;
+  if (desc && descEl) descEl.textContent = desc;
   // Fixed 2026-07-22 (punch-list item): this used to also overwrite the
   // Type badge (fv-type-desc) with EAM_WOTYPE[jobType].desc — e.g.
   // "Breakdown Maintenance" for BRKD — but EAM_WOTYPE is the internal
@@ -1200,6 +1363,50 @@ function navigateToNewRecord(url, storageKey, record) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
+   CREATED-RECORD STORE (2026-08-11) — records a technician actually creates
+   through Insert Mode, so they persist into the demo loop instead of existing
+   only for the one navigation that follows Save. WO List and Equipment List
+   merge from here, and re-opening one re-issues the same eamNewWoRecord/
+   eamNewEquipRecord hand-off the Record Views already know how to render —
+   no second rendering path.
+
+   localStorage (not session) so a created record survives navigation and
+   reloads the way a saved record would; cleared by resetDemoState().
+   ══════════════════════════════════════════════════════════════════════ */
+const CREATED_RECORDS_KEY = 'eamCreatedRecords';
+const CREATED_KEY_FIELD = { WO: 'number', EQUIP: 'asset' };
+function createdRecords() {
+  try {
+    const s = JSON.parse(localStorage.getItem(CREATED_RECORDS_KEY)) || {};
+    return { WO: s.WO || [], EQUIP: s.EQUIP || [] };
+  } catch (e) { return { WO: [], EQUIP: [] }; }
+}
+function createdRecordAdd(entity, rec) {
+  const s = createdRecords();
+  const idField = CREATED_KEY_FIELD[entity];
+  s[entity] = s[entity].filter(r => r[idField] !== rec[idField]);
+  s[entity].unshift(rec);
+  localStorage.setItem(CREATED_RECORDS_KEY, JSON.stringify(s));
+}
+function createdRecordFind(entity, id) {
+  return createdRecords()[entity].find(r => r[CREATED_KEY_FIELD[entity]] === id) || null;
+}
+// Re-open a created record by replaying the hand-off it was born with.
+function openCreatedWo(number) {
+  const rec = createdRecordFind('WO', number);
+  if (!rec) return false;
+  woIdentityClear();
+  navigateToNewRecord('eam-wo-record-view-prototype-v1.html', 'eamNewWoRecord', rec);
+  return true;
+}
+function openCreatedEquip(asset) {
+  const rec = createdRecordFind('EQUIP', asset);
+  if (!rec) return false;
+  navigateToNewRecord('eam-equipment-record-view-prototype-v1.html', 'eamNewEquipRecord', rec);
+  return true;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
    HYPERLINKED POPUP — full-screen slide-up sheet for viewing/editing a
    record reached via a "link" tap (e.g. WO Record View's Equipment card,
    §14/§15). Generic open/close by id, same reusable-by-id pattern as the
@@ -1304,8 +1511,14 @@ function resetDemoState() {
    // eamWoEquipment (2026-08-10) — the per-WO equipment/Route associations
    // and their minted MEC child WO numbers (§16.10). A fresh demo must start
    // with every WO's Equipment tab empty and no Route/MEC pill anywhere.
-   WO_EQUIP_STORE_KEY]
+   WO_EQUIP_STORE_KEY,
+   // eamCreatedRecords (2026-08-11) — WOs/Equipment created through Insert
+   // Mode. A fresh demo must start with only the seeded demo records.
+   CREATED_RECORDS_KEY]
     .forEach(k => localStorage.removeItem(k));
+  // Session-scoped, so not in the list above — but a held MEC child identity
+  // would otherwise survive a Reset and repaint the next WO's header.
+  woIdentityClear();
 }
 // Shared navigation target for both the dev-only Reset button below and
 // the real Profile menu's Log out item (2026-07-24) — same path either
@@ -2151,20 +2364,23 @@ function saveInsertRecord() {
   if (currentEntity === 'WO') {
     const woNumber = String(parseInt(localStorage.getItem('eamNextWoNumber') || '19258', 10));
     localStorage.setItem('eamNextWoNumber', String(parseInt(woNumber, 10) + 1));
-    navigateToNewRecord('eam-wo-record-view-prototype-v1.html', 'eamNewWoRecord', {
+    const rec = {
       number: woNumber, desc,
       department: opt('insertDepartment'), assignedTo: opt('insertAssignedTo'), reportedBy: opt('insertReportedBy'),
       dateReported: RECORD.insertDateReported || '', problemCode: opt('insertProblemCode'),
       type: { code: LOV_CURRENT.insertType, desc: document.getElementById('fv-insertType-desc').textContent },
       status: { code: LOV_CURRENT.insertStatus, desc: document.getElementById('fv-insertStatus-desc').textContent },
       priority: opt('insertPriority'),
+      organization: { code: LOV_CURRENT.insertOrganization || 'FBPP', desc: '' },
       equipment: (LOV_DATA.insertEquipment || []).find(o => o.code === LOV_CURRENT.insertEquipment) || null,
       comments,
-    });
+    };
+    createdRecordAdd('WO', rec);
+    navigateToNewRecord('eam-wo-record-view-prototype-v1.html', 'eamNewWoRecord', rec);
   } else {
     const equipNumber = String(parseInt(localStorage.getItem('eamNextEquipNumber') || '67400', 10)).padStart(8, '0');
     localStorage.setItem('eamNextEquipNumber', String(parseInt(equipNumber, 10) + 1));
-    navigateToNewRecord('eam-equipment-record-view-prototype-v1.html', 'eamNewEquipRecord', {
+    const rec = {
       asset: equipNumber, desc,
       department: opt('insertDepartment'), criticality: opt('insertCriticality'),
       class: { code: LOV_CURRENT.insertType, desc: document.getElementById('fv-insertType-desc').textContent },
@@ -2173,7 +2389,9 @@ function saveInsertRecord() {
       status: { code: LOV_CURRENT.insertStatus, desc: document.getElementById('fv-insertStatus-desc').textContent },
       organization: { code: LOV_CURRENT.insertOrganization, desc: '' },
       comments,
-    });
+    };
+    createdRecordAdd('EQUIP', rec);
+    navigateToNewRecord('eam-equipment-record-view-prototype-v1.html', 'eamNewEquipRecord', rec);
   }
 }
 let insertDragStartY = null, insertDragDelta = 0;

@@ -1111,7 +1111,7 @@ const COMMENTS_BADGE_ID = 'commentsBadgeCount';
 const DOCUMENTS_DATA = NEW_RECORD ? [] : [
   { icon: 'pdf', name: 'Pump_Assembly_PMP3042_Rev4.pdf', meta: 'PDF · 2.4 MB · Nov 2024' },
   { icon: 'pdf', name: 'LOTO_Procedure_WWTP_Rev2.pdf', meta: 'PDF · 890 KB · Mar 2024' },
-  { icon: 'img', name: 'Site_Photo_20251107.jpg', meta: 'JPG · 1.1 MB · Nov 7, 2025' },
+  { icon: 'img', name: 'Site_Photo_20251107.jpg', meta: 'JPG · 1.1 MB · Nov 2025' },
   { icon: 'pdf', name: 'Bearing_6205-2RS_Spec.pdf', meta: 'PDF · 340 KB · Jan 2023' },
 ];
 const DOC_ICON_SVG = {
@@ -1558,6 +1558,10 @@ const ROUTE_PILL_CHEV = '<svg width="14" height="14" fill="none" viewBox="0 0 24
 function renderEquipRoutePill() {
   const mount = document.getElementById('equipRoutePillMount');
   if (!mount) return;
+  // A minted MEC child WO borrows its parent's DEMO_WO for workflow rules
+  // only (§16.10) — the parent's Route and equipment set belong to the
+  // parent, so a child must never show the parent's pill as its own.
+  if (woIdentity()) { mount.innerHTML = ''; return; }
   const st = woEquipState(DEMO_WO);
   if (!st.rows.length) { mount.innerHTML = ''; return; }
   // Route case keeps code and description as separate parts so the code can
@@ -1897,6 +1901,20 @@ if (OPEN_DEMO_WO) {
 // association while this screen isn't loaded, so pull it back in before the
 // record renders rather than trusting RECORD's own seed value.
 (function syncRouteFromStore() {
+  // A minted MEC child (§16.10) borrows this DEMO_WO's workflow but is NOT
+  // that record: the Route belongs to the parent, and the child's own scope is
+  // the single piece of equipment it was created for. Painting the parent's
+  // Route/equipment here is what made a child read as its parent.
+  const ov = woIdentity();
+  if (ov) {
+    LOV_CURRENT.route = '';
+    RECORD.route = { code: '', desc: '' };
+    if (ov.equipment) {
+      RECORD.equipment = { code: ov.equipment, desc: ov.equipDesc || ov.equipment,
+                           class: '', category: '', type: 'Asset', photoUrl: '' };
+    }
+    return;
+  }
   const stored = woEquipRoute(DEMO_WO);
   LOV_CURRENT.route = stored ? stored.code : '';
   RECORD.route = stored ? { code: stored.code, desc: stored.desc } : { code: '', desc: '' };

@@ -5,55 +5,107 @@ description: Repo-specific verification recipe for the EAM Mobile prototypes (st
 
 # Verifying changes to prototypes/standalone/*.html and shared/eam-shared.{css,js}
 
-## Launch
+## Read this first — browser preview is disabled in this environment
 
-A local static server config already exists: `.claude/launch.json` →
-`npx serve prototypes -l 5175`. Use `preview_start` with name
-`prototypes` (reuses if already running). Pages are then at
-`http://localhost:5175/standalone/<file>.html`.
+`preview_start` / `preview_list` / `preview_eval` are **admin-denied**.
+Don't retry them; you'll just burn a turn on a permission error. The
+browser-driven recipe is kept at the bottom for whenever that changes, but
+**the static path below is the working one.** Live/visual confirmation comes
+from the user testing on their own phone — so say plainly what you verified
+and what still needs their eyes, and never imply a screen was seen running
+when it wasn't.
 
-## Drive it
+## 1. Parse every page the way the browser loads it
 
-Use `preview_eval` to call the page's own real functions directly
-(`openLov('key')`, `openInsertMode('tab1')`, `selectLov('CODE','Desc')`,
-`goToTab('tab2')`, etc.) — these ARE the real onclick handlers, just
-invoked programmatically. Read back state with a second eval: DOM text,
-classList membership, `getComputedStyle(...).zIndex` / other *static*
-(non-animated) computed properties.
+Catches syntax errors AND cross-file redeclarations — separate `<script>`
+tags share one global lexical scope, so a screen declaring `let currentTab`
+when `eam-shared.js` already does is a `SyntaxError` that kills the whole
+screen. This has happened for real.
 
-## Known environment gotcha — do not trust click-simulation or screenshots for anything CSS-transition-gated
+Extract each page's scripts in document order (external `src` first, then
+inline), concatenate, and `node --check`:
 
-The preview pane runs with `document.hidden === true` / `visibilityState
-== "hidden"` / `document.hasFocus() === false`. Chrome throttles/freezes
-CSS transitions on hidden tabs. Confirmed 2026-07-16: a `.open` class add
-with `transition:transform .32s ...` never resolves to its target value
-no matter how long you wait or how many separate eval round-trips pass —
-even an inline `!important` override on the same property doesn't move
-the computed value. This is NOT a page bug; it's the harness's tab
-visibility state freezing the animation. Consequences:
-- `preview_click` on a coordinate that depends on a transition having
-  completed (e.g. a field inside a sheet that's supposed to have slid
-  into view) will silently miss — the element is still positioned at its
-  pre-transition location. Don't conclude "click does nothing" from that
-  alone; verify via direct function call + computed *non-animated*
-  properties (z-index, classList, text content) instead.
-- `preview_screenshot` has also timed out (30s) on this same page in this
-  same hidden-tab state — don't block verification on getting a
-  screenshot; `preview_snapshot` (accessibility tree) worked reliably
-  as a visual-structure fallback when screenshot hung.
-- Static/non-transitioning computed properties (z-index, color, display,
-  text content, classList) read correctly even in this state — trust
-  those.
+```js
+// scratchpad/extract.js — page path in argv[2], output in argv[3]
+const fs = require('fs'), path = require('path');
+const html = fs.readFileSync(process.argv[2], 'utf8');
+const inline = [...html.matchAll(/<script(?![^>]*\ssrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+const srcs = [...html.matchAll(/<script[^>]*\ssrc="([^"]+)"[^>]*>/g)].map(m => m[1]);
+const base = path.dirname(process.argv[2]);
+let out = '';
+for (const s of srcs) out += '\n' + fs.readFileSync(path.join(base, s), 'utf8');
+fs.writeFileSync(process.argv[3], out + '\n' + inline.join('\n'));
+```
 
-## What's worked so far
+Run it across `prototypes/standalone/*.html` after touching a shared file —
+a shared-file change can break any consumer, so check them all, not just
+the screen you edited.
 
-- Confirming a CSS fix landed: reload page, `getComputedStyle(el).<prop>`
-  for the changed non-animated property.
-- Confirming an interaction flow end-to-end: chain direct function calls
-  in one eval (e.g. `openInsertMode('x'); openLov('key');`) then a
-  second eval reading back classList/z-index/text on all the elements
-  involved — this exercises the real code path (same functions the
-  onclick attributes call) without depending on the frozen transition.
-- `document.styleSheets[].cssRules` iteration with `el.matches(selectorText)`
-  to list every CSS rule actually matching an element, when a computed
-  value looks wrong and you need to find what's really being applied.
+## 2. Execute the real functions with a DOM shim
+
+Concatenate `eam-shared.js` + assertions into one file and run it under
+Node. Everything shares one scope this way, so `let`-declared shared state
+(`equipMultiMode`, `woCurrentStep`, …) is readable — with `eval()` it is
+**not** (only `function` declarations hoist out of a direct eval).
+
+**The shim gotcha that cost real time:** stub `localStorage` as a no-op and
+every persistence-backed function silently does nothing — which looks like a
+pile of genuine logic failures. Give it real in-memory storage:
+
+```js
+const _mk = () => { const m = {}; return {
+  getItem: k => (Object.prototype.hasOwnProperty.call(m, k) ? m[k] : null),
+  setItem: (k, v) => { m[k] = String(v); },
+  removeItem: k => { delete m[k]; },
+}; };
+global.localStorage = _mk(); global.sessionStorage = _mk();
+```
+
+Plus a minimal `document`/`window`. For renderers that read back what they
+wrote, hand `getElementById`/`querySelector` per-id fake nodes that record
+`innerHTML`/`textContent` rather than one shared stub — that's what makes
+assertions on rendered markup possible.
+
+This has verified, for real: the WO equipment store's whole state model
+(route insert → MEC child minting → clear → delete → pill visibility), the
+step rail's Reference-destination mode, multi-select LOV selection/commit,
+and that a card's `data-search` attribute stays clean text.
+
+**Always include a regression assertion for the untouched path**, not just
+the new one — e.g. after adding `activeRef` to the rail, assert a normal
+step screen still renders exactly one active row.
+
+## 3. Grep for the things parsing can't catch
+
+- Screen functions/consts silently overriding shared ones (a `function`
+  redeclaration is legal and wins by source order — no error at all).
+- Stale references after a rename or a removed element.
+- Required per-screen markup ids: `#toast`/`#toastMsg`,
+  `#listDetailHeader` carrying `active`, `#confirmOverlay`/`#confirmMessage`/
+  `#confirmDangerBtn`, and any component-specific footer ids. Shared
+  behavior no-ops silently without these — see §16.10.
+
+## What static verification cannot tell you
+
+**CSS.** Layout, colour, contrast in both themes, tap-target size, anything
+transition-driven. Say so explicitly rather than implying coverage.
+
+## If browser preview is ever re-enabled
+
+`.claude/launch.json` → `npx serve prototypes -l 5175`; pages at
+`http://localhost:5175/standalone/<file>.html`. Drive it with `preview_eval`
+calling the page's own real handlers (`openLov('key')`, `goToTab('tab2')`).
+
+**Known harness gotcha (confirmed 2026-07-16):** the preview pane runs
+`document.hidden === true`, and Chrome freezes CSS transitions on hidden
+tabs — a `.open` class add with `transition:transform .32s` never reaches its
+target computed value no matter how long you wait, even with an inline
+`!important`. So: `preview_click` on a coordinate that depends on a
+transition completing will silently miss (the element is still at its
+pre-transition position) — don't read that as "the click does nothing."
+`preview_screenshot` has also timed out at 30s in this state; `preview_snapshot`
+(accessibility tree) was the reliable fallback. Static computed properties
+(z-index, colour, display, text, classList) do read correctly — trust those.
+Useful trick: iterate `document.styleSheets[].cssRules` with
+`el.matches(selectorText)` to list every rule actually hitting an element
+when a computed value looks wrong.

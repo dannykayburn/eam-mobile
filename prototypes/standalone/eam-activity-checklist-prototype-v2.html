@@ -1293,6 +1293,46 @@ if (OPEN_DEMO_WO) {
   DEMO_WO = OPEN_DEMO_WO;
 }
 
+/* ══ ROUTE/MEC EQUIPMENT FAN-OUT (§16.9/§16.10, 2026-08-11) ═══════════════
+   When the WO carries equipment on its Equipment tab, every equipment-scoped
+   item becomes one item PER piece of equipment — a technician walking a Route
+   inspects the same points on each asset. This is what "View all → Equipment"
+   group-by (§16.8) was built for and was never actually fed.
+
+   It's a pure function of the live store, recomputed at load, so removing
+   equipment removes its items with no separate teardown path: the copies only
+   exist because a row exists. Runs after DEMO_WO is resolved (it reads that
+   WO's own rows) and before the first render.
+
+   Order is equipment-major — all points for asset 1, then asset 2 — which is
+   the order the route is actually walked, not all-of-one-check-across-assets. */
+function fanOutEquipmentItems() {
+  if (typeof woEquipRows !== 'function') return;
+  const ov = (typeof woIdentity === 'function') ? woIdentity() : null;
+  // A MEC child WO covers exactly the one asset it was minted for.
+  const rows = ov
+    ? woEquipRows(ov.parentWo).filter(r => r.equip === ov.equipment)
+    : woEquipRows(DEMO_WO);
+  if (!rows.length) return;
+  const templates = ITEMS.filter(i => i.equipId);
+  if (!templates.length) return;
+  const insertAt = ITEMS.indexOf(templates[0]);
+  templates.forEach(t => ITEMS.splice(ITEMS.indexOf(t), 1));
+  let seq = 1000;
+  const expanded = [];
+  rows.forEach(r => templates.forEach(t => {
+    expanded.push(Object.assign(JSON.parse(JSON.stringify(t)), {
+      id: ++seq, equipId: r.equip, equipDesc: r.desc,
+    }));
+  }));
+  ITEMS.splice(insertAt, 0, ...expanded);
+  // Keep dynamic follow-on ids (§16.5) clear of the range just consumed — a
+  // long Route can mint hundreds of items, and a collision would make
+  // syncDynamicChildren() delete the wrong row.
+  dynamicIdSeq = Math.max(dynamicIdSeq, seq);
+}
+fanOutEquipmentItems();
+
 /* ── init ── */
 renderFocus();
 onDemoWoChanged();
