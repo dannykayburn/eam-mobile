@@ -2437,7 +2437,18 @@ function updateInsertSaveGate() {
 // Standard Update Mode via sessionStorage — every entry point (Home,
 // WO List, Equipment List) hands off through this exact same function now.
 function saveInsertRecord() {
-  const fields = ENTITY_FLAT_FIELDS[currentEntity];
+  /* currentFlatFields(), NOT ENTITY_FLAT_FIELDS[currentEntity] directly.
+     Since §9.4.2 (2026-07-29) flat fields vary by Type, so that map holds
+     { default: [...], alt: [...] } per entity — an OBJECT, not an array. This
+     line still read it raw, so `for (const f of fields)` threw "fields is not
+     iterable" and Create did nothing at all: the button went green, the tap
+     ran, and the exception killed it before the record was built. Every other
+     reader (renderFlatFields, updateInsertSaveGate) already went through the
+     accessor; this one was missed in that change, which is why the Save gate
+     could report ready while the save itself could never run.
+     Found 2026-08-11 from a real-device report; the earlier `sortDir` collision
+     had been masking it, because the whole inline script was dying first. */
+  const fields = currentFlatFields();
   for (const f of fields) {
     if (f.required && !LOV_CURRENT[f.key]) { showToast(f.label + ' is required'); return; }
   }

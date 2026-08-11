@@ -15,11 +15,24 @@ from the user testing on their own phone — so say plainly what you verified
 and what still needs their eyes, and never imply a screen was seen running
 when it wasn't.
 
-## 0. Run these two scripts. Both are committed — do not re-implement them.
+## 0. Run these. All committed — do not re-implement them.
 
 ```bash
-node .claude/skills/verify/scripts/check-scope.js prototypes/standalone/eam-*.html && node .claude/skills/verify/scripts/run-load.js
+node .claude/skills/verify/scripts/check-scope.js prototypes/standalone/eam-*.html && node .claude/skills/verify/scripts/run-load.js && for t in .claude/skills/verify/scripts/tests/test-*.js; do node "$t" || exit 1; done
 ```
+
+The `tests/` files are behavioural regressions for flows that broke on a real
+device and were invisible to every static check:
+
+- **`test-insert-roundtrip.js`** — fill Insert Mode → Create → land on the new
+  record showing the entered data → find it again in the list, for both WO and
+  Equipment, plus the required-field guard and header-description editing.
+  Create was silently dead for ~2 weeks (see the `currentFlatFields()` note in
+  `saveInsertRecord`): the Save button went green, the tap fired, and an
+  exception killed it before anything was built. **A gate reporting "ready" is
+  not evidence the action works — drive the action.**
+- **`test-editors.js`** — the ✕/✓ keyboard-editing popups: confirm gating,
+  required-empty refusal, sheet exclusivity, and the CSS contract.
 
 **This is step 0 because skipping it shipped a dead app on 2026-08-11.** The
 recipe below used to be prose, a past session re-implemented it as a weaker

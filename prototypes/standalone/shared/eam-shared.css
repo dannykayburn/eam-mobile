@@ -1748,7 +1748,13 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    stays a genuine bottom sheet (`top:auto`, so `--kb-inset` applies again and
    it rides above the keyboard) — safe now that its confirm control is in the
    header, not the footer. */
-.text-editor-sheet.compact{top:auto;height:auto;max-height:none;border-radius:var(--sheet-radius) var(--sheet-radius) 0 0;}
+/* `bottom` must be restored explicitly. The base .text-editor-sheet rule above
+   sets `bottom:0` to defeat --kb-inset for the full-cover editor, and .compact
+   inherits it — which pinned this short sheet to the bottom of the frame so the
+   on-screen keyboard covered the whole thing, ✓ included. That was the reported
+   "same issue as before" on the header Description field. Putting the inset
+   back is what lets it ride above the keyboard again. */
+.text-editor-sheet.compact{top:auto;bottom:var(--kb-inset,0px);height:auto;max-height:none;border-radius:var(--sheet-radius) var(--sheet-radius) 0 0;}
 .text-editor-sheet.compact .text-editor-body{flex:none;}
 .text-editor-sheet.compact .text-editor-textarea{height:96px;}
 
