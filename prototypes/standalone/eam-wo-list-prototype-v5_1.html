@@ -1514,8 +1514,59 @@ function applyCS(){
 // demo identity (19831); every other Type (CM/CAL/INS/MOD/ROUT — no
 // configured workflow exists for any of them, data/wo-workflow.js) still
 // falls back to 20450, per §11's own fallback rule.
+/* ══ LIST STATE ACROSS THE ROUND TRIP (§24, 2026-08-11) ══════════════════
+   Saved right before navigating to a record; restored (consume-once) on load,
+   so Back from Record View lands on the list exactly as it was left. Shape is
+   this screen's own; listStateSave/listStateTake (eam-shared.js) just carry it.
+   `exp` (expanded parents) rides along too — collapsing a parent's children
+   under someone on their way back would look like the children vanished. ══ */
+const LIST_STATE_KEY_WO = 'woList';
+function captureListState(){
+  return { curDS, sv, cf, tf, dr, sortBy, sortDir, mode, exp,
+           screen: document.getElementById('s2').classList.contains('active') ? 's2' : 's1' };
+}
+function restoreListState(){
+  const s = listStateTake(LIST_STATE_KEY_WO);
+  if (!s) return;
+  curDS = s.curDS || curDS;
+  const d = DS.find(x => x.id === curDS);
+  if (d) document.getElementById('dsName').textContent = d.name;
+  sv = s.sv || '';
+  cf = s.cf || {}; tf = s.tf || {}; dr = s.dr || { from:'', to:'' };
+  exp = s.exp || {};
+  sortBy = s.sortBy || sortBy; sortDir = s.sortDir || sortDir;
+  applySortOrder();
+  const sf = SORT_FIELDS.find(x => x.key === sortBy);
+  if (sf) document.querySelectorAll('.sort-btn-label').forEach(el => { el.textContent = sf.label; });
+  // Repaint every chip's own label/active state from the restored values —
+  // the chips are plain markup, so nothing derives this for us.
+  Object.keys(CID).forEach(k => {
+    const el = document.getElementById(CID[k]);
+    const n = (cf[k] || []).length;
+    if (!el) return;
+    el.classList.toggle('active', n > 0);
+    el.innerHTML = CLB[k] + (n > 0 ? `<span class="chip-count">${n}</span>` : '');
+  });
+  Object.keys(TEXT_CHIP_META).forEach(k => {
+    const m = TEXT_CHIP_META[k];
+    paintChip(m.id, m.label, !!tf[k], tf[k] || '');
+  });
+  const dueOn = !!(dr.from || dr.to);
+  paintChip('cDue','Due date',dueOn, dueOn ? (isoToDisplay(dr.from)||'Any')+' – '+(isoToDisplay(dr.to)||'Any') : '');
+  if (s.mode && s.mode !== mode) setMode(s.mode);
+  if (s.screen === 's2') {
+    document.getElementById('s1').classList.remove('active');
+    document.getElementById('s2').classList.add('active');
+    const inp = document.getElementById('sInp');
+    if (inp) inp.value = sv;
+    document.getElementById('sClr').style.display = sv ? 'flex' : 'none';
+  }
+  refS1(); refS2();
+}
+
 const TYPE_TO_DEMO_WO = { BK: '19257', PM: '19831' };
 function openWO(id){
+  listStateSave(LIST_STATE_KEY_WO, captureListState());
   const num = woNum(id);
   const w = WOS.find(x => woNum(x.id) === num);
   // A WO created in-app opens as the real record it is, by replaying the same
@@ -1591,13 +1642,23 @@ let RECORD = {};
 // redirect strips query strings on navigation, confirmed live this
 // session; see the matching comment in eam-home-screen-prototype-v1.html).
 // Falls back to the default ds1 if absent/unknown.
+// A pending spy is a FRESH entry from Home and must beat any saved list state
+// from an earlier round trip (§24, 2026-08-11) — otherwise tapping a Home tile
+// would silently reopen whatever the technician last had filtered, which is
+// the opposite of what picking a tile means. Dropping the saved state here is
+// what makes restoreListState() below a no-op in that case.
+let pendingSpyApplied = false;
 (function applyPendingSpy(){
   const spy=sessionStorage.getItem('eamPendingSpy');
   if(spy)sessionStorage.removeItem('eamPendingSpy');
   const d=DS.find(x=>x.id===spy);
-  if(d){curDS=d.id;document.getElementById('dsName').textContent=d.name;}
+  if(d){curDS=d.id;document.getElementById('dsName').textContent=d.name;pendingSpyApplied=true;listStateTake(LIST_STATE_KEY_WO);}
 })();
 refS1();
+// Runs after the pending-spy pass above, which already dropped any saved state
+// if a Home tile handed one over — so this is a no-op in that case rather than
+// fighting it. Restoring re-runs refS1/refS2 itself.
+if (!pendingSpyApplied) restoreListState();
 renderEntityFields(); // pre-render defaults so the sheet isn't empty the first time it opens (currentEntity defaults 'WO', matching this screen's only use)
 initSharedApp();
 initDemoOnlineToggle();

@@ -613,6 +613,44 @@ function woEquipPillLabel(wo) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
+   LIST SCREEN STATE — dataspy / filters / sort / mode (§24, 2026-08-11)
+
+   §24 requires a Record View's back button to return to the entity's Search
+   List "maintaining the user's dataspy and persisting any filters." The
+   navigation target was already right; nothing carried the state, so a
+   technician who filtered, opened a record and came back landed on a reset
+   list. That got a lot more noticeable once all six filter chips and Sort
+   became real (§8.3) — there's simply more to lose now.
+
+   sessionStorage, not localStorage, and deliberately: a filter set is
+   working context for the current sitting, not a saved preference like a
+   favourited dataspy. Closing the app should drop it. Also cleared by
+   resetDemoState() so a demo restart is genuinely clean.
+
+   The screen owns the shape of its own state object — this only stores and
+   returns it. Each consumer saves right before it navigates away and
+   restores on load.
+   ══════════════════════════════════════════════════════════════════════ */
+const LIST_STATE_KEY = 'eamListState';
+function listStateAll() {
+  try { return JSON.parse(sessionStorage.getItem(LIST_STATE_KEY)) || {}; } catch (e) { return {}; }
+}
+function listStateSave(screenKey, state) {
+  const all = listStateAll();
+  all[screenKey] = state;
+  sessionStorage.setItem(LIST_STATE_KEY, JSON.stringify(all));
+}
+// Consume-once: restoring is for the round trip back from a record, not for
+// every future visit. A fresh entry into the list screen should start clean.
+function listStateTake(screenKey) {
+  const all = listStateAll();
+  const s = all[screenKey] || null;
+  if (s) { delete all[screenKey]; sessionStorage.setItem(LIST_STATE_KEY, JSON.stringify(all)); }
+  return s;
+}
+function listStateClearAll() { sessionStorage.removeItem(LIST_STATE_KEY); }
+
+/* ══════════════════════════════════════════════════════════════════════
    LIST FILTER SHEETS — FREE TEXT, DATE RANGE, SORT (§8.3, 2026-08-11)
 
    The three filter-chip shapes the List Search Screen standard called for and
@@ -1517,8 +1555,10 @@ function resetDemoState() {
    CREATED_RECORDS_KEY]
     .forEach(k => localStorage.removeItem(k));
   // Session-scoped, so not in the list above — but a held MEC child identity
-  // would otherwise survive a Reset and repaint the next WO's header.
+  // would otherwise survive a Reset and repaint the next WO's header, and a
+  // held list state would restore someone else's filters onto a fresh demo.
   woIdentityClear();
+  listStateClearAll();
 }
 // Shared navigation target for both the dev-only Reset button below and
 // the real Profile menu's Log out item (2026-07-24) — same path either

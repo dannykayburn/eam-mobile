@@ -482,7 +482,53 @@ const LOV_ON_SELECT = { insertType: () => { renderFlatFields(); applyTypePillCol
    row opened 00067333 regardless, which read as the app ignoring the tap.
    Deep content (comments, documents, child tabs) is still the demo record's;
    this is identity + header fields only. */
+/* ══ LIST STATE ACROSS THE ROUND TRIP (§24, 2026-08-11) ══════════════════
+   Mirrors WO List's own implementation — keep the two in step. Saved on the
+   way to a record, restored consume-once on load, so Back lands on the list
+   as it was left. This screen has no parent/child expand state to carry. ══ */
+const LIST_STATE_KEY_EQUIP = 'equipList';
+function captureListState() {
+  return { curDS, sv, cf, tf, sortBy, sortDir, mode,
+           screen: document.getElementById('s2').classList.contains('active') ? 's2' : 's1' };
+}
+function restoreListState() {
+  const s = listStateTake(LIST_STATE_KEY_EQUIP);
+  if (!s) return;
+  curDS = s.curDS || curDS;
+  const d = DS.find(x => x.id === curDS);
+  if (d) document.getElementById('dsName').textContent = d.name;
+  sv = s.sv || '';
+  cf = s.cf || {}; tf = s.tf || {};
+  sortBy = s.sortBy || sortBy; sortDir = s.sortDir || sortDir;
+  const sign = sortDir === 'asc' ? 1 : -1;
+  EQUIPS.sort((a, b) => sign * String(a[sortBy] || '').localeCompare(String(b[sortBy] || ''), undefined, { numeric: true }));
+  const sf = SORT_FIELDS.find(x => x.key === sortBy);
+  if (sf) document.querySelectorAll('.sort-btn-label').forEach(el => { el.textContent = sf.label; });
+  Object.keys(CID).forEach(k => {
+    const el = document.getElementById(CID[k]);
+    const n = (cf[k] || []).length;
+    if (!el) return;
+    el.classList.toggle('active', n > 0);
+    el.innerHTML = CLB[k] + (n > 0 ? `<span class="chip-count">${n}</span>` : '');
+  });
+  Object.keys(TEXT_CHIP_META).forEach(k => {
+    const m = TEXT_CHIP_META[k];
+    paintChip(m.id, m.label, !!tf[k], tf[k] || '');
+  });
+  if (s.mode && s.mode !== mode) setMode(s.mode);
+  if (s.screen === 's2') {
+    document.getElementById('s1').classList.remove('active');
+    document.getElementById('s2').classList.add('active');
+    const inp = document.getElementById('sInp');
+    if (inp) inp.value = sv;
+    const clr = document.getElementById('sClr');
+    if (clr) clr.style.display = sv ? 'flex' : 'none';
+  }
+  refS1(); refS2();
+}
+
 function goEquipmentRecord(assetId) {
+  listStateSave(LIST_STATE_KEY_EQUIP, captureListState());
   // Created in-app? Open the real record by replaying Insert Mode's own
   // hand-off, rather than overlaying an identity onto the demo record.
   if (typeof openCreatedEquip === 'function' && openCreatedEquip(assetId)) return;
@@ -848,10 +894,15 @@ function applyCS() {
 // ?spy= query string — npx serve's clean-URL redirect strips query
 // strings on navigation — see eam-home-screen-prototype-v1.html's
 // goToScreen()). Any dataspy id can be pre-run now, not just 'pumps'.
+// A pending spy is a FRESH entry from Home and beats any saved list state from
+// an earlier round trip (§24, 2026-08-11) — mirrors WO List's own handling.
+let pendingSpyApplied = false;
 (function applyPendingSpy() {
   const pendingSpy = sessionStorage.getItem('eamPendingSpy');
   if (pendingSpy) sessionStorage.removeItem('eamPendingSpy');
-  if (pendingSpy && DS.some(d => d.id === pendingSpy)) curDS = pendingSpy;
+  if (pendingSpy && DS.some(d => d.id === pendingSpy)) {
+    curDS = pendingSpy; pendingSpyApplied = true; listStateTake(LIST_STATE_KEY_EQUIP);
+  }
   document.getElementById('dsName').textContent = DS.find(d => d.id === curDS).name;
 })();
 /* ══════════════════════════════════════════════════════════════════════
@@ -896,6 +947,10 @@ currentEntity = 'EQUIP';
 renderEntityFields(); // pre-render defaults so the sheet isn't empty the first time it opens
 
 refS1();
+// Last, and only here: restoreListState() reads SORT_FIELDS/CID/TEXT_CHIP_META,
+// all declared further up the file, and re-runs refS1/refS2 itself. Skipped
+// when a Home tile handed over a dataspy (see applyPendingSpy above).
+if (!pendingSpyApplied) restoreListState();
 initSharedApp({ contentSelector: '#listContent' });
 </script>
 </body>

@@ -688,6 +688,7 @@
 
 </div><!-- /app -->
 
+<script src="../../data/parts.js"></script>
 <script src="../../data/wo-19257.js"></script>
 <script src="../../data/wo-19831.js"></script>
 <script src="../../data/wo-20450.js"></script>
@@ -741,6 +742,60 @@ const STORES = {
 
 // Asset ID is inherited from the WO, not a per-part field — one source.
 const WO_CONTEXT = { assetId: '00067333' };
+
+/* ══ PART CATALOGUE (2026-08-11) ═══════════════════════════════════════════
+   `parts` above is this WO's own PLANNED lines. The Add Part search is a
+   different universe: the whole part master (data/parts.js, the real 112-row
+   customer export). It used to search the 4 planned rows, which made the
+   picker look like a stub — you could only "add" a part already on the WO.
+
+   A catalogue part picked for the first time gets minted into `parts` so the
+   rest of the flow (bin stock, qty, issue/return, Action Row) works on it
+   unchanged — no parallel code path for "catalogue part" vs. "planned part".
+
+   Stock figures are synthesized, not real: there is no per-store stock table
+   in this prototype (renderPartFields() already derives bin stock from a
+   part's own bin/avail). Synthesized values are HASHED FROM THE PART NUMBER
+   rather than random, so a part shows the same availability every time it's
+   opened — random values would visibly change under the technician between
+   renders, which reads as a bug. */
+const CATALOGUE_BINS = ['A1-001', 'A1-009', 'B2-033', 'C3-014', 'BULK-1'];
+function partNumHash(partNum) {
+  let h = 0;
+  for (const ch of String(partNum)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h;
+}
+function cataloguePartList() {
+  return (typeof EAM_PARTS !== 'undefined' ? EAM_PARTS : []);
+}
+function findPlannedIdByNum(partNum) {
+  return Object.keys(parts).find(id => parts[id].num === partNum) || null;
+}
+// Mints a working row for a catalogue part, or returns the existing planned
+// row's id if this WO already carries that part.
+let nextAdHocPartId = 1000;
+function ensurePartRow(partNum) {
+  const existing = findPlannedIdByNum(partNum);
+  if (existing) return existing;
+  const cat = cataloguePartList().find(p => p.partNum === partNum);
+  if (!cat) return null;
+  const h = partNumHash(partNum);
+  const id = String(++nextAdHocPartId);
+  parts[id] = {
+    num: cat.partNum,
+    desc: cat.desc,
+    qty: 1,                                  // ad hoc adds default to 1
+    uom: cat.uom || 'EA',
+    bin: CATALOGUE_BINS[h % CATALOGUE_BINS.length],
+    lot: '*',                                // catalogue adds carry no lot
+    avail: 4 + (h % 180),
+    activity: 10,
+    dept: 'WATER',
+    costCode: '100-100',
+    fromCatalogue: true,
+  };
+  return id;
+}
 
 const issued = {}; // partId -> { txnQty, mode }
 let currentPartId = null;
@@ -1051,8 +1106,9 @@ function renderAdHocSheet() {
            part") invokes the device camera/barcode scanner
            (invokeCameraScan()); the search bar below it is always visible
            and filters the same list live as typed — no "tap to reveal
-           search" gate (§17.9). Reuses the planned-parts catalog as the
-           searchable universe — no larger part catalog is modeled here. -->
+           search" gate (§17.9). Searches the real part master (data/parts.js,
+           112 rows) as of 2026-08-11 — it used to search only this WO's 4
+           planned lines, so you could only "add" a part already on the WO. -->
       <div class="part-search-block" onclick="invokeCameraScan()">
         <div class="part-search-icon">
           <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
@@ -1074,8 +1130,8 @@ function renderAdHocSheet() {
       <!-- Once a part is selected, the search block is replaced by the same
            purple part header used on the planned-parts sheet (§17.9). -->
       <div class="sheet-part-header">
-        <div class="sheet-part-num">${p.num}</div>
-        <div class="sheet-part-desc">${p.desc}</div>
+        <div class="sheet-part-num">${escHtml(p.num)}</div>
+        <div class="sheet-part-desc">${escHtml(p.desc)}</div>
       </div>
       ${renderPartFields(p, adHocSelectedPartId)}
     `;
@@ -1089,20 +1145,49 @@ function invokeCameraScan() {
   showToast('Opening camera scanner — coming soon');
 }
 
+/* Searches the whole part master (112 rows), not this WO's 4 planned lines.
+   Capped at 40 rendered rows: an unfiltered 112-row list inside a bottom
+   sheet is a wall of text, and the point of the search box is that you type.
+   The cap is reported rather than silent, so "my part isn't here" is
+   distinguishable from "keep typing". */
+const AD_HOC_RESULT_CAP = 40;
 function renderAdHocResults(query) {
   const q = query.trim().toLowerCase();
-  const results = Object.entries(parts).filter(([id, p]) =>
-    !q || p.num.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q));
-  document.getElementById('adHocResults').innerHTML = results.length ? results.map(([id, p]) => `
-    <div class="lov-option" onclick="selectAdHocPart(${id})">
+  const all = cataloguePartList().filter(p =>
+    !q || p.partNum.toLowerCase().includes(q) || (p.desc || '').toLowerCase().includes(q));
+  const shown = all.slice(0, AD_HOC_RESULT_CAP);
+  const el = document.getElementById('adHocResults');
+  if (!all.length) {
+    el.innerHTML = `<div style="padding:20px;text-align:center;color:var(--gray-4);font-size:13px;">No matching parts</div>`;
+    return;
+  }
+  el.innerHTML = shown.map(p => {
+    // Flag parts already planned on this WO — adding one again is legitimate
+    // (a second issue against the same line) but the technician should know.
+    const planned = !!findPlannedIdByNum(p.partNum);
+    return `
+    <div class="lov-option" onclick="selectAdHocPart('${p.partNum.replace(/'/g, "\\'")}')">
       <div class="lov-option-texts">
-        <div class="lov-option-desc">${p.desc}</div>
-        <div class="lov-option-code">${p.num}</div>
+        <div class="lov-option-desc">${escHtml(p.desc)}</div>
+        <div class="lov-option-code">${escHtml(p.partNum)}${p.class ? ' · ' + escHtml(p.class) : ''}${planned ? ' · already on this WO' : ''}</div>
       </div>
-    </div>`).join('') : `<div style="padding:20px;text-align:center;color:var(--gray-4);font-size:13px;">No matching parts</div>`;
+    </div>`;
+  }).join('')
+    + (all.length > shown.length
+      ? `<div style="padding:12px 16px;text-align:center;color:var(--gray-4);font-size:12px;">Showing ${shown.length} of ${all.length} — keep typing to narrow</div>`
+      : '');
+}
+// Descriptions come from a real customer export and contain " and ' (feet/inch
+// marks), so they must be escaped before going into markup.
+function escHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-function selectAdHocPart(id) {
+function selectAdHocPart(partNum) {
+  const id = ensurePartRow(partNum);
+  if (!id) { showToast('Part not found in the catalogue'); return; }
   adHocSelectedPartId = id;
   const p = parts[id];
   currentFieldValues = { bin: p.bin, lot: p.lot !== '*' ? p.lot : null };

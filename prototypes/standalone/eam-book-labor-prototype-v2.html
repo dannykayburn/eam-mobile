@@ -589,7 +589,7 @@
             </div>
             <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           </div>
-          <div class="form-field required" id="addDeptField" onclick="cycleDepartment()" style="cursor:pointer;" data-required="true" data-value="MAINT">
+          <div class="form-field required" id="addDeptField" data-field="department" onclick="openLov('department')" style="cursor:pointer;" data-required="true" data-value="MAINT">
             <span class="field-label">Department</span>
             <div class="field-lov-value">
               <span class="field-lov-code" id="addDeptCode">MAINT</span>
@@ -597,7 +597,7 @@
             </div>
             <svg class="field-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
-          <div class="form-field required" id="addTradeField" onclick="cycleTrade()" style="cursor:pointer;" data-required="true" data-value="TECH">
+          <div class="form-field required" id="addTradeField" data-field="trade" onclick="openLov('trade')" style="cursor:pointer;" data-required="true" data-value="TECH">
             <span class="field-label">Trade</span>
             <div class="field-lov-value">
               <span class="field-lov-code" id="addTradeCode">TECH</span>
@@ -934,7 +934,6 @@ function openAddLaborSheet(prefillCurrentUser) {
   crewCard.setAttribute('data-value', '');
   setPickerCardProtected(crewCard, false);
 
-  deptIdx = 0; tradeIdx = 0;
   applyDept(departments[0]);
   applyTrade(trades[0]);
 
@@ -1158,17 +1157,11 @@ function setPickerCardProtected(cardEl, isProtected) {
   cardEl.classList.toggle('protected', isProtected);
 }
 
-// Toggles the dimmed .protected look on an Employee/Crew Header Fields
-// cell (§18.7, 2026-07-21 — simplified from the old picker-card version,
-// which swapped a trailing chevron for a lock icon; plain .attr-item
-// cells have no chevron slot at all, so there's nothing to swap, just
-// the dimmed state itself).
-function setPickerCardProtected(cardEl, isProtected) {
-  cardEl.classList.toggle('protected', isProtected);
-}
-
-// Department/Trade — manually cycle-editable (demo LOV), overwritten
-// whenever Employee or Crew above is (re)picked.
+/* Department/Trade — real openLov() sheets as of 2026-08-11 (§18.4). They
+   were the last two fields on this screen still cycling to the next value on
+   tap, unlike Employee/Crew/Type of Hours beside them: tapping Department
+   silently changed it, which reads as the app mis-firing rather than as an
+   edit. Both are still overwritten whenever Employee or Crew is (re)picked. */
 const departments = [
   { code:'MAINT', desc:'Maintenance' },
   { code:'WATER', desc:'Water Utilities' },
@@ -1181,32 +1174,49 @@ const trades = [
   { code:'ELEC', desc:'Electrician' },
   { code:'INSP', desc:'Inspector' },
 ];
-let deptIdx = 0, tradeIdx = 0;
-function cycleDepartment() {
-  deptIdx = (deptIdx + 1) % departments.length;
-  applyDept(departments[deptIdx]);
+/* Registered here, not inside the LOV_DATA literal above — these two arrays
+   are declared below it, so referencing them up there would hit the const
+   temporal-dead-zone and throw at load, taking the whole screen's script with
+   it. Same reason LOV_ON_SELECT gains its entries by assignment. */
+LOV_DATA.department = departments.map(d => ({ code: d.code, desc: d.desc }));
+LOV_DATA.trade      = trades.map(t => ({ code: t.code, desc: t.desc }));
+LOV_CURRENT.department = 'MAINT';
+LOV_CURRENT.trade      = 'TECH';
+LOV_TITLES.department = 'Department';
+LOV_TITLES.trade      = 'Trade';
+FIELD_LABELS.department = 'Department';
+FIELD_LABELS.trade      = 'Trade';
+LOV_ON_SELECT.department = () => {
+  const d = departments.find(x => x.code === LOV_CURRENT.department);
+  if (d) applyDept(d);
   checkAddReady();
-}
-function cycleTrade() {
-  tradeIdx = (tradeIdx + 1) % trades.length;
-  applyTrade(trades[tradeIdx]);
+};
+LOV_ON_SELECT.trade = () => {
+  const t = trades.find(x => x.code === LOV_CURRENT.trade);
+  if (t) applyTrade(t);
   checkAddReady();
-}
+};
+/* Both also write LOV_CURRENT, so the sheet shows the right option pre-checked
+   next time it opens. Employee/Crew selection calls these directly (not through
+   the LOV), which is exactly the path that would otherwise leave LOV_CURRENT
+   stale against what's on screen. */
 function applyDept(d) {
   document.getElementById('addDeptValue').textContent = d.desc;
   document.getElementById('addDeptCode').textContent = d.code;
   document.getElementById('addDeptField').setAttribute('data-value', d.code);
+  LOV_CURRENT.department = d.code;
 }
 function applyTrade(t) {
   document.getElementById('addTradeValue').textContent = t.desc;
   document.getElementById('addTradeCode').textContent = t.code;
   document.getElementById('addTradeField').setAttribute('data-value', t.code);
+  LOV_CURRENT.trade = t.code;
 }
 function applyDerivedDeptTrade(deptCode, tradeCode) {
   const d = departments.find(x => x.code === deptCode);
   const t = trades.find(x => x.code === tradeCode);
-  if (d) { deptIdx = departments.indexOf(d); applyDept(d); }
-  if (t) { tradeIdx = trades.indexOf(t); applyTrade(t); }
+  if (d) applyDept(d);
+  if (t) applyTrade(t);
 }
 
 // ── HOURS RECALC ──────────────────────────────────────────────────────────
