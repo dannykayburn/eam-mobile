@@ -15,33 +15,52 @@ from the user testing on their own phone — so say plainly what you verified
 and what still needs their eyes, and never imply a screen was seen running
 when it wasn't.
 
-## 1. Parse every page the way the browser loads it
+## 0. Run these two scripts. Both are committed — do not re-implement them.
 
-Catches syntax errors AND cross-file redeclarations — separate `<script>`
-tags share one global lexical scope, so a screen declaring `let currentTab`
-when `eam-shared.js` already does is a `SyntaxError` that kills the whole
-screen. This has happened for real.
-
-Extract each page's scripts in document order (external `src` first, then
-inline), concatenate, and `node --check`:
-
-```js
-// scratchpad/extract.js — page path in argv[2], output in argv[3]
-const fs = require('fs'), path = require('path');
-const html = fs.readFileSync(process.argv[2], 'utf8');
-const inline = [...html.matchAll(/<script(?![^>]*\ssrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
-const srcs = [...html.matchAll(/<script[^>]*\ssrc="([^"]+)"[^>]*>/g)].map(m => m[1]);
-const base = path.dirname(process.argv[2]);
-let out = '';
-for (const s of srcs) out += '\n' + fs.readFileSync(path.join(base, s), 'utf8');
-fs.writeFileSync(process.argv[3], out + '\n' + inline.join('\n'));
+```bash
+node .claude/skills/verify/scripts/check-scope.js prototypes/standalone/eam-*.html && node .claude/skills/verify/scripts/run-load.js
 ```
 
-Run it across `prototypes/standalone/*.html` after touching a shared file —
-a shared-file change can break any consumer, so check them all, not just
-the screen you edited.
+**This is step 0 because skipping it shipped a dead app on 2026-08-11.** The
+recipe below used to be prose, a past session re-implemented it as a weaker
+per-`<script>`-block check, that check passed, and every search screen went
+DOA on device. Run the scripts; don't rewrite them from the description.
 
-## 2. Execute the real functions with a DOM shim
+- **`check-scope.js`** — compiles `eam-shared.js` + a page's inline scripts as
+  **one** top-level scope, which is what the browser actually does for classic
+  `<script>` tags, and separately reports lexical name clashes against shared.
+  Checking each block in isolation **cannot** see these and will pass.
+- **`run-load.js`** — actually *executes* each screen's full load path
+  (`data/*.js` → `eam-shared.js` → inline) against a DOM shim, in several
+  seeded states (cold, restored list state, Home hand-off, routed-in record,
+  checklist fan-out). Compiling only catches redeclarations; **executing** is
+  what catches temporal-dead-zone errors and anything thrown during init.
+
+### The failure mode these exist to catch
+
+A duplicate top-level `const`/`let` between a screen and `eam-shared.js` is a
+`SyntaxError` that kills **the entire inline script** of that screen. What that
+looks like on a device is deceptive, because `eam-shared.js` itself still ran:
+
+- counters frozen at whatever their **static markup** said (e.g. "8 work
+  orders" on a 3-record dataspy) — the giveaway, and the fastest way to
+  recognise this class of bug
+- no records rendered
+- every screen-local button dead, while shared-owned chrome still works
+- **Insert Mode opens but Save does nothing** — `openCreateSheet()` is shared,
+  but `saveInsertRecord()` reads the screen's own `LOV_DATA`/`LOV_CURRENT`/
+  `RECORD`, which were never declared
+
+**Rule that follows:** prefix any new shared module-level variable with its
+component (`sortSheetDir`, not `sortDir`). The 2026-08-11 break was shared's
+sort sheet declaring a bare `sortDir` that both list screens already had.
+Function declarations are safe to share a name (they just reassign); `const`,
+`let` and `class` are not.
+
+Run both across **every** screen after touching a shared file, not just the
+screen you edited — a shared change can break any consumer.
+
+## 2. Targeted assertions on real functions (beyond run-load.js)
 
 Concatenate `eam-shared.js` + assertions into one file and run it under
 Node. Everything shares one scope this way, so `let`-declared shared state

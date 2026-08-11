@@ -780,8 +780,18 @@ function applyDateRange() {
   if (dateRangeOnApply) dateRangeOnApply(from, to);
 }
 
-/* ── Sort ── */
-let sortOnApply = null, sortFields = [], sortKey = '', sortDir = 'asc';
+/* ── Sort ──
+   `sortSheet*` prefixes are load-bearing, not decoration. These are this
+   sheet's own internal state, and a classic <script> tag shares ONE top-level
+   scope with every consuming screen's inline script — so a bare `sortDir` here
+   collided with the `sortDir` both list screens already had, and a duplicate
+   `let` is a SyntaxError that kills the ENTIRE inline script of any screen that
+   loads this file. Symptom (found on device 2026-08-11): counters frozen at
+   their static markup values, every screen-local button dead, and Insert Mode
+   opening but its Save doing nothing — because shared still ran while the
+   screen's own globals never got declared. Prefix any new shared module-level
+   variable; don't reuse a name a screen might plausibly want. */
+let sortSheetOnApply = null, sortSheetFields = [], sortSheetKey = '', sortSheetDir = 'asc';
 function openSortSheet(opts) {
   ensureSharedSheet('sortSheet', `
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
@@ -796,27 +806,29 @@ function openSortSheet(opts) {
     </div>
     <div class="sheet-body" id="sortList"></div>
     <div class="sheet-footer"><button class="btn-contained" onclick="applySort()">Apply</button></div>`);
-  sortOnApply = opts.onApply || null;
-  sortFields = opts.fields || [];
-  sortKey = opts.key || (sortFields[0] && sortFields[0].key) || '';
-  sortDir = opts.dir || 'asc';
+  sortSheetOnApply = opts.onApply || null;
+  sortSheetFields = opts.fields || [];
+  sortSheetKey = opts.key || (sortSheetFields[0] && sortSheetFields[0].key) || '';
+  sortSheetDir = opts.dir || 'asc';
   renderSortSheet();
   openSheet('sortSheet');
 }
-function setSortDir(d) { sortDir = d; renderSortSheet(); }
-function pickSortKey(k) { sortKey = k; renderSortSheet(); }
+// Names kept as-is: these two are referenced by onclick attributes in the
+// markup above, so they're this component's public surface, not internals.
+function setSortDir(d) { sortSheetDir = d; renderSortSheet(); }
+function pickSortKey(k) { sortSheetKey = k; renderSortSheet(); }
 function renderSortSheet() {
-  document.getElementById('sortAsc').classList.toggle('active', sortDir === 'asc');
-  document.getElementById('sortDesc').classList.toggle('active', sortDir === 'desc');
-  document.getElementById('sortList').innerHTML = sortFields.map(f => `
+  document.getElementById('sortAsc').classList.toggle('active', sortSheetDir === 'asc');
+  document.getElementById('sortDesc').classList.toggle('active', sortSheetDir === 'desc');
+  document.getElementById('sortList').innerHTML = sortSheetFields.map(f => `
     <div class="lov-option" onclick="pickSortKey('${f.key}')">
       <div class="lov-option-texts"><div class="lov-option-desc">${f.label}</div></div>
-      <div class="lov-check${sortKey === f.key ? ' checked' : ''}"></div>
+      <div class="lov-check${sortSheetKey === f.key ? ' checked' : ''}"></div>
     </div>`).join('');
 }
 function applySort() {
   closeAllSheets();
-  if (sortOnApply) sortOnApply(sortKey, sortDir);
+  if (sortSheetOnApply) sortSheetOnApply(sortSheetKey, sortSheetDir);
 }
 
 /* ══════════════════════════════════════════════════════════════════════
