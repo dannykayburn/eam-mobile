@@ -123,5 +123,32 @@ for (const [screen, label] of [['eam-wo-record-view-prototype-v1.html','WO'],['e
   })()`) === true);
 }
 
-console.log(fail ? '\n' + fail + ' FAILED' : '\nfull insert round trip + description editing verified');
+
+/* ── Demo-WO content sync (regression, 2026-08-11) ──
+   Each demo WO must show ITS OWN equipment. WO 20450 ("Replace batteries in
+   lobby TV remote") showed a Centrifugal Pump because RECORD.equipment was a
+   hardcoded literal and nothing read the WO's own equipmentAssetId. */
+console.log('\nEach demo WO shows its own equipment');
+const EXPECTED = { '19257': '00067333', '19831': '00067333', '20450': 'BLDG-A' };
+for (const [wo, code] of Object.entries(EXPECTED)) {
+  const c = runScreen('eam-wo-record-view-prototype-v1.html', { eamOpenDemoWo: wo });
+  ok('  WO ' + wo + ' → ' + code, t(c, 'RECORD.equipment.code') === code, t(c, 'RECORD.equipment.code'));
+}
+{
+  const c = runScreen('eam-wo-record-view-prototype-v1.html', { eamOpenDemoWo: '20450' });
+  ok('  the facility WO has no photo (empty slot state)', t(c, '!RECORD.equipment.photoUrl') === true);
+  ok('  BLDG-A is pickable in the Equipment lookup',
+     t(c, 'EQUIPMENT_LOOKUP_DATA.some(function(o){return o.code==="BLDG-A"})') === true);
+}
+{
+  // A MEC child keeps the equipment it was minted for, not its parent's.
+  const c = runScreen('eam-wo-record-view-prototype-v1.html', {
+    eamOpenDemoWo: '19257',
+    eamWoIdentity: JSON.stringify({ number:'20451', desc:'Route — P-1042', parentWo:'19257', equipment:'P-1042', equipDesc:'Pump A' }),
+  });
+  ok('  MEC child keeps its own equipment', t(c, 'RECORD.equipment.code') === 'P-1042', t(c, 'RECORD.equipment.code'));
+  ok('  MEC child shows its own number', t(c, 'document.getElementById("recNum").textContent') === '20451');
+}
+
+console.log(fail ? '\n' + fail + ' FAILED (incl. demo-WO equipment sync)' : '\ndemo-WO equipment sync verified too');
 process.exit(fail ? 1 : 0);

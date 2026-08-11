@@ -2741,6 +2741,14 @@ const EQUIPMENT_LOOKUP_DATA = [
   { code: 'P-004-00167063', desc: 'Pump House 3 — Bay 4', class: null, category: null, type: 'Position', organization: 'FBPP' },
   { code: '00070102', desc: 'Compressor, Rotary Screw', class: 'Compressor', category: 'Rotary Screw', type: 'Asset', organization: 'FBPP' },
   { code: '00071358', desc: 'Blower, Centrifugal', class: 'Blower', category: 'Centrifugal', type: 'Asset', organization: 'FBPP' },
+  /* BLDG-A added 2026-08-11 (same device report as the WO 20450 equipment bug).
+     It's WO 20450's own equipment (data/wo-20450.js's equipmentAssetId) and it
+     already exists in data/equipment.js, but it was missing from this lookup —
+     so the one demo WO whose equipment is a facility rather than an asset
+     couldn't have that equipment picked or re-picked here at all. Also the only
+     non-Asset, non-Position row in the list, which is the point: a technician
+     should see that Equipment isn't always a machine. */
+  { code: 'BLDG-A', desc: 'Building A — Main Lobby', class: 'Facility', category: 'Building', type: 'Asset', organization: 'FBPP' },
 ];
 const TREE_DATA = {
   id: 'loc1', type: 'Location', desc: 'Belmont Wastewater Treatment Plant', code: 'L-BELMONT-WWTP', class: null, category: null,

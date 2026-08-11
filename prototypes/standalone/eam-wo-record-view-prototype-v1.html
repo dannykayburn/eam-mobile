@@ -760,6 +760,9 @@
 </div>
 
 <script src="../../data/custom_field_defs.js"></script>
+<!-- Needed so the header Equipment field can resolve each demo WO's own
+     equipmentAssetId to a real record (applyDemoWoEquipment below). -->
+<script src="../../data/equipment.js"></script>
 <script src="../../data/wo-19257.js"></script>
 <script src="../../data/wo-19831.js"></script>
 <script src="../../data/wo-20450.js"></script>
@@ -1764,6 +1767,40 @@ function applyDemoWoType() {
   if (descEl) descEl.textContent = t.desc;
 }
 let CURRENT_WORKFLOW = null;
+/* Equipment follows the demo WO (bug fix 2026-08-11, device report). Every demo
+   WO's data file already declares its own `equipmentAssetId` — 19257/19831 →
+   00067333, 20450 → BLDG-A — but this screen never read it, so RECORD.equipment
+   stayed the hardcoded pump on all three. WO 20450 ("Replace batteries in lobby
+   TV remote") therefore showed a Centrifugal Pump as its equipment, which is
+   what got reported.
+
+   Screen-local for the same reason applyDemoWoType() is: the shared
+   applyDemoWoIdentity() deliberately syncs only the WO number/description and
+   leaves deeper content alone, and widening it would touch every consumer. This
+   is the narrow, high-visibility part of that gap — the header field a
+   technician reads first — not the whole "swap all content per WO" job. */
+function applyDemoWoEquipment() {
+  // A minted MEC child (§16.10) has its own equipment set from the identity
+  // override in syncRouteFromStore(); don't overwrite it with the parent's.
+  if (typeof woIdentity === 'function' && woIdentity()) return;
+  const rec = demoWoRecord();
+  const assetId = rec && rec.equipmentAssetId;
+  if (!assetId) return;
+  const eq = (typeof EAM_EQUIPMENT !== 'undefined' && EAM_EQUIPMENT[assetId]) || null;
+  if (!eq) return;
+  RECORD.equipment = {
+    code: eq.assetId,
+    desc: eq.desc,
+    class: eq.class || '',
+    category: eq.category || '',
+    type: 'Asset',
+    // Only the pump has a demo photo; a facility record legitimately has none,
+    // which also exercises the empty photo-slot state.
+    photoUrl: assetId === '00067333' ? EQUIP_PHOTO_DEMO_URL : '',
+  };
+  const mount = document.getElementById('equipCardMount');
+  if (mount) mount.innerHTML = renderEquipCard();
+}
 function onDemoWoChanged() {
   const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
   CURRENT_WORKFLOW = resolveWoWorkflow(jobType);
@@ -1771,7 +1808,7 @@ function onDemoWoChanged() {
   // navigateToNewRecord() hand-off) already has its own real number/
   // description/type painted above — the demo-WO identity swap must
   // never stomp on that with one of the 3 canned demo WOs' values.
-  if (!NEW_RECORD) { applyDemoWoIdentity(); applyDemoWoType(); }
+  if (!NEW_RECORD) { applyDemoWoIdentity(); applyDemoWoType(); applyDemoWoEquipment(); }
   const rail = document.getElementById('stepRail');
   const bar = document.getElementById('bottomBar');
   if (rail) rail.style.display = '';
