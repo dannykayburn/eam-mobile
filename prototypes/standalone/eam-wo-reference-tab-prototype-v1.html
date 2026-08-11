@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="format-detection" content="telephone=no">
+<title>HxGN EAM Mobile — Work Order › Comments &amp; Documents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-shared.css">
+<!--
+  WORK ORDER › COMMENTS & DOCUMENTS TAB (§7.2, built 2026-08-11)
+
+  The destination for the new "top 3 + View more" rule (direct instruction):
+  WO Record View shows the latest 3 of each section, and View more lands here
+  with everything, newest first.
+
+  ONE screen carrying BOTH tabs, not two near-identical files — mirrors how
+  Equipment Record View holds Comments and Documents as two tabs inside one
+  file. `eamReferenceTab` (consume-once, sessionStorage) picks the landing tab.
+
+  Second real §8 child-tab screen after eam-wo-equipment-tab-prototype-v1.html
+  and copied from it, per CLAUDE.md's "copy it for the next child tab". Same
+  shape as that file:
+    - §8.1 protected identity header (ldNum/ldDesc), NOT a Record View header
+    - carries the WO step rail with activeRef set, because like the Equipment
+      tab it has no bottom bar — the rail is the only way back
+    - `active` on #listDetailHeader is REQUIRED in markup: eam-shared.css
+      hides #listDetailHeader by default and only .active shows it. This
+      screen never calls goToTab() on it, so without `active` the entire
+      header renders invisibly (§16.10 records this same trap).
+    - #toast/#toastMsg must exist or every showToast() is a silent no-op.
+
+  All the rendering is shared (renderCommentsTabContent /
+  renderDocumentsTabContent in eam-shared.js) — this file is chrome, config,
+  and the WO's own Comments/Documents data. Documents group by source
+  hierarchy with empty levels omitted; the preview slot degrades to a file-type
+  badge, which is the normal case offline and for non-previewable types.
+-->
+<style>
+/* Local tab switcher — two tabs is too few for the shared tab rail's
+   collapsed-pill + expanded-map paradigm (that exists to make 8 tabs
+   navigable). A plain segmented control is the honest control for a binary
+   choice, and it reuses the shared .mode-tog/.mode-btn pair rather than
+   inventing a third toggle style. */
+.ref-tog { margin: 10px 12px 2px; }
+</style>
+</head>
+<body>
+
+<div class="proto-theme-bar">
+  <span class="proto-theme-label">Preview theme</span>
+  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+  <button class="theme-toggle" id="onlineToggle" onclick="toggleDemoOnline()">🌐 Offline</button>
+</div>
+
+<div class="app" id="app">
+
+  <header class="nav" onclick="scrollFormToTop()">
+    <div class="nav-left">
+      <!-- §24: back returns to whichever step the WO was on, carrying the WO
+           identity forward — same consume-once hand-off as every other jump. -->
+      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation(); goToWoStep(ORIGIN_STEP)">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="prototype-label">PROTOTYPE</span>
+    </div>
+    <div class="nav-title" id="navTitle">Comments</div>
+    <div class="nav-actions">
+      <span id="syncCtrl"></span>
+    </div>
+  </header>
+
+  <!-- §8.1 protected identity. `active` is required — see the file header. -->
+  <div class="rec-header active" id="listDetailHeader" onclick="scrollFormToTop()">
+    <div class="rec-id-row">
+      <div class="rec-id-text">
+        <span class="rec-num" id="ldNum">19257</span>
+        <span class="rec-desc protected" id="ldDesc">Pump Cavitating; lost head</span>
+      </div>
+      <div class="rec-header-actions">
+        <!-- Plus = insert for whichever tab is showing (§8): a comment, or a
+             document upload. One button, tab-aware, rather than two. -->
+        <button class="rec-ellipsis-btn" onclick="event.stopPropagation(); onRefPlusTap()" aria-label="Add">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button class="rec-ellipsis-btn" onclick="event.stopPropagation(); toggleListDetailMenu()" aria-label="More actions">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+        </button>
+        <!-- Header actions per §8.4 — these open popups, so the ellipsis is
+             where they belong, tab or not. -->
+        <div class="rec-actions-menu" id="listDetailMenu">
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="closeListDetailMenu(); onRefPlusTap()">Add <span id="menuAddLabel">comment</span></div>
+            <div class="rec-actions-item" onclick="closeListDetailMenu(); showToast('Upload Multiple Documents — coming soon')">Upload Multiple Documents</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="closeListDetailMenu(); expandAllDocGroups(true)">Expand all</div>
+            <div class="rec-actions-item" onclick="closeListDetailMenu(); expandAllDocGroups(false)">Collapse all</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WO STEP RAIL (§14.2) — same reasoning as the Equipment tab: no bottom
+       bar here, so the rail is the only way back. activeRef highlights the
+       Reference row this screen was reached from. -->
+  <div class="step-rail" id="stepRail">
+    <div class="step-rail-collapsed">
+      <div class="step-name">Comments</div>
+      <div class="step-rail-right">
+        <svg class="step-chevron" id="stepChevron" width="16" height="16" fill="none" viewBox="0 0 24 24">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+    <div class="step-segments"></div>
+    <div class="step-map" id="stepMap"></div>
+  </div>
+
+  <div class="mode-tog ref-tog">
+    <button class="mode-btn active" id="refBtnComments" onclick="setRefTab('comments')">Comments</button>
+    <button class="mode-btn" id="refBtnDocuments" onclick="setRefTab('documents')">Documents</button>
+  </div>
+
+  <div class="content">
+    <div class="tab-content active" data-tab="reference" id="refBody"></div>
+  </div>
+
+  <!-- ── SHEETS (shared shells — behavior in eam-shared.js) ── -->
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <div class="bottom-sheet" id="syncPanelSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Sync Status</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sync-panel-state" id="syncPanelStateLabel"></div>
+    <div class="sheet-body" id="syncPanelList"></div>
+    <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
+  </div>
+
+  <!-- Comment action sheet — openCommentActions() fills the body; Edit +
+       Delete on the technician's own comments, Copy on everyone's. -->
+  <div class="bottom-sheet" id="commentActionsSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Comment</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sheet-body" id="commentActionsBody"></div>
+  </div>
+
+  <!-- Long-text editor — Add/Edit comment both use it (§3.4). Markup copied
+       verbatim from Equipment Record View: the discard-guard ids
+       (textEditorDiscard / textEditorCloseTap / textEditorInputChanged) are
+       required by the shared implementation, not optional decoration. -->
+  <div class="bottom-sheet text-editor-sheet" id="textEditorSheet">
+    <div class="text-editor-header">
+      <div class="text-editor-left">
+        <button class="text-editor-close" id="textEditorCloseBtn" onclick="textEditorCloseTap()">✕</button>
+        <button class="text-editor-discard" id="textEditorDiscard" onclick="textEditorConfirmDiscard()">Discard unsaved changes</button>
+      </div>
+      <div class="text-editor-title" id="textEditorTitle">Edit</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="text-editor-body"><textarea class="text-editor-textarea" id="textEditorTextarea" oninput="textEditorInputChanged()" placeholder="Type here…"></textarea></div>
+    <div class="sheet-footer"><button class="btn-save" onclick="saveTextEditor()">Save</button></div>
+  </div>
+
+  <!-- openConfirm()'s shell — required by comment Delete, and it wants these
+       exact ids (NOT a .bottom-sheet). -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-modal">
+      <div class="confirm-message" id="confirmMessage">Are you sure?</div>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="confirm-btn confirm-danger" id="confirmDangerBtn" onclick="confirmDangerAction()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Required, or every showToast() on this screen is a silent no-op. -->
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+</div>
+
+<script src="../../data/wo-19257.js"></script>
+<script src="../../data/wo-19831.js"></script>
+<script src="../../data/wo-20450.js"></script>
+<!-- Needed by resolveWoWorkflow() for the step rail, same set every WO
+     workflow screen loads. -->
+<script src="../../data/wotype.js"></script>
+<script src="../../data/wo-workflow.js"></script>
+<script src="../../data/wo-workflow-steps.js"></script>
+<script src="shared/eam-shared.js"></script>
+<script>
+/* ══ PARENT WO IDENTITY ══════════════════════════════════════════════════
+   Same 3 demo identities every WO workflow screen carries. */
+const WO_META = {
+  '19257': { desc: 'Pump Cavitating; lost head' },
+  '19831': { desc: 'General inspection request' },
+  '20450': { desc: 'Replace batteries in lobby TV remote' },
+};
+
+/* ══ COMMENTS (§7.2) ═════════════════════════════════════════════════════
+   Same array shape WO Record View uses — insertion order (oldest first);
+   every render sorts newest-first via commentsNewestFirst(). Kept in step
+   with WO Record View's own seed data on purpose: this screen is the "view
+   more" of that one, so the first 3 here must be the 3 shown there. */
+const CURRENT_USER_NAME = 'Bruce Campbell';
+let commentIdSeq = 5;
+let COMMENTS_DATA = [
+  { id: 'c1', mine: false, author: 'Danny Kilburn',  time: 'Nov 7 · 11:28',  text: 'Pump reported by ops crew during morning rounds. Confirmed cavitation noise from bearing end.' },
+  { id: 'c2', mine: false, author: 'Meera Kumar',    time: 'Nov 7 · 13:45',  text: 'Sourced replacement bearing from IND-MAIN store. Parts staged at Mech B.' },
+  { id: 'c3', mine: false, author: 'Jamie Martinez', time: 'Jan 15 · 07:14', text: 'On site. Proceeding with LOTO before disassembly.' },
+  { id: 'c4', mine: true,  author: 'Bruce Campbell', time: 'Jan 15 · 09:02', text: 'Bearing housing opened. Surface corrosion near the seal groove, photographed before removal.' },
+  { id: 'c5', mine: false, author: 'Meera Kumar',    time: 'Jan 15 · 11:40', text: 'Vibration reading back within tolerance after the swap. Recommend a follow-up at the next PM.' },
+];
+const COMMENTS_TAB_KEY = null;   // this screen IS the tab — no View more from here
+
+/* ══ DOCUMENTS (§7.2) ════════════════════════════════════════════════════
+   `source` {level, code} drives the hierarchy grouping; `updated` drives the
+   newest-first sort within each group. Levels with no documents render NO
+   group at all — Project/Department/PM Schedule are deliberately absent here
+   so that rule is visible rather than theoretical.
+   Only the photo carries a thumbUrl: PDFs are exactly the case where S3
+   previews are unreliable, so the fixed slot's degraded (type-badge) state is
+   the one this data mostly exercises. */
+const DOCUMENTS_DATA = [
+  { icon: 'pdf', name: 'Pump_Assembly_PMP3042_Rev4.pdf', meta: 'PDF · 2.4 MB · Nov 2024', updated: '2024-11-02', source: { level: 'equipment', code: '00067333' } },
+  { icon: 'pdf', name: 'LOTO_Procedure_WWTP_Rev2.pdf',   meta: 'PDF · 890 KB · Mar 2024', updated: '2024-03-11', source: { level: 'wo', code: '19257' } },
+  { icon: 'img', name: 'Site_Photo_20251107.jpg',        meta: 'JPG · 1.1 MB · Nov 2025', updated: '2025-11-07', source: { level: 'wo', code: '19257' }, thumbUrl: EQUIP_PHOTO_DEMO_URL },
+  { icon: 'pdf', name: 'Bearing_6205-2RS_Spec.pdf',      meta: 'PDF · 340 KB · Jan 2023', updated: '2023-01-19', source: { level: 'equipment', code: '00067333' } },
+  { icon: 'pdf', name: 'Calibration_Cert_2025.pdf',      meta: 'PDF · 180 KB · Oct 2025', updated: '2025-10-04', source: { level: 'parentWo', code: '19244' } },
+  { icon: 'pdf', name: 'Pump_House_Access_Permit.pdf',   meta: 'PDF · 96 KB · Aug 2025',  updated: '2025-08-01', source: { level: 'location', code: 'PUMP-HOUSE-3' } },
+];
+const DOC_ICON_SVG = {
+  pdf: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+  img: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
+};
+const DOCUMENTS_OWN_LEVEL = 'wo';
+
+/* ══ TAB SWITCHING ═══════════════════════════════════════════════════════
+   Local, not the shared goToTab(): that drives the tab RAIL's collapsed-pill/
+   expanded-map paradigm and the #recHeader↔#listDetailHeader swap, neither of
+   which applies to a 2-tab segmented control on a screen whose header never
+   changes. Keeping it local avoids fighting the shared one. */
+let refTab = 'comments';
+function setRefTab(which) {
+  refTab = which;
+  document.getElementById('refBtnComments').classList.toggle('active', which === 'comments');
+  document.getElementById('refBtnDocuments').classList.toggle('active', which === 'documents');
+  const label = which === 'comments' ? 'Comments' : 'Documents';
+  document.getElementById('navTitle').textContent = label;
+  document.querySelector('.step-rail .step-name').textContent = label;
+  document.getElementById('menuAddLabel').textContent = which === 'comments' ? 'comment' : 'document';
+  renderRefBody();
+  // Re-render the rail so its Reference-group highlight follows the tab.
+  renderRail(which);
+}
+function renderRefBody() {
+  document.getElementById('refBody').innerHTML =
+    refTab === 'comments' ? renderCommentsTabContent() : renderDocumentsTabContent();
+}
+function onRefPlusTap() {
+  if (refTab === 'comments') openTextEditor('__comment', 'Add Comment', (t) => addCommentToData(t));
+  else showToast('Attach document — coming soon');
+}
+function expandAllDocGroups(open) {
+  if (refTab !== 'documents') { showToast('Switch to Documents first'); return; }
+  document.querySelectorAll('.doc-group').forEach(g => g.classList.toggle('open', open));
+}
+/* refreshAllCommentViews() (eam-shared.js) re-renders whichever view is live.
+   It checks `currentTab === COMMENTS_TAB_KEY`, which is null here, so it would
+   otherwise never repaint this screen after Add/Edit/Delete — hence the
+   explicit local re-render. `currentTab` is assigned, never re-declared: a
+   second `let` would be a redeclaration SyntaxError against the shared one. */
+currentTab = 'reference';
+const _sharedRefresh = refreshAllCommentViews;
+refreshAllCommentViews = function () { _sharedRefresh(); renderRefBody(); };
+
+/* ══ INIT ════════════════════════════════════════════════════════════════ */
+const OPEN_DEMO_WO = sessionStorage.getItem('eamOpenDemoWo');
+if (OPEN_DEMO_WO) { sessionStorage.removeItem('eamOpenDemoWo'); DEMO_WO = OPEN_DEMO_WO; }
+
+// Which tab to land on, consume-once. Defaults to Comments if opened directly.
+const LANDING_TAB = sessionStorage.getItem('eamReferenceTab') || 'comments';
+sessionStorage.removeItem('eamReferenceTab');
+
+// A minted MEC child WO (§16.10) shows its own identity, same as every other
+// workflow screen — this header is ldNum/ldDesc, which applyDemoWoIdentity()
+// doesn't paint, so it's applied by hand exactly as the Equipment tab does.
+const CHILD_IDENTITY = woIdentity();
+const PARENT_WO = WO_META[DEMO_WO] || WO_META['19257'];
+document.getElementById('ldNum').textContent = CHILD_IDENTITY ? CHILD_IDENTITY.number : DEMO_WO;
+document.getElementById('ldDesc').textContent = CHILD_IDENTITY ? CHILD_IDENTITY.desc : PARENT_WO.desc;
+
+/* Step rail, rendered exactly as the screen we came from would have, with the
+   highlight moved to the Reference group's own row. ORIGIN_STEP survives a
+   reload (sessionStorage, not consumed) so a refresh doesn't guess. */
+const ORIGIN_STEP = sessionStorage.getItem('eamEquipTabOrigin') || 'record';
+const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
+const workflow = resolveWoWorkflow(jobType);
+function renderRail(activeRef) {
+  if (workflow.configured) renderStepRail(workflow, ORIGIN_STEP, jobType, activeRef);
+  else renderFlatStepRail(ORIGIN_STEP, jobType, activeRef);
+}
+
+setRefTab(LANDING_TAB);
+initDemoOnlineToggle();
+initSharedApp({ contentSelector: '.content' });
+</script>
+</body>
+</html>

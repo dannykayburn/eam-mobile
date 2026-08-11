@@ -427,11 +427,11 @@ function stepMapReferenceGroupHtml(activeRef) {
   const lblCls = (k) => 'step-map-label' + (activeRef === k ? ' active-label' : '');
   return `
   <div class="step-map-group-label">Reference</div>
-  <div class="${rowCls('comments')}" onclick="jumpToRvSection('comments')">
+  <div class="${rowCls('comments')}" onclick="goToWoReferenceTab('comments')">
     <span class="step-map-ref-icon"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></span>
     <span class="${lblCls('comments')}">Comments</span>
   </div>
-  <div class="${rowCls('documents')}" onclick="jumpToRvSection('documents')">
+  <div class="${rowCls('documents')}" onclick="goToWoReferenceTab('documents')">
     <span class="step-map-ref-icon"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg></span>
     <span class="${lblCls('documents')}">Documents</span>
   </div>
@@ -456,6 +456,14 @@ function collapseCurrentRail() {
 // to WO Record View (the only screen that ever renders these) via a
 // consume-once flag, same pattern as eamSyncReturnUrl/
 // eamArrivedViaNextStep elsewhere in this app — see consumeJumpToSection().
+//
+// ⚠ CURRENTLY UNREFERENCED (2026-08-11). The step rail's Reference group was
+// this function's only caller; those two rows now navigate to the real
+// Comments/Documents tab instead (goToWoReferenceTab, §7.2). Kept, not
+// deleted, because the "scroll to a section on this screen, or hand off and
+// scroll after load" mechanism is genuinely reusable and consumeJumpToSection()
+// is still wired up on WO Record View — but nothing calls either today, so
+// don't read its existence as evidence the jump-to-section flow is live.
 function jumpToRvSection(key) {
   const el = document.getElementById('rv-' + key);
   if (el) {
@@ -487,6 +495,21 @@ function goToWoEquipmentTab(fromStep) {
   location.href = WO_EQUIPMENT_TAB_FILE;
 }
 function jumpToEquipmentStub() { goToWoEquipmentTab(); }
+
+/* The WO's Comments/Documents tabs (§7.2, built 2026-08-11) — one screen
+   carrying both, mirroring how Equipment Record View holds them as two tabs in
+   one file rather than two near-identical standalone files. Same child-tab
+   shape as the Equipment tab above. `which` picks the landing tab.
+   Supersedes jumpToRvSection() for these two rows: the step rail's Reference
+   group used to scroll to Record View's inline section, which was the right
+   answer only while there was nowhere else to go. */
+const WO_REFERENCE_TAB_FILE = 'eam-wo-reference-tab-prototype-v1.html';
+function goToWoReferenceTab(which, fromStep) {
+  sessionStorage.setItem('eamReferenceTab', which);
+  sessionStorage.setItem('eamOpenDemoWo', DEMO_WO);
+  sessionStorage.setItem('eamEquipTabOrigin', fromStep || woCurrentStep || 'record');
+  location.href = WO_REFERENCE_TAB_FILE;
+}
 
 /* ══════════════════════════════════════════════════════════════════════
    WO EQUIPMENT STORE (§16.9/§16.10) — locked 2026-08-10, direct instruction.
@@ -611,6 +634,44 @@ function woEquipPillLabel(wo) {
   if (!st.rows.length) return null;
   return st.route ? `Route: ${st.route.code} - ${st.route.desc}` : 'Multiple Equipment';
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   LIST SCREEN STATE — dataspy / filters / sort / mode (§24, 2026-08-11)
+
+   §24 requires a Record View's back button to return to the entity's Search
+   List "maintaining the user's dataspy and persisting any filters." The
+   navigation target was already right; nothing carried the state, so a
+   technician who filtered, opened a record and came back landed on a reset
+   list. That got a lot more noticeable once all six filter chips and Sort
+   became real (§8.3) — there's simply more to lose now.
+
+   sessionStorage, not localStorage, and deliberately: a filter set is
+   working context for the current sitting, not a saved preference like a
+   favourited dataspy. Closing the app should drop it. Also cleared by
+   resetDemoState() so a demo restart is genuinely clean.
+
+   The screen owns the shape of its own state object — this only stores and
+   returns it. Each consumer saves right before it navigates away and
+   restores on load.
+   ══════════════════════════════════════════════════════════════════════ */
+const LIST_STATE_KEY = 'eamListState';
+function listStateAll() {
+  try { return JSON.parse(sessionStorage.getItem(LIST_STATE_KEY)) || {}; } catch (e) { return {}; }
+}
+function listStateSave(screenKey, state) {
+  const all = listStateAll();
+  all[screenKey] = state;
+  sessionStorage.setItem(LIST_STATE_KEY, JSON.stringify(all));
+}
+// Consume-once: restoring is for the round trip back from a record, not for
+// every future visit. A fresh entry into the list screen should start clean.
+function listStateTake(screenKey) {
+  const all = listStateAll();
+  const s = all[screenKey] || null;
+  if (s) { delete all[screenKey]; sessionStorage.setItem(LIST_STATE_KEY, JSON.stringify(all)); }
+  return s;
+}
+function listStateClearAll() { sessionStorage.removeItem(LIST_STATE_KEY); }
 
 /* ══════════════════════════════════════════════════════════════════════
    LIST FILTER SHEETS — FREE TEXT, DATE RANGE, SORT (§8.3, 2026-08-11)
@@ -1517,8 +1578,10 @@ function resetDemoState() {
    CREATED_RECORDS_KEY]
     .forEach(k => localStorage.removeItem(k));
   // Session-scoped, so not in the list above — but a held MEC child identity
-  // would otherwise survive a Reset and repaint the next WO's header.
+  // would otherwise survive a Reset and repaint the next WO's header, and a
+  // held list state would restore someone else's filters onto a fresh demo.
   woIdentityClear();
+  listStateClearAll();
 }
 // Shared navigation target for both the dev-only Reset button below and
 // the real Profile menu's Log out item (2026-07-24) — same path either
@@ -2996,6 +3059,24 @@ const EQUIP_PHOTO_FALLBACK_DATA_URI = 'data:image/svg+xml,<svg xmlns="http://www
 // sheet, so the screen can write it onto its own RECORD and re-render.
 // A screen that never sets this (e.g. Insert Mode, today) just gets an
 // honest "coming soon" toast instead of a false "✓ Photo updated."
+/* Record-header photo slot (§7.5, A2 — locked 2026-08-11). Renders into a
+   screen-provided mount inside .rec-id-split. Tapping opens the same shared
+   flow WO Record View's own 44px badge uses (openEquipPhotoTap → viewer when a
+   photo exists, source picker when it doesn't), so there is one photo mechanic
+   in the app, not two. With no photo the slot shows a camera glyph rather than
+   collapsing: an absent photo is a thing you can add, and the slot leaves on
+   scroll anyway so it never nags. */
+function renderRecordPhotoSlot(url) {
+  const cam = '<span class="rec-photo-cam"><svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.6"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="3.5"/></svg></span>';
+  const inner = url
+    ? `<img src="${url}" alt="">${cam}`
+    : `<span class="rec-photo-empty"><svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="3.5"/></svg></span>`;
+  return `<div class="rec-photo-slot" onclick="event.stopPropagation(); openEquipPhotoTap(${url ? `'${url}'` : 'null'})">${inner}</div>`;
+}
+function renderRecordPhotoMount(mountId, url) {
+  const mount = document.getElementById(mountId);
+  if (mount) mount.innerHTML = renderRecordPhotoSlot(url);
+}
 let equipPhotoOnSet = null;
 function openEquipPhotoTap(url) {
   if (url) openEquipPhotoViewer(url);
@@ -3607,17 +3688,51 @@ function commentAction(action) {
 // current logged-in user's own full description at render time, rather
 // than baking "(You)" into the stored author string — so COMMENTS_DATA
 // only ever holds the plain full name.
+/* Shared "View more" footer (§7.2, 2026-08-11). Emitted by the excerpt
+   renderers themselves rather than appended by each screen afterwards —
+   appending broke the moment anything re-rendered the mount (adding a comment
+   calls refreshAllCommentViews(), which would silently drop the row).
+
+   Two destinations, because the two record types differ structurally:
+     - a TABBED screen (Equipment RV) passes tabKey and gets goToTab()
+     - an UNTABBED screen (WO RV) sets COMMENTS_VIEW_MORE_ONCLICK /
+       DOCUMENTS_VIEW_MORE_ONCLICK to its own navigation expression
+   Neither set → no footer at all, rather than a link that goes nowhere. */
+function viewMoreRowHTML(total, limit, tabKey, onclickExpr) {
+  if (!limit || total <= limit) return '';
+  const onclick = onclickExpr || (tabKey ? `goToTab('${tabKey}')` : '');
+  if (!onclick) return '';
+  return `<div class="view-more-row" onclick="${onclick}">View more
+    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>`;
+}
+// Initials for the comment avatar. Falls back to the first character if a
+// name is a single word, and to '?' if it's empty — a blank circle reads as
+// a broken image rather than as an unknown author.
+function commentInitials(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 function renderCommentItemHTML(c) {
-  const authorDisplay = c.mine ? `${c.author} (You)` : c.author;
   return `<div class="comment-item" data-mine="${c.mine}" data-id="${c.id}">
-    <div class="comment-header"><span class="comment-author">${authorDisplay}</span>
-      <div class="comment-time-actions">
-        <span class="comment-time">${c.time}</span>
-        <button class="comment-ellipsis" onclick="event.stopPropagation();openCommentActions(this,${c.mine})">⋯</button>
-      </div>
+    <button class="comment-ellipsis" onclick="event.stopPropagation();openCommentActions(this,${c.mine})">⋯</button>
+    <div class="comment-header">
+      <span class="comment-avatar">${commentInitials(c.author)}</span>
+      <span class="comment-author">${c.author}</span>
+      ${c.mine ? '<span class="comment-you">(You)</span>' : ''}
+      <div class="comment-time-actions"><span class="comment-time">${c.time}</span></div>
     </div>
     <p class="comment-text">${c.text}</p>
   </div>`;
+}
+/* Newest first (§7.2, 2026-08-11) — COMMENTS_DATA is held in insertion order
+   (oldest first, which is what addCommentToData() pushes onto), so every
+   RENDER sorts rather than the array being re-ordered. Keeping the array in
+   insertion order matters: `id` sequence and the array order stay in step, and
+   nothing else that reads COMMENTS_DATA has to know about display order. */
+function commentsNewestFirst() {
+  return (typeof COMMENTS_DATA !== 'undefined' ? COMMENTS_DATA.slice().reverse() : []);
 }
 function renderCommentsExcerptMount() {
   if (typeof COMMENTS_EXCERPT_MOUNT === 'undefined' || !COMMENTS_EXCERPT_MOUNT) return;
@@ -3625,12 +3740,12 @@ function renderCommentsExcerptMount() {
   if (!mount) return;
   const limit = typeof COMMENTS_EXCERPT_LIMIT !== 'undefined' ? COMMENTS_EXCERPT_LIMIT : 0;
   const tabKey = typeof COMMENTS_TAB_KEY !== 'undefined' ? COMMENTS_TAB_KEY : null;
-  const shown = limit ? COMMENTS_DATA.slice(-limit) : COMMENTS_DATA.slice();
+  const all = commentsNewestFirst();
+  const shown = limit ? all.slice(0, limit) : all;
   let html = `<div class="comment-add-row" onclick="openTextEditor('__comment','Add Comment',(t)=>addCommentToData(t))"><span class="comment-add-plus">+</span> Add comment</div>`;
-  html += shown.map(renderCommentItemHTML).join('');
-  if (limit && COMMENTS_DATA.length > limit && tabKey) {
-    html += `<div class="comment-add-row" onclick="goToTab('${tabKey}')"><span class="comment-add-plus">→</span> View all comments</div>`;
-  }
+  html += `<div class="comment-card-list">${shown.map(renderCommentItemHTML).join('')}</div>`;
+  html += viewMoreRowHTML(all.length, limit, tabKey,
+    typeof COMMENTS_VIEW_MORE_ONCLICK !== 'undefined' ? COMMENTS_VIEW_MORE_ONCLICK : null);
   mount.innerHTML = html;
   // Optional live count badge (e.g. a §7.2-style .rv-badge next to a
   // collapsible section's title) — screens with no tab/excerpt split at
@@ -3645,7 +3760,10 @@ function renderCommentsTabContent() {
   // Inline add-row added 2026-07-16 (conformance audit) to match
   // renderDocumentsTabContent()'s own inline row below — the two were
   // drifting asymmetric (Comments relied on the header Plus alone).
-  return `<div class="section-card"><div class="comment-add-row" onclick="openTextEditor('__comment','Add Comment',(t)=>addCommentToData(t))"><span class="comment-add-plus">+</span> Add comment</div>${COMMENTS_DATA.map(renderCommentItemHTML).join('')}</div>`;
+  // Newest first, same order as the excerpt (§7.2, 2026-08-11).
+  const all = commentsNewestFirst();
+  return `<div class="section-card"><div class="comment-add-row" onclick="openTextEditor('__comment','Add Comment',(t)=>addCommentToData(t))"><span class="comment-add-plus">+</span> Add comment</div></div>
+    <div class="comment-card-list">${all.length ? all.map(renderCommentItemHTML).join('') : '<div class="field-caption" style="text-align:center;padding:20px;">No comments yet.</div>'}</div>`;
 }
 function addCommentToData(text) {
   if (!text.trim()) return;
@@ -3661,30 +3779,141 @@ function refreshAllCommentViews() {
 }
 
 const DEFAULT_DOC_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+
+/* ══════════════════════════════════════════════════════════════════════
+   DOCUMENTS — PREVIEW SLOT + SOURCE HIERARCHY (§7.2, 2026-08-11)
+
+   Chosen shape (mockups/comments-documents-tab-options.html, option C): the
+   tree IS the layout, with a fixed-size preview slot per row that degrades to
+   a file-type badge. Why not a thumbnail-forward card grid:
+     - Coverage is ragged. These are S3 documents; nothing generates a preview
+       for .sql/.dwg/.step/most CAD-office types, so a grid is perpetually
+       half-populated and reads as broken rather than sparse.
+     - Offline is the normal state for this app, and a thumbnail is a network
+       fetch. A layout that only works online is a layout that mostly doesn't.
+     - Tenant documents are private, so previews arrive via presigned URLs that
+       expire — they can't be cached by URL, so offline caching has to key on a
+       stable document id. That's a sync-layer job, not an <img> tag.
+   Net: the slot is never load-bearing, so both states look deliberate.
+
+   Each document may carry `thumbUrl` (optional) and `source` — `source` is
+   {level, code} where level is one of DOC_SOURCE_LEVELS below. A document with
+   no source falls into the record's own level.
+
+   A source level with NO documents is omitted entirely — no "No Document"
+   placeholder row, deliberately unlike the real base-EAM screen.
+   ══════════════════════════════════════════════════════════════════════ */
+// Order matches the real base-EAM Documents tab's own folder order.
+const DOC_SOURCE_LEVELS = [
+  { key: 'wo',        label: 'Work Order' },
+  { key: 'equipment', label: 'Equipment' },
+  { key: 'project',   label: 'Project' },
+  { key: 'department',label: 'Department' },
+  { key: 'parentWo',  label: 'Parent Work Order' },
+  { key: 'location',  label: 'Location' },
+  { key: 'pmSchedule',label: 'PM Schedule' },
+];
+function docExt(name) {
+  const m = String(name || '').match(/\.([A-Za-z0-9]{1,5})$/);
+  return m ? m[1].toUpperCase() : 'FILE';
+}
+/* The fixed slot. A thumbnail fills it when one exists; otherwise the file's
+   extension sits in it. Size is set in CSS and must NOT vary by case —
+   see this block's own header comment for why. `loading="lazy"` because a
+   long Documents tab would otherwise fire every request at once on open. */
+function renderDocSlot(d) {
+  if (d.thumbUrl) {
+    return `<div class="doc-slot"><img src="${d.thumbUrl}" alt="" loading="lazy"
+      onerror="this.parentElement.innerHTML='<span class=&quot;doc-slot-ext&quot;>${docExt(d.name)}</span>'"></div>`;
+  }
+  return `<div class="doc-slot"><span class="doc-slot-ext">${docExt(d.name)}</span></div>`;
+}
+function docSourceLabel(d) {
+  if (!d.source) return '';
+  const lvl = DOC_SOURCE_LEVELS.find(l => l.key === d.source.level);
+  const name = lvl ? lvl.label : d.source.level;
+  return d.source.code ? `${name} <span class="mono">${d.source.code}</span>` : name;
+}
+// Inline row (Record View excerpt) — no tree around it, so it states its own
+// Source. Meta and Source are separate lines; cramming both onto one line
+// truncated the filename on a narrow phone.
 function renderDocItemHTML(d) {
-  const icons = typeof DOC_ICON_SVG !== 'undefined' ? DOC_ICON_SVG : {};
+  const src = docSourceLabel(d);
   return `<div class="doc-item" onclick="showToast('Opening ${d.name}…')">
-    <div class="doc-icon ${d.icon}">${icons[d.icon] || DEFAULT_DOC_ICON_SVG}</div>
+    ${renderDocSlot(d)}
+    <div class="doc-info">
+      <div class="doc-name">${d.name}</div>
+      <div class="doc-meta">${d.meta}</div>
+      ${src ? `<div class="doc-source">Source: ${src}</div>` : ''}
+    </div>
+    <span class="doc-arrow">›</span>
+  </div>`;
+}
+// Tree row — Source is the group header's job here, so it isn't repeated.
+function renderDocTreeItemHTML(d) {
+  return `<div class="doc-tree-item" onclick="showToast('Opening ${d.name}…')">
+    ${renderDocSlot(d)}
     <div class="doc-info"><div class="doc-name">${d.name}</div><div class="doc-meta">${d.meta}</div></div>
     <span class="doc-arrow">›</span>
   </div>`;
+}
+// Newest first, same rule as Comments. `updated` (or `created`) is an ISO
+// date when present; documents without one keep their array order relative to
+// each other rather than being shuffled to the end.
+function documentsNewestFirst(list) {
+  return (list || []).slice().sort((a, b) => String(b.updated || b.created || '').localeCompare(String(a.updated || a.created || '')));
+}
+function docGroups() {
+  const all = (typeof DOCUMENTS_DATA !== 'undefined' ? DOCUMENTS_DATA : []);
+  const ownLevel = (typeof DOCUMENTS_OWN_LEVEL !== 'undefined' ? DOCUMENTS_OWN_LEVEL : 'wo');
+  return DOC_SOURCE_LEVELS
+    .map(lvl => {
+      const docs = all.filter(d => (d.source ? d.source.level : ownLevel) === lvl.key);
+      const code = docs.length && docs[0].source ? docs[0].source.code : '';
+      return { ...lvl, code, docs: documentsNewestFirst(docs) };
+    })
+    .filter(g => g.docs.length);   // the rule: no documents, no group
 }
 function renderDocumentsExcerptMount() {
   if (typeof DOCUMENTS_EXCERPT_MOUNT === 'undefined' || !DOCUMENTS_EXCERPT_MOUNT) return;
   const mount = document.getElementById(DOCUMENTS_EXCERPT_MOUNT);
   if (!mount) return;
+  const limit = typeof DOCUMENTS_EXCERPT_LIMIT !== 'undefined' ? DOCUMENTS_EXCERPT_LIMIT : 0;
+  const tabKey = typeof DOCUMENTS_TAB_KEY !== 'undefined' ? DOCUMENTS_TAB_KEY : null;
+  const all = documentsNewestFirst(typeof DOCUMENTS_DATA !== 'undefined' ? DOCUMENTS_DATA : []);
+  const shown = limit ? all.slice(0, limit) : all;
   let html = `<div class="comment-add-row" onclick="showToast('Attach document — coming soon')"><span class="comment-add-plus">+</span> Add document</div>`;
-  html += DOCUMENTS_DATA.map(renderDocItemHTML).join('');
+  html += shown.map(renderDocItemHTML).join('');
+  html += viewMoreRowHTML(all.length, limit, tabKey,
+    typeof DOCUMENTS_VIEW_MORE_ONCLICK !== 'undefined' ? DOCUMENTS_VIEW_MORE_ONCLICK : null);
   mount.innerHTML = html;
   if (typeof DOCUMENTS_BADGE_ID !== 'undefined' && DOCUMENTS_BADGE_ID) {
     const badge = document.getElementById(DOCUMENTS_BADGE_ID);
-    if (badge) badge.textContent = DOCUMENTS_DATA.length;
+    if (badge) badge.textContent = all.length;
   }
 }
+// Groups start expanded: a technician opening Documents wants the documents,
+// not a set of closed folders to tap through.
+function toggleDocGroup(key) {
+  const el = document.getElementById('docGroup-' + key);
+  if (el) el.classList.toggle('open');
+}
 function renderDocumentsTabContent() {
-  let html = `<div class="section-card"><div class="comment-add-row" onclick="showToast('Attach document — coming soon')"><span class="comment-add-plus">+</span> Add document</div>`;
-  html += DOCUMENTS_DATA.map(renderDocItemHTML).join('');
-  html += `</div>`;
+  const groups = docGroups();
+  let html = `<div class="section-card"><div class="comment-add-row" onclick="showToast('Attach document — coming soon')"><span class="comment-add-plus">+</span> Add document</div></div>`;
+  if (!groups.length) {
+    return html + `<div class="field-caption" style="text-align:center;padding:22px;">No documents on this record.</div>`;
+  }
+  html += groups.map(g => `
+    <div class="doc-group open" id="docGroup-${g.key}">
+      <div class="doc-group-row" onclick="toggleDocGroup('${g.key}')">
+        <span class="doc-group-chev"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+        <span class="doc-group-label">${g.label}</span>
+        ${g.code ? `<span class="doc-group-value">${g.code}</span>` : ''}
+        <span class="doc-group-count">${g.docs.length}</span>
+      </div>
+      <div class="doc-group-body">${g.docs.map(renderDocTreeItemHTML).join('')}</div>
+    </div>`).join('');
   return html;
 }
 

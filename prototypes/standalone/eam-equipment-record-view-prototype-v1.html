@@ -75,6 +75,13 @@
   </header>
 
   <div class="rec-header" id="recHeader" onclick="onRecHeaderTap(event)">
+    <!-- §7.5 A2 (2026-08-11): the photo slot sits left of code/description and
+         stretches down beside the status row, then collapses away with status
+         on scroll. .rec-id-split is what pairs the two; the slot itself is
+         rendered by renderRecordPhotoMount() so the empty/populated states and
+         the tap behaviour stay shared with WO Record View's own photo badge. -->
+    <div class="rec-id-split">
+    <span id="recPhotoMount"></span>
     <div class="rec-id-row">
       <div class="rec-id-text">
         <span class="rec-num" id="recNum">00067333</span>
@@ -104,6 +111,7 @@
         </div>
       </div>
     </div>
+    </div><!-- /.rec-id-split -->
     <div class="rec-status-row" id="recStatusRow">
       <div class="rec-status-row-inner">
         <button class="rec-status-btn st-operational" id="recStatusBtn" onclick="openLov('__status')">
@@ -540,15 +548,27 @@ const COMMENTS_EXCERPT_LIMIT = 3;
 const COMMENTS_TAB_KEY = 'comments';
 const COMMENTS_BADGE_ID = 'commentsBadgeCount';
 
+/* `source` drives the Documents tab's hierarchy grouping (§7.2, 2026-08-11) —
+   {level, code}, level from DOC_SOURCE_LEVELS. Deliberately spread across
+   three levels so the tree has something to group, AND so the empty-group rule
+   is visible: Project/Department/Parent WO/PM Schedule have no documents here
+   and therefore render no group at all. `updated` drives the DESC sort.
+   `thumbUrl` is intentionally absent on every row — these are all PDFs, the
+   case where S3 previews are least reliable, so this data exercises the
+   degraded (type-badge) state of the fixed slot rather than the pretty one. */
 const DOCUMENTS_DATA = NEW_RECORD ? [] : [
-  { icon: 'pdf', name: 'Pump_Assembly_PMP3042_Rev4.pdf', meta: 'PDF · 2.4 MB · Nov 2024' },
-  { icon: 'pdf', name: 'Dayton_AB5S11_Datasheet.pdf', meta: 'PDF · 640 KB · Jul 2021' },
-  { icon: 'pdf', name: 'Install_Certificate.pdf', meta: 'PDF · 210 KB · Jul 2021' },
+  { icon: 'pdf', name: 'Pump_Assembly_PMP3042_Rev4.pdf', meta: 'PDF · 2.4 MB · Nov 2024', updated: '2024-11-02', source: { level: 'equipment', code: '00067333' } },
+  { icon: 'pdf', name: 'Dayton_AB5S11_Datasheet.pdf',    meta: 'PDF · 640 KB · Jul 2021', updated: '2021-07-20', source: { level: 'equipment', code: '00067333' } },
+  { icon: 'pdf', name: 'Install_Certificate.pdf',        meta: 'PDF · 210 KB · Jul 2021', updated: '2021-07-20', source: { level: 'location',  code: 'PUMP-HOUSE-3' } },
 ];
 const DOC_ICON_SVG = { pdf: ICONS.pdf };
 const DOCUMENTS_EXCERPT_MOUNT = 'recordDocumentsMount';
+const DOCUMENTS_EXCERPT_LIMIT = 3;
 const DOCUMENTS_TAB_KEY = 'documents';
 const DOCUMENTS_BADGE_ID = 'documentsBadgeCount';
+// Which hierarchy level THIS record is, for any document with no explicit
+// source — an Equipment record's own documents are 'equipment'.
+const DOCUMENTS_OWN_LEVEL = 'equipment';
 
 const TABS = [
   { key:'record',   name:'Record View',      icon: ICONS.recordView },
@@ -1006,6 +1026,18 @@ renderTabRail();
 applyCustomFields('equipment', RECORD.class.code, RECORD_CLASS_ORG, EAM_EQUIPMENT[RECORD.asset] ? EAM_EQUIPMENT[RECORD.asset].customFieldValues : {});
 document.querySelector('.tab-content[data-tab="record"]').innerHTML = renderRecordViewTab();
 applySyncErrorBanner();
+/* Header photo slot (§7.5 A2, 2026-08-11). A freshly-created record has no
+   photo, so the slot renders its camera/empty state — which is the point of
+   having an empty state at all. equipPhotoOnSet is the shared hook the source
+   picker calls once a source is chosen; without defining it here, tapping the
+   slot on this screen would fall back to eam-shared.js's "coming soon" toast
+   the way Insert Mode's own does. */
+RECORD.photoUrl = NEW_RECORD ? '' : EQUIP_PHOTO_DEMO_URL;
+renderRecordPhotoMount('recPhotoMount', RECORD.photoUrl);
+equipPhotoOnSet = (url) => {
+  RECORD.photoUrl = url;
+  renderRecordPhotoMount('recPhotoMount', url);
+};
 renderCommentsExcerptMount();
 renderDocumentsExcerptMount();
 ['comments','documents','events','costs','pm','structure','depr','meters','warranty','parts'].forEach(k => {

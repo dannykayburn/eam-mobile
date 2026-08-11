@@ -958,23 +958,76 @@ Asset record view screen (desktop):
   Equipment-specific. Same collapsible pattern as WO Record View's
   Comments/Documents.
 - **Comment author label, avatar, and actions — locked, module-agnostic.**
-  A comment's header row shows exactly two things next to its timestamp:
-  the commenting user's **description** (their display name — same
-  "description, not code/ID" philosophy as every LOV field, §3.4) and the
-  ellipsis for Edit/Delete/Copy. **No avatar/profile picture** — name text
-  alone carries enough identity for a comment thread, and dropping it
-  keeps the row from competing visually with the ellipsis. The ellipsis's
-  own actions sheet uses the exact same `.sheet-header` (✕ + title) every
-  other sheet in the app uses — any sheet lacking a proper header should
-  be treated as a defect. Two example comments per demo record (one Copy-
-  only, one Edit/Delete/Copy) make the ownership-permission rule visible
-  on sight without adding a comment first — a single-example version
+  A comment shows the commenting user's **description** (their display name —
+  same "description, not code/ID" philosophy as every LOV field, §3.4), a
+  timestamp, and the ellipsis for Edit/Delete/Copy. **An initials avatar
+  (26px) precedes the name** — confirmed 2026-08-11 as part of the chat-style
+  card; this reverses an earlier "no avatar" call whose stated reason was that
+  an avatar would compete with the ellipsis, which stopped being true once the
+  ellipsis moved out of the header row to the card's own corner (superseded
+  decision relocated to §21). Initials are derived from the name, with a
+  first-two-characters fallback for a single-word name and `?` for an empty
+  one — a blank circle reads as a broken image rather than an unknown author.
+  The ellipsis's own actions sheet uses the exact same `.sheet-header`
+  (✕ + title) every other sheet in the app uses — any sheet lacking a proper
+  header should be treated as a defect. Two example comments per demo record
+  (one Copy-only, one Edit/Delete/Copy) make the ownership-permission rule
+  visible on sight without adding a comment first — a single-example version
   reads as though Edit/Delete were missing entirely rather than
   permission-gated.
 - Desktop's "quick links" panel (Hierarchy, Reliability Ranking Details,
   Part Association, Financial and Disposition Details, Class Attributes)
   is superseded on mobile by the tab rail itself — not replicated as a
   separate panel.
+
+### Top 3 inline + View more, and the Documents source tree (locked 2026-08-11)
+
+Direct instruction. This also **resolves** the previously-open "dual treatment
+scope" question — it is **both**, for every record type that has these
+sections, not a per-entity choice:
+
+- **The Record View shows the top 3** of Comments and of Documents, newest
+  first, then a **View more** footer row. WO Record View used to render *every*
+  comment inline on the reasoning that it had no tab of its own; that
+  exception is gone now that it has a real destination.
+- **View more opens the matching tab**, showing every record sorted by
+  created/updated **DESC**. Equipment Record View uses its existing Comments
+  and Documents tabs; WO uses `eam-wo-reference-tab-prototype-v1.html`, one
+  child-tab screen carrying both tabs (mirroring how Equipment RV holds them
+  as two tabs in one file, rather than two near-identical standalone files).
+- **The View more row is emitted by the shared excerpt renderers**, never
+  appended by a screen afterwards — appending broke the moment anything
+  re-rendered the mount, and adding a comment does exactly that
+  (`refreshAllCommentViews()`). A tabbed screen passes `COMMENTS_TAB_KEY` and
+  gets `goToTab()`; an untabbed one sets `COMMENTS_VIEW_MORE_ONCLICK` /
+  `DOCUMENTS_VIEW_MORE_ONCLICK` to its own navigation. Neither set → no
+  footer, rather than a link that goes nowhere.
+- **Comment card — chat style.** A discrete card per comment (own comments
+  tinted) with the action ellipsis pinned **top-right of the card**, out of the
+  header's flow. Actions are unchanged and were already correct: **Edit +
+  Delete on the technician's own comments, Copy on everyone's.**
+- **Documents carry `Source:`** and group by the real base-EAM hierarchy —
+  Work Order, Equipment, Project, Department, Parent Work Order, Location, PM
+  Schedule, in that order. **A level with no documents renders no group at
+  all** — deliberately unlike the base screen, which shows a "No Document"
+  placeholder row under every empty folder.
+- **The document preview slot is a fixed 38px box that degrades to a
+  file-type badge**, and its size must never depend on whether an image
+  loaded. Chosen (option C of `mockups/comments-documents-tab-options.html`)
+  over a thumbnail-forward card grid because thumbnails cannot be
+  load-bearing here: S3 generates nothing for `.sql`/`.dwg`/most CAD-office
+  types (the real reference screenshot contains a `.sql`), previews are
+  unavailable offline — this app's normal state — and private-tenant
+  presigned URLs expire, so offline caching has to key on a stable document
+  id rather than the URL. With a fixed slot, both the populated and degraded
+  states look deliberate and a late-arriving image can't reflow the list.
+  Images are `loading="lazy"`.
+- Applies to **Equipment as well as WO**.
+
+**Comment avatar — confirmed 2026-08-11.** The chat-style card's 26px initials
+avatar was raised as a conflict with this section's earlier "no avatar" lock and
+has been explicitly confirmed; the superseded decision is relocated to §21 per
+the reorg convention, and the bullet above now states the current rule.
 
 ## 7.3 Sibling tabs (Equipment)
 
@@ -1012,8 +1065,40 @@ Equipment, 00067333 Pump Centrifugal, carries it via
 `RECORD.equipment.photoUrl`), with an embedded SVG data-URI fallback
 (`img.onerror`) so the viewer never shows a broken image if the network
 is unavailable — this app otherwise assumes offline is the normal case.
-Equipment Record View's own header icon slot (the 2nd consumer below) is
-untouched by this pass, still open.
+
+### Equipment Record View's own header slot — option A2 (locked 2026-08-11)
+
+Closes the last open half of this section. Chosen from
+`mockups/equipment-photo-header-placement-options.html`, which drew four
+placements with **real scroll behaviour** in each frame (replicating
+`onContentScroll()`'s own `.scrolled` at >40px / release at <10px, and
+`.rec-status-row`'s 58px→0 over .22s) so the collapse could be felt rather
+than guessed at:
+
+- **A 74px slot left of code/description that stretches down alongside the
+  status row, and collapses away WITH status on scroll** (`.rec-id-split` +
+  `.rec-photo-slot`, `renderRecordPhotoMount()`). Status and the Organization
+  pill already share `.rec-status-row` and vanish together, so taking the
+  photo with them makes it one gesture with one result; code + description
+  already answer "which record am I on" once you're reading. The collapse
+  uses a negative `margin-left` as well as zero width, or the flex gap would
+  survive as a 12px ghost gutter and leave the identity text visibly inset.
+- **With no photo set** the slot shows a camera glyph on a neutral fill — an
+  absent photo is something you can add, and since the slot leaves on scroll
+  it never nags. This is the other half of what was open here.
+- Tapping the slot routes into the **same shared flow** as WO Record View's
+  own badge (`openEquipPhotoTap()` → viewer if a photo exists, source picker
+  if not), so there is one photo mechanic in the app rather than two.
+
+**Rejected**, all drawn in the mockup: keeping the photo visible-but-shrunk
+through the collapse (a second animation fighting the status collapse, for a
+question the header text already answers); a 44px identity-row tile (safest,
+reuses `.attr-badge-photo` verbatim, but a pump at 44px is barely a photo); a
+separate container in the record body (biggest image and Screen-Designer-
+repositionable, but scrolls away permanently, pushes real fields down, and
+leaves ~150px of empty card on every asset without a photo — which is most of
+them early on); and a full-width collapsing cover strip (a new component and a
+third thing animating at once).
 
 **Flagged 2026-07-24, resolved 2026-08-10 above:** this section's WO
 Record View consumer used to still assume the old standalone
@@ -4202,13 +4287,10 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **Book Labor — Department and Trade fields still cycle-on-tap** | Not yet converted to the real `openLov()` sheet, unlike Employee/Crew/Type of Hours on the same screen (§18.4). |
 | **Issue Parts — button treatment consistency** | The screen mixes 3 different button weights: per-row outlined `.row-action-btn` (Quick Issue/Return, Modify), full-width outlined `.btn-outlined` (Add Parts), full-width filled `.btn-contained` (Quick Issue All). Not yet clear whether this 3-tier hierarchy (row action / secondary screen action / primary screen action) is correct as-is or needs converging. |
 | **Issue Parts — "scroll to issue all" alternative** | An unexplored idea: some kind of scroll-driven bulk-issue gesture as an alternative/addition to the "Quick Issue All Planned Parts" button (§17.6). No shape proposed yet. |
-| **New checklist item type: Slider** | Addition to §16.3's 17 checklist item types — a draggable slider/scale control. Needs a comparison mockup before being built, specifically covering the *resting* (untouched) state's affordance (handle/track/shadow) so it reads as interactive, not as a read-only gauge. |
-| **Equipment Photo — Equipment RV's own header slot still unbuilt** | Built on **WO Record View** only (§7.5/§15.5): 44px `.attr-badge-photo` tile, full-screen viewer with a single Modify action (no Remove), Camera/Library/File source picker. Still open, all specific to **Equipment Record View**: exact placement/size for an icon slot in its header (`.rec-id-row` has none today), and what that icon shows with no photo set — unlike WO Record View it has no prior fallback to drop back to. |
 | **Unified prototype compile** | A real compiled shell that invokes the standalone files rather than duplicating them is still being proven out — see `docs/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md` §7–§8 for the current plan; don't build toward the old `prototypes/wo-workflow/index.html` monolith pattern. |
 | **Date/time formatting is hardcoded to `en-US`, not actually locale-driven** | `isoToDisplay()` and `saveDateTime()` hardcode `'en-US'`. The real rule: dates should follow the logged-in user's own locale (this app targets North America/Europe/Asia — DD/MM/YYYY and YYYY/MM/DD are real cases); time-of-day stays fixed 24-hour regardless of locale (deliberate, not a gap — §3.4). No per-user locale/session concept exists yet to drive the date-format switch. |
 | **Activity Screen** | Timer, task plan reference, assignment status (ref: `Activity_Selector.png`). A future standalone Activities tab could double as the real closing surface for Activity-driven WO Types instead of WO Closing (§12) — not designed, not built. |
-| **Per-row sync affordance (WO List)** | Map the 3 offline-search row states (stub / hydrated / ephemeral) onto the existing 4-state sync control language at row level. Specified in the offline search architecture (§6.13); not yet in the v5.1 prototype. |
-| **Index freshness caption (WO List)** | "Results as of <time>" caption when offline. Specified (§6.13); not yet in the v5.1 prototype. |
+| **Offline-search surfacing — needs dev involvement, not a design pass** | Two specified-but-unbuilt items, kept together because they share the same blocker: the **per-row sync affordance** (map the 3 offline-search row states — stub / hydrated / ephemeral — onto the 4-state sync control language at row level) and the **index freshness caption** ("Results as of \<time\>" when offline). Both specified in §6.13, neither in the v5.1 prototype. **Flagged 2026-08-11 (direct instruction): these need more consideration WITH development involved** — what a row can honestly claim about its own freshness depends on how the real sync/index layer actually behaves, so designing the affordance ahead of that risks specifying a state the backend can't report. Don't prototype these from the design side alone. |
 | **Bin pre-fill from stock list** | Selecting a bin in the bin stock list should pre-fill the Bin LOV. Specified in §17.11; not yet prototyped. |
 | **Record-view child tabs — generic-case ellipsis menu contents** | §8's ellipsis menu for a generic child list/detail tab has no locked content yet (Equipment's own instance ships toast-stub candidates only). |
 | **Activity Selector — no cross-screen hand-off for `selectedActivity`** | Once a technician moves past WO Record View into Activity Checklist, Issue Parts, or Book Labor, none of those screens shows which Activity is in scope, and no session/URL hand-off mechanism for `RECORD.selectedActivity` exists. Harmless today (every demo WO has exactly 1 Activity, which auto-selects) but undefined once a WO has 2+. |
@@ -4221,8 +4303,6 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **WO List's Search sub-screen still shows a back button instead of the avatar** | Per §4.2's browsing-tier rule, it should show the avatar like WO List's own main screen. |
 | **Punch-list mechanism decision** | Option A (static sync dataspy, group/user level) vs. Option B (PIN projection) — kickoff decision, still open. See §2.6. |
 | **Tiered record model review** | On approval: merge tier-model architecture into §2. |
-| **Comments/Documents — dual treatment scope** | Not yet decided which record types need a standalone Comments/Documents tab (§7.2) vs. inline-only, or whether every record type always gets both. |
-| **WO Record View Comments — no interactivity yet** | Has a Comments section (§15.1) but no add/edit/delete/copy — the ellipsis/edit/delete mechanics built for Equipment (§7.2) haven't been ported here. |
 | **WO timer placement + pause/resume** | Two open questions: (1) keep the timer in the step rail or move it to the nav bar so it stays visible while the rail is scrolled/collapsed; (2) whether pause/resume should exist, and if so whether it's a per-WO-type config flag alongside Free Form (§15.4). Not designed, not prototyped. |
 | **Activity Checklist's Checkbox-type control vs. the generic checkbox pattern** | §3.4's generic checkbox rule makes the whole row a compact tap target; the Checkbox-type item's control (§16.3) is a large, centered, full-width tap target instead, since the focused one-item-at-a-time screen has the room. Open call: is this divergence justified by context, or should it converge? |
 | **Search List screen dataspy/filter persistence** | §24's rule that a Record View's back button returns to the entity's Search List "maintaining the user's dataspy and persisting any filters" isn't wired up yet — WO List's and Equipment List's dataspy bars and filter chips are real and functional, but nothing carries the active dataspy/filter selection across the round trip to Record View and back. The navigation target is correct and built; the persistence mechanism isn't. |
@@ -4231,7 +4311,7 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **Booked Labor's Correction sheet content is hardcoded demo data** | The always-ready red Save button is intentional (§18.6), but the sheet's employee/hours-type/department/trade/duration values are fixed demo constants, not technician-entered. |
 | **Booked Labor List has no defined sort/grouping rule** | Rows render in pure insertion order. Fine at today's scale; flag if this list needs to hold more in a real deployment. |
 | **WO › Equipment tab — row-tap destination not locked** | A row is a join record with two useful destinations (equipment master vs. the child WO Route created for it), so §8's "tapping a row opens this record" doesn't settle it. Both flows are built and live-switchable from the screen's dev toggle: `chooser` (**now the default** — card body → 2-option sheet) vs. `split` (card body → related WO, equipment code → equipment record; lost the default because the code target is too fine on a phone). **Both destinations are now real navigation** (2026-08-11 — the child WO was a toast stub until then), so this is finally a fair comparison on a device. Pick one, then lock it in §16.10 and drop this row. |
-| **Conditional field rules — no tier chosen, nothing built** | §13.1–§13.4 records the evaluation model, a 4-tier option ladder, and 5 prerequisites for field-level conditions ("if field X is Y, make Z required / surface another step"). Analysis only as of 2026-08-10 — no table shape or tier is locked. Two prerequisites are worth doing regardless of whether any tier ships: the single `resolveFieldState(field, context)` seam (§13.3 item 1) and the declared-vs-effective state split (item 2). Also owed: the `docs/Data_refs/Page Layouts perms/` check in §13.4. |
+| **Conditional field rules — deferred to Phase 4+, one-way doors only** | §13.1–§13.4 records the evaluation model, a 4-tier option ladder, and 5 prerequisites for field-level conditions ("if field X is Y, make Z required / surface another step"). **Deprioritised 2026-08-11 (direct instruction): this is Phase 4+ consideration, not near-term work.** Don't spend design time picking a tier now. The only thing owed up front is identifying **one-way doors** — decisions that would be expensive to reverse once other work builds on them. Two such prerequisites are worth doing regardless of whether any tier ever ships, because retrofitting either later touches every field on every screen: the single `resolveFieldState(field, context)` seam (§13.3 item 1) and the declared-vs-effective field-state split (item 2). Also still owed whenever this resumes: the `docs/Data_refs/Page Layouts perms/` check in §13.4. |
 
 # 21. Superseded Design Decisions
 
@@ -4243,6 +4323,7 @@ its original section with a note attached.
 
 | Former decision | Superseded by |
 | --- | --- |
+| **Comment header — no avatar/profile picture** (§7.2). A comment's header row showed exactly two things beside its timestamp: the author's display name and the Edit/Delete/Copy ellipsis. Reasoning given: name text alone carries enough identity for a comment thread, and omitting an avatar "keeps the row from competing visually with the ellipsis." | §7.2 (2026-08-11, confirmed after being flagged) — the chat-style comment card shows a **26px initials avatar** before the name. The first half of the old reasoning was a judgement call; the second half became factually obsolete when the card moved the ellipsis out of the header row entirely and pinned it to the card's top-right corner, so there is nothing left in that row for an avatar to compete with. To revert: drop `.comment-avatar` / `.comment-item[data-mine="true"] .comment-avatar` from `eam-shared.css` and the `<span class="comment-avatar">` (plus `commentInitials()`) from `renderCommentItemHTML()` in `eam-shared.js` — the rest of the card treatment is independent of this call. |
 | **Sync control — five states** (Synced/Syncing/Offline/Pending/Error), with a separate orange "Pending" state ("reconnected, outbox flushing in order") distinct from purple "Syncing" ("outbox draining right now"). | §4.4.1 — four states (Synced/Offline/Syncing/Error). Pending and Syncing described the same event; connectivity alone now decides Offline vs. Syncing. Syncing itself moved off purple onto a distinct gray shade (§23). |
 | **Master field-type reference — `sample-screen-standard-model-prototype.html`** — one canonical example of every field type, rule written as an inline caption, plus the full List/Detail header + Insert Mode reference build. | §5.2 "Grid vs. List field-type consolidation" — `screen-layout-field-behavior-prototype-v1.html` replaces it (every type shown in both Grid and List, not just one); the old scaffolding (header actions, tab rail, Insert Mode, Comments/Documents) is dropped since each has its own canonical home elsewhere. Retired to `prototypes/standalone/old versions/`. |
 | **LOV description-first**, then **LOV row: description only** (with a `CODE_VISIBLE_FIELDS` opt-in exception list for Cost Code/Store). | §3.4 "LOV field: code + description" — code + description is now the default for every plain LOV field. Organization (§3.4.1) is its own stricter case — code only, no description. |

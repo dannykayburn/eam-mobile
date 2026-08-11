@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Comments &amp; Documents Tabs — Mockup Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  COMMENTS & DOCUMENTS TABS — MOCKUP OPTIONS (2026-08-11, exploration only;
+  the Documents layout is NOT decided and nothing here is wired into a real
+  screen. The Comments treatment in section 3 IS decided — see below.)
+
+  What's being decided: the new Comments/Documents rules (direct instruction,
+  2026-08-11) resolve §20's open "dual treatment scope" question — it's BOTH,
+  not either/or:
+    - Record View shows the TOP 3 of each, then a "View more" footer row.
+    - "View more" opens the matching Comments/Documents TAB, showing every
+      record sorted by date created/updated DESC.
+    - Documents additionally carry `Source:` and the base-EAM hierarchy tree
+      (Work Order / Equipment / Project / Department / Parent WO / Location /
+      PM Schedule), and a group with NO documents is omitted entirely — no
+      "No Document" placeholder row (which the real base screen does show).
+    - Applies to Equipment screens as well as WO.
+
+  Section 1 — the open question: Documents tab layout, given that these are
+  S3-stored documents with auto-generated thumbnails. 3 options, each also
+  drawn in its thumbnail-less state, because that state is not an edge case
+  (see the trade-off panel).
+  Section 2 — Record View inline "top 3 + View more", common to both.
+  Section 3 — Comments card treatment. DECIDED: chat-style card, action
+  ellipsis top-right, Edit+Delete on the technician's OWN comments only and
+  Copy on others' (matching Equipment's existing §7.2 mechanics — no new
+  permission rule invented).
+
+  Sample data invented for this mockup only — document names/sources modelled
+  on the real base-EAM Documents tab screenshot for WO 20050 Calibration.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --green:#00AA14; --red:#E24B4A; --orange:#F46600; --teal:#007B87;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-nav:#1A1A1F; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-sans);background:#2b2b30;color:#fff;display:flex;flex-direction:column;align-items:center;min-height:100vh;min-height:100dvh;padding:28px 12px 70px;}
+h1{font-size:18px;margin:0 0 4px;color:#fff;}
+.top-legend{max-width:560px;width:100%;color:#fff;font-size:12.5px;line-height:1.6;margin-bottom:26px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:14px 16px;}
+.top-legend b{color:#fff;}
+.top-legend .flag{margin-top:8px;padding-top:8px;border-top:1px dashed rgba(255,255,255,.18);color:#FFD166;}
+.top-legend ul{margin:6px 0 0;padding-left:18px;}
+.top-legend li{margin-bottom:3px;}
+
+.tradeoff{max-width:560px;width:100%;font-size:12.5px;line-height:1.6;margin-bottom:30px;background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.3);border-radius:10px;padding:14px 16px;color:rgba(255,255,255,.88);}
+.tradeoff h3{margin:0 0 8px;font-size:13px;color:#FFD166;}
+.tradeoff table{width:100%;border-collapse:collapse;margin:8px 0 4px;font-size:12px;}
+.tradeoff th{text-align:left;padding:4px 8px 4px 0;color:#FFD166;font-weight:600;border-bottom:1px solid rgba(255,255,255,.15);}
+.tradeoff td{padding:5px 8px 5px 0;vertical-align:top;border-bottom:1px solid rgba(255,255,255,.07);}
+.tradeoff code{font-family:var(--font-mono);font-size:11px;background:rgba(0,0,0,.3);padding:1px 4px;border-radius:3px;}
+
+.section-block{width:100%;max-width:1320px;margin-bottom:56px;display:flex;flex-direction:column;align-items:center;}
+.section-title{font-size:15px;font-weight:800;color:#fff;margin:0 0 6px;align-self:flex-start;}
+.section-sub{font-size:12px;line-height:1.55;color:rgba(255,255,255,.65);margin:0 0 16px;align-self:flex-start;max-width:900px;}
+.row{display:flex;gap:26px;flex-wrap:wrap;justify-content:center;}
+.col{display:flex;flex-direction:column;align-items:center;}
+.opt-label{margin-top:10px;font-size:12px;color:rgba(255,255,255,.7);text-align:center;max-width:390px;line-height:1.5;}
+.opt-label b{color:#fff;}
+.verdict{display:inline-block;margin-top:6px;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:2px 8px;border-radius:100px;}
+.v-rec{background:rgba(0,170,20,.18);color:#5BE37A;border:1px solid rgba(0,170,20,.45);}
+.v-no{background:rgba(226,75,74,.15);color:#FF9C9B;border:1px solid rgba(226,75,74,.4);}
+.v-dec{background:rgba(0,123,135,.2);color:#6FD8E3;border:1px solid rgba(0,123,135,.5);}
+
+.frame{width:390px;height:700px;border-radius:44px;background:#000;padding:10px;box-shadow:0 20px 60px rgba(0,0,0,.5);position:relative;flex-shrink:0;}
+.screen{width:100%;height:100%;border-radius:36px;overflow:hidden;position:relative;background:var(--bg-page);display:flex;flex-direction:column;}
+.hdr{background:var(--bg-nav);flex-shrink:0;padding-top:22px;}
+.hdr-row{height:44px;display:flex;align-items:center;padding:0 14px;gap:10px;}
+.hdr-back{color:#fff;opacity:.9;display:flex;}
+.hdr-title{color:#fff;font-size:14px;font-weight:600;}
+.ld-hdr{background:var(--bg-card);border-bottom:1px solid var(--border);padding:10px 16px 11px;flex-shrink:0;}
+.ld-num{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--octave-black);}
+.ld-desc{display:block;font-size:13px;color:var(--gray-4);margin-top:2px;}
+.body{flex:1;overflow-y:auto;padding:10px 0 24px;}
+.offline-strip{display:flex;align-items:center;gap:6px;background:#FFF4E5;border-bottom:1px solid #F4CE9E;color:#8A5200;font-size:11px;font-weight:600;padding:6px 14px;flex-shrink:0;}
+.offline-strip svg{flex-shrink:0;}
+
+/* ── tree ── */
+.tree-group{margin:0 0 2px;}
+.tree-grp-row{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;}
+.tree-chev{color:var(--gray-4);display:flex;flex-shrink:0;transition:transform .15s;}
+.tree-grp-icon{color:var(--gray-4);display:flex;flex-shrink:0;}
+.tree-grp-label{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--gray-4);}
+.tree-grp-val{font-size:12px;color:var(--octave-black);font-weight:600;}
+.tree-grp-val .mono{font-family:var(--font-mono);}
+.tree-grp-badge{margin-left:auto;font-family:var(--font-mono);font-size:10.5px;font-weight:600;color:var(--octave-black);border:1px solid var(--border-strong);border-radius:100px;padding:1px 7px;background:transparent;}
+.tree-doc{display:flex;align-items:center;gap:10px;padding:9px 14px 9px 36px;background:var(--bg-card);border-top:1px solid var(--border);}
+.tree-doc:last-child{border-bottom:1px solid var(--border);}
+.doc-slot{width:38px;height:38px;border-radius:7px;background:var(--bg-section);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;position:relative;}
+.doc-slot.lg{width:52px;height:52px;border-radius:8px;}
+.doc-slot img{width:100%;height:100%;object-fit:cover;display:block;}
+.doc-ext{font-family:var(--font-mono);font-size:8.5px;font-weight:700;letter-spacing:.3px;color:var(--gray-4);}
+.doc-texts{flex:1;min-width:0;}
+.doc-name{font-size:12.5px;font-weight:600;color:var(--octave-black);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.doc-meta{font-size:11px;color:var(--gray-4);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.doc-meta .mono{font-family:var(--font-mono);}
+.doc-ell{color:var(--gray-4);flex-shrink:0;padding:4px;display:flex;}
+
+/* ── card list ── */
+.doc-card{background:var(--bg-card);border:1px solid var(--border);border-radius:11px;margin:0 12px 9px;padding:11px 12px;display:flex;gap:11px;align-items:flex-start;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+.doc-card .doc-texts{padding-top:1px;}
+.src-chip{display:inline-flex;align-items:center;gap:4px;margin-top:5px;font-size:10.5px;font-weight:600;color:var(--gray-4);border:1px solid var(--border-strong);border-radius:100px;padding:1px 7px;}
+.src-chip .mono{font-family:var(--font-mono);font-size:10px;}
+.grp-hdr{display:flex;align-items:center;gap:7px;padding:12px 16px 6px;}
+.grp-hdr-label{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--gray-4);}
+.grp-hdr-badge{margin-left:auto;font-family:var(--font-mono);font-size:10.5px;font-weight:600;color:var(--octave-black);border:1px solid var(--border-strong);border-radius:100px;padding:1px 7px;}
+
+/* ── comments ── */
+.cmt-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;margin:0 12px 9px;padding:11px 12px 12px;box-shadow:0 1px 2px rgba(0,0,0,.04);position:relative;}
+.cmt-card.mine{background:#F4F8FF;border-color:#D6E4FA;}
+.cmt-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;padding-right:24px;}
+.cmt-av{width:26px;height:26px;border-radius:50%;background:var(--gray-5);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.cmt-who{font-size:12.5px;font-weight:700;color:var(--octave-black);}
+.cmt-you{font-size:10.5px;font-weight:600;color:var(--gray-4);}
+.cmt-when{font-size:10.5px;color:var(--gray-4);margin-left:auto;font-family:var(--font-mono);}
+.cmt-body{font-size:13px;line-height:1.5;color:var(--octave-black);}
+.cmt-ell{position:absolute;top:8px;right:8px;color:var(--gray-4);padding:3px;display:flex;cursor:pointer;border-radius:5px;}
+.cmt-ell:hover{background:var(--bg-section);}
+.cmt-edited{font-size:10.5px;color:var(--gray-4);margin-top:5px;font-style:italic;}
+
+/* ── RV inline section ── */
+.rv-sec{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;margin:0 12px 12px;overflow:hidden;}
+.rv-sec-hdr{display:flex;align-items:center;gap:8px;padding:11px 13px;border-bottom:1px solid var(--border);}
+.rv-sec-title{font-size:13px;font-weight:700;color:var(--octave-black);}
+.rv-sec-badge{margin-left:auto;font-family:var(--font-mono);font-size:10.5px;font-weight:600;color:var(--octave-black);border:1px solid var(--border-strong);border-radius:100px;padding:1px 7px;}
+.rv-inline-cmt{padding:10px 13px;border-bottom:1px solid var(--border);}
+.rv-inline-doc{display:flex;align-items:center;gap:10px;padding:9px 13px;border-bottom:1px solid var(--border);}
+.view-more{display:flex;align-items:center;justify-content:center;gap:5px;padding:11px;font-size:12.5px;font-weight:700;color:var(--teal);cursor:pointer;}
+.add-row{display:flex;align-items:center;gap:6px;padding:10px 13px;font-size:12.5px;font-weight:600;color:var(--gray-4);border-bottom:1px solid var(--border);cursor:pointer;}
+.add-plus{font-size:15px;font-weight:700;line-height:1;}
+
+/* ── ellipsis menu ── */
+.menu{position:absolute;top:30px;right:10px;background:var(--bg-card);border:1px solid var(--border-strong);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);overflow:hidden;z-index:5;min-width:132px;}
+.menu-item{padding:9px 14px;font-size:12.5px;color:var(--octave-black);border-bottom:1px solid var(--border);}
+.menu-item:last-child{border-bottom:none;}
+.menu-item.danger{color:var(--red);}
+.callout{position:absolute;left:12px;right:12px;bottom:12px;background:rgba(26,26,31,.94);color:#fff;font-size:11px;line-height:1.5;border-radius:9px;padding:9px 11px;}
+.callout b{color:#FFD166;}
+</style>
+</head>
+<body>
+
+<h1>Comments &amp; Documents — tab options</h1>
+<div class="top-legend">
+  <b>Settled (direct instruction, 2026-08-11):</b>
+  <ul>
+    <li>Record View shows the <b>top 3</b> of each section, then a <b>View more</b> footer row.</li>
+    <li>View more opens the matching <b>Comments / Documents tab</b>, all records, sorted <b>created/updated DESC</b>.</li>
+    <li>Documents carry <b>Source:</b> plus the base-EAM hierarchy (Work Order / Equipment / Project / Department / Parent WO / Location / PM Schedule).</li>
+    <li>A group with <b>no documents is omitted entirely</b> — no “No Document” row, unlike the real base screen.</li>
+    <li>Comments: chat-style card, ellipsis top-right, <b>Edit + Delete on your own only</b>, Copy on others’.</li>
+    <li>Applies to <b>Equipment</b> screens as well as WO.</li>
+  </ul>
+  <div class="flag">Open: the Documents layout below. Section 1 is the decision; sections 2–3 are the settled parts drawn for confirmation.</div>
+</div>
+
+<div class="tradeoff">
+  <h3>Thumbnails from S3 — the trade-offs you asked about</h3>
+  Short version: <b>thumbnails can’t be the thing the layout depends on</b>, so design icon-first and treat a thumbnail as an upgrade that drops into a fixed slot. Reasons, worst first:
+  <table>
+    <tr><th>Concern</th><th>Why it bites here</th></tr>
+    <tr><td><b>Coverage is ragged</b></td><td>The strongest argument, and it isn’t a performance issue. S3 thumbnailing handles images and (with a renderer) PDFs. It won’t produce anything for <code>.sql</code>, <code>.dwg</code>, <code>.step</code>, or most CAD/office formats — your own screenshot has a <code>.sql</code> in the list. A card grid that’s 50% real previews and 50% generic icons reads as broken rather than sparse.</td></tr>
+    <tr><td><b>Offline is a hard stop</b></td><td>This app must be usable offline within ~30s. A thumbnail is a network fetch, so offline you get <em>zero</em> of them unless they were pre-synced. If the layout only works with images, the offline state is the broken state — and offline is the technician’s normal case, not the exception.</td></tr>
+    <tr><td><b>Presigned URLs defeat URL caching</b></td><td>Tenant documents in S3 are private, so thumbnails come via presigned URLs that expire. You can’t cache them keyed by URL (the URL changes every issue), so an offline store has to cache <em>bytes against a stable document id</em> — a real sync-layer design task, not a <code>&lt;img&gt;</code> tag. Minting 30 presigned URLs per screen open is also a server round trip before the first pixel.</td></tr>
+    <tr><td><b>Request count, not bytes</b></td><td>30 documents = 30 extra requests on plant LTE. Mitigable and worth doing regardless: lazy-load only what scrolls into view, and reserve fixed dimensions so late arrivals don’t reflow the list.</td></tr>
+    <tr><td><b>Payload size — needs confirming</b></td><td>Fine <em>if</em> the generated thumbnail is genuinely small (~5–15&nbsp;KB at ~96–144&nbsp;px). If the pipeline emits a 1&nbsp;MB “resized” image, 30 of them is 30&nbsp;MB. Worth checking the actual output dimensions before committing to a thumbnail-forward layout.</td></tr>
+    <tr><td><b>Decode/memory</b></td><td>Genuinely not a problem at thumbnail size. Don’t optimise for this.</td></tr>
+  </table>
+  <b>Consequence for the choice:</b> Option&nbsp;B’s appeal largely evaporates in the two states you’ll see most (offline, and mixed file types). Option&nbsp;C keeps your screenshot’s structure and still shows a preview when one exists — which is why it’s marked recommended.
+</div>
+
+<!-- ══════════════════ SECTION 1 — DOCUMENTS LAYOUT ══════════════════ -->
+<div class="section-block">
+  <div class="section-title">1 — Documents tab layout <span style="font-weight:600;color:#FFD166;">(the open decision)</span></div>
+  <div class="section-sub">Same 6 documents across all three, same source hierarchy. Empty groups (Project, Department, Location) are omitted everywhere — that part is settled. Each option is drawn twice: online with thumbnails available, then the state you actually get offline or on non-previewable file types.</div>
+
+  <div class="row">
+
+    <!-- A: tree, icons only -->
+    <div class="col">
+      <div class="frame"><div class="screen">
+        <div class="hdr"><div class="hdr-row">
+          <span class="hdr-back"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></span>
+          <span class="hdr-title">Documents</span>
+        </div></div>
+        <div class="ld-hdr"><span class="ld-num">20050</span><span class="ld-desc">Calibration</span></div>
+        <div class="body">
+          <div class="tree-group">
+            <div class="tree-grp-row">
+              <span class="tree-chev"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(90deg)"><path d="M9 18l6-6-6-6"/></svg></span>
+              <span class="tree-grp-label">Work Order</span><span class="tree-grp-val mono">20050</span>
+              <span class="tree-grp-badge">2</span>
+            </div>
+            <div class="tree-doc"><div class="doc-slot"><span class="doc-ext">PDF</span></div>
+              <div class="doc-texts"><div class="doc-name">52TW77_1_202511121322.pdf</div><div class="doc-meta">142 · PDF · 2.1 MB</div></div>
+              <span class="doc-ell"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></span></div>
+            <div class="tree-doc"><div class="doc-slot"><span class="doc-ext">JPG</span></div>
+              <div class="doc-texts"><div class="doc-name">1N521_AS01_202511121322.jpg</div><div class="doc-meta">143 · JPG · 640 KB</div></div>
+              <span class="doc-ell"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></span></div>
+          </div>
+          <div class="tree-group">
+            <div class="tree-grp-row">
+              <span class="tree-chev"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(90deg)"><path d="M9 18l6-6-6-6"/></svg></span>
+              <span class="tree-grp-label">Equipment</span><span class="tree-grp-val mono">00067333</span>
+              <span class="tree-grp-badge">3</span>
+            </div>
+            <div class="tree-doc"><div class="doc-slot"><span class="doc-ext">PDF</span></div>
+              <div class="doc-texts"><div class="doc-name">Pump_Assembly_Rev4.pdf</div><div class="doc-meta">142 · PDF · 2.4 MB</div></div>
+              <span class="doc-ell"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></span></div>
+            <div class="tree-doc"><div class="doc-slot"><span class="doc-ext">JPG</span></div>
+              <div class="doc-texts"><div class="doc-name">1N521_AS01_202511121322.jpg</div><div class="doc-meta">143 · JPG · 640 KB</div></div>
+              <span class="doc-ell"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></span></div>
+            <div class="tree-doc"><div class="doc-slot"><span class="doc-ext">SQL</span></div>
+              <div class="doc-texts"><div class="doc-name">Custom_Workflow_Function.sql</div><div class="doc-meta">151 · SQL · 12 KB</div></div>
+              <span class="doc-ell"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></span></div>
+          </div>
+          <div class="tree-group">
+            <div class="tree-grp-row">
+              <span class="tree-chev"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+              <span class="tree-grp-label">Parent WO</span><span class="tree-grp-val mono">20049</span>
+              <span class="tree-grp-badge">1</span>
+            </div>
+          </div>
+          <div class="callout">Groups with no documents (<b>Project, Department, Location, PM&nbsp;Schedule</b>) are gone entirely — no “No Document” rows.</div>
+        </div>
+      </div></div>
+      <div class="opt-label"><b>A — Tree, type icons only.</b> Closest to your screenshot. Identical whether online or off, and every file type looks equally intentional. Densest: ~7 documents visible.<br><span class="verdict v-dec">no thumbnails</span></div>
+    </div>
+
+    <!-- B: card list with thumbnails -->
+    <div class="col">
+      <div class="frame"><div class="screen">
+        <div class="hdr"><div class="hdr-row">
+          <span class="hdr-back"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></span>
+          <span class="hdr-title">Documents</span>
+        </div></div>
+        <div class="ld-hdr"><span class="ld-num">20050</span><span class="ld-desc">Calibration</span></div>
+        <div class="body">
+          <div class="grp-hdr"><span class="grp-hdr-label">Work Order · 20050</span><span class="grp-hdr-badge">2</span></div>
+          <div class="doc-card"><div class="doc-slot lg" style="background:#DCE6F5;"><span class="doc-ext" style="color:#4A6A94;">PDF</span></div>
+            <div class="doc-texts"><div class="doc-name">52TW77_1_202511121322.pdf</div><div class="doc-meta">PDF · 2.1 MB · 11/12/2025</div><span class="src-chip">Source: <span class="mono">WO 20050</span></span></div>
+            <span class="doc-ell"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></span></div>
+          <div class="doc-card"><div class="doc-slot lg" style="background:linear-gradient(135deg,#8FB3D9,#5A7FA8);"></div>
+            <div class="doc-texts"><div class="doc-name">1N521_AS01_202511121322.jpg</div><div class="doc-meta">JPG · 640 KB · 11/12/2025</div><span class="src-chip">Source: <span class="mono">WO 20050</span></span></div>
+            <span class="doc-ell"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></span></div>
+          <div class="grp-hdr"><span class="grp-hdr-label">Equipment · 00067333</span><span class="grp-hdr-badge">3</span></div>
+          <div class="doc-card"><div class="doc-slot lg" style="background:linear-gradient(135deg,#C9D6E8,#93A6BF);"></div>
+            <div class="doc-texts"><div class="doc-name">Pump_Assembly_Rev4.pdf</div><div class="doc-meta">PDF · 2.4 MB · 02/11/2024</div><span class="src-chip">Source: <span class="mono">00067333</span></span></div>
+            <span class="doc-ell"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></span></div>
+          <div class="doc-card"><div class="doc-slot lg" style="background:linear-gradient(135deg,#A8C4A2,#6E8F6B);"></div>
+            <div class="doc-texts"><div class="doc-name">1N521_AS01_202511121322.jpg</div><div class="doc-meta">JPG · 640 KB · 11/12/2025</div><span class="src-chip">Source: <span class="mono">00067333</span></span></div>
+            <span class="doc-ell"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></span></div>
+          <div class="doc-card"><div class="doc-slot lg"><span class="doc-ext">SQL</span></div>
+            <div class="doc-texts"><div class="doc-name">Custom_Workflow_Function.sql</div><div class="doc-meta">SQL · 12 KB · 11/12/2025</div><span class="src-chip">Source: <span class="mono">00067333</span></span></div>
+            <span class="doc-ell"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></span></div>
+          <div class="callout">Look at the <b>.sql</b> row against the four above it — that mismatch is the normal case, not an edge case.</div>
+        </div>
+      </div></div>
+      <div class="opt-label"><b>B — Card list with thumbnails.</b> Handsome when every file previews. Roughly half the density (~4½ visible vs 7), and the ragged-coverage problem is visible in the last row.<br><span class="verdict v-no">breaks offline</span></div>
+    </div>
+
+    <!-- C: tree with degrading thumbnail slot -->
+    <div class="col">
+      <div class="frame"><div class="screen">
+        <div class="hdr"><div class="hdr-row">
+          <span class="hdr-back"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></span>
+          <span class="hdr-title">Documents</span>
+        </div></div>
+        <div class="ld-hdr"><span class="ld-num">20050</span><span class="ld-desc">Calibration</span></div>
+        <div class="body">
+          <div class="tree-group">
+            <div class="tree-grp-row">
+              <span class="tree-chev"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(90deg)"><path d="M9 18l6-6-6-6"/></svg></span>
+              <span class="tree-grp-label">Work Order</span><span class="tree-grp-val mono">20050</span>
+              <span class="tree-grp-badge">2</span>
+            </div>
+            <div class="tree-doc"><div class="doc-slot" style="background:linear-gradient(135deg,#C9D6E8,#93A6BF);"></div>
+              <div class="doc-texts"><div class="doc-name">52TW77_1_202511121322.pdf</div><div class="doc-meta">PDF · 2.1 MB · 11/12/2025</div></div>
+              <span class="doc-ell"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></span></div>
+            <div class="tree-doc"><div class="doc-slot" style="background:linear-gradient(135deg,#8FB3D9,#5A7FA8);"></div>
+              <div class="doc-texts"><div class="doc-name">1N521_AS01_202511121322.jpg</div><div class="doc-meta">JPG · 640 KB · 11/12/2025</div></div>
+              <span class="doc-ell"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></span></div>
+          </div>
+          <div class="tree-group">
+            <div class="tree-grp-row">
+              <span class="tree-chev"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(90deg)"><path d="M9 18l6-6-6-6"/></svg></span>
+              <span class="tree-grp-label">Equipment</span><span class="tree-grp-val mono">00067333</span>
+              <span class="tree-grp-badge">3</span>
+            </div>
+            <div class="tree-doc"><div class="doc-slot" style="background:linear-gradient(135deg,#C9D6E8,#93A6BF);"></div>
+              <div class="doc-texts"><div class="doc-name">Pump_Assembly_Rev4.pdf</div><div class="doc-meta">PDF · 2.4 MB · 02/11/2024</div></div>
+              <span class="doc-ell"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></span></div>
+            <div class="tree-doc"><div class="doc-slot" style="background:linear-gradient(135deg,#A8C4A2,#6E8F6B);"></div>
+              <div class="doc-texts"><div class="doc-name">1N521_AS01_202511121322.jpg</div><div class="doc-meta">JPG · 640 KB · 11/12/2025</div></div>
+              <span class="doc-ell"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></span></div>
+            <div class="tree-doc"><div class="doc-slot"><span class="doc-ext">SQL</span></div>
+              <div class="doc-texts"><div class="doc-name">Custom_Workflow_Function.sql</div><div class="doc-meta">SQL · 12 KB · 11/12/2025</div></div>
+              <span class="doc-ell"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></span></div>
+          </div>
+          <div class="tree-group">
+            <div class="tree-grp-row">
+              <span class="tree-chev"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+              <span class="tree-grp-label">Parent WO</span><span class="tree-grp-val mono">20049</span>
+              <span class="tree-grp-badge">1</span>
+            </div>
+          </div>
+          <div class="callout">Same tree as A. The <b>38px slot is fixed</b> — a thumbnail fills it when there is one, the type badge sits in it when there isn’t. No reflow either way.</div>
+        </div>
+      </div></div>
+      <div class="opt-label"><b>C — Tree, with a degrading preview slot.</b> Your screenshot’s structure and density, plus a real preview where one exists. The <code>.sql</code> row looks deliberate rather than like a failure.<br><span class="verdict v-rec">recommended</span></div>
+    </div>
+
+  </div>
+
+  <div class="section-sub" style="margin-top:26px;">The state that decides it — <b>offline, or a folder of CAD/office files</b>. This is B and C with no thumbnail bytes available:</div>
+  <div class="row">
+    <div class="col">
+      <div class="frame"><div class="screen">
+        <div class="hdr"><div class="hdr-row"><span class="hdr-back"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></span><span class="hdr-title">Documents</span></div></div>
+        <div class="ld-hdr"><span class="ld-num">20050</span><span class="ld-desc">Calibration</span></div>
+        <div class="offline-strip"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M1 1l22 22M8.5 16.5a5 5 0 017 0M5 13a10 10 0 0114 0"/></svg> Offline — previews unavailable</div>
+        <div class="body">
+          <div class="grp-hdr"><span class="grp-hdr-label">Work Order · 20050</span><span class="grp-hdr-badge">2</span></div>
+          <div class="doc-card"><div class="doc-slot lg"><span class="doc-ext">PDF</span></div><div class="doc-texts"><div class="doc-name">52TW77_1_202511121322.pdf</div><div class="doc-meta">PDF · 2.1 MB · 11/12/2025</div><span class="src-chip">Source: <span class="mono">WO 20050</span></span></div></div>
+          <div class="doc-card"><div class="doc-slot lg"><span class="doc-ext">JPG</span></div><div class="doc-texts"><div class="doc-name">1N521_AS01_202511121322.jpg</div><div class="doc-meta">JPG · 640 KB · 11/12/2025</div><span class="src-chip">Source: <span class="mono">WO 20050</span></span></div></div>
+          <div class="grp-hdr"><span class="grp-hdr-label">Equipment · 00067333</span><span class="grp-hdr-badge">3</span></div>
+          <div class="doc-card"><div class="doc-slot lg"><span class="doc-ext">PDF</span></div><div class="doc-texts"><div class="doc-name">Pump_Assembly_Rev4.pdf</div><div class="doc-meta">PDF · 2.4 MB · 02/11/2024</div><span class="src-chip">Source: <span class="mono">00067333</span></span></div></div>
+          <div class="doc-card"><div class="doc-slot lg"><span class="doc-ext">JPG</span></div><div class="doc-texts"><div class="doc-name">1N521_AS01_202511121322.jpg</div><div class="doc-meta">JPG · 640 KB · 11/12/2025</div><span class="src-chip">Source: <span class="mono">00067333</span></span></div></div>
+          <div class="callout">B offline: <b>big empty boxes</b>, half the density of the tree, and nothing gained for the space spent.</div>
+        </div>
+      </div></div>
+      <div class="opt-label"><b>B offline.</b> The 52px slots are now decorative padding.<br><span class="verdict v-no">not recommended</span></div>
+    </div>
+    <div class="col">
+      <div class="frame"><div class="screen">
+        <div class="hdr"><div class="hdr-row"><span class="hdr-back"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></span><span class="hdr-title">Documents</span></div></div>
+        <div class="ld-hdr"><span class="ld-num">20050</span><span class="ld-desc">Calibration</span></div>
+        <div class="offline-strip"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M1 1l22 22M8.5 16.5a5 5 0 017 0M5 13a10 10 0 0114 0"/></svg> Offline — previews unavailable</div>
+        <div class="body">
+          <div class="tree-group">
+            <div class="tree-grp-row"><span class="tree-chev"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(90deg)"><path d="M9 18l6-6-6-6"/></svg></span><span class="tree-grp-label">Work Order</span><span class="tree-grp-val mono">20050</span><span class="tree-grp-badge">2</span></div>
+            <div class="tree-doc"><div class="doc-slot"><span class="doc-ext">PDF</span></div><div class="doc-texts"><div class="doc-name">52TW77_1_202511121322.pdf</div><div class="doc-meta">PDF · 2.1 MB · 11/12/2025</div></div></div>
+            <div class="tree-doc"><div class="doc-slot"><span class="doc-ext">JPG</span></div><div class="doc-texts"><div class="doc-name">1N521_AS01_202511121322.jpg</div><div class="doc-meta">JPG · 640 KB · 11/12/2025</div></div></div>
+          </div>
+          <div class="tree-group">
+            <div class="tree-grp-row"><span class="tree-chev"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(90deg)"><path d="M9 18l6-6-6-6"/></svg></span><span class="tree-grp-label">Equipment</span><span class="tree-grp-val mono">00067333</span><span class="tree-grp-badge">3</span></div>
+            <div class="tree-doc"><div class="doc-slot"><span class="doc-ext">PDF</span></div><div class="doc-texts"><div class="doc-name">Pump_Assembly_Rev4.pdf</div><div class="doc-meta">PDF · 2.4 MB · 02/11/2024</div></div></div>
+            <div class="tree-doc"><div class="doc-slot"><span class="doc-ext">JPG</span></div><div class="doc-texts"><div class="doc-name">1N521_AS01_202511121322.jpg</div><div class="doc-meta">JPG · 640 KB · 11/12/2025</div></div></div>
+            <div class="tree-doc"><div class="doc-slot"><span class="doc-ext">SQL</span></div><div class="doc-texts"><div class="doc-name">Custom_Workflow_Function.sql</div><div class="doc-meta">SQL · 12 KB · 11/12/2025</div></div></div>
+          </div>
+          <div class="tree-group">
+            <div class="tree-grp-row"><span class="tree-chev"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span><span class="tree-grp-label">Parent WO</span><span class="tree-grp-val mono">20049</span><span class="tree-grp-badge">1</span></div>
+          </div>
+          <div class="callout">C offline: <b>identical to option A.</b> Nothing looks missing, because the slot was never load-bearing.</div>
+        </div>
+      </div></div>
+      <div class="opt-label"><b>C offline.</b> Degrades to exactly A — the reason to prefer it.<br><span class="verdict v-rec">recommended</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ SECTION 2 — RV INLINE TOP 3 ══════════════════ -->
+<div class="section-block">
+  <div class="section-title">2 — Record View inline: top 3 + View more <span style="font-weight:600;color:#6FD8E3;">(settled — confirm)</span></div>
+  <div class="section-sub">Both sections on the Record View show 3 records and a View more footer that opens the full tab. Counter badge shows the total, so “3 of 12” is implicit without a second number.</div>
+  <div class="row">
+    <div class="col">
+      <div class="frame"><div class="screen">
+        <div class="hdr"><div class="hdr-row"><span class="hdr-back"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></span><span class="hdr-title">Work Order</span></div></div>
+        <div class="ld-hdr"><span class="ld-num">20050</span><span class="ld-desc">Calibration</span></div>
+        <div class="body">
+          <div class="rv-sec">
+            <div class="rv-sec-hdr"><span class="rv-sec-title">Comments</span><span class="rv-sec-badge">12</span></div>
+            <div class="add-row"><span class="add-plus">+</span> Add comment</div>
+            <div class="rv-inline-cmt"><div class="cmt-top"><span class="cmt-av">MK</span><span class="cmt-who">Meera Kumar</span><span class="cmt-when">08/11 09:12</span></div><div class="cmt-body">Vibration back within tolerance after the bearing swap.</div></div>
+            <div class="rv-inline-cmt"><div class="cmt-top"><span class="cmt-av" style="background:#2F6FB2;">BC</span><span class="cmt-who">Bruce Campbell</span><span class="cmt-you">(You)</span><span class="cmt-when">08/10 16:40</span></div><div class="cmt-body">Seal kit ordered, ETA Thursday.</div></div>
+            <div class="rv-inline-cmt"><div class="cmt-top"><span class="cmt-av">JR</span><span class="cmt-who">Juan Rodriguez</span><span class="cmt-when">08/10 11:02</span></div><div class="cmt-body">LOTO applied and verified with the area supervisor.</div></div>
+            <div class="view-more">View more <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+          </div>
+          <div class="rv-sec">
+            <div class="rv-sec-hdr"><span class="rv-sec-title">Documents</span><span class="rv-sec-badge">6</span></div>
+            <div class="add-row"><span class="add-plus">+</span> Add document</div>
+            <div class="rv-inline-doc"><div class="doc-slot" style="background:linear-gradient(135deg,#C9D6E8,#93A6BF);"></div><div class="doc-texts"><div class="doc-name">52TW77_1_202511121322.pdf</div><div class="doc-meta">Source: <span class="mono">WO 20050</span> · 2.1 MB</div></div></div>
+            <div class="rv-inline-doc"><div class="doc-slot" style="background:linear-gradient(135deg,#8FB3D9,#5A7FA8);"></div><div class="doc-texts"><div class="doc-name">1N521_AS01_202511121322.jpg</div><div class="doc-meta">Source: <span class="mono">WO 20050</span> · 640 KB</div></div></div>
+            <div class="rv-inline-doc"><div class="doc-slot"><span class="doc-ext">SQL</span></div><div class="doc-texts"><div class="doc-name">Custom_Workflow_Function.sql</div><div class="doc-meta">Source: <span class="mono">00067333</span> · 12 KB</div></div></div>
+            <div class="view-more">View more <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+          </div>
+        </div>
+      </div></div>
+      <div class="opt-label">Inline sections keep <b>Source</b> on documents so the 3 shown are self-explanatory without the tree.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ SECTION 3 — COMMENTS TAB ══════════════════ -->
+<div class="section-block">
+  <div class="section-title">3 — Comments tab <span style="font-weight:600;color:#6FD8E3;">(settled — confirm)</span></div>
+  <div class="section-sub">Chat-style cards, newest first. Your own comments are tinted and carry Edit + Delete; others’ carry Copy only — matching Equipment’s existing §7.2 mechanics rather than inventing a permission rule.</div>
+  <div class="row">
+    <div class="col">
+      <div class="frame"><div class="screen">
+        <div class="hdr"><div class="hdr-row"><span class="hdr-back"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></span><span class="hdr-title">Comments</span></div></div>
+        <div class="ld-hdr"><span class="ld-num">20050</span><span class="ld-desc">Calibration</span></div>
+        <div class="body">
+          <div class="add-row" style="background:var(--bg-card);border:1px solid var(--border);border-radius:11px;margin:0 12px 10px;"><span class="add-plus">+</span> Add comment</div>
+          <div class="cmt-card mine">
+            <span class="cmt-ell"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></span>
+            <div class="cmt-top"><span class="cmt-av" style="background:#2F6FB2;">BC</span><span class="cmt-who">Bruce Campbell</span><span class="cmt-you">(You)</span><span class="cmt-when">08/11 14:05</span></div>
+            <div class="cmt-body">Recalibrated to 2.4 bar and re-checked against the reference gauge. Within spec.</div>
+            <div class="cmt-edited">Edited 08/11 14:11</div>
+            <div class="menu">
+              <div class="menu-item">Edit</div>
+              <div class="menu-item">Copy</div>
+              <div class="menu-item danger">Delete</div>
+            </div>
+          </div>
+          <div class="cmt-card">
+            <span class="cmt-ell"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></span>
+            <div class="cmt-top"><span class="cmt-av">MK</span><span class="cmt-who">Meera Kumar</span><span class="cmt-when">08/11 09:12</span></div>
+            <div class="cmt-body">Vibration reading back within tolerance after the bearing swap. Worth a follow-up next PM.</div>
+          </div>
+          <div class="cmt-card">
+            <span class="cmt-ell"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></span>
+            <div class="cmt-top"><span class="cmt-av">JR</span><span class="cmt-who">Juan Rodriguez</span><span class="cmt-when">08/10 11:02</span></div>
+            <div class="cmt-body">LOTO applied and verified with the area supervisor before opening the guarding.</div>
+          </div>
+          <div class="callout">Menu is drawn open on the first card to show <b>Edit + Delete on your own</b>. Others’ cards show Copy only.</div>
+        </div>
+      </div></div>
+      <div class="opt-label">Own comments tinted + full actions; others’ read-only. Newest first.</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
