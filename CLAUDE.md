@@ -508,6 +508,22 @@ resolved. This is separate from the rail's WO Type signal, which
 distinguishes a different axis (configured workflow vs. the §11 fallback),
 not Free Form vs. Not Free Form within a configured one.
 
+### Workflow gating is FORWARD-ONLY (locked 2026-08-11, §14.10)
+A technician can **always** navigate back to an already-completed step to
+update or change it. **"Not Free Form" dictates the order of moving forward,
+not backward.** This reversed the rail's prior behaviour: a gated workflow used
+to answer a tap on a ✓ step with "Already completed — steps stay in a fixed
+order," and a Free Form *configured* workflow (PM) had no handler at all (a
+silent dead end). Both navigate now. The reasoning: a mistyped reading or
+wrongly-booked hours has to be correctable, or the only options left are
+abandoning the WO or leaving bad data in the system of record — which no
+workflow config intends. **Forward gating is untouched** (a later step stays
+locked and still explains itself). Completed rows carry a trailing chevron
+(`.step-map-back`) because `cursor:pointer` says nothing on a touch device, and
+an undiscoverable corrective action is nearly as useless as none.
+Note §14.7.1's back-button rule is unaffected but its *stated justification* was
+corrected in the same pass — it used to cite the rail refusing backward jumps.
+
 ### Dev/demo tooling
 No design-doc entries — same category as any other dev convenience. Every
 screen's `.proto-theme-bar` carries a theme toggle, an online/offline

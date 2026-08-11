@@ -316,6 +316,9 @@ function renderStepRailTypeSlot(rail, jobType, asCircle) {
    steps at all (the §11 fallback) — screens handle that case themselves,
    typically by hiding the whole rail (it has nothing to show). jobType
    (optional) drives the WO Type colour+icon signal above. */
+// Trailing affordance on a completed step (§14.10). A plain right chevron, same
+// shape the flat rail and every other "this row goes somewhere" row uses.
+const STEP_BACK_CHEVRON = '<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
 function renderStepRail(workflow, activeStep, jobType, activeRef) {
   const rail = document.getElementById('stepRail');
   const map = document.getElementById('stepMap');
@@ -345,14 +348,26 @@ function renderStepRail(workflow, activeStep, jobType, activeRef) {
   const activeLabel = WO_STEP_LABELS[activeStep];
   map.innerHTML = (timerPanel ? timerPanel.outerHTML : '') + steps.map((s, i) => {
     const label = WO_STEP_LABELS[s];
-    // On a Reference destination (§16.10) the rail is the ONLY way back into
-    // the flow, so every step at or before the WO's current position becomes
-    // a real navigation. Without this the numbered rail is display-only —
-    // fine on a step screen, where the bottom bar moves you, but a dead end
-    // on a side screen that has no bottom bar at all.
-    const backNav = activeRef && i <= activeIdx ? ` onclick="goToWoStep('${s}')"` : '';
-    if (i < activeIdx) return `<div class="step-map-item"${backNav || (gated ? ` onclick="showToast('Already completed — steps stay in a fixed order on this workflow')"` : '')}><div class="step-map-icon smi-done">✓</div><span class="step-map-label">${label}</span></div>`;
-    if (i === activeIdx) return `<div class="step-map-item${activeRef ? '' : ' active'}"${backNav}><div class="step-map-icon smi-active">${i + 1}</div><span class="step-map-label${activeRef ? '' : ' active-label'}">${label}</span></div>`;
+    /* A COMPLETED STEP IS ALWAYS NAVIGABLE (§14.10, locked 2026-08-11, direct
+       instruction). "Not Free Form" governs the order you may move FORWARD in;
+       it says nothing about going back to something already done. A technician
+       who mistypes a meter reading, books the wrong hours, or needs to add a
+       part after the fact has to be able to return to that step and change it —
+       the alternative is abandoning the WO, which no real workflow rule
+       intends.
+       This replaces two different dead ends: a gated workflow used to answer a
+       tap on a done step with the toast "Already completed — steps stay in a
+       fixed order on this workflow" (wrong — that conflated forward order with
+       backward immutability), and a Free Form *configured* workflow had no
+       onclick at all, so the row was a silent no-op. Both now navigate.
+       Forward gating is untouched: a step past the WO's position stays locked
+       with its own explanatory toast. */
+    if (i < activeIdx) return `<div class="step-map-item" onclick="goToWoStep('${s}')"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">${label}</span><span class="step-map-back">${STEP_BACK_CHEVRON}</span></div>`;
+    // The current step: only navigable from a Reference destination (§16.10),
+    // where the rail is the only way back into the flow. On a step screen it's
+    // the screen you're already on.
+    const selfNav = activeRef ? ` onclick="goToWoStep('${s}')"` : '';
+    if (i === activeIdx) return `<div class="step-map-item${activeRef ? '' : ' active'}"${selfNav}><div class="step-map-icon smi-active">${i + 1}</div><span class="step-map-label${activeRef ? '' : ' active-label'}">${label}</span></div>`;
     return `<div class="step-map-item"${gated ? ` onclick="showToast('Locked — finish ${activeLabel} first')"` : ''}><div class="step-map-icon smi-locked">${i + 1}</div><span class="step-map-label">${label}</span></div>`;
   }).join('') + stepMapReferenceGroupHtml(activeRef);
   if (seg) {

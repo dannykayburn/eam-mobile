@@ -2716,10 +2716,16 @@ functions. Now every one of them returns straight to WO List/Search,
 matching what Record View's own back button already did:
 
 - **Once you're mid-workflow, back means "leave this WO," not "undo one
-  step."** This also resolves a real inconsistency: the step rail already
-  refuses to let you jump back into a done step (§14.3's gating toast) —
-  letting the physical back button quietly do that anyway was the actual
-  bug.
+  step."** The back button is for exiting the record; the **step rail** is how
+  you move between steps. That separation is the whole point, and it's why this
+  decision survives §14.10 unchanged.
+  **Superseded reasoning, corrected 2026-08-11:** this bullet used to justify
+  itself with "the step rail already refuses to let you jump back into a done
+  step — letting the physical back button quietly do that anyway was the actual
+  bug." That is no longer true and was never the strongest argument: §14.10 now
+  makes a completed step **always** navigable from the rail. The back button's
+  behaviour is unaffected, but it stands on the separation-of-purpose reason
+  above, not on the rail being restrictive.
 - Applies uniformly to all 4 steps regardless of Free Form/Not Free Form
   or the §11 fallback — one simple rule, not conditional on workflow type.
 - **If the WO's timer is running** (`eamTimerRunning` in sessionStorage),
@@ -2798,6 +2804,52 @@ to bottom. Own overlay (`#questionOverlay`), separate from
 `#confirmOverlay`. `openQuestion(message, onYes, onNo)` — Cancel never
 needs a callback. Available for any future screen needing a real 3-way
 confirmation.
+
+## 14.10 A completed step is always navigable — gating is forward-only
+
+**Locked 2026-08-11, direct instruction.** The rule, stated plainly:
+
+> A technician can **always** navigate back to a step they have already
+> completed, in order to update or change it. **"Not Free Form" dictates the
+> order of moving *forward*, not backward.**
+
+This is a rule change, not a clarification — it reverses how the step rail
+behaved. Previously, tapping a completed (✓) step:
+
+- on a **Not Free Form** workflow, produced the toast *"Already completed —
+  steps stay in a fixed order on this workflow"* — which conflated forward
+  sequence with backward immutability. Those are different things, and only
+  the first is what a gated workflow is for.
+- on a **Free Form but configured** workflow (PM), did nothing at all — no
+  handler, a silent dead end, which was arguably worse because it gave no
+  signal either way.
+
+**Why the old behaviour was wrong, not just strict:** a technician who
+mistypes a meter reading, books hours against the wrong day, or realises they
+need one more part after moving on has to be able to return to that step and
+correct it. With no way back, the only remaining options are abandoning the WO
+or leaving bad data in the system of record. No real workflow configuration
+intends that — the gate exists so work isn't done *out of order*, not so
+mistakes become permanent.
+
+**What is unchanged:** forward gating. A step past the WO's current position
+stays locked and still explains itself (*"Locked — finish `<step>` first"*).
+The §11 fallback (no configured workflow) was already fully free-flow and is
+untouched. The current step remains a non-link on a step screen — it's the
+screen you're on — but stays navigable from a Reference destination (§16.10),
+where the rail is the only way back into the flow.
+
+**Affordance matters here.** A completed row now carries a trailing chevron
+(`.step-map-back`). `cursor:pointer` communicates nothing on a touch device, so
+without a visible cue the capability would exist and go undiscovered — which
+for a corrective action is nearly as bad as not having it. The chevron is
+deliberately on completed rows only: the current row is where you already are,
+and a locked row must not look like it leads anywhere.
+
+Implemented in the shared `renderStepRail()` (`eam-shared.js`), so it applies
+to every workflow screen at once rather than per-screen. Regression-tested in
+`.claude/skills/verify/scripts/tests/test-step-rail-back-nav.js`, which also
+asserts that forward gating survives.
 
 # 15. WO Workflow — Step 1: WO Record View
 
