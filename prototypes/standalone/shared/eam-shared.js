@@ -738,7 +738,7 @@ function openTextFilter(opts) {
   const input = document.getElementById('textFilterInput');
   input.value = opts.value || '';
   input.placeholder = opts.placeholder || 'Contains…';
-  openSheet('textFilterSheet');
+  openSheetExclusive('textFilterSheet');
   // Focus after the slide-up settles, or mobile Safari drops the keyboard.
   setTimeout(() => input.focus(), 250);
 }
@@ -779,7 +779,7 @@ function openDateRangeFilter(opts) {
   document.getElementById('dateRangeTo').value = opts.to || '';
   document.getElementById('dateRangeHint').textContent =
     'Leave either side empty for an open-ended range.';
-  openSheet('dateRangeSheet');
+  openSheetExclusive('dateRangeSheet');
 }
 function clearDateRange() {
   document.getElementById('dateRangeFrom').value = '';
@@ -825,7 +825,7 @@ function openSortSheet(opts) {
   sortSheetKey = opts.key || (sortSheetFields[0] && sortSheetFields[0].key) || '';
   sortSheetDir = opts.dir || 'asc';
   renderSortSheet();
-  openSheet('sortSheet');
+  openSheetExclusive('sortSheet');
 }
 // Names kept as-is: these two are referenced by onclick attributes in the
 // markup above, so they're this component's public surface, not internals.

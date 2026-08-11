@@ -110,9 +110,18 @@ re-investigation every time it comes up.
   bottom:0` so `--kb-inset` can't lift it at all. iOS's accessory bar itself
   cannot be suppressed from a web page — the rule is to not collide with it.
 - **A full-attention sheet should open via `openSheetExclusive()`**, not
-  `openSheet()`, or a previously-opened sheet stays visible underneath (this
-  happened: "Set Equipment Photo" showing through the comment editor).
-  Exclusivity is opt-in because some flows legitimately nest sheets (§18).
+  `openSheet()`, or a previously-opened sheet stays visible underneath. This
+  happened twice: "Set Equipment Photo" behind the comment editor, and Comment
+  Actions behind the checklist's All-items overlay. A **non-sheet overlay**
+  (the checklist overview) needs `closeAllSheets()` instead, since it isn't a
+  `.bottom-sheet` itself. Exclusivity is opt-in because some flows legitimately
+  nest sheets (§18).
+- **Run `check-keyboard.js` after touching any sheet holding a text input.**
+  Three patterns, every one of which reached a device before being caught: a
+  control at a sheet's bottom edge (collides with iOS's accessory bar), a
+  surface that opens without closing others, and `bottom:0` defeating
+  `--kb-inset` so the keyboard covers the sheet. The script is verified to
+  catch each — re-introduce one and it reports it.
 - `prototypes/wo-workflow/index.html` (the prior unified compile) is
   **intentionally frozen** — it's a hand-merged monolith with no live
   connection to the standalone source files and is the *wrong* model to

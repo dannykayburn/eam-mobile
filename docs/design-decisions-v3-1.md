@@ -3366,11 +3366,30 @@ from mockup options, promoted into the real file.
     already stacks Instructions (§16.7) + dataspy/search + Group-by
     before any real content, and an always-visible bar would add a 4th
     permanent row. Revisit if that stack proves too tall in practice.
+  - **Search matches everything the row can DISPLAY, not just the label**
+    (widened 2026-08-11, direct instruction: "any displayed data would be
+    how it will occur in the app"). `itemSearchHaystack()` spans the label,
+    equipment id + description, the group name, the entered answer
+    (including `true`→"yes/done/complete" so a completed toggle is
+    findable by word), the item's own note, UOM/range, its option labels
+    ("Pass"/"Fail"/"N/A" — findable *before* being answered), and the
+    required/follow-up flags. Previously only `label` was matched, so on a
+    Route WO searching an equipment code returned nothing even though the
+    equipment chip was visibly on the row. **Built from the item object,
+    never by reading rendered HTML back** — scraping the DOM would couple
+    the filter to markup and silently break the next time a row's anatomy
+    changes.
   - **Group-emptying rule** (`buildStepGroupedBody()`/
     `buildEquipmentGroupedBody()`) — same precedent as §8.3's own "cards
     drop a null row entirely": a group with zero rows matching the active
     filter/search doesn't render at all, badge and all, rather than
     showing an empty header over nothing.
+  - **Opening the overlay closes any open bottom sheet** (2026-08-11,
+    device report). This overlay outranks `.bottom-sheet` on z-index and
+    is a full-attention surface, so a sheet left open behind it showed
+    through — Comment Actions' title and ✕ were visible under the
+    All-items list. It calls `closeAllSheets()` rather than
+    `openSheetExclusive()` because it isn't a `.bottom-sheet` itself.
   - **Badges always show true totals, never the filtered count** — a
     group's `done/total` badge reflects real progress regardless of
     what's currently hidden by the filter/search; showing a filtered

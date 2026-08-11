@@ -1070,9 +1070,31 @@ let overviewSearchTerm = '';
 // never drift out of sync between them. Ghost rows aren't real ITEMS (see
 // ovItemRowHtml) and aren't run through this at all — a ghost only shows
 // or hides based on whether its OWN trigger item passed this check.
+/* Search spans everything the row can DISPLAY, not just the label (widened
+   2026-08-11, direct instruction: "any displayed data would be how it will
+   occur in the app"). Typing an equipment code, a description, a group name,
+   an entered answer or a note all filter now — previously only `label` was
+   matched, so searching "P-1042" on a Route WO found nothing even though the
+   equipment chip was right there on screen.
+   Built from the item rather than from rendered HTML on purpose: reading the
+   DOM back would tie the filter to markup and break the moment a row's
+   anatomy changes. */
+function itemSearchHaystack(it) {
+  const parts = [
+    it.label, it.equipId, it.equipDesc, it.note, it.uom, it.range,
+    GROUP_NAMES[it.group] || it.group,
+    // The entered answer, whatever its type (toggle text, number, slider value).
+    (it.value === true ? 'yes done complete' : it.value === false ? 'no' : it.value),
+    it.required ? 'required' : '',
+    it.dynamic ? 'follow-up' : '',
+  ];
+  // Option labels so "Pass"/"Fail"/"N/A" are findable even before an answer.
+  if (Array.isArray(it.options)) it.options.forEach(o => parts.push(Array.isArray(o) ? o[0] : o));
+  return parts.filter(v => v !== null && v !== undefined && v !== '').join(' ').toLowerCase();
+}
 function itemMatchesFilter(it) {
   if (overviewDataspy === 'uncompleted' && isDone(it)) return false;
-  if (overviewSearchTerm && !it.label.toLowerCase().includes(overviewSearchTerm)) return false;
+  if (overviewSearchTerm && !itemSearchHaystack(it).includes(overviewSearchTerm)) return false;
   return true;
 }
 
@@ -1247,6 +1269,11 @@ function renderOverviewBody() {
 }
 
 function openOverview() {
+  // Close any open bottom sheet first (2026-08-11, device report: the Comment
+  // Actions sheet stayed visible underneath this overlay, its title and ✕
+  // showing through). This overlay sits above .bottom-sheet's z-index and is a
+  // full-attention surface, so nothing else should be open behind it.
+  closeAllSheets();
   overviewCollapsedGroups = computeDefaultOverviewCollapse();
   renderOverviewBody();
   document.getElementById('overviewOverlay').classList.add('open');

@@ -18,8 +18,21 @@ when it wasn't.
 ## 0. Run these. All committed — do not re-implement them.
 
 ```bash
-node .claude/skills/verify/scripts/check-scope.js prototypes/standalone/eam-*.html && node .claude/skills/verify/scripts/run-load.js && for t in .claude/skills/verify/scripts/tests/test-*.js; do node "$t" || exit 1; done
+node .claude/skills/verify/scripts/check-scope.js prototypes/standalone/eam-*.html && node .claude/skills/verify/scripts/check-keyboard.js && node .claude/skills/verify/scripts/run-load.js && for t in .claude/skills/verify/scripts/tests/test-*.js; do node "$t" || exit 1; done
 ```
+
+**`check-keyboard.js`** guards the three keyboard-surface patterns, every one of
+which shipped to a device before being caught. Each is verified to actually
+fire — re-introduce any of them and the script reports it:
+
+| | What breaks | Fix |
+| --- | --- | --- |
+| **P1** | A control at a sheet's **bottom edge** in a sheet that also holds a text input. `--kb-inset` lifts the sheet and parks that control under iOS's own accessory bar (`^ v ✓`) — two affirmative controls overlapping. | Put the action in the header (`.sheet-confirm-btn`), no `.sheet-footer`. |
+| **P2** | A **full-attention surface opening without closing others**, so the previous sheet shows through underneath (seen: Comment Actions behind the checklist overlay, Set Equipment Photo behind the comment editor). | `openSheetExclusive()` for a `.bottom-sheet`; `closeAllSheets()` first for a non-sheet overlay. |
+| **P3** | A rule pinning `bottom:0` on a `.bottom-sheet`, which **defeats `--kb-inset`** so the keyboard covers the sheet entirely. Only legitimate when the surface is anchored top *and* bottom (the full-cover text editor). | Keep `bottom:var(--kb-inset,0px)` on anything bottom-anchored. |
+
+iOS's accessory bar cannot be suppressed from a web page. The rule is to never
+put anything underneath it, not to remove it.
 
 The `tests/` files are behavioural regressions for flows that broke on a real
 device and were invisible to every static check:

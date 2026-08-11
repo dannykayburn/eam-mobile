@@ -1773,6 +1773,13 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .sheet-confirm-btn:active{opacity:.82;}
 .sheet-confirm-btn.disabled{background:var(--gray-2);color:var(--gray-4);pointer-events:none;}
 [data-theme="dark"] .sheet-confirm-btn.disabled{background:var(--gray-2);color:var(--gray-3);}
+/* Opt-in for a consumer whose existing gate toggles `.ready` (the positive
+   form) rather than `.disabled` — Issue Parts' issue/return sheet, whose
+   updateSaveGate() has several early-return branches all written that way.
+   Inverting the class in CSS beats rewriting those branches and risking one
+   being missed. Same rendered result either way. */
+.sheet-confirm-btn.ready-gated:not(.ready){background:var(--gray-2);color:var(--gray-4);pointer-events:none;}
+[data-theme="dark"] .sheet-confirm-btn.ready-gated:not(.ready){background:var(--gray-2);color:var(--gray-3);}
 /* Right-hand cluster when a sheet needs Clear AND confirm (the edit sheet). */
 .sheet-header-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 .toast{position:absolute;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(26,26,31,.95);color:white;padding:9px 16px;border-radius:100px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;opacity:0;transition:all .25s;z-index:300;pointer-events:none;white-space:nowrap;}

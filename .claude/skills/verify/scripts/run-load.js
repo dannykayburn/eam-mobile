@@ -115,9 +115,13 @@ function runScreen(file, seed) {
     getElementById: id => getEl(id),
     querySelector: () => makeEl('qs'),
     querySelectorAll: (sel) => {
-      if (sel === '.bottom-sheet.open') {
+      // Both forms are used: closeAllSheets() queries '.bottom-sheet',
+      // openSheetExclusive() queries '.bottom-sheet.open'. Answering only one
+      // makes the other silently a no-op, which reads as a real bug.
+      if (sel === '.bottom-sheet' || sel === '.bottom-sheet.open') {
+        const onlyOpen = sel.endsWith('.open');
         return [...sheetIds].map(id => elCache.get(id))
-          .filter(el => el && el.classList.contains('open'));
+          .filter(el => el && (!onlyOpen || el.classList.contains('open')));
       }
       return [];
     },
