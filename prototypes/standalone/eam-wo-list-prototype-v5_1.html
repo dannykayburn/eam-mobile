@@ -316,8 +316,44 @@ body{
 .ld-card-chev{position:absolute;left:12px;top:14px;width:20px;height:20px;border-radius:6px;background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:transform 0.18s,background 0.15s;color:var(--text-muted);}
 .ld-card-chev:hover{background:var(--bg-section);}
 .ld-card-chev.open{transform:rotate(90deg);}
-.ld-card.child-card{background:rgba(0,0,0,0.035);}
+/* Child WO card (§6.9) — a real indent, not just a tint. The tint alone was
+   3.5% black / 6% white, which on a device is effectively invisible: with a
+   Route's children expanded under a parent you couldn't tell the hierarchy was
+   there at all. Now indented from the left with a connector bar and a "Child
+   of <parent>" caption, so the relationship is legible without relying on
+   contrast a phone screen may not render. */
+.ld-card.child-card{
+  background:rgba(0,0,0,0.035);
+  margin-left:30px;
+  position:relative;
+  border-left:3px solid var(--border-strong);
+  border-top-left-radius:4px;
+  border-bottom-left-radius:4px;
+}
 [data-theme="dark"] .ld-card.child-card{background:rgba(255,255,255,0.06);}
+/* Elbow joining the child back to the parent's own left edge. */
+.ld-card.child-card::before{
+  content:'';
+  position:absolute;
+  left:-19px;
+  top:-6px;
+  width:16px;
+  height:calc(50% + 6px);
+  border-left:2px solid var(--border-strong);
+  border-bottom:2px solid var(--border-strong);
+  border-bottom-left-radius:8px;
+  pointer-events:none;
+}
+.ld-child-caption{
+  display:block;
+  font-size:10.5px;
+  font-weight:700;
+  letter-spacing:.3px;
+  text-transform:uppercase;
+  color:var(--text-muted);
+  font-family:var(--font-mono);
+  margin-bottom:6px;
+}
 
 /* Favorite star, dataspy selector sheet (§8.3). */
 .ds-fav-star{width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--gray-3);padding:0;}
@@ -1291,7 +1327,14 @@ function card(w,isChild){
   const chevBtn=hk
     ?`<button class="ld-card-chev${ex?' open':''}" onclick="event.stopPropagation();toggleP('${w.id}')">${SVGS.chevR}</button>`
     :'';
-  return`<div class="ld-card${hk?' has-chev':''}${isChild?' child-card':''}" onclick="openWO('${w.id}')">${chevBtn}${renderStdCard(woCardFields(w))}</div>`;
+  // A child states its parent outright. The indent/connector carry the
+  // hierarchy visually, but a Route can expand to 24+ children and once the
+  // list scrolls the parent is off-screen — at which point indentation alone
+  // no longer answers "child of what".
+  const caption=isChild&&w.pid
+    ?`<span class="ld-child-caption">Child of ${woNum(w.pid)}</span>`
+    :'';
+  return`<div class="ld-card${hk?' has-chev':''}${isChild?' child-card':''}" onclick="openWO('${w.id}')">${chevBtn}${caption}${renderStdCard(woCardFields(w))}</div>`;
 }
 
 /* ══ LIST TABLE — all fields (§8.3), local (not the generic shared

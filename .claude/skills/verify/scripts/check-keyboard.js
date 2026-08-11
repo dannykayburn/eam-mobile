@@ -9,6 +9,8 @@
      P2  a full-attention surface that opens without closing others → the
          previous sheet shows through underneath. Use openSheetExclusive(), or
          closeAllSheets() for a non-.bottom-sheet overlay.
+     P4  a CLOSED sheet whose transform does not clear --kb-inset → it peeks
+         above the keyboard. Caused three "popup showing behind" reports.
      P3  a rule pinning bottom:0 on a .bottom-sheet defeats --kb-inset, so the
          keyboard covers the sheet entirely. Only legitimate for a surface
          anchored top AND bottom (the full-cover text editor).
@@ -85,6 +87,30 @@ for (const m of js.matchAll(/function (open[A-Za-z]*)\s*\([^)]*\)\s*\{([\s\S]*?)
   findings.push(`P2  eam-shared.js  ${name}() focuses an input but opens non-exclusively`);
 }
 
+/* ── P4: a CLOSED sheet must hide past its own height PLUS --kb-inset.
+   `bottom:var(--kb-inset)` lifts every sheet whether open or not, and
+   `translateY(100%)` only moves a closed one down by its own height — so with
+   the keyboard up, any sheet shorter than the inset is left peeking above it.
+   This was the real cause of three separate "popup showing behind" reports and
+   survived two wrong fixes (closeAllSheets / openSheetExclusive), because the
+   sheets in question were already closed. */
+{
+  const base = css.match(/\.bottom-sheet\s*\{([^}]*)\}/);
+  if (!base) {
+    findings.push('P4  eam-shared.css  no .bottom-sheet rule found — check this guard still matches');
+  } else {
+    const body = base[1];
+    const liftsWhenClosed = /bottom:\s*var\(--kb-inset/.test(body);
+    const transform = (body.match(/transform:\s*([^;]+)/) || [])[1] || '';
+    const compensates = /--kb-inset/.test(transform);
+    if (liftsWhenClosed && !compensates) {
+      findings.push(
+        'P4  eam-shared.css  .bottom-sheet lifts by --kb-inset but its closed transform ' +
+        `(${transform.trim() || 'none'}) does not add it back — closed sheets will peek above the keyboard`);
+    }
+  }
+}
+
 // ── P3: bottom:0 on a .bottom-sheet variant that isn't also top-anchored.
 for (const m of css.matchAll(/\.([a-z-]+(?:\.[a-z-]+)*)\s*\{([^}]*)\}/g)) {
   const [, sel, body] = m;
@@ -95,7 +121,7 @@ for (const m of css.matchAll(/\.([a-z-]+(?:\.[a-z-]+)*)\s*\{([^}]*)\}/g)) {
 }
 
 if (!findings.length) {
-  console.log('keyboard surfaces: no P1/P2/P3 findings');
+  console.log('keyboard surfaces: no P1/P2/P3/P4 findings');
   process.exit(0);
 }
 console.log('KEYBOARD SURFACE FINDINGS\n');

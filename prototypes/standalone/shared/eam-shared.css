@@ -1218,7 +1218,20 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    keyboard instead of guessing a fixed offset. Defaults to 0 — a sheet
    with no focused input, or on a browser without the VisualViewport API,
    renders exactly as before. */
-.bottom-sheet{position:absolute;bottom:var(--kb-inset,0px);left:0;right:0;background:var(--bg-card);border-radius:var(--sheet-radius) var(--sheet-radius) 0 0;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1),bottom .15s ease-out;z-index:201;max-height:80vh;max-height:80dvh;display:flex;flex-direction:column;}
+/* A CLOSED sheet must clear its own height PLUS however far --kb-inset lifted
+   it (fixed 2026-08-11 — the actual cause of the "popup showing behind"
+   reports, after two wrong diagnoses).
+   `bottom:var(--kb-inset)` raises every sheet, open or not. A closed sheet is
+   hidden only by `translateY(100%)`, which moves it down by its OWN HEIGHT —
+   so once the keyboard lifted the inset to ~300px, any sheet shorter than that
+   was left peeking above the keyboard. That's what those screenshots showed:
+   the titles of Comment Actions, the July 2026 calendar and Filter-by-WO-number
+   all visible at once. They were not "still open" — they were closed and not
+   hidden, which is exactly why closeAllSheets()/openSheetExclusive() changed
+   nothing.
+   Adding the inset to the closed transform fixes every sheet at once, and needs
+   no change to the .text-editor-sheet / .compact `bottom` overrides. */
+.bottom-sheet{position:absolute;bottom:var(--kb-inset,0px);left:0;right:0;background:var(--bg-card);border-radius:var(--sheet-radius) var(--sheet-radius) 0 0;transform:translateY(calc(100% + var(--kb-inset,0px)));transition:transform .3s cubic-bezier(.32,.72,0,1),bottom .15s ease-out;z-index:201;max-height:80vh;max-height:80dvh;display:flex;flex-direction:column;}
 .bottom-sheet.open{transform:translateY(0);}
 /* Insert Mode (§9.2) — full-screen sheet, not the compact .bottom-sheet. */
 /* z-index 199 — deliberately BELOW every transient overlay it can trigger
