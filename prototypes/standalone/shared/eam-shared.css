@@ -48,6 +48,15 @@
   --priority-high:#DB2777;
   --nav-height:52px; --sheet-radius:20px;
   --bar-height:72px;
+  /* How much a screen with a bottom bar must hold back at the foot of .content
+     so the bar cannot cover its last container. Was written out per-screen as
+     calc(var(--bar-height) + 16px) on six screens, none of which allowed for the
+     home-indicator inset — so on a notched device the bar covered more than was
+     reserved and ate the last rows (found on device 2026-08-12, §20). Lives here
+     as one value because six copies is exactly how it stayed wrong everywhere at
+     once. env() carries its own 0px fallback, so this resolves fine on hardware
+     with no inset and costs those devices nothing. */
+  --bar-reserve:calc(var(--bar-height) + 24px + env(safe-area-inset-bottom, 0px));
 }
 [data-theme="dark"] {
   --bg-page:#1A1A1F; --bg-card:#26252B; --bg-nav:#111114; --bg-section:#302F33; --border:#3E4047; --border-strong:#4A4C55;
