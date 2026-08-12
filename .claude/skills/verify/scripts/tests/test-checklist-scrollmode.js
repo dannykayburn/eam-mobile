@@ -38,6 +38,14 @@ function ok(label, pass, detail) {
 const count = (s, re) => (String(s).match(re) || []).length;
 const wrapHtml = ctx => ev(ctx, "document.getElementById('focusWrap').innerHTML");
 
+/* The file's own source. Several assertions below are about CSS and about source
+   structure rather than about rendered output — a stub's controls being inert is
+   a CSS fact, and nothing in the markup reveals it. Declared up here rather than
+   mid-file: it was originally introduced next to its first use, which put it in
+   the temporal dead zone for anything added above that point. */
+const css = require('fs').readFileSync(
+  'C:/Users/dkilburn/Projects/eam-mobile/prototypes/standalone/' + FILE, 'utf8');
+
 /* ── scroll mode ─────────────────────────────────────────────────────── */
 console.log('\nscroll mode — panel window structure');
 const ctx = runScreen(FILE, null);
@@ -50,7 +58,7 @@ ev(ctx, 'jumpTo(0)');
 let h = wrapHtml(ctx);
 ok('first item renders 1 current panel', count(h, /class="snap-panel is-current"/g) === 1);
 ok('first item renders 1 stub (next only)', count(h, /class="snap-panel is-stub"/g) === 1);
-ok('first item still carries its own identifier', /snap-item-tag">Item 01 of/.test(h));
+ok('first item still carries its own identifier', /snap-banner-num">01</.test(h));
 
 // A middle item: stubs both sides, and the indices must be cursor ± 1. An
 // off-by-one here would show the wrong item as "next up" — and, because a stub
@@ -65,17 +73,25 @@ ok('stubs are cursor-1 and cursor+1',
 // is that it never disappears as you move. Direction words are gone: they
 // described the scroll rather than the item, so the same item got a different
 // label depending on which way you arrived at it.
-ok('all three panels carry an identifier', count(h, /snap-item-tag/g) === 3, String(count(h, /snap-item-tag/g)));
+ok('all three panels carry a banner', count(h, /class="snap-banner"/g) === 3, String(count(h, /class="snap-banner"/g)));
 ok('no direction words anywhere', !/Next up|Previous ·/.test(h));
 // 1-based and zero-padded for a human, matching the rail's own "Item X of Y".
 ok('identifiers are 1-based and zero-padded',
-  /Item 02 of/.test(h) && /Item 03 of/.test(h) && /Item 04 of/.test(h));
+  /snap-banner-num">02</.test(h) && /snap-banner-num">03</.test(h) && /snap-banner-num">04</.test(h));
+// The banner's whole reason for carrying equipment: on a fanned-out Route the
+// asset is the identifier that matters, not the flat index.
+ok('banner carries the equipment identity', /snap-banner-eq-code">/.test(h));
+// Asserted against source, not this render: whether any of the 3 panels in view
+// happens to be an unequipped item depends on where the cursor sits.
+ok('an unequipped item says so rather than rendering half a band',
+  /snap-banner-none">No equipment</.test(css));
+ok('no type prefix left on demo equipment codes', !/snap-banner-eq-code">A-/.test(h));
 
 // Last item: no next panel.
 ev(ctx, 'jumpTo(' + (total - 1) + ')');
 h = wrapHtml(ctx);
 ok('last item renders 1 stub (previous only)', count(h, /class="snap-panel is-stub"/g) === 1);
-ok('last item still carries its own identifier', /snap-item-tag">Item \d\d of/.test(h));
+ok('last item still carries its own identifier', /snap-banner-num">\d\d</.test(h));
 
 /* ── the invariant ───────────────────────────────────────────────────── */
 console.log('\nsingleton chrome — one owner, always');
@@ -91,8 +107,6 @@ ok('stubs carry no follow-up button',  count(h, /followup-btn-lg/g) === 1);
 // ITEMS[cursor], so a live control inside a stub answers the WRONG item. The
 // guard is CSS (pointer-events:none), which is why it's asserted here — nothing
 // about the markup itself reveals that a stub's control is inert.
-const css = require('fs').readFileSync(
-  'C:/Users/dkilburn/Projects/eam-mobile/prototypes/standalone/' + FILE, 'utf8');
 ok('stub controls are pointer-events:none',
   /\.snap-panel\.is-stub \.focus-control[^{]*\{[^}]*pointer-events:\s*none/.test(css));
 ok('stub is tappable to jump to it', /is-stub"[^>]*onclick="jumpTo\(/.test(wrapHtml(ctx)));
@@ -109,8 +123,14 @@ ok('no scroll-snap-* properties in CSS',
   !/^\s*(?!.*\*)[^\n]*scroll-snap-(type|align|stop)\s*:/m.test(css.replace(/\/\*[\s\S]*?\*\//g, '')));
 ok('no scroll-margin-top on panels',
   !/scroll-margin-top\s*:/.test(css.replace(/\/\*[\s\S]*?\*\//g, '')));
-ok('panels carry real landing padding above the pill',
-  /\.snap-panel\s*\{[^}]*padding-top:\s*var\(--snap-land-pad/.test(css));
+// The landing air moved from the panel to .snap-body when the banner arrived:
+// the banner must sit FLUSH against the rail (that flushness IS the arrival
+// cue), so the panel can carry no top padding at all, and the air now sits
+// between the banner and the item's own first element.
+ok('landing padding sits inside the body, not on the panel',
+  /\.snap-body\s*\{[^}]*padding-top:\s*var\(--snap-land-pad/.test(css));
+ok('the banner lands flush — no panel top padding',
+  !/\.snap-panel\s*\{[^}]*padding-top/.test(css));
 ok('--snap-land-pad is a real value, not 0',
   /--snap-land-pad:\s*([1-9]\d*)px/.test(css), (css.match(/--snap-land-pad:\s*\d+px/) || [''])[0]);
 ok('takeover threshold is half the band', ev(ctx, 'SNAP_TAKEOVER') === 0.5, String(ev(ctx, 'SNAP_TAKEOVER')));
@@ -133,7 +153,7 @@ ok('scroll mode is off when stored off', ev(ctx2, 'SCROLL_MODE') === false);
 ev(ctx2, 'jumpTo(2)');
 const h2 = wrapHtml(ctx2);
 ok('no snap panels at all', count(h2, /snap-panel/g) === 0);
-ok('no panel identifiers at all', count(h2, /snap-item-tag/g) === 0);
+ok('no banners at all', count(h2, /snap-banner/g) === 0);
 ok('one full item still renders', count(h2, /id="fv-itemNotes"/g) === 1);
 ok('Comments section still renders', count(h2, /rv-toggle-title">Comments/g) === 1);
 
@@ -179,6 +199,32 @@ console.log('\nPrev/Next commit directly');
 ok('Next commits directly', /if \(SCROLL_MODE\) \{ commitCursor\(cursor \+ 1\); return; \}/.test(css));
 ok('Prev commits directly', /if \(SCROLL_MODE\) \{ commitCursor\(cursor - 1\); return; \}/.test(css));
 ok('neither button routes through scrollToIdx', !/scrollToIdx\(cursor [-+] 1\)/.test(css));
+
+/* ── View all: collapse / expand all ─────────────────────────────────────
+   The reason it exists is scale: after §16.9's fan-out, Equipment mode on the
+   FIREEXT route is 156 groups and the default state opens exactly one. The
+   thing worth guarding is that it only touches the mode ON SCREEN — the
+   collapsed Set holds step: and equip: keys at once, so a blanket operation
+   would silently rearrange the mode you can't see. */
+console.log('\nView all — collapse/expand all');
+ev(ctx, 'overviewGroupMode = "step"; overviewCollapsedGroups = new Set();');
+const stepKeys = ev(ctx, 'overviewGroupKeys().length');
+ok('group keys found for step mode', stepKeys > 1, String(stepKeys) + ' groups');
+ok('starts not-all-collapsed', ev(ctx, 'overviewAllCollapsed()') === false);
+ev(ctx, 'toggleOverviewCollapseAll()');
+ok('collapse all collapses every group in the mode', ev(ctx, 'overviewAllCollapsed()') === true);
+ok('it did not reach into equipment mode',
+  ev(ctx, '[...overviewCollapsedGroups].every(k => k.startsWith("step:"))') === true);
+ev(ctx, 'toggleOverviewCollapseAll()');
+ok('toggling again expands every group', ev(ctx, 'overviewAllCollapsed()') === false);
+ok('expand all left nothing behind', ev(ctx, 'overviewCollapsedGroups.size') === 0);
+// Equipment mode keys itself independently, including the __general__ bucket for
+// items with no equipment at all.
+ev(ctx, 'overviewGroupMode = "equipment";');
+ok('equipment mode keys separately',
+  ev(ctx, 'overviewGroupKeys().every(k => k.startsWith("equip:"))') === true);
+ok('the button icon is derived from state, not stored',
+  /ovCollapseAllBtnHtml\(\)/.test(css) && /overviewAllCollapsed\(\)/.test(css));
 
 console.log('\nlist identifier matches the panel identifier');
 ok('View all rows carry a mono zero-padded number', /ov-row-num">/.test(css) && /\.ov-row-num \{/.test(css));

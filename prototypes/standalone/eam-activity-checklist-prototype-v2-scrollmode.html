@@ -204,11 +204,42 @@
    viewport unit in this block to get wrong. */
 .content.snap-mode { --snap-land-pad: 26px; }
 
-/* padding-top IS the landing air above the equipment pill. JS parks the panel
-   *box* flush against the band top, so this padding is what stands between the
-   sticky rail and the pill once an item settles — asked for directly off the
-   device, where a pill landing flush under the rail read as cramped. */
-.snap-panel { padding-top: var(--snap-land-pad, 26px); }
+/* The panel itself has NO top padding: its first child is the banner, which must
+   land flush against the rail — that flushness is the whole arrival cue. The
+   landing air moved inside, to .snap-body, where it sits between the banner and
+   the item's own first element. */
+.snap-body { padding-top: var(--snap-land-pad, 26px); }
+
+/* ── ITEM BANNER — "Anchor + equipment", chosen on device 2026-08-12 ─────────
+   Replaces the small mono caption. Fixed height, so it reads as a constant
+   anchor rather than as more content, and it is what the snap lands on:
+   scrolling forward you watch the next banner drawn up and set down, scrolling
+   back you pull the previous one into place. The number takes the mono weight
+   identifiers carry elsewhere in the app, sized to register peripherally while
+   it's still moving — you don't read it, you watch it.
+
+   It carries the EQUIPMENT because that's the identifier that actually matters
+   once §16.9's fan-out is in play: on a 156-asset route "item 237 of 624"
+   locates you in the data, not on the job. The flat index stays alongside it for
+   continuity with the rail's own counter. */
+.snap-banner { height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 16px; background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.snap-banner-num { font-family: var(--font-mono); font-size: 23px; font-weight: 700; letter-spacing: -.02em; line-height: 1; color: var(--octave-black); }
+[data-theme="dark"] .snap-banner-num { color: var(--white); }
+.snap-banner-of { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--gray-3); align-self: flex-end; padding-bottom: 2px; }
+.snap-banner-sp { flex: 1; }
+.snap-banner-eq { min-width: 0; text-align: right; }
+.snap-banner-eq-code { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--octave-black); }
+[data-theme="dark"] .snap-banner-eq-code { color: var(--white); }
+.snap-banner-eq-desc { font-size: 10.5px; color: var(--gray-4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.snap-banner-none { flex-shrink: 0; font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--gray-4); border: 1px solid var(--border-strong); border-radius: 999px; padding: 4px 9px; }
+/* The arrival cue — a shadow the moment it comes to rest. The current panel IS
+   the landed one by definition, so this needs no extra state to track. */
+.snap-panel.is-current .snap-banner { box-shadow: 0 6px 18px -8px rgba(26,26,31,.45); border-bottom-color: var(--border-strong); }
+/* The banner carries the equipment now, so the in-body chip would say it twice.
+   Hidden in CSS rather than removed from itemFullHtml(), which is shared with
+   classic mode and has to stay byte-identical to v2 for the A/B to mean
+   anything. Scoped to .snap-mode, so paged mode still shows its own chip. */
+.content.snap-mode .focus-equip-chip { display: none; }
 /* The current panel is one screenful LESS the peek, so the next item's top
    always shows below it when the item is short. That peek is the whole
    "there's more below, keep going" affordance — it is not decoration. */
@@ -415,10 +446,13 @@
    behind an icon" pattern to copy elsewhere. */
 .ov-filter-bar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; }
 .ov-filter-bar .ds-bar { flex: 1; margin: 0; height: 44px; padding: 0 14px; }
-.ov-search-icon-btn { width: 44px; height: 44px; flex-shrink: 0; border-radius: 14px; border: 1.5px solid var(--border); background: var(--bg-card); color: var(--gray-4); display: flex; align-items: center; justify-content: center; cursor: pointer; }
-.ov-search-icon-btn:hover { border-color: var(--gray-3); }
-.ov-search-icon-btn.on { color: var(--octave-black); border-color: var(--octave-black); }
-[data-theme="dark"] .ov-search-icon-btn.on { color: var(--white); border-color: var(--white); }
+/* Selector extended rather than a second copy of the same declarations — the
+   collapse-all control is the same affordance as search (a square icon button
+   in the filter bar) and must not drift from it. */
+.ov-search-icon-btn, .ov-collapse-icon-btn { width: 44px; height: 44px; flex-shrink: 0; border-radius: 14px; border: 1.5px solid var(--border); background: var(--bg-card); color: var(--gray-4); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.ov-search-icon-btn:hover, .ov-collapse-icon-btn:hover { border-color: var(--gray-3); }
+.ov-search-icon-btn.on, .ov-collapse-icon-btn.on { color: var(--octave-black); border-color: var(--octave-black); }
+[data-theme="dark"] .ov-search-icon-btn.on, [data-theme="dark"] .ov-collapse-icon-btn.on { color: var(--white); border-color: var(--white); }
 .ov-search-row { margin: 10px 16px 0; }
 
 .toast { bottom: calc(var(--bar-height) + 10px); }
@@ -734,7 +768,7 @@ const ITEMS = [
     documents:[], comments:[], note:'', followup:false, value:false },
   { id:2, group:'safety', label:'PPE check — gloves, goggles, steel-cap boots', required:false, type:'check',
     documents:[], comments:[], note:'', followup:false, value:false },
-  { id:3, group:'main', label:'Bearing housing — visual condition', equipId:'A-00067333', equipDesc:'Pump, Centrifugal', required:false, type:'toggle3',
+  { id:3, group:'main', label:'Bearing housing — visual condition', equipId:'00067333', equipDesc:'Pump, Centrifugal', required:false, type:'toggle3',
     options:[['Pass','sel-green'],['Fail','sel-red'],['N/A','sel-gray']],
     documents:[
       { icon:'pdf', name:'Bearing_Housing_Drawing_Rev4.pdf', meta:'PDF · 2.1 MB' },
@@ -754,17 +788,17 @@ const ITEMS = [
         { label:'Corrective action taken on-site?', type:'toggle2', options:[['Yes','sel-green'],['No','sel-red']], required:false, value:null },
       ] },
     ] },
-  { id:4, group:'main', label:'Shaft alignment', equipId:'A-00067333', equipDesc:'Pump, Centrifugal', required:false, type:'toggle2',
+  { id:4, group:'main', label:'Shaft alignment', equipId:'00067333', equipDesc:'Pump, Centrifugal', required:false, type:'toggle2',
     options:[['OK','sel-green'],['Adjusted','sel-orange']],
     documents:[], comments:[], note:'', followup:false, value:null },
-  { id:5, group:'main', label:'Bearing temperature — post run', equipId:'A-00067333', equipDesc:'Pump, Centrifugal', required:false, type:'num', uom:'°F', range:'60 – 180 °F',
+  { id:5, group:'main', label:'Bearing temperature — post run', equipId:'00067333', equipDesc:'Pump, Centrifugal', required:false, type:'num', uom:'°F', range:'60 – 180 °F',
     documents:[], comments:[], note:'', followup:false, value:'' },
   // Slider answer-control exercise (2026-07-31) — Option A (linear fill)
   // from the earlier mockup, now live as a real checklist item. Option C
   // (vertical tank fill) was removed from consideration 2026-07-31. No
   // acceptable-range concept here — the product has no way to configure
   // one within a slider's min/max yet.
-  { id:8, group:'main', label:'Coolant reservoir level', equipId:'A-00067333', equipDesc:'Pump, Centrifugal', required:false,
+  { id:8, group:'main', label:'Coolant reservoir level', equipId:'00067333', equipDesc:'Pump, Centrifugal', required:false,
     type:'slider', min:0, max:100, uom:'%', value:null,
     documents:[], comments:[], note:'', followup:false },
   { id:6, group:'close', label:'Area restored and barricades removed?', required:false, type:'toggle2',
@@ -1305,7 +1339,7 @@ function renderSnapPanels(opts) {
   const it = ITEMS[cursor];
   let html = '';
   if (cursor > 0) html += stubPanelHtml(cursor - 1);
-  html += `<div class="snap-panel is-current" data-idx="${cursor}">${itemTagHtml(cursor)}${itemFullHtml(it)}</div>`;
+  html += `<div class="snap-panel is-current" data-idx="${cursor}">${itemBannerHtml(cursor)}<div class="snap-body">${itemFullHtml(it)}</div></div>`;
   if (cursor < ITEMS.length - 1) html += stubPanelHtml(cursor + 1);
   wrap.innerHTML = html;
 
@@ -1326,17 +1360,32 @@ function renderSnapPanels(opts) {
 
 function stubPanelHtml(idx) {
   return `<div class="snap-panel is-stub" data-idx="${idx}" onclick="jumpTo(${idx})">
-    ${itemTagHtml(idx)}
-    ${itemStubHtml(ITEMS[idx])}
+    ${itemBannerHtml(idx)}
+    <div class="snap-body">${itemStubHtml(ITEMS[idx])}</div>
   </div>`;
 }
 
 /* Emitted by the panel wrapper, NOT by itemFullHtml() — that function is shared
    with classic mode, which has to stay byte-identical to v2 for the A/B to mean
    anything. Denominator is live ITEMS.length for the same reason §16.1 gives
-   for the rail's counter: dynamic items (§16.5) make any predicted total a lie. */
-function itemTagHtml(idx) {
-  return `<div class="snap-item-tag">Item ${String(idx + 1).padStart(2, '0')} of ${String(ITEMS.length).padStart(2, '0')}</div>`;
+   for the rail's counter: dynamic items (§16.5) make any predicted total a lie.
+
+   An item with no equipment (safety, close-out) says so rather than rendering an
+   empty right half — the band is fixed-height and always full-width, so silence
+   there would read as a rendering fault rather than as an absence. */
+function itemBannerHtml(idx) {
+  const it = ITEMS[idx];
+  const right = it.equipId
+    ? `<span class="snap-banner-eq">
+         <div class="snap-banner-eq-code">${it.equipId}</div>
+         <div class="snap-banner-eq-desc">${it.equipDesc || ''}</div>
+       </span>`
+    : `<span class="snap-banner-none">No equipment</span>`;
+  return `<div class="snap-banner">
+    <span class="snap-banner-num">${String(idx + 1).padStart(2, '0')}</span>
+    <span class="snap-banner-of">/${String(ITEMS.length).padStart(2, '0')}</span>
+    <span class="snap-banner-sp"></span>${right}
+  </div>`;
 }
 
 /* A stub carries identity + answer control and nothing else: enough to
@@ -1523,7 +1572,7 @@ function createFollowupWO() { showToast('Creating follow-up work order — comin
 // gotchas this raised. ──────────────────────────────────────────────
 let overviewGroupMode = 'step';
 // Collapse state is one Set shared by both modes, keyed mode-prefixed
-// ('step:main' / 'equip:A-00067333') so switching modes can never collide
+// ('step:main' / 'equip:00067333') so switching modes can never collide
 // two different groups that happen to share a raw key. Persists across
 // mode switches and search/filter changes made WHILE the sheet is open —
 // but openOverview() (below) recomputes it fresh every time the sheet is
@@ -1687,6 +1736,55 @@ function toggleOverviewGroup(key) {
 }
 function setOverviewGroupMode(mode) { overviewGroupMode = mode; renderOverviewBody(); }
 
+/* ─── COLLAPSE / EXPAND ALL (added 2026-08-12, device request) ─────────────
+   Needed most in the case the default collapse state can't help with: after
+   §16.9's fan-out, Equipment mode on the FIREEXT route is 156 groups, and
+   computeDefaultOverviewCollapse() opens exactly one of them. Reaching group
+   140 to open it meant scrolling past 139 headers; getting back to an
+   all-closed overview afterwards meant closing them one at a time.
+
+   Only the keys for the mode CURRENTLY ON SCREEN are touched. The collapsed Set
+   deliberately holds step: and equip: keys simultaneously (see
+   computeDefaultOverviewCollapse), so a blanket operation would silently
+   rearrange the mode you can't see and the toggle would look broken when you
+   switched to it. */
+function overviewGroupKeys() {
+  const keys = new Set();
+  ITEMS.forEach(it => keys.add(overviewGroupMode === 'equipment'
+    ? 'equip:' + (it.equipId || '__general__')
+    : 'step:' + it.group));
+  return [...keys];
+}
+function overviewAllCollapsed() {
+  const keys = overviewGroupKeys();
+  return keys.length > 0 && keys.every(k => overviewCollapsedGroups.has(k));
+}
+function toggleOverviewCollapseAll() {
+  const collapse = !overviewAllCollapsed();
+  overviewGroupKeys().forEach(k => {
+    if (collapse) overviewCollapsedGroups.add(k); else overviewCollapsedGroups.delete(k);
+  });
+  // Full rebuild, same as toggleOverviewGroup() — the button's own icon is
+  // derived from state, so it re-renders correct without a second sync path.
+  renderOverviewBody();
+  showToast(collapse ? 'All groups collapsed' : 'All groups expanded');
+}
+/* Fold/unfold, drawn as chevrons moving toward or away from a centre line —
+   the same metaphor as the per-group chevron, scaled up to "all of them", so
+   the pairing is legible without a text label. `on` when everything is
+   collapsed, matching how the search button marks its own active state. */
+function ovCollapseAllBtnHtml() {
+  const allCollapsed = overviewAllCollapsed();
+  const icon = allCollapsed
+    ? `<path d="M8 9l4-4 4 4"/><path d="M8 15l4 4 4-4"/><path d="M4 12h16"/>`
+    : `<path d="M8 5l4 4 4-4"/><path d="M8 19l4-4 4 4"/><path d="M4 12h16"/>`;
+  return `<button class="ov-collapse-icon-btn ${allCollapsed ? 'on' : ''}" id="ovCollapseBtn"
+      onclick="toggleOverviewCollapseAll()"
+      aria-label="${allCollapsed ? 'Expand all groups' : 'Collapse all groups'}">
+      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
+    </button>`;
+}
+
 // Dataspy sheet — reuses the shared .lov-option row shape (same as any
 // other LOV picker) rather than the full real dataspy-picker sheet
 // (favorite stars, per-dataspy descriptions) — there's no "favorite" or
@@ -1751,6 +1849,7 @@ function renderOverviewBody() {
       <button class="ov-search-icon-btn ${overviewSearchOpen ? 'on' : ''}" id="ovSearchBtn" onclick="toggleOverviewSearch()" aria-label="Search checklist items">
         <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       </button>
+      ${ovCollapseAllBtnHtml()}
     </div>
     <div class="ld-search-bar ov-search-row" id="ovSearchRow" style="display:${overviewSearchOpen ? 'flex' : 'none'};">
       <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
