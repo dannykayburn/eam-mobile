@@ -235,7 +235,22 @@
    inert, and clicks land on the stub root instead. */
 .snap-panel.is-stub .focus-control,
 .snap-panel.is-stub .followup-btn-lg { pointer-events: none; }
-.snap-stub-tag { display: flex; align-items: center; gap: 6px; padding: 0 16px 6px; font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--gray-4); }
+/* Persistent sequence identifier, on EVERY panel — current and stubs alike —
+   and always the panel's first element, so it lands in exactly the same place
+   under the rail every time. Straight from the device: "without consistent
+   identifier of the sequence and lazy snaps, I do feel lost while navigating,
+   where I'm at and where I just was."
+
+   Direction words ("Next up" / "Previous") are deliberately gone. They moved
+   with context — the same item read "Next up" approaching it and "Previous"
+   leaving it — so they described the scroll rather than the item, which is the
+   opposite of what an orientation cue should do. The number is the identity;
+   which side of the current item it sits on is already obvious from position. */
+.snap-item-tag { display: flex; align-items: center; gap: 6px; padding: 0 16px 8px; font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--gray-4); }
+/* The one you're on reads at full strength; stubs inherit .is-stub's own fade,
+   which is what distinguishes them — no extra state needed. */
+.snap-panel.is-current .snap-item-tag { color: var(--octave-black); }
+[data-theme="dark"] .snap-panel.is-current .snap-item-tag { color: var(--white); }
 
 .f-toggle { display: flex; flex-direction: column; gap: 10px; }
 .f-opt { padding: 18px 0; text-align: center; font-size: 16px; font-weight: 700; border-radius: 10px; border: 2px solid var(--gray-2); color: var(--octave-black); background: var(--bg-page); cursor: pointer; transition: all .15s; }
@@ -369,6 +384,11 @@
    where branching can happen before it's happened. A ghost row (locked
    icon, italic, non-interactive) previews an as-yet-untriggered branch,
    and disappears once real items replace it. */
+/* Same identifier, same format, in the list — was `4 — label` inline, which put
+   the number in the label's own voice and left it un-scannable down a column of
+   624 rows. Mono, zero-padded and fixed-width so the numbers line up and the
+   list agrees with the panel tag on what an item is called. */
+.ov-row-num { flex-shrink: 0; min-width: 20px; font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; color: var(--gray-4); }
 .ov-row-indent { padding-left: 40px; background: var(--bg-page); }
 .ov-dynamic-icon, .ov-branch-cue, .ov-ghost-icon { display: flex; flex-shrink: 0; color: var(--gray-4); }
 .ov-ghost-icon { color: var(--gray-4); }
@@ -992,6 +1012,18 @@ let pendingSettle= false;  // a commit deferred because of typingLock
 let suppressScroll = false;// our own programmatic scrolling, not the user's
 let settleTimer  = null;
 let snapAnimTimer = null;
+let snapRaf = null;
+let touching  = false;   // finger currently down on the scroller
+let scrollVel = 0;       // px/ms, low-passed
+let lastScrollTop = 0, lastScrollT = 0;
+/* Velocity below which a momentum glide counts as over. From the device:
+   "there is a bit of delay that feels unnatural on the snap where we could
+   invoke it earlier on scroll... if it's slowing down, just snap." A flick
+   leaves the finger at roughly 3–8 px/ms; 0.3 px/ms (~18px per frame) is still
+   visibly moving, which is the point — the snap takes over the tail of the
+   glide instead of waiting for dead stillness and then starting a new motion.
+   That waiting is exactly what read as lazy. */
+const SNAP_VEL = 0.3;
 /* How much of the band a neighbour must fill before it takes over. Half, per
    the device call: "once the next (or previous) is over half in view after a
    scroll, ensure it snaps consistently." Because the panels are contiguous,
@@ -1067,18 +1099,48 @@ function panelMostVisible() {
   return { panel: best, seen: bestSeen, band: b.height };
 }
 
-/* Animate the scroller to `top`. No reliable cross-version "smooth scroll
-   finished" event on iOS Safari, so the settle handler is muted on a timer
-   sized to the animation instead of waiting for one — and released early on
-   touchstart (see the wiring at the bottom), so grabbing the screen mid-glide
-   hands control straight back rather than feeling stuck. */
+/* Animate the scroller to `top` on our own rAF clock rather than with
+   scrollTo({behavior:'smooth'}), for two reasons that both showed up on device:
+
+   1. Duration control. Native smooth has none, and its pacing is what made the
+      landing feel like a separate, late motion. 220ms with an ease-out departs
+      immediately and arrives soft — it reads as the snap absorbing the flick.
+   2. It beats momentum. The early-snap trigger now fires while an iOS momentum
+      glide is still running, and a native smooth scroll can be ignored or
+      fought in that state. Writing scrollTop every frame cancels the fling
+      outright, so the landing is ours and is not negotiable.
+
+   Aborts the moment a finger comes down — a snap in progress must never fight
+   the technician for the scroller. */
 function animateTo(top, smooth) {
   const c = contentEl();
-  suppressScroll = true;
+  cancelAnimationFrame(snapRaf);
   clearTimeout(snapAnimTimer);
-  if (smooth === false) c.scrollTop = top;
-  else c.scrollTo({ top, behavior: 'smooth' });
-  snapAnimTimer = setTimeout(() => { suppressScroll = false; }, 420);
+  const from = c.scrollTop;
+  const dist = top - from;
+  suppressScroll = true;
+  if (smooth === false || Math.abs(dist) < 2) { c.scrollTop = top; releaseSnap(); return; }
+  const dur = Math.min(320, Math.max(160, Math.abs(dist) * 0.45));
+  const t0 = performance.now();
+  const step = now => {
+    if (touching) { releaseSnap(); return; }
+    const p = Math.min(1, (now - t0) / dur);
+    c.scrollTop = from + dist * (1 - Math.pow(1 - p, 3));  // easeOutCubic
+    if (p < 1) snapRaf = requestAnimationFrame(step);
+    else releaseSnap();
+  };
+  snapRaf = requestAnimationFrame(step);
+}
+function releaseSnap() {
+  cancelAnimationFrame(snapRaf);
+  snapRaf = null;
+  // One frame of grace so the scroll events our own writes fired don't come
+  // back in as a fresh gesture and re-trigger the settle logic.
+  requestAnimationFrame(() => {
+    suppressScroll = false;
+    scrollVel = 0;
+    lastScrollT = 0;
+  });
 }
 
 /* Park a panel's top flush against the band top. The panel's own padding-top
@@ -1134,10 +1196,19 @@ function commitCursor(idx) {
   snapToCurrent(true);
 }
 
-/* The buttons drive the same scroll the thumb does, so both inputs land in one
-   place. They stay visible in scroll mode on purpose — gloved hands,
-   one-handed use, and they're the accessible path; the gesture is additive,
-   never the only way forward. */
+/* Buttons COMMIT, they don't scroll-and-hope (fixed 2026-08-12, round 2 device
+   report: "brings attention to the next item, but remains greyed out and a
+   second tap is required to bring it in focus").
+
+   They used to scroll to the neighbouring panel and leave onSnapSettle() to
+   notice — which cannot work, because a landing animation mutes that very
+   handler for its own duration. So the panel arrived and stayed a stub, and the
+   only reason a second tap fixed it was a stray post-release scroll event.
+
+   A button press is explicit intent; there is nothing to infer from geometry.
+   Both inputs still converge on commitCursor(), so there's one place where the
+   cursor moves — the difference is that the thumb's intent is *derived* and the
+   button's is *stated*. */
 function scrollToIdx(idx) { return snapToPanel(idx, true); }
 
 /* A focused textarea and any scroll of ours don't mix: iOS scrolls the caret
@@ -1233,9 +1304,9 @@ function renderSnapPanels(opts) {
 
   const it = ITEMS[cursor];
   let html = '';
-  if (cursor > 0) html += stubPanelHtml(cursor - 1, 'Previous');
-  html += `<div class="snap-panel is-current" data-idx="${cursor}">${itemFullHtml(it)}</div>`;
-  if (cursor < ITEMS.length - 1) html += stubPanelHtml(cursor + 1, 'Next up');
+  if (cursor > 0) html += stubPanelHtml(cursor - 1);
+  html += `<div class="snap-panel is-current" data-idx="${cursor}">${itemTagHtml(cursor)}${itemFullHtml(it)}</div>`;
+  if (cursor < ITEMS.length - 1) html += stubPanelHtml(cursor + 1);
   wrap.innerHTML = html;
 
   wireCurrentItem(it);
@@ -1253,11 +1324,19 @@ function renderSnapPanels(opts) {
   });
 }
 
-function stubPanelHtml(idx, tag) {
+function stubPanelHtml(idx) {
   return `<div class="snap-panel is-stub" data-idx="${idx}" onclick="jumpTo(${idx})">
-    <div class="snap-stub-tag">${tag} · Item ${String(idx + 1).padStart(2, '0')}</div>
+    ${itemTagHtml(idx)}
     ${itemStubHtml(ITEMS[idx])}
   </div>`;
+}
+
+/* Emitted by the panel wrapper, NOT by itemFullHtml() — that function is shared
+   with classic mode, which has to stay byte-identical to v2 for the A/B to mean
+   anything. Denominator is live ITEMS.length for the same reason §16.1 gives
+   for the rail's counter: dynamic items (§16.5) make any predicted total a lie. */
+function itemTagHtml(idx) {
+  return `<div class="snap-item-tag">Item ${String(idx + 1).padStart(2, '0')} of ${String(ITEMS.length).padStart(2, '0')}</div>`;
 }
 
 /* A stub carries identity + answer control and nothing else: enough to
@@ -1401,9 +1480,7 @@ function goPrev() {
   if (cursor === 0 && TASK_PLAN_INSTRUCTIONS.trim()) { jumpToInstructions(); return; }
   if (cursor > 0) {
     closeAllSheets();
-    // Scroll mode: scroll to the neighbouring panel and let onSnapSettle()
-    // commit the cursor — one commit path for thumb and button alike.
-    if (SCROLL_MODE && scrollToIdx(cursor - 1)) return;
+    if (SCROLL_MODE) { commitCursor(cursor - 1); return; }
     cursor--; renderFocus();
   }
 }
@@ -1418,7 +1495,7 @@ function goNext() {
   closeAllSheets();
   if (showingInstructions) { showingInstructions = false; renderFocus({ anchor: 'top' }); return; }
   if (cursor < ITEMS.length - 1) {
-    if (SCROLL_MODE && scrollToIdx(cursor + 1)) return;
+    if (SCROLL_MODE) { commitCursor(cursor + 1); return; }
     cursor++; renderFocus(); return;
   }
   const req = ITEMS.filter(i => i.required);
@@ -1523,7 +1600,8 @@ function ovItemRowHtml(it, idx) {
   let html = `<div class="ov-row ${it.dynamic ? 'ov-row-indent' : ''}" onclick="jumpTo(${idx}); closeOverview();">
     ${it.dynamic ? `<span class="ov-dynamic-icon" title="Added dynamically">${BRANCH_ICON}</span>` : ''}
     <span class="ov-status-dot ${dotClass(it).replace('done-','')}"></span>
-    <span class="ov-label">${idx+1} — ${it.label}</span>
+    <span class="ov-row-num">${String(idx + 1).padStart(2, '0')}</span>
+    <span class="ov-label">${it.label}</span>
     ${it.required ? '<span style="color:var(--red);font-weight:700;font-size:12px;">*</span>' : ''}
     ${it.dynamicRules ? `<span class="ov-branch-cue" title="May add follow-up items">${BRANCH_ICON}</span>` : ''}
   </div>`;
@@ -1788,25 +1866,60 @@ onDemoWoChanged();
 initSharedApp({ contentSelector: '.content' });
 
 /* ── SCROLL MODE wiring ────────────────────────────────────────────────
-   A debounced scroll-idle timer rather than the `scrollend` event: Safari only
-   shipped scrollend recently, and this needs to work on whatever device is in
-   a technician's hand. 90ms is long enough to sit out the tail of a momentum
-   flick and short enough that the snap reads as a response to stopping rather
-   than as an afterthought — it was 140ms, which felt like a delay once the
-   snap became visible motion instead of a silent cursor change. */
+   Snap on DECELERATION, not on a fixed idle timeout. The timeout is still there
+   as a floor, but it's the fallback now, not the mechanism: waiting for the
+   scroller to go completely still and only then starting the landing is what
+   read as lazy on device, because the pause and the motion were sequential
+   instead of continuous.
+
+   Two conditions, both necessary:
+     - the finger is UP. While it's down the technician is positioning the
+       surface deliberately and nothing may move under them, however slowly
+       they're dragging (a slow drag has low velocity too — this is the guard
+       that stops the whole mechanism firing mid-gesture).
+     - velocity has decayed below SNAP_VEL, low-passed so one stray sample from
+       a scroll-event gap can't trigger an early landing.
+
+   `scrollend` would be the tidy answer to the fallback and is still avoided:
+   Safari only shipped it recently, and this has to work on whatever handset is
+   actually in a technician's hand. */
 contentEl().addEventListener('scroll', () => {
   if (!SCROLL_MODE || suppressScroll) return;
+  const c = contentEl();
+  const now = performance.now();
+  const st = c.scrollTop;
+  if (lastScrollT) {
+    const dt = now - lastScrollT;
+    if (dt > 0) scrollVel = scrollVel * 0.6 + (Math.abs(st - lastScrollTop) / dt) * 0.4;
+  }
+  lastScrollTop = st;
+  lastScrollT = now;
+
   clearTimeout(settleTimer);
-  settleTimer = setTimeout(onSnapSettle, 90);
+  if (!touching && scrollVel > 0 && scrollVel < SNAP_VEL) { onSnapSettle(); return; }
+  settleTimer = setTimeout(onSnapSettle, 110);
 }, { passive: true });
 
-/* Touching the screen cancels our glide immediately and hands control back.
-   Without this, a snap animation holds the settle handler muted for its full
-   420ms budget, so grabbing the screen mid-glide would feel briefly dead. */
+/* Finger down: abort any landing in flight and reset velocity so the new
+   gesture isn't judged on the old one's tail. Finger up: let the momentum run
+   and let the scroll handler above decide when it has slowed enough. */
 contentEl().addEventListener('touchstart', () => {
+  touching = true;
+  cancelAnimationFrame(snapRaf);
   clearTimeout(snapAnimTimer);
   suppressScroll = false;
+  scrollVel = 0;
+  lastScrollT = 0;
 }, { passive: true });
+['touchend', 'touchcancel'].forEach(ev =>
+  contentEl().addEventListener(ev, () => {
+    touching = false;
+    // A deliberate slow drag released with no momentum produces no further
+    // scroll events at all, so there's nothing left to decelerate — settle off
+    // the release itself or the surface would sit wherever it was let go.
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(onSnapSettle, 110);
+  }, { passive: true }));
 
 /* Re-measure whenever the usable height can have changed. The load listener
    matters more than it looks: the rail's height depends on Inter arriving

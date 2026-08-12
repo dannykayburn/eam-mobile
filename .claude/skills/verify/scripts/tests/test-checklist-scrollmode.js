@@ -50,7 +50,7 @@ ev(ctx, 'jumpTo(0)');
 let h = wrapHtml(ctx);
 ok('first item renders 1 current panel', count(h, /class="snap-panel is-current"/g) === 1);
 ok('first item renders 1 stub (next only)', count(h, /class="snap-panel is-stub"/g) === 1);
-ok('no Previous tag on the first item', !/Previous ·/.test(h));
+ok('first item still carries its own identifier', /snap-item-tag">Item 01 of/.test(h));
 
 // A middle item: stubs both sides, and the indices must be cursor ± 1. An
 // off-by-one here would show the wrong item as "next up" — and, because a stub
@@ -61,15 +61,21 @@ ok('middle item renders 2 stubs', count(h, /class="snap-panel is-stub"/g) === 2)
 ok('current panel carries its own index', /class="snap-panel is-current" data-idx="2"/.test(h));
 ok('stubs are cursor-1 and cursor+1',
   /is-stub" data-idx="1"/.test(h) && /is-stub" data-idx="3"/.test(h));
-ok('stub tags name their direction', /Previous ·/.test(h) && /Next up ·/.test(h));
-// Stub item numbers are 1-based for a human, matching the rail's "Item X of Y".
-ok('stub numbering is 1-based', /Previous · Item 02/.test(h) && /Next up · Item 04/.test(h));
+// Every panel carries the identifier, current and stubs alike — the point of it
+// is that it never disappears as you move. Direction words are gone: they
+// described the scroll rather than the item, so the same item got a different
+// label depending on which way you arrived at it.
+ok('all three panels carry an identifier', count(h, /snap-item-tag/g) === 3, String(count(h, /snap-item-tag/g)));
+ok('no direction words anywhere', !/Next up|Previous ·/.test(h));
+// 1-based and zero-padded for a human, matching the rail's own "Item X of Y".
+ok('identifiers are 1-based and zero-padded',
+  /Item 02 of/.test(h) && /Item 03 of/.test(h) && /Item 04 of/.test(h));
 
 // Last item: no next panel.
 ev(ctx, 'jumpTo(' + (total - 1) + ')');
 h = wrapHtml(ctx);
 ok('last item renders 1 stub (previous only)', count(h, /class="snap-panel is-stub"/g) === 1);
-ok('no Next up tag on the last item', !/Next up ·/.test(h));
+ok('last item still carries its own identifier', /snap-item-tag">Item \d\d of/.test(h));
 
 /* ── the invariant ───────────────────────────────────────────────────── */
 console.log('\nsingleton chrome — one owner, always');
@@ -127,7 +133,7 @@ ok('scroll mode is off when stored off', ev(ctx2, 'SCROLL_MODE') === false);
 ev(ctx2, 'jumpTo(2)');
 const h2 = wrapHtml(ctx2);
 ok('no snap panels at all', count(h2, /snap-panel/g) === 0);
-ok('no stub tags at all', count(h2, /snap-stub-tag/g) === 0);
+ok('no panel identifiers at all', count(h2, /snap-item-tag/g) === 0);
 ok('one full item still renders', count(h2, /id="fv-itemNotes"/g) === 1);
 ok('Comments section still renders', count(h2, /rv-toggle-title">Comments/g) === 1);
 
@@ -149,6 +155,34 @@ ev(ctx, 'jumpToInstructions()');
 const hi = wrapHtml(ctx);
 ok('instructions render without panels', count(hi, /snap-panel/g) === 0);
 ok('instructions still render their card', /instr-body/.test(hi));
+
+/* Snap timing is velocity-driven, not timeout-driven (round 2: "if it's slowing
+   down, just snap"). The finger-down guard is the load-bearing half — a slow
+   deliberate drag has low velocity too, so without it the surface would snap
+   out from under a technician mid-gesture. */
+console.log('\nsnap timing — deceleration, not a timeout');
+ok('early snap is gated on velocity', /scrollVel\s*<\s*SNAP_VEL/.test(css));
+ok('early snap is gated on the finger being up', /!touching\s*&&\s*scrollVel/.test(css));
+ok('velocity is low-passed, not raw', /scrollVel\s*\*\s*0\.6/.test(css));
+ok('a released slow drag still settles', /touchend[\s\S]{0,500}setTimeout\(onSnapSettle/.test(css));
+ok('landing aborts the moment a finger lands', /if\s*\(touching\)\s*\{\s*releaseSnap\(\);/.test(css));
+// Comments stripped: the header comment for animateTo() names the native API it
+// replaced, and matching that would report the very thing it warns against.
+ok('landing runs on rAF, not native smooth scroll',
+  /requestAnimationFrame\(step\)/.test(css)
+  && !/behavior:\s*'smooth'/.test(css.replace(/\/\*[\s\S]*?\*\//g, '')));
+
+/* Prev/Next must COMMIT, not scroll and wait to be noticed. Scrolling relied on
+   onSnapSettle(), which a landing animation mutes for its own duration — so the
+   panel arrived and stayed a greyed-out stub until a second tap. */
+console.log('\nPrev/Next commit directly');
+ok('Next commits directly', /if \(SCROLL_MODE\) \{ commitCursor\(cursor \+ 1\); return; \}/.test(css));
+ok('Prev commits directly', /if \(SCROLL_MODE\) \{ commitCursor\(cursor - 1\); return; \}/.test(css));
+ok('neither button routes through scrollToIdx', !/scrollToIdx\(cursor [-+] 1\)/.test(css));
+
+console.log('\nlist identifier matches the panel identifier');
+ok('View all rows carry a mono zero-padded number', /ov-row-num">/.test(css) && /\.ov-row-num \{/.test(css));
+ok('the old inline "N — label" form is gone', !/ov-label">\$\{idx\+1\} —/.test(css));
 
 console.log(fail ? '\n' + fail + ' FAILED' : '\nall scroll-mode assertions pass');
 process.exit(fail ? 1 : 0);
