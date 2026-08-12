@@ -266,22 +266,15 @@
    inert, and clicks land on the stub root instead. */
 .snap-panel.is-stub .focus-control,
 .snap-panel.is-stub .followup-btn-lg { pointer-events: none; }
-/* Persistent sequence identifier, on EVERY panel — current and stubs alike —
-   and always the panel's first element, so it lands in exactly the same place
-   under the rail every time. Straight from the device: "without consistent
-   identifier of the sequence and lazy snaps, I do feel lost while navigating,
-   where I'm at and where I just was."
-
-   Direction words ("Next up" / "Previous") are deliberately gone. They moved
-   with context — the same item read "Next up" approaching it and "Previous"
-   leaving it — so they described the scroll rather than the item, which is the
-   opposite of what an orientation cue should do. The number is the identity;
-   which side of the current item it sits on is already obvious from position. */
-.snap-item-tag { display: flex; align-items: center; gap: 6px; padding: 0 16px 8px; font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--gray-4); }
-/* The one you're on reads at full strength; stubs inherit .is-stub's own fade,
-   which is what distinguishes them — no extra state needed. */
-.snap-panel.is-current .snap-item-tag { color: var(--octave-black); }
-[data-theme="dark"] .snap-panel.is-current .snap-item-tag { color: var(--white); }
+/* The persistent sequence identifier used to be a small mono caption here
+   (.snap-item-tag). It became the banner below — same job, done at a size you
+   watch rather than read. Its two design conclusions still hold and carried over:
+   the identifier appears on EVERY panel, current and stubs alike, as the panel's
+   first element so it lands in the same place every time; and direction words
+   ("Next up" / "Previous") stay gone, because they moved with context — the same
+   item read "Next up" approaching it and "Previous" leaving it — so they
+   described the scroll rather than the item, which is backwards for an
+   orientation cue. */
 
 .f-toggle { display: flex; flex-direction: column; gap: 10px; }
 .f-opt { padding: 18px 0; text-align: center; font-size: 16px; font-weight: 700; border-radius: 10px; border: 2px solid var(--gray-2); color: var(--octave-black); background: var(--bg-page); cursor: pointer; transition: all .15s; }
