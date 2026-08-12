@@ -228,20 +228,28 @@ ok('an unscoped item still names an asset', /snap-banner-eq-code">00067333</.tes
 ok('and does not fall back to "No equipment"',
   !new RegExp('is-current"[^>]*>\\s*<div class="snap-banner">[\\s\\S]{0,400}?No equipment').test(hu));
 
-/* ── Rail auto-collapse ──────────────────────────────────────────────────
-   Direction-based, unlike the shared .scroll-collapse mechanism which fires on
-   absolute position. The deadband and the .expanded guard are the two parts a
-   later edit would plausibly drop, and both are the difference between usable
-   and unusable: no deadband and end-of-glide jitter flickers the rail; no guard
-   and it fights a rail the technician opened themselves. */
-console.log('\nrail auto-collapse');
-ok('collapse is direction-based', /const dir = st - railLastTop/.test(css));
-ok('has a jitter deadband', /Math\.abs\(dir\) < RAIL_DIR_PX/.test(css));
-ok('never fights a user-expanded rail', /classList\.contains\('expanded'\)\) return/.test(css));
-ok('re-measures the band after the reflow', /measureSnap\(\); onSnapSettle\(\)/.test(css));
-ok('animates rather than jumping (in-flow chrome)', /transition: height \.22s/.test(css));
-ok('releases the hard height so tap-expand still works', /r\.style\.height = ''/.test(css));
-ok('paged mode is not stranded without a rail', /setRailCollapsed\(false\);\s*\n\s*railLastTop = 0;/.test(css));
+/* ── Rail auto-collapse: built and reverted the same day ─────────────────
+   Device verdict was "way too problematic", and the reason is structural:
+   .step-rail is IN FLOW, so hiding it reflows .content and lurches the whole
+   surface mid-gesture. Animating the height and re-measuring the snap band
+   afterwards was not enough to disguise that. Its assertions are replaced by
+   guards that the mechanism stays gone — a later session reading the idea in
+   §20 could easily rebuild it without first making the rail float, which is the
+   only version of this that can work. */
+console.log('\nrail auto-collapse stays reverted');
+ok('no rail collapse class', !/rail-auto-collapsed\s*\{/.test(css));
+ok('no rail scroll tracker', !/function railTrackScroll/.test(css));
+
+/* ── Paged mode must have somewhere to scroll ────────────────────────────
+   `flex:1` makes .focus-wrap grow to exactly fill .content, so without a
+   min-height LARGER than the container it can never overflow — and a scroll
+   container with no overflow ignores the gesture entirely. That is what
+   0/645/645 was on device: not a swallowed gesture, no scroll range at all. */
+console.log('\npaged mode has scroll range');
+ok('focus-wrap forces overflow past the container',
+  /\.focus-wrap \{[^}]*min-height: calc\(100% \+ \d+px\)/.test(css));
+ok('bottom reserve allows for the safe-area inset',
+  /\.content \{ padding:[^;]*env\(safe-area-inset-bottom/.test(css));
 
 console.log('\nView all — collapse/expand all');
 ev(ctx, 'overviewGroupMode = "step"; overviewCollapsedGroups = new Set();');
