@@ -111,7 +111,31 @@
   mid-browse, is what triggers it now.
 -->
 <style>
-.content { padding: 0 0 calc(var(--bar-height) + 16px); display: flex; flex-direction: column; }
+/* ── Bottom reserve (fixed 2026-08-12, device: paged mode could not scroll at
+   all and its last container sat under the bar; the dev readout said
+   scrollTop/scrollHeight/clientHeight = 0/645/645).
+
+   TWO causes, one symptom each, and the readout is what separated them:
+
+   1. NO SCROLL RANGE. `.focus-wrap` is `flex:1` in a column flex container, so
+      it GROWS to consume exactly whatever space is left. Whenever an item is
+      shorter than the container, children sum to precisely the content box and
+      scrollHeight can never exceed clientHeight — hence 645/645. Paged mode
+      wasn't failing to scroll, it was structurally incapable of it. `min-height`
+      below forces a guaranteed overflow, so the gesture always has somewhere to
+      go and the tail is always reachable.
+
+   2. SHORT RESERVE. 72px bar + 16px was all that was held back, with no
+      allowance for the home-indicator inset — so on a notched device the bar
+      covers more than is reserved and eats the last rows. env() is added here
+      and resolves to 0 where there is no inset, so it costs nothing elsewhere.
+
+   NOTE this file is the A/B copy. The same two lines are wrong in v2 and in
+   Book Labor / Issue Parts / WO Closing / WO Record View — all six reserve bar
+   space the same way and NO screen in the app uses safe-area-inset. Not fixed
+   here on purpose: that's an app-wide change and this one needs to be confirmed
+   on a device first. Tracked in §20. */
+.content { padding: 0 0 calc(var(--bar-height) + 24px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; }
 
 /* ─── CHECKLIST-WIDE RAIL ─────────────────────────────────────────────
    Item counter + group name + a proportional completion bar spanning
@@ -152,7 +176,15 @@
 .stepper-progress-fill { height: 100%; background: var(--green); transition: width .3s; }
 
 /* ─── FOCUSED ITEM ───────────────────────────────────────────────── */
-.focus-wrap { flex: 1; padding: 14px 0 4px; }
+/* min-height is what gives paged mode any scroll range at all — see the long
+   note on .content above. `flex:1` makes this box grow to exactly fill the
+   container, so without a minimum LARGER than the container it can never
+   overflow, and a scroll container with no overflow ignores the gesture
+   completely. 100% resolves against .content's own content box (a definite
+   height, since .content is a flex item with a resolved size), so this reads as
+   "always one container tall, plus a tail". The tail doubles as breathing room
+   above the bottom bar, which the screen wanted anyway. */
+.focus-wrap { flex: 1; padding: 14px 0 4px; min-height: calc(100% + 72px); }
 .focus-label-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 0 16px; margin-bottom: 10px; }
 .focus-label { flex: 1; font-size: 19px; font-weight: 700; color: var(--octave-black); line-height: 1.3; }
 [data-theme="dark"] .focus-label { color: var(--white); }
@@ -235,21 +267,12 @@
 /* The arrival cue — a shadow the moment it comes to rest. The current panel IS
    the landed one by definition, so this needs no extra state to track. */
 .snap-panel.is-current .snap-banner { box-shadow: 0 6px 18px -8px rgba(26,26,31,.45); border-bottom-color: var(--border-strong); }
-/* ── RAIL AUTO-COLLAPSE ON SCROLL (scroll mode only) ──────────────────────
-   Reclaims the step rail's ~84px while moving through items, and returns it on
-   any upward scroll. Modelled on .rec-status-row's own collapse (eam-shared.css
-   — explicit height to 0 over .22s) because that is this app's established way
-   of collapsing IN-FLOW chrome, and .step-rail is very much in flow: hiding it
-   changes .content's height, so it must be animated or the entire surface jumps
-   by the rail's height mid-gesture.
-
-   Height is animated from an inline pixel value measured at collapse time and
-   released back to `auto` afterwards — height:auto cannot transition, and
-   leaving a hard height on the rail would clip it if the technician later taps
-   it open into the full vertical timeline. Margins collapse with it, or the
-   rail's 10px gaps would survive as a visible band of nothing. */
-.step-rail { transition: height .22s ease, margin .22s ease, opacity .18s ease, box-shadow .15s; }
-.step-rail.rail-auto-collapsed { margin-top: 0; margin-bottom: 0; opacity: 0; pointer-events: none; }
+/* Rail auto-collapse-on-scroll was tried here on 2026-08-12 and REVERTED the
+   same day on device: "way too problematic." .step-rail is in flow, so hiding it
+   reflows .content and shifts the whole surface by the rail's height mid-gesture
+   — animating it and re-measuring the snap band afterwards was not enough to
+   make that feel like anything other than the screen lurching. Don't retry it
+   without making the rail float first, which is a much larger change (§14.2). */
 
 /* The banner carries the equipment now, so the in-body chip would say it twice.
    Hidden in CSS rather than removed from itemFullHtml(), which is shared with
@@ -1081,60 +1104,6 @@ const SNAP_TAKEOVER = 0.5;
 
 function contentEl() { return document.querySelector('.content'); }
 
-/* ─── Rail auto-collapse ─────────────────────────────────────────────────
-   Direction-based, not threshold-based. The shared .scroll-collapse mechanism
-   (onRecContentScroll) fires on absolute position past 40px with hysteresis,
-   which is right for a record header that should stay gone once you're into the
-   body. Here the ask was different: "collapses the step rail when scrolled down.
-   Any scroll up (including hitting the top banner)" — so it tracks direction and
-   comes back the instant you reverse, wherever you are in the list.
-
-   RAIL_DIR_PX is what makes that usable rather than twitchy: without a deadband,
-   the 1px jitter at the end of a momentum glide reads as a direction change and
-   the rail flickers. */
-const RAIL_DIR_PX = 6;
-let railLastTop = 0, railCollapsed = false, railH = 0, railTimer = null;
-
-function setRailCollapsed(on) {
-  const r = document.getElementById('stepRail');
-  if (!r || railCollapsed === on) return;
-  // Never fight a rail the technician opened themselves into the full timeline.
-  if (r.classList.contains('expanded')) return;
-  railCollapsed = on;
-  clearTimeout(railTimer);
-  if (on) {
-    railH = r.offsetHeight || railH;
-    r.style.height = railH + 'px';
-    // Next frame, so the browser has a definite start value to animate FROM.
-    requestAnimationFrame(() => {
-      r.classList.add('rail-auto-collapsed');
-      r.style.height = '0px';
-    });
-  } else {
-    r.classList.remove('rail-auto-collapsed');
-    if (railH) r.style.height = railH + 'px';
-  }
-  railTimer = setTimeout(() => {
-    // Release the hard height so a tap-to-expand can still grow the rail.
-    if (!railCollapsed) r.style.height = '';
-    /* .content just changed height, so the band every snap calculation reasons
-       about changed with it. Re-measure, then let the settle rules put the
-       current banner back where it belongs if the reflow pushed it off. */
-    if (SCROLL_MODE) { measureSnap(); onSnapSettle(); }
-  }, 250);
-}
-function railTrackScroll(st) {
-  if (!SCROLL_MODE) return;
-  // Near the top the rail always belongs on screen — that's also the "hitting
-  // the top banner" case, where there is nothing left to scroll up into.
-  if (st <= 20) { setRailCollapsed(false); railLastTop = st; return; }
-  const dir = st - railLastTop;
-  if (Math.abs(dir) < RAIL_DIR_PX) return;
-  railLastTop = st;
-  if (dir > 0 && st > 80) setRailCollapsed(true);
-  else if (dir < 0) setRailCollapsed(false);
-}
-
 /* Dev-only readout (2026-08-12): paged mode was reported as completely
    unscrollable and I could not account for it from the source — by every
    measurement I can make statically, .content should have a few hundred px of
@@ -1356,11 +1325,6 @@ function toggleScrollMode() {
   syncScrollModeLabel();
   clearTimeout(snapAnimTimer);
   suppressScroll = false;
-  // Rail auto-collapse is a scroll-mode behaviour only; leaving it collapsed
-  // would strand paged mode with no rail and no way to get it back, since
-  // railTrackScroll() no-ops there.
-  setRailCollapsed(false);
-  railLastTop = 0;
   contentEl().scrollTop = 0;
   renderFocus({ anchor: 'top' });
   updateScrollDbg();
@@ -2091,10 +2055,7 @@ initSharedApp({ contentSelector: '.content' });
 /* Unconditional, and separate from the snap listener below on purpose: that one
    returns early in paged mode and while a landing is in flight, which is exactly
    when the readout is most needed (paged mode is the thing being diagnosed). */
-contentEl().addEventListener('scroll', () => {
-  updateScrollDbg();
-  railTrackScroll(contentEl().scrollTop);
-}, { passive: true });
+contentEl().addEventListener('scroll', () => { updateScrollDbg(); }, { passive: true });
 
 contentEl().addEventListener('scroll', () => {
   if (!SCROLL_MODE || suppressScroll) return;
