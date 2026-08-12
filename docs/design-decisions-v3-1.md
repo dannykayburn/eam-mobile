@@ -3369,6 +3369,13 @@ from mockup options, promoted into the real file.
   a collapsible-section treatment were both tried and rejected during the
   v2 rebuild); the chip is deliberately neither of those two rejected
   shapes.
+  **SUPERSEDED 2026-08-12 by the Item Banner (§16.11)**, which carries the
+  equipment itself. The chip is `display:none` rather than deleted, so the
+  revert is one CSS line. Note the irony worth keeping: §16.2's history
+  rejected "a dark identity-banner", and what replaced the chip is a banner
+  — but a light, fixed-height one whose job is to be a *scroll anchor*, not
+  to restate the item's identity in heavier type. Different problem, so the
+  old rejection doesn't govern it.
 - **"View all" grouped by Equipment** (`#overviewOverlay`) — a segmented
   toggle (`.ov-seg-wrap`, "Group by Step" | "Group by Equipment") sits
   below the dataspy/search bar (added 2026-08-10, below) and above the
@@ -3828,6 +3835,45 @@ child WO toasts. The equipment record link *does* navigate for real, with
 the same limitation Equipment List already has: no per-record routing
 exists anywhere in this app yet, so every row lands on the same demo
 Equipment record.
+
+## 16.11 Item Banner (locked 2026-08-12)
+
+Every checklist item opens with a **fixed-height, full-width banner**. Locked
+off four device rounds, and it applies in **both** navigation modes — the
+scroll-vs-paged question in §20 is now about navigation alone, not about how an
+item identifies itself.
+
+| Element | Rule |
+| --- | --- |
+| **Item number** | Mono, ~23px, zero-padded, with a smaller `/NN` total beside it. The mono weight identifiers carry everywhere else in the app, sized to register *peripherally* — the banner is meant to be watched while it moves, not read once it stops. |
+| **Completion tick** | The existing green (§23 — green is reused, never re-invented). Present on any answered item, including a neighbour you've scrolled past, which is what makes "did I finish that one" answerable at a glance. |
+| **Equipment** | Code (mono) + description, right-aligned. Falls back to the **WO's header equipment** when the item has none of its own, so every banner names an asset; a MEC child reports the single asset it was minted for. An item on a WO with no equipment at all reads "No equipment" rather than rendering an empty half — the band is fixed-height and full-width, so silence there looks like a fault instead of an absence. |
+| **Height** | Fixed. That constancy is what makes it readable as an anchor rather than as more content. |
+| **Landing** | Sits **flush** against the sticky rail when an item settles; the landing air is inside the banner's sibling body, never above the banner. Carries a shadow at rest, so arrival reads as arrival. |
+
+**Why a banner at all.** The problem it solves is orientation at fan-out scale
+(§16.9): "without consistent identifier of the sequence and lazy snaps, I do
+feel lost while navigating, where I'm at and where I just was." A small caption
+tells you where you are once you go looking for it; a full-width band makes the
+boundary between items a physical object you watch move. In scroll mode it is
+also *what the snap lands* — the landing has a visible subject.
+
+**The equipment is there on purpose, and it is the important half.** After
+§16.9's fan-out a Route checklist is ~96 or ~624 items, and "item 237 of 624"
+locates a technician in the data rather than on the job. The asset is the unit
+they are actually navigating. The flat index stays only for continuity with the
+rail's own counter.
+
+**Rejected banner contents**, all built and compared with live scroll behaviour
+in `mockups/checklist-item-banner-options.html`: number only (fastest to read
+while moving, but says nothing about the item); number + answer type; and a
+full-dress sticky variant that pinned the band so the identifier never left —
+rejected for costing 62px permanently and duplicating the rail directly above it.
+
+**Direction words are banned.** An earlier caption labelled neighbours "Next up"
+and "Previous"; those move with context, so the same item read differently
+depending on which way you arrived at it. They described the scroll rather than
+the item, which is backwards for an orientation cue.
 
 # 17. WO Workflow — Step 3: Issue Parts
 
@@ -4356,7 +4402,7 @@ into a locked-decision row in the section that governs it, or is deleted.
 
 | Item | Detail |
 | --- | --- |
-| **Checklist navigation — "scroll mode" A/B is live, undecided** | Opened 2026-08-12. §16.1's Prev/Next pager is unchanged and still the locked model; a snap-pager alternative is built as a **toggleable A/B copy**, `eam-activity-checklist-prototype-v2-scrollmode.html`, for a device comparison. Same focused-item model — one item owns the screen, neighbours render as label+control stubs — but the *transition* is a scroll rather than a button, so a fanned-out Route checklist (§16.9, ~96/~624 items) doesn't read as an endless run of discrete screens. DOM stays at 3 panels regardless of item count. Rejected on the way: a virtualised continuous list (reintroduces exactly the perf + dynamic-update problems the Focused Stepper was chosen to avoid) and equipment-grouped pages (grouping is a task-plan composition property, often absent, so it can't carry the model). **Decides §16.1's letter** — folding it into v2 means amending that rule; §16.1's stated *reason* (a list made every item carry idle chrome) stays satisfied either way, since only the focused item has chrome. Judge on device: whether a flick reliably lands one item on, and whether Notes typing fights the snap. Settled through four device rounds: snapping is JS-owned (CSS `scroll-snap-type: proximity` did not fire reliably on iOS and left items resting half-placed; `mandatory` would fight both long-item reading and iOS scrolling a focused input into view), it fires on deceleration rather than an idle timeout, Prev/Next commit directly rather than scrolling and waiting to be noticed, and each item carries a fixed-height **banner** — mono item number plus the equipment — which is what the snap lands on. **Rejected on device: auto-collapsing the step rail on scroll** ("way too problematic") — `.step-rail` is in flow, so hiding it reflows `.content` and lurches the surface mid-gesture; animating the height and re-measuring the snap band afterwards was not enough. Don't retry without making the rail float first (§14.2). |
+| **Checklist navigation — "scroll mode" A/B is live, undecided** | Opened 2026-08-12. §16.1's Prev/Next pager is unchanged and still the locked model; a snap-pager alternative is built as a **toggleable A/B copy**, `eam-activity-checklist-prototype-v2-scrollmode.html`, for a device comparison. Same focused-item model — one item owns the screen, neighbours render as label+control stubs — but the *transition* is a scroll rather than a button, so a fanned-out Route checklist (§16.9, ~96/~624 items) doesn't read as an endless run of discrete screens. DOM stays at 3 panels regardless of item count. Rejected on the way: a virtualised continuous list (reintroduces exactly the perf + dynamic-update problems the Focused Stepper was chosen to avoid) and equipment-grouped pages (grouping is a task-plan composition property, often absent, so it can't carry the model). **Decides §16.1's letter** — folding it into v2 means amending that rule; §16.1's stated *reason* (a list made every item carry idle chrome) stays satisfied either way, since only the focused item has chrome. Judge on device: whether a flick reliably lands one item on, and whether Notes typing fights the snap. Settled through four device rounds: snapping is JS-owned (CSS `scroll-snap-type: proximity` did not fire reliably on iOS and left items resting half-placed; `mandatory` would fight both long-item reading and iOS scrolling a focused input into view), it fires on deceleration rather than an idle timeout, Prev/Next commit directly rather than scrolling and waiting to be noticed, and each item carries a fixed-height **banner** — mono item number plus the equipment — which is what the snap lands on. **Rejected on device: auto-collapsing the step rail on scroll** ("way too problematic") — `.step-rail` is in flow, so hiding it reflows `.content` and lurches the surface mid-gesture; animating the height and re-measuring the snap band afterwards was not enough. Don't retry without making the rail float first (§14.2). **Narrowed 2026-08-12: the Item Banner came out of this A/B and is now LOCKED for both modes (§16.11), so what remains under test is navigation alone — whether items should be paged through or scrolled between.** Paged mode is therefore no longer byte-identical to v2. On resolution: fold the winner into v2, delete the copy and its `test-checklist-scrollmode.js`, put `WO_STEP_FILES.checklist` back to a single live file, amend §16.1 if scroll wins, and rename the `.snap-*` CSS prefix — a fossil of when the banner was scroll-only. |
 | **Bottom bar reserve is short app-wide, and `.focus-wrap`'s `flex:1` can make a screen unscrollable** | Found 2026-08-12 by instrumenting on device, after two wrong guesses from reading the CSS. Two separate faults. (1) **No screen in the app uses `env(safe-area-inset-bottom)` anywhere**, and six reserve bar space as `calc(var(--bar-height) + 16px)` — v2, the scroll-mode copy, Book Labor, Issue Parts, WO Closing, WO Record View. On a home-indicator device the bar covers more than is held back, so the last container is clipped; expect it worst on the screens with tall stacked containers. (2) A `flex:1` box in a column flex container **grows to consume exactly the space left over**, so when its content is shorter than the container, children sum to precisely the content box and `scrollHeight` can never exceed `clientHeight` — a scroll container with no overflow ignores the gesture entirely. That is why the checklist's paged mode was reported as completely unscrollable on device while scrolling fine in a desktop browser (a short window makes the content genuinely overflow). Fixed in the scroll-mode copy only (`min-height: calc(100% + 72px)` on `.focus-wrap`, plus `env()` in the reserve), pending device confirmation before applying to the other five. **The diagnostic lesson is the durable part: `scrollHeight == clientHeight` means no range and is a layout fault; a non-zero gap with a stuck `scrollTop` means a swallowed gesture. Measure before theorising.** |
 | **Book Labor — Department and Trade fields still cycle-on-tap** | Not yet converted to the real `openLov()` sheet, unlike Employee/Crew/Type of Hours on the same screen (§18.4). |
 | **Issue Parts — button treatment consistency** | The screen mixes 3 different button weights: per-row outlined `.row-action-btn` (Quick Issue/Return, Modify), full-width outlined `.btn-outlined` (Add Parts), full-width filled `.btn-contained` (Quick Issue All). Not yet clear whether this 3-tier hierarchy (row action / secondary screen action / primary screen action) is correct as-is or needs converging. |
