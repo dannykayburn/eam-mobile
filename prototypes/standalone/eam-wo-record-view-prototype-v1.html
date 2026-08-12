@@ -37,7 +37,7 @@
 <style>
 /* Content needs extra bottom padding to clear the bottom bar (WO-specific;
    the Standard Model's plain .content has no bottom bar to clear). */
-.content { padding: 0 0 calc(var(--bar-height) + 16px); }
+.content { padding: 0 0 var(--bar-reserve); }
 
 /* This screen has no tabs (§14.1) — content is mounted once into a plain
    #recordContentSlot div rather than a `.tab-content[data-tab]` panel like

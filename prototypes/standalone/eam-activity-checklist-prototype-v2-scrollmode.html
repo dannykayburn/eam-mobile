@@ -135,7 +135,7 @@
    space the same way and NO screen in the app uses safe-area-inset. Not fixed
    here on purpose: that's an app-wide change and this one needs to be confirmed
    on a device first. Tracked in §20. */
-.content { padding: 0 0 calc(var(--bar-height) + 24px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; }
+.content { padding: 0 0 var(--bar-reserve); display: flex; flex-direction: column; }
 
 /* ─── CHECKLIST-WIDE RAIL ─────────────────────────────────────────────
    Item counter + group name + a proportional completion bar spanning

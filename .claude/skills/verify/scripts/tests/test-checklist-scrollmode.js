@@ -248,8 +248,17 @@ ok('no rail scroll tracker', !/function railTrackScroll/.test(css));
 console.log('\npaged mode has scroll range');
 ok('focus-wrap forces overflow past the container',
   /\.focus-wrap \{[^}]*min-height: calc\(100% \+ \d+px\)/.test(css));
-ok('bottom reserve allows for the safe-area inset',
-  /\.content \{ padding:[^;]*env\(safe-area-inset-bottom/.test(css));
+/* The reserve moved into eam-shared.css as --bar-reserve once the same fault
+   turned up on all six screens with a bottom bar — six copies is precisely how
+   it stayed wrong everywhere at once. Asserted in both halves: the screen has to
+   reference the shared value, and the shared value has to include the inset. */
+const sharedCss = require('fs').readFileSync(
+  'C:/Users/dkilburn/Projects/eam-mobile/prototypes/standalone/shared/eam-shared.css', 'utf8');
+ok('screen uses the shared bottom reserve', /\.content \{ padding: 0 0 var\(--bar-reserve\)/.test(css));
+ok('shared reserve allows for the safe-area inset',
+  /--bar-reserve:\s*calc\([^;]*env\(safe-area-inset-bottom/.test(sharedCss));
+ok('no screen still hardcodes the short reserve',
+  !/padding: 0 0 calc\(var\(--bar-height\) \+ 16px\)/.test(css));
 
 console.log('\nView all — collapse/expand all');
 ev(ctx, 'overviewGroupMode = "step"; overviewCollapsedGroups = new Set();');
