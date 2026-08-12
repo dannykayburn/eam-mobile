@@ -73,7 +73,12 @@ ok('stubs are cursor-1 and cursor+1',
 // is that it never disappears as you move. Direction words are gone: they
 // described the scroll rather than the item, so the same item got a different
 // label depending on which way you arrived at it.
-ok('all three panels carry a banner', count(h, /class="snap-banner"/g) === 3, String(count(h, /class="snap-banner"/g)));
+// Character class rather than a closing quote: the banner's class list now
+// carries an optional `is-done`, and a bare /class="snap-banner"/ stopped
+// matching entirely (it reported 0 and looked like the banners had vanished).
+// The `[ "]` also keeps this from matching snap-banner-num and friends.
+const BANNERS = /class="snap-banner[ "]/g;
+ok('all three panels carry a banner', count(h, BANNERS) === 3, String(count(h, BANNERS)));
 ok('no direction words anywhere', !/Next up|Previous ·/.test(h));
 // 1-based and zero-padded for a human, matching the rail's own "Item X of Y".
 ok('identifiers are 1-based and zero-padded',
@@ -153,7 +158,12 @@ ok('scroll mode is off when stored off', ev(ctx2, 'SCROLL_MODE') === false);
 ev(ctx2, 'jumpTo(2)');
 const h2 = wrapHtml(ctx2);
 ok('no snap panels at all', count(h2, /snap-panel/g) === 0);
-ok('no banners at all', count(h2, /snap-banner/g) === 0);
+/* Paged mode carries the banner too as of 2026-08-12 — it's locked design, and
+   the A/B is now about navigation alone. So the assertion is no longer "no
+   banner", it's "exactly one banner and no panel machinery": the banner is the
+   constant, the panels are the variable. */
+ok('exactly one banner', count(h2, /class="snap-banner[ "]/g) === 1, String(count(h2, /class="snap-banner[ "]/g)));
+ok('and no snap tail', count(h2, /snap-tail/g) === 0);
 ok('one full item still renders', count(h2, /id="fv-itemNotes"/g) === 1);
 ok('Comments section still renders', count(h2, /rv-toggle-title">Comments/g) === 1);
 
@@ -245,6 +255,47 @@ ok('no rail scroll tracker', !/function railTrackScroll/.test(css));
    min-height LARGER than the container it can never overflow — and a scroll
    container with no overflow ignores the gesture entirely. That is what
    0/645/645 was on device: not a swallowed gesture, no scroll range at all. */
+/* ── Dead space, and the threshold that depends on it ────────────────────
+   Stubs went to their natural height so the item you left and the item you're
+   arriving at can be on screen together. The room the last panel needs in order
+   to reach the top moved to a single .snap-tail after every panel.
+
+   The trap: the takeover threshold used to be measured against the BAND, which
+   only worked because every stub was a full band tall. A natural-height stub
+   (~220px) can never fill half a ~530px band, so a band-relative threshold would
+   never be met and the cursor would stop advancing — the "Next does nothing" bug
+   returning by a different route. These two assertions are a pair; changing
+   either one alone reintroduces it. */
+console.log('\nstub height and the takeover threshold move together');
+ok('stubs are their natural height', !/\.snap-panel\.is-stub \{[^}]*min-height/.test(css));
+ok('a tail supplies the reachability room instead', /\.snap-tail \{[^}]*min-height: var\(--snap-tail-h/.test(css));
+ok('the tail is rendered after the panels', /html \+= '<div class="snap-tail"><\/div>'/.test(css));
+// Checked against rendered output, not source. The first version of this matched
+// the CSS comment that explains the rule and passed for the wrong reason.
+ev(ctx, 'jumpTo(2)');
+const ht = wrapHtml(ctx);
+ok('the tail renders exactly once', count(ht, /class="snap-tail"/g) === 1);
+ok('and is not counted as a panel', count(ht, /class="snap-panel/g) === 3,
+  count(ht, /class="snap-panel/g) + ' panels');
+ok('takeover is measured against the panel, not the band', /seen >= reach \* SNAP_TAKEOVER/.test(css));
+ok('reach is capped at the band for a tall item', /Math\.min\(bestH \|\| b\.height, b\.height\)/.test(css));
+
+/* ── Completion tick ────────────────────────────────────────────────────
+   Always present in the markup, revealed by a class. That's not a style choice:
+   setNum/setText/applySliderValue deliberately don't re-render (it would destroy
+   the field being typed into), so the tick has to be updatable by class toggle
+   alone. All three in-place answer paths must call syncBannerDone(). */
+console.log('\ncompletion tick');
+ok('tick is unconditional markup', /class="snap-banner-done"><svg/.test(css));
+ok('tick is revealed by a class', /\.snap-banner\.is-done \.snap-banner-done \{ display: flex/.test(css));
+ok('tick reuses the existing green', /\.snap-banner-done \{[^}]*color: var\(--green\)/.test(css));
+ok('banner carries is-done at render time', /isDone\(ITEMS\[idx\]\) \? 'is-done' : ''/.test(css));
+for (const fn of ['setNum', 'setText', 'applySliderValue']) {
+  const body = css.slice(css.indexOf('function ' + fn + '('));
+  ok('  ' + fn + ' updates the tick', /syncBannerDone\(\)/.test(body.slice(0, fn === 'applySliderValue' ? 900 : 260)));
+}
+ok('only the current banner is addressable', /cur \? ' id="curBanner"' : ''/.test(css));
+
 console.log('\npaged mode has scroll range');
 ok('focus-wrap forces overflow past the container',
   /\.focus-wrap \{[^}]*min-height: calc\(100% \+ \d+px\)/.test(css));
