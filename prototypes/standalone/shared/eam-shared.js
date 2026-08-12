@@ -193,7 +193,15 @@ const WO_STEP_LABELS = {
 };
 const WO_STEP_FILES = {
   record: 'eam-wo-record-view-prototype-v1.html',
-  checklist: 'eam-activity-checklist-prototype-v2.html',
+  /* TEMPORARY (2026-08-12) — pointed at the scroll-mode A/B copy, not v2, so
+     that every navigation path (step rail, Next, Start Work) reaches the
+     experiment instead of only a hand-pasted URL. Safe because the copy is a
+     superset: its "⇄ Paged" toggle state is v2's exact render path, so nothing
+     is lost by routing through it, and both modes are comparable on the same
+     page. PUT THIS BACK to eam-activity-checklist-prototype-v2.html when the
+     A/B resolves — CLAUDE.md's retirement convention means one live version,
+     and this line is the only thing making the copy the live one. */
+  checklist: 'eam-activity-checklist-prototype-v2-scrollmode.html',
   issueparts: 'eam-wo-prototype-issue-parts-v1.html',
   booklabor: 'eam-book-labor-prototype-v2.html',
   closing: 'eam-wo-closing-prototype-v2.html',
