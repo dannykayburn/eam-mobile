@@ -206,6 +206,43 @@ ok('neither button routes through scrollToIdx', !/scrollToIdx\(cursor [-+] 1\)/.
    thing worth guarding is that it only touches the mode ON SCREEN — the
    collapsed Set holds step: and equip: keys at once, so a blanket operation
    would silently rearrange the mode you can't see. */
+/* ── Header-equipment fallback ───────────────────────────────────────────
+   Every banner names an asset, but via a DISPLAY fallback — not by writing
+   equipId onto the items. That distinction is the whole point: equipId is what
+   §16.9's fan-out reads as "scoped to equipment", so setting it on the safety
+   and close-out items would fan those out too, giving 156 LOTO confirmations on
+   the FIREEXT route. This is the assertion that stops that shortcut. */
+console.log('\nheader-equipment fallback (must not touch the fan-out)');
+const scoped = ev(ctx, 'ITEMS.filter(i => i.equipId).length');
+ok('not every item carries equipId', scoped < total, scoped + ' of ' + total + ' scoped');
+ok('some items are equipment-scoped', scoped > 0, String(scoped));
+ok('headerEquip() reports the WO equipment', ev(ctx, 'headerEquip().code') === '00067333',
+  ev(ctx, 'headerEquip().code'));
+// An unscoped item still shows an asset in its banner rather than the fallback
+// chip — jump to one and check what its own panel rendered.
+const unscoped = ev(ctx, 'ITEMS.findIndex(i => !i.equipId)');
+ok('an unscoped item exists to test', unscoped >= 0, 'index ' + unscoped);
+ev(ctx, 'jumpTo(' + unscoped + ')');
+const hu = wrapHtml(ctx);
+ok('an unscoped item still names an asset', /snap-banner-eq-code">00067333</.test(hu));
+ok('and does not fall back to "No equipment"',
+  !new RegExp('is-current"[^>]*>\\s*<div class="snap-banner">[\\s\\S]{0,400}?No equipment').test(hu));
+
+/* ── Rail auto-collapse ──────────────────────────────────────────────────
+   Direction-based, unlike the shared .scroll-collapse mechanism which fires on
+   absolute position. The deadband and the .expanded guard are the two parts a
+   later edit would plausibly drop, and both are the difference between usable
+   and unusable: no deadband and end-of-glide jitter flickers the rail; no guard
+   and it fights a rail the technician opened themselves. */
+console.log('\nrail auto-collapse');
+ok('collapse is direction-based', /const dir = st - railLastTop/.test(css));
+ok('has a jitter deadband', /Math\.abs\(dir\) < RAIL_DIR_PX/.test(css));
+ok('never fights a user-expanded rail', /classList\.contains\('expanded'\)\) return/.test(css));
+ok('re-measures the band after the reflow', /measureSnap\(\); onSnapSettle\(\)/.test(css));
+ok('animates rather than jumping (in-flow chrome)', /transition: height \.22s/.test(css));
+ok('releases the hard height so tap-expand still works', /r\.style\.height = ''/.test(css));
+ok('paged mode is not stranded without a rail', /setRailCollapsed\(false\);\s*\n\s*railLastTop = 0;/.test(css));
+
 console.log('\nView all — collapse/expand all');
 ev(ctx, 'overviewGroupMode = "step"; overviewCollapsedGroups = new Set();');
 const stepKeys = ev(ctx, 'overviewGroupKeys().length');

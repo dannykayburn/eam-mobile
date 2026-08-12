@@ -235,6 +235,22 @@
 /* The arrival cue — a shadow the moment it comes to rest. The current panel IS
    the landed one by definition, so this needs no extra state to track. */
 .snap-panel.is-current .snap-banner { box-shadow: 0 6px 18px -8px rgba(26,26,31,.45); border-bottom-color: var(--border-strong); }
+/* ── RAIL AUTO-COLLAPSE ON SCROLL (scroll mode only) ──────────────────────
+   Reclaims the step rail's ~84px while moving through items, and returns it on
+   any upward scroll. Modelled on .rec-status-row's own collapse (eam-shared.css
+   — explicit height to 0 over .22s) because that is this app's established way
+   of collapsing IN-FLOW chrome, and .step-rail is very much in flow: hiding it
+   changes .content's height, so it must be animated or the entire surface jumps
+   by the rail's height mid-gesture.
+
+   Height is animated from an inline pixel value measured at collapse time and
+   released back to `auto` afterwards — height:auto cannot transition, and
+   leaving a hard height on the rail would clip it if the technician later taps
+   it open into the full vertical timeline. Margins collapse with it, or the
+   rail's 10px gaps would survive as a visible band of nothing. */
+.step-rail { transition: height .22s ease, margin .22s ease, opacity .18s ease, box-shadow .15s; }
+.step-rail.rail-auto-collapsed { margin-top: 0; margin-bottom: 0; opacity: 0; pointer-events: none; }
+
 /* The banner carries the equipment now, so the in-body chip would say it twice.
    Hidden in CSS rather than removed from itemFullHtml(), which is shared with
    classic mode and has to stay byte-identical to v2 for the A/B to mean
@@ -481,6 +497,10 @@
        deliberately NOT localStorage, so resetDemoState() has nothing to do
        with it. -->
   <button class="theme-toggle" id="scrollModeToggle" onclick="toggleScrollMode()">↕ Scroll</button>
+  <!-- Dev readout, temporary: mode + scrollTop/scrollHeight/clientHeight of
+       .content. Present to diagnose the "paged mode cannot scroll at all"
+       report, which I can't reproduce from the source. Delete with the answer. -->
+  <span class="theme-toggle" id="scrollDbg" style="pointer-events:none;opacity:.65;font-family:var(--font-mono);font-size:10px;">—</span>
 </div>
 
 <div class="app" id="app">
@@ -1061,6 +1081,74 @@ const SNAP_TAKEOVER = 0.5;
 
 function contentEl() { return document.querySelector('.content'); }
 
+/* ─── Rail auto-collapse ─────────────────────────────────────────────────
+   Direction-based, not threshold-based. The shared .scroll-collapse mechanism
+   (onRecContentScroll) fires on absolute position past 40px with hysteresis,
+   which is right for a record header that should stay gone once you're into the
+   body. Here the ask was different: "collapses the step rail when scrolled down.
+   Any scroll up (including hitting the top banner)" — so it tracks direction and
+   comes back the instant you reverse, wherever you are in the list.
+
+   RAIL_DIR_PX is what makes that usable rather than twitchy: without a deadband,
+   the 1px jitter at the end of a momentum glide reads as a direction change and
+   the rail flickers. */
+const RAIL_DIR_PX = 6;
+let railLastTop = 0, railCollapsed = false, railH = 0, railTimer = null;
+
+function setRailCollapsed(on) {
+  const r = document.getElementById('stepRail');
+  if (!r || railCollapsed === on) return;
+  // Never fight a rail the technician opened themselves into the full timeline.
+  if (r.classList.contains('expanded')) return;
+  railCollapsed = on;
+  clearTimeout(railTimer);
+  if (on) {
+    railH = r.offsetHeight || railH;
+    r.style.height = railH + 'px';
+    // Next frame, so the browser has a definite start value to animate FROM.
+    requestAnimationFrame(() => {
+      r.classList.add('rail-auto-collapsed');
+      r.style.height = '0px';
+    });
+  } else {
+    r.classList.remove('rail-auto-collapsed');
+    if (railH) r.style.height = railH + 'px';
+  }
+  railTimer = setTimeout(() => {
+    // Release the hard height so a tap-to-expand can still grow the rail.
+    if (!railCollapsed) r.style.height = '';
+    /* .content just changed height, so the band every snap calculation reasons
+       about changed with it. Re-measure, then let the settle rules put the
+       current banner back where it belongs if the reflow pushed it off. */
+    if (SCROLL_MODE) { measureSnap(); onSnapSettle(); }
+  }, 250);
+}
+function railTrackScroll(st) {
+  if (!SCROLL_MODE) return;
+  // Near the top the rail always belongs on screen — that's also the "hitting
+  // the top banner" case, where there is nothing left to scroll up into.
+  if (st <= 20) { setRailCollapsed(false); railLastTop = st; return; }
+  const dir = st - railLastTop;
+  if (Math.abs(dir) < RAIL_DIR_PX) return;
+  railLastTop = st;
+  if (dir > 0 && st > 80) setRailCollapsed(true);
+  else if (dir < 0) setRailCollapsed(false);
+}
+
+/* Dev-only readout (2026-08-12): paged mode was reported as completely
+   unscrollable and I could not account for it from the source — by every
+   measurement I can make statically, .content should have a few hundred px of
+   scroll range there. This prints scrollTop/scrollHeight/clientHeight live so
+   the device can answer the one question that separates the two possible causes:
+   if scrollHeight > clientHeight and scrollTop stays 0, something is eating the
+   gesture; if scrollHeight == clientHeight, it's a layout fault. Delete once the
+   answer is in. */
+function updateScrollDbg() {
+  const c = contentEl(), el = document.getElementById('scrollDbg');
+  if (!c || !el) return;
+  el.textContent = (SCROLL_MODE ? 'S ' : 'P ') + Math.round(c.scrollTop) + '/' + c.scrollHeight + '/' + c.clientHeight;
+}
+
 /* The numbers CSS can't work out for itself. .content's clientHeight covers
    the area *under* the sticky rail, and its bottom padding stands in for the
    absolutely-positioned nav bar — so both come off the top to get the height
@@ -1268,8 +1356,14 @@ function toggleScrollMode() {
   syncScrollModeLabel();
   clearTimeout(snapAnimTimer);
   suppressScroll = false;
+  // Rail auto-collapse is a scroll-mode behaviour only; leaving it collapsed
+  // would strand paged mode with no rail and no way to get it back, since
+  // railTrackScroll() no-ops there.
+  setRailCollapsed(false);
+  railLastTop = 0;
   contentEl().scrollTop = 0;
   renderFocus({ anchor: 'top' });
+  updateScrollDbg();
   showToast(SCROLL_MODE ? 'Scroll mode — flick between items' : 'Paged mode — v2 behaviour');
 }
 function syncScrollModeLabel() {
@@ -1358,6 +1452,24 @@ function stubPanelHtml(idx) {
   </div>`;
 }
 
+/* The WO's own header equipment, used as the banner's fallback so every item
+   names an asset (device request: "make all the checklist items direct to the
+   pump as the header equipment").
+
+   DELIBERATELY a display-time fallback rather than writing equipId onto the
+   items. `equipId` is precisely what §16.9's fan-out reads as "this item is
+   scoped to equipment", so setting it on the safety and close-out items would
+   fan THOSE out too — 156 separate LOTO confirmations on the FIREEXT route, one
+   per extinguisher. The fallback gives every banner an asset while leaving
+   §16.9's "non-scoped items stay single" rule exactly as it is.
+
+   A MEC child WO reports the single asset it was minted for, not the parent's. */
+function headerEquip() {
+  const ov = (typeof woIdentity === 'function') ? woIdentity() : null;
+  if (ov && ov.equipment) return { code: ov.equipment, desc: ov.equipmentDesc || '' };
+  return { code: '00067333', desc: 'Pump, Centrifugal' };
+}
+
 /* Emitted by the panel wrapper, NOT by itemFullHtml() — that function is shared
    with classic mode, which has to stay byte-identical to v2 for the A/B to mean
    anything. Denominator is live ITEMS.length for the same reason §16.1 gives
@@ -1368,10 +1480,11 @@ function stubPanelHtml(idx) {
    there would read as a rendering fault rather than as an absence. */
 function itemBannerHtml(idx) {
   const it = ITEMS[idx];
-  const right = it.equipId
+  const eq = it.equipId ? { code: it.equipId, desc: it.equipDesc || '' } : headerEquip();
+  const right = eq.code
     ? `<span class="snap-banner-eq">
-         <div class="snap-banner-eq-code">${it.equipId}</div>
-         <div class="snap-banner-eq-desc">${it.equipDesc || ''}</div>
+         <div class="snap-banner-eq-code">${eq.code}</div>
+         <div class="snap-banner-eq-desc">${eq.desc}</div>
        </span>`
     : `<span class="snap-banner-none">No equipment</span>`;
   return `<div class="snap-banner">
@@ -1975,6 +2088,14 @@ initSharedApp({ contentSelector: '.content' });
    `scrollend` would be the tidy answer to the fallback and is still avoided:
    Safari only shipped it recently, and this has to work on whatever handset is
    actually in a technician's hand. */
+/* Unconditional, and separate from the snap listener below on purpose: that one
+   returns early in paged mode and while a landing is in flight, which is exactly
+   when the readout is most needed (paged mode is the thing being diagnosed). */
+contentEl().addEventListener('scroll', () => {
+  updateScrollDbg();
+  railTrackScroll(contentEl().scrollTop);
+}, { passive: true });
+
 contentEl().addEventListener('scroll', () => {
   if (!SCROLL_MODE || suppressScroll) return;
   const c = contentEl();
@@ -2020,6 +2141,7 @@ contentEl().addEventListener('touchstart', () => {
 window.addEventListener('resize', () => { if (SCROLL_MODE) measureSnap(); });
 window.addEventListener('orientationchange', () => { if (SCROLL_MODE) measureSnap(); });
 window.addEventListener('load', () => {
+  updateScrollDbg();
   if (!SCROLL_MODE || showingInstructions) return;
   measureSnap();
   // Only re-anchor if the technician hasn't started scrolling yet — re-running
