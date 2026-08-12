@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Checklist item banner — scroll anchor options (behaviour is live)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!--
+  CHECKLIST ITEM BANNER — the scroll anchor (2026-08-12, exploration only;
+  nothing here is decided or wired into a real screen).
+
+  THE IDEA BEING TESTED. Scroll mode currently snaps the item's top edge to the
+  top of the band, and the identifier is a small mono caption. The proposal: give
+  each item a full-width banner of fixed height, carrying the item number in the
+  mono weight identifiers get elsewhere in the app, at a size you can read at a
+  glance — so the snap has a visible SUBJECT. Scrolling forward, you watch the
+  next banner get drawn up and land; scrolling back, you pull the previous one
+  down into place. The band is the thing that snaps, not an invisible edge.
+
+  Why it might be the right answer: the complaint it addresses was "I do feel
+  lost while navigating, where I'm at and where I just was." A caption tells you
+  where you are once you look for it. A banner makes the boundary between items
+  a physical object you can see moving, which is a different kind of orientation
+  — you don't read it, you watch it.
+
+  BEHAVIOUR IS REAL IN EVERY FRAME, and it is the same engine as the prototype:
+    - velocity tracked and low-passed; once the finger is up and it decays below
+      0.3 px/ms the landing starts while the glide is still moving
+    - a finger down aborts any landing in flight (never fight the user)
+    - easeOutCubic on rAF, ~160-320ms by distance, writing scrollTop per frame
+      so it overrides iOS momentum rather than negotiating with it
+    - scrolling deep inside a long item does NOT snap — item 5 in every frame is
+      deliberately long, with comments, so that exemption can be felt
+  On desktop there are no touch events, so the idle-timeout fallback does the
+  settling; the feel is close but the velocity path only really shows on a phone.
+
+  THE FOUR FRAMES vary ONLY the banner's contents — every frame shares one
+  render function and one engine, so nothing else can drift and confound the
+  comparison. The open question is how much the band should carry before it
+  stops being an anchor and becomes a second header.
+
+  NOT ADDRESSED HERE, deliberately: whether the sticky rail's own "Item X of Y"
+  counter survives this. If the banner carries the number, that counter is
+  saying the same thing twice — but it's left in every frame so the frames stay
+  comparable. Decide the banner first.
+-->
+<style>
+:root{
+  --octave-black:#1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --green:#00AA14; --red:#E24B4A; --orange:#F46600; --teal:#007B87;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-nav:#1A1A1F; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --font-sans:"Inter",system-ui,sans-serif; --font-mono:"JetBrains Mono",monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{margin:0;padding:34px 20px 60px;background:#15161A;font-family:var(--font-sans);}
+h1{color:#fff;font-size:19px;font-weight:800;text-align:center;margin:0 0 6px;}
+.sub{color:rgba(255,255,255,.62);font-size:12.5px;text-align:center;max-width:760px;margin:0 auto 30px;line-height:1.6;}
+.sub b{color:#fff;font-weight:600;}
+.row{display:flex;flex-wrap:wrap;gap:30px;justify-content:center;align-items:flex-start;}
+.col{display:flex;flex-direction:column;align-items:center;}
+.opt-label{margin-top:11px;font-size:12px;color:rgba(255,255,255,.72);text-align:center;max-width:390px;line-height:1.55;}
+.opt-label b{color:#fff;font-weight:700;display:block;font-size:13px;margin-bottom:3px;}
+.opt-label i{color:rgba(255,255,255,.5);font-style:normal;}
+.frame{width:390px;height:660px;border-radius:44px;background:#000;padding:10px;box-shadow:0 20px 60px rgba(0,0,0,.5);flex-shrink:0;}
+.scr{width:100%;height:100%;border-radius:34px;overflow:hidden;background:var(--bg-page);display:flex;flex-direction:column;}
+
+/* ── chrome, identical in all four frames ─────────────────────────────── */
+.nav{height:44px;background:var(--bg-nav);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.nav span{color:#fff;font-size:14px;font-weight:700;}
+.rail{flex-shrink:0;background:var(--bg-card);border-bottom:1px solid var(--border);padding:8px 14px 7px;}
+.rail-row{display:flex;align-items:baseline;justify-content:space-between;}
+.rail-grp{font-size:12.5px;font-weight:700;color:var(--octave-black);}
+.rail-cnt{font-family:var(--font-mono);font-size:11px;color:var(--gray-4);}
+.rail-bar{margin-top:6px;height:3px;border-radius:2px;background:var(--gray-1);overflow:hidden;}
+.rail-fill{height:100%;background:var(--green);border-radius:2px;}
+.body{flex:1;overflow-y:auto;overscroll-behavior:contain;}
+.bar{height:56px;flex-shrink:0;background:var(--bg-card);border-top:1px solid var(--border);display:flex;align-items:center;gap:9px;padding:0 12px;}
+.bar-p{width:40px;height:38px;border-radius:10px;background:var(--bg-section);color:var(--octave-black);border:none;font-size:14px;font-weight:700;}
+.bar-n{flex:1;height:38px;border-radius:10px;background:var(--octave-black);color:#fff;border:none;font-size:13.5px;font-weight:700;}
+
+/* ── THE BANNER — the thing under test ────────────────────────────────────
+   Fixed height in every variant (that's the point: a constant-height band is
+   what makes it readable as an anchor rather than as more content). The number
+   takes the mono weight identifiers carry elsewhere in the app, sized up so it
+   registers peripherally while it's moving. */
+.bnr{height:56px;flex-shrink:0;background:var(--bg-card);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px;padding:0 15px;transition:box-shadow .2s ease,border-color .2s ease;}
+.bnr-num{font-family:var(--font-mono);font-size:23px;font-weight:700;color:var(--octave-black);letter-spacing:-.02em;line-height:1;}
+.bnr-of{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--gray-3);align-self:flex-end;padding-bottom:2px;}
+.bnr-sp{flex:1;}
+.bnr-chip{flex-shrink:0;font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--gray-4);border:1px solid var(--border-strong);border-radius:999px;padding:4px 9px;}
+.bnr-eq{min-width:0;text-align:right;}
+.bnr-eq-code{font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--octave-black);}
+.bnr-eq-desc{font-size:10.5px;color:var(--gray-4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bnr-grp{font-size:11px;font-weight:600;color:var(--gray-4);}
+/* Landed state — a shadow the moment it comes to rest, so the snap reads as an
+   arrival rather than as the scroll happening to stop. This is the "with
+   authority and style" half; without it the motion lands silently. */
+.item.landed>.bnr{box-shadow:0 6px 18px -8px rgba(26,26,31,.45);border-bottom-color:var(--border-strong);}
+/* D only: the band pins while its item is on screen, so the identifier never
+   leaves even when you scroll deep into comments. Costs 56px of permanent
+   real estate and doubles up with the sticky rail above it. */
+.v-d .bnr{position:sticky;top:0;z-index:3;}
+.v-d .bnr{height:62px;}
+
+/* ── item body, same in all frames ────────────────────────────────────── */
+.item{background:var(--bg-page);}
+.item-in{padding:14px 15px 22px;}
+.eq-chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:var(--gray-4);background:var(--bg-card);border:1px solid var(--border-strong);border-radius:999px;padding:5px 11px;margin-bottom:9px;}
+.eq-chip b{font-family:var(--font-mono);color:var(--octave-black);}
+.lbl{font-size:17px;font-weight:700;color:var(--octave-black);line-height:1.3;margin:0 0 11px;}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:13px;padding:15px;margin-bottom:10px;}
+.opt{padding:14px 0;text-align:center;font-size:14.5px;font-weight:700;border-radius:9px;border:2px solid var(--gray-2);color:var(--octave-black);margin-bottom:8px;}
+.opt:last-child{margin-bottom:0;}
+.numin{display:flex;align-items:center;justify-content:center;gap:8px;}
+.numin div{width:120px;height:46px;border:2px solid var(--gray-2);border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--gray-3);font-size:19px;}
+.numin span{font-size:13px;font-weight:700;color:var(--gray-4);}
+.conf{display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 0;}
+.conf i{width:26px;height:26px;border-radius:50%;border:2px solid var(--gray-3);display:block;}
+.conf span{font-size:15px;font-weight:700;color:var(--octave-black);}
+.fld{background:var(--bg-card);border:1px solid var(--border);border-radius:13px;padding:11px 14px;margin-bottom:10px;}
+.fld-l{font-size:10.5px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--gray-4);}
+.fld-v{font-size:13.5px;color:var(--gray-3);margin-top:3px;}
+.sec{background:var(--bg-card);border:1px solid var(--border);border-radius:13px;padding:12px 14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+.sec span{font-size:13.5px;font-weight:600;color:var(--octave-black);}
+.sec i{font-family:var(--font-mono);font-size:11px;color:var(--gray-4);border:1px solid var(--border-strong);border-radius:999px;padding:2px 7px;font-style:normal;}
+.cmt{background:var(--bg-card);border:1px solid var(--border);border-radius:13px;padding:12px 14px;margin-bottom:9px;}
+.cmt-h{display:flex;align-items:center;gap:7px;margin-bottom:5px;}
+.cmt-av{width:22px;height:22px;border-radius:50%;background:var(--gray-1);font-size:9px;font-weight:700;color:var(--gray-5);display:flex;align-items:center;justify-content:center;}
+.cmt-n{font-size:11.5px;font-weight:700;color:var(--octave-black);}
+.cmt-t{font-size:12.5px;color:var(--gray-5);line-height:1.5;}
+.tail{height:120px;}
+</style>
+</head>
+<body>
+
+<h1>Checklist item banner — the scroll anchor</h1>
+<p class="sub">
+  Each item gets a <b>fixed-height band</b> carrying its number in mono, so the snap has something visible to land.
+  Scroll forward and watch the next banner get drawn up; scroll back and pull the previous one down.
+  <b>Behaviour is live and is the real engine</b> — velocity-triggered landing, aborts on touch, and
+  <b>item 05 is deliberately long</b> in every frame so you can confirm that scrolling inside an item does not snap.
+  <i>Frames differ only in what the band carries.</i>
+</p>
+
+<div class="row" id="row"></div>
+
+<script>
+/* ── One data set, one renderer, four banner variants. Sharing the renderer is
+   the point of the exercise: if each frame were hand-built, a spacing or
+   wording difference could carry the comparison instead of the banner. ── */
+const ITEMS = [
+  { n:1, grp:'Safety checks', type:'Confirm',   eq:'A-00067333', eqd:'Pump, Centrifugal',
+    label:'Confirm LOTO applied to all energy sources', ctl:'confirm' },
+  { n:2, grp:'Safety checks', type:'Confirm',   eq:'A-00067333', eqd:'Pump, Centrifugal',
+    label:'Area barriers and signage in place', ctl:'confirm' },
+  { n:3, grp:'Inspection',    type:'Reading',   eq:'A-00067333', eqd:'Pump, Centrifugal',
+    label:'Suction pressure', ctl:'num', uom:'psi', range:'Acceptable range: 12 – 40 psi' },
+  { n:4, grp:'Inspection',    type:'Pass/Fail', eq:'A-00067333', eqd:'Pump, Centrifugal',
+    label:'Coupling condition', ctl:'opts', opts:['Pass','Minor','Adjusted'] },
+  { n:5, grp:'Inspection',    type:'Reading',   eq:'A-00067333', eqd:'Pump, Centrifugal',
+    label:'Bearing temperature — post run', ctl:'num', uom:'°F', range:'Acceptable range: 60 – 180 °F',
+    /* The long one. Exists so the reading exemption can be felt: scroll down
+       through these comments and the surface must NOT snap out from under you. */
+    comments:[
+      ['DK','D. Kilburn','Ran for 20 minutes before taking the reading, per the task plan note. Ambient was 84°F in the pump house.'],
+      ['MR','M. Rodriguez','Previous PM logged 171°F on this bearing — worth flagging if we are over that again.'],
+      ['DK','D. Kilburn','Infrared gun batteries replaced. Earlier readings this week may have drifted low.']
+    ] },
+  { n:6, grp:'Close-out',     type:'Confirm',   eq:null, eqd:null,
+    label:'Work area left clean and tools accounted for', ctl:'confirm' },
+];
+const TOTAL = ITEMS.length;
+
+function ctlHtml(it){
+  if (it.ctl === 'confirm') return `<div class="card"><div class="conf"><i></i><span>Tap to confirm</span></div></div>`;
+  if (it.ctl === 'num') return `<div class="card"><div class="numin"><div>—</div><span>${it.uom}</span></div>
+    <div style="text-align:center;margin-top:9px;font-family:var(--font-mono);font-size:11px;color:var(--gray-4);">${it.range}</div></div>`;
+  return `<div class="card">${it.opts.map(o=>`<div class="opt">${o}</div>`).join('')}</div>`;
+}
+
+/* The four variants. Each returns the INSIDE of the fixed-height band. */
+const VARIANTS = {
+  a: it => `<span class="bnr-num">${String(it.n).padStart(2,'0')}</span><span class="bnr-of">/${String(TOTAL).padStart(2,'0')}</span>`,
+  b: it => `<span class="bnr-num">${String(it.n).padStart(2,'0')}</span><span class="bnr-of">/${String(TOTAL).padStart(2,'0')}</span>
+            <span class="bnr-sp"></span><span class="bnr-chip">${it.type}</span>`,
+  c: it => `<span class="bnr-num">${String(it.n).padStart(2,'0')}</span><span class="bnr-of">/${String(TOTAL).padStart(2,'0')}</span>
+            <span class="bnr-sp"></span>${it.eq
+              ? `<span class="bnr-eq"><div class="bnr-eq-code">${it.eq}</div><div class="bnr-eq-desc">${it.eqd}</div></span>`
+              : `<span class="bnr-chip">No equipment</span>`}`,
+  d: it => `<span class="bnr-num">${String(it.n).padStart(2,'0')}</span><span class="bnr-of">/${String(TOTAL).padStart(2,'0')}</span>
+            <span class="bnr-sp"></span>
+            <span class="bnr-eq">
+              <div class="bnr-eq-code">${it.eq || '—'}</div>
+              <div class="bnr-eq-desc">${it.grp} · ${it.type}</div>
+            </span>`,
+};
+
+/* Variant C/D put the equipment in the band, so the in-body equipment chip
+   would be saying it twice — dropped there, kept in A/B. That trade is part of
+   what's being judged: the band can absorb the chip, or duplicate it. */
+function itemHtml(it, v){
+  const showChip = (v === 'a' || v === 'b') && it.eq;
+  return `<div class="item" data-n="${it.n}">
+    <div class="bnr">${VARIANTS[v](it)}</div>
+    <div class="item-in">
+      ${showChip ? `<span class="eq-chip">🔧 <b>${it.eq}</b> — ${it.eqd}</span>` : ''}
+      <p class="lbl">${it.label}</p>
+      ${ctlHtml(it)}
+      <div class="fld"><div class="fld-l">Notes</div><div class="fld-v">Add a note…</div></div>
+      <div class="sec"><span>Comments</span><i>${it.comments ? it.comments.length : 0}</i></div>
+      ${it.comments ? it.comments.map(c=>`<div class="cmt">
+        <div class="cmt-h"><span class="cmt-av">${c[0]}</span><span class="cmt-n">${c[1]}</span></div>
+        <div class="cmt-t">${c[2]}</div></div>`).join('') : ''}
+      <div class="sec"><span>Documents</span><i>0</i></div>
+    </div>
+  </div>`;
+}
+
+const FRAMES = [
+  ['a','Pure anchor','Number only. Nothing competes with it, so it reads fastest while moving — and it is the only variant that stays honest at a glance on a 624-item Route. Says nothing about what the item is.'],
+  ['b','Anchor + answer type','Tells you what kind of answer is coming before you arrive — a reading needs the keypad, a Pass/Fail does not. Cheap information; still one line.'],
+  ['c','Anchor + equipment','Built for the fan-out case: on a Route, WHICH asset you are on matters more than the flat index. Lets the in-body equipment chip go away entirely.'],
+  ['d','Full dress, and it STICKS','Equipment + group + type, and the band pins while you scroll inside the item so the identifier never leaves. Most orientation, most cost: 62px permanently, and it doubles up with the rail above it.'],
+];
+
+document.getElementById('row').innerHTML = FRAMES.map(([v,title,note]) => `
+  <div class="col">
+    <div class="frame"><div class="scr v-${v}">
+      <div class="nav"><span>Work Orders</span></div>
+      <div class="rail">
+        <div class="rail-row"><span class="rail-grp">Inspection</span><span class="rail-cnt">Item 01 of 0${TOTAL}</span></div>
+        <div class="rail-bar"><div class="rail-fill" style="width:18%"></div></div>
+      </div>
+      <div class="body">${ITEMS.map(it=>itemHtml(it,v)).join('')}<div class="tail"></div></div>
+      <div class="bar"><button class="bar-p">‹</button><button class="bar-n">Next ›</button></div>
+    </div></div>
+    <div class="opt-label"><b>${title}</b>${note}</div>
+  </div>`).join('');
+
+/* ══ THE ENGINE — the same rules as the prototype, so the feel is honest ══
+   Deliberately NOT CSS scroll-snap: `proximity` did not fire reliably on iOS
+   and left items resting half-placed, and `mandatory` fights both the
+   reading-inside-an-item case and iOS scrolling a focused input into view. */
+function wireFrame(scr){
+  const sc = scr.querySelector('.body');
+  const rail = scr.querySelector('.rail-cnt'), fill = scr.querySelector('.rail-fill');
+  let touching = false, vel = 0, lastTop = 0, lastT = 0, timer = null, raf = null, busy = false;
+  const items = () => [...sc.querySelectorAll('.item')];
+
+  /* Geometry is measured on .item, never on .bnr — in variant D the banner is
+     position:sticky, so its own rect is pinned to the band top and would report
+     a distance of zero from anywhere inside the item. */
+  function bandTop(){ return sc.getBoundingClientRect().top; }
+
+  function markLanded(el){
+    items().forEach(i => i.classList.toggle('landed', i === el));
+    if (el && rail) {
+      const n = el.dataset.n;
+      rail.textContent = 'Item ' + String(n).padStart(2,'0') + ' of 0' + TOTAL;
+      const grp = ITEMS.find(i => String(i.n) === String(n));
+      if (grp) scr.querySelector('.rail-grp').textContent = grp.grp;
+      if (fill) fill.style.width = Math.round(n / TOTAL * 100) + '%';
+    }
+  }
+
+  function animate(to){
+    cancelAnimationFrame(raf);
+    const from = sc.scrollTop, d = to - from;
+    if (Math.abs(d) < 2) { sc.scrollTop = to; return; }
+    const dur = Math.min(320, Math.max(160, Math.abs(d) * 0.45)), t0 = performance.now();
+    busy = true;
+    const step = now => {
+      if (touching) { busy = false; return; }   // never fight a finger
+      const p = Math.min(1, (now - t0) / dur);
+      sc.scrollTop = from + d * (1 - Math.pow(1 - p, 3));   // easeOutCubic
+      if (p < 1) raf = requestAnimationFrame(step);
+      else requestAnimationFrame(() => { busy = false; });
+    };
+    raf = requestAnimationFrame(step);
+  }
+
+  function settle(){
+    if (busy) return;
+    const bt = bandTop(), h = sc.clientHeight;
+    let best = null, bestD = Infinity;
+    items().forEach(el => {
+      const d = el.getBoundingClientRect().top - bt;
+      if (Math.abs(d) < Math.abs(bestD)) { bestD = d; best = el; }
+    });
+    if (!best) return;
+    /* The reading exemption. If the nearest banner is more than ~60% of a screen
+       away in either direction, the technician is deep inside one item's own
+       content and moving them would be the single worst thing to do. */
+    if (Math.abs(bestD) > h * 0.6) return;
+    markLanded(best);
+    animate(sc.scrollTop + bestD);
+  }
+
+  sc.addEventListener('scroll', () => {
+    if (busy) return;
+    const now = performance.now(), st = sc.scrollTop;
+    if (lastT) { const dt = now - lastT; if (dt > 0) vel = vel * 0.6 + (Math.abs(st - lastTop) / dt) * 0.4; }
+    lastTop = st; lastT = now;
+    clearTimeout(timer);
+    // Finger up + decelerating = the flick is over in every practical sense, so
+    // take over while it is still visibly moving. A slow deliberate drag is also
+    // low-velocity, which is exactly what the touching guard is protecting.
+    if (!touching && vel > 0 && vel < 0.3) { settle(); return; }
+    timer = setTimeout(settle, 110);
+  }, { passive:true });
+
+  sc.addEventListener('touchstart', () => {
+    touching = true; cancelAnimationFrame(raf); busy = false; vel = 0; lastT = 0;
+  }, { passive:true });
+  ['touchend','touchcancel'].forEach(e => sc.addEventListener(e, () => {
+    touching = false; clearTimeout(timer); timer = setTimeout(settle, 110);
+  }, { passive:true }));
+
+  markLanded(items()[0]);
+}
+document.querySelectorAll('.scr').forEach(wireFrame);
+</script>
+</body>
+</html>
