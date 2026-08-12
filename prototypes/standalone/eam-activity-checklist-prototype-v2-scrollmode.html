@@ -1,0 +1,1746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="format-detection" content="telephone=no">
+<title>HxGN EAM Mobile — Activity Checklist (Step 2) — Scroll Mode A/B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-shared.css">
+<!--
+  ╔═══════════════════════════════════════════════════════════════════════╗
+  ║  A/B COPY — NOT A REPLACEMENT FOR v2.                                 ║
+  ║                                                                       ║
+  ║  This is `eam-activity-checklist-prototype-v2.html` plus one added,    ║
+  ║  toggleable navigation model: SCROLL MODE (a vertical snap pager —     ║
+  ║  "option 2" of the forever-scroll options, chosen 2026-08-12). The     ║
+  ║  toggle is OFF-able live from the theme bar, and its OFF state is      ║
+  ║  byte-for-byte v2's behaviour, so this one file is the whole A/B.      ║
+  ║                                                                       ║
+  ║  v2 itself is UNTOUCHED and remains the live Step 2 in WO_STEP_FILES.  ║
+  ║  Nothing links here — open it directly. To A/B in-flow instead, point  ║
+  ║  WO_STEP_FILES.checklist (eam-shared.js) at this filename temporarily. ║
+  ║                                                                       ║
+  ║  If scroll mode wins: fold it into v2 and delete this file. If it      ║
+  ║  loses: delete this file. Don't let it become a third live version —   ║
+  ║  see CLAUDE.md's retirement convention.                                ║
+  ║                                                                       ║
+  ║  Everything scroll-mode-specific is marked `SCROLL MODE` in the CSS    ║
+  ║  and JS below; the classic path is untouched code.                     ║
+  ╚═══════════════════════════════════════════════════════════════════════╝
+
+  WO WORKFLOW — STEP 2: ACTIVITY CHECKLIST — v2, rebuilt 2026-07-21 onto
+  the "Focused Stepper" model. Supersedes v1's grouped-scroll-list design
+  (retired to `old versions/eam-activity-checklist-prototype-v1.html`) —
+  don't resurrect that pattern; this was a deliberate, user-driven
+  redesign explored across several rounds in
+  `prototypes/standalone/mockups/checklist-redesign-b-focused-stepper.html`
+  (2 sibling directions — a compact-rows-with-detail-sheet option and an
+  adaptive-collapse-with-filters option — were also prototyped there and
+  NOT chosen; don't revive them either).
+
+  WHAT CHANGED FROM v1 AND WHY:
+  - One item at a time, full-width, instead of a long scrolling list of
+    dense cards — a checklist item genuinely has a lot going on (answer
+    control, Notes, Follow-up, Comments, Documents, sometimes Equipment),
+    and v1 crammed all of it into a fixed-height card whether or not it
+    was in use. Prev/Next (#stepperNav) replaces free scrolling; "View
+    all" (#overviewOverlay) is the escape hatch back to an at-a-glance
+    list, and is also the only thing that scales to a checklist with
+    ~100 items — this file's own progress indicator is a proportional bar
+    (#stepperProgressFill), not per-item dots/segments, for the same
+    reason.
+  - Notes is a real always-visible field now (same shape as the Notes/
+    Description type in screen-layout-field-behavior-prototype-v1.html,
+    §5.2 — a .form-field with a .field-inline-input textarea), not
+    hidden behind a tap-to-expand trigger.
+  - Comments and Documents are real per-item containers, reusing the
+    exact shared §7.2 data-driven pattern (.rv-section/.rv-toggle-row/
+    .rv-collapse + renderCommentsExcerptMount()/renderDocumentsExcerptMount()
+    from eam-shared.js) that Equipment/WO Record View already use for the
+    whole record — the trick, since only one item is focused at a time,
+    is rebinding the shared COMMENTS_DATA/DOCUMENTS_DATA globals to the
+    focused item's own arrays on every render (see renderFocus()). v1's
+    Attachments was a read-only info-sheet listing filenames as plain
+    text; that's gone, replaced by a real Documents container.
+  - Follow-up is a full-width, orange-outlined button now, not a small
+    pill fighting for space with three others. Flagging it reveals a
+    "Create Follow-up WO" button (hidden entirely, not just disabled,
+    until flagged) — new capability v1 didn't have at all.
+  - Equipment (when an item is equipment-scoped) is a plain, always-
+    visible, read-only field — .form-field.protected, code + description,
+    same shape as any other protected field elsewhere in the app. Earlier
+    in this rebuild it was tried both as a dark identity-style banner and
+    as a collapsible section; both were rejected — equipment context for
+    the item you're answering should never require a tap to see.
+  - Dynamic checklist items: an item's answer can insert new items right
+    after it (syncDynamicChildren()) — real functionality this app
+    supports, not previously represented in any checklist prototype.
+    "View all" indents them under their trigger with a branch-icon cue,
+    and shows a locked "ghost" placeholder row for an as-yet-untriggered
+    branch so the list previews that one could appear there. The
+    checklist's item counter denominator is intentionally just "however
+    many items are known to exist right now" — it grows the moment a
+    branch fires rather than trying to predict a maximum.
+  - Instructions is gone — it isn't a real, separately-supported field on
+    a checklist item (the item's label/description is the only
+    instructional text there is). v1's purple instructions callout and
+    its info-sheet were both built on this same wrong assumption; neither
+    survived into v2.
+  - Required moved from a "*" glyph on the label to a small badge to the
+    right of it — same shape/font as the org corner-badge elsewhere in
+    the app (§8.3's .ld-card-org: Inter, 12px, pill), just orange.
+
+  WHAT DIDN'T CHANGE — still shared chrome, untouched by this rebuild:
+  the protected-identity header (§8.1, no status/pin/Plus — this step's
+  checklist has its own add-affordance concept, N/A here since items are
+  admin-configured, not technician-added), its ellipsis's Print Work
+  Order + Comments/Documents stubs (§14.8 — those are WO-level, a
+  separate context from this file's own per-item Comments/Documents),
+  the step rail + timer panel (§14.2/§14.3), the Yes/No prompt bar
+  (§14.6) and its trigger condition (all required items complete), and
+  the confirm/question modals. One adaptation worth flagging: v1's prompt
+  bar could pop up mid-scroll, the instant the last required field was
+  filled in, because everything was visible in one list. A one-item-at-
+  a-time flow has no equivalent "still working, but already technically
+  done" moment to interrupt, so the prompt bar here only surfaces once
+  you've stepped to the actual last item with all required items
+  complete — reaching the end of the list, not completing requirements
+  mid-browse, is what triggers it now.
+-->
+<style>
+.content { padding: 0 0 calc(var(--bar-height) + 16px); display: flex; flex-direction: column; }
+
+/* ─── CHECKLIST-WIDE RAIL ─────────────────────────────────────────────
+   Item counter + group name + a proportional completion bar spanning
+   every item in the checklist, not scoped to the current group — dots
+   or segments don't scale to a large checklist (a 100-item one would
+   need ~3px slivers, neither readable nor tappable); a single fill
+   does, at any N. Position-within-the-list is "View all"'s job, not
+   this bar's — a plain scrollable row list is the only thing that
+   actually scales for jumping to a specific item at that size. ── */
+.stepper-head { position: sticky; top: 0; z-index: 5; padding: 10px 16px 8px; background: var(--bg-card); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.stepper-head-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
+.stepper-head-left { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
+/* Was a 3-way colored-text scheme per group (brown/purple/green for
+   Safety/Main/Closing) — raw hex never tied to var(--purple)/var(--orange),
+   so it survived every earlier purple/orange grep undetected. Found
+   2026-07-22 (user report: checklist progress bar area "outdated from
+   our new palette" — this label sits directly above the progress bar in
+   the same sticky header). A group name isn't one of the 3 colour
+   instruments any more than Type was elsewhere — plain ink now. */
+.stepper-group-name { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--octave-black); }
+[data-theme="dark"] .stepper-group-name { color: rgba(255,255,255,.9); }
+/* Plain muted text, not a pill/badge — a second competing pill here
+   read as cluttered. Mono — a position/count, same family as every
+   other count/number in the app. */
+.stepper-item-count { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--gray-4); white-space: nowrap; }
+/* "Buttered up" 2026-07-22 (user direction) — was a flat muted-gray pill
+   (gray-4 text, thin --border) that read as barely-there next to
+   everything else in this header; ink text + a stronger border/hover/
+   active give it real presence as a tappable control, matching the
+   weight-not-hue language the rest of the app uses for "this is a real
+   button, not decoration." */
+.view-all-btn { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: var(--octave-black); background: var(--bg-section); border: 1.5px solid var(--border-strong); border-radius: 100px; padding: 6px 13px; cursor: pointer; flex-shrink: 0; transition: background .15s, border-color .15s; }
+[data-theme="dark"] .view-all-btn { color: var(--white); }
+.view-all-btn:hover { background: var(--border-strong); }
+.view-all-btn:active { transform: scale(0.96); }
+.stepper-progress-bar { height: 4px; border-radius: 100px; background: var(--gray-1); overflow: hidden; }
+[data-theme="dark"] .stepper-progress-bar { background: var(--gray-5); }
+.stepper-progress-fill { height: 100%; background: var(--green); transition: width .3s; }
+
+/* ─── FOCUSED ITEM ───────────────────────────────────────────────── */
+.focus-wrap { flex: 1; padding: 14px 0 4px; }
+.focus-label-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 0 16px; margin-bottom: 10px; }
+.focus-label { flex: 1; font-size: 19px; font-weight: 700; color: var(--octave-black); line-height: 1.3; }
+[data-theme="dark"] .focus-label { color: var(--white); }
+/* Required — same shape/font as the org corner-badge pill (§8.3's
+   .ld-card-org). Orange, beside the item description, not a "*". */
+/* Was orange fill — required is red now (§23), and outlined not filled,
+   matching the required-count-badge's own locked treatment. */
+.focus-req-tag { flex-shrink: 0; margin-top: 2px; display: inline-flex; align-items: center; font-family: var(--font-sans); font-size: 11px; font-weight: 600; color: var(--red); background: none; border: 1px solid var(--red); border-radius: 999px; padding: 4px 9px; }
+/* Dynamic checklist items — an item's answer can insert new items right
+   after it (syncDynamicChildren()). This tag marks a dynamically-added
+   item's provenance; the hint marks the trigger item itself. Purple —
+   this app's existing "linked/extra content" language. */
+/* Was purple — this is an informational marker ("this item appeared
+   from a previous answer"), not one of the 3 color instruments (§23),
+   so ink, not a hue. */
+.focus-dynamic-tag { display: flex; align-items: center; gap: 6px; margin: 0 16px 6px; font-size: 11px; font-weight: 600; color: var(--octave-black); }
+[data-theme="dark"] .focus-dynamic-tag { color: var(--white); }
+.focus-dynamic-hint { display: flex; align-items: center; gap: 6px; margin: 8px 16px 0; font-size: 11.5px; color: var(--gray-4); }
+.focus-dynamic-tag svg, .focus-dynamic-hint svg { color: var(--gray-4); flex-shrink: 0; }
+
+/* Equipment context chip — replaces the old low-emphasis
+   .form-field.protected treatment (superseded, see design-decisions-v3-1.md
+   §16.2 item 7 / §16.8): a muted outlined chip above the item label,
+   the first thing rendered on an equipment-scoped item, so which
+   equipment a question concerns never requires a tap or a scroll to see. */
+.focus-equip-chip { display: inline-flex; align-items: center; gap: 6px; margin: 0 16px 10px; font-size: 12px; font-weight: 600; color: var(--gray-4); background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: 999px; padding: 6px 12px; }
+.focus-equip-chip svg { flex-shrink: 0; }
+.focus-equip-chip .mono { font-family: var(--font-mono); color: var(--octave-black); font-weight: 700; }
+[data-theme="dark"] .focus-equip-chip .mono { color: var(--white); }
+
+.focus-control { padding: 18px 16px; }
+
+/* ═══ SCROLL MODE (vertical snap pager) ══════════════════════════════════
+   All of it gated behind `.content.snap-mode`, so classic mode renders with
+   zero scroll-snap CSS in play at all — that's what keeps the A/B honest.
+
+   PROXIMITY, not MANDATORY, deliberately: mandatory snap fights two things
+   this screen genuinely does — item panels of wildly varying height (a
+   3-line checkbox item vs. one with 6 comments and a grown Notes box), and
+   iOS scrolling a focused input into view, which mandatory snap yanks back.
+   Proximity snaps when you're near a boundary and otherwise leaves the
+   scroll alone, which is the behaviour a tall item needs.
+
+   --snap-panel-h / --snap-head are measured at runtime (see measureSnap())
+   rather than written as a vh/dvh expression: the usable height is
+   .content's own clientHeight MINUS the sticky rail MINUS the bottom bar
+   that .content only reserves via padding, and none of that is expressible
+   in CSS here. Also sidesteps the §3.4 vh-vs-dvh trap entirely — there's no
+   viewport unit in this block to get wrong. */
+.content.snap-mode { scroll-snap-type: y proximity; }
+/* Suppressed while typing (keyboard up) and across our own programmatic
+   re-anchors — see typingLock / withSnapSuppressed(). */
+.content.snap-mode.snap-off { scroll-snap-type: none; }
+
+.snap-panel { scroll-snap-align: start; scroll-margin-top: var(--snap-head, 60px); }
+/* The current panel is one screenful LESS the peek, so the next item's top
+   always shows below it when the item is short. That peek is the whole
+   "there's more below, keep going" affordance — it is not decoration. */
+.snap-panel.is-current { min-height: var(--snap-panel-h, 60vh); }
+/* Neighbours are label + answer control only — no Notes/Comments/Documents.
+   Three reasons, all load-bearing: the shared Comments/Documents renderers
+   bind to module-level COMMENTS_DATA/DOCUMENTS_DATA and to fixed element ids
+   (#fv-itemNotes, #itemCommentsMount, …), so exactly one item on screen may
+   own them; rendering a neighbour's chrome costs work you may never scroll
+   to; and a stub reads as a genuine "next up" preview. */
+/* A stub is short content in a FULL-BAND-HEIGHT box, and the height is not
+   cosmetic — it's what makes the next item reachable at all. A scroll
+   container can only scroll until its last child's bottom meets the viewport
+   bottom, so if the trailing stub is shorter than the visible band, its top
+   can never reach the anchor line, the commit never fires, and both the flick
+   and the Next button silently do nothing. Sizing every stub to the full band
+   guarantees the panel after the current one can always be scrolled to the
+   top. (The current panel is deliberately one PEEK shorter — different job:
+   that's what leaves the next item's head visible below it.) */
+.snap-panel.is-stub { opacity: .5; padding-top: 14px; border-top: 1px solid var(--border); cursor: pointer; min-height: var(--snap-stub-h, 70vh); }
+/* Controls in a stub must never be tappable — every control's handler acts
+   on ITEMS[cursor], so a tap here would silently answer the WRONG item.
+   The stub as a whole stays tappable (jumps to it); only the control is
+   inert, and clicks land on the stub root instead. */
+.snap-panel.is-stub .focus-control,
+.snap-panel.is-stub .followup-btn-lg { pointer-events: none; }
+.snap-stub-tag { display: flex; align-items: center; gap: 6px; padding: 0 16px 6px; font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--gray-4); }
+
+.f-toggle { display: flex; flex-direction: column; gap: 10px; }
+.f-opt { padding: 18px 0; text-align: center; font-size: 16px; font-weight: 700; border-radius: 10px; border: 2px solid var(--gray-2); color: var(--octave-black); background: var(--bg-page); cursor: pointer; transition: all .15s; }
+[data-theme="dark"] .f-opt { border-color: var(--gray-5); color: var(--white); background: var(--bg-section); }
+.f-opt.sel-green  { background: var(--green);  border-color: var(--green);  color: #fff; }
+.f-opt.sel-red    { background: var(--red);    border-color: var(--red);    color: #fff; }
+/* Renamed in meaning, not in class name (avoids touching every option
+   array/dotClass() mapping that references 'sel-orange'/'done-orange') —
+   "Minor"/"Adjusted" now share the exact same red as "Fail"/"Major"/
+   "Critical". Collapses a 3-tier green/orange/red severity scale to
+   2-tier green/red (§23 — orange is retired, and the option's own text
+   label already conveys the specific degree). */
+.f-opt.sel-orange { background: var(--red); border-color: var(--red); color: #fff; }
+.f-opt.sel-gray   { background: var(--gray-4); border-color: var(--gray-4); color: #fff; }
+
+.f-chk { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 22px 0; border-radius: 10px; border: 2px solid var(--gray-2); background: var(--bg-page); cursor: pointer; }
+[data-theme="dark"] .f-chk { border-color: var(--gray-5); background: var(--bg-section); }
+.f-chk.checked { border-color: var(--green); background: rgba(0,170,20,0.08); }
+.f-chk-circle { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--gray-3); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.f-chk.checked .f-chk-circle { background: var(--green); border-color: var(--green); }
+.f-chk-circle svg { display: none; }
+.f-chk.checked .f-chk-circle svg { display: block; }
+.f-chk-lbl { font-size: 15px; font-weight: 600; color: var(--octave-black); }
+[data-theme="dark"] .f-chk-lbl { color: var(--white); }
+
+.f-num-row { display: flex; align-items: center; gap: 12px; justify-content: center; }
+.f-num-in { width: 150px; background: var(--bg-page); border: 2px solid var(--gray-2); border-radius: 10px; padding: 16px 14px; font-size: 22px; font-weight: 700; color: var(--octave-black); font-family: var(--font-mono); text-align: center; outline: none; }
+[data-theme="dark"] .f-num-in { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
+.f-num-in:focus { border-color: var(--octave-black); }
+[data-theme="dark"] .f-num-in:focus { border-color: var(--white); }
+.f-uom { font-size: 14px; color: var(--gray-4); font-weight: 600; }
+.f-range-hint { text-align: center; font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); margin-top: 10px; }
+
+/* Slider answer controls — meter/quantitative/OK-adjustment measurement
+   types rendering as a slider instead of a number field, admin-
+   configured min/max. Added as an exercise 2026-07-31; not yet a locked
+   decision (no design-decisions-v3-1.md entry). */
+.f-slider-value { text-align: center; font-family: var(--font-mono); font-size: 26px; font-weight: 700; color: var(--octave-black); margin-bottom: 20px; }
+[data-theme="dark"] .f-slider-value { color: var(--white); }
+.f-slider-track { position: relative; height: 8px; border-radius: 100px; background: var(--gray-1); margin: 0 8px; cursor: pointer; touch-action: none; }
+[data-theme="dark"] .f-slider-track { background: var(--gray-5); }
+.f-slider-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 100px; background: var(--gray-3); }
+.f-slider-track.answered .f-slider-fill { background: var(--octave-black); }
+[data-theme="dark"] .f-slider-track.answered .f-slider-fill { background: var(--white); }
+.f-slider-thumb { position: absolute; top: 50%; width: 26px; height: 26px; background: var(--bg-card); border: 3px solid var(--gray-3); border-radius: 50%; transform: translate(-50%,-50%); box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+.f-slider-track.answered .f-slider-thumb { border-color: var(--octave-black); }
+[data-theme="dark"] .f-slider-track.answered .f-slider-thumb { border-color: var(--white); }
+.f-slider-minmax { display: flex; justify-content: space-between; margin: 10px 8px 0; font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); }
+
+.f-textarea { width: 100%; min-height: 120px; background: var(--bg-page); border: 2px solid var(--gray-2); border-radius: 10px; padding: 12px 13px; font-size: 15px; color: var(--octave-black); font-family: var(--font-sans); resize: none; outline: none; line-height: 1.5; }
+[data-theme="dark"] .f-textarea { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
+
+/* Follow-up — full-width, deliberately loud, not one of several small
+   competing pills. Create Follow-up WO is hidden entirely (not just
+   disabled) until Follow-up is flagged, so it never reads as dead. */
+/* Was orange — a flagged follow-up is a "needs attention" case, same
+   family as required/sync-error (§23: "red covers... both 'needs your
+   attention' states" — extended here to a 3rd case, same reasoning). */
+.followup-btn-lg { margin: 12px 12px 0; display: flex; align-items: center; justify-content: center; gap: 8px; width: calc(100% - 24px); padding: 13px 0; border-radius: 10px; border: 1.5px solid var(--red); background: var(--bg-card); color: var(--red); font-size: 14px; font-weight: 700; cursor: pointer; transition: all .15s; font-family: var(--font-sans); }
+.followup-btn-lg:hover { background: rgba(228,75,74,.08); }
+.followup-btn-lg.on { background: var(--red); color: #fff; }
+[data-theme="dark"] .followup-btn-lg { background: var(--bg-section); }
+.create-fu-wo-btn { margin: 10px 12px 0; width: calc(100% - 24px); animation: fuBtnIn .2s ease; }
+@keyframes fuBtnIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ─── PREV/NEXT NAV — replaces free scrolling; hidden once the prompt
+   bar takes over (see updateFooter()). ── */
+.stepper-nav { position: absolute; bottom: 0; left: 0; right: 0; height: var(--bar-height); background: var(--bg-card); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; padding: 0 14px; z-index: 50; }
+.snav-btn { flex: 1; height: 46px; border-radius: 12px; border: none; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.snav-btn.prev { background: var(--bg-section); color: var(--octave-black); flex: 0 0 46px; }
+[data-theme="dark"] .snav-btn.prev { color: var(--white); }
+.snav-btn.next { background: var(--octave-black); color: #fff; }
+[data-theme="dark"] .snav-btn.next { background: var(--white); color: var(--octave-black); }
+.snav-btn:disabled { opacity: .35; cursor: default; }
+
+/* ─── PROMPT BAR — Yes/No fork (design-decisions-v3-1.md §14.6). Still
+   local, no 2nd consumer yet. Restyled 2026-07-29, 2 rounds of direct
+   feedback: round 1 dropped a joined segmented control with Yes green-
+   filled (green read as "this is the pre-selected/correct answer," not
+   true for a real fork) for two standalone OUTLINED black/white pills.
+   Round 2 (this one) keeps the 2 standalone pills — still no colour, no
+   implied default either direction — but fills them solid black (white
+   text) in light mode instead of leaving them outlined, same
+   .org-pill/.btn-contained fill+flip convention used everywhere else in
+   the app; dark mode flips to solid white with black text, not a
+   translucent variant, matching .org-pill's own light/dark flip exactly. */
+.prompt-bar { position: absolute; bottom: 0; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border); padding: 10px 16px 16px; flex-shrink: 0; z-index: 51; display: none; }
+[data-theme="dark"] .prompt-bar { background: var(--octave-black); }
+.prompt-bar.show { display: block; }
+.prompt-question { font-family: var(--font-sans); font-size: 16px; font-weight: 700; color: var(--octave-black); text-align: center; margin-bottom: 10px; }
+[data-theme="dark"] .prompt-question { color: var(--white); }
+.prompt-seg { display: flex; gap: 8px; }
+.prompt-seg-btn { flex: 1; height: 48px; border-radius: 100px; border: 1px solid var(--octave-black); font-size: 15px; font-weight: 700; cursor: pointer; font-family: var(--font-sans); background: var(--octave-black); color: #fff; transition: background .15s; }
+[data-theme="dark"] .prompt-seg-btn { background: var(--white); border-color: var(--white); color: var(--octave-black); }
+.prompt-seg-btn:hover { background: #111114; }
+[data-theme="dark"] .prompt-seg-btn:hover { background: rgba(255,255,255,.85); }
+
+/* ─── "VIEW ALL" OVERVIEW — the escape hatch back to an at-a-glance
+   list, and the only navigation that scales to a large checklist. ── */
+.overview-overlay { position: absolute; inset: 0; background: var(--bg-page); z-index: 90; display: none; flex-direction: column; }
+.overview-overlay.open { display: flex; }
+.overview-head { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--bg-card); }
+.overview-title { font-size: 15px; font-weight: 700; color: var(--octave-black); }
+[data-theme="dark"] .overview-title { color: var(--white); }
+.overview-body { flex: 1; overflow-y: auto; }
+/* Unified group header (2026-08-10) — one component for BOTH grouping
+   modes, replacing what used to be two visually mismatched ones (a plain
+   thin label strip for Step, a heavier bordered/badged card for
+   Equipment). Style is Step's own thin muted-bg strip; the done/total
+   badge + collapse chevron are Equipment's own — every group in either
+   mode is now collapsible and badged, not just Equipment's. */
+.ov-group-hdr { display: flex; align-items: center; gap: 8px; padding: 7px 16px; font-size: 12px; font-weight: 700; color: var(--gray-4); background: var(--bg-section); cursor: pointer; }
+.ov-group-hdr-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-group-hdr-code { font-family: var(--font-mono); font-weight: 700; color: var(--octave-black); }
+[data-theme="dark"] .ov-group-hdr-code { color: var(--white); }
+/* Counter Badge convention (§23.5) — outlined, transparent, black/white,
+   never a gray fill. See eam-shared.css's .section-card-badge comment. */
+.ov-group-badge { font-size: 10.5px; font-weight: 700; font-family: var(--font-mono); color: var(--octave-black); background: transparent; border: 1px solid var(--border-strong); border-radius: 100px; padding: 2px 8px; flex-shrink: 0; }
+[data-theme="dark"] .ov-group-badge { color: var(--white); }
+.ov-group-chev { flex-shrink: 0; transition: transform .2s; }
+.ov-group-chev.collapsed { transform: rotate(-90deg); }
+.ov-group-body.collapsed { display: none; }
+.ov-row { display: flex; align-items: center; gap: 10px; padding: 11px 16px; border-bottom: 1px solid var(--border); background: var(--bg-card); cursor: pointer; }
+.ov-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-2); flex-shrink: 0; }
+.ov-status-dot.green { background: var(--green); } .ov-status-dot.red { background: var(--red); } .ov-status-dot.orange { background: var(--red); }
+.ov-label { flex: 1; font-size: 13.5px; font-weight: 500; color: var(--octave-black); }
+[data-theme="dark"] .ov-label { color: rgba(255,255,255,0.9); }
+.ov-close-btn { width: 30px; height: 30px; border-radius: 50%; background: var(--bg-section); border: none; display: flex; align-items: center; justify-content: center; color: var(--gray-4); cursor: pointer; }
+/* Dynamic items — indented under their trigger, with a branch icon; the
+   trigger itself gets a smaller branch cue so a scan of the list shows
+   where branching can happen before it's happened. A ghost row (locked
+   icon, italic, non-interactive) previews an as-yet-untriggered branch,
+   and disappears once real items replace it. */
+.ov-row-indent { padding-left: 40px; background: var(--bg-page); }
+.ov-dynamic-icon, .ov-branch-cue, .ov-ghost-icon { display: flex; flex-shrink: 0; color: var(--gray-4); }
+.ov-ghost-icon { color: var(--gray-4); }
+.ov-row-ghost { cursor: default; }
+.ov-label-ghost { font-style: italic; font-weight: 400; color: var(--gray-4); }
+
+/* Group-by toggle (Step | Equipment) — added for Route/MEC checklists
+   where one item per Route equipment makes Equipment the more useful
+   axis to scan/jump by than the workflow step grouping alone. Same
+   solid-fill segmented-pill convention as .prompt-seg-btn (§14.6). */
+.ov-seg-wrap { display: flex; gap: 8px; padding: 10px 16px; background: var(--bg-card); border-bottom: 1px solid var(--border); }
+.ov-seg-btn { flex: 1; text-align: center; padding: 8px 0; font-size: 12.5px; font-weight: 700; font-family: var(--font-sans); color: var(--gray-4); background: var(--bg-section); border: 1px solid var(--border-strong); border-radius: 100px; cursor: pointer; }
+.ov-seg-btn.on { background: var(--octave-black); color: #fff; border-color: var(--octave-black); }
+[data-theme="dark"] .ov-seg-btn.on { background: var(--white); color: var(--octave-black); border-color: var(--white); }
+
+/* Dataspy selector + search (2026-08-10) — sits above the Group-by
+   toggle. Dataspy reuses the app's real shared §8.3 .ds-bar component
+   (WO List/Equipment List's own dataspy pill) rather than a bespoke
+   control — functionally just a 2-state filter (All / Uncompleted), not
+   a real saved-view mechanism, but the same visual affordance. Search is
+   icon-triggered (collapsed by default), NOT an always-visible
+   .ld-search-bar like every other §8.3 List Search Screen consumer — a
+   deliberate divergence flagged to the user, not a new "hide search
+   behind an icon" pattern to copy elsewhere. */
+.ov-filter-bar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; }
+.ov-filter-bar .ds-bar { flex: 1; margin: 0; height: 44px; padding: 0 14px; }
+.ov-search-icon-btn { width: 44px; height: 44px; flex-shrink: 0; border-radius: 14px; border: 1.5px solid var(--border); background: var(--bg-card); color: var(--gray-4); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.ov-search-icon-btn:hover { border-color: var(--gray-3); }
+.ov-search-icon-btn.on { color: var(--octave-black); border-color: var(--octave-black); }
+[data-theme="dark"] .ov-search-icon-btn.on { color: var(--white); border-color: var(--white); }
+.ov-search-row { margin: 10px 16px 0; }
+
+.toast { bottom: calc(var(--bar-height) + 10px); }
+
+/* ─── TASK PLAN INSTRUCTIONS — a one-time screen shown before the first
+   checklist item (when the task plan behind this checklist has
+   instructions configured), not a per-item field (that concept stays
+   retired — see the header comment). Free-text/HTML, read-only, reuses
+   the exact §7.2 Comments card shape (.comment-item/.comment-header/
+   .comment-text) rather than inventing new chrome — "same paradigm as a
+   single comment," just non-interactive (no time/ellipsis, a muted
+   "not editable" tag instead) and housed in its own .section-card. ── */
+.instr-lock-tag { display: flex; align-items: center; gap: 4px; }
+.instr-title { display: inline-flex; align-items: center; gap: 6px; }
+.instr-icon { display: flex; color: var(--gray-4); flex-shrink: 0; }
+.instr-body ul, .instr-body ol { margin: 6px 0 6px 18px; padding: 0; }
+.instr-body li { margin-bottom: 4px; }
+.instr-body p { margin: 0 0 8px; }
+.instr-body p:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+
+<!-- Prototype-only theme preview — real app theme lives in User Settings,
+     not in-screen chrome. See design-decisions-v3-1.md §20. -->
+<div class="proto-theme-bar">
+  <span class="proto-theme-label">Preview theme</span>
+  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+  <!-- Dev-only, this file only: the A/B switch. "Scroll" = snap pager,
+       "Paged" = v2's exact Prev/Next behaviour. Held in sessionStorage so it
+       survives navigating out to Book Labor and back (a real comparison
+       involves leaving and returning), but not a fresh browser session — and
+       deliberately NOT localStorage, so resetDemoState() has nothing to do
+       with it. -->
+  <button class="theme-toggle" id="scrollModeToggle" onclick="toggleScrollMode()">↕ Scroll</button>
+</div>
+
+<div class="app" id="app">
+
+  <header class="nav" onclick="chScrollTop()">
+    <div class="nav-left">
+      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation(); navBack()">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+          <path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <span class="prototype-label">PROTOTYPE</span>
+    </div>
+    <div class="nav-title">Work Orders</div>
+    <div class="nav-actions">
+      <span id="syncCtrl"></span>
+    </div>
+  </header>
+
+  <!-- ── DETAIL HEADER (§8.1) — protected identity + ellipsis, no status,
+       no pin, no Plus. Screen-specific ellipsis slot carries Print Work
+       Order + Comments/Documents (§14.8 — WO-level, unrelated to this
+       file's own per-item Comments/Documents below). Unchanged from v1. ── -->
+  <div class="rec-header" id="recHeader" onclick="chScrollTop()">
+    <div class="rec-id-row">
+      <div class="rec-id-text">
+        <span class="rec-num" id="recNum">19257</span>
+        <span class="rec-desc protected" id="recDesc">Pump Cavitating; lost head</span>
+      </div>
+      <div class="rec-header-actions">
+        <button class="rec-ellipsis-btn" id="recEllipsisBtn" onclick="event.stopPropagation(); toggleRecActionsMenu()" aria-label="More actions">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+        </button>
+        <div class="rec-actions-menu" id="recActionsMenu">
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyLink()">Copy Link</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="recCopyRecord()">Copy</div>
+            <div class="rec-actions-item danger" onclick="recDeleteRecord()">Delete</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <!-- Comments(3)/Documents(4) removed 2026-07-22 — superseded by
+               the step rail's "Reference" group (§14.8/§23), which does
+               the same job with a real jump-to instead of a toast stub. -->
+          <div class="rec-actions-group" id="recActionsScreenSpecific">
+            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Printing work order — coming soon')">Print Work Order</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP RAIL (§14.2/§14.3) — chrome + toggle are shared, this
+       screen's own step-name/timer/step-map content stays. Unchanged
+       from v1. ── -->
+  <div class="step-rail" id="stepRail">
+    <div class="step-rail-collapsed">
+      <div class="step-name">Activity Checklist</div>
+      <div class="step-rail-right">
+        <div class="timer-pill" id="timerPill"><div class="timer-dot"></div><span id="timerText">00:00:00</span></div>
+        <svg class="step-chevron" id="stepChevron" width="16" height="16" fill="none" viewBox="0 0 24 24">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+    <div class="step-segments">
+      <div class="seg seg-done"></div>
+      <div class="seg seg-active"></div>
+      <div class="seg seg-future"></div>
+      <div class="seg seg-future"></div>
+      <div class="seg seg-future"></div>
+    </div>
+    <div class="step-map" id="stepMap">
+      <!-- Larger timer + Pause/Stop (§14.2 follow-up) — shown only where
+           the timer is running, same condition as the pill. -->
+      <div class="step-timer-panel">
+        <div class="step-timer-value" id="stepTimerValue">00:00:00</div>
+        <div class="step-timer-actions">
+          <button class="step-timer-btn" onclick="toggleStepTimerPause()">
+            <span id="stepPauseBtnIcon"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="5" x2="8" y2="19"/><line x1="16" y1="5" x2="16" y2="19"/></svg></span>
+            <span id="stepPauseBtnLabel">Pause</span>
+          </button>
+          <button class="step-timer-btn danger" onclick="confirmStopTimer()">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+            Stop
+          </button>
+        </div>
+      </div>
+      <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
+      <div class="step-map-item active"><div class="step-map-icon smi-active">2</div><span class="step-map-label active-label">Activity Checklist</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-locked">3</div><span class="step-map-label">Issue Parts</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-locked">4</div><span class="step-map-label">Book Labor</span></div>
+      <div class="step-map-item"><div class="step-map-icon smi-locked">5</div><span class="step-map-label">WO Closing</span></div>
+    </div>
+  </div>
+
+  <!-- ── SCROLLABLE CONTENT — checklist-wide rail + the focused item ── -->
+  <div class="content">
+    <div class="stepper-head">
+      <div class="stepper-head-row">
+        <div class="stepper-head-left">
+          <span class="stepper-group-name" id="curGroupName">Safety checks</span>
+          <span class="stepper-item-count" id="stepperItemCount">· Item 01 of 07</span>
+        </div>
+        <button class="view-all-btn" onclick="openOverview()">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          View all
+        </button>
+      </div>
+      <div class="stepper-progress-bar"><div class="stepper-progress-fill" id="stepperProgressFill" style="width:0%"></div></div>
+    </div>
+
+    <div class="focus-wrap" id="focusWrap"></div>
+  </div>
+
+  <div class="stepper-nav" id="stepperNav">
+    <button class="snav-btn prev" id="prevBtn" onclick="goPrev()">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="snav-btn next" id="nextBtn" onclick="goNext()">Next<svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+
+  <!-- ── PROMPT BAR — appears once every required item is complete AND
+       you've reached the last item (§14.6; see the header comment for
+       why the trigger condition differs from v1's). ── -->
+  <div class="prompt-bar" id="promptBar"></div>
+
+  <div class="overview-overlay" id="overviewOverlay">
+    <div class="overview-head">
+      <span class="overview-title">All items</span>
+      <button class="ov-close-btn" onclick="closeOverview()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="overview-body" id="overviewBody"></div>
+  </div>
+
+  <!-- "View all" dataspy picker (2026-08-10) — functionally a 2-state
+       done/not-done filter, dressed as the app's real §8.3 dataspy-pill
+       affordance; reuses the shared .lov-option row shape rather than the
+       full dataspy-picker sheet (no favorite/per-dataspy-query concept
+       applies to a fixed 2-option filter). -->
+  <div class="bottom-sheet" id="overviewDataspySheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Show</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sheet-body">
+      <div class="lov-option" onclick="setOverviewDataspy('all')"><div class="lov-option-texts"><div class="lov-option-desc">All Checklist Items</div></div></div>
+      <div class="lov-option" onclick="setOverviewDataspy('uncompleted')"><div class="lov-option-texts"><div class="lov-option-desc">Uncompleted checklist items</div></div></div>
+    </div>
+  </div>
+
+  <!-- ── Shared Comments/Documents sheets (§7.2) — reused verbatim from
+       Equipment/WO Record View; behavior lives entirely in eam-shared.js. ── -->
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <!-- Sync panel (§4.4.2) — opened from the sync icon in the header
+       above. Content rendered by openSyncPanel() in eam-shared.js
+       (shared markup, same shell every screen carries). Review navigates
+       to eam-sync-status-prototype-v1.html. Fixes a real crash: openSheet()
+       previously found no #syncPanelSheet on this screen at all. -->
+  <div class="bottom-sheet" id="syncPanelSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Sync Status</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sync-panel-state" id="syncPanelStateLabel"></div>
+    <div class="sheet-body" id="syncPanelList"></div>
+    <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
+  </div>
+
+  <div class="bottom-sheet text-editor-sheet" id="textEditorSheet">
+    <div class="text-editor-header">
+      <div class="text-editor-left">
+        <button class="text-editor-close" id="textEditorCloseBtn" onclick="textEditorCloseTap()">✕</button>
+        <button class="text-editor-discard" id="textEditorDiscard" onclick="textEditorConfirmDiscard()">Discard unsaved changes</button>
+      </div>
+      <div class="text-editor-title" id="textEditorTitle">Edit</div>
+      <!-- ✓ replaces the old bottom Save pill (§3.4, 2026-08-11): a pill at the
+           sheet's bottom edge collided with iOS's own keyboard accessory bar
+           once --kb-inset lifted the sheet. Same gating as that Save had. -->
+      <button class="sheet-confirm-btn" id="textEditorConfirmBtn" onclick="saveTextEditor()" aria-label="Save"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>
+    </div>
+    <div class="text-editor-body"><textarea class="text-editor-textarea" id="textEditorTextarea" oninput="textEditorInputChanged()" placeholder="Type here…"></textarea></div>
+  </div>
+
+  <div class="bottom-sheet" id="commentActionsSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Comment Actions</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sheet-body" id="commentActionsBody"></div>
+  </div>
+
+  <!-- Centered confirmation modal — destructive actions (Delete etc.),
+       markup only; behavior lives in eam-shared.js. Unchanged from v1. -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-modal">
+      <div class="confirm-message" id="confirmMessage">Are you sure?</div>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="confirm-btn confirm-danger" id="confirmDangerBtn" onclick="confirmDangerAction()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Question message — a 3-outcome Yes/No/Cancel modal, markup only;
+       behavior lives in eam-shared.js. Unchanged from v1. -->
+  <div class="confirm-overlay" id="questionOverlay">
+    <div class="question-modal">
+      <div class="question-message" id="questionMessage">Are you sure?</div>
+      <div class="question-actions">
+        <button class="question-btn yes" onclick="questionAnswerYes()">Yes</button>
+        <button class="question-btn no" onclick="questionAnswerNo()">No</button>
+        <button class="question-btn cancel" onclick="closeQuestion()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+</div><!-- /app -->
+
+<script src="../../data/wo-19257.js"></script>
+<script src="../../data/wo-19831.js"></script>
+<script src="../../data/wo-20450.js"></script>
+<script src="../../data/wotype.js"></script>
+<script src="../../data/wo-workflow.js"></script>
+<script src="../../data/wo-workflow-steps.js"></script>
+<script src="shared/eam-shared.js"></script>
+<script>
+/* ── screen-specific config/behavior — chrome (nav, header, step rail,
+   confirm modal, toast, theme toggle) comes from eam-shared.js. ── */
+
+/* ─── TIMER — gated on eamTimerRunning as of 2026-07-24 (§15.4/§20), not
+   unconditional anymore. Not Free Form workflows set this implicitly on
+   Start Work; Free Form ones only set it if the technician answers Yes
+   to the "start the timer?" prompt there (eam-wo-record-view-prototype-
+   v1.html's startWork()) — a Free Form WO whose technician answered No,
+   or who free-flow-tapped straight into this step without going through
+   Start Work at all, never had a timer to start, so this screen must not
+   show one running. Engine (start/pause/resume) lives in eam-shared.js —
+   this screen just starts it, or hides the pill entirely if it isn't
+   running, and supplies the Stop confirmation's outcomes. ── */
+if (sessionStorage.getItem('eamTimerRunning') === 'true') {
+  startStepTimer();
+} else {
+  document.getElementById('timerPill').style.display = 'none';
+}
+
+function confirmStopTimer() {
+  openQuestion('Stop working and book your current time?',
+    () => { stopStepTimer(); showToast('Time booked — moving to Book Labor…'); },
+    () => { stopStepTimer(); showToast('Time captured — resume later from Book Labor'); }
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// CHECKLIST DATA — one item focused at a time (cursor). Comments/
+// Documents per item reuse the shared §7.2 record-level pattern by
+// rebinding COMMENTS_DATA/DOCUMENTS_DATA to the focused item's own
+// arrays on every render (see renderFocus()).
+// ═══════════════════════════════════════════════════════════════════════
+// Required-to-advance gating is switched off for this exercise (every
+// item below is required:false, including dynamic follow-ons) — see
+// updateFooter()/goNext(): with req.length===0 the "all required items
+// complete" check is trivially true, so the Yes/No prompt bar always
+// shows once you reach the last item, regardless of what's answered.
+const ITEMS = [
+  { id:1, group:'safety', label:'Confirm LOTO applied to all energy sources', required:false, type:'check',
+    documents:[], comments:[], note:'', followup:false, value:false },
+  { id:2, group:'safety', label:'PPE check — gloves, goggles, steel-cap boots', required:false, type:'check',
+    documents:[], comments:[], note:'', followup:false, value:false },
+  { id:3, group:'main', label:'Bearing housing — visual condition', equipId:'A-00067333', equipDesc:'Pump, Centrifugal', required:false, type:'toggle3',
+    options:[['Pass','sel-green'],['Fail','sel-red'],['N/A','sel-gray']],
+    documents:[
+      { icon:'pdf', name:'Bearing_Housing_Drawing_Rev4.pdf', meta:'PDF · 2.1 MB' },
+      { icon:'img', name:'Inspection_Photo_Template.jpg', meta:'JPG · 640 KB' },
+    ],
+    comments:[
+      { id:'sc1', mine:false, author:'Meera Kumar', time:'May 19 · 09:12', text:'Last inspection showed light surface corrosion near the seal groove — worth a close look this time.' },
+    ],
+    note:'', followup:false, value:null,
+    // Dynamic checklist items — answering "Fail" loads 2 new items right
+    // after this one. syncDynamicChildren() inserts/removes them live as
+    // the answer changes, so this rule is the only thing that needs to
+    // describe them.
+    dynamicRules:[
+      { when:'Fail', items:[
+        { label:'Failure severity', type:'toggle3', options:[['Minor','sel-orange'],['Major','sel-red'],['Critical','sel-red']], required:false, value:null },
+        { label:'Corrective action taken on-site?', type:'toggle2', options:[['Yes','sel-green'],['No','sel-red']], required:false, value:null },
+      ] },
+    ] },
+  { id:4, group:'main', label:'Shaft alignment', equipId:'A-00067333', equipDesc:'Pump, Centrifugal', required:false, type:'toggle2',
+    options:[['OK','sel-green'],['Adjusted','sel-orange']],
+    documents:[], comments:[], note:'', followup:false, value:null },
+  { id:5, group:'main', label:'Bearing temperature — post run', equipId:'A-00067333', equipDesc:'Pump, Centrifugal', required:false, type:'num', uom:'°F', range:'60 – 180 °F',
+    documents:[], comments:[], note:'', followup:false, value:'' },
+  // Slider answer-control exercise (2026-07-31) — Option A (linear fill)
+  // from the earlier mockup, now live as a real checklist item. Option C
+  // (vertical tank fill) was removed from consideration 2026-07-31. No
+  // acceptable-range concept here — the product has no way to configure
+  // one within a slider's min/max yet.
+  { id:8, group:'main', label:'Coolant reservoir level', equipId:'A-00067333', equipDesc:'Pump, Centrifugal', required:false,
+    type:'slider', min:0, max:100, uom:'%', value:null,
+    documents:[], comments:[], note:'', followup:false },
+  { id:6, group:'close', label:'Area restored and barricades removed?', required:false, type:'toggle2',
+    options:[['Yes','sel-green'],['No','sel-red']],
+    documents:[], comments:[], note:'', followup:false, value:null },
+  { id:7, group:'close', label:'Work completion notes', required:false, type:'textarea',
+    documents:[], comments:[], note:'', followup:false, value:'' },
+];
+const GROUP_NAMES = { safety:'Safety checks', main:'Inspection', close:'Close-out' };
+let cursor = 0;
+
+// Task plan instructions — free-text/HTML, read-only, shown once before
+// item 1 (§16.2 "Instructions is gone" is about a per-ITEM field, a
+// different concept from this: a per-task-plan screen that precedes the
+// whole checklist). Empty string means this task plan has none configured
+// and the screen is skipped entirely — see showingInstructions below.
+const TASK_PLAN_INSTRUCTIONS = `
+  <p><strong>Before you begin:</strong> this task plan covers a full safety and condition inspection of Pump P-204 (Centrifugal). Complete every step in order — do not skip ahead.</p>
+  <ul>
+    <li>Ensure you follow all safety procedures required for this task, including confirming Lockout/Tagout (LOTO) is applied to <strong>all</strong> energy sources before opening any guarding or approaching rotating equipment.</li>
+    <li>Required PPE for this work area: safety glasses, gloves, and steel-toe boots. Do not proceed without it.</li>
+    <li>If the bearing housing inspection shows visible corrosion or damage, photograph it before recording a failure severity.</li>
+    <li>Do not remove barricades or restore the area until every item on this checklist is complete.</li>
+    <li>If any reading falls outside its acceptable range, flag the item for follow-up and notify your supervisor before closing out.</li>
+  </ul>
+  <p>Refer to the equipment drawing attached to the bearing housing item if you're unsure of access points.</p>
+`;
+let showingInstructions = !!TASK_PLAN_INSTRUCTIONS.trim();
+
+const BRANCH_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg>';
+const LOCK_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V7a4 4 0 018 0v4"></path></svg>';
+const INSTR_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>';
+let dynamicIdSeq = 100;
+
+// Insert/remove a trigger item's dynamic follow-up items to match its
+// current answer. Always removes this parent's existing children first
+// — the answer may have changed away from the trigger value, which
+// invalidates them — then re-inserts if the current value still matches
+// a rule. Children land immediately after the parent, in the same
+// group, which is what makes Next/the counter/"View all" pick them up
+// for free.
+function syncDynamicChildren(parent) {
+  for (let i = ITEMS.length - 1; i >= 0; i--) {
+    if (ITEMS[i].dynamicParentId === parent.id) ITEMS.splice(i, 1);
+  }
+  const rule = parent.dynamicRules.find(r => r.when === parent.value);
+  if (!rule) return;
+  const insertAt = ITEMS.indexOf(parent) + 1;
+  const newItems = rule.items.map(cfg => ({
+    documents: [], comments: [], note: '', followup: false,
+    ...cfg,
+    id: ++dynamicIdSeq,
+    group: parent.group,
+    equipId: parent.equipId, equipDesc: parent.equipDesc,
+    dynamic: true,
+    dynamicParentId: parent.id,
+  }));
+  ITEMS.splice(insertAt, 0, ...newItems);
+}
+
+// ─── Shared §7.2 Comments/Documents pattern — rebound per focused item. ──
+const CURRENT_USER_NAME = 'Bruce Campbell';
+let commentIdSeq = 100;
+let COMMENTS_DATA = [];
+let DOCUMENTS_DATA = [];
+const COMMENTS_EXCERPT_MOUNT = 'itemCommentsMount';
+const COMMENTS_BADGE_ID = 'itemCommentsBadge';
+const DOCUMENTS_EXCERPT_MOUNT = 'itemDocumentsMount';
+const DOCUMENTS_BADGE_ID = 'itemDocumentsBadge';
+
+function isDone(it) {
+  if (it.type === 'check') return !!it.value;
+  if (it.type === 'toggle2' || it.type === 'toggle3') return it.value != null;
+  if (it.type === 'num' || it.type === 'textarea') return String(it.value).trim() !== '';
+  if (it.type === 'slider') return it.value != null;
+  return false;
+}
+function dotClass(it) {
+  if (!isDone(it)) return '';
+  if (it.type === 'check' || it.type === 'textarea' || it.type === 'num' || it.type === 'slider') return 'done-green';
+  const opt = it.options.find(o => o[0] === it.value);
+  return opt[1] === 'sel-green' ? 'done-green' : opt[1] === 'sel-red' ? 'done-red' : opt[1] === 'sel-orange' ? 'done-orange' : 'done-green';
+}
+
+// ─── Drag mechanics for Option A (horizontal fill slider). ──────────
+function pctFromEvent(clientX, trackEl) {
+  const r = trackEl.getBoundingClientRect();
+  return Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+}
+// Fires a tiny vibration each time the dragged value ticks over to a new
+// integer — many quick pulses in a row during a drag read as a rumble/
+// texture rather than a single click. No-op on browsers without the
+// Vibration API (notably iOS Safari — accepted platform limitation).
+function rumble() {
+  if (navigator.vibrate) navigator.vibrate(3);
+}
+function applySliderValue(it, pct) {
+  const prevValue = it.value;
+  it.value = Math.round(it.min + pct * (it.max - it.min));
+  if (it.value !== prevValue) rumble();
+  const donePct = Math.round((it.value - it.min) / (it.max - it.min) * 100);
+  const track = document.getElementById('track-' + it.id);
+  const fill = document.getElementById('fill-' + it.id);
+  const thumb = document.getElementById('thumb-' + it.id);
+  const valEl = document.getElementById('val-' + it.id);
+  track.classList.add('answered');
+  fill.style.width = donePct + '%'; thumb.style.left = donePct + '%';
+  valEl.innerHTML = it.value + '<span class="f-uom">' + it.uom + '</span>';
+  renderStepperHead();
+  updateFooter();
+}
+function sliderDragStart(e, itemId) {
+  e.preventDefault();
+  const it = ITEMS.find(x => x.id === itemId);
+  const track = document.getElementById('track-' + itemId);
+  function move(ev) {
+    const p = ev.touches ? ev.touches[0] : ev;
+    applySliderValue(it, pctFromEvent(p.clientX, track));
+  }
+  move(e);
+  function up() { document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); }
+  document.addEventListener('pointermove', move);
+  document.addEventListener('pointerup', up);
+}
+
+// Checklist-wide rail — item counter, group name, and a completion bar.
+// Position/total both read live off ITEMS, not a precomputed value — a
+// dynamic item's insertion shifts everything after it, and the total
+// itself grows the moment a trigger fires. That's the honest answer to
+// "the denominator is tough": it always reflects known items so far,
+// not a hypothetical max the checklist could reach.
+function renderStepperHead() {
+  const doneCount = ITEMS.filter(isDone).length;
+  if (showingInstructions) {
+    document.getElementById('curGroupName').textContent = 'Task Instructions';
+    document.getElementById('curGroupName').className = 'stepper-group-name';
+    document.getElementById('stepperItemCount').textContent = '';
+    document.getElementById('stepperProgressFill').style.width = Math.round(doneCount / ITEMS.length * 100) + '%';
+    return;
+  }
+  const it = ITEMS[cursor];
+  document.getElementById('curGroupName').textContent = GROUP_NAMES[it.group];
+  document.getElementById('curGroupName').className = 'stepper-group-name g-' + it.group;
+  document.getElementById('stepperItemCount').textContent = `· Item ${String(cursor+1).padStart(2,'0')} of ${String(ITEMS.length).padStart(2,'0')}`;
+  document.getElementById('stepperProgressFill').style.width = Math.round(doneCount / ITEMS.length * 100) + '%';
+}
+
+function controlHtml(it) {
+  if (it.type === 'check') {
+    return `<div class="f-chk ${it.value?'checked':''}" onclick="setCheck()">
+      <div class="f-chk-circle"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <span class="f-chk-lbl">${it.value ? 'Confirmed' : 'Tap to confirm'}</span>
+    </div>`;
+  }
+  if (it.type === 'toggle2' || it.type === 'toggle3') {
+    return `<div class="f-toggle">` + it.options.map(([label,cls]) =>
+      `<button class="f-opt ${it.value===label?cls:''}" onclick="setToggle('${label}','${cls}')">${label}</button>`).join('') + `</div>`;
+  }
+  if (it.type === 'num') {
+    // type="text" + inputmode="decimal" (2026-07-24, user direction) —
+    // matches the exact keypad combo Currency/Number fields already use
+    // app-wide (§5.2/§3.4), not the native type="number" this used to
+    // carry (a different, less consistent mobile keypad). Covers every
+    // checklist item type that renders through this one shared control
+    // — Nonconformity Measurement, Quantitative, Meter Reading, etc.
+    // (§16.3) are all just `type:'num'` here, one fix reaches all of them.
+    return `<div class="f-num-row"><input class="f-num-in" type="text" inputmode="decimal" value="${it.value}" placeholder="—" oninput="setNum(this)"><span class="f-uom">${it.uom}</span></div>`
+      + (it.range ? `<p class="f-range-hint">Acceptable range: ${it.range}</p>` : '');
+  }
+  if (it.type === 'slider') {
+    const valueDisplay = it.value != null ? `${it.value}<span class="f-uom">${it.uom}</span>` : '—';
+    const pct = it.value != null ? Math.round((it.value - it.min) / (it.max - it.min) * 100) : 0;
+    const answered = it.value != null ? 'answered' : '';
+    return `<div class="f-slider-value" id="val-${it.id}">${valueDisplay}</div>
+      <div class="f-slider-track ${answered}" id="track-${it.id}" onpointerdown="sliderDragStart(event,${it.id})">
+        <div class="f-slider-fill" id="fill-${it.id}" style="width:${pct}%"></div>
+        <div class="f-slider-thumb" id="thumb-${it.id}" style="left:${pct}%"></div>
+      </div>
+      <div class="f-slider-minmax"><span>Min ${it.min}</span><span>Max ${it.max}</span></div>`;
+  }
+  if (it.type === 'textarea') {
+    return `<textarea class="f-textarea" placeholder="Describe work performed and any findings…" oninput="setText(this)">${it.value}</textarea>`;
+  }
+  return '';
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SCROLL MODE — vertical snap pager (A/B, added 2026-08-12)
+
+   The problem it answers: after §16.9's equipment fan-out a Route checklist
+   is ~96 or ~624 items, and paging through that with a button reads as an
+   endless run of discrete screens. Scroll mode keeps the focused-item model
+   exactly as-is (one item owns the screen) and replaces the *transition*
+   with a scroll — so the surface feels continuous while the DOM stays at 3
+   panels regardless of item count. Nothing here virtualises a long list;
+   that direction was considered and rejected (it reintroduces both the perf
+   and the dynamic-update problems the Focused Stepper was chosen to avoid).
+
+   THREE PANELS, ONE OF THEM REAL. The window is [cursor-1, cursor, cursor+1].
+   The middle panel is the full item; the neighbours are label + answer
+   control only. That split isn't an optimisation, it's a constraint: the
+   shared Comments/Documents renderers bind to module-level COMMENTS_DATA /
+   DOCUMENTS_DATA and to fixed element ids (#fv-itemNotes, #itemCommentsMount,
+   #rv-comments…), so only one item on screen can own that chrome. The happy
+   accident is that a stub is also exactly the "next up" peek we wanted.
+
+   ONE SOURCE OF TRUTH FOR "WHICH ITEM AM I ON". Thumb scrolling and the
+   Prev/Next buttons both end at onSnapSettle() — the buttons scroll, they
+   don't set the cursor. Two inputs, one commit path, so they can't disagree.
+
+   §16.1 NOTE: the locked rule is "one item at a time, not a scrolling list,"
+   and its stated reason is that a list made every item carry idle chrome.
+   Scroll mode keeps that reason satisfied — only the focused item has chrome
+   — but it does amend the letter of the rule. Don't fold this into v2 without
+   updating §16.1.
+   ══════════════════════════════════════════════════════════════════════════ */
+let SCROLL_MODE  = sessionStorage.getItem('eamChecklistScrollMode') !== 'off';
+let typingLock   = false;  // a Notes field currently holds focus
+let pendingSettle= false;  // a commit deferred because of typingLock
+let suppressScroll = false;// our own programmatic scrolling, not the user's
+let settleTimer  = null;
+
+function contentEl() { return document.querySelector('.content'); }
+
+/* The numbers CSS can't work out for itself. .content's clientHeight covers
+   the area *under* the sticky rail, and its bottom padding stands in for the
+   absolutely-positioned nav bar — so both come off the top to get the height
+   actually visible to a technician. Measuring also sidesteps §3.4's vh-vs-dvh
+   trap: there is no viewport unit in the snap CSS to get wrong. */
+function measureSnap() {
+  const c = contentEl();
+  if (!c) return;
+  const headH = document.querySelector('.stepper-head').offsetHeight;
+  const barH  = document.getElementById('stepperNav').offsetHeight
+             || document.getElementById('promptBar').offsetHeight || 64;
+  const PEEK  = 76;  // how much of the next item shows below a short one
+  // The band actually visible to a technician: the scroller's own height, less
+  // the sticky rail on top and the floating bottom bar that .content only
+  // reserves space for via padding.
+  const band  = Math.max(240, c.clientHeight - headH - barH);
+  c.style.setProperty('--snap-head', headH + 'px');
+  c.style.setProperty('--snap-panel-h', (band - PEEK) + 'px');
+  c.style.setProperty('--snap-stub-h', band + 'px');
+}
+function snapHeadPx() {
+  return parseFloat(getComputedStyle(contentEl()).getPropertyValue('--snap-head')) || 0;
+}
+
+/* Run a scroll mutation without the browser re-snapping under us, and without
+   our own settle handler mistaking it for a user gesture. Two rAFs: the first
+   lets layout settle, the second swallows the scroll event our change fired. */
+function withSnapSuppressed(fn) {
+  const c = contentEl();
+  suppressScroll = true;
+  c.classList.add('snap-off');
+  fn();
+  requestAnimationFrame(() => {
+    if (!typingLock) c.classList.remove('snap-off');
+    requestAnimationFrame(() => { suppressScroll = false; });
+  });
+}
+
+/* Which item is actually on screen: the panel filling the most of the visible
+   band. Two rules were tried and are wrong, both for reasons worth keeping:
+
+   "Nearest panel top" — halfway down a tall item the nearest top is the NEXT
+   item's, so the cursor runs ahead of the technician who is still reading.
+
+   "The panel straddling the anchor line" — correct for a tall item, but it
+   breaks at the end of the scroll range. The last panel's top can sit below
+   the anchor and be unreachable, in which case the outgoing panel keeps
+   straddling and the cursor never advances at all.
+
+   Most-visible handles both without special-casing either: a tall item being
+   read still owns the whole band, and a flick that lands with the next item
+   filling the screen commits, wherever the scroll range happens to end. */
+function panelMostVisible() {
+  const c = contentEl();
+  const cr = c.getBoundingClientRect();
+  const bandTop = cr.top + snapHeadPx();
+  const bandBottom = cr.bottom;
+  let best = null, bestSeen = 0;
+  for (const p of c.querySelectorAll('.snap-panel')) {
+    const r = p.getBoundingClientRect();
+    const seen = Math.min(r.bottom, bandBottom) - Math.max(r.top, bandTop);
+    if (seen > bestSeen) { bestSeen = seen; best = p; }
+  }
+  return best;
+}
+
+function onSnapSettle() {
+  if (!SCROLL_MODE || showingInstructions) return;
+  // Never rebuild the window while Notes holds focus — the textarea being
+  // typed into is inside the panel we'd destroy. Deferred to blur instead.
+  if (typingLock) { pendingSettle = true; return; }
+  const p = panelMostVisible();
+  if (!p) return;
+  const idx = +p.dataset.idx;
+  if (idx !== cursor) commitCursor(idx);
+}
+
+/* Move the window without moving the picture. The panel being scrolled into
+   changes height when it goes stub→current (it gains Notes/Comments/
+   Documents) and so does the one being left, so the only way to avoid a
+   visible lurch is: note where the target sits, rebuild, put it back there. */
+function commitCursor(idx) {
+  const c = contentEl();
+  const target = c.querySelector('.snap-panel[data-idx="' + idx + '"]');
+  const before = target ? target.getBoundingClientRect().top - c.getBoundingClientRect().top : null;
+  cursor = idx;
+  renderFocus({ keep: before });
+}
+
+/* The buttons drive the same scroll the thumb does. They stay visible in
+   scroll mode on purpose — gloved hands, one-handed use, and they're the
+   accessible path; the gesture is additive, never the only way forward. */
+function scrollToIdx(idx) {
+  const c = contentEl();
+  const p = c.querySelector('.snap-panel[data-idx="' + idx + '"]');
+  if (!p) return false;
+  const top = c.scrollTop + (p.getBoundingClientRect().top - c.getBoundingClientRect().top) - snapHeadPx();
+  c.scrollTo({ top, behavior: 'smooth' });
+  return true;
+}
+
+/* Snap and a focused textarea don't mix: iOS scrolls the caret into view and
+   snap would drag it back. Wraps the shared handlers rather than replacing
+   them. Same family of trap as the --kb-inset bugs in §3.4. */
+function chNotesFocus() {
+  typingLock = true;
+  if (SCROLL_MODE) contentEl().classList.add('snap-off');
+  onInlineFocus();
+}
+function chNotesBlur(el) {
+  typingLock = false;
+  if (SCROLL_MODE) contentEl().classList.remove('snap-off');
+  onInlineBlur(el);
+  if (pendingSettle) { pendingSettle = false; onSnapSettle(); }
+}
+
+/* Header tap means "back to the top of what I'm doing", which in scroll mode
+   is the current panel — not scroll position 0, which is the *previous* item,
+   and settling there would quietly walk the cursor backwards. */
+function chScrollTop() {
+  if (SCROLL_MODE && !showingInstructions) { scrollToIdx(cursor); return; }
+  scrollFormToTop();
+}
+
+function toggleScrollMode() {
+  SCROLL_MODE = !SCROLL_MODE;
+  sessionStorage.setItem('eamChecklistScrollMode', SCROLL_MODE ? 'on' : 'off');
+  syncScrollModeLabel();
+  const c = contentEl();
+  c.classList.remove('snap-off');
+  c.scrollTop = 0;
+  renderFocus({ anchor: 'top' });
+  showToast(SCROLL_MODE ? 'Scroll mode — flick between items' : 'Paged mode — v2 behaviour');
+}
+function syncScrollModeLabel() {
+  document.getElementById('scrollModeToggle').textContent = SCROLL_MODE ? '↕ Scroll' : '⇄ Paged';
+}
+
+/* ─── Render dispatch ────────────────────────────────────────────────────
+   opts.keep   — px offset from .content's top to hold the current panel at
+                 (commitCursor's no-lurch rebuild).
+   opts.anchor — 'top': park the current panel under the rail (jumpTo, mode
+                 switch, leaving the instructions screen).
+   Neither: hold scrollTop exactly where it is. That's the right answer for an
+   in-place re-render after an answer — the panels above the current one can't
+   change height when the current item's own answer changes, so the position
+   stays valid. Classic mode ignores all of it. */
+function renderFocus(opts) {
+  opts = opts || {};
+  const c = contentEl();
+  if (showingInstructions) { c.classList.remove('snap-mode'); renderInstructionsScreen(); return; }
+  if (!SCROLL_MODE)        { c.classList.remove('snap-mode'); renderClassicFocus();      return; }
+  c.classList.add('snap-mode');
+  renderSnapPanels(opts);
+}
+
+function renderInstructionsScreen() {
+  document.getElementById('focusWrap').innerHTML = `
+    <div class="section-card">
+      <div class="comment-item" style="border-bottom:none;">
+        <div class="comment-header">
+          <span class="comment-author instr-title"><span class="instr-icon">${INSTR_ICON}</span>Task Instructions</span>
+          <div class="comment-time-actions">
+            <span class="comment-time instr-lock-tag">${LOCK_ICON} Not editable</span>
+          </div>
+        </div>
+        <div class="comment-text instr-body">${TASK_PLAN_INSTRUCTIONS}</div>
+      </div>
+    </div>
+    <div style="height:16px;"></div>`;
+  document.getElementById('prevBtn').disabled = true;
+  document.getElementById('nextBtn').innerHTML = 'Start Checklist <svg width="16" height="16" fill="none" viewBox="0 0 24 24" style="margin-left:4px"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  renderStepperHead();
+  updateFooter();
+}
+
+// Classic mode — v2's exact render path, one item in #focusWrap, no panels.
+function renderClassicFocus() {
+  const it = ITEMS[cursor];
+  document.getElementById('focusWrap').innerHTML = itemFullHtml(it);
+  wireCurrentItem(it);
+  syncNavButtons();
+  renderStepperHead();
+  updateFooter();
+}
+
+function renderSnapPanels(opts) {
+  const c = contentEl(), wrap = document.getElementById('focusWrap');
+  const keepTop    = (opts.keep != null) ? opts.keep : null;
+  const keepScroll = (keepTop == null && opts.anchor !== 'top') ? c.scrollTop : null;
+
+  const it = ITEMS[cursor];
+  let html = '';
+  if (cursor > 0) html += stubPanelHtml(cursor - 1, 'Previous');
+  html += `<div class="snap-panel is-current" data-idx="${cursor}">${itemFullHtml(it)}</div>`;
+  if (cursor < ITEMS.length - 1) html += stubPanelHtml(cursor + 1, 'Next up');
+  wrap.innerHTML = html;
+
+  wireCurrentItem(it);
+  syncNavButtons();
+  renderStepperHead();
+  updateFooter();
+  measureSnap();
+
+  const cur = wrap.querySelector('.snap-panel.is-current');
+  withSnapSuppressed(() => {
+    const delta = cur.getBoundingClientRect().top - c.getBoundingClientRect().top;
+    if (keepTop != null)         c.scrollTop += (delta - keepTop);
+    else if (keepScroll != null) c.scrollTop  = keepScroll;
+    else                         c.scrollTop += delta - snapHeadPx();
+  });
+}
+
+function stubPanelHtml(idx, tag) {
+  return `<div class="snap-panel is-stub" data-idx="${idx}" onclick="jumpTo(${idx})">
+    <div class="snap-stub-tag">${tag} · Item ${String(idx + 1).padStart(2, '0')}</div>
+    ${itemStubHtml(ITEMS[idx])}
+  </div>`;
+}
+
+/* A stub carries identity + answer control and nothing else: enough to
+   recognise what's coming, and (scrolling back) to see what you answered.
+   controlHtml() is reused verbatim, which is why .is-stub .focus-control is
+   pointer-events:none in the CSS — every control handler writes to
+   ITEMS[cursor], so a live control here would answer the wrong item. */
+function itemStubHtml(it) {
+  return `
+    ${equipChipHtml(it)}
+    <div class="focus-label-row">
+      <p class="focus-label">${it.label}</p>
+      ${it.required ? '<span class="focus-req-tag">Required</span>' : ''}
+    </div>
+    <div class="section-card"><div class="focus-control">${controlHtml(it)}</div></div>`;
+}
+
+function equipChipHtml(it) {
+  return it.equipId ? `<div class="focus-equip-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span class="mono">${it.equipId}</span> — ${it.equipDesc || ''}</div>` : '';
+}
+
+function syncNavButtons() {
+  document.getElementById('prevBtn').disabled = cursor === 0 && !TASK_PLAN_INSTRUCTIONS.trim();
+  const isLast = cursor === ITEMS.length - 1;
+  document.getElementById('nextBtn').innerHTML = isLast
+    ? 'Finish'
+    : 'Next <svg width="16" height="16" fill="none" viewBox="0 0 24 24" style="margin-left:4px"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+
+/* Rebinds the shared record-level Comments/Documents data to the focused
+   item, and sizes Notes. Only ever called for the current panel — see the
+   module-level-globals note in the SCROLL MODE header comment. */
+function wireCurrentItem(it) {
+  // Notes is always the tall/stacked shape now (§3.4) — pre-existing
+  // multi-line notes need their height set once on render, not just after
+  // the next keystroke, or a long note would render clipped until typed in.
+  const notesEl = document.getElementById('fv-itemNotes');
+  if (notesEl) autoGrow(notesEl);
+  COMMENTS_DATA = it.comments;
+  DOCUMENTS_DATA = it.documents;
+  renderCommentsExcerptMount();
+  renderDocumentsExcerptMount();
+}
+
+function itemFullHtml(it) {
+  const dynamicParent = it.dynamic ? ITEMS.find(x => x.id === it.dynamicParentId) : null;
+  return `
+    ${equipChipHtml(it)}
+    ${dynamicParent ? `<div class="focus-dynamic-tag">${BRANCH_ICON}<span>Added based on your "${dynamicParent.label}" response</span></div>` : ''}
+    <div class="focus-label-row">
+      <p class="focus-label">${it.label}</p>
+      ${it.required ? '<span class="focus-req-tag">Required</span>' : ''}
+    </div>
+
+    <div class="section-card"><div class="focus-control">${controlHtml(it)}</div></div>
+    ${it.dynamicRules ? `<div class="focus-dynamic-hint">${BRANCH_ICON}<span>This response may add follow-up items to the checklist</span></div>` : ''}
+
+    <div class="section-card">
+      <div class="form-field stacked" data-field="itemNotes" onclick="focusInlineField(this)">
+        <span class="field-label">Notes</span>
+        <textarea class="field-inline-input" id="fv-itemNotes" rows="1" maxlength="255" placeholder="Add a note…" oninput="updateInlineFieldLayout(this); setNote(this)" onfocus="chNotesFocus()" onblur="chNotesBlur(this)">${it.note}</textarea>
+      </div>
+    </div>
+
+    <button class="followup-btn-lg ${it.followup?'on':''}" onclick="toggleFollowup()">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 22V15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      ${it.followup ? 'Flagged for Follow-up' : 'Flag for Follow-up'}
+    </button>
+
+    ${it.followup ? `<button class="btn-contained create-fu-wo-btn" onclick="createFollowupWO()">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      Create Follow-up WO
+    </button>` : ''}
+
+    <div class="rv-section">
+      <div class="rv-toggle-row" onclick="rvToggle('comments')">
+        <div class="rv-toggle-left">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="rv-toggle-title">Comments</span>
+        </div>
+        <div class="rv-toggle-right">
+          <span class="rv-badge" id="itemCommentsBadge">${it.comments.length}</span>
+          <svg class="rv-chev" id="rv-chev-comments" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="rv-collapse" id="rv-comments"><div id="itemCommentsMount"></div></div>
+    </div>
+
+    <div class="rv-section">
+      <div class="rv-toggle-row" onclick="rvToggle('documents')">
+        <div class="rv-toggle-left">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="rv-toggle-title">Documents</span>
+        </div>
+        <div class="rv-toggle-right">
+          <span class="rv-badge" id="itemDocumentsBadge">${it.documents.length}</span>
+          <svg class="rv-chev" id="rv-chev-documents" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <div class="rv-collapse" id="rv-documents"><div id="itemDocumentsMount"></div></div>
+    </div>
+    <div style="height:16px;"></div>`;
+}
+
+// Prompt bar replaces the Prev/Next nav once every required item is
+// complete AND you've reached the last item — see the header comment
+// for why this differs from v1's "any time requirements complete"
+// trigger.
+function updateFooter() {
+  const req = ITEMS.filter(i => i.required);
+  const reqDone = req.filter(isDone).length;
+  const showPrompt = reqDone === req.length && cursor === ITEMS.length - 1;
+  document.getElementById('promptBar').classList.toggle('show', showPrompt);
+  document.getElementById('stepperNav').style.display = showPrompt ? 'none' : 'flex';
+}
+// Prompt bar *content* (design-decisions-v3-1.md §11-13, added
+// 2026-07-22) — built once per demo-WO change, not per updateFooter()
+// call, since it depends on the resolved workflow, not on checklist
+// progress. A workflow that doesn't include Issue Parts as a step (PM)
+// isn't a case of the technician choosing to skip it — the step doesn't
+// exist for this WO Type, so there's no real Yes/No decision left to
+// ask; the bar just confirms moving on to whatever the next configured
+// step actually is.
+function renderPromptBar() {
+  const includesIssueParts = !CURRENT_WORKFLOW || CURRENT_WORKFLOW.steps.includes('issueparts');
+  document.getElementById('promptBar').innerHTML = includesIssueParts
+    ? `<div class="prompt-question">Do you need to issue parts?</div>
+       <div class="prompt-seg">
+         <button class="prompt-seg-btn" onclick="promptAnswer(true)">Yes</button>
+         <button class="prompt-seg-btn" onclick="promptAnswer(false)">No</button>
+       </div>`
+    : `<div class="prompt-seg">
+         <button class="bar-pill bar-pill-ready" onclick="promptAnswer(false)">Continue to Book Labor</button>
+       </div>`;
+}
+
+function jumpTo(idx) { closeAllSheets(); showingInstructions = false; cursor = idx; renderFocus({ anchor: 'top' }); }
+function jumpToInstructions() { closeAllSheets(); showingInstructions = true; renderFocus(); }
+function goPrev() {
+  if (showingInstructions) return;
+  if (cursor === 0 && TASK_PLAN_INSTRUCTIONS.trim()) { jumpToInstructions(); return; }
+  if (cursor > 0) {
+    closeAllSheets();
+    // Scroll mode: scroll to the neighbouring panel and let onSnapSettle()
+    // commit the cursor — one commit path for thumb and button alike.
+    if (SCROLL_MODE && scrollToIdx(cursor - 1)) return;
+    cursor--; renderFocus();
+  }
+}
+// Bug fix 2026-07-30 (reported: Finish silently refuses to proceed) — the
+// generic "Complete all required items first" toast was a dead end: it
+// never said WHICH item, so a required item that got added after the
+// fact (a dynamicRules follow-up, e.g. answering "Fail" on item 3) or
+// answered then un-answered (setCheck() toggles off on a 2nd tap) left
+// no way to find it short of paging through everything by hand. Now
+// jumps straight to the first incomplete required item and names it.
+function goNext() {
+  closeAllSheets();
+  if (showingInstructions) { showingInstructions = false; renderFocus({ anchor: 'top' }); return; }
+  if (cursor < ITEMS.length - 1) {
+    if (SCROLL_MODE && scrollToIdx(cursor + 1)) return;
+    cursor++; renderFocus(); return;
+  }
+  const req = ITEMS.filter(i => i.required);
+  const incomplete = req.find(i => !isDone(i));
+  if (incomplete) {
+    cursor = ITEMS.indexOf(incomplete);
+    renderFocus({ anchor: 'top' });
+    showToast(`Required: ${incomplete.label}`);
+  }
+}
+function setCheck() { const it = ITEMS[cursor]; it.value = !it.value; if (it.dynamicRules) syncDynamicChildren(it); renderFocus(); }
+function setToggle(label, cls) { const it = ITEMS[cursor]; it.value = label; if (it.dynamicRules) syncDynamicChildren(it); renderFocus(); }
+function setNum(el) { const it = ITEMS[cursor]; it.value = el.value; if (it.dynamicRules) syncDynamicChildren(it); renderStepperHead(); updateFooter(); }
+function setText(el) { const it = ITEMS[cursor]; it.value = el.value; if (it.dynamicRules) syncDynamicChildren(it); renderStepperHead(); updateFooter(); }
+function setNote(el) { ITEMS[cursor].note = el.value; }
+function toggleFollowup() { ITEMS[cursor].followup = !ITEMS[cursor].followup; renderFocus(); }
+function createFollowupWO() { showToast('Creating follow-up work order — coming soon'); }
+
+// ─── "VIEW ALL" — the escape hatch back to an at-a-glance list, and the
+// only navigation that scales to a large checklist. Group-by toggle
+// (Step | Equipment) added for Route/MEC checklists — a checklist
+// carrying one item per Route equipment is more useful scanned/jumped by
+// Equipment than by workflow step. Dataspy filter + search added
+// 2026-08-10 — see the header comment above renderOverviewBody() for the
+// gotchas this raised. ──────────────────────────────────────────────
+let overviewGroupMode = 'step';
+// Collapse state is one Set shared by both modes, keyed mode-prefixed
+// ('step:main' / 'equip:A-00067333') so switching modes can never collide
+// two different groups that happen to share a raw key. Persists across
+// mode switches and search/filter changes made WHILE the sheet is open —
+// but openOverview() (below) recomputes it fresh every time the sheet is
+// invoked, direct instruction: only the current item's own group starts
+// expanded, everything else starts collapsed, on every open.
+let overviewCollapsedGroups = new Set();
+// Collapse every group except whichever one the currently-focused item
+// belongs to — computed for BOTH modes' key spaces at once, so switching
+// Group-by mode while already inside an open "View all" still shows
+// exactly one expanded group (the current item's), no special-casing
+// needed at the mode switch itself.
+function computeDefaultOverviewCollapse() {
+  const cur = ITEMS[cursor];
+  const curStepKey = 'step:' + cur.group;
+  const curEquipKey = 'equip:' + (cur.equipId || '__general__');
+  const collapsed = new Set();
+  ITEMS.forEach(it => {
+    const stepKey = 'step:' + it.group;
+    const equipKey = 'equip:' + (it.equipId || '__general__');
+    if (stepKey !== curStepKey) collapsed.add(stepKey);
+    if (equipKey !== curEquipKey) collapsed.add(equipKey);
+  });
+  return collapsed;
+}
+// Dataspy filter (All Checklist Items | Uncompleted checklist items) —
+// functionally just a 2-state done/not-done filter, dressed as the app's
+// real §8.3 dataspy-pill affordance for visual consistency with the
+// standard List Search Screen chrome, not because it's a real saved-view
+// mechanism with an arbitrary underlying query.
+let overviewDataspy = 'all';
+const OVERVIEW_DATASPIES = {
+  all: 'All Checklist Items',
+  uncompleted: 'Uncompleted checklist items',
+};
+let overviewSearchOpen = false;
+let overviewSearchTerm = '';
+
+// A single decision point for "does this item show right now" — both
+// grouping modes call this so the dataspy filter and search term can
+// never drift out of sync between them. Ghost rows aren't real ITEMS (see
+// ovItemRowHtml) and aren't run through this at all — a ghost only shows
+// or hides based on whether its OWN trigger item passed this check.
+/* Search spans everything the row can DISPLAY, not just the label (widened
+   2026-08-11, direct instruction: "any displayed data would be how it will
+   occur in the app"). Typing an equipment code, a description, a group name,
+   an entered answer or a note all filter now — previously only `label` was
+   matched, so searching "P-1042" on a Route WO found nothing even though the
+   equipment chip was right there on screen.
+   Built from the item rather than from rendered HTML on purpose: reading the
+   DOM back would tie the filter to markup and break the moment a row's
+   anatomy changes. */
+function itemSearchHaystack(it) {
+  const parts = [
+    it.label, it.equipId, it.equipDesc, it.note, it.uom, it.range,
+    GROUP_NAMES[it.group] || it.group,
+    // The entered answer, whatever its type (toggle text, number, slider value).
+    (it.value === true ? 'yes done complete' : it.value === false ? 'no' : it.value),
+    it.required ? 'required' : '',
+    it.dynamic ? 'follow-up' : '',
+  ];
+  // Option labels so "Pass"/"Fail"/"N/A" are findable even before an answer.
+  if (Array.isArray(it.options)) it.options.forEach(o => parts.push(Array.isArray(o) ? o[0] : o));
+  return parts.filter(v => v !== null && v !== undefined && v !== '').join(' ').toLowerCase();
+}
+function itemMatchesFilter(it) {
+  if (overviewDataspy === 'uncompleted' && isDone(it)) return false;
+  if (overviewSearchTerm && !itemSearchHaystack(it).includes(overviewSearchTerm)) return false;
+  return true;
+}
+
+// One row (+ its ghost placeholder, if any) — shared by both grouping
+// modes so they can never drift out of sync on row anatomy.
+function ovItemRowHtml(it, idx) {
+  let html = `<div class="ov-row ${it.dynamic ? 'ov-row-indent' : ''}" onclick="jumpTo(${idx}); closeOverview();">
+    ${it.dynamic ? `<span class="ov-dynamic-icon" title="Added dynamically">${BRANCH_ICON}</span>` : ''}
+    <span class="ov-status-dot ${dotClass(it).replace('done-','')}"></span>
+    <span class="ov-label">${idx+1} — ${it.label}</span>
+    ${it.required ? '<span style="color:var(--red);font-weight:700;font-size:12px;">*</span>' : ''}
+    ${it.dynamicRules ? `<span class="ov-branch-cue" title="May add follow-up items">${BRANCH_ICON}</span>` : ''}
+  </div>`;
+  // Ghost placeholder — previews an as-yet-untriggered branch. Only shows
+  // while no children are currently active for this trigger; disappears
+  // the instant a real answer inserts (or removes) them.
+  if (it.dynamicRules && !ITEMS.some(x => x.dynamicParentId === it.id)) {
+    html += `<div class="ov-row ov-row-indent ov-row-ghost">
+      <span class="ov-ghost-icon">${LOCK_ICON}</span>
+      <span class="ov-label ov-label-ghost">More items may appear based on your answer</span>
+    </div>`;
+  }
+  return html;
+}
+
+// Unified group header (2026-08-10) — one renderer for BOTH grouping
+// modes: Step's own thin/plain style, Equipment's own done/total badge +
+// collapse chevron, now on every group in either mode (Step groups are
+// collapsible/badged too now, not just Equipment's). `groupKey` is
+// already mode-prefixed by the caller.
+function ovGroupHeaderHtml(groupKey, labelHtml, doneCount, total, collapsed) {
+  return `<div class="ov-group-hdr" onclick="toggleOverviewGroup('${groupKey}')">
+      <span class="ov-group-hdr-label">${labelHtml}</span>
+      <span class="ov-group-badge">${doneCount}/${total}</span>
+      <span class="ov-group-chev ${collapsed ? 'collapsed' : ''}"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    </div>`;
+}
+
+function buildStepGroupedBody() {
+  const order = [];
+  const buckets = {};
+  ITEMS.forEach((it, idx) => {
+    if (!buckets[it.group]) { buckets[it.group] = []; order.push(it.group); }
+    buckets[it.group].push(idx);
+  });
+  return order.map(group => {
+    const idxs = buckets[group];
+    const visibleIdxs = idxs.filter(i => itemMatchesFilter(ITEMS[i]));
+    // Group-emptying rule (§8.3 precedent — "cards drop a null row
+    // entirely"): a group with zero rows matching the active filter/
+    // search doesn't render at all, badge and all — not a header sitting
+    // over an empty body.
+    if (visibleIdxs.length === 0) return '';
+    const key = 'step:' + group;
+    const collapsed = overviewCollapsedGroups.has(key);
+    const doneCount = idxs.filter(i => isDone(ITEMS[i])).length;
+    return ovGroupHeaderHtml(key, GROUP_NAMES[group], doneCount, idxs.length, collapsed)
+      + `<div class="ov-group-body ${collapsed ? 'collapsed' : ''}">${visibleIdxs.map(i => ovItemRowHtml(ITEMS[i], i)).join('')}</div>`;
+  }).join('');
+}
+
+// "General" bucket holds every item with no equipId — a Route/MEC
+// checklist's own safety/close-out items, e.g., aren't scoped to any one
+// piece of equipment. Buckets keep ITEMS' own first-seen order, not
+// alphabetical, so equipment appear in the order the Route actually lists
+// them.
+function buildEquipmentGroupedBody() {
+  const order = [];
+  const buckets = {};
+  ITEMS.forEach((it, idx) => {
+    const equipKey = it.equipId || '__general__';
+    if (!buckets[equipKey]) { buckets[equipKey] = []; order.push(equipKey); }
+    buckets[equipKey].push(idx);
+  });
+  return order.map(equipKey => {
+    const idxs = buckets[equipKey];
+    const visibleIdxs = idxs.filter(i => itemMatchesFilter(ITEMS[i]));
+    if (visibleIdxs.length === 0) return '';
+    const isGeneral = equipKey === '__general__';
+    const label = isGeneral ? 'General'
+      : `<span class="ov-group-hdr-code">${equipKey}</span> — ${ITEMS[idxs[0]].equipDesc || ''}`;
+    const key = 'equip:' + equipKey;
+    const collapsed = overviewCollapsedGroups.has(key);
+    const doneCount = idxs.filter(i => isDone(ITEMS[i])).length;
+    return ovGroupHeaderHtml(key, label, doneCount, idxs.length, collapsed)
+      + `<div class="ov-group-body ${collapsed ? 'collapsed' : ''}">${visibleIdxs.map(i => ovItemRowHtml(ITEMS[i], i)).join('')}</div>`;
+  }).join('');
+}
+
+function toggleOverviewGroup(key) {
+  if (overviewCollapsedGroups.has(key)) overviewCollapsedGroups.delete(key); else overviewCollapsedGroups.add(key);
+  renderOverviewBody();
+}
+function setOverviewGroupMode(mode) { overviewGroupMode = mode; renderOverviewBody(); }
+
+// Dataspy sheet — reuses the shared .lov-option row shape (same as any
+// other LOV picker) rather than the full real dataspy-picker sheet
+// (favorite stars, per-dataspy descriptions) — there's no "favorite" or
+// distinct-query concept for a 2-state filter.
+function openOverviewDataspySheet() { openSheet('overviewDataspySheet'); }
+function setOverviewDataspy(mode) {
+  overviewDataspy = mode;
+  closeAllSheets();
+  document.getElementById('ovDataspyLabel').textContent = OVERVIEW_DATASPIES[mode];
+  renderOverviewBody();
+}
+// Search is icon-triggered (collapsed by default) rather than the
+// always-visible .ld-search-bar every other §8.3 List Search Screen
+// consumer uses — a deliberate divergence for this screen specifically
+// (flagged to the user, not a pattern to copy elsewhere) since the
+// header here already stacks Instructions + dataspy/search + Group-by
+// before any actual checklist content.
+function toggleOverviewSearch() {
+  overviewSearchOpen = !overviewSearchOpen;
+  const row = document.getElementById('ovSearchRow');
+  const btn = document.getElementById('ovSearchBtn');
+  // .ld-search-bar's own default display is flex (icon + input side by
+  // side) — 'block' here would silently break that layout the moment
+  // this ever stops matching renderOverviewBody()'s own template.
+  row.style.display = overviewSearchOpen ? 'flex' : 'none';
+  btn.classList.toggle('on', overviewSearchOpen);
+  if (overviewSearchOpen) document.getElementById('ovSearchInput').focus();
+  else clearOverviewSearch();
+}
+function onOverviewSearchInput(el) {
+  overviewSearchTerm = el.value.trim().toLowerCase();
+  renderOverviewList();
+}
+function clearOverviewSearch() {
+  overviewSearchTerm = '';
+  const input = document.getElementById('ovSearchInput');
+  if (input) input.value = '';
+  renderOverviewList();
+}
+// Re-renders just the grouped list, not the filter bar/search input
+// around it — re-running renderOverviewBody() on every keystroke would
+// blow away the search input's own focus/caret position.
+function renderOverviewList() {
+  const body = document.getElementById('ovGroupedList');
+  if (body) body.innerHTML = overviewGroupMode === 'equipment' ? buildEquipmentGroupedBody() : buildStepGroupedBody();
+}
+
+function renderOverviewBody() {
+  let html = '';
+  if (TASK_PLAN_INSTRUCTIONS.trim()) {
+    html += `<div class="ov-row" onclick="jumpToInstructions(); closeOverview();">
+      <span class="ov-dynamic-icon" title="Task plan instructions">${INSTR_ICON}</span>
+      <span class="ov-label">Task Instructions</span>
+    </div>`;
+  }
+  html += `<div class="ov-filter-bar">
+      <div class="ds-bar" onclick="openOverviewDataspySheet()">
+        <div class="ds-icon-w"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg></div>
+        <div class="ds-body"><div class="ds-name" id="ovDataspyLabel">${OVERVIEW_DATASPIES[overviewDataspy]}</div></div>
+        <svg width="16" height="16" class="ds-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <button class="ov-search-icon-btn ${overviewSearchOpen ? 'on' : ''}" id="ovSearchBtn" onclick="toggleOverviewSearch()" aria-label="Search checklist items">
+        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      </button>
+    </div>
+    <div class="ld-search-bar ov-search-row" id="ovSearchRow" style="display:${overviewSearchOpen ? 'flex' : 'none'};">
+      <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input class="ld-search-input" id="ovSearchInput" type="text" placeholder="Search checklist items…" value="${overviewSearchTerm}" oninput="onOverviewSearchInput(this)" autocomplete="off">
+    </div>
+    <div class="ov-seg-wrap">
+      <button class="ov-seg-btn ${overviewGroupMode === 'step' ? 'on' : ''}" onclick="setOverviewGroupMode('step')">Group by Step</button>
+      <button class="ov-seg-btn ${overviewGroupMode === 'equipment' ? 'on' : ''}" onclick="setOverviewGroupMode('equipment')">Group by Equipment</button>
+    </div>
+    <div id="ovGroupedList"></div>`;
+  document.getElementById('overviewBody').innerHTML = html;
+  renderOverviewList();
+}
+
+function openOverview() {
+  // Close any open bottom sheet first (2026-08-11, device report: the Comment
+  // Actions sheet stayed visible underneath this overlay, its title and ✕
+  // showing through). This overlay sits above .bottom-sheet's z-index and is a
+  // full-attention surface, so nothing else should be open behind it.
+  closeAllSheets();
+  overviewCollapsedGroups = computeDefaultOverviewCollapse();
+  renderOverviewBody();
+  document.getElementById('overviewOverlay').classList.add('open');
+}
+function closeOverview() { document.getElementById('overviewOverlay').classList.remove('open'); }
+
+// ─── PROMPT BAR (Yes/No — design-decisions-v3-1.md §14.6). Real
+// navigation as of 2026-07-22 (was a toast stub) — same sessionStorage
+// hand-off eam-wo-prototype-issue-parts-v1.html's own Next button already
+// uses, so Book Labor's arrival banner/Add-Labor auto-open (§18.7) fires
+// correctly whichever step actually preceded it. ──────────────────────
+function promptAnswer(issuedParts) {
+  sessionStorage.setItem('eamArrivedViaNextStep', 'true');
+  sessionStorage.setItem('eamOpenDemoWo', DEMO_WO);
+  window.location.href = issuedParts ? WO_STEP_FILES.issueparts : WO_STEP_FILES.booklabor;
+}
+
+/* Demo-WO workflow hook (design-decisions-v3-1.md §11-13, added
+   2026-07-22) — called once at init, keyed off whichever of the 3 demo
+   WOs real navigation landed on. §11 fallback (ROUT) locked in
+   2026-07-22 (user direction): renders the
+   flat, unnumbered, free-flow rail (renderFlatStepRail(), eam-shared.js)
+   instead of leaving the numbered rail's stale hardcoded BRKD markup in
+   place — renderStepRail() itself no-ops on an empty step list, so
+   without this branch the rail would silently show the wrong thing
+   rather than nothing. */
+let CURRENT_WORKFLOW = null;
+function onDemoWoChanged() {
+  const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
+  CURRENT_WORKFLOW = resolveWoWorkflow(jobType);
+  applyDemoWoIdentity();
+  if (CURRENT_WORKFLOW.configured) renderStepRail(CURRENT_WORKFLOW, 'checklist', jobType);
+  else renderFlatStepRail('checklist', jobType);
+  renderPromptBar();
+}
+
+/* Consume-once hand-off (same pattern as WO Record View's own read,
+   eam-wo-record-view-prototype-v1.html) — picks which of the 3 demo WOs
+   this visit should land on instead of always defaulting to 19257.
+   Needed so a real navigation from Record View's Start Work bar, or a
+   free-flow tap on the fallback rail (goToWoStep(), eam-shared.js),
+   correctly carries the ROUT identity across the page load. */
+const OPEN_DEMO_WO = sessionStorage.getItem('eamOpenDemoWo');
+if (OPEN_DEMO_WO) {
+  sessionStorage.removeItem('eamOpenDemoWo');
+  DEMO_WO = OPEN_DEMO_WO;
+}
+
+/* ══ ROUTE/MEC EQUIPMENT FAN-OUT (§16.9/§16.10, 2026-08-11) ═══════════════
+   When the WO carries equipment on its Equipment tab, every equipment-scoped
+   item becomes one item PER piece of equipment — a technician walking a Route
+   inspects the same points on each asset. This is what "View all → Equipment"
+   group-by (§16.8) was built for and was never actually fed.
+
+   It's a pure function of the live store, recomputed at load, so removing
+   equipment removes its items with no separate teardown path: the copies only
+   exist because a row exists. Runs after DEMO_WO is resolved (it reads that
+   WO's own rows) and before the first render.
+
+   Order is equipment-major — all points for asset 1, then asset 2 — which is
+   the order the route is actually walked, not all-of-one-check-across-assets. */
+function fanOutEquipmentItems() {
+  if (typeof woEquipRows !== 'function') return;
+  const ov = (typeof woIdentity === 'function') ? woIdentity() : null;
+  // A MEC child WO covers exactly the one asset it was minted for.
+  const rows = ov
+    ? woEquipRows(ov.parentWo).filter(r => r.equip === ov.equipment)
+    : woEquipRows(DEMO_WO);
+  if (!rows.length) return;
+  const templates = ITEMS.filter(i => i.equipId);
+  if (!templates.length) return;
+  const insertAt = ITEMS.indexOf(templates[0]);
+  templates.forEach(t => ITEMS.splice(ITEMS.indexOf(t), 1));
+  let seq = 1000;
+  const expanded = [];
+  rows.forEach(r => templates.forEach(t => {
+    expanded.push(Object.assign(JSON.parse(JSON.stringify(t)), {
+      id: ++seq, equipId: r.equip, equipDesc: r.desc,
+    }));
+  }));
+  ITEMS.splice(insertAt, 0, ...expanded);
+  // Keep dynamic follow-on ids (§16.5) clear of the range just consumed — a
+  // long Route can mint hundreds of items, and a collision would make
+  // syncDynamicChildren() delete the wrong row.
+  dynamicIdSeq = Math.max(dynamicIdSeq, seq);
+}
+fanOutEquipmentItems();
+
+/* ── init ── */
+syncScrollModeLabel();
+renderFocus({ anchor: 'top' });
+onDemoWoChanged();
+initSharedApp({ contentSelector: '.content' });
+
+/* ── SCROLL MODE wiring ────────────────────────────────────────────────
+   A debounced scroll-idle timer rather than the `scrollend` event: Safari
+   only shipped scrollend recently, and this needs to work on whatever device
+   is in a technician's hand. 140ms is long enough to sit out the tail of a
+   momentum flick and short enough that the rail's "Item X of Y" doesn't feel
+   laggy behind the thumb. */
+contentEl().addEventListener('scroll', () => {
+  if (!SCROLL_MODE || suppressScroll) return;
+  clearTimeout(settleTimer);
+  settleTimer = setTimeout(onSnapSettle, 140);
+}, { passive: true });
+
+/* Re-measure whenever the usable height can have changed. The load listener
+   matters more than it looks: the rail's height depends on Inter arriving
+   from the CDN, and measuring before that lands leaves every panel sized
+   against a slightly wrong header. */
+window.addEventListener('resize', () => { if (SCROLL_MODE) measureSnap(); });
+window.addEventListener('orientationchange', () => { if (SCROLL_MODE) measureSnap(); });
+window.addEventListener('load', () => {
+  if (!SCROLL_MODE || showingInstructions) return;
+  measureSnap();
+  // Only re-anchor if the technician hasn't started scrolling yet — re-running
+  // the anchor unconditionally would yank them back to the top of item 1
+  // mid-flick, for the sake of a few pixels of header measurement.
+  if (contentEl().scrollTop === 0) renderFocus({ anchor: 'top' });
+});
+</script>
+</body>
+</html>
