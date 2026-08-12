@@ -187,27 +187,28 @@
 
 /* ═══ SCROLL MODE (vertical snap pager) ══════════════════════════════════
    All of it gated behind `.content.snap-mode`, so classic mode renders with
-   zero scroll-snap CSS in play at all — that's what keeps the A/B honest.
+   none of this in play — that's what keeps the A/B honest.
 
-   PROXIMITY, not MANDATORY, deliberately: mandatory snap fights two things
-   this screen genuinely does — item panels of wildly varying height (a
-   3-line checkbox item vs. one with 6 comments and a grown Notes box), and
-   iOS scrolling a focused input into view, which mandatory snap yanks back.
-   Proximity snaps when you're near a boundary and otherwise leaves the
-   scroll alone, which is the behaviour a tall item needs.
+   NO scroll-snap-* PROPERTIES HERE, deliberately (changed 2026-08-12 after
+   the first device round). `proximity` didn't fire reliably on iOS and left
+   items resting half-placed; `mandatory` would fight the two cases that must
+   stay free — reading a long item's Comments/Documents, and iOS scrolling a
+   focused input into view. JS does the landing instead, where the rule can be
+   conditional. See the SNAP MODE header comment in the script.
 
-   --snap-panel-h / --snap-head are measured at runtime (see measureSnap())
-   rather than written as a vh/dvh expression: the usable height is
-   .content's own clientHeight MINUS the sticky rail MINUS the bottom bar
-   that .content only reserves via padding, and none of that is expressible
-   in CSS here. Also sidesteps the §3.4 vh-vs-dvh trap entirely — there's no
+   --snap-panel-h / --snap-stub-h / --snap-head are measured at runtime (see
+   measureSnap()) rather than written as vh/dvh expressions: the usable height
+   is .content's own clientHeight MINUS the sticky rail MINUS the bottom bar
+   that .content only reserves via padding, and none of that is expressible in
+   CSS here. Also sidesteps the §3.4 vh-vs-dvh trap entirely — there's no
    viewport unit in this block to get wrong. */
-.content.snap-mode { scroll-snap-type: y proximity; }
-/* Suppressed while typing (keyboard up) and across our own programmatic
-   re-anchors — see typingLock / withSnapSuppressed(). */
-.content.snap-mode.snap-off { scroll-snap-type: none; }
+.content.snap-mode { --snap-land-pad: 26px; }
 
-.snap-panel { scroll-snap-align: start; scroll-margin-top: var(--snap-head, 60px); }
+/* padding-top IS the landing air above the equipment pill. JS parks the panel
+   *box* flush against the band top, so this padding is what stands between the
+   sticky rail and the pill once an item settles — asked for directly off the
+   device, where a pill landing flush under the rail read as cramped. */
+.snap-panel { padding-top: var(--snap-land-pad, 26px); }
 /* The current panel is one screenful LESS the peek, so the next item's top
    always shows below it when the item is short. That peek is the whole
    "there's more below, keep going" affordance — it is not decoration. */
@@ -227,7 +228,7 @@
    guarantees the panel after the current one can always be scrolled to the
    top. (The current panel is deliberately one PEEK shorter — different job:
    that's what leaves the next item's head visible below it.) */
-.snap-panel.is-stub { opacity: .5; padding-top: 14px; border-top: 1px solid var(--border); cursor: pointer; min-height: var(--snap-stub-h, 70vh); }
+.snap-panel.is-stub { opacity: .5; border-top: 1px solid var(--border); cursor: pointer; min-height: var(--snap-stub-h, 70vh); }
 /* Controls in a stub must never be tappable — every control's handler acts
    on ITEMS[cursor], so a tap here would silently answer the WRONG item.
    The stub as a whole stays tappable (jumps to it); only the control is
@@ -954,6 +955,31 @@ function controlHtml(it) {
    Prev/Next buttons both end at onSnapSettle() — the buttons scroll, they
    don't set the cursor. Two inputs, one commit path, so they can't disagree.
 
+   SNAPPING IS OWNED BY JS, NOT CSS (changed 2026-08-12 after the first device
+   round). `scroll-snap-type: proximity` was doing the landing, and on iOS it
+   simply didn't fire reliably — the cursor committed to the next item and the
+   scroll stayed exactly where the flick ended, resting with the outgoing
+   stub's empty tail on screen and the incoming item's equipment pill halfway
+   down. Reported as "this screenshot should never occur", and rightly.
+
+   CSS snap is gone entirely rather than turned up to `mandatory`: mandatory
+   fights the one case that must stay free (reading a long item's Comments and
+   Documents) and fights iOS scrolling a focused input into view. Doing it in
+   JS means the rule can be conditional, which is exactly what's needed —
+
+   ON SETTLE, EXACTLY ONE OF THREE THINGS IS TRUE:
+     1. a neighbour is now the most-visible panel  → commit to it, then
+        animate its top to the landing position;
+     2. the current item still owns the band and its top is above the band top
+        → the technician is reading inside the item. LEAVE IT ALONE. This is
+        the Comments/Documents case and the whole reason snapping is
+        conditional;
+     3. the current item still owns the band but its top has fallen below the
+        band top → this is the limbo state from the report, dead space above a
+        half-placed item. Animate it home.
+   The invariant that follows: the scroll never comes to rest with an item's
+   top below the band top. Either it's flush, or you're deliberately inside it.
+
    §16.1 NOTE: the locked rule is "one item at a time, not a scrolling list,"
    and its stated reason is that a list made every item carry idle chrome.
    Scroll mode keeps that reason satisfied — only the focused item has chrome
@@ -965,6 +991,14 @@ let typingLock   = false;  // a Notes field currently holds focus
 let pendingSettle= false;  // a commit deferred because of typingLock
 let suppressScroll = false;// our own programmatic scrolling, not the user's
 let settleTimer  = null;
+let snapAnimTimer = null;
+/* How much of the band a neighbour must fill before it takes over. Half, per
+   the device call: "once the next (or previous) is over half in view after a
+   scroll, ensure it snaps consistently." Because the panels are contiguous,
+   >50% of the band is also automatically more than the outgoing item has, so
+   this and most-visible agree — the explicit floor is what stops a 2px
+   overlap at the end of the scroll range from counting as a takeover. */
+const SNAP_TAKEOVER = 0.5;
 
 function contentEl() { return document.querySelector('.content'); }
 
@@ -992,94 +1026,132 @@ function snapHeadPx() {
   return parseFloat(getComputedStyle(contentEl()).getPropertyValue('--snap-head')) || 0;
 }
 
-/* Run a scroll mutation without the browser re-snapping under us, and without
-   our own settle handler mistaking it for a user gesture. Two rAFs: the first
-   lets layout settle, the second swallows the scroll event our change fired. */
+/* Run a scroll mutation without our own settle handler mistaking it for a user
+   gesture. Two rAFs: the first lets layout settle, the second swallows the
+   scroll event our own change fired. */
 function withSnapSuppressed(fn) {
-  const c = contentEl();
   suppressScroll = true;
-  c.classList.add('snap-off');
   fn();
   requestAnimationFrame(() => {
-    if (!typingLock) c.classList.remove('snap-off');
     requestAnimationFrame(() => { suppressScroll = false; });
   });
 }
 
-/* Which item is actually on screen: the panel filling the most of the visible
-   band. Two rules were tried and are wrong, both for reasons worth keeping:
+/* The visible band, in client coords: the scroller's box less the sticky rail.
+   Everything in here reasons in this frame rather than in scrollTop, because
+   panel heights change on every commit and offsets don't survive that. */
+function bandGeom() {
+  const cr = contentEl().getBoundingClientRect();
+  const top = cr.top + snapHeadPx();
+  return { top, bottom: cr.bottom, height: Math.max(1, cr.bottom - top) };
+}
+
+/* Which item is on screen: the panel filling the most of the band. Two other
+   rules were tried and are wrong, both worth keeping on record:
 
    "Nearest panel top" — halfway down a tall item the nearest top is the NEXT
    item's, so the cursor runs ahead of the technician who is still reading.
 
-   "The panel straddling the anchor line" — correct for a tall item, but it
+   "The panel straddling the band's top edge" — correct for a tall item, but it
    breaks at the end of the scroll range. The last panel's top can sit below
-   the anchor and be unreachable, in which case the outgoing panel keeps
-   straddling and the cursor never advances at all.
-
-   Most-visible handles both without special-casing either: a tall item being
-   read still owns the whole band, and a flick that lands with the next item
-   filling the screen commits, wherever the scroll range happens to end. */
+   that edge and be unreachable, in which case the outgoing panel keeps
+   straddling and the cursor never advances at all. */
 function panelMostVisible() {
-  const c = contentEl();
-  const cr = c.getBoundingClientRect();
-  const bandTop = cr.top + snapHeadPx();
-  const bandBottom = cr.bottom;
+  const b = bandGeom();
   let best = null, bestSeen = 0;
-  for (const p of c.querySelectorAll('.snap-panel')) {
+  for (const p of contentEl().querySelectorAll('.snap-panel')) {
     const r = p.getBoundingClientRect();
-    const seen = Math.min(r.bottom, bandBottom) - Math.max(r.top, bandTop);
+    const seen = Math.min(r.bottom, b.bottom) - Math.max(r.top, b.top);
     if (seen > bestSeen) { bestSeen = seen; best = p; }
   }
-  return best;
+  return { panel: best, seen: bestSeen, band: b.height };
 }
 
+/* Animate the scroller to `top`. No reliable cross-version "smooth scroll
+   finished" event on iOS Safari, so the settle handler is muted on a timer
+   sized to the animation instead of waiting for one — and released early on
+   touchstart (see the wiring at the bottom), so grabbing the screen mid-glide
+   hands control straight back rather than feeling stuck. */
+function animateTo(top, smooth) {
+  const c = contentEl();
+  suppressScroll = true;
+  clearTimeout(snapAnimTimer);
+  if (smooth === false) c.scrollTop = top;
+  else c.scrollTo({ top, behavior: 'smooth' });
+  snapAnimTimer = setTimeout(() => { suppressScroll = false; }, 420);
+}
+
+/* Park a panel's top flush against the band top. The panel's own padding-top
+   (--snap-land-pad) is what puts air above the equipment pill once it lands —
+   the landing target is the panel box, the breathing room is inside it. */
+function snapToPanel(idx, smooth) {
+  const c = contentEl();
+  const p = c.querySelector('.snap-panel[data-idx="' + idx + '"]');
+  if (!p) return false;
+  animateTo(c.scrollTop + (p.getBoundingClientRect().top - bandGeom().top), smooth);
+  return true;
+}
+function snapToCurrent(smooth) { return snapToPanel(cursor, smooth); }
+
+/* The three-branch rule — see the SNAP MODE header comment for why each branch
+   exists. Order matters: takeover is checked before the reading exemption, or
+   a tall outgoing item would hold the cursor while more than half the screen
+   already belongs to the next one. */
 function onSnapSettle() {
   if (!SCROLL_MODE || showingInstructions) return;
   // Never rebuild the window while Notes holds focus — the textarea being
   // typed into is inside the panel we'd destroy. Deferred to blur instead.
   if (typingLock) { pendingSettle = true; return; }
-  const p = panelMostVisible();
-  if (!p) return;
-  const idx = +p.dataset.idx;
-  if (idx !== cursor) commitCursor(idx);
+  const { panel, seen, band } = panelMostVisible();
+  if (!panel) return;
+  const idx = +panel.dataset.idx;
+
+  // 1. A neighbour has taken over more than half the band.
+  if (idx !== cursor && seen >= band * SNAP_TAKEOVER) { commitCursor(idx); return; }
+
+  // 2/3. Still on the current item. Snap it home only if it has drifted DOWN
+  // past the band top, leaving dead space above it. If its top is above the
+  // band top, the technician has scrolled into the item's own body (Comments,
+  // Documents, a long note) and moving them is the one thing not to do.
+  const cur = contentEl().querySelector('.snap-panel.is-current');
+  if (!cur) return;
+  const drift = cur.getBoundingClientRect().top - bandGeom().top;
+  if (drift > 2) snapToCurrent(true);
 }
 
-/* Move the window without moving the picture. The panel being scrolled into
-   changes height when it goes stub→current (it gains Notes/Comments/
-   Documents) and so does the one being left, so the only way to avoid a
-   visible lurch is: note where the target sits, rebuild, put it back there. */
+/* Rebuild the window invisibly, THEN snap with intent. The two steps are
+   separate on purpose: the panel being scrolled into changes height as it goes
+   stub→current (it gains Notes/Comments/Documents) and so does the one being
+   left, so the rebuild has to hold the picture still to avoid a lurch — and
+   only then is it safe to animate to the landing position. Doing just the
+   first half is what produced the limbo screenshot. */
 function commitCursor(idx) {
   const c = contentEl();
   const target = c.querySelector('.snap-panel[data-idx="' + idx + '"]');
   const before = target ? target.getBoundingClientRect().top - c.getBoundingClientRect().top : null;
   cursor = idx;
   renderFocus({ keep: before });
+  snapToCurrent(true);
 }
 
-/* The buttons drive the same scroll the thumb does. They stay visible in
-   scroll mode on purpose — gloved hands, one-handed use, and they're the
-   accessible path; the gesture is additive, never the only way forward. */
-function scrollToIdx(idx) {
-  const c = contentEl();
-  const p = c.querySelector('.snap-panel[data-idx="' + idx + '"]');
-  if (!p) return false;
-  const top = c.scrollTop + (p.getBoundingClientRect().top - c.getBoundingClientRect().top) - snapHeadPx();
-  c.scrollTo({ top, behavior: 'smooth' });
-  return true;
-}
+/* The buttons drive the same scroll the thumb does, so both inputs land in one
+   place. They stay visible in scroll mode on purpose — gloved hands,
+   one-handed use, and they're the accessible path; the gesture is additive,
+   never the only way forward. */
+function scrollToIdx(idx) { return snapToPanel(idx, true); }
 
-/* Snap and a focused textarea don't mix: iOS scrolls the caret into view and
-   snap would drag it back. Wraps the shared handlers rather than replacing
-   them. Same family of trap as the --kb-inset bugs in §3.4. */
+/* A focused textarea and any scroll of ours don't mix: iOS scrolls the caret
+   into view and a snap would drag it straight back off screen. Wraps the
+   shared handlers rather than replacing them. Same family of trap as the
+   --kb-inset bugs in §3.4. */
 function chNotesFocus() {
   typingLock = true;
-  if (SCROLL_MODE) contentEl().classList.add('snap-off');
+  clearTimeout(snapAnimTimer);
+  clearTimeout(settleTimer);
   onInlineFocus();
 }
 function chNotesBlur(el) {
   typingLock = false;
-  if (SCROLL_MODE) contentEl().classList.remove('snap-off');
   onInlineBlur(el);
   if (pendingSettle) { pendingSettle = false; onSnapSettle(); }
 }
@@ -1096,9 +1168,9 @@ function toggleScrollMode() {
   SCROLL_MODE = !SCROLL_MODE;
   sessionStorage.setItem('eamChecklistScrollMode', SCROLL_MODE ? 'on' : 'off');
   syncScrollModeLabel();
-  const c = contentEl();
-  c.classList.remove('snap-off');
-  c.scrollTop = 0;
+  clearTimeout(snapAnimTimer);
+  suppressScroll = false;
+  contentEl().scrollTop = 0;
   renderFocus({ anchor: 'top' });
   showToast(SCROLL_MODE ? 'Scroll mode — flick between items' : 'Paged mode — v2 behaviour');
 }
@@ -1716,15 +1788,24 @@ onDemoWoChanged();
 initSharedApp({ contentSelector: '.content' });
 
 /* ── SCROLL MODE wiring ────────────────────────────────────────────────
-   A debounced scroll-idle timer rather than the `scrollend` event: Safari
-   only shipped scrollend recently, and this needs to work on whatever device
-   is in a technician's hand. 140ms is long enough to sit out the tail of a
-   momentum flick and short enough that the rail's "Item X of Y" doesn't feel
-   laggy behind the thumb. */
+   A debounced scroll-idle timer rather than the `scrollend` event: Safari only
+   shipped scrollend recently, and this needs to work on whatever device is in
+   a technician's hand. 90ms is long enough to sit out the tail of a momentum
+   flick and short enough that the snap reads as a response to stopping rather
+   than as an afterthought — it was 140ms, which felt like a delay once the
+   snap became visible motion instead of a silent cursor change. */
 contentEl().addEventListener('scroll', () => {
   if (!SCROLL_MODE || suppressScroll) return;
   clearTimeout(settleTimer);
-  settleTimer = setTimeout(onSnapSettle, 140);
+  settleTimer = setTimeout(onSnapSettle, 90);
+}, { passive: true });
+
+/* Touching the screen cancels our glide immediately and hands control back.
+   Without this, a snap animation holds the settle handler muted for its full
+   420ms budget, so grabbing the screen mid-glide would feel briefly dead. */
+contentEl().addEventListener('touchstart', () => {
+  clearTimeout(snapAnimTimer);
+  suppressScroll = false;
 }, { passive: true });
 
 /* Re-measure whenever the usable height can have changed. The load listener

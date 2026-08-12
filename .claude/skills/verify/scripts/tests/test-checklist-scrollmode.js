@@ -91,6 +91,31 @@ ok('stub controls are pointer-events:none',
   /\.snap-panel\.is-stub \.focus-control[^{]*\{[^}]*pointer-events:\s*none/.test(css));
 ok('stub is tappable to jump to it', /is-stub"[^>]*onclick="jumpTo\(/.test(wrapHtml(ctx)));
 
+/* ── snapping is JS-owned ────────────────────────────────────────────────
+   Geometry and gesture can't be tested here (the shim's getBoundingClientRect
+   is a fixed stub), so what's guarded instead is the *contract* that came out
+   of the 2026-08-12 device round: CSS scroll-snap must stay out of this file,
+   because `proximity` didn't fire reliably on iOS and left items resting
+   half-placed. If someone re-adds it "to help", the JS snap and the CSS snap
+   fight over the landing and the limbo state comes back. */
+console.log('\nsnapping contract — JS owns the landing');
+ok('no scroll-snap-* properties in CSS',
+  !/^\s*(?!.*\*)[^\n]*scroll-snap-(type|align|stop)\s*:/m.test(css.replace(/\/\*[\s\S]*?\*\//g, '')));
+ok('no scroll-margin-top on panels',
+  !/scroll-margin-top\s*:/.test(css.replace(/\/\*[\s\S]*?\*\//g, '')));
+ok('panels carry real landing padding above the pill',
+  /\.snap-panel\s*\{[^}]*padding-top:\s*var\(--snap-land-pad/.test(css));
+ok('--snap-land-pad is a real value, not 0',
+  /--snap-land-pad:\s*([1-9]\d*)px/.test(css), (css.match(/--snap-land-pad:\s*\d+px/) || [''])[0]);
+ok('takeover threshold is half the band', ev(ctx, 'SNAP_TAKEOVER') === 0.5, String(ev(ctx, 'SNAP_TAKEOVER')));
+// The reading exemption is the branch most likely to be "simplified" away by a
+// later edit, and losing it means snapping a technician out of a comment thread
+// they're halfway through reading. Assert the guard is still in the source.
+ok('settle keeps the reading exemption (only snaps on downward drift)',
+  /drift\s*>\s*2\s*\)\s*snapToCurrent/.test(css));
+ok('commit snaps after rebuilding, not instead of it',
+  /renderFocus\(\{\s*keep:\s*before\s*\}\);\s*\n\s*snapToCurrent\(true\);/.test(css));
+
 /* ── the untouched path ──────────────────────────────────────────────────
    The A/B is only worth anything if the OFF state is genuinely v2. Assert the
    classic path emits no panel machinery at all, and that the singleton chrome
