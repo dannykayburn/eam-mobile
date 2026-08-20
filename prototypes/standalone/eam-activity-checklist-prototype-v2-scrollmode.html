@@ -547,10 +547,6 @@
        deliberately NOT localStorage, so resetDemoState() has nothing to do
        with it. -->
   <button class="theme-toggle" id="scrollModeToggle" onclick="toggleScrollMode()">↕ Scroll</button>
-  <!-- Dev readout, temporary: mode + scrollTop/scrollHeight/clientHeight of
-       .content. Present to diagnose the "paged mode cannot scroll at all"
-       report, which I can't reproduce from the source. Delete with the answer. -->
-  <span class="theme-toggle" id="scrollDbg" style="pointer-events:none;opacity:.65;font-family:var(--font-mono);font-size:10px;">—</span>
 </div>
 
 <div class="app" id="app">
@@ -1134,20 +1130,6 @@ const SNAP_TAKEOVER = 0.5;
 
 function contentEl() { return document.querySelector('.content'); }
 
-/* Dev-only readout (2026-08-12): paged mode was reported as completely
-   unscrollable and I could not account for it from the source — by every
-   measurement I can make statically, .content should have a few hundred px of
-   scroll range there. This prints scrollTop/scrollHeight/clientHeight live so
-   the device can answer the one question that separates the two possible causes:
-   if scrollHeight > clientHeight and scrollTop stays 0, something is eating the
-   gesture; if scrollHeight == clientHeight, it's a layout fault. Delete once the
-   answer is in. */
-function updateScrollDbg() {
-  const c = contentEl(), el = document.getElementById('scrollDbg');
-  if (!c || !el) return;
-  el.textContent = (SCROLL_MODE ? 'S ' : 'P ') + Math.round(c.scrollTop) + '/' + c.scrollHeight + '/' + c.clientHeight;
-}
-
 /* The numbers CSS can't work out for itself. .content's clientHeight covers
    the area *under* the sticky rail, and its bottom padding stands in for the
    absolutely-positioned nav bar — so both come off the top to get the height
@@ -1364,7 +1346,6 @@ function toggleScrollMode() {
   suppressScroll = false;
   contentEl().scrollTop = 0;
   renderFocus({ anchor: 'top' });
-  updateScrollDbg();
   showToast(SCROLL_MODE ? 'Scroll mode — flick between items' : 'Paged mode — v2 behaviour');
 }
 function syncScrollModeLabel() {
@@ -2113,11 +2094,6 @@ initSharedApp({ contentSelector: '.content' });
    `scrollend` would be the tidy answer to the fallback and is still avoided:
    Safari only shipped it recently, and this has to work on whatever handset is
    actually in a technician's hand. */
-/* Unconditional, and separate from the snap listener below on purpose: that one
-   returns early in paged mode and while a landing is in flight, which is exactly
-   when the readout is most needed (paged mode is the thing being diagnosed). */
-contentEl().addEventListener('scroll', () => { updateScrollDbg(); }, { passive: true });
-
 contentEl().addEventListener('scroll', () => {
   if (!SCROLL_MODE || suppressScroll) return;
   const c = contentEl();
@@ -2163,7 +2139,6 @@ contentEl().addEventListener('touchstart', () => {
 window.addEventListener('resize', () => { if (SCROLL_MODE) measureSnap(); });
 window.addEventListener('orientationchange', () => { if (SCROLL_MODE) measureSnap(); });
 window.addEventListener('load', () => {
-  updateScrollDbg();
   if (!SCROLL_MODE || showingInstructions) return;
   measureSnap();
   // Only re-anchor if the technician hasn't started scrolling yet — re-running

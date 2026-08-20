@@ -5,24 +5,34 @@ into the prototype fast, on real demo data, without a moderator having to guess
 in the moment which dead ends are "real findings to note" vs. "known stub,
 don't design a task around this."
 
-Snapshot of the build live at **2026-08-11, end of day**. It will drift — if
-you're reading this more than a couple of weeks later, sanity-check §4 against
-`CLAUDE.md` before trusting it.
+Snapshot of the build live at **2026-08-13**. It will drift — if you're reading
+this more than a couple of weeks later, sanity-check §4 against `CLAUDE.md`
+before trusting it.
+
+**Changed since the 2026-08-11 version of this brief**, all of it user-visible:
+the Activity Checklist's **navigation is now a live A/B and defaults to a new
+scroll behaviour** (§3, "Checklist navigation" — read this before writing any
+checklist task); every item carries a new **Item Banner**; **completed workflow
+steps are now always navigable backwards**; and content is no longer clipped
+behind the bottom bar on home-indicator devices. Anything tested before
+2026-08-12 should be re-checked on the checklist screens specifically.
 
 ## 1. Access
 
 - **Public URL:** `https://dannykayburn.github.io/eam-mobile/` — no password,
-  any phone or laptop browser, no install. The root redirects to login.
+  any phone or laptop browser, no install. The root redirects to login. **This
+  is the one to send participants.**
+- **Offline / from a zip:** unzip and double-click `index.html`. It genuinely
+  runs — nothing uses `fetch()`, XHR or ES modules, so `file://` restrictions
+  don't bite. Only the web fonts want the network and they fall back cleanly.
+- **`screens.html`** (repo root) is a direct index of every screen and mockup.
+  Use it for design review and walkthroughs — **not** for moderated testing,
+  since deep-linking a screen skips exactly the navigation you'd want to watch a
+  participant attempt.
 - **Login is a placeholder, not a real gate.** No credential validation, SSO or
   biometric unlock (§4.1 — explicitly not designed yet). Tapping **Log In** with
   the fields as-is, or blank, goes straight in. **Forgot Password** is a toast
   stub. Brief testers to skip this screen; it isn't part of what you're testing.
-- **⚠ If anyone tested on a device earlier on 2026-08-11, that result is void.**
-  Several fixes landed through the day, including two that made whole screens
-  unusable for part of it: the WO and Equipment **search screens rendered no
-  records and every button was dead**, and **Create did nothing** after going
-  green. Both are fixed in the current build. Any "it's broken" note from
-  earlier today should be re-checked rather than logged.
 - **The app is deliberately a phone-width column** (max 430px) centred on larger
   screens. On a tablet or laptop you get a phone-shaped app with a drop shadow,
   not a stretched desktop layout. That's the design, not a responsive gap.
@@ -53,6 +63,43 @@ the matching card in WO List:
 
 Tapping any other WO routes to the closest match by type rather than erroring,
 so a tester who wanders won't hit a hard stop — just an unexpected identity.
+
+### Checklist navigation — a live A/B, and the biggest open question
+
+**New 2026-08-12, and the single most important thing to know before designing a
+checklist task.** Step 2 of the workflow now routes to an A/B copy of the
+Activity Checklist, and it **defaults to "scroll" mode**:
+
+- **Scroll mode (default)** — items are scrolled between with a flick, and the
+  surface snaps to land one item on. Still one item at a time; the *transition*
+  is a gesture rather than a button press. Built because a fanned-out Route
+  checklist (see below) reads as an endless run of discrete screens under
+  Prev/Next.
+- **Paged mode** — the original Prev/Next pager. Reachable from the **`↕ Scroll`
+  / `⇄ Paged` button in the dev toolbar** outside the phone frame. The choice
+  survives navigating out to Book Labor and back, but not a fresh browser
+  session.
+
+This is a genuine undecided design question and **good session material** — run
+some participants on each if you can. The two things it turns on: does a flick
+reliably land exactly one item on, and does typing in **Notes** fight the snap?
+Both are device-feel questions that can't be answered from a desktop browser.
+
+Whichever mode is active, every item now carries an **Item Banner** — a
+fixed-height strip with the mono item number and the item's equipment. That part
+is **locked design, not under test**; it's what the scroll gesture lands on, and
+paged mode carries it too. "View all" also gained **collapse/expand all**.
+
+### Completed steps are now navigable backwards
+
+**Changed 2026-08-12.** A technician can always return to an already-completed
+step to correct it — a mistyped reading or wrongly-booked hours has to be
+fixable. Completed rows in the step rail carry a **trailing chevron** so the
+affordance is visible on a touch device. **Forward gating is unchanged**: a step
+you haven't reached yet is still locked and still explains why. Previously a tap
+on a completed step was refused with "steps stay in a fixed order," and on a PM
+workflow it silently did nothing — so if an earlier tester reported the rail as
+a dead end, that's fixed rather than a finding.
 
 ### Flows worth building tasks around
 
@@ -165,6 +212,21 @@ Two things worth watching, since they're the newest and least tested:
   behaviour as a bug.
 - No real network detection; online/offline/synced is the dev toggle only.
 
+**Fixed since the last brief — don't log these if an earlier note mentions them:**
+
+- **Content clipped behind the bottom bar** on devices with a home indicator.
+  Six screens held back too little space and none allowed for the safe-area
+  inset, so the last container on a long screen was cut off. Now one shared
+  reserve across all of them.
+- **The checklist's paged mode could not be scrolled at all** on device.
+- **WO 20450 showed a pump as its equipment** despite being a facility work
+  order; it's a building now, and `BLDG-A` is pickable in the Equipment lookup.
+- **Child work orders were hard to tell apart** from their parent in WO List —
+  they're visually distinct now.
+- **A "popup showing behind another popup" report.** The real cause was that
+  *closed* sheets were peeking above the keyboard, not a stacking-order problem,
+  which is why it survived two earlier attempted fixes.
+
 ## 5. What counts as a real finding
 
 Everything else — the 5-step workflow, WO List/Search, Home, Equipment Record
@@ -192,8 +254,13 @@ high-value finding here rather than a nitpick.
 > the checklist out per asset — use the 24-piece PUMPS Route, not the
 > 156-piece one), **creating a record** (now persists and re-opens), and
 > **Comments/Documents**. All filter chips, Sort and checklist search are live,
-> and filters survive opening a record and coming back. Avoid tasks that
-> compare deep content between two Equipment records, or that filter created
-> equipment by Class. Anything you type uses ✕/✓ in the top corners rather than
-> a Save button at the bottom — that's new, so watch how testers find it. Hit
-> **Restart Demo** between participants; state persists now.
+> and filters survive opening a record and coming back. **The Activity
+> Checklist is a live A/B** — it defaults to a new flick-and-snap scroll
+> navigation, with the old Prev/Next pager one dev-bar button away; that's the
+> main open question, so watch whether a flick lands cleanly and whether typing
+> Notes fights the snap. Completed workflow steps can now be reopened to
+> correct them; steps ahead of you are still locked. Avoid tasks that compare
+> deep content between two Equipment records, or that filter created equipment
+> by Class. Anything you type uses ✕/✓ in the top corners rather than a Save
+> button at the bottom — watch how testers find it. Hit **Restart Demo**
+> between participants; state persists now.

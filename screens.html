@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HxGN EAM Mobile — Screen Index (UX Review)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* Self-contained on purpose. This page is scaffolding for reviewers, not
+     part of the app, so it deliberately does NOT load eam-shared.css — a
+     change to the design system must never be able to break the index that
+     people use to reach the design system. */
+  :root {
+    --ink:#111315; --ink-2:#5b6167; --ink-3:#8b9198;
+    --bg:#f4f5f6; --card:#ffffff; --line:#e2e5e8;
+    --accent:#111315; --green:#1a7f4b; --amber:#8a5a00;
+    --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink:#f2f4f5; --ink-2:#a8aeb4; --ink-3:#767c82;
+      --bg:#0d0f10; --card:#171a1c; --line:#2a2e31;
+      --accent:#f2f4f5; --green:#4ec98a; --amber:#e0b155;
+    }
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; padding:28px 20px 64px; background:var(--bg); color:var(--ink);
+    font-family:var(--font); -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+  }
+  .wrap { max-width:940px; margin:0 auto; }
+  h1 { font-size:24px; font-weight:700; letter-spacing:-.02em; margin:0 0 6px; }
+  .sub { color:var(--ink-2); font-size:14px; margin:0 0 4px; }
+  .stamp { color:var(--ink-3); font-size:12px; font-family:var(--mono); margin:0 0 26px; }
+  h2 {
+    font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.09em;
+    color:var(--ink-3); margin:34px 0 12px; padding-bottom:8px;
+    border-bottom:1px solid var(--line);
+  }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; }
+  a.card {
+    display:block; background:var(--card); border:1px solid var(--line);
+    border-radius:12px; padding:13px 15px; text-decoration:none; color:inherit;
+    transition:border-color .14s, transform .14s;
+  }
+  a.card:hover { border-color:var(--ink-3); transform:translateY(-1px); }
+  .name { font-size:14px; font-weight:600; letter-spacing:-.01em; }
+  .desc { font-size:12.5px; color:var(--ink-2); margin-top:3px; }
+  .file { font-family:var(--mono); font-size:10.5px; color:var(--ink-3); margin-top:7px; word-break:break-all; }
+  .tag {
+    display:inline-block; font-size:10px; font-weight:600; text-transform:uppercase;
+    letter-spacing:.06em; padding:2px 7px; border-radius:20px; margin-left:6px;
+    border:1px solid currentColor; vertical-align:1px;
+  }
+  .tag.start { color:var(--green); }
+  .tag.ab { color:var(--amber); }
+  .note {
+    background:var(--card); border:1px solid var(--line); border-left:3px solid var(--amber);
+    border-radius:8px; padding:12px 15px; font-size:13px; color:var(--ink-2);
+    margin:0 0 22px;
+  }
+  .note strong { color:var(--ink); }
+  details { margin-top:10px; }
+  summary {
+    cursor:pointer; font-size:13px; font-weight:600; color:var(--ink-2);
+    padding:9px 0; user-select:none;
+  }
+  summary:hover { color:var(--ink); }
+  .mock { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:5px; margin-top:8px; }
+  .mock a {
+    display:block; padding:7px 11px; font-size:12.5px; text-decoration:none;
+    color:var(--ink-2); border-radius:7px; border:1px solid transparent;
+  }
+  .mock a:hover { color:var(--ink); border-color:var(--line); background:var(--card); }
+  footer { margin-top:40px; font-size:12px; color:var(--ink-3); }
+  footer a { color:var(--ink-2); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>HxGN EAM Mobile — Screen Index</h1>
+  <p class="sub">Every screen in the prototype, reachable directly. Built for UX review and design walkthroughs.</p>
+  <p class="stamp">Build of 2026-08-13 · no backend · phone-width by design (max 430px)</p>
+
+  <div class="note">
+    <strong>For a moderated user-testing session, don't start here</strong> — start at
+    <a href="prototypes/standalone/eam-login-prototype-v1.html">Login</a> and let
+    participants navigate the app themselves, so you're testing findability rather
+    than your own deep links. This index is for reviewing screens out of context.
+    Read <a href="docs/handoffs/EAM-HANDOFF-UX-User-Testing-Brief.md">the UX testing brief</a> first;
+    it lists which dead ends are known stubs rather than findings.
+  </div>
+
+  <h2>Start here</h2>
+  <div class="grid">
+    <a class="card" href="prototypes/standalone/eam-login-prototype-v1.html">
+      <div class="name">Login <span class="tag start">entry</span></div>
+      <div class="desc">Placeholder gate — no credential check. Tapping Log In also runs the demo reset.</div>
+      <div class="file">eam-login-prototype-v1.html</div>
+    </a>
+    <a class="card" href="prototypes/standalone/eam-home-screen-prototype-v1.html">
+      <div class="name">Home</div>
+      <div class="desc">Dataspy tiles, favourites, Create bar. Tile/chip content is still an open design riff.</div>
+      <div class="file">eam-home-screen-prototype-v1.html</div>
+    </a>
+    <a class="card" href="prototypes/standalone/eam-wo-list-prototype-v5_1.html">
+      <div class="name">WO List / Search</div>
+      <div class="desc">The template for any record-list screen. All 6 filter chips and Sort are live. Route to the 3 demo WOs from here.</div>
+      <div class="file">eam-wo-list-prototype-v5_1.html</div>
+    </a>
+  </div>
+
+  <h2>The 5-step Work Order workflow</h2>
+  <div class="grid">
+    <a class="card" href="prototypes/standalone/eam-wo-record-view-prototype-v1.html">
+      <div class="name">1 · WO Record View</div>
+      <div class="desc">Header fields, Route/MEC pill, Comments &amp; Documents excerpts, Activities.</div>
+      <div class="file">eam-wo-record-view-prototype-v1.html</div>
+    </a>
+    <a class="card" href="prototypes/standalone/eam-activity-checklist-prototype-v2-scrollmode.html">
+      <div class="name">2 · Activity Checklist <span class="tag ab">live A/B</span></div>
+      <div class="desc">Focused stepper. Defaults to <em>scroll</em> mode; the dev bar's ↕/⇄ button switches to paged. This is the copy the whole flow now routes to.</div>
+      <div class="file">eam-activity-checklist-prototype-v2-scrollmode.html</div>
+    </a>
+    <a class="card" href="prototypes/standalone/eam-wo-prototype-issue-parts-v1.html">
+      <div class="name">3 · Issue Parts</div>
+      <div class="desc">Store/Bin/Lot picking, Action Rows. Add Part searches the real 112-part catalogue.</div>
+      <div class="file">eam-wo-prototype-issue-parts-v1.html</div>
+    </a>
+    <a class="card" href="prototypes/standalone/eam-book-labor-prototype-v2.html">
+      <div class="name">4 · Book Labor</div>
+      <div class="desc">Employee/Crew pickers on real data; booking a crew expands to one row per member.</div>
+      <div class="file">eam-book-labor-prototype-v2.html</div>
+    </a>
+    <a class="card" href="prototypes/standalone/eam-wo-closing-prototype-v2.html">
+      <div class="name">5 · WO Closing</div>
+      <div class="desc">Closing codes, status change, closing comments, attachments.</div>
+      <div class="file">eam-wo-closing-prototype-v2.html</div>
+    </a>
+    <a class="card" href="prototypes/standalone/eam-activity-checklist-prototype-v2.html">
+      <div class="name">2b · Activity Checklist (paged reference)</div>
+      <div class="desc">The original v2 pager, kept for comparison. Not what the flow routes to right now.</div>
+      <div class="file">eam-activity-checklist-prototype-v2.html</div>
+    </a>
+  </div>
+
+  <h2>Work Order child tabs</h2>
+  <div class="grid">
+    <a class="card" href="prototypes/standalone/eam-wo-equipment-tab-prototype-v1.html">
+      <div class="name">WO › Equipment <span class="tag ab">live A/B</span></div>
+      <div class="desc">Per-WO equipment list; the template for any child tab. Row-tap is a <em>chooser</em> vs. <em>split</em> toggle on its dev bar — a genuine open question.</div>
+      <div class="file">eam-wo-equipment-tab-prototype-v1.html</div>
+    </a>
+    <a class="card" href="prototypes/standalone/eam-wo-reference-tab-prototype-v1.html">
+      <div class="name">WO › Comments &amp; Documents</div>
+      <div class="desc">Both tabs on one screen. Documents group by source hierarchy; empty levels render nothing.</div>
+      <div class="file">eam-wo-reference-tab-prototype-v1.html</div>
+    </a>
+  </div>
+
+  <h2>Equipment</h2>
+  <div class="grid">
+    <a class="card" href="prototypes/standalone/eam-equipment-list-prototype-v1.html">
+      <div class="name">Equipment List</div>
+      <div class="desc">Dataspy bar, favourites, Search screen, all 6 chips plus Sort.</div>
+      <div class="file">eam-equipment-list-prototype-v1.html</div>
+    </a>
+    <a class="card" href="prototypes/standalone/eam-equipment-record-view-prototype-v1.html">
+      <div class="name">Equipment Record View</div>
+      <div class="desc">The canonical full record view — copy its header/section pattern. Carries the photo slot that collapses on scroll.</div>
+      <div class="file">eam-equipment-record-view-prototype-v1.html</div>
+    </a>
+  </div>
+
+  <h2>App-level screens</h2>
+  <div class="grid">
+    <a class="card" href="prototypes/standalone/eam-notifications-prototype-v1.html">
+      <div class="name">Notifications</div>
+      <div class="desc">Grouped Today/Earlier, All/Unread filter, tap-through to the source WO.</div>
+      <div class="file">eam-notifications-prototype-v1.html</div>
+    </a>
+    <a class="card" href="prototypes/standalone/eam-sync-status-prototype-v1.html">
+      <div class="name">Sync Status</div>
+      <div class="desc">Full outbox screen with trouble-field surfacing. Online/offline is a dev toggle, not real detection.</div>
+      <div class="file">eam-sync-status-prototype-v1.html</div>
+    </a>
+  </div>
+
+  <h2>Design-standard reference screens</h2>
+  <div class="grid">
+    <a class="card" href="prototypes/standalone/screen-layout-field-behavior-prototype-v1.html">
+      <div class="name">Screen Layout &amp; Field Behavior</div>
+      <div class="desc">Every field type, in both the Grid and List containers. The canonical standard any new screen is built against — and the file to transcribe into Figma.</div>
+      <div class="file">screen-layout-field-behavior-prototype-v1.html</div>
+    </a>
+    <a class="card" href="prototypes/standalone/eam-card-standard-prototype-v1.html">
+      <div class="name">List Search Screen Card Standard</div>
+      <div class="desc">Card anatomy for list screens — headline, subline, attribute rows, corner badge.</div>
+      <div class="file">eam-card-standard-prototype-v1.html</div>
+    </a>
+  </div>
+
+  <h2>Base admin screens — separate track</h2>
+  <div class="grid">
+    <a class="card" href="prototypes/standalone/base%20screens/eam-screen-designer-v1.html">
+      <div class="name">Screen Designer</div>
+      <div class="desc">Desktop admin surface for authoring mobile page layouts. Its own visual system, not the app's shared one.</div>
+      <div class="file">base screens/eam-screen-designer-v1.html</div>
+    </a>
+    <a class="card" href="prototypes/standalone/base%20screens/eam-workflow-designer-v1_1.html">
+      <div class="name">Workflow Designer</div>
+      <div class="desc">Authoring the WO-Type-driven step sequence that drives the step rail.</div>
+      <div class="file">base screens/eam-workflow-designer-v1_1.html</div>
+    </a>
+  </div>
+
+  <h2>Design explorations</h2>
+  <p class="sub" style="font-size:13px;margin:0 0 4px;">
+    Options explored on the way to a decision, including rejected ones. Useful for
+    "why does it look like this" — the reasoning is written up in
+    <span style="font-family:var(--mono);font-size:11.5px;">docs/design-decisions-v3-1.md</span>
+    (locked rules in §1–§25, reversals in §21, open items in §20).
+  </p>
+  <details>
+    <summary>Show all 43 mockups</summary>
+    <div class="mock">
+      <a href="prototypes/standalone/mockups/checklist-item-banner-options.html">Checklist item banner — scroll anchor options (behaviour is live)</a>
+      <a href="prototypes/standalone/mockups/checklist-redesign-a-compact-sheet.html">Checklist Redesign — A: Compact Rows + Detail Sheet</a>
+      <a href="prototypes/standalone/mockups/checklist-redesign-b-focused-stepper.html">Checklist Redesign — B: Focused Stepper (the chosen one)</a>
+      <a href="prototypes/standalone/mockups/checklist-redesign-c-adaptive-collapse.html">Checklist Redesign — C: Adaptive Collapse + Filters</a>
+      <a href="prototypes/standalone/mockups/eam-checklist-slider-mockup-v1.html">Checklist Slider Behaviour</a>
+      <a href="prototypes/standalone/mockups/equipment-photo-header-placement-options.html">Equipment Photo — Record View placement (scroll-interactive)</a>
+      <a href="prototypes/standalone/mockups/record-photo-section-equipment-and-profile-options.html">Record Photo Section — Equipment + Profile Picture</a>
+      <a href="prototypes/standalone/mockups/comments-documents-tab-options.html">Comments &amp; Documents Tabs</a>
+      <a href="prototypes/standalone/mockups/route-multiple-equipment-mockups.html">Route / Multiple Equipment Child</a>
+      <a href="prototypes/standalone/mockups/wo-record-view-final-option-a.html">WO Record View — Final, Option A (Grid Cells)</a>
+      <a href="prototypes/standalone/mockups/wo-record-view-final-option-c.html">WO Record View — Final, Option C (Outlined Chips)</a>
+      <a href="prototypes/standalone/mockups/wo-record-view-rail-3-vs-4-full-action.html">WO Record View — Rail Option 3 vs. 4</a>
+      <a href="prototypes/standalone/mockups/wo-record-view-option3-rail-font-options.html">WO Record View — Option 3 Rail, Font Options</a>
+      <a href="prototypes/standalone/mockups/wo-record-view-palette-a-trim-the-purple.html">Palette A — Trim the Purple</a>
+      <a href="prototypes/standalone/mockups/wo-record-view-palette-b-two-color-system.html">Palette B — Two-Color System</a>
+      <a href="prototypes/standalone/mockups/wo-record-view-palette-c-monochrome-canvas.html">Palette C — Monochrome Canvas</a>
+      <a href="prototypes/standalone/mockups/wo-record-view-palette-d-green-status-inter-type.html">Palette D — Green Status + Unified Inter Type</a>
+      <a href="prototypes/standalone/mockups/status-type-priority-palette-approaches.html">Status / Type / Priority — Palette Approaches</a>
+      <a href="prototypes/standalone/mockups/required-marker-removal-and-primary-palette.html">Required Marker Removal + Primary Palette</a>
+      <a href="prototypes/standalone/mockups/pill-color-options-editable-vs-protected.html">Pill Colour — Editable vs. Protected</a>
+      <a href="prototypes/standalone/mockups/wo-color-family-options.html">Colour Families — 8 Candidates</a>
+      <a href="prototypes/standalone/mockups/wo-type-badge-color-icon-options.html">WO Type — Icon + Colour Badge Options</a>
+      <a href="prototypes/standalone/mockups/wo-type-palette-options.html">WO Type — Palette Options (lightweight)</a>
+      <a href="prototypes/standalone/mockups/step-rail-current-vs-pill-floating-card-options.html">Step Rail — Current vs. Pill Floating Card</a>
+      <a href="prototypes/standalone/mockups/step-rail-reference-group.html">Step Rail — Bordered + Reference Group</a>
+      <a href="prototypes/standalone/mockups/step-rail-workflow-vs-freeform-options.html">Step Rail — Workflow vs. Free Form + Type Colour</a>
+      <a href="prototypes/standalone/mockups/rails-monochrome-conversion.html">Step Rail + Tab Rail — Monochrome Conversion</a>
+      <a href="prototypes/standalone/mockups/tab-rail-bordered-equipment.html">Tab Rail — Bordered, Equipment's Real Tabs</a>
+      <a href="prototypes/standalone/mockups/tab-step-rail-fill-color-options.html">Tab Rail / Step Rail — Fill Colour Options</a>
+      <a href="prototypes/standalone/mockups/tab-step-rail-options-3-4-in-screen.html">Tab Rail / Step Rail — Options 3 &amp; 4, In-Screen</a>
+      <a href="prototypes/standalone/mockups/home-tiles-redefined-options.html">Home Tiles — Redefined Options</a>
+      <a href="prototypes/standalone/mockups/home-tiles-glow-spacing-preview.html">Home Tiles — Glow + Spacing</a>
+      <a href="prototypes/standalone/mockups/home-bold-tiles-octave-colors-preview.html">Home Tiles — Bold Fill + Octave Colours</a>
+      <a href="prototypes/standalone/mockups/home-favorites-redesign-options.html">Home Favorites — Redesign Options</a>
+      <a href="prototypes/standalone/mockups/bottom-nav-glass-options.html">Bottom Nav — Glass Options</a>
+      <a href="prototypes/standalone/mockups/activity-selector-options.html">Activity Selector — Layout Options</a>
+      <a href="prototypes/standalone/mockups/activity-insert-update-mode-options.html">Activity Insert/Update Mode — Layout Options</a>
+      <a href="prototypes/standalone/mockups/activity-insert-update-mode-v2-pill-refined.html">Activity Insert/Update Mode — Pill, Refined</a>
+      <a href="prototypes/standalone/mockups/entry-row-part-labor-consolidation-options.html">Entry Row — Part Card / Labor Row Consolidation</a>
+      <a href="prototypes/standalone/mockups/equipment-lov-in-grid-fields-mockup.html">Equipment LOV — Rolled Into Grid Fields</a>
+      <a href="prototypes/standalone/mockups/grid-cell-component-right-aligned.html">Grid-Cell Component — Left vs. Right Aligned</a>
+      <a href="prototypes/standalone/mockups/grid-checkbox-size-alignment-options.html">Grid Checkbox — Size &amp; Alignment</a>
+      <a href="prototypes/standalone/mockups/field-value-justification-demo.html">Field Value Justification — Standard Check</a>
+    </div>
+  </details>
+
+  <footer>
+    Docs worth opening alongside this:
+    <a href="docs/handoffs/EAM-HANDOFF-UX-User-Testing-Brief.md">UX testing brief</a> ·
+    <a href="docs/component-library.md">component library</a> ·
+    <a href="docs/design-decisions-v3-1.md">design decisions (locked spec)</a> ·
+    <a href="docs/figma-migration-game-plan.md">Figma migration plan</a>
+  </footer>
+
+</div>
+</body>
+</html>
