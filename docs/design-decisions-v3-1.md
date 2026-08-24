@@ -1835,6 +1835,9 @@ both, connected by a small chevron:
   "WO Workflow — Setup (Base EAM Admin)" pattern (a small admin config
   screen driving mobile runtime behavior), but scoped to Home's action
   set rather than WO workflow steps. Not scoped or prototyped.
+  **Cross-ref 2026-08-24:** §26.5 places this designer as the
+  destination of User Group Setup's Home-layout tab, so the entry point
+  and the missing designer are one problem, not two.
 
 ## 9.4.1 Home's Create icon — entity menu, not straight into Insert Mode
 
@@ -2266,11 +2269,24 @@ View and subsequent tabs, driven by WO Type. None of this customer's real
 (`docs/Data_refs/Page Layouts perms/`) carries a WO Type dimension, so
 nothing native does this today.
 
-**Decision: stay on one function, `WSJOBS`, always — including as the
-fallback.** No new `FUN_CODE`s. A multi-`FUN_CODE`-per-WO-Type approach
-has real EAM precedent in this customer's data, but would fragment the WO
-List dataspy mechanism (§6.3/§8.3) across multiple functions' dataspy
-sets for no benefit here — see §21 for the rejected alternative.
+**Decision: no new `FUN_CODE`s, and no `FUN_CODE` dimension per WO Type.**
+A multi-`FUN_CODE`-per-WO-Type approach has real EAM precedent in this
+customer's data, but would fragment the WO List dataspy mechanism
+(§6.3/§8.3) across multiple functions' dataspy sets for no benefit here —
+see §21 for the rejected alternative. The WO Type dimension is one new
+column (§12/§13), never a function fork.
+
+**Amended 2026-08-24 — this decision used to read "stay on one function,
+`WSJOBS`, always — including as the fallback."** That phrasing conflated
+two separate claims. **"No new `FUN_CODE`s" is still locked** and is what
+this section actually decided. **"One function" is not:** any function
+with `FUN_RENTITY = EVNT` may be workflow-enabled, opted in per user
+group, because this customer already runs four such clones as distinct
+business processes — and a single blessed function would cost them the
+per-clone labels, boilerplate and field layouts those clones exist for.
+Full analysis, including the rejected static-`WFJOBS` option and the
+dataspy-fragmentation cost this decision originally cited in its own
+defence, in §26.7.
 
 **Existing tab-level access control is completely untouched.**
 `R5FUNCTIONTABS`/`R5TABPERMISSIONS` continue to gate, per the logged-in
@@ -2288,8 +2304,22 @@ behavior). Picking an actual WO Type + Group(s) lets the admin configure,
 in that same authoring flow, the 2-tier model in §12, plus the field-level
 layout of the Record View and each included step — the existing
 `R5PAGELAYOUT` mechanism, extended with exactly one new column, `WOTYPE`,
-alongside its existing `PLO_USERGROUP`. `PLO_PAGENAME` stays `WSJOBS`
-always — no new pagenames.
+alongside its existing `PLO_USERGROUP`.
+
+**Correction, 2026-08-24 — `PLO_PAGENAME` is not always `WSJOBS`.** This
+paragraph used to end "`PLO_PAGENAME` stays `WSJOBS` always — no new
+pagenames," which over-reached and is contradicted by this customer's own
+export: `docs/Data_refs/Page Layouts perms/r5pagelayout.csv` carries full
+layout row sets for **`CCJOBS`** (Contract Jobs), **`TRJOBS`**
+(Transportation WO's) and **`ZJ1000`**, each declaring
+`PLO_PARENTPAGE = WSJOBS`. Cloning a base screen and configuring the copy
+per user group is ordinary base-EAM practice, and it has already been done
+here. The **decision** in this paragraph survives unchanged — this project
+still mints **no new `FUN_CODE`s**, and the WO Type dimension is still one
+new `PLO_WOTYPE` column rather than a function fork. What was wrong is the
+weaker claim attached to it: that the app may treat the pagename as the
+literal constant `WSJOBS`. It is a **resolved variable**, per user group.
+§26 holds the resolution rule and the nav-slot binding that supplies it.
 
 **Fallback rule.** A WO Type with no matching WO Workflow header row
 (§12) renders the plain Standard Record View (§5–§9, no guided steps) and
@@ -4432,6 +4462,12 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **Booked Labor List has no defined sort/grouping rule** | Rows render in pure insertion order. Fine at today's scale; flag if this list needs to hold more in a real deployment. |
 | **WO › Equipment tab — row-tap destination not locked** | A row is a join record with two useful destinations (equipment master vs. the child WO Route created for it), so §8's "tapping a row opens this record" doesn't settle it. Both flows are built and live-switchable from the screen's dev toggle: `chooser` (**now the default** — card body → 2-option sheet) vs. `split` (card body → related WO, equipment code → equipment record; lost the default because the code target is too fine on a phone). **Both destinations are now real navigation** (2026-08-11 — the child WO was a toast stub until then), so this is finally a fair comparison on a device. Pick one, then lock it in §16.10 and drop this row. |
 | **Conditional field rules — deferred to Phase 4+, one-way doors only** | §13.1–§13.4 records the evaluation model, a 4-tier option ladder, and 5 prerequisites for field-level conditions ("if field X is Y, make Z required / surface another step"). **Deprioritised 2026-08-11 (direct instruction): this is Phase 4+ consideration, not near-term work.** Don't spend design time picking a tier now. The only thing owed up front is identifying **one-way doors** — decisions that would be expensive to reverse once other work builds on them. Two such prerequisites are worth doing regardless of whether any tier ever ships, because retrofitting either later touches every field on every screen: the single `resolveFieldState(field, context)` seam (§13.3 item 1) and the declared-vs-effective field-state split (item 2). Also still owed whenever this resumes: the `docs/Data_refs/Page Layouts perms/` check in §13.4. |
+| **Mobile screens hardcode their own field labels and boilerplate** | §26.7 guard rail 3: allowing the workflow on any `EVNT` function only pays off if the mobile screens read labels, boilerplate and help text from the **bound function's** layout rows. Today every label in the prototypes is a hardcoded English string, so a technician on a clone an admin renamed "Customer Quote" would still read "Work Order." This is the consequence of §26.7's decision that reaches furthest into the prototypes, and it is a real dev-side question (where the label catalogue comes from offline) rather than a design one. Opened 2026-08-24. |
+| **Workflow-eligibility validation in Screen Designer** | §26.7's honest replacement for what a single blessed `WFJOBS` would have guaranteed: enabling the WO workflow on a function must check that the tabs §12's step set requires are present and permitted for the target group(s), and refuse or warn when they are not. Shape undecided — hard block vs. warn-and-save, and whether the check runs at enable time, at save time, or both. It is the one piece of genuinely new work Option B creates. Opened 2026-08-24. |
+| **Nav-slot binding storage — shape not signed off** | §26.3 locks the paradigm (access control supplies the candidate functions, config supplies the choice and the order) and the four slot-row fields, but the storage itself — a small new table keyed `(user group, sequence)` — is a proposal, not a confirmed base-EAM object. Needs a call with whoever owns the base schema, together with the smaller question of whether §26.3's curated icon set is authored anywhere or hardcoded. `PRM_MOBILESTARTCARDS` was considered and rejected as the home for it (§26.6). Opened 2026-08-24. |
+| **Dataspy sets become function-resolved once `WSJOBS` clones are in play** | §6.3/§8.3 assume one fixed dataspy set behind WO List. Dataspies are per-function, so two user groups bound to different clones (§26.1) see different dataspy sets — different options, different defaults, different favourites — in the same "Work" nav slot. Nothing in the list-screen design accounts for that, and it is the one knock-on of §26.2/§26.7 that reaches a locked mobile-side rule rather than just implementation. Note §11's original one-function decision cited dataspy fragmentation as its own justification; §26.7 accepts that cost deliberately rather than denying it. Opened 2026-08-24. |
+| **`renderBottomNav()` doesn't exist** | Bottom-nav markup is hand-copied into every screen (e.g. `eam-home-screen-prototype-v1.html`); nothing in `eam-shared.js` renders it. §26.4's config-driven nav needs it extracted first, and that extraction is what makes a 4th slot a data row rather than an edit to every screen file. Same consolidation debt as the plan doc's §7.3 (WO List's hand-copied `.bottom-nav`/`.nav-avatar` CSS) — worth doing in one pass. Opened 2026-08-24. |
+| **Home layout has no authoring surface** | §26.5 gives Home layout a User Group Setup tab that deep-links into a Home layout designer that does not exist. §9.4's open "base-admin configurability" item is the same gap seen from the other side — one is the entry point, the other is the destination. Resolve together. |
 
 # 21. Superseded Design Decisions
 
@@ -4949,3 +4985,449 @@ present. Home and WO List both show the real live unread count from
 `data/notifications.js`, hidden entirely at 0. Its positioning wrapper,
 `.nav-icon-wrap`, is a real shared component in `eam-shared.css` (both
 consumers previously hand-copied a local duplicate — now removed).
+
+# 26. Base Screens — Function Resolution & User Group Setup
+
+Added 2026-08-24. Base-EAM admin side only — nothing in the mobile
+prototypes changes as a result of this section yet; §26.2's consequence
+and §26.4's prerequisite are both tracked as open items in §20.
+
+**Prototype:** `prototypes/standalone/base screens/eam-user-group-setup-
+prototype-v1.html` (2026-08-24). Covers §26.5's tab shape and
+declared-vs-effective resolver, §26.3's slot binding with a live 390px nav
+preview that recomputes §26.4's arithmetic as slots are added, and
+and §26.5.1's configuration-assignment grid. Note the prototype went to a
+second pass on that last tab — the first version's per-function "workflow
+enabled" toggle was a second source of truth and the wrong grain; §26.5.1
+records what replaced it.
+Self-contained on the Base Screens track — tokens copied from
+`eam-shared.css`, components from `eam-base-desktop-ui-prototype-v1.html`.
+Two departures worth knowing: an **inherited** domain is read-only until
+explicitly overridden (an in-place edit would silently re-point every
+other group inheriting from `*`), while an **unset** domain edits directly
+and mints the group's own row set — an Override button with nothing to
+override is a dead end. And overriding **copies the inherited value down**
+rather than starting blank, since an override that empties the surface
+makes an admin re-derive what they already had.
+
+## 26.1 The finding — `WSJOBS` is already cloned in this environment
+
+`docs/Data_refs/Page Layouts perms/r5pagelayout.csv` holds three distinct
+pagenames whose `PLO_PARENTPAGE` is `WSJOBS`, each with a full set of
+layout rows:
+
+| `PLO_PAGENAME` | Description | `PLO_PARENTPAGE` |
+| --- | --- | --- |
+| `CCJOBS` | Contract Jobs | `WSJOBS` |
+| `TRJOBS` | Transportation WO's | `WSJOBS` |
+| `ZJ1000` | custom Z-function | `WSJOBS` |
+
+So an admin will legitimately want **UG1's "Work" screen to be `TRJOBS`
+while UG2's is `WSJOBS`**. Any design that assumes one WO function per
+deployment is wrong on arrival, and §11's original prose assumed exactly
+that (corrected there).
+
+**No schema change is needed to support cloning.** `R5PAGELAYOUT` is
+already keyed `(PLO_USERGROUP, PLO_PAGENAME)` and already records clone
+lineage in `PLO_PARENTPAGE`; §12's WO Workflow tables already carry Page
+in their natural composite; dataspies, `R5FUNCTIONTABS` and
+`R5TABPERMISSIONS` are all already function-keyed. The only thing that was
+ever wrong is the app's hardcoded assumption of a single pagename.
+
+## 26.2 Resolution rule — switch on the entity, never on a `FUN_CODE` (locked)
+
+**Wherever the app needs to know "what kind of screen is this," it reads
+the function's entity, not its code.** `FUN_RENTITY` is `EVNT` for every
+WO function in the export, clone or not.
+
+**Two columns look like the answer and are not.** `FUN_PARENTFUNCTION`
+exists on `R5FUNCTIONS` and reads like the obvious lineage column, but it
+is **empty for all four** WO-screen functions in this customer's export.
+`FUN_SYSTEM` sounds like a pointer to the base/system function and is not
+one either — it is a **boolean**, `'+` on all four. So there is no
+function-level "system function" foreign key to lean on. Clone lineage is
+recorded only at the layout level, in `PLO_PARENTPAGE`.
+
+Two distinct questions, two distinct columns:
+
+| Question | Column | Used for |
+| --- | --- | --- |
+| Does this screen operate on the work-order entity? | `FUN_RENTITY` (`EVNT`) | runtime behaviour switching, workflow eligibility (§26.7) |
+| Which base screen was this cloned from? | `PLO_PARENTPAGE` | admin display, config copy, layout inheritance |
+
+Note the first question is deliberately about the **entity**, not about
+the screen's branding. `ZJ1000` is `FUN_DESC = "Customer Quotes"` and
+`FUN_RENTITY = EVNT` — an EVNT screen a customer repurposed for a
+different business process entirely. That is normal, and §26.7 turns on
+it.
+
+Consequence for the mobile side (deliberately not built yet): every place
+the app currently means "the WO screen" becomes a check against a
+*resolved* function's entity. That is one seam, and it is the entire
+mobile-side change this section implies.
+
+**Applied to Screen Designer, 2026-08-24 (locked).** The designer's entry
+modal used to offer two hardcoded Base Screen pills, Work Order (`WSJOBS`)
+and Equipment, which asserted one WO screen per deployment and made the
+four clones in §26.1 undesignable. It is now **family pills plus a function
+select** over a `BASE_FUNCTIONS` catalogue, and the split is the one this
+section mandates: `state.baseScreen` stays the **family** (`wo`/`equip`) and
+every downstream switch — which tab set, whether WO Type applies, which
+emulator record — still keys off it, while the new `state.baseFunction` holds
+the `FUN_CODE`. Adding a fifth clone is one row in that array.
+
+Three consequences worth keeping:
+
+- **The picker states lineage, entity and real layout-row count** on
+  selection (`PLO_PARENTPAGE`, `FUN_RENTITY`, and the true PLO row count —
+  382 for `CCJOBS`/`TRJOBS`, 237 for `ZJ1000`), so an admin can see they are
+  about to edit a screen with several hundred configured fields.
+- **A clone's tab set gates what can be authored.** `ZJ1000` has no
+  Checklist and no Book Labor tab, so those steps are dropped from the tab
+  list, from the workflow-step pane and from the emulator's step rail, with
+  the reason stated in all three places. This is the **authoring-time** half
+  of the capability gap §26.5.1 reports from the group side; neither one
+  makes the other redundant.
+- **`fnHasTab()` fails open** for a tab absent from the catalogue, so adding
+  a tab to `WO_TABS` doesn't silently hide it from every clone until someone
+  remembers to update the array.
+
+## 26.3 Nav-slot binding — permissions supply candidates, config supplies the choice (locked)
+
+The bottom nav is **not** derivable from `R5FUNCTIONTABS`/
+`R5TABPERMISSIONS` alone. A group can hold `PRM_SELECT` on `WSJOBS`,
+`CCJOBS` and `TRJOBS` at once, and nothing in the permission tables says
+which of them is *the* Work screen. Derivation was considered and rejected
+on exactly that ground.
+
+The division of labour:
+
+- **Access control supplies the candidate list** — a slot may only be
+  bound to a function the group already holds `PRM_SELECT` on. This keeps
+  the existing security layer authoritative and stops nav config from
+  becoming a second, disagreeing permission surface.
+- **Nav config supplies the choice and the order** — one ordered row set
+  per user group.
+
+Each slot row:
+
+| Field | Notes |
+| --- | --- |
+| Sequence | left-to-right order |
+| Label | admin-authored ("Work", "Contract Jobs", "Transport") — the bound function's own `FUN_DESC` is a sensible default, not a constraint |
+| Icon | picked from a fixed curated set, **not** free-form, so §23's outline/palette rules stay enforceable |
+| Target | a **union**: a `FUN_CODE`, *or* a built-in surface |
+
+**That union is load-bearing.** Home, Notifications and Sync Status are
+not functions and never will be, so a slot's target cannot be a plain
+function foreign key. Modelling it as `(target kind, target)` from the
+start is what makes a later 4th slot a data row instead of a code change.
+
+## 26.4 Slot count — four fits, five does not
+
+`.bottom-nav` is a centred flex row of `.bottom-nav-item` at 84px wide
+with 14px gaps (`eam-shared.css`). Today's three slots are Home / Work /
+Notifications.
+
+- 4 slots = `4×84 + 3×14` = **378px**, which fits a 390px-wide viewport
+  (iPhone 12–15 class) with 6px to spare.
+- 5 slots = **490px**, which does not.
+
+So **a 4th icon needs no component change; a 5th is a redesign** of
+`.bottom-nav-item` — narrower items, or dropping the labels. That is the
+real cost boundary when the question comes up, rather than an open-ended
+"how many can we have."
+
+**Prerequisite (§20):** nav markup is hand-copied into every screen today
+and nothing in `eam-shared.js` renders it, so a config-driven nav needs a
+shared `renderBottomNav()` extracted first.
+
+## 26.5 User Group Setup — a binding screen, not a config form (locked paradigm)
+
+The problem this resolves: a screen that loads all user group records,
+selects one, and edits a handful of fields fights §10's authoring model,
+where a config artifact is authored once and pushed to **many** groups
+(Copy-from-Group / Save-to-Group(s)). Two jobs were being conflated:
+
+- **Authoring** a config artifact — inherently one artifact → many groups.
+- **Answering "what does group X actually get?"** — inherently one group →
+  many artifacts.
+
+**Decision: User Group Setup does the second job only, and never authors
+anything many-to-many.** Its shape is the base-EAM User Group Security
+paradigm — a **protected-identity header (the group; no insert, since
+groups are created in base security) plus child tabs, where every tab is
+either an assignment grid or a summary with a deep link into that domain's
+own authoring screen.** It contains no second copy of any designer. The
+"no insert" instinct is the tell that this is a binding screen rather than
+a record-maintenance screen.
+
+Grain differs per config domain, and grain is what decides inline-vs-link:
+
+| Domain | Grain | Authored in | The tab shows |
+| --- | --- | --- | --- |
+| Screen design / workflow rules | `(page, WO Type, group)` — dozens of row sets per group, now multiplied by clone count | Screen Designer (§10/§11) | 3-level summary: function → WO Types configured → last modified. Row tap deep-links into Screen Designer pre-filtered to that group + function + Type. **No inline editing.** |
+| Home screen layout | one per group | a Home layout designer — **does not exist**, see §9.4's open base-admin item | summary + Configure link |
+| Bottom nav | one ordered row set per group | **here**, as an assignment grid (§26.3) | the real editable grid |
+| Sync / download defaults | one per group | **here**, field-shaped | record type × filter scope × horizon × row cap |
+
+Sync config is the only one of the four that is genuinely field-shaped,
+which is why the "select a UG, edit a handful of fields" instinct kept
+surfacing — it was right for one domain out of four, not for all of them.
+
+Three mechanics are what make the screen worth building rather than merely
+tolerable:
+
+1. **Copy configuration from group** — a header action pulling every
+   domain from another group in one action. Impossible from inside any
+   single designer, since each knows only its own domain. It is the
+   per-group counterpart to §10's Copy-from-Group.
+2. **Declared vs. effective, shown per row** — "Home layout: inherited
+   from the `*` default" vs. "explicitly set for MAINT-TECH." §11's
+   fallback rule already establishes that an absent config row is a
+   meaningful state; this is where that becomes visible instead of
+   invisible. Same declared-vs-effective split already named as a one-way
+   door in §13.3 item 2 — one concept reused, not two invented.
+3. **A `*` default group row** for Home, nav and sync, so a group nobody
+   has configured still boots. Same shape as §11's WO Type fallback.
+
+## 26.5.1 Where the User-Group-Setup / Screen-Designer line falls (locked)
+
+Added 2026-08-24, second pass, after the first prototype's Screen Design
+tab read loose. Two faults, both worth recording because both are easy to
+re-introduce.
+
+**Fault 1 — a per-group "workflow enabled" toggle is a second source of
+truth.** The first pass gave each group an `enabled` flag per function. But
+a workflow is enabled for a group *exactly when a configuration is saved to
+that group*, which the data already records. Two places asserting one fact
+is how "why isn't my workflow showing" becomes a support call.
+
+**Fault 2 — wrong grain.** That tab had one row per **function**, with WO
+Types crammed into a text cell. §12 keys on **`(function, WO Type, group)`**,
+so one row per *configuration* is the honest grain. At the wrong grain the
+tab could only describe; at the right one it can control.
+
+**The model: a workflow configuration is a first-class artifact,** authored
+once and saved to N groups — which is precisely what Screen Designer's
+Save-to-Group(s) dual listbox already writes (§10). Group membership lives
+on the artifact.
+
+That makes the division unambiguous:
+
+| This screen | Screen Designer |
+| --- | --- |
+| Which configurations this group is assigned to | Which configurations **exist** |
+| **Assign / unassign** — Save-to-Group membership, edited from the group's side | Base Screen (function) + WO Type |
+| Cross-domain consistency (below) | Steps included, gating (Free Form) |
+| | Field layout, states, order, containers |
+| | Copy-from-Group (an authoring seed) |
+| | Save-to-Group(s) (the fan-out at save time) |
+
+**Assign is not Copy.** Assign adds this group to an existing artifact — one
+configuration, more members. Copy-from-Group *duplicates* a layout as a
+starting point. Conflating them is how a site ends up with six
+near-identical configurations nobody can tell apart. The configuration row
+therefore shows a **Groups** count, so an admin can see before unassigning
+whether they are removing the last member.
+
+**Inheritance is permission-filtered.** A `*` configuration for a function
+the group has no `PRM_SELECT` on does **not** apply to it. Without this,
+`SALES-ENG` (permitted `ZJ1000` only) reports as inheriting the default's
+`WSJOBS` workflow, which it can never reach. A resolution view that lies is
+worse than no resolution view.
+
+**Capability gaps are reported, never worked around.** `ZJ1000` has no
+Checklist or Book Labor tab, so a configuration needing those steps cannot
+render them. That is fixed in Screen Designer (change the steps) or in
+Security ▸ Function Permissions (give the function the tab) — never by
+assigning a different group, which only moves the problem. This supersedes
+the first pass's framing of §20's workflow-eligibility validation as
+purely an authoring-time check: authoring-time is still where it belongs,
+but the group-side view has to *report* the consequence.
+
+### Cross-domain consistency — the strongest reason the screen exists
+
+A nav slot and a workflow assignment are authored in different places and
+can disagree, and **no designer can notice, because each one sees a single
+domain.** Only a per-group view can. Three checks, all live in the
+prototype:
+
+- A nav slot points at a function the group has no `PRM_SELECT` on — most
+  often because the slot was **inherited** from `*`, which was written for a
+  group that could. The slot would simply fail to open.
+- A nav slot opens an `EVNT` function with **no configuration assigned**.
+  Legal, and §11's fallback handles it, but the admin almost certainly
+  didn't intend a guided workflow to be absent.
+- An assigned configuration needs a tab its function doesn't have
+  (capability gap, above).
+
+These are the screen's genuine value-add, over and above being a reverse
+index.
+
+### The handoff into Screen Designer is a contract, not a link
+
+Screen Designer's entry modal asks for Base Screen, WO Type,
+Copy-from-Group and Save-to-Group(s) (§10). Launching it bare discards every
+one of those, all of which the admin has already chosen by being on a
+configuration row. So the deep link **states what it hands over** and writes
+it to `sessionStorage.eamDesignerEntry` (`sessionStorage`, not a query
+string — these files are opened over `file://` as often as over a server).
+
+**Closed end to end 2026-08-24.** Both original blockers are gone: the Base
+Screen picker is clone-aware (§26.2), and the designer now *consumes* the
+handoff and opens pre-filled with a banner naming where it came from. The
+two screens also share one user-group list now — they previously described
+different worlds, with `DK` (the only group in the real export) the sole
+overlap.
+
+The payload is `{baseScreen, woType, saveToGroups, copyFromGroup, from}`.
+Five rules make the read side trustworthy, and each exists because the
+obvious alternative fails in a way an admin wouldn't notice:
+
+- **Resolve the function by code *or alias*.** The mobile-side screens call
+  the equipment function `WSEQUIP`; the designer has always called it
+  `EQUIPMENT`. An alias list beats renaming either side, which would
+  silently invalidate whichever demo data still used the old code.
+- **Map the WO Type *name* onto the designer's type *codes*** — code, then
+  exact name, then name prefix ("Routine" → "Routine Maintenance"). A type
+  with no equivalent (`Contract`, `Quote`) falls back to the unmatched-types
+  layout **and says which type it couldn't match**. Silently substituting
+  one means the wrong layout saved to real groups.
+- **An absent WO Type means "not chosen yet"**, not "the fallback layout" —
+  a New-configuration launch leaves the select alone and prompts, rather
+  than committing the admin to the fallback.
+- **Never half-apply.** An unrecognised screen is ignored entirely. Filling
+  in the group but not the function would look like a working handoff
+  pointing at the wrong layout.
+- **Consume once, and inject unknown groups.** A handoff surviving a reload
+  would re-apply over later choices; a handed-over group missing from the
+  demo list is injected rather than dropped, because both screens read
+  `R5USERGROUPS` in real EAM and a demo gap must not look like a permission
+  rule.
+
+`sessionStorage` rather than a query string: these files open over `file://`
+as often as over a server, and a query string would survive a bookmark and
+re-apply a stale context weeks later.
+
+## 26.6 Rejected alternatives
+
+**A named "Mobile Config Profile" record** — code + description, bundling
+Home layout + nav + sync, with user groups assigned to a profile.
+Attractive because it is insertable and copyable, which is what an EAM
+admin expects of a record. Rejected: screen layouts are keyed on
+`PLO_USERGROUP` and cannot move, so this creates two parallel scoping
+systems — layouts by group, everything else by profile — and every "what
+does this technician actually see" question then needs both resolved. One
+scope key, user group, everywhere. Revisit only if a config domain turns
+up that genuinely cannot be group-keyed.
+
+**Reusing `PRM_MOBILESTARTCARDS` as the nav-binding storage.** The column
+already exists on `R5PERMISSIONS`, keyed `(PRM_FUNCTION, PRM_GROUP)`, and
+is empty in this environment — it is legacy Mobile's start-cards setting.
+Kept as **precedent** that per-group mobile shell config is something base
+EAM already does, but rejected as the storage: its key forces an arbitrary
+owning function for something that is a property of the group's whole app
+shell. A small new table keyed `(user group, sequence)` is the honest
+shape (§20 — not signed off against the real base schema).
+
+**Deriving the bottom nav from tab permissions** — see §26.3.
+
+**A single static `WFJOBS` as the only workflow-capable function** — the
+original instinct, analysed in full in §26.7 rather than summarised here,
+because it is the load-bearing decision of this section.
+
+## 26.7 The one-function question — `WFJOBS` vs. any `EVNT` function (locked)
+
+The choice, stated plainly:
+
+- **Option A — one static new function.** Mint `WFJOBS`, ship it as the
+  single function the mobile WO workflow may ever be enabled on, and
+  eventually surface it in base as well. Every user group's "Work" nav
+  slot points at `WFJOBS` or has no workflow.
+- **Option B — eligibility by entity, opt-in per user group.** Any
+  function with `FUN_RENTITY = EVNT` may be workflow-enabled, and whether
+  it *is* enabled is a per-`(function, user group)` decision.
+
+### The evidence
+
+This customer's `R5FUNCTIONS` export contains **four** `EVNT` functions
+and no un-cloned `WSJOBS` row at all:
+
+| `FUN_CODE` | `FUN_DESC` | `FUN_RENTITY` | Layout rows |
+| --- | --- | --- | --- |
+| `CCJOBS` | Contract Jobs | `EVNT` | 382 |
+| `TRJOBS` | Transportation WO's | `EVNT` | 382 |
+| `ZJ1000` | Customer Quotes | `EVNT` | 237 |
+| `WSJODC` | Work Orders (DC) | `EVNT` | — |
+
+Four distinct business processes — contracts, transportation, quotes, and
+a distribution-centre variant of Work Orders — all built on the same base
+screen. **1,001 `R5PAGELAYOUT` rows** across the three that carry layouts,
+and the field-state mixes are genuinely different screens, not cosmetic
+variants: `CCJOBS` hides 299 fields and exposes 47 as optional, while
+`ZJ1000` hides 192 and exposes 17. Add per-clone field labels, boilerplate
+and help text, tab sets, dataspies and permissions — all of which key on
+function — and each clone represents a substantial, deliberate
+configuration investment.
+
+### What Option A actually costs
+
+Forcing the workflow onto one `WFJOBS` means every group that wants the
+mobile workflow abandons its clone's configuration for the mobile surface,
+or has it re-authored under `WFJOBS`. Since the clones exist *precisely
+because* the vocabularies differ — a Contract Job is not a Transportation
+WO is not a Customer Quote — that is not a migration, it is a loss of
+capability. The mobile app would offer a workflow only to groups willing
+to give up the screen they built.
+
+### Why Option A does not even hold as one function
+
+The decisive argument is not the migration cost, it is that **Option A
+collapses into Option B with an extra hop.** Cloning is how base EAM does
+per-group screen customisation. The first time two user groups need
+different labels or different boilerplate on their mobile Work screen —
+which is the same pressure that produced these four clones — an admin will
+clone `WFJOBS`. At that point there are `WFJOBS`, `WFJOBS2`, `ZWF1000`,
+and the app is resolving a function per user group anyway, having spent a
+migration to get there and stranded 1,001 existing layout rows on the way.
+
+Option A is only stable if per-group screen customisation stops, and there
+is no evidence for that in this customer's data.
+
+### Decision: Option B
+
+**Workflow-enablement is a property of a `(function, user group)` pairing,
+not a privilege attached to one blessed function code.** This also holds
+§11's "no new `FUN_CODE`s" rule rather than breaking it for a special
+case.
+
+In fairness to Option A, it did buy three real things, and each has to be
+paid for separately under B:
+
+| What `WFJOBS` would have guaranteed | How B provides it |
+| --- | --- |
+| A function known to have every tab and field the workflow needs | **A Screen Designer validation.** Enabling the workflow on a function checks that the tabs §12's step set requires are present and permitted, and refuses or warns when they are not. This is the honest replacement, and it is the one piece of new work Option B creates. |
+| One well-known pagename for mobile resolution | §26.2's entity check plus §26.3's per-group nav binding — already needed for the nav bar regardless of this decision |
+| A clean home for mobile-only fields and behaviour that never touches customer clones | Nothing yet, and worth watching. If mobile ever needs a field no base WO screen has, it goes in the WO Workflow tables (§12), not into a customer's layout rows. |
+
+Three guard rails make B safe:
+
+1. **Eligibility is `FUN_RENTITY = EVNT`** — not `FUN_SYSTEM` (a boolean,
+   §26.2) and not `FUN_PARENTFUNCTION` (empty, §26.2). `PLO_PARENTPAGE`
+   corroborates the lineage for admin display but is not the gate.
+2. **Enablement is opt-in, never automatic.** An `EVNT` clone does not
+   acquire the mobile workflow by existing. §11's fallback rule already
+   defines the un-configured case — the plain Standard Record View, always
+   Free Form — so the default for a newly discovered clone is already
+   specified and already safe.
+3. **Labels and boilerplate come from the bound function**, not from
+   mobile constants. If the mobile screens keep hardcoding their own field
+   labels, allowing clones buys nothing — the technician sees "Work Order"
+   on a screen the admin renamed "Customer Quote." Tracked in §20; this is
+   the consequence of Option B that reaches furthest into the prototypes.
+
+**Option B is forward-compatible with Option A; the reverse is not true.**
+If base later ships a workflow-native WO function, it arrives as one more
+eligible `EVNT` function and nothing about this design changes. Choosing A
+now would have to be undone to get there.

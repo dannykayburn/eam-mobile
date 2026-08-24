@@ -1,0 +1,2261 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HxGN EAM — User Group Setup (Base) v1</title>
+
+<!--
+  ═══════════════════════════════════════════════════════════════════════
+  USER GROUP SETUP — BASE SCREENS TRACK — v1
+  ═══════════════════════════════════════════════════════════════════════
+  The base-EAM admin screen that answers ONE question: what does this user
+  group's mobile app actually look like? Spec: design-decisions-v3-1.md §26
+  (added 2026-08-24), which this file is the first prototype of.
+
+  NOT part of the mobile app. Deliberately NOT wired to eam-shared.css/.js —
+  same precedent as eam-screen-designer-v1.html and
+  eam-base-desktop-ui-prototype-v1.html in this folder. The :root token block
+  is copied verbatim from eam-shared.css so the two products can't drift on
+  hue, and every component below is lifted from
+  eam-base-desktop-ui-prototype-v1.html (rail, flyout, crumb, hero, tab
+  capsule, .fd field system, .mg grid, .pop, .card) rather than re-invented.
+  If a token or component changes there, change it here.
+
+  ── THE ONE IDEA (§26.5) ──────────────────────────────────────────────
+  Two jobs were being conflated in every earlier sketch of this screen:
+
+    AUTHORING a config artifact — inherently one artifact → MANY groups.
+      That is Screen Designer's job, and its Copy-from-Group /
+      Save-to-Group(s) dual listbox is how it does it (§10).
+
+    ANSWERING "what does group X get?" — inherently one group → MANY
+      artifacts. Nothing in the product does this today.
+
+  This screen does the SECOND job only. It is a BINDING screen, not a
+  config form. Its shape is base EAM's own User Group Security paradigm:
+  a protected-identity header plus child tabs, where every tab is either
+  an ASSIGNMENT GRID or a SUMMARY WITH A DEEP LINK into that domain's own
+  authoring screen. There is no second copy of any designer in here.
+
+  THE TELL IS "NO INSERT". User groups are created in Security ▸ User
+  Groups; this screen never creates one. A screen that lists records you
+  can't create and shows configuration against them is a binding screen.
+  So the top bar has no Create button — the one deliberate omission from
+  the base shell, called out in the list rail's own header.
+
+  ── WHY THE TABS ARE NOT ALL THE SAME SHAPE ───────────────────────────
+  Grain decides inline-vs-link, and the four config domains do not share
+  a grain (§26.5's table):
+
+    Screen design    (page, WO Type, group) — hundreds of rows per group,
+                     multiplied by clone count → SUMMARY + DEEP LINK
+    Home layout      one per group, but a LAYOUT → SUMMARY + DEEP LINK
+                     (and the designer doesn't exist yet — §20)
+    Bottom nav       one ordered row set per group → REAL ASSIGNMENT GRID
+    Sync defaults    one per group, genuinely field-shaped → REAL FIELDS
+
+  Sync is the only one of the four that is field-shaped, which is why the
+  original "select a UG, edit a handful of fields" instinct kept surfacing.
+  It was right for one domain out of four.
+
+  ── WHERE THE SCREEN/DESIGNER LINE FALLS (v1.1, the loose part) ────────
+  v1 gave each group an "enabled" toggle per function. Wrong twice: it was
+  a SECOND SOURCE OF TRUTH for a fact the data already carries (a workflow
+  is enabled for a group exactly when a configuration is saved to it), and
+  it was the WRONG GRAIN — §12 keys on (function, WO Type, group), not per
+  function, so WO Types ended up crammed into a text cell and the tab read
+  as a description rather than a control.
+
+  A workflow CONFIGURATION is now a first-class artifact, authored once and
+  saved to N groups — exactly what Screen Designer's Save-to-Group(s) dual
+  listbox already writes. The split:
+
+    THIS SCREEN                   SCREEN DESIGNER
+    ───────────────────────────   ────────────────────────────────────────
+    Which configs this group is   Which configs EXIST
+      assigned to                 Base Screen (function) + WO Type
+    Assign / unassign  = Save-    Steps included, gating (Free Form)
+      to-Group membership, from    Field layout, states, order, containers
+      the group's side            Copy-from-Group (an authoring seed)
+    Cross-domain consistency      Save-to-Group(s) (the fan-out at save)
+
+  ASSIGN IS NOT COPY. Assign adds this group to an existing artifact — one
+  config, more members. Copy-from-Group duplicates a layout as a starting
+  point. Conflating them is how a site ends up with six near-identical
+  configurations nobody can tell apart.
+
+  ── THE HANDOFF IS A CONTRACT, NOT A LINK ─────────────────────────────
+  Screen Designer's entry modal asks for Base Screen, WO Type,
+  Copy-from-Group and Save-to-Group(s) (§10). Launching it bare discards
+  every one of those choices, which the admin has already made by being on
+  this row. So the launch popover states exactly what is handed over and
+  writes it to `sessionStorage.eamDesignerEntry`.
+
+  Both original blockers are closed as of 2026-08-24:
+    1. eam-screen-designer-v1.html's Base Screen picker was two hardcoded
+       pills and could not express a clone. It is now family pills + a
+       function select over BASE_FUNCTIONS, so CCJOBS/TRJOBS/ZJ1000/WSJODC
+       are all designable.
+    2. The designer now READS this handoff and opens pre-filled, banner and
+       all. It resolves the function by code or alias (this file calls the
+       equipment function WSEQUIP, that one calls it EQUIPMENT), maps the WO
+       Type NAME sent here onto its own type CODES, and injects a handed-over
+       group into Save-to-Group(s) rather than dropping it.
+
+  What still can't be honoured is reported, not hidden: a WO Type with no
+  equivalent in the target environment (Contract, Quote) falls back and says
+  which type it couldn't match, because a silently-substituted WO Type means
+  the wrong layout saved to real groups.
+
+  ── CROSS-DOMAIN CONSISTENCY (the strongest reason this screen exists) ─
+  A nav slot and a workflow assignment are authored in different places and
+  can disagree; no designer can notice, because each sees one domain.
+  DC-OPS inherits a nav pointing at WSJOBS, which it has no PRM_SELECT on.
+  SALES-ENG's nav opens ZJ1000 with no configuration assigned. Both surface
+  at the top of Overview with a jump to the offending tab.
+
+  Capability gaps are REPORTED, NEVER WORKED AROUND: ZJ1000 has no
+  Checklist or Book Labor tab, so a config needing those steps can't
+  render. That is fixed in Screen Designer or Function Permissions —
+  assigning a different group would only move the problem.
+
+  ── DECLARED vs. EFFECTIVE (§26.5 mechanic 2) ─────────────────────────
+  Every domain row states whether its value is EXPLICIT for this group,
+  INHERITED from the `*` default, or NOT SET. §11's fallback rule already
+  makes "no config row" a meaningful state; this is where it stops being
+  invisible. Same declared-vs-effective split already named as a one-way
+  door in §13.3 item 2 — one concept, reused, not two invented.
+
+  ── COPY CONFIGURATION FROM GROUP (§26.5 mechanic 1) ──────────────────
+  A header action that pulls any subset of the four domains from another
+  group in one go. This is impossible from inside any single designer,
+  because each designer only knows its own domain. It is the per-group
+  counterpart to Screen Designer's Copy-from-Group, and it is most of why
+  this screen is worth building rather than merely tolerable.
+
+  ── THE CLONE REALITY THIS SCREEN EXISTS TO SURVIVE (§26.1) ───────────
+  Function codes, descriptions and layout-row counts below are the real
+  ones out of docs/Data_refs/Page Layouts perms/: CCJOBS (Contract Jobs,
+  382 rows), TRJOBS (Transportation WO's, 382), ZJ1000 (Customer Quotes,
+  237), WSJODC (Work Orders (DC)) — every one of them FUN_RENTITY = EVNT
+  with PLO_PARENTPAGE = WSJOBS. Four business processes on one base
+  screen. The Work nav slot resolves per group, and this screen is where
+  you see which clone a group actually lands on.
+
+  ── LIVE MATH, NOT A PROSE RULE (§26.4) ───────────────────────────────
+  The Bottom Nav tab renders a real 390px phone preview and computes
+  4 x 84px + 3 x 14px = 378px as you add slots. Four fits with 6px to
+  spare; a fifth is 490px and doesn't. The Add-slot button blocks at four
+  and says why, rather than silently capping.
+  ═══════════════════════════════════════════════════════════════════════
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ══ TOKENS — copied verbatim from eam-shared.css. Do not re-hue here. ══ */
+:root{
+  --font-sans:"Inter",system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",monospace;
+  --octave-black:#1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
+  --green:#16C130; --red:#DC2626; --teal:#007B87;
+  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-nav:#1A1A1F; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --wo-type-breakdown:#F5821F; --wo-type-ppm:#2563EB;
+  --wo-type-routine:#7C3AED; --wo-type-corrective:#F2C94C;
+  --priority-high:#DB2777;
+  /* Desktop-only additions, same values as the base UI prototype. */
+  --rail-w:76px; --topbar-h:46px; --crumb-h:52px; --row-h:34px;
+  color-scheme:light;
+}
+[data-theme="dark"]{
+  color-scheme:dark;
+  --bg-page:#1A1A1F; --bg-card:#26252B; --bg-nav:#111114; --bg-section:#302F33; --border:#3E4047; --border-strong:#4A4C55;
+  --octave-black:#1A1A1F; --gray-1:#2A2930; --gray-2:#3E4047; --gray-3:#6F7480; --gray-4:#B2B8C4;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-black);
+  -webkit-font-smoothing:antialiased;font-size:13px;overflow:hidden;
+  display:flex;flex-direction:column;height:100vh;height:100dvh;
+}
+[data-theme="dark"] body{color:var(--white);}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:6px;border:3px solid transparent;background-clip:content-box;}
+::-webkit-scrollbar-thumb:hover{background:var(--gray-4);background-clip:content-box;}
+::-webkit-scrollbar-track{background:transparent;}
+
+/* ══ SHELL ══ */
+.shell{flex:1;min-height:0;display:flex;}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;min-width:0;}
+
+/* ══ ICON RAIL ══ */
+.rail{width:var(--rail-w);flex-shrink:0;background:var(--bg-nav);display:flex;flex-direction:column;
+  align-items:center;gap:2px;padding:8px 0;position:relative;z-index:60;}
+.rail-logo{width:44px;height:44px;border-radius:11px;background:linear-gradient(135deg,var(--teal),#00AA9E);
+  display:flex;align-items:center;justify-content:center;color:#fff;margin-bottom:12px;flex-shrink:0;}
+.rail-btn{width:64px;height:60px;border:none;background:none;border-radius:11px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  color:rgba(255,255,255,.55);transition:background .14s,color .14s;position:relative;flex-shrink:0;}
+.rail-btn:hover{background:rgba(255,255,255,.09);color:#fff;}
+.rail-btn.active{color:#fff;background:rgba(255,255,255,.13);}
+.rail-btn.active::before{content:'';position:absolute;left:-8px;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--teal);}
+.rail-btn svg{width:27px;height:27px;stroke-width:1.65;}
+.rail-btn-label{font-size:10px;font-weight:600;letter-spacing:.2px;}
+.rail-sep{width:38px;height:1px;background:rgba(255,255,255,.12);margin:7px 0;flex-shrink:0;}
+.rail-spacer{flex:1;}
+
+/* ══ MENU FLYOUT ══ */
+.flyout{position:fixed;left:var(--rail-w);top:0;bottom:0;width:284px;background:var(--bg-card);
+  border-right:1px solid var(--border);box-shadow:14px 0 40px rgba(0,0,0,.14);
+  z-index:55;display:flex;flex-direction:column;
+  transform:translateX(-102%);transition:transform .2s cubic-bezier(.4,0,.2,1);}
+.flyout.open{transform:translateX(0);}
+.flyout-head{padding:14px 16px 10px;border-bottom:1px solid var(--border);}
+.flyout-mod{font-size:15px;font-weight:700;}
+.flyout-sub{font-size:11px;color:var(--gray-4);margin-top:2px;}
+.flyout-body{flex:1;overflow-y:auto;padding:4px 8px 16px;}
+.tree-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;cursor:pointer;
+  font-size:12.5px;font-weight:500;color:var(--octave-black);}
+[data-theme="dark"] .tree-item{color:var(--white);}
+.tree-item:hover{background:var(--bg-section);}
+.tree-item.current{background:var(--bg-section);font-weight:700;}
+.tree-item.current::after{content:'';width:5px;height:5px;border-radius:50%;background:var(--teal);margin-left:auto;}
+.tree-grp{font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--gray-3);padding:10px 10px 3px;}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.32);z-index:50;opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s;}
+.scrim.on{opacity:1;visibility:visible;}
+
+/* ══ TOP BAR ══ */
+.topbar{height:var(--topbar-h);flex-shrink:0;background:var(--bg-nav);display:flex;align-items:center;gap:10px;padding:0 12px 0 14px;}
+.tb-title{font-size:14px;font-weight:700;color:#fff;letter-spacing:-.1px;}
+.tb-cmd{flex:1;max-width:440px;margin:0 auto;display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);border-radius:8px;
+  padding:5px 10px;cursor:pointer;color:rgba(255,255,255,.55);transition:background .14s;}
+.tb-cmd:hover{background:rgba(255,255,255,.15);}
+.tb-cmd svg{width:14px;height:14px;flex-shrink:0;}
+.tb-cmd-txt{font-size:12px;flex:1;}
+.tb-cmd-kbd{font-family:var(--font-mono);font-size:10px;font-weight:600;border:1px solid rgba(255,255,255,.25);border-radius:4px;padding:1px 5px;}
+.tb-right{display:flex;align-items:center;gap:4px;margin-left:auto;}
+.tb-icon{width:31px;height:31px;border-radius:7px;border:none;background:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6);transition:background .14s,color .14s;position:relative;}
+.tb-icon:hover{background:rgba(255,255,255,.1);color:#fff;}
+.tb-icon svg{width:16px;height:16px;}
+/* NO .tb-create here. Deliberate — this screen has no insert (§26.5), and a
+   greyed-out Create would imply the action exists but is unavailable. */
+.tb-env{font-size:11px;color:rgba(255,255,255,.5);font-style:italic;white-space:nowrap;}
+.tb-avatar{width:27px;height:27px;border-radius:50%;background:var(--gray-5);color:#fff;font-size:10px;
+  font-weight:700;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;flex-shrink:0;}
+
+/* ══ CRUMB / RECORD HEADER ══ */
+.rechead{flex-shrink:0;display:flex;flex-direction:column;}
+.crumb{min-height:var(--crumb-h);flex-shrink:0;background:var(--bg-card);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;padding:0 14px;}
+.bc{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gray-4);flex-shrink:0;}
+.bc-link{cursor:pointer;font-weight:500;}
+.bc-link:hover{color:var(--octave-black);text-decoration:underline;}
+[data-theme="dark"] .bc-link:hover{color:var(--white);}
+.bc svg{width:12px;height:12px;opacity:.6;}
+.bc-cur{font-weight:700;color:var(--octave-black);font-size:13px;}
+[data-theme="dark"] .bc-cur{color:var(--white);}
+.crumb-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0;}
+.stepper{display:flex;align-items:center;background:var(--bg-section);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.stepper button{width:28px;height:28px;border:none;background:none;cursor:pointer;color:var(--gray-4);display:flex;align-items:center;justify-content:center;}
+.stepper button:hover:not(:disabled){background:var(--border);color:var(--octave-black);}
+[data-theme="dark"] .stepper button:hover:not(:disabled){color:var(--white);}
+.stepper button:disabled{opacity:.3;cursor:default;}
+.stepper button svg{width:13px;height:13px;}
+.stepper-pos{font-family:var(--font-mono);font-size:10.5px;font-weight:600;color:var(--gray-4);padding:0 7px;
+  border-left:1px solid var(--border);border-right:1px solid var(--border);height:28px;display:flex;align-items:center;}
+
+/* ══ BUTTONS ══ */
+.btn{display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:6px 13px;
+  font-size:12.5px;font-weight:600;cursor:pointer;border:1px solid var(--border-strong);
+  background:var(--bg-card);color:var(--octave-black);transition:background .14s,border-color .14s,opacity .14s;white-space:nowrap;}
+[data-theme="dark"] .btn{color:var(--white);}
+.btn:hover{background:var(--bg-section);}
+.btn svg{width:14px;height:14px;flex-shrink:0;}
+.btn-primary{background:var(--octave-black);border-color:var(--octave-black);color:#fff;}
+[data-theme="dark"] .btn-primary{background:var(--white);border-color:var(--white);color:var(--octave-black);}
+.btn-primary:hover{opacity:.86;background:var(--octave-black);}
+[data-theme="dark"] .btn-primary:hover{background:var(--white);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-ghost{border-color:transparent;background:none;}
+.btn-ghost:hover{background:var(--bg-section);}
+.btn-icon{padding:6px;width:30px;justify-content:center;}
+.btn-sm{padding:4px 10px;font-size:11.5px;}
+.btn-danger{color:var(--red);border-color:var(--border-strong);}
+
+/* Overflow menu (base UI prototype departure 3) */
+.menu-wrap{position:relative;}
+.menu{position:absolute;top:calc(100% + 6px);right:0;min-width:256px;background:var(--bg-card);
+  border:1px solid var(--border);border-radius:11px;box-shadow:0 12px 34px rgba(0,0,0,.18);
+  padding:5px;z-index:120;opacity:0;visibility:hidden;transform:translateY(-6px) scale(.98);
+  transition:opacity .14s,transform .14s,visibility .14s;}
+.menu.open{opacity:1;visibility:visible;transform:none;}
+.menu-label{font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--gray-3);padding:8px 10px 4px;}
+.menu-item{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:7px;font-size:12.5px;font-weight:500;cursor:pointer;}
+.menu-item:hover{background:var(--bg-section);}
+.menu-item svg{width:14px;height:14px;color:var(--gray-4);flex-shrink:0;}
+.menu-item.danger,.menu-item.danger svg{color:var(--red);}
+.menu-div{height:1px;background:var(--border);margin:4px 6px;}
+
+/* ══ STAGE ══ */
+.stage{flex:1;min-height:0;display:flex;overflow:hidden;}
+.pane{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;}
+
+/* ══ CONTEXT LIST RAIL — the user group list ══
+   The list of all user groups stays as a collapsible context rail rather
+   than a separate list screen you navigate away from: same departure the
+   base UI prototype makes (one surface, not a list/split/record window
+   manager). No insert affordance anywhere in it — see .ctx-note. */
+.ctx{width:268px;flex-shrink:0;background:var(--bg-card);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;min-height:0;position:relative;}
+.ctx.collapsed{width:32px;min-width:32px;}
+.ctx-panel{flex:1;min-height:0;display:flex;flex-direction:column;}
+.ctx.collapsed .ctx-panel{display:none;}
+.ctx-strip{display:none;flex:1;flex-direction:column;align-items:center;gap:12px;padding:10px 0;cursor:pointer;color:var(--gray-4);}
+.ctx.collapsed .ctx-strip{display:flex;}
+.ctx-strip:hover{background:var(--bg-section);color:var(--octave-black);}
+[data-theme="dark"] .ctx-strip:hover{color:var(--white);}
+.ctx-strip svg{width:16px;height:16px;flex-shrink:0;}
+.ctx-strip-l{writing-mode:vertical-rl;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;white-space:nowrap;}
+.ctx-strip-n{font-family:var(--font-mono);font-size:10px;font-weight:700;border:1px solid var(--border-strong);
+  border-radius:100px;padding:2px 4px;writing-mode:vertical-rl;}
+.ctx-head{padding:9px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;}
+.ctx-head-t{font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--gray-4);flex:1;}
+.ctx-search{margin:8px 10px 4px;display:flex;align-items:center;gap:7px;background:var(--bg-section);
+  border:1px solid var(--border);border-radius:7px;padding:6px 9px;}
+.ctx-search svg{width:13px;height:13px;color:var(--gray-4);flex-shrink:0;}
+.ctx-search input{flex:1;border:none;background:none;outline:none;font-size:12px;min-width:0;}
+/* The "no insert" statement, in the one place someone would go looking for a
+   Plus. Saying where groups ARE created is the useful half. */
+.ctx-note{margin:6px 10px 2px;padding:8px 9px;border:1px dashed var(--border-strong);border-radius:8px;
+  font-size:10.5px;line-height:1.45;color:var(--gray-4);}
+.ctx-note b{color:var(--octave-black);font-weight:700;}
+[data-theme="dark"] .ctx-note b{color:var(--white);}
+.ctx-body{flex:1;overflow-y:auto;padding:4px 6px 10px;}
+.ctx-row{padding:8px 9px;border-radius:8px;cursor:pointer;border-left:2.5px solid transparent;}
+.ctx-row:hover{background:var(--bg-section);}
+.ctx-row.sel{background:var(--bg-section);border-left-color:var(--octave-black);}
+[data-theme="dark"] .ctx-row.sel{border-left-color:var(--white);}
+.ctx-row-top{display:flex;align-items:center;gap:6px;}
+.ctx-row-no{font-family:var(--font-mono);font-size:12px;font-weight:700;}
+.ctx-row-dsc{font-size:11.5px;color:var(--gray-4);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ctx-row-sub{font-size:10.5px;color:var(--gray-4);margin-top:4px;display:flex;align-items:center;gap:6px;}
+/* The `*` default group is pinned and marked — it is what every unconfigured
+   group inherits, so it is not just another row in the list (§26.5). */
+.ctx-row.dflt{background:rgba(0,123,135,.06);}
+.ctx-row.dflt .ctx-row-no{color:var(--teal);}
+.ctx-grp{font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--gray-3);padding:9px 9px 3px;}
+
+/* ══ HERO — identity + derived roll-ups only ══
+   Same restraint as the base UI prototype's hero: nothing editable, and
+   nothing that also appears in a tab below. Identity survives collapse
+   because it lives in the crumb row, which never collapses. */
+.hero{display:flex;align-items:center;gap:18px;padding:12px 14px;background:var(--bg-card);
+  border-bottom:1px solid var(--border);overflow:hidden;flex-shrink:0;
+  transition:height .22s ease,opacity .18s ease,padding .22s ease;height:88px;opacity:1;}
+.hero.scrolled{height:0;opacity:0;padding-top:0;padding-bottom:0;border-bottom-color:transparent;}
+.hero-ident{min-width:180px;max-width:330px;display:flex;flex-direction:column;gap:1px;flex-shrink:0;}
+.hero-code{font-family:var(--font-mono);font-size:23px;font-weight:700;letter-spacing:.3px;line-height:1.05;}
+/* Protected — the group code and its description are owned by Security ▸
+   User Groups, so neither is editable here. A lock, not a disabled input. */
+.hero-desc{font-size:14.5px;font-weight:600;color:var(--gray-4);line-height:1.3;display:flex;align-items:center;gap:6px;}
+.hero-desc svg{width:11px;height:11px;color:var(--gray-3);flex-shrink:0;}
+/* Configuration completeness — the app's own SEGMENTED progress instrument
+   (.seg/.seg-done/.seg-active/.seg-future), one segment per config domain.
+   Green = explicit for this group, solid = inherited from `*`, grey = not
+   set. Reused rather than re-invented: a sliding bar would be a second way
+   of saying "progress" that neither product has. */
+.hero-prog-block{flex:1;min-width:180px;display:flex;flex-direction:column;gap:6px;
+  background:var(--bg-section);border-radius:16px;padding:9px 15px;}
+.hero-prog-head{display:flex;align-items:baseline;gap:8px;}
+.hero-prog-l{font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--gray-4);}
+.hero-prog-v{font-family:var(--font-mono);font-size:12px;font-weight:700;margin-left:auto;}
+.hero-segs{display:flex;gap:3px;width:100%;}
+.hseg{flex:1;height:7px;border-radius:100px;min-width:2px;transition:background .2s;}
+.hseg-done{background:var(--green);}
+.hseg-active{background:var(--octave-black);}
+[data-theme="dark"] .hseg-active{background:var(--white);}
+.hseg-future{background:var(--gray-2);}
+.hero-prog-sub{font-size:11px;color:var(--gray-4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hero-stats{display:flex;gap:6px;flex-shrink:0;background:var(--bg-section);border-radius:16px;padding:5px 8px;}
+.hstat{padding:4px 14px;border-left:1px solid var(--border-strong);min-width:92px;}
+.hstat:first-child{border-left:none;}
+.hstat-l{font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--gray-4);white-space:nowrap;}
+.hstat-v{font-family:var(--font-mono);font-size:24px;font-weight:700;line-height:1.15;margin-top:1px;}
+.hstat-v small{font-size:12px;font-weight:600;color:var(--gray-4);margin-left:2px;}
+
+/* ══ TAB CAPSULE — the app's floating rail, same recipe as the base UI file ══ */
+.tabs{flex-shrink:0;background:var(--bg-card);border:none;border-radius:28px;margin:10px 14px 4px;padding:6px;overflow:hidden;
+  box-shadow:0 4px 14px rgba(0,0,0,.12);transition:box-shadow .15s;}
+.tabs:hover{box-shadow:0 6px 20px rgba(0,0,0,.16);}
+[data-theme="dark"] .tabs{box-shadow:0 4px 16px rgba(0,0,0,.4);}
+.tabs-inner{display:flex;align-items:center;gap:3px;overflow-x:auto;scrollbar-width:none;}
+.tabs-inner::-webkit-scrollbar{display:none;}
+.tab{border:none;background:none;cursor:pointer;padding:0 14px;height:34px;flex-shrink:0;
+  display:flex;align-items:center;gap:7px;border-radius:100px;
+  font-size:12.5px;font-weight:600;color:var(--gray-4);white-space:nowrap;transition:background .14s,color .14s;}
+.tab:hover{background:var(--bg-section);color:var(--octave-black);}
+[data-theme="dark"] .tab:hover{color:var(--white);}
+.tab.active{background:var(--octave-black);color:var(--white);}
+[data-theme="dark"] .tab.active{background:var(--white);color:var(--octave-black);}
+.tab-badge{font-family:var(--font-mono);font-size:9.5px;font-weight:600;border:1px solid var(--border-strong);
+  border-radius:100px;padding:0 5px;background:none;}
+.tab.active .tab-badge{border-color:rgba(255,255,255,.45);}
+[data-theme="dark"] .tab.active .tab-badge{border-color:rgba(0,0,0,.3);}
+
+/* ══ BODY ══ */
+.rbody{flex:1;min-height:0;overflow-y:auto;padding:14px;}
+.wrapw{max-width:1180px;}
+.tbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+.tbar-t{font-size:15px;font-weight:700;}
+.tbar-d{font-size:11.5px;color:var(--gray-4);line-height:1.45;max-width:620px;}
+.tbar-r{margin-left:auto;display:flex;align-items:center;gap:7px;}
+
+/* ══ CARDS ══ */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:11px;overflow:hidden;}
+.card-h{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.card-t{font-size:13px;font-weight:700;}
+.card-b{padding:12px 14px;}
+.card-note{font-size:11.5px;color:var(--gray-4);line-height:1.5;}
+
+/* ══ EFFECTIVE-STATE BADGE (§26.5 mechanic 2) ══
+   Three states, three shapes — not three colours. Colour is spoken for by
+   the palette rules (§23); "where did this value come from" is not one of
+   the instruments, so it reads via border style and weight instead.
+     explicit  — solid outline, full-weight text
+     inherited — solid outline, muted text, `*` prefix
+     unset     — dashed outline, muted
+   Green appears only on the completeness segments, where it already means
+   "done" in both products. */
+.effb{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:9.5px;font-weight:600;
+  border:1px solid var(--border-strong);border-radius:100px;padding:1px 8px;background:none;white-space:nowrap;}
+.effb.explicit{color:var(--octave-black);border-color:var(--octave-black);}
+[data-theme="dark"] .effb.explicit{color:var(--white);border-color:var(--white);}
+.effb.inherited{color:var(--gray-4);}
+.effb.unset{color:var(--gray-4);border-style:dashed;}
+.effb-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;}
+
+/* ══ CROSS-DOMAIN CONSISTENCY STRIP ══
+   Severity reads via the existing red (error) vs. neutral-outline (warning)
+   pair rather than a new amber — §23 has no amber, and inventing one here
+   for an admin screen would be the fourth colour instrument. */
+.iss-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:11px;
+  overflow:hidden;margin-bottom:13px;}
+.iss-h{padding:9px 14px;background:var(--bg-section);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.4px;
+  text-transform:uppercase;color:var(--gray-4);}
+.iss-h svg{width:14px;height:14px;}
+.iss{display:flex;align-items:center;gap:11px;padding:10px 14px;border-bottom:1px solid var(--border);
+  font-size:12px;line-height:1.5;}
+.iss:last-child{border-bottom:none;}
+.iss-b{flex:1;min-width:0;}
+.iss-b b{font-family:var(--font-mono);font-size:11.5px;}
+.iss.error{border-left:3px solid var(--red);}
+.iss.warn{border-left:3px solid var(--border-strong);}
+.ok-strip{background:var(--bg-card);border:1px solid var(--border);border-left:3px solid var(--green);
+  border-radius:11px;padding:11px 15px;margin-bottom:13px;font-size:12px;color:var(--gray-4);
+  display:flex;align-items:center;gap:9px;line-height:1.5;}
+.ok-strip svg{width:15px;height:15px;color:var(--green);flex-shrink:0;}
+
+/* ══ OVERVIEW DOMAIN CARDS ══ */
+.dom-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:12px;}
+.dom{background:var(--bg-card);border:1px solid var(--border);border-radius:11px;padding:13px 14px;
+  display:flex;flex-direction:column;gap:9px;}
+.dom-top{display:flex;align-items:flex-start;gap:10px;}
+.dom-ico{width:32px;height:32px;border-radius:9px;border:1.5px solid var(--border-strong);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;color:var(--gray-4);}
+.dom-ico svg{width:16px;height:16px;}
+.dom-tt{flex:1;min-width:0;}
+.dom-t{font-size:13px;font-weight:700;line-height:1.25;}
+.dom-grain{font-family:var(--font-mono);font-size:9.5px;color:var(--gray-4);margin-top:2px;}
+.dom-sum{font-size:12px;line-height:1.5;color:var(--gray-5);}
+[data-theme="dark"] .dom-sum{color:var(--gray-4);}
+.dom-sum b{color:var(--octave-black);font-weight:700;font-family:var(--font-mono);font-size:11.5px;}
+[data-theme="dark"] .dom-sum b{color:var(--white);}
+.dom-foot{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:4px;}
+.dom-where{font-size:10.5px;color:var(--gray-3);flex:1;line-height:1.35;}
+
+/* ══ THESIS STRIP — states what the screen is for, once, at the top ══ */
+.thesis{background:var(--bg-card);border:1px solid var(--border);border-left:3px solid var(--teal);
+  border-radius:11px;padding:12px 15px;margin-bottom:13px;}
+.thesis-t{font-size:12.5px;font-weight:700;margin-bottom:3px;}
+.thesis-d{font-size:11.5px;color:var(--gray-4);line-height:1.55;}
+.thesis-d b{color:var(--octave-black);}
+[data-theme="dark"] .thesis-d b{color:var(--white);}
+
+/* ══ GRID (child-tab table) — same .mg component as the base UI prototype ══ */
+.mg-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:11px;overflow:hidden;}
+table.mg{border-collapse:separate;border-spacing:0;width:100%;}
+.mg thead th{background:var(--bg-section);text-align:left;font-size:11px;font-weight:700;color:var(--gray-5);
+  padding:8px 12px;border-bottom:1px solid var(--border-strong);white-space:nowrap;user-select:none;}
+[data-theme="dark"] .mg thead th{color:var(--gray-4);}
+.mg thead th.num,.mg tbody td.num{text-align:right;font-family:var(--font-mono);}
+.mg thead th.ctr,.mg tbody td.ctr{text-align:center;}
+.mg tbody td{padding:0 12px;height:40px;border-bottom:1px solid var(--border);font-size:12.5px;white-space:nowrap;}
+.mg tbody tr.tap{cursor:pointer;}
+.mg tbody tr.tap:hover td{background:var(--bg-section);}
+.mg tbody tr:last-child td{border-bottom:none;}
+.mg-hint{font-size:11.5px;color:var(--gray-4);padding:10px 14px;background:var(--bg-section);line-height:1.5;
+  border-top:1px solid var(--border);}
+.mg-hint b{color:var(--octave-black);}
+[data-theme="dark"] .mg-hint b{color:var(--white);}
+.cell-mono{font-family:var(--font-mono);font-weight:600;}
+.cell-mute{color:var(--gray-4);}
+.cell-sub{font-size:10.5px;color:var(--gray-4);}
+.cell-2{display:flex;flex-direction:column;gap:0;line-height:1.3;padding:6px 0;}
+.orgb{display:inline-block;font-family:var(--font-mono);font-size:10px;font-weight:600;
+  border:1px solid var(--border-strong);border-radius:100px;padding:1px 7px;background:none;}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:100px;padding:2px 9px;font-size:11px;font-weight:700;white-space:nowrap;}
+.pill-green{background:var(--green);color:#fff;}
+.pill-outline{border:1.5px solid var(--border-strong);color:var(--octave-black);}
+[data-theme="dark"] .pill-outline{color:var(--white);}
+.pill-warn{border:1.5px solid var(--red);color:var(--red);}
+.tdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block;margin-right:7px;vertical-align:middle;}
+.sw{width:30px;height:17px;border-radius:100px;background:var(--border-strong);position:relative;transition:background .16s;flex-shrink:0;cursor:pointer;display:inline-block;vertical-align:middle;}
+.sw::after{content:'';position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:#fff;transition:transform .16s;}
+.sw.on{background:var(--green);}
+.sw.on::after{transform:translateX(13px);}
+/* Inherited domains are read-only, so their switches lose the pointer and go
+   quiet rather than staying live and silently editing the * default. */
+.sw.dis{opacity:.45;cursor:not-allowed;}
+
+/* ══ FIELD SYSTEM — the .fd component, trimmed to the types this screen uses ══ */
+.fd{min-width:0;}
+.fd.full{grid-column:1/-1;}
+.fd.grid{position:relative;}
+.fd.grid > .fd-l{position:absolute;top:-7px;left:9px;z-index:1;padding:0 5px;background:var(--bg-card);
+  font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--gray-4);white-space:nowrap;
+  display:flex;align-items:center;gap:4px;}
+.fd-box{position:relative;border:1px solid var(--border);border-radius:9px;background:var(--bg-card);
+  min-height:46px;display:flex;align-items:center;gap:9px;padding:9px 11px;
+  transition:border-color .15s,box-shadow .15s,background .15s;}
+.fd-box[onclick]{cursor:pointer;}
+.fd-act.static{pointer-events:none;}
+.fd-sel{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0;padding:0;border:none;}
+.fd.grid .fd-box{cursor:text;}
+.fd.grid .fd-box:hover{border-color:var(--gray-3);}
+.fd-box:focus-within{border-color:var(--octave-black);box-shadow:0 0 0 3px rgba(26,26,31,.08);}
+[data-theme="dark"] .fd-box:focus-within{border-color:var(--white);box-shadow:0 0 0 3px rgba(255,255,255,.12);}
+.fd-req{color:var(--red);font-weight:800;}
+.fd-lock{width:11px;height:11px;color:var(--gray-3);flex-shrink:0;}
+.fd-v{flex:1;min-width:0;font-size:13.5px;font-weight:600;line-height:1.3;color:var(--octave-black);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+[data-theme="dark"] .fd-v{color:var(--white);}
+.fd-v.mono{font-family:var(--font-mono);font-weight:600;letter-spacing:-.2px;}
+.fd-v.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;text-align:right;}
+.fd-empty{color:var(--gray-3);font-weight:500;}
+.fd-unit{font-size:11px;font-weight:600;color:var(--gray-3);flex-shrink:0;font-family:var(--font-sans);}
+.fd-two{display:flex;flex-direction:column;gap:0;flex:1;min-width:0;}
+.fd-two-v{font-size:13.5px;font-weight:600;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fd-two-c{font-family:var(--font-mono);font-size:10.5px;font-weight:600;color:var(--gray-4);line-height:1.3;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fd-box input,.fd-box select{border:none;background:none;outline:none;flex:1;min-width:0;padding:0;
+  font-family:inherit;font-size:13.5px;font-weight:600;color:inherit;line-height:1.3;}
+.fd-box input.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;text-align:right;}
+.fd-box select{cursor:pointer;appearance:none;}
+.fd-act{width:24px;height:24px;border:none;background:none;cursor:pointer;color:var(--gray-4);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;border-radius:6px;padding:0;
+  opacity:.4;transition:opacity .15s,background .15s,color .15s;}
+.fd-box:hover .fd-act,.fd-box:focus-within .fd-act{opacity:1;}
+.fd-act svg{width:14px;height:14px;}
+.fd.prot .fd-box{background:var(--bg-section);border-color:transparent;cursor:default;}
+.fd.prot .fd-box:hover{border-color:transparent;}
+.fd.prot .fd-v,.fd.prot .fd-two-v{color:var(--gray-5);font-weight:500;}
+[data-theme="dark"] .fd.prot .fd-v,[data-theme="dark"] .fd.prot .fd-two-v{color:var(--gray-4);}
+.fd-badge{width:30px;height:30px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  border:1.5px solid var(--border-strong);color:var(--octave-black);}
+[data-theme="dark"] .fd-badge{color:var(--white);}
+.fd-badge.fill{border:none;color:#fff;}
+.fd-badge svg{width:16px;height:16px;}
+.fdgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:22px 14px;}
+
+/* ══ BOTTOM-NAV SLOT EDITOR ══ */
+.slots{display:flex;flex-direction:column;gap:9px;}
+.slot{background:var(--bg-card);border:1px solid var(--border);border-radius:11px;padding:11px 12px;
+  display:flex;align-items:center;gap:11px;}
+.slot-seq{width:26px;height:26px;border-radius:7px;background:var(--bg-section);border:1px solid var(--border-strong);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  font-family:var(--font-mono);font-size:11px;font-weight:700;}
+.slot-ico{width:38px;height:38px;border-radius:10px;background:var(--bg-nav);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.86);cursor:pointer;}
+.slot-ico svg{width:19px;height:19px;}
+.slot-ico:hover{opacity:.85;}
+.slot-main{flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:10px;align-items:center;}
+@media(max-width:900px){.slot-main{grid-template-columns:1fr;}}
+.slot-f{min-width:0;}
+.slot-fl{font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--gray-4);margin-bottom:2px;}
+.slot-lbl{width:100%;border:1px solid var(--border);border-radius:7px;background:var(--bg-card);
+  padding:6px 9px;font-size:12.5px;font-weight:600;outline:none;}
+.slot-lbl:focus{border-color:var(--octave-black);}
+[data-theme="dark"] .slot-lbl:focus{border-color:var(--white);}
+.slot-tgt{display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:7px;
+  padding:5px 9px;cursor:pointer;min-height:31px;background:var(--bg-card);}
+.slot-tgt:hover{border-color:var(--gray-3);}
+.slot-tgt-b{flex:1;min-width:0;}
+.slot-tgt-v{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.slot-tgt-c{font-family:var(--font-mono);font-size:10px;color:var(--gray-4);}
+.slot-kind{font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;
+  border:1px solid var(--border-strong);border-radius:100px;padding:1px 6px;color:var(--gray-4);flex-shrink:0;}
+.slot-acts{display:flex;align-items:center;gap:3px;flex-shrink:0;}
+.slot-mv{width:24px;height:22px;border:1px solid var(--border-strong);border-radius:6px;background:var(--bg-card);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gray-4);}
+.slot-mv:hover:not(:disabled){background:var(--bg-section);}
+.slot-mv:disabled{opacity:.3;cursor:default;}
+.slot-mv svg{width:11px;height:11px;}
+.slot-del{width:26px;height:26px;border:none;background:none;border-radius:7px;cursor:pointer;color:var(--gray-4);
+  display:flex;align-items:center;justify-content:center;}
+.slot-del:hover{background:var(--bg-section);color:var(--red);}
+.slot-del svg{width:14px;height:14px;}
+
+/* Live phone preview — makes §26.4's arithmetic something you can see
+   rather than a sentence in a doc. Real 390px box, real 84px items. */
+.prev-wrap{margin-top:14px;background:var(--bg-card);border:1px solid var(--border);border-radius:11px;overflow:hidden;}
+.prev-h{padding:9px 13px;border-bottom:1px solid var(--border);display:flex;align-items:baseline;gap:9px;background:var(--bg-section);}
+.prev-t{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--gray-4);}
+.prev-math{margin-left:auto;font-family:var(--font-mono);font-size:10.5px;font-weight:600;color:var(--gray-4);}
+.prev-math.over{color:var(--red);}
+.prev-b{padding:16px;display:flex;justify-content:center;background:var(--bg-page);}
+.phone{width:390px;flex-shrink:0;border-radius:16px 16px 20px 20px;overflow:hidden;border:1px solid var(--border-strong);
+  background:var(--bg-nav);box-shadow:0 8px 26px rgba(0,0,0,.22);}
+.phone-body{height:56px;background:var(--bg-page);display:flex;align-items:center;justify-content:center;
+  font-size:10.5px;color:var(--gray-3);font-family:var(--font-mono);}
+/* Copied geometry, not approximated: 80px tall, 84px items, 14px gap,
+   centred — the actual .bottom-nav rule in eam-shared.css. */
+.phone-nav{height:80px;display:flex;align-items:flex-start;justify-content:center;gap:14px;padding-top:8px;
+  border-top:1px solid rgba(255,255,255,.22);overflow:hidden;}
+.pn-item{width:84px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;
+  color:rgba(255,255,255,.5);font-size:10.5px;font-weight:600;padding:7px 0;border-radius:100px;}
+.pn-item.first{color:#fff;background:rgba(255,255,255,.2);}
+.pn-item svg{width:23px;height:23px;}
+.pn-lbl{max-width:82px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.prev-warn{padding:9px 13px;background:rgba(220,38,38,.08);border-top:1px solid var(--border);
+  font-size:11.5px;color:var(--red);line-height:1.45;}
+
+/* ══ POPOVER ══ */
+.pop{position:fixed;background:var(--bg-card);border:1px solid var(--border);border-radius:11px;
+  box-shadow:0 16px 44px rgba(0,0,0,.22);z-index:300;min-width:290px;max-width:390px;
+  display:none;flex-direction:column;max-height:460px;overflow:hidden;}
+.pop.open{display:flex;}
+.pop-h{padding:10px 12px 8px;border-bottom:1px solid var(--border);}
+.pop-t{font-size:12px;font-weight:700;}
+.pop-s{font-size:10.5px;color:var(--gray-4);margin-top:2px;line-height:1.4;}
+.pop-b{flex:1;overflow-y:auto;padding:5px;}
+.pop-grp{font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--gray-3);padding:8px 9px 3px;}
+.pop-opt{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:7px;cursor:pointer;}
+.pop-opt:hover{background:var(--bg-section);}
+.pop-opt.dis{opacity:.45;cursor:not-allowed;}
+.pop-opt.dis:hover{background:none;}
+.pop-opt-b{flex:1;min-width:0;}
+.pop-opt-t{font-size:12.5px;font-weight:600;}
+.pop-opt-s{font-size:10.5px;color:var(--gray-4);}
+.pop-opt-s.mono{font-family:var(--font-mono);}
+.pop-f{padding:9px 12px;border-top:1px solid var(--border);display:flex;gap:8px;}
+.pop-f .btn{flex:1;justify-content:center;}
+.cbx{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--gray-3);display:flex;align-items:center;
+  justify-content:center;cursor:pointer;background:var(--bg-card);flex-shrink:0;}
+.cbx svg{width:10px;height:10px;color:#fff;display:none;}
+.cbx.on{background:var(--octave-black);border-color:var(--octave-black);}
+[data-theme="dark"] .cbx.on{background:var(--white);border-color:var(--white);}
+[data-theme="dark"] .cbx.on svg{color:var(--octave-black);}
+.cbx.on svg{display:block;}
+
+/* ══ PLACEHOLDER ══ */
+.ph{padding:52px 20px;text-align:center;color:var(--gray-4);background:var(--bg-card);
+  border:1px solid var(--border);border-radius:11px;}
+.ph-i{width:42px;height:42px;border-radius:11px;background:var(--bg-section);display:flex;align-items:center;
+  justify-content:center;margin:0 auto 12px;}
+.ph-i svg{width:20px;height:20px;}
+.ph-t{font-size:14px;font-weight:700;color:var(--octave-black);}
+[data-theme="dark"] .ph-t{color:var(--white);}
+.ph-d{font-size:12.5px;margin-top:5px;max-width:480px;margin-left:auto;margin-right:auto;line-height:1.55;}
+.ph-tag{display:inline-block;font-family:var(--font-mono);font-size:9.5px;font-weight:600;
+  border:1px solid var(--border-strong);border-radius:100px;padding:2px 8px;margin-top:12px;}
+
+/* ══ TOAST ══ */
+.toast{position:fixed;bottom:22px;left:50%;transform:translate(-50%,16px);background:var(--octave-black);color:#fff;
+  padding:9px 17px;border-radius:100px;font-size:12.5px;font-weight:600;z-index:500;max-width:80vw;text-align:center;
+  opacity:0;visibility:hidden;transition:opacity .2s,transform .2s,visibility .2s;box-shadow:0 8px 26px rgba(0,0,0,.3);}
+[data-theme="dark"] .toast{background:var(--white);color:var(--octave-black);}
+.toast.on{opacity:1;visibility:visible;transform:translate(-50%,0);}
+
+/* ══ DESIGN-NOTES PANEL ══ */
+.notes{position:fixed;right:16px;bottom:16px;width:420px;max-width:calc(100vw - 32px);max-height:76vh;
+  background:var(--bg-card);border:1px solid var(--border);border-radius:13px;box-shadow:0 20px 54px rgba(0,0,0,.26);
+  z-index:400;display:none;flex-direction:column;overflow:hidden;}
+.notes.open{display:flex;}
+.notes-h{padding:13px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;}
+.notes-t{font-size:13.5px;font-weight:700;}
+.notes-b{flex:1;overflow-y:auto;padding:13px 15px 16px;}
+.note{padding:10px 0;border-bottom:1px solid var(--border);}
+.note:last-child{border-bottom:none;}
+.note-n{font-family:var(--font-mono);font-size:10px;font-weight:700;color:var(--gray-3);}
+.note-t{font-size:12.5px;font-weight:700;margin:2px 0 3px;}
+.note-d{font-size:12px;color:var(--gray-5);line-height:1.55;}
+[data-theme="dark"] .note-d{color:var(--gray-4);}
+.note-d b{color:var(--octave-black);}
+[data-theme="dark"] .note-d b{color:var(--white);}
+.note-tag{display:inline-block;font-family:var(--font-mono);font-size:9.5px;font-weight:600;
+  border:1px solid var(--border-strong);border-radius:100px;padding:1px 6px;color:var(--gray-4);margin-top:5px;}
+
+/* ══ PROTO BAR ══ */
+.protobar{flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:9px;padding:5px 0;background:var(--bg-page);}
+.protobar-l{font-size:9.5px;font-weight:600;letter-spacing:.3px;color:var(--gray-4);font-family:var(--font-mono);text-transform:uppercase;}
+.protobar button{font-size:10.5px;font-weight:600;color:var(--gray-4);background:var(--bg-section);
+  border:1px solid var(--border-strong);border-radius:100px;padding:3px 10px;cursor:pointer;}
+.protobar button:hover{color:var(--octave-black);}
+[data-theme="dark"] .protobar button:hover{color:var(--white);}
+</style>
+</head>
+<body>
+
+<div class="protobar">
+  <span class="protobar-l">Base · User Group Setup · v1</span>
+  <button onclick="toggleTheme()" id="themeBtn">◐ Light</button>
+  <button onclick="pickGroup('MAINT-TECH')">Fully configured group</button>
+  <button onclick="pickGroup('STORES')">Unconfigured group</button>
+  <button onclick="pickGroup('*')">The * default</button>
+  <button onclick="toggleNotes()">ⓘ Design notes</button>
+</div>
+
+<div class="shell">
+
+  <!-- ══════════ ICON RAIL ══════════ -->
+  <nav class="rail">
+    <div class="rail-logo">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7h18M3 12h18M3 17h11"/></svg>
+    </div>
+    <button class="rail-btn" onclick="toast('Start Center — not in this mockup')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/><path d="M9 21v-7h6v7"/></svg>
+      <span class="rail-btn-label">Home</span>
+    </button>
+    <button class="rail-btn" onclick="toast('Work module — see the Base / Desktop UI prototype')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4.5 4.5 0 006 6l-8.4 8.4a2 2 0 01-2.8 0l-3.2-3.2a2 2 0 010-2.8z"/></svg>
+      <span class="rail-btn-label">Work</span>
+    </button>
+    <div class="rail-sep"></div>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn active" onclick="toggleFlyout()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      <span class="rail-btn-label">Setup</span>
+    </button>
+  </nav>
+
+  <!-- ══════════ MENU FLYOUT ══════════ -->
+  <aside class="flyout" id="flyout">
+    <div class="flyout-head">
+      <div class="flyout-mod">Setup</div>
+      <div class="flyout-sub">Security, screen design, mobile configuration</div>
+    </div>
+    <div class="flyout-body">
+      <div class="tree-grp">Security</div>
+      <div class="tree-item" onclick="toast('Security ▸ User Groups — where a group is actually CREATED')">User Groups</div>
+      <div class="tree-item" onclick="toast('Security ▸ Users')">Users</div>
+      <div class="tree-item" onclick="toast('Security ▸ Function Permissions')">Function Permissions</div>
+      <div class="tree-grp">Screen design</div>
+      <div class="tree-item" onclick="location.href='eam-screen-designer-v1.html'">Screen Designer</div>
+      <div class="tree-item" onclick="location.href='eam-workflow-designer-v1_1.html'">Workflow Designer</div>
+      <div class="tree-grp">Mobile</div>
+      <div class="tree-item current">User Group Setup</div>
+      <div class="tree-item" onclick="toast('Home Layout Designer — does not exist yet (§20)')">Home Layout Designer</div>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim" onclick="closeFlyout()"></div>
+
+  <!-- ══════════ MAIN ══════════ -->
+  <div class="main">
+
+    <header class="topbar">
+      <span class="tb-title">HxGN EAM</span>
+      <div class="tb-cmd" onclick="toast('Global search / command palette — ⌘K')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <span class="tb-cmd-txt">Search records, screens, actions…</span>
+        <span class="tb-cmd-kbd">⌘K</span>
+      </div>
+      <div class="tb-right">
+        <!-- No Create button. See the .tb-create note in the stylesheet. -->
+        <button class="tb-icon" onclick="toast('Help')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 015 .5c0 1.5-2.5 2-2.5 3.5"/><path d="M12 17h.01"/></svg>
+        </button>
+        <span class="tb-env">DK's Environment</span>
+        <button class="tb-avatar" onclick="toast('DKILBURN — profile, environment, sign out')">DK</button>
+      </div>
+    </header>
+
+    <div class="rechead" id="crumb"></div>
+
+    <div class="stage">
+
+      <!-- ══════════ USER GROUP LIST (context rail, no insert) ══════════ -->
+      <aside class="ctx" id="ctx">
+        <div class="ctx-panel">
+          <div class="ctx-head">
+            <span class="ctx-head-t">User groups</span>
+            <button class="btn btn-ghost btn-icon" onclick="collapseCtx()" title="Collapse">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg>
+            </button>
+          </div>
+          <div class="ctx-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="ugSearch" placeholder="Filter groups…" oninput="renderGroups()">
+          </div>
+          <div class="ctx-note">
+            No insert here. A user group is created in <b>Security ▸ User Groups</b>;
+            this screen configures the mobile app for one that already exists.
+          </div>
+          <div class="ctx-body" id="ugList"></div>
+        </div>
+        <div class="ctx-strip" onclick="collapseCtx()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+          <span class="ctx-strip-l">User groups</span>
+          <span class="ctx-strip-n" id="ugStripN">8</span>
+        </div>
+      </aside>
+
+      <!-- ══════════ THE GROUP RECORD ══════════ -->
+      <div class="pane">
+        <div class="tabs">
+          <div class="tabs-inner" id="tabsInner"></div>
+        </div>
+        <div class="rbody" id="body" onscroll="onBodyScroll()"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="pop" id="pop"></div>
+<div class="toast" id="toast"></div>
+
+<div class="notes" id="notes">
+  <div class="notes-h">
+    <span class="notes-t">Design notes — why this screen is shaped like this</span>
+    <button class="btn btn-ghost btn-icon" onclick="toggleNotes()" style="margin-left:auto">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="notes-b" id="notesBody"></div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   DATA
+   ═══════════════════════════════════════════════════════════════════════
+   Function codes, descriptions and PLO_PAGENAME row counts are the REAL
+   ones from docs/Data_refs/Page Layouts perms/ — see §26.1. Everything
+   else (group names, sync policies, nav bindings) is demo data.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Every WO-screen function in the customer's export is FUN_RENTITY = EVNT
+   with PLO_PARENTPAGE = WSJOBS. That is the §26.7 eligibility predicate:
+   entity, not code, and never FUN_SYSTEM (a boolean) or
+   FUN_PARENTFUNCTION (empty for all of them). */
+const FUNCTIONS = {
+  WSJOBS: {code:'WSJOBS', desc:'Work Orders',           entity:'EVNT', parent:null,     rows:0,   tabs:['ACT','CHK','PRT','LAB','CLS']},
+  CCJOBS: {code:'CCJOBS', desc:'Contract Jobs',         entity:'EVNT', parent:'WSJOBS', rows:382, tabs:['ACT','CHK','PRT','LAB','CLS']},
+  TRJOBS: {code:'TRJOBS', desc:"Transportation WO's",   entity:'EVNT', parent:'WSJOBS', rows:382, tabs:['ACT','CHK','PRT','LAB','CLS']},
+  ZJ1000: {code:'ZJ1000', desc:'Customer Quotes',       entity:'EVNT', parent:'WSJOBS', rows:237, tabs:['ACT','PRT','CLS']},
+  WSJODC: {code:'WSJODC', desc:'Work Orders (DC)',      entity:'EVNT', parent:'WSJOBS', rows:0,   tabs:['ACT','CHK','PRT','LAB','CLS']},
+  WSEQUIP:{code:'WSEQUIP',desc:'Equipment',             entity:'OBJ',  parent:null,     rows:0,   tabs:[]},
+};
+/* The tabs a configured WO workflow needs (§12's step set). Enabling the
+   workflow on a function that can't supply these is what §20's
+   workflow-eligibility validation exists to catch. */
+const WORKFLOW_REQ_TABS = ['ACT','CHK','PRT','LAB','CLS'];
+const TAB_NAMES = {ACT:'Activities', CHK:'Checklist', PRT:'Parts', LAB:'Book Labor', CLS:'Closing'};
+
+const BUILTINS = {
+  home:   {code:'home',   desc:'Home',          ico:'home'},
+  notif:  {code:'notif',  desc:'Notifications', ico:'bell'},
+  sync:   {code:'sync',   desc:'Sync Status',   ico:'sync'},
+};
+
+const SYNC_ENTITIES = [
+  {code:'WSJOBS',  name:'Work Orders'},
+  {code:'WSEQUIP', name:'Equipment'},
+  {code:'WSPART',  name:'Parts & Stock'},
+  {code:'WSEMPL',  name:'Employees & Crews'},
+  {code:'WSCHK',   name:'Checklists / Task Plans'},
+];
+const SCOPES = ['Assigned to me','My crew','My department','My organization','All records'];
+const HORIZONS = ['7 days','14 days','30 days','90 days','No date limit'];
+
+/* ═══════════════════════════════════════════════════════════════════════
+   WORKFLOW CONFIGURATIONS — the artifacts, NOT a per-group flag
+   ═══════════════════════════════════════════════════════════════════════
+   THE MODEL CORRECTION THAT FIXED THIS TAB. The first pass gave each group
+   a `wf` map with an "enabled" boolean per function, which duplicated a
+   fact the data already carries: a workflow is enabled for a group exactly
+   when a configuration is SAVED TO that group. Two sources of truth for one
+   fact, and the wrong grain — a config is keyed
+   `(function, WO Type, group)` (§12), not per function.
+
+   So a configuration is a first-class artifact, authored ONCE in Screen
+   Designer and saved to N groups — which is precisely what Screen
+   Designer's Save-to-Group(s) dual listbox already does (§10). `groups` IS
+   that listbox's contents, stored on the artifact.
+
+   That makes this screen's job unambiguous: it edits MEMBERSHIP of
+   `groups` from the group's side, and never touches steps, layout,
+   freeForm, or which configs exist. Everything in the right-hand column
+   below is Screen Designer's; only `groups` is this screen's.
+   ═══════════════════════════════════════════════════════════════════════ */
+const WORKFLOW_CONFIGS = [
+  {id:'c1', fn:'WSJOBS', type:'Breakdown',  steps:['ACT','CHK','PRT','LAB','CLS'], freeForm:false, modified:'2026-08-06', groups:['*','MAINT-TECH','SUPERVISOR']},
+  {id:'c2', fn:'WSJOBS', type:'PM',         steps:['ACT','CHK','LAB','CLS'],       freeForm:false, modified:'2026-08-02', groups:['*','MAINT-TECH']},
+  {id:'c3', fn:'WSJOBS', type:'Routine',    steps:['ACT','CLS'],                   freeForm:true,  modified:'2026-07-28', groups:['MAINT-TECH']},
+  {id:'c4', fn:'CCJOBS', type:'Contract',   steps:['ACT','CHK','PRT','LAB','CLS'], freeForm:false, modified:'2026-07-30', groups:['MAINT-TECH','CONTRACTOR']},
+  {id:'c5', fn:'TRJOBS', type:'Breakdown',  steps:['ACT','CHK','PRT','LAB','CLS'], freeForm:false, modified:'2026-08-01', groups:['TRANSPORT']},
+  {id:'c6', fn:'TRJOBS', type:'Inspection', steps:['ACT','CHK','CLS'],             freeForm:true,  modified:'2026-07-15', groups:['TRANSPORT']},
+  /* Authored and saved to nobody yet — the case that makes "assign an
+     existing configuration" the useful action rather than a formality. */
+  {id:'c7', fn:'WSJODC', type:'Breakdown',  steps:['ACT','CHK','PRT','LAB','CLS'], freeForm:false, modified:'2026-08-12', groups:[]},
+  {id:'c8', fn:'ZJ1000', type:'Quote',      steps:['ACT','PRT','CLS'],             freeForm:true,  modified:'2026-06-30', groups:[]},
+];
+
+/* ── The groups. `*` first: it is the fallback every unconfigured group
+      inherits, per §11's own fallback philosophy applied to config.
+      Note there is no `wf` key — workflow membership lives on the config
+      artifact above, which is the whole point of the correction. ── */
+const GROUPS = [
+  {code:'*', desc:'Default — inherited by any group with no explicit config', users:0, dflt:true,
+   perms:['WSJOBS','WSEQUIP'],
+   nav:[{label:'Home',kind:'builtin',target:'home'},
+        {label:'Work',kind:'function',target:'WSJOBS'},
+        {label:'Alerts',kind:'builtin',target:'notif'}],
+   navSet:true,
+   home:null,
+   sync:[{e:'WSJOBS',scope:'Assigned to me',horizon:'30 days',cap:500},
+         {e:'WSEQUIP',scope:'My organization',horizon:'No date limit',cap:2000}],
+   syncSet:true},
+
+  {code:'MAINT-TECH', desc:'Maintenance Technicians', users:34, perms:['WSJOBS','CCJOBS','WSEQUIP'],
+   nav:[{label:'Home',kind:'builtin',target:'home'},
+        {label:'Work',kind:'function',target:'WSJOBS'},
+        {label:'Assets',kind:'function',target:'WSEQUIP'},
+        {label:'Alerts',kind:'builtin',target:'notif'}],
+   navSet:true,
+   home:{tiles:6, favs:3, actions:['Work Order','Equipment','Meter Reading'], modified:'2026-08-04'},
+   sync:[{e:'WSJOBS',scope:'Assigned to me',horizon:'30 days',cap:500},
+         {e:'WSEQUIP',scope:'My department',horizon:'No date limit',cap:2000},
+         {e:'WSPART',scope:'My organization',horizon:'No date limit',cap:5000},
+         {e:'WSEMPL',scope:'My crew',horizon:'No date limit',cap:250},
+         {e:'WSCHK',scope:'Assigned to me',horizon:'30 days',cap:1000}],
+   syncSet:true},
+
+  {code:'TRANSPORT', desc:'Fleet & Transportation', users:12, perms:['TRJOBS','WSEQUIP'],
+   nav:[{label:'Home',kind:'builtin',target:'home'},
+        {label:'Transport',kind:'function',target:'TRJOBS'},
+        {label:'Alerts',kind:'builtin',target:'notif'}],
+   navSet:true,
+   home:null,
+   sync:[{e:'TRJOBS',scope:'My crew',horizon:'14 days',cap:300}],
+   syncSet:true},
+
+  {code:'CONTRACTOR', desc:'External Contractors', users:8, perms:['CCJOBS'],
+   nav:[{label:'Home',kind:'builtin',target:'home'},
+        {label:'Jobs',kind:'function',target:'CCJOBS'},
+        {label:'Alerts',kind:'builtin',target:'notif'}],
+   navSet:true,
+   home:null,
+   sync:null, syncSet:false},
+
+  /* Nav points at ZJ1000 with no configuration assigned — the cross-domain
+     inconsistency only this screen can see (§26.5.1). */
+  {code:'SALES-ENG', desc:'Sales Engineering (quotes)', users:5, perms:['ZJ1000','WSEQUIP'],
+   nav:[{label:'Home',kind:'builtin',target:'home'},
+        {label:'Quotes',kind:'function',target:'ZJ1000'},
+        {label:'Alerts',kind:'builtin',target:'notif'}],
+   navSet:true,
+   home:null,
+   sync:null, syncSet:false},
+
+  /* Inherits the * default's nav, which points at WSJOBS — a function
+     DC-OPS has no PRM_SELECT on. The second cross-domain inconsistency. */
+  {code:'DC-OPS', desc:'Distribution Centre Operations', users:19, perms:['WSJODC','WSEQUIP'],
+   nav:null, navSet:false,
+   home:null,
+   sync:null, syncSet:false},
+
+  {code:'SUPERVISOR', desc:'Maintenance Supervisors', users:6, perms:['WSJOBS','CCJOBS','TRJOBS','WSEQUIP'],
+   nav:[{label:'Home',kind:'builtin',target:'home'},
+        {label:'Work',kind:'function',target:'WSJOBS'},
+        {label:'Contracts',kind:'function',target:'CCJOBS'},
+        {label:'Alerts',kind:'builtin',target:'notif'}],
+   navSet:true,
+   home:{tiles:8, favs:5, actions:['Work Order','Equipment'], modified:'2026-07-19'},
+   sync:null, syncSet:false},
+
+  {code:'STORES', desc:'Storeroom & Inventory', users:11, perms:['WSJOBS','WSEQUIP'],
+   nav:null, navSet:false, home:null, sync:null, syncSet:false},
+];
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CONFIG QUERIES — permission-filtered, which matters more than it looks
+   ═══════════════════════════════════════════════════════════════════════
+   A config for a function the group cannot select does NOT apply to it,
+   inherited or otherwise. Without this filter SALES-ENG would report as
+   "inheriting" the * default's WSJOBS workflow, which it can never reach —
+   a resolution view that lies is worse than no resolution view.
+   ═══════════════════════════════════════════════════════════════════════ */
+function configsFor(g){ return WORKFLOW_CONFIGS.filter(c => g.perms.includes(c.fn)); }
+function assignedTo(g){ return configsFor(g).filter(c => c.groups.includes(g.code)); }
+function inheritedFor(g){
+  if(g.dflt) return [];
+  return configsFor(g).filter(c => !c.groups.includes(g.code) && c.groups.includes('*'));
+}
+/* Configs this group could be assigned but isn't — the reverse of Screen
+   Designer's Save-to-Group listbox, seen from the group. */
+function assignableTo(g){
+  return configsFor(g).filter(c => !c.groups.includes(g.code) && !c.groups.includes('*'));
+}
+/* Can this function carry a full guided workflow at all? A capability of
+   the FUNCTION (its tab set), so it is reported here and fixed in Screen
+   Designer — never "fixed" by assigning around it. */
+function capabilityGap(fnCode){
+  const f = FUNCTIONS[fnCode];
+  return f ? WORKFLOW_REQ_TABS.filter(t => !f.tabs.includes(t)) : [];
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════════════════════════════════════ */
+let cur = GROUPS.find(g=>g.code==='MAINT-TECH');
+let tab = 'overview';
+let dirty = false;
+
+const TABS = [
+  {id:'overview', label:'Overview'},
+  {id:'screens',  label:'Screen Design & Workflow'},
+  {id:'nav',      label:'Bottom Nav'},
+  {id:'sync',     label:'Sync & Download'},
+  {id:'home',     label:'Home Layout'},
+];
+
+/* ═══════════════════════════════════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════════════════════════════════ */
+function esch(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function $(id){ return document.getElementById(id); }
+
+let toastT;
+function toast(msg){
+  const t=$('toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),2400);
+}
+function toggleTheme(){
+  const dark = document.documentElement.getAttribute('data-theme')==='dark';
+  document.documentElement.setAttribute('data-theme', dark?'light':'dark');
+  $('themeBtn').textContent = dark?'◐ Dark':'◐ Light';
+}
+function toggleFlyout(){ $('flyout').classList.toggle('open'); $('scrim').classList.toggle('on'); }
+function closeFlyout(){ $('flyout').classList.remove('open'); $('scrim').classList.remove('on'); }
+function collapseCtx(){ $('ctx').classList.toggle('collapsed'); }
+function toggleNotes(){ $('notes').classList.toggle('open'); }
+function onBodyScroll(){
+  const h = document.querySelector('.hero');
+  if(h) h.classList.toggle('scrolled', $('body').scrollTop > 26);
+}
+
+const ICO = {
+  lov:'<path d="M14 3H6a1 1 0 00-1 1v16a1 1 0 001 1h12a1 1 0 001-1V8z"/><path d="M14 3v5h5"/><circle cx="11" cy="14" r="2.6"/><path d="M13 16l2.4 2.4"/>',
+  chev:'<path d="M6 9l6 6 6-6"/>',
+  lock:'<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>',
+  cog:'<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>',
+  home:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10"/>',
+  bell:'<path d="M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 003.4 0"/>',
+  sync:'<path d="M20 11a8 8 0 10-2.3 5.7"/><path d="M20 4v7h-7"/>',
+  tool:'<path d="M14.7 6.3a4.5 4.5 0 006 6l-8.4 8.4a2 2 0 01-2.8 0l-3.2-3.2a2 2 0 010-2.8z"/>',
+  grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  layers:'<path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/>',
+  download:'<path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M4 20h16"/>',
+  copy:'<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h8"/>',
+  trash:'<path d="M4 7h16"/><path d="M10 11v6M14 11v6"/><path d="M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13"/><path d="M9 7V4h6v3"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  warn:'<path d="M12 3l9.5 17H2.5z"/><path d="M12 9v5M12 17h.01"/>',
+  check:'<path d="M5 12l5 5L19 7"/>',
+  ext:'<path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/>',
+  users:'<path d="M16 20v-1.5a4 4 0 00-4-4H7a4 4 0 00-4 4V20"/><circle cx="9.5" cy="7.5" r="3.5"/><path d="M21 20v-1.5a4 4 0 00-3-3.85"/><path d="M16.5 4.15a3.5 3.5 0 010 6.7"/>',
+};
+function svgIco(name, sw){
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw||1.8}" stroke-linecap="round" stroke-linejoin="round">${ICO[name]||ICO.cog}</svg>`;
+}
+
+/* ── The .fd field factory, trimmed to the types this screen uses. Same
+      API and same markup as eam-base-desktop-ui-prototype-v1.html so the
+      fields are literally the same component, not a lookalike. ── */
+function fld(type, label, o){
+  o = o || {};
+  const prot = !!o.prot || type==='prot';
+  const cls = ['fd', o.list?'list':'grid'];
+  if(prot) cls.push('prot');
+  if(o.full) cls.push('full');
+  const lab = `<div class="fd-l">${label}${o.req?'<span class="fd-req">*</span>':''}`
+    + (prot?`<svg class="fd-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">${ICO.lock}</svg>`:'')
+    + `</div>`;
+  const cue = ico => `<span class="fd-act static">${svgIco(ico)}</span>`;
+  const empty = '<span class="fd-empty">—</span>';
+  const box = (inner,click) => `<div class="fd-box"${click?` onclick="${click}"`:''}>${inner}</div>`;
+  const wrap = inner => `<div class="${cls.join(' ')}">${lab}${inner}</div>`;
+
+  if(prot) return wrap(box(`<span class="fd-v ${o.mono?'mono':''}${o.num?' num':''}">${o.v?esch(o.v):empty}</span>`
+    + (o.unit?`<span class="fd-unit">${o.unit}</span>`:'')));
+
+  switch(type){
+    case 'select':
+      return wrap(box(`<span class="fd-v">${o.v?esch(o.v):empty}</span>`+cue('chev')
+        + `<select class="fd-sel" onchange="fldSelSync(this);${o.onchange||''}">`
+        + (o.opts||[]).map(x=>`<option ${x===o.v?'selected':''}>${esch(x)}</option>`).join('')
+        + `</select>`));
+    case 'number':
+      return wrap(box(`<input class="num" value="${esch(o.v==null?'':o.v)}" placeholder="${esch(o.ph||'')}"`
+        + `${o.onchange?` onchange="${o.onchange}"`:''}>`+(o.unit?`<span class="fd-unit">${o.unit}</span>`:'')));
+    case 'lovCode':
+      return wrap(box(`<span class="fd-v mono">${o.v?esch(o.v):empty}</span>`+cue('lov'), o.onact||''));
+    default:
+      return wrap(box(`<input value="${esch(o.v||'')}" placeholder="${esch(o.ph||'')}"`
+        + `${o.mono?' class="mono"':''}${o.onchange?` onchange="${o.onchange}"`:''}>`));
+  }
+}
+function fldSelSync(sel){
+  const v = sel.closest('.fd-box').querySelector('.fd-v');
+  if(v) v.textContent = sel.value;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DECLARED vs. EFFECTIVE (§26.5 mechanic 2)
+   ═══════════════════════════════════════════════════════════════════════
+   One resolver, four domains. A domain is EXPLICIT when the group carries
+   its own row set, INHERITED when the `*` default carries one instead, and
+   UNSET when neither does. `*` itself can only ever be explicit or unset —
+   it has nothing to inherit from, which is what makes it the floor.
+   ═══════════════════════════════════════════════════════════════════════ */
+const DFLT = () => GROUPS.find(g=>g.dflt);
+function resolve(group, domain){
+  /* Screens resolve off config membership, not a group-side flag — and the
+     `*` fallback is already permission-filtered by inheritedFor(). */
+  if(domain === 'screens'){
+    if(assignedTo(group).length)   return {state:'explicit',  from:group.code};
+    if(inheritedFor(group).length) return {state:'inherited', from:'*'};
+    return {state:'unset', from:null};
+  }
+  const own = {nav:group.navSet, sync:group.syncSet, home:!!group.home}[domain];
+  if(own) return {state:'explicit', from:group.code};
+  if(group.dflt) return {state:'unset', from:null};
+  const d = DFLT();
+  const dOwn = {nav:d.navSet, sync:d.syncSet, home:!!d.home}[domain];
+  if(dOwn) return {state:'inherited', from:'*'};
+  return {state:'unset', from:null};
+}
+/* The effective value, which is NOT the same as the declared one. Keeping
+   these two functions separate is the whole point — a screen that renders
+   only the effective value can't tell you where it came from, and a screen
+   that renders only the declared one lies about what the technician gets. */
+const DOMAIN_KEY = {nav:'nav', sync:'sync', home:'home'};
+function effective(group, domain){
+  const res = resolve(group, domain);
+  if(domain === 'screens'){
+    return {res, value: res.state==='explicit' ? assignedTo(group)
+                       : res.state==='inherited' ? inheritedFor(group) : []};
+  }
+  if(res.state === 'unset') return {res, value:null};
+  const src = res.state === 'inherited' ? DFLT() : group;
+  return {res, value: src[DOMAIN_KEY[domain]] || null};
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CROSS-DOMAIN CONSISTENCY (§26.5.1)
+   ═══════════════════════════════════════════════════════════════════════
+   The checks NO designer can run, because each one sees a single domain.
+   This is the strongest argument for the screen existing at all: a nav slot
+   and a workflow assignment are authored in different places and can
+   disagree, and only a per-group view notices.
+   ═══════════════════════════════════════════════════════════════════════ */
+function consistencyIssues(g){
+  const out = [];
+  const nav = effective(g,'nav').value || [];
+  const navRes = resolve(g,'nav');
+  nav.filter(s=>s.kind==='function').forEach(s=>{
+    if(!g.perms.includes(s.target)){
+      out.push({sev:'error', tab:'nav',
+        msg:`Nav slot "${s.label}" points at <b>${s.target}</b>, which ${g.code} has no PRM_SELECT on`
+          + (navRes.state==='inherited' ? ` — inherited from the <b>*</b> default, which was written for a group that can` : ``)
+          + `. The slot would fail to open.`});
+    } else if(FUNCTIONS[s.target] && FUNCTIONS[s.target].entity==='EVNT'
+              && !configsFor(g).some(c=>c.fn===s.target && (c.groups.includes(g.code)||c.groups.includes('*')))){
+      out.push({sev:'warn', tab:'screens',
+        msg:`Nav slot "${s.label}" opens <b>${s.target}</b>, but no workflow configuration is assigned for it. Every record opens the plain Standard Record View — §11's fallback, always Free Form.`});
+    }
+  });
+  assignedTo(g).forEach(c=>{
+    const gap = capabilityGap(c.fn);
+    if(gap.length) out.push({sev:'warn', tab:'screens',
+      msg:`<b>${c.fn} · ${c.type}</b> is assigned, but ${c.fn} has no ${gap.map(t=>TAB_NAMES[t]).join(' or ')} tab. Those steps cannot render.`});
+  });
+  if(resolve(g,'sync').state==='unset' && !g.dflt) out.push({sev:'warn', tab:'sync',
+    msg:`No download policy anywhere. A device logging in as ${g.code} would sync nothing.`});
+  return out;
+}
+function effBadge(r){
+  if(r.state==='explicit')  return `<span class="effb explicit"><span class="effb-dot"></span>Explicit</span>`;
+  if(r.state==='inherited') return `<span class="effb inherited"><span class="effb-dot"></span>Inherited from *</span>`;
+  return `<span class="effb unset">Not set</span>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   GROUP LIST
+   ═══════════════════════════════════════════════════════════════════════ */
+function renderGroups(){
+  const q = ($('ugSearch').value||'').toLowerCase();
+  const rows = GROUPS.filter(g => !q || g.code.toLowerCase().includes(q) || g.desc.toLowerCase().includes(q));
+  $('ugStripN').textContent = rows.length;
+  const one = g => {
+    const domains = ['screens','nav','sync','home'];
+    const n = domains.filter(d=>resolve(g,d).state==='explicit').length;
+    return `<div class="ctx-row${g.code===cur.code?' sel':''}${g.dflt?' dflt':''}" onclick="pickGroup('${g.code}')">
+      <div class="ctx-row-top"><span class="ctx-row-no">${esch(g.code)}</span></div>
+      <div class="ctx-row-dsc">${esch(g.desc)}</div>
+      <div class="ctx-row-sub">
+        ${g.dflt?'<span class="orgb">fallback</span>':`<span class="orgb">${g.users} users</span>`}
+        <span>${n}/4 configured</span>
+      </div>
+    </div>`;
+  };
+  const dflt = rows.filter(g=>g.dflt), rest = rows.filter(g=>!g.dflt);
+  $('ugList').innerHTML =
+    (dflt.length?`<div class="ctx-grp">Fallback</div>`+dflt.map(one).join(''):'')
+    + (rest.length?`<div class="ctx-grp">Groups</div>`+rest.map(one).join(''):'')
+    + (!rows.length?`<div class="ctx-note" style="border-style:solid">No group matches that filter.</div>`:'');
+}
+function pickGroup(code){
+  const g = GROUPS.find(x=>x.code===code);
+  if(!g) return;
+  cur = g; dirty = false;
+  renderAll();
+  $('body').scrollTop = 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CRUMB + HERO
+   ═══════════════════════════════════════════════════════════════════════ */
+function renderCrumb(){
+  const idx = GROUPS.indexOf(cur);
+  const domains = ['screens','nav','sync','home'];
+  const states = domains.map(d=>resolve(cur,d).state);
+  const nExp = states.filter(s=>s==='explicit').length;
+  const nInh = states.filter(s=>s==='inherited').length;
+
+  const seg = s => `<div class="hseg ${s==='explicit'?'hseg-done':s==='inherited'?'hseg-active':'hseg-future'}"></div>`;
+
+  $('crumb').innerHTML = `
+  <div class="crumb">
+    <div class="bc">
+      <span class="bc-link" onclick="toggleFlyout()">Setup</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+      <span class="bc-link" onclick="toast('Mobile configuration')">Mobile</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+      <span class="bc-cur">User Group Setup</span>
+    </div>
+    <div class="crumb-right">
+      <div class="stepper">
+        <button onclick="stepGroup(-1)" ${idx<=0?'disabled':''} title="Previous group">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg>
+        </button>
+        <span class="stepper-pos">${idx+1} / ${GROUPS.length}</span>
+        <button onclick="stepGroup(1)" ${idx>=GROUPS.length-1?'disabled':''} title="Next group">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+      <div class="menu-wrap">
+        <button class="btn" onclick="toggleMenu(event)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+          Actions
+        </button>
+        <div class="menu" id="hdrMenu">
+          <div class="menu-label">This group</div>
+          <div class="menu-item" onclick="event.stopPropagation();closeMenu();openCopyFrom()">${svgIco('copy')} Copy configuration from group…</div>
+          <div class="menu-item" onclick="closeMenu();toast('Effective configuration — a read-only merge of this group over the * default')">${svgIco('layers')} View effective configuration</div>
+          <div class="menu-div"></div>
+          <div class="menu-label">Authoring surfaces</div>
+          <div class="menu-item" onclick="event.stopPropagation();closeMenu();launchDesigner(event,null)">${svgIco('ext')} Open Screen Designer for this group</div>
+          <div class="menu-item" onclick="closeMenu();toast('Home Layout Designer does not exist yet (§20)')">${svgIco('ext')} Open Home Layout Designer</div>
+          <div class="menu-div"></div>
+          <div class="menu-item danger" onclick="closeMenu();resetToDefault()">${svgIco('trash')} Reset this group to the * default</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="saveAll()" id="saveBtn">Save</button>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-ident">
+      <div class="hero-code">${esch(cur.code)}</div>
+      <div class="hero-desc">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">${ICO.lock}</svg>
+        ${esch(cur.desc)}
+      </div>
+    </div>
+    <div class="hero-prog-block">
+      <div class="hero-prog-head">
+        <span class="hero-prog-l">Mobile configuration</span>
+        <span class="hero-prog-v">${nExp}/4 explicit</span>
+      </div>
+      <div class="hero-segs">${states.map(seg).join('')}</div>
+      <div class="hero-prog-sub">
+        Screen design · Bottom nav · Sync · Home &nbsp;—&nbsp;
+        ${nExp} explicit, ${nInh} inherited from <b style="font-family:var(--font-mono)">*</b>, ${4-nExp-nInh} not set
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat">
+        <div class="hstat-l">Users</div>
+        <div class="hstat-v">${cur.dflt?'—':cur.users}</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-l">Eligible functions</div>
+        <div class="hstat-v">${eligible(cur).length}<small>/${cur.perms.length}</small></div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-l">Layout rows</div>
+        <div class="hstat-v">${totalRows(cur)}</div>
+      </div>
+    </div>
+  </div>`;
+}
+function stepGroup(d){
+  const i = GROUPS.indexOf(cur) + d;
+  if(i>=0 && i<GROUPS.length) pickGroup(GROUPS[i].code);
+}
+/* §26.7's eligibility predicate, in one place: the ENTITY, not the code. */
+function eligible(g){ return g.perms.filter(c => FUNCTIONS[c] && FUNCTIONS[c].entity==='EVNT'); }
+function totalRows(g){ return g.perms.reduce((n,c)=>n+((FUNCTIONS[c]&&FUNCTIONS[c].rows)||0),0); }
+
+function toggleMenu(e){ e.stopPropagation(); $('hdrMenu').classList.toggle('open'); }
+function closeMenu(){ const m=$('hdrMenu'); if(m) m.classList.remove('open'); }
+document.addEventListener('click', ()=>{ closeMenu(); closePop(); });
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TABS
+   ═══════════════════════════════════════════════════════════════════════ */
+function renderTabs(){
+  $('tabsInner').innerHTML = TABS.map(t=>{
+    const badge = tabBadge(t.id);
+    return `<button class="tab${tab===t.id?' active':''}" onclick="goTab('${t.id}')">${t.label}`
+      + (badge?`<span class="tab-badge">${badge}</span>`:'') + `</button>`;
+  }).join('');
+}
+function tabBadge(id){
+  if(id==='screens') return String((effective(cur,'screens').value||[]).length);
+  if(id==='nav')     { const e=effective(cur,'nav'); return e.value?String(e.value.length):'0'; }
+  if(id==='sync')    { const e=effective(cur,'sync'); return e.value?String(e.value.length):'0'; }
+  return '';
+}
+function goTab(id){ tab=id; renderTabs(); renderBody(); $('body').scrollTop=0; onBodyScroll(); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BODY
+   ═══════════════════════════════════════════════════════════════════════ */
+function renderBody(){
+  const fns = {overview:tabOverview, screens:tabScreens, nav:tabNav, sync:tabSync, home:tabHome};
+  $('body').innerHTML = `<div class="wrapw">${fns[tab]()}</div>`;
+}
+
+/* ── OVERVIEW: the whole thesis of the screen, in four cards ── */
+function tabOverview(){
+  const doms = [
+    {id:'screens', t:'Screen Design & Workflow', ico:'grid',
+     grain:'(function, WO Type, group)', where:'Authored in Screen Designer; assigned here',
+     sum:()=>{
+       const cfgs = effective(cur,'screens').value || [];
+       if(!cfgs.length){
+         const open = assignableTo(cur).length;
+         return `No configuration reaches this group. Every WO opens the plain Standard Record View — §11's fallback, always Free Form.`
+           + (open?` <b>${open}</b> already exist for its own functions and could be assigned.`:'');
+       }
+       const fns = [...new Set(cfgs.map(c=>c.fn))];
+       return `<b>${cfgs.length}</b> configuration${cfgs.length>1?'s':''} across ${fns.join(', ')}`
+         + ` — ${cfgs.map(c=>c.type).join(', ')}.`;
+     }, go:()=>goTab('screens')},
+    {id:'nav', t:'Bottom Nav', ico:'tool',
+     grain:'one ordered row set per group', where:'Assigned here',
+     sum:()=>{
+       const v = effective(cur,'nav').value;
+       if(!v) return `No nav configured anywhere, not even on <b>*</b>. The app would fall back to its built-in Home / Work / Notifications.`;
+       return `<b>${v.length}</b> slots: ${v.map(s=>esch(s.label)).join(' · ')}.`;
+     }, go:()=>goTab('nav')},
+    {id:'sync', t:'Sync & Download Defaults', ico:'download',
+     grain:'one per group', where:'Edited here',
+     sum:()=>{
+       const v = effective(cur,'sync').value;
+       if(!v) return `No download policy. A device logging in as this group would sync nothing until one is set.`;
+       return `<b>${v.length}</b> record type${v.length>1?'s':''} downloaded at login — ${v.map(r=>entName(r.e)).join(', ')}.`;
+     }, go:()=>goTab('sync')},
+    {id:'home', t:'Home Screen Layout', ico:'layers',
+     grain:'one per group', where:'Authored in the Home Layout Designer',
+     sum:()=>{
+       const v = effective(cur,'home').value;
+       if(!v) return `Not configured. Home renders its built-in default tile set.`;
+       return `<b>${v.tiles}</b> tiles, <b>${v.favs}</b> favourites, quick-create for ${v.actions.join(' / ')}.`;
+     }, go:()=>toast('Home Layout Designer does not exist yet — §20 tracks it')},
+  ];
+
+  return `
+  <div class="thesis">
+    <div class="thesis-t">What this screen is</div>
+    <div class="thesis-d">
+      A <b>binding screen</b>, not a config form. It answers one question —
+      <b>what does ${esch(cur.code)}'s mobile app actually look like?</b> — which no
+      designer can answer, because each designer only knows its own domain.
+      Configuration is authored once and pushed to many groups (Screen Designer's
+      Save-to-Group(s)); this is the reverse index over the same rows.
+      Bottom nav and sync are edited here because their grain is a single row set per
+      group. Screen design is <b>assigned</b> here and authored elsewhere. Home only
+      links out, because a layout is not a field.
+    </div>
+  </div>
+
+  ${(()=>{
+    /* The cross-domain checks, at the top of the one tab whose job is
+       "what does this group actually get". No designer can run these,
+       because each one only ever sees a single domain. */
+    const iss = consistencyIssues(cur);
+    if(!iss.length) return `<div class="ok-strip">${svgIco('check',2.4)}
+      Nav slots, workflow assignments and download policy agree with each other and with
+      ${esch(cur.code)}'s function permissions.</div>`;
+    return `<div class="iss-wrap">
+      <div class="iss-h">${svgIco('warn',2)} ${iss.length} inconsistenc${iss.length>1?'ies':'y'} across domains</div>
+      ${iss.map(i=>`<div class="iss ${i.sev}">
+        <span class="iss-b">${i.msg}</span>
+        <button class="btn btn-sm" onclick="goTab('${i.tab}')">Go</button>
+      </div>`).join('')}
+    </div>`;
+  })()}
+
+  <div class="tbar">
+    <div>
+      <div class="tbar-t">Configuration domains</div>
+      <div class="tbar-d">Every row states whether the value is explicit for this group,
+        inherited from the <b style="font-family:var(--font-mono)">*</b> default, or not set at all.</div>
+    </div>
+    <div class="tbar-r">
+      <button class="btn" onclick="event.stopPropagation();openCopyFrom()">${svgIco('copy')} Copy from group…</button>
+    </div>
+  </div>
+
+  <div class="dom-grid">
+    ${doms.map(d=>{
+      const r = resolve(cur, d.id);
+      return `<div class="dom">
+        <div class="dom-top">
+          <span class="dom-ico">${svgIco(d.ico)}</span>
+          <span class="dom-tt">
+            <div class="dom-t">${d.t}</div>
+            <div class="dom-grain">${esch(d.grain)}</div>
+          </span>
+          ${effBadge(r)}
+        </div>
+        <div class="dom-sum">${d.sum()}</div>
+        <div class="dom-foot">
+          <span class="dom-where">${d.where}</span>
+          <button class="btn btn-sm" onclick="DOMGO['${d.id}']()">
+            ${({sync:'Configure', nav:'Configure', screens:'Assign', home:'Open designer'})[d.id]}
+            ${d.id==='home'?svgIco('ext'):''}
+          </button>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>
+
+  <div class="mg-wrap" style="margin-top:13px">
+    <div class="mg-hint">
+      <b>Why there is no Save on this tab.</b> Nothing here is editable — it is a
+      resolution view. Save applies to the two assignment tabs (Bottom Nav, Sync),
+      which are the only places this screen writes.
+    </div>
+  </div>`;
+}
+const DOMGO = {
+  screens: ()=>goTab('screens'),
+  nav:     ()=>goTab('nav'),
+  sync:    ()=>goTab('sync'),
+  home:    ()=>toast('Home Layout Designer does not exist yet — §20 tracks it'),
+};
+function entName(code){
+  const e = SYNC_ENTITIES.find(x=>x.code===code);
+  return e ? e.name : (FUNCTIONS[code] ? FUNCTIONS[code].desc : code);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SCREEN DESIGN & WORKFLOW — an assignment grid over CONFIGURATIONS
+   ═══════════════════════════════════════════════════════════════════════
+   WHAT THIS TAB OWNS, AND WHAT IT DOES NOT. The first pass blurred this,
+   which is why it read loose. The division:
+
+     THIS SCREEN            Screen Designer
+     ────────────────────   ─────────────────────────────────────────────
+     Which configs this      Which configs EXIST
+       group is assigned     Base Screen (function) + WO Type
+     Assign / unassign       Steps included, gating (Free Form)
+       (Save-to-Group        Field layout, states, order, containers
+       membership, from      Copy-from-Group (an authoring seed)
+       the group's side)     Save-to-Group(s) (the fan-out at save time)
+
+   Every column below except "Assigned" is Screen Designer's, and is
+   rendered read-only here. There is no "workflow enabled" toggle any more:
+   a workflow is enabled for a group exactly when a configuration is saved
+   to it, so a separate flag was a second source of truth for one fact.
+
+   The row grain is one CONFIGURATION — `(function, WO Type)` — because
+   that is the grain §12 actually keys on. The first pass had one row per
+   function with WO Types crammed into a text cell, which is what made the
+   tab feel like it was describing something rather than controlling it.
+   ═══════════════════════════════════════════════════════════════════════ */
+function tabScreens(){
+  const rsv = resolve(cur,'screens');
+  const mine = assignedTo(cur);
+  const inh  = inheritedFor(cur);
+  const open = assignableTo(cur);
+  const rows = mine.concat(inh);
+
+  const stepCell = c => c.steps.map(s=>TAB_NAMES[s]).join(' → ');
+  const cfgRow = (c, viaDefault) => {
+    const f = FUNCTIONS[c.fn];
+    const gap = capabilityGap(c.fn);
+    return `<tr>
+      <td>
+        <span class="cell-2">
+          <span class="cell-mono">${esch(c.fn)} · ${esch(c.type)}</span>
+          <span class="cell-sub">${esch(f?f.desc:c.fn)}${f&&f.parent?` · clone of ${esch(f.parent)}`:''}</span>
+        </span>
+      </td>
+      <td>${viaDefault
+        ? `<span class="effb inherited"><span class="effb-dot"></span>via *</span>`
+        : `<span class="effb explicit"><span class="effb-dot"></span>Assigned</span>`}</td>
+      <td class="cell-mute" style="white-space:normal;min-width:220px">${esch(stepCell(c))}</td>
+      <td class="ctr">${c.freeForm
+        ? `<span class="pill pill-outline">Free Form</span>`
+        : `<span class="pill pill-outline">Gated</span>`}</td>
+      <td class="ctr">${gap.length
+        ? `<span class="pill pill-warn" title="Fix in Screen Designer — the function has no such tab">${svgIco('warn',2)} ${gap.map(t=>TAB_NAMES[t]).join(', ')}</span>`
+        : `<span class="cell-mute">—</span>`}</td>
+      <td class="cell-mute">${esch(c.modified)}</td>
+      <td class="num">${c.groups.length}</td>
+      <td style="text-align:right">
+        <button class="btn btn-sm" onclick="launchDesigner(event,'${c.id}')">Edit layout ${svgIco('ext')}</button>
+        ${viaDefault
+          ? `<button class="btn btn-sm" onclick="assignConfig('${c.id}')" title="Save this configuration to ${esch(cur.code)} as well">Assign directly</button>`
+          : `<button class="btn btn-sm btn-danger" onclick="unassignConfig('${c.id}')" title="Remove ${esch(cur.code)} from this configuration's Save-to-Group list">Unassign</button>`}
+      </td>
+    </tr>`;
+  };
+
+  return `
+  <div class="tbar">
+    <div>
+      <div class="tbar-t">Screen Design &amp; Workflow ${effBadge(rsv)}</div>
+      <div class="tbar-d">
+        A workflow configuration is <b>${esch(cur.code)}</b>'s exactly when it is saved to
+        this group. That is the same membership Screen Designer's Save-to-Group(s)
+        listbox writes — seen from the group instead of from the artifact. Steps,
+        gating and layout belong to the configuration and are read-only here.
+      </div>
+    </div>
+    <div class="tbar-r">
+      <button class="btn" onclick="event.stopPropagation();openAssign(event)" ${open.length?'':'disabled'}>
+        ${svgIco('plus')} Assign existing…${open.length?` (${open.length})`:''}
+      </button>
+      <button class="btn" onclick="launchDesigner(event,null)">${svgIco('plus')} New configuration</button>
+    </div>
+  </div>
+
+  ${rsv.state!=='explicit'?`<div class="mg-wrap" style="margin-bottom:12px"><div class="mg-hint">
+    <b>${rsv.state==='inherited'
+        ? 'Nothing is assigned directly to this group.'
+        : 'No workflow configuration reaches this group at all.'}</b>
+    ${rsv.state==='inherited'
+      ? 'The rows below arrive via the <b>*</b> default. They are live — assigning directly only matters if you then want to diverge from <b>*</b>.'
+      : 'Every WO opens the plain Standard Record View, always Free Form. That is §11’s fallback working as designed, not a gap. Configs are only listed here if this group can actually select their function.'}
+  </div></div>`:''}
+
+  <div class="mg-wrap">
+    <table class="mg">
+      <thead><tr>
+        <th>Configuration</th><th>Assigned</th><th>Steps</th>
+        <th class="ctr">Gating</th><th class="ctr">Capability gap</th>
+        <th>Modified</th><th class="num">Groups</th><th></th>
+      </tr></thead>
+      <tbody>${rows.length ? mine.map(c=>cfgRow(c,false)).join('') + inh.map(c=>cfgRow(c,true)).join('')
+        : `<tr><td colspan="8" style="height:74px;text-align:center" class="cell-mute">
+             No configuration applies to ${esch(cur.code)}.</td></tr>`}</tbody>
+    </table>
+    <div class="mg-hint">
+      <b>Capability gap is reported, never worked around.</b> It means the
+      <i>function</i> has no such tab — <b>ZJ1000</b> has no Checklist or Book Labor —
+      so it is fixed in Screen Designer by changing the config's steps, or in
+      <b>Security ▸ Function Permissions</b> by giving the function the tab. Assigning
+      a different group would just move the problem.
+      <b>Groups</b> counts every group the configuration is saved to, so you can see
+      before unassigning whether you are the last one.
+    </div>
+  </div>
+
+  ${open.length?`<div class="tbar" style="margin:14px 0 8px">
+    <div>
+      <div class="tbar-t" style="font-size:13px">Authored but not reaching this group</div>
+      <div class="tbar-d">${open.length} configuration${open.length>1?'s':''} exist${open.length>1?'':'s'}
+        for ${esch(cur.code)}'s own permitted functions and ${open.length>1?'are':'is'} saved to other groups
+        (or to none). Assigning one here is the cheapest possible way to give this group a
+        workflow — no designer, no re-authoring.</div>
+    </div>
+  </div>
+  <div class="mg-wrap">
+    <table class="mg">
+      <thead><tr><th>Configuration</th><th>Steps</th><th class="ctr">Gating</th><th>Saved to</th><th></th></tr></thead>
+      <tbody>${open.map(c=>`<tr>
+        <td><span class="cell-2">
+          <span class="cell-mono">${esch(c.fn)} · ${esch(c.type)}</span>
+          <span class="cell-sub">${esch(FUNCTIONS[c.fn]?FUNCTIONS[c.fn].desc:c.fn)}</span>
+        </span></td>
+        <td class="cell-mute" style="white-space:normal">${esch(stepCell(c))}</td>
+        <td class="ctr"><span class="pill pill-outline">${c.freeForm?'Free Form':'Gated'}</span></td>
+        <td>${c.groups.length?c.groups.map(g=>`<span class="orgb" style="margin-right:4px">${esch(g)}</span>`).join('')
+              :'<span class="cell-mute">nobody yet</span>'}</td>
+        <td style="text-align:right"><button class="btn btn-sm" onclick="assignConfig('${c.id}')">Assign to ${esch(cur.code)}</button></td>
+      </tr>`).join('')}</tbody>
+    </table>
+  </div>`:''}`;
+}
+
+/* Assignment IS the Save-to-Group membership, written from this side. */
+function assignConfig(id){
+  const c = WORKFLOW_CONFIGS.find(x=>x.id===id);
+  if(!c || c.groups.includes(cur.code)) return;
+  c.groups.push(cur.code);
+  dirty = true;
+  const gap = capabilityGap(c.fn);
+  toast(gap.length
+    ? `${c.fn} · ${c.type} assigned — but ${c.fn} has no ${gap.map(t=>TAB_NAMES[t]).join('/')} tab`
+    : `${c.fn} · ${c.type} assigned to ${cur.code}`);
+  renderAll();
+}
+function unassignConfig(id){
+  const c = WORKFLOW_CONFIGS.find(x=>x.id===id);
+  if(!c) return;
+  c.groups = c.groups.filter(g=>g!==cur.code);
+  dirty = true;
+  toast(c.groups.length
+    ? `${cur.code} removed from ${c.fn} · ${c.type}`
+    : `${cur.code} removed — ${c.fn} · ${c.type} is now saved to nobody`);
+  renderAll();
+}
+function openAssign(e){
+  const open = assignableTo(cur);
+  showPop(e.currentTarget, `
+    <div class="pop-h">
+      <div class="pop-t">Assign an existing configuration</div>
+      <div class="pop-s">Only configurations for functions ${esch(cur.code)} can select.
+        Assigning adds this group to the configuration's Save-to-Group list — it does not copy it.</div>
+    </div>
+    <div class="pop-b">${open.map(c=>`
+      <div class="pop-opt" onclick="closePop();assignConfig('${c.id}')">
+        <span class="pop-opt-b">
+          <span class="pop-opt-t">${esch(c.fn)} · ${esch(c.type)}</span>
+          <span class="pop-opt-s">${c.steps.length} steps · ${c.freeForm?'Free Form':'Gated'} · saved to ${c.groups.length||'nobody'}</span>
+        </span>
+      </div>`).join('')}</div>`);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   THE HANDOFF INTO SCREEN DESIGNER
+   ═══════════════════════════════════════════════════════════════════════
+   "Open Screen Designer" cannot be a bare launch. Its entry modal asks for
+   Base Screen, WO Type, Copy-from-Group and Save-to-Group(s) (§10), so
+   arriving with none of them set throws away everything the admin had
+   already chosen here. The contract is shown before launching, and written
+   to sessionStorage so the designer can consume it once taught to.
+
+   TWO REAL BLOCKERS, both surfaced rather than papered over — see §20:
+     1. eam-screen-designer-v1.html's Base Screen picker offers exactly two
+        pills, Work Order (WSJOBS) and Equipment. It cannot express TRJOBS,
+        CCJOBS, ZJ1000 or WSJODC, so §26.2's "the pagename is a resolved
+        variable" has not reached the designer yet.
+     2. Its user-group list is a different demo set entirely
+        (CUST-FULL/CUST-LITE/DCOPS/DK/DW-CONT/TECH/SUPV), so a group handed
+        over from here would not be selectable there.
+   ═══════════════════════════════════════════════════════════════════════ */
+function launchDesigner(e, cfgId){
+  e.stopPropagation();
+  const c = cfgId ? WORKFLOW_CONFIGS.find(x=>x.id===cfgId) : null;
+  const fnCode = c ? c.fn : (()=>{
+    const nav = effective(cur,'nav').value || [];
+    const s = nav.find(x=>x.kind==='function' && FUNCTIONS[x.target] && FUNCTIONS[x.target].entity==='EVNT');
+    return s ? s.target : (eligible(cur)[0] || 'WSJOBS');
+  })();
+  const f = FUNCTIONS[fnCode];
+  /* Screen Designer's Base Screen picker became clone-aware on 2026-08-24, so
+     every EVNT function here is now expressible there. What it still doesn't
+     do is READ this handoff — see the note in the popover. */
+
+  showPopCentre(`
+    <div class="pop-h">
+      <div class="pop-t">${c?'Edit':'New'} configuration in Screen Designer</div>
+      <div class="pop-s">What this hands over. Nothing here is a Screen Designer decision
+        being made twice — it is the entry modal, pre-filled from where you already are.</div>
+    </div>
+    <div class="pop-b">
+      <div class="pop-grp">Entry modal pre-fill</div>
+      ${[['Base Screen', `${f?f.desc:fnCode} · ${fnCode}`],
+         ['WO Type', c?c.type:'— pick in the designer —'],
+         ['Copy from Group', c?'— none, editing in place —':`${cur.code} (nearest existing)`],
+         ['Save to Group(s)', cur.code]].map(([k,v])=>`
+        <div class="pop-opt" style="cursor:default">
+          <span class="pop-opt-b"><span class="pop-opt-t">${esch(v)}</span>
+          <span class="pop-opt-s">${esch(k)}</span></span>
+        </div>`).join('')}
+      <div class="mg-hint" style="border-radius:8px;margin:8px 4px 0;border-top:none">
+        Screen Designer consumes this handoff and opens pre-filled, with a banner saying
+        so. It resolves <b>${esch(fnCode)}</b> by code or alias, maps the WO Type name onto
+        its own type codes, and injects <b>${esch(cur.code)}</b> into Save-to-Group(s) even
+        though its demo group list wouldn't otherwise carry it. If a WO Type has no
+        equivalent in this environment it says which, rather than quietly substituting one.
+      </div>
+    </div>
+    <div class="pop-f">
+      <button class="btn" onclick="closePop()">Cancel</button>
+      <button class="btn btn-primary" onclick="doLaunchDesigner('${fnCode}','${c?c.type:''}')">Open Screen Designer</button>
+    </div>`);
+}
+function doLaunchDesigner(fnCode, type){
+  /* A real handoff, not a toast — sessionStorage rather than a query string,
+     matching how the mobile prototypes hand records over, and because these
+     files are opened over file:// as often as over a server. */
+  try{
+    sessionStorage.setItem('eamDesignerEntry', JSON.stringify({
+      baseScreen: fnCode, woType: type||null, saveToGroups:[cur.code],
+      copyFromGroup: type?null:cur.code, from:'user-group-setup'
+    }));
+  }catch(err){ /* file:// with storage disabled — the navigation still works */ }
+  closePop();
+  location.href = 'eam-screen-designer-v1.html';
+}
+
+/* ── BOTTOM NAV: the real assignment grid, plus live §26.4 arithmetic ── */
+function tabNav(){
+  const r = resolve(cur,'nav');
+  const slots = effective(cur,'nav').value || [];
+  /* Read-only only when genuinely INHERITING. `unset` means nothing exists
+     anywhere, so editing here mints this group's own set — otherwise an
+     unconfigured group is a dead end behind an Override button that has
+     nothing to override. */
+  const inherited = r.state === 'inherited';
+
+  const ITEM_W = 84, GAP = 14, VIEWPORT = 390;
+  const width = slots.length ? slots.length*ITEM_W + (slots.length-1)*GAP : 0;
+  const over = width > VIEWPORT;
+
+  const slotRow = (s,i) => {
+    const tgt = s.kind==='function' ? FUNCTIONS[s.target] : BUILTINS[s.target];
+    return `<div class="slot">
+      <span class="slot-seq">${i+1}</span>
+      <span class="slot-ico" onclick="pickIcon(${i})" title="Icon — from a curated set, not free-form">
+        ${svgIco(iconFor(s))}
+      </span>
+      <div class="slot-main">
+        <div class="slot-f">
+          <div class="slot-fl">Label</div>
+          <input class="slot-lbl" value="${esch(s.label)}" ${inherited?'disabled':''}
+                 onchange="setLabel(${i}, this.value)">
+        </div>
+        <div class="slot-f">
+          <div class="slot-fl">Target</div>
+          <div class="slot-tgt" onclick="${inherited?'':`pickTarget(${i}, event)`}">
+            <span class="slot-tgt-b">
+              <span class="slot-tgt-v">${esch(tgt?tgt.desc:'— unresolved —')}</span>
+              <span class="slot-tgt-c">${esch(s.kind==='function'?s.target:'built-in')}</span>
+            </span>
+            <span class="slot-kind">${s.kind==='function'?'Function':'Built-in'}</span>
+            <span class="fd-act static" style="opacity:.5">${svgIco('chev')}</span>
+          </div>
+        </div>
+      </div>
+      <div class="slot-acts">
+        <button class="slot-mv" onclick="moveSlot(${i},-1)" ${i===0||inherited?'disabled':''} title="Move left">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg>
+        </button>
+        <button class="slot-mv" onclick="moveSlot(${i},1)" ${i===slots.length-1||inherited?'disabled':''} title="Move right">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <button class="slot-del" onclick="delSlot(${i})" ${inherited?'disabled':''} title="Remove slot">${svgIco('trash')}</button>
+      </div>
+    </div>`;
+  };
+
+  return `
+  <div class="tbar">
+    <div>
+      <div class="tbar-t">Bottom Nav ${effBadge(r)}</div>
+      <div class="tbar-d">
+        Access control supplies the <b>candidates</b> — a slot can only point at a
+        function this group already has <b>PRM_SELECT</b> on. This screen supplies the
+        <b>choice</b> and the <b>order</b>. That split is why the nav can't just be
+        derived from tab permissions: ${esch(cur.code)} can select
+        ${eligible(cur).length} different EVNT function${eligible(cur).length===1?'':'s'},
+        and nothing in the permission tables says which one is <i>the</i> Work screen.
+      </div>
+    </div>
+    <div class="tbar-r">
+      ${inherited?`<button class="btn" onclick="makeExplicit('nav')">Override for ${esch(cur.code)}</button>`:''}
+      <button class="btn" onclick="addSlot()" ${inherited||slots.length>=4?'disabled':''}>
+        ${svgIco('plus')} Add slot
+      </button>
+    </div>
+  </div>
+
+  ${r.state!=='explicit'?`<div class="mg-wrap" style="margin-bottom:12px"><div class="mg-hint">
+      <b>These slots belong to ${r.state==='inherited'?'the * default':'nobody yet'}.</b>
+      ${r.state==='inherited'
+        ? `Editing is disabled until you override — an accidental edit here would silently re-point every other group that also inherits.`
+        : `No nav is configured anywhere, so the app falls back to its built-in Home / Work / Notifications.`}
+    </div></div>`:''}
+
+  <div class="slots">${slots.map(slotRow).join('') || `<div class="ph" style="padding:36px 20px">
+      <div class="ph-t">No slots</div>
+      <div class="ph-d">Add up to four.</div></div>`}</div>
+
+  ${slots.length>=4 && !inherited ? `<div class="mg-wrap" style="margin-top:12px"><div class="mg-hint">
+      <b>Four is the ceiling, and it is a component fact, not a policy.</b>
+      <span style="font-family:var(--font-mono)">4 × 84px + 3 × 14px = 378px</span>
+      fits a 390px viewport with 6px to spare. A fifth slot is 490px and does not fit —
+      it needs <span style="font-family:var(--font-mono)">.bottom-nav-item</span> redesigned
+      (narrower items, or no labels), which is a call about the component, not this config.
+    </div></div>`:''}
+
+  <div class="prev-wrap">
+    <div class="prev-h">
+      <span class="prev-t">What the technician gets</span>
+      <span class="prev-math${over?' over':''}">
+        ${slots.length} × ${ITEM_W}px + ${Math.max(slots.length-1,0)} × ${GAP}px = ${width}px / ${VIEWPORT}px
+      </span>
+    </div>
+    <div class="prev-b">
+      <div class="phone">
+        <div class="phone-body">${esch(cur.code)} · mobile shell</div>
+        <div class="phone-nav">
+          ${slots.map((s,i)=>`<div class="pn-item${i===0?' first':''}">
+            ${svgIco(iconFor(s))}
+            <span class="pn-lbl">${esch(s.label)}</span>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    ${over?`<div class="prev-warn">${slots.length} slots overflow a 390px viewport by ${width-VIEWPORT}px — items would be clipped on an iPhone 12–15 class device.</div>`:''}
+  </div>`;
+}
+function iconFor(s){
+  if(s.kind==='builtin') return BUILTINS[s.target] ? BUILTINS[s.target].ico : 'cog';
+  if(s.icon) return s.icon;
+  const f = FUNCTIONS[s.target];
+  if(f && f.entity==='OBJ') return 'grid';
+  return 'tool';
+}
+/* Overriding COPIES the inherited value down rather than starting blank —
+   an override that empties the surface makes you re-derive what you already
+   had, which is how admins end up not overriding at all. */
+/* Only nav and sync have a group-owned row set to override. Screens has no
+   equivalent: a configuration is made explicit by ASSIGNING it (per config,
+   on that tab), because there is no group-side copy of a config to own. */
+function makeExplicit(domain){
+  const src = effective(cur, domain).value;
+  const clone = src ? JSON.parse(JSON.stringify(src)) : [];
+  if(domain==='nav'){  cur.nav  = clone; cur.navSet  = true; }
+  if(domain==='sync'){ cur.sync = clone; cur.syncSet = true; }
+  dirty = true;
+  toast(`${domain==='nav'?'Bottom nav':'Sync policy'} is now explicit for ${cur.code}`);
+  renderAll();
+}
+/* Mints this group's own row set on first edit when nothing existed. Never
+   called while INHERITING — those controls are disabled instead. */
+function ensureNav(){ if(!cur.navSet){ cur.nav = []; cur.navSet = true; } return cur.nav; }
+function addSlot(){
+  const nav = ensureNav();
+  if(nav.length>=4){ toast('Four slots is the ceiling — a fifth needs the nav component redesigned (§26.4)'); return; }
+  nav.push({label:'New slot', kind:'builtin', target:'sync'});
+  dirty = true; renderAll();
+}
+function delSlot(i){ ensureNav().splice(i,1); dirty=true; renderAll(); }
+function moveSlot(i,d){
+  const nav = ensureNav();
+  const j=i+d; if(j<0||j>=nav.length) return;
+  const [s]=nav.splice(i,1); nav.splice(j,0,s); dirty=true; renderAll();
+}
+function setLabel(i,v){ ensureNav()[i].label = v || 'Untitled'; dirty=true; renderAll(); }
+function pickIcon(i){ toast('Icon picker — a fixed curated set, so §23’s outline/palette rules stay enforceable'); }
+
+/* The target popover — the union type made visible. Candidate functions are
+   filtered to this group's own PRM_SELECT list; built-ins are always offered
+   because they aren't functions and never will be. */
+function pickTarget(i, e){
+  e.stopPropagation();
+  const used = cur.nav.map((s,k)=>k===i?null:`${s.kind}:${s.target}`).filter(Boolean);
+  const fnOpts = cur.perms.map(code=>{
+    const f = FUNCTIONS[code]; if(!f) return '';
+    const dis = used.includes(`function:${code}`);
+    return `<div class="pop-opt${dis?' dis':''}" ${dis?'':`onclick="setTarget(${i},'function','${code}')"`}>
+      <span class="pop-opt-b">
+        <span class="pop-opt-t">${esch(f.desc)}</span>
+        <span class="pop-opt-s mono">${esch(f.code)} · ${esch(f.entity)}${f.parent?` · clone of ${esch(f.parent)}`:''}</span>
+      </span>
+      ${dis?'<span class="slot-kind">in use</span>':''}
+    </div>`;
+  }).join('');
+  const biOpts = Object.values(BUILTINS).map(b=>{
+    const dis = used.includes(`builtin:${b.code}`);
+    return `<div class="pop-opt${dis?' dis':''}" ${dis?'':`onclick="setTarget(${i},'builtin','${b.code}')"`}>
+      <span class="pop-opt-b">
+        <span class="pop-opt-t">${esch(b.desc)}</span>
+        <span class="pop-opt-s">Built-in surface — not a function</span>
+      </span>
+      ${dis?'<span class="slot-kind">in use</span>':''}
+    </div>`;
+  }).join('');
+
+  showPop(e.currentTarget, `
+    <div class="pop-h">
+      <div class="pop-t">Slot ${i+1} target</div>
+      <div class="pop-s">Functions are limited to what ${esch(cur.code)} can already select.
+        Built-ins are always available.</div>
+    </div>
+    <div class="pop-b">
+      <div class="pop-grp">Functions (PRM_SELECT)</div>${fnOpts||'<div class="pop-opt dis"><span class="pop-opt-b"><span class="pop-opt-t">None permitted</span></span></div>'}
+      <div class="pop-grp">Built-in surfaces</div>${biOpts}
+    </div>`);
+}
+function setTarget(i, kind, target){
+  cur.nav[i].kind = kind; cur.nav[i].target = target;
+  const t = kind==='function' ? FUNCTIONS[target] : BUILTINS[target];
+  if(t && (cur.nav[i].label==='New slot'||cur.nav[i].label==='Untitled')) cur.nav[i].label = t.desc;
+  dirty = true; closePop(); renderAll();
+}
+
+/* ── SYNC: the one genuinely field-shaped domain ── */
+function tabSync(){
+  const r = resolve(cur,'sync');
+  const rows = effective(cur,'sync').value || [];
+  const inherited = r.state === 'inherited';   /* see the note in tabNav() */
+  const unused = SYNC_ENTITIES.filter(e=>!rows.some(x=>x.e===e.code));
+
+  return `
+  <div class="tbar">
+    <div>
+      <div class="tbar-t">Sync &amp; Download Defaults ${effBadge(r)}</div>
+      <div class="tbar-d">
+        What a device downloads when this group logs in. The only one of the four
+        domains that is genuinely <b>field-shaped</b> — which is why it is edited
+        here rather than deep-linked to a designer.
+      </div>
+    </div>
+    <div class="tbar-r">
+      ${inherited?`<button class="btn" onclick="makeExplicit('sync')">Override for ${esch(cur.code)}</button>`:''}
+      <button class="btn" onclick="addSync(event)" ${inherited||!unused.length?'disabled':''}>${svgIco('plus')} Add record type</button>
+    </div>
+  </div>
+
+  ${r.state!=='explicit'?`<div class="mg-wrap" style="margin-bottom:12px"><div class="mg-hint">
+    <b>${r.state==='inherited'?'Inherited from the * default.':'Nothing is configured anywhere.'}</b>
+    ${r.state==='inherited'
+      ? 'Editing is disabled until you override, so an edit here cannot silently change every other inheriting group.'
+      : 'A device logging in as this group would download nothing. This is the state §26.5’s <b>*</b> default row exists to prevent.'}
+  </div></div>`:''}
+
+  ${rows.length ? rows.map((row,i)=>`
+    <div class="card" style="margin-bottom:10px">
+      <div class="card-h">
+        <span class="card-t">${esch(entName(row.e))}</span>
+        <span class="orgb">${esch(row.e)}</span>
+        <span style="flex:1"></span>
+        ${inherited?'':`<button class="slot-del" onclick="delSync(${i})" title="Remove">${svgIco('trash')}</button>`}
+      </div>
+      <div class="card-b">
+        <div class="fdgrid">
+          ${fld('select','Scope',{v:row.scope, opts:SCOPES, prot:inherited,
+              onchange:`setSync(${i},'scope',this.value)`})}
+          ${fld('select','Date horizon',{v:row.horizon, opts:HORIZONS, prot:inherited,
+              onchange:`setSync(${i},'horizon',this.value)`})}
+          ${fld('number','Max rows',{v:row.cap, unit:'rows', prot:inherited, num:true,
+              onchange:`setSync(${i},'cap',this.value)`})}
+        </div>
+      </div>
+    </div>`).join('')
+  : `<div class="ph">
+      <div class="ph-i">${svgIco('download')}</div>
+      <div class="ph-t">No download policy</div>
+      <div class="ph-d">Nothing would reach the device at login. Add a record type, or copy a policy from another group.</div>
+      <div class="ph-tag">§26.5 — the <b>*</b> default exists so this state is unreachable in practice</div>
+    </div>`}
+
+  <div class="mg-wrap" style="margin-top:3px"><div class="mg-hint">
+    <b>Not specified here, deliberately:</b> what a row can honestly claim about its own
+    freshness offline. §20 keeps that with development — the per-row sync affordance and
+    the "results as of &lt;time&gt;" caption depend on how the real sync layer behaves,
+    so designing them from this side would specify a state the backend can't report.
+  </div></div>`;
+}
+function ensureSync(){ if(!cur.syncSet){ cur.sync = []; cur.syncSet = true; } return cur.sync; }
+function setSync(i,k,v){
+  ensureSync()[i][k] = (k==='cap') ? (parseInt(v,10)||0) : v;
+  dirty = true;
+}
+function delSync(i){ ensureSync().splice(i,1); dirty=true; renderAll(); }
+function addSync(e){
+  e.stopPropagation();
+  const unused = SYNC_ENTITIES.filter(x=>!ensureSync().some(r=>r.e===x.code));
+  showPop(e.currentTarget, `
+    <div class="pop-h"><div class="pop-t">Add record type</div>
+      <div class="pop-s">Record types not already in this group's download policy.</div></div>
+    <div class="pop-b">${unused.map(x=>`
+      <div class="pop-opt" onclick="doAddSync('${x.code}')">
+        <span class="pop-opt-b"><span class="pop-opt-t">${esch(x.name)}</span>
+        <span class="pop-opt-s mono">${esch(x.code)}</span></span>
+      </div>`).join('')}</div>`);
+}
+function doAddSync(code){
+  ensureSync().push({e:code, scope:'My organization', horizon:'30 days', cap:500});
+  dirty = true; closePop(); renderAll();
+}
+
+/* ── HOME: summary + a deep link to a designer that doesn't exist yet ── */
+function tabHome(){
+  const r = resolve(cur,'home');
+  const v = effective(cur,'home').value;
+  return `
+  <div class="tbar">
+    <div>
+      <div class="tbar-t">Home Screen Layout ${effBadge(r)}</div>
+      <div class="tbar-d">
+        One layout per group — but a <b>layout</b>, not a field set, so it is authored
+        in its own designer and only summarised here.
+      </div>
+    </div>
+    <div class="tbar-r">
+      <button class="btn" onclick="toast('Home Layout Designer does not exist yet — §20')">${svgIco('ext')} Open designer</button>
+    </div>
+  </div>
+
+  ${v?`<div class="mg-wrap" style="margin-bottom:13px">
+    <table class="mg">
+      <thead><tr><th>Property</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td class="cell-mute">Dataspy tiles</td><td class="cell-mono">${v.tiles}</td></tr>
+        <tr><td class="cell-mute">Favourites shown</td><td class="cell-mono">${v.favs}</td></tr>
+        <tr><td class="cell-mute">Quick-create actions</td><td>${v.actions.map(a=>`<span class="orgb" style="margin-right:5px">${esch(a)}</span>`).join('')}</td></tr>
+        <tr><td class="cell-mute">Last modified</td><td class="cell-mono">${esch(v.modified)}</td></tr>
+      </tbody>
+    </table>
+    <div class="mg-hint">Read-only. Tile and chip <b>content</b> is still an open design
+      riff in the mobile app itself — only the layout mechanics are locked — so this
+      summary reports what is set rather than pretending to be authoritative.</div>
+  </div>`:''}
+
+  <div class="ph">
+    <div class="ph-i">${svgIco('layers')}</div>
+    <div class="ph-t">The Home Layout Designer does not exist</div>
+    <div class="ph-d">
+      This tab is the entry point to an authoring surface nobody has built. §9.4's open
+      "base-admin configurability" item is the same gap seen from the other side — one is
+      the entry point, the other is the destination. They should be resolved together,
+      which is why this tab is a real tab with a real deep link rather than being hidden
+      until the designer lands.
+    </div>
+    <div class="ph-tag">§20 — Home layout has no authoring surface</div>
+  </div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   COPY CONFIGURATION FROM GROUP (§26.5 mechanic 1)
+   ═══════════════════════════════════════════════════════════════════════
+   The action no single designer can offer, because each one only knows its
+   own domain. Per-domain checkboxes rather than all-or-nothing: copying a
+   nav binding wholesale from a group with different function permissions
+   would produce slots pointing at functions this group can't select.
+   ═══════════════════════════════════════════════════════════════════════ */
+let copyState = null;
+function openCopyFrom(){
+  copyState = {from:null, doms:{screens:true, nav:true, sync:true, home:true}};
+  drawCopyPop();
+}
+function drawCopyPop(){
+  const others = GROUPS.filter(g=>g.code!==cur.code);
+  const domRow = (id,label) => `<div class="pop-opt" onclick="toggleCopyDom('${id}')">
+      <span class="cbx${copyState.doms[id]?' on':''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M5 12l5 5L19 7"/></svg></span>
+      <span class="pop-opt-b"><span class="pop-opt-t">${label}</span></span>
+    </div>`;
+  const src = copyState.from ? GROUPS.find(g=>g.code===copyState.from) : null;
+  showPopCentre(`
+    <div class="pop-h">
+      <div class="pop-t">Copy configuration into ${esch(cur.code)}</div>
+      <div class="pop-s">Pulls whole domains from another group in one action —
+        the per-group counterpart to Screen Designer's Copy-from-Group.</div>
+    </div>
+    <div class="pop-b">
+      <div class="pop-grp">Copy from</div>
+      ${others.map(g=>`<div class="pop-opt" onclick="setCopyFrom('${g.code}')">
+        <span class="cbx${copyState.from===g.code?' on':''}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"><path d="M5 12l5 5L19 7"/></svg></span>
+        <span class="pop-opt-b"><span class="pop-opt-t">${esch(g.code)}</span>
+        <span class="pop-opt-s">${esch(g.desc)}</span></span>
+      </div>`).join('')}
+      <div class="pop-grp">Domains</div>
+      ${domRow('screens','Screen design &amp; workflow enablement')}
+      ${domRow('nav','Bottom nav')}
+      ${domRow('sync','Sync &amp; download defaults')}
+      ${domRow('home','Home layout')}
+      ${src && copyState.doms.nav ? navWarning(src) : ''}
+    </div>
+    <div class="pop-f">
+      <button class="btn" onclick="closePop()">Cancel</button>
+      <button class="btn btn-primary" onclick="doCopy()" ${copyState.from?'':'disabled'}>Copy</button>
+    </div>`);
+}
+/* Copying a nav binding across groups with different permissions is the one
+   way this action can produce something broken, so it says so up front
+   rather than silently creating unresolvable slots. */
+function navWarning(src){
+  const srcNav = effective(src,'nav').value || [];
+  const bad = srcNav.filter(s=>s.kind==='function' && !cur.perms.includes(s.target));
+  if(!bad.length) return '';
+  return `<div class="prev-warn" style="margin:6px 4px 0;border-radius:8px;border-top:none">
+    ${bad.length} slot${bad.length>1?'s':''} point at
+    ${bad.map(s=>s.target).join(', ')}, which ${esch(cur.code)} cannot select.
+    ${bad.length>1?'They':'It'} will copy as unresolved and need re-pointing.
+  </div>`;
+}
+function setCopyFrom(code){ copyState.from = code; drawCopyPop(); }
+function toggleCopyDom(id){ copyState.doms[id] = !copyState.doms[id]; drawCopyPop(); }
+function doCopy(){
+  const src = GROUPS.find(g=>g.code===copyState.from);
+  if(!src) return;
+  const done = [];
+  /* Copying screen design means copying MEMBERSHIP — this group joins every
+     configuration the source group is in, filtered to functions this group
+     can actually select. It does not duplicate the configurations, which is
+     the difference between this and Screen Designer's Copy-from-Group. */
+  if(copyState.doms.screens){
+    let n = 0;
+    configsFor(cur).forEach(c=>{
+      if(c.groups.includes(src.code) && !c.groups.includes(cur.code)){ c.groups.push(cur.code); n++; }
+    });
+    done.push(`screen design (${n} config${n===1?'':'s'})`);
+  }
+  if(copyState.doms.nav){
+    const v = effective(src,'nav').value;
+    cur.nav = v?JSON.parse(JSON.stringify(v)):null; cur.navSet = !!v; done.push('bottom nav');
+  }
+  if(copyState.doms.sync){
+    const v = effective(src,'sync').value;
+    cur.sync = v?JSON.parse(JSON.stringify(v)):null; cur.syncSet = !!v; done.push('sync');
+  }
+  if(copyState.doms.home){
+    const v = effective(src,'home').value;
+    cur.home = v?JSON.parse(JSON.stringify(v)):null; done.push('home layout');
+  }
+  dirty = true; closePop(); renderAll();
+  toast(done.length?`Copied ${done.join(', ')} from ${src.code}`:'Nothing selected to copy');
+}
+function resetToDefault(){
+  cur.nav=null; cur.navSet=false; cur.sync=null; cur.syncSet=false; cur.home=null;
+  /* Reset removes this group from every configuration's Save-to-Group list.
+     It does not delete any configuration — those belong to Screen Designer
+     and to whichever other groups are still saved to them. */
+  WORKFLOW_CONFIGS.forEach(c=>{ c.groups = c.groups.filter(g=>g!==cur.code); });
+  dirty = true; renderAll();
+  toast(`${cur.code} reset — every domain now falls back to the * default`);
+}
+function saveAll(){
+  dirty = false;
+  toast(`Saved — ${cur.code}'s mobile configuration`);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   POPOVER PLUMBING
+   ═══════════════════════════════════════════════════════════════════════ */
+function showPop(anchor, html){
+  const p = $('pop');
+  p.innerHTML = html; p.classList.add('open');
+  const r = anchor.getBoundingClientRect();
+  const w = Math.min(390, Math.max(290, r.width));
+  p.style.width = w+'px';
+  let left = r.left, top = r.bottom + 6;
+  if(left + w > innerWidth - 12) left = innerWidth - w - 12;
+  if(top + p.offsetHeight > innerHeight - 12) top = Math.max(12, r.top - p.offsetHeight - 6);
+  p.style.left = left+'px'; p.style.top = top+'px';
+}
+function showPopCentre(html){
+  const p = $('pop');
+  p.innerHTML = html; p.classList.add('open');
+  p.style.width = '390px';
+  p.style.left = Math.round((innerWidth-390)/2)+'px';
+  p.style.top = Math.max(12, Math.round((innerHeight-p.offsetHeight)/2))+'px';
+}
+function closePop(){ $('pop').classList.remove('open'); }
+$('pop').addEventListener('click', e=>e.stopPropagation());
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DESIGN NOTES
+   ═══════════════════════════════════════════════════════════════════════ */
+const NOTES = [
+  ['1','A binding screen, not a config form',
+   'Earlier sketches conflated <b>authoring</b> a config artifact (one artifact → many groups, which is Screen Designer’s Save-to-Group(s)) with <b>answering "what does group X get"</b> (one group → many artifacts). This screen does only the second. Its shape is base EAM’s own User Group Security paradigm: protected identity header, child tabs, every tab an assignment grid or a summary with a deep link.','§26.5'],
+  ['2','No insert, and no greyed-out Create',
+   'User groups are created in Security ▸ User Groups. The top bar has <b>no Create button at all</b> rather than a disabled one — a disabled control implies the action belongs here and is merely unavailable. The list rail says where groups actually come from instead.','§26.5'],
+  ['3','Grain decides inline-vs-link',
+   'Screen design is <span style="font-family:var(--font-mono)">(page, WO Type, group)</span> — hundreds of rows, multiplied by clone count — so it summarises and deep-links. Home layout is one per group but is a <b>layout</b>, so it links too. Bottom nav is one ordered row set, so it is a real grid. Sync is genuinely field-shaped, so it is real fields. That is why the tabs are not all the same shape.','§26.5'],
+  ['4','A configuration is an artifact; this tab edits its membership',
+   'The first pass gave each group an "enabled" toggle per function. That was <b>two sources of truth for one fact</b> — a workflow is enabled for a group exactly when a configuration is saved to it — and the wrong grain, since §12 keys on <span style="font-family:var(--font-mono)">(function, WO Type, group)</span>, not per function. So the row grain is now one <b>configuration</b>, and the only editable column is <b>Assigned</b>: joining or leaving that configuration’s Save-to-Group list. Steps, gating and layout are the configuration’s own and are read-only here.','§26.5.1 / §12'],
+  ['4b','Assigning is not copying',
+   'Assign adds this group to an existing configuration — one artifact, more members. Screen Designer’s Copy-from-Group <i>duplicates</i> a layout as a starting point. Conflating them is how you end up with six near-identical configurations nobody can tell apart. The <b>Groups</b> column exists so you can see, before unassigning, whether you are the last member.','§10 / §26.5.1'],
+  ['5','Eligibility is the entity, never the code',
+   'A slot or a workflow may bind to any function with <b>FUN_RENTITY = EVNT</b>. Not <b>FUN_SYSTEM</b> — that is a boolean, <span style="font-family:var(--font-mono)">&#39;+</span> on all four WO functions in this environment. Not <b>FUN_PARENTFUNCTION</b> — empty for every clone. Clone lineage is recorded only in <b>PLO_PARENTPAGE</b>, shown here as "Cloned from" for admin display and nothing else.','§26.2'],
+  ['6','Permissions supply candidates; config supplies the choice',
+   'The nav cannot be derived from tab permissions, because a group can hold PRM_SELECT on several EVNT clones at once and nothing says which is <i>the</i> Work screen. So the target popover lists only permitted functions (security stays authoritative) and this screen picks among them. Built-ins are a separate group in that list because Home / Notifications / Sync Status are not functions and never will be — which is why a slot target is a <span style="font-family:var(--font-mono)">(kind, target)</span> union rather than a function key.','§26.3'],
+  ['7','Four slots, shown as arithmetic',
+   '<span style="font-family:var(--font-mono)">4 × 84px + 3 × 14px = 378px</span> of a 390px viewport. The preview is a real 390px box with real 84px items, and the sum recomputes as you add slots. Add-slot blocks at four <b>and says why</b> rather than silently capping — a fifth is 490px and needs the component redesigned, which is a different decision from this config.','§26.4'],
+  ['8','Declared vs. effective, on every row',
+   'One resolver, four domains: <b>explicit</b> for this group, <b>inherited</b> from the <span style="font-family:var(--font-mono)">*</span> default, or <b>not set</b>. Inherited domains are read-only until you explicitly override, because an edit in place would silently re-point every other group that also inherits. Three states read via border style and text weight, not three colours — "where did this come from" is not one of the palette’s instruments.','§26.5 / §13.3'],
+  ['9','Copy configuration from group',
+   'The action no single designer can offer, since each knows only its own domain. Per-domain checkboxes rather than all-or-nothing, and it warns before copying nav slots that point at functions the target group cannot select — the one way this action can produce something broken.','§26.5'],
+  ['10','The handoff into Screen Designer is a contract, not a link',
+   'Its entry modal asks for Base Screen, WO Type, Copy-from-Group and Save-to-Group(s), so launching it bare throws away everything already chosen here. The launch popover shows exactly what is passed and writes it to <span style="font-family:var(--font-mono)">sessionStorage.eamDesignerEntry</span>. Closed end to end on 2026-08-24: the designer’s picker became clone-aware, and it now consumes the handoff and opens pre-filled with a banner saying so. It resolves the function by code <i>or alias</i> (this screen calls the equipment function WSEQUIP, the designer calls it EQUIPMENT), maps the WO Type name onto the designer’s type codes, and injects a handed-over group into Save-to-Group(s) instead of dropping it. A WO Type with no equivalent is <b>reported</b>, never substituted.','§26.2 / §26.5.1'],
+  ['11','Cross-domain consistency is the strongest reason this screen exists',
+   'A nav slot and a workflow assignment are authored in different places and can disagree — and no designer can notice, because each sees one domain. <b>DC-OPS</b> inherits a nav pointing at WSJOBS, which it cannot select. <b>SALES-ENG</b> opens ZJ1000 with no configuration assigned. Both render at the top of Overview with a jump to the offending tab.','§26.5.1'],
+  ['12','What is deliberately missing',
+   'The Home Layout Designer this screen links to <b>does not exist</b>, and the tab says so rather than being hidden. Capability gaps are <i>reported, never worked around</i> — a missing tab is fixed in Screen Designer or Function Permissions, not by assigning a different group. Per-row sync freshness is absent on purpose: it needs development, not a design pass.','§20'],
+];
+function renderNotes(){
+  $('notesBody').innerHTML = NOTES.map(([n,t,d,tag])=>`
+    <div class="note">
+      <div class="note-n">${n}</div>
+      <div class="note-t">${t}</div>
+      <div class="note-d">${d}</div>
+      <span class="note-tag">${tag}</span>
+    </div>`).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BOOT
+   ═══════════════════════════════════════════════════════════════════════ */
+function renderAll(){
+  renderGroups();
+  renderCrumb();
+  renderTabs();
+  renderBody();
+  onBodyScroll();
+}
+renderNotes();
+renderAll();
+</script>
+</body>
+</html>

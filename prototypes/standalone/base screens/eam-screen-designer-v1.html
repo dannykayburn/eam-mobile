@@ -249,6 +249,13 @@
   .listbox-empty { padding: 14px 10px; font-size: 11px; color: var(--oct-gray-400); text-align: center; }
 
   .criteria-hint { font-size: 11px; color: var(--oct-gray-500); margin-top: 2px; display: flex; align-items: center; gap: 5px; }
+  /* Handoff banner — teal like every other "this came from elsewhere" cue in
+     this file, deliberately not the amber/red the fallback banners use: a
+     pre-filled modal is information, not a problem. */
+  .handoff-note { display: flex; align-items: flex-start; gap: 7px; padding: 10px 12px; margin: -4px 0 2px;
+    background: var(--oct-teal-light); border: 1px solid var(--oct-teal); border-radius: 8px;
+    font-size: 11.5px; line-height: 1.5; color: var(--oct-teal-mid); }
+  .handoff-note i { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
 
   /* Toast */
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--oct-gray-800); color: #fff; padding: 9px 18px; border-radius: 8px; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 8px; z-index: 500; animation: toastIn 0.2s ease; }
@@ -308,20 +315,35 @@
     <div class="modal-body">
       <p class="lead">Select the base screen to configure. Then select the user group(s) to save layouts to — click Advanced to save to multiple groups (and, for Work Orders, multiple WO Types) at once.</p>
 
+      <!-- Populated when this screen was reached from User Group Setup, so the
+           admin can tell a pre-filled modal from a defaulted one. -->
+      <div class="handoff-note" id="entryHandoffNote" style="display:none"></div>
+
+      <!-- The pills pick the base screen FAMILY; the select below picks which
+           function of that family — the base screen itself or one of its
+           clones. Two levels because a site can have any number of clones
+           (four here) and pills don't scale, but "is this a Work Order
+           screen" is still the question everything downstream asks. -->
       <div class="field-group">
         <label class="fl">Base Screen</label>
         <div class="base-screen-pills">
           <div class="bs-pill" id="bsPillWo" onclick="setBaseScreen('wo')">
             <i class="ti ti-file-description"></i>
             <div class="bsp-name">Work Order</div>
-            <div class="bsp-sub">WSJOBS</div>
+            <div class="bsp-sub" id="bsPillWoSub">EVNT</div>
           </div>
           <div class="bs-pill" id="bsPillEquip" onclick="setBaseScreen('equip')">
             <i class="ti ti-settings"></i>
             <div class="bsp-name">Equipment</div>
-            <div class="bsp-sub">EQUIPMENT</div>
+            <div class="bsp-sub" id="bsPillEquipSub">OBJ</div>
           </div>
         </div>
+      </div>
+
+      <div class="field-group" id="baseFnFieldGroup">
+        <label class="fl">Screen / Function</label>
+        <select class="form-select" id="baseFnSelect" onchange="onBaseFunctionChange()"></select>
+        <div class="criteria-hint" id="baseFnHint"></div>
       </div>
 
       <div class="field-group" id="woTypeFieldGroup">
@@ -416,7 +438,16 @@ const WO_TYPES = [
   {code:'ROUT', name:'Routine Maintenance'}
 ];
 
-const GROUPS = ['CUST-FULL','CUST-LITE','DCOPS','DK','DW-CONT','TECH','SUPV'];
+/* One environment, one set of user groups. Until 2026-08-24 this file carried
+   its own invented list (CUST-FULL/CUST-LITE/DCOPS/DW-CONT/TECH/SUPV) that
+   didn't overlap the one in eam-user-group-setup-prototype-v1.html — which
+   meant a group handed over from there wasn't selectable here, and the two
+   screens described different worlds. `DK` is kept because it is the only
+   group that appears in the real export (PLO_USERGROUP / PRM_GROUP in
+   docs/Data_refs/Page Layouts perms/). `*` is a legitimate save target: a
+   layout saved to it becomes the fallback every unconfigured group inherits.
+   Unknown groups arriving in a handoff are injected rather than dropped. */
+const GROUPS = ['*','DK','MAINT-TECH','SUPERVISOR','TRANSPORT','CONTRACTOR','SALES-ENG','DC-OPS','STORES'];
 
 // Completion Status Entity (§12) status domains — which entity's status values
 // the Start Work / Completion Status pickers below draw from.
@@ -460,6 +491,88 @@ const EQUIP_TABS = [
   {id:'eq-documents', label:'Documents', step:false, icon:'ti-paperclip'},
   {id:'eq-structure', label:'Structure', step:false, icon:'ti-hierarchy-3'}
 ];
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BASE FUNCTIONS — the screens that can be designed, INCLUDING CLONES
+   ═══════════════════════════════════════════════════════════════════════
+   Added 2026-08-24 (design-decisions-v3-1 §26.2 / §26.5.1). The Base Screen
+   picker used to be two hardcoded pills, Work Order and Equipment, which
+   silently asserted one WO screen per deployment. This customer's own export
+   (docs/Data_refs/Page Layouts perms/) contains FOUR WSJOBS clones, each
+   with its own full set of R5PAGELAYOUT rows and each serving a different
+   business process. A designer that can't open them can't configure the
+   screens people actually use.
+
+   THE STRUCTURE THAT KEEPS THIS SANE: `family` is the KIND ('wo'|'equip'),
+   `code` is the FUN_CODE. Everything downstream still switches on family —
+   which tab set, whether WO Type applies, which mobile emulator to draw —
+   so §26.2's rule holds here too: switch on the entity/kind, NEVER on the
+   function code. Adding a fifth WO clone is a row in this array and nothing
+   else.
+
+   `rows` is the real PLO row count from r5pagelayout.csv, shown so an admin
+   can see they're about to edit a screen with 382 configured fields rather
+   than a blank one. `parent` is PLO_PARENTPAGE — the only place clone
+   lineage is actually recorded (FUN_PARENTFUNCTION is empty for all of
+   them, and FUN_SYSTEM is a boolean, not a pointer — §26.2).
+
+   `tabs` is the clone's real capability. ZJ1000 (Customer Quotes) has no
+   Checklist and no Book Labor tab, so those steps cannot be authored for
+   it — the designer now refuses to offer them rather than letting someone
+   configure a step that can never render. That is the authoring-time half
+   of the capability gap User Group Setup reports (§26.5.1).
+   ═══════════════════════════════════════════════════════════════════════ */
+const WO_TABS_ALL = WO_TABS.map(t => t.id);
+const EQUIP_TABS_ALL = EQUIP_TABS.map(t => t.id);
+
+const BASE_FUNCTIONS = [
+  {code:'WSJOBS', desc:'Work Orders', family:'wo', entity:'EVNT', parent:null, rows:0,
+   tabs:WO_TABS_ALL, note:'The base screen. No clone lineage.'},
+  {code:'CCJOBS', desc:'Contract Jobs', family:'wo', entity:'EVNT', parent:'WSJOBS', rows:382,
+   tabs:WO_TABS_ALL},
+  {code:'TRJOBS', desc:"Transportation WO's", family:'wo', entity:'EVNT', parent:'WSJOBS', rows:382,
+   tabs:WO_TABS_ALL},
+  /* The capability-limited clone. Deliberately kept in the demo data
+     because a designer that only ever sees full-capability clones will
+     ship without the "this step can't exist here" path. */
+  {code:'ZJ1000', desc:'Customer Quotes', family:'wo', entity:'EVNT', parent:'WSJOBS', rows:237,
+   tabs:['recordview','comments','activities','closing','parts','costsummary']},
+  {code:'WSJODC', desc:'Work Orders (DC)', family:'wo', entity:'EVNT', parent:'WSJOBS', rows:0,
+   tabs:WO_TABS_ALL.filter(t => t !== 'workflowapproval')},
+  /* `aliases` exists for exactly one reason: the mobile-side screens call the
+     equipment function WSEQUIP while this file has always called it
+     EQUIPMENT, and a handoff that names one must resolve to the other. An
+     alias list is the honest fix — renaming either side would silently
+     invalidate whichever demo data still used the old code. */
+  {code:'EQUIPMENT', desc:'Equipment', family:'equip', entity:'OBJ', parent:null, rows:0,
+   tabs:EQUIP_TABS_ALL, aliases:['WSEQUIP','OBJEQUIP'], note:'The base screen. No clone lineage.'},
+];
+
+function functionsOf(family){ return BASE_FUNCTIONS.filter(f => f.family === family); }
+function fnByCode(code){ return BASE_FUNCTIONS.find(f => f.code === code) || null; }
+/* Code OR alias, case-insensitive — the entry point a handoff comes through. */
+function fnByAnyCode(code){
+  if(!code) return null;
+  const c = String(code).trim().toUpperCase();
+  return BASE_FUNCTIONS.find(f =>
+    f.code.toUpperCase() === c || (f.aliases||[]).some(a => a.toUpperCase() === c)) || null;
+}
+function currentFn(){ return fnByCode(state.baseFunction) || functionsOf(state.baseScreen === 'equip' ? 'equip' : 'wo')[0]; }
+/* Does the screen being designed actually have this tab? Unknown function
+   or unlisted tab => allow, so a new tab added to WO_TABS doesn't silently
+   vanish from every clone until someone remembers to update this array. */
+function fnHasTab(tabId){
+  const f = currentFn();
+  if(!f) return true;
+  const known = f.family === 'equip' ? EQUIP_TABS_ALL : WO_TABS_ALL;
+  if(!known.includes(tabId)) return true;
+  return f.tabs.includes(tabId);
+}
+/* Steps whose tab this function actually has. Everything that renders or
+   counts steps goes through here, so a clone can never be given a step it
+   cannot show. */
+function availableStepIds(){ return state.stepOrder.filter(s => fnHasTab(STEP_META[s].tab)); }
+function missingStepIds(){ return state.stepOrder.filter(s => !fnHasTab(STEP_META[s].tab)); }
 
 function cloneFields(list){ return JSON.parse(JSON.stringify(list)); }
 
@@ -580,7 +693,8 @@ const FIELD_TYPE_DOT = {text:'#007B87', lov:'#6B4EFF', num:'#F59E0B', bool:'#28A
 /* ═══════════════════════════ STATE ═══════════════════════════ */
 
 let state = {
-  baseScreen: null,
+  baseScreen: null,        // FAMILY / kind: 'wo' | 'equip' — everything switches on this
+  baseFunction: null,      // FUN_CODE: 'WSJOBS' | 'CCJOBS' | 'TRJOBS' | 'ZJ1000' | 'WSJODC' | 'EQUIPMENT'
   woType: 'BK',
   copyFromGroup: 'DK',
   groups: [],
@@ -612,13 +726,132 @@ Object.values(WORK_FIELDS).forEach(tabData => {
   if (Array.isArray(tabData)) tabData.forEach(section => { if (section.layout === 'grid') autoBalanceGrid(section); });
 });
 
+/* ═══════════════════════════════════════════════════════════════════════
+   HANDOFF FROM USER GROUP SETUP (design-decisions-v3-1 §26.5.1)
+   ═══════════════════════════════════════════════════════════════════════
+   eam-user-group-setup-prototype-v1.html writes
+   `sessionStorage.eamDesignerEntry` and navigates here. Without this reader,
+   the entry modal opened on its own defaults and threw away the group,
+   function and WO Type the admin had already chosen by being on that row —
+   which is most of the reason a deep link out of a binding screen feels
+   pointless.
+
+   sessionStorage rather than a query string: these files are opened over
+   file:// as often as over a server, and a query string would survive a
+   bookmark and re-apply a stale context weeks later.
+
+   FOUR THINGS THIS DELIBERATELY DOES NOT DO:
+     - It never half-applies. An unrecognised screen is ignored entirely
+       rather than pre-filling the group but not the function, which would
+       look like a working handoff pointing at the wrong layout.
+     - It consumes ONCE. A handoff that survived a reload would silently
+       re-apply over whatever the admin had since selected.
+     - It doesn't drop unknown groups. Both screens read R5USERGROUPS in
+       real EAM; a demo-data gap here must not look like a permission rule.
+     - It reports what it could NOT honour (see unmatched WO Types below),
+       because a silently-different WO Type is a wrong layout saved to real
+       groups.
+   ═══════════════════════════════════════════════════════════════════════ */
+const DESIGNER_ENTRY_KEY = 'eamDesignerEntry';
+let entryHandoff = null;      // consumed on the first openEntryModal()
+let handoffNote = null;       // banner html, cleared once the admin commits
+
+function readEntryHandoff(){
+  let raw = null;
+  try { raw = sessionStorage.getItem(DESIGNER_ENTRY_KEY); } catch(e){ return null; }
+  if(!raw) return null;
+  try { sessionStorage.removeItem(DESIGNER_ENTRY_KEY); } catch(e){ /* non-fatal */ }
+
+  let h;
+  try { h = JSON.parse(raw); } catch(e){ return null; }
+  if(!h || typeof h !== 'object') return null;
+
+  const fn = fnByAnyCode(h.baseScreen);
+  if(!fn) return null;   // unknown screen — ignore rather than half-apply
+
+  const groups = Array.isArray(h.saveToGroups)
+    ? h.saveToGroups.filter(g => typeof g === 'string' && g.trim()).map(g => g.trim())
+    : [];
+  const wo = resolveHandoffWoType(h.woType, fn);
+  return {
+    fn, groups,
+    woType: wo.code, woTypeRequested: h.woType || null, woTypeMatched: wo.matched,
+    copyFromGroup: (typeof h.copyFromGroup === 'string' && h.copyFromGroup.trim()) ? h.copyFromGroup.trim() : null,
+    from: (typeof h.from === 'string' && h.from) ? h.from : 'another screen',
+  };
+}
+
+/* User Group Setup names a WO Type ("Breakdown"); this file keys them by code
+   ("BK"). Try code, then exact name, then a name prefix — "Routine" against
+   "Routine Maintenance" is a real case. No match falls back to the fallback
+   layout and SAYS SO rather than quietly picking the first type. */
+function resolveHandoffWoType(requested, fn){
+  if(fn.family !== 'wo') return {code:null, matched:true};
+  /* Absent means "not chosen yet" (a New-configuration launch), NOT "the
+     fallback layout". Leave the select on its own default so the admin picks,
+     rather than silently committing them to the unmatched-types layout. */
+  if(!requested) return {code:null, matched:true};
+  const q = String(requested).trim().toUpperCase();
+  let t = WO_TYPES.find(x => x.code.toUpperCase() === q)
+       || WO_TYPES.find(x => x.name.toUpperCase() === q)
+       || WO_TYPES.find(x => x.name.toUpperCase().startsWith(q));
+  return t ? {code:t.code, matched:true} : {code:'none', matched:false};
+}
+
+function applyEntryHandoff(h){
+  /* Any handed-over group the demo list doesn't know gets injected, so the
+     dual listbox can actually receive it. */
+  h.groups.forEach(g => { if(!GROUPS.includes(g)) GROUPS.push(g); });
+
+  entrySelectedBaseScreen = h.fn.family;
+  document.getElementById('bsPillWo').classList.toggle('selected', h.fn.family === 'wo');
+  document.getElementById('bsPillEquip').classList.toggle('selected', h.fn.family === 'equip');
+  document.getElementById('woTypeFieldGroup').style.display = (h.fn.family === 'equip') ? 'none' : 'flex';
+  renderBaseFnSelect(h.fn.family, h.fn.code);
+
+  if(h.fn.family === 'wo' && h.woType){
+    document.getElementById('woTypeSelect').value = h.woType;
+    onWoTypeChange();
+  }
+  if(h.copyFromGroup && GROUPS.includes(h.copyFromGroup)){
+    document.getElementById('copyFromGroupSelect').value = h.copyFromGroup;
+  }
+  /* Pre-load Save-to-Group(s) — the whole point. Everything else stays
+     available so the admin can still fan out to more groups from here. */
+  if(h.groups.length){
+    state.groups = h.groups.slice();
+    state.availGroups = GROUPS.filter(g => !state.groups.includes(g));
+    renderGroupBoxes();
+    updateEntryContinueState();
+  }
+
+  const bits = [`Screen <b>${h.fn.code}</b>`];
+  if(h.fn.family === 'wo' && h.woType) bits.push(`WO Type <b>${woTypeName(h.woType)}</b>`);
+  if(h.fn.family === 'wo' && !h.woType && h.woTypeMatched) bits.push(`WO Type <b>not set — pick one</b>`);
+  if(h.groups.length) bits.push(`Save to <b>${h.groups.join(', ')}</b>`);
+  let note = `<i class="ti ti-arrow-right-circle"></i> <span>Pre-filled from <b>User Group Setup</b> — ${bits.join(' · ')}. Change anything before continuing.`;
+  if(!h.woTypeMatched){
+    note += `<br><b>WO Type "${h.woTypeRequested}" has no match in this environment</b>`
+      + ` — fell back to the unmatched-types layout. Pick a real WO Type, or add that type in base first.`;
+  }
+  note += `</span>`;
+  handoffNote = note;
+}
+
 /* ═══════════════════════════ ENTRY MODAL ═══════════════════════════ */
 
 function openEntryModal(){
   document.getElementById('entryModalOverlay').style.display = 'flex';
-  document.getElementById('bsPillWo').classList.toggle('selected', state.baseScreen !== 'equip');
-  document.getElementById('bsPillEquip').classList.toggle('selected', state.baseScreen === 'equip');
-  document.getElementById('woTypeFieldGroup').style.display = (state.baseScreen === 'equip') ? 'none' : 'flex';
+  const fam = state.baseScreen === 'equip' ? 'equip' : 'wo';
+  entrySelectedBaseScreen = fam;
+  document.getElementById('bsPillWo').classList.toggle('selected', fam === 'wo');
+  document.getElementById('bsPillEquip').classList.toggle('selected', fam === 'equip');
+  document.getElementById('woTypeFieldGroup').style.display = (fam === 'equip') ? 'none' : 'flex';
+  /* Pill sublines count what's actually in the environment, so "there are
+     five Work Order screens here" is visible before you commit to one. */
+  document.getElementById('bsPillWoSub').textContent = functionsOf('wo').length + ' screens · EVNT';
+  document.getElementById('bsPillEquipSub').textContent = functionsOf('equip').length + ' screen · OBJ';
+  renderBaseFnSelect(fam, state.baseFunction);
 
   const woSel = document.getElementById('woTypeSelect');
   woSel.innerHTML = '<option value="none">None — Fallback (unmatched WO Types)</option>' +
@@ -631,6 +864,15 @@ function openEntryModal(){
 
   renderGroupBoxes();
   updateEntryContinueState();
+
+  /* Applied AFTER the normal population, so it overrides defaults rather
+     than being overwritten by them. Consumed once. */
+  if(entryHandoff){ applyEntryHandoff(entryHandoff); entryHandoff = null; }
+  const noteEl = document.getElementById('entryHandoffNote');
+  if(noteEl){
+    noteEl.innerHTML = handoffNote || '';
+    noteEl.style.display = handoffNote ? 'flex' : 'none';
+  }
 }
 
 function closeEntryModal(isCancel){
@@ -646,8 +888,60 @@ function setBaseScreen(which){
   document.getElementById('bsPillEquip').classList.toggle('selected', which === 'equip');
   document.getElementById('woTypeFieldGroup').style.display = (which === 'equip') ? 'none' : 'flex';
   entrySelectedBaseScreen = which;
+  /* Switching family invalidates the function, so re-seed rather than
+     leaving CCJOBS selected under the Equipment pill. */
+  renderBaseFnSelect(which, null);
 }
 let entrySelectedBaseScreen = 'wo';
+let entrySelectedBaseFunction = null;
+
+function renderBaseFnSelect(family, preferCode){
+  const fns = functionsOf(family);
+  const pick = fns.some(f => f.code === preferCode) ? preferCode : fns[0].code;
+  entrySelectedBaseFunction = pick;
+  const sel = document.getElementById('baseFnSelect');
+  sel.innerHTML = fns.map(f =>
+    `<option value="${f.code}">${f.code} — ${f.desc}${f.parent?' (clone)':''}</option>`
+  ).join('');
+  /* Set .value explicitly rather than relying on a `selected` attribute in
+     the injected markup. onBaseFunctionChange() below re-derives the choice
+     FROM the DOM, so if the DOM doesn't reflect the pick, the selection is
+     silently lost and applyEntryModal() falls back to the first function —
+     which is how you'd end up editing WSJOBS while the modal said ZJ1000. */
+  sel.value = pick;
+  /* One function of a family needs no picker — but keep the row visible and
+     protected rather than hiding it, so the layout doesn't jump between
+     pills and the admin can still see WHICH screen they're editing. */
+  document.getElementById('baseFnFieldGroup').style.opacity = fns.length > 1 ? '1' : '.72';
+  document.getElementById('baseFnSelect').disabled = fns.length === 1;
+  onBaseFunctionChange();
+}
+
+function onBaseFunctionChange(){
+  const code = document.getElementById('baseFnSelect').value;
+  entrySelectedBaseFunction = code;
+  const f = fnByCode(code);
+  const hint = document.getElementById('baseFnHint');
+  if(!f){ hint.innerHTML = ''; return; }
+
+  const bits = [];
+  bits.push(f.parent
+    ? `Clone of <b>${f.parent}</b> (PLO_PARENTPAGE)`
+    : `Base screen — no clone lineage`);
+  bits.push(`FUN_RENTITY <b>${f.entity}</b>`);
+  bits.push(f.rows ? `<b>${f.rows}</b> existing layout rows` : `no layout rows yet`);
+
+  /* Capability gap is stated at pick time, not discovered later when a step
+     is missing from the left pane with no explanation. */
+  const gap = (f.family === 'wo')
+    ? Object.keys(STEP_META).filter(s => s !== 'recordview' && !f.tabs.includes(STEP_META[s].tab))
+    : [];
+  let html = `<i class="ti ti-info-circle"></i> <span>${bits.join(' · ')}`;
+  if(gap.length) html += `<br><b style="color:var(--oct-amber,#B45309)">No ${gap.map(s=>STEP_META[s].label).join(' or ')} tab on this screen</b>`
+    + ` — ${gap.length>1?'those steps':'that step'} can't be configured here. Fix the function's tabs in Security ▸ Function Permissions, or pick a different screen.`;
+  html += `</span>`;
+  hint.innerHTML = html;
+}
 
 function onWoTypeChange(){
   const val = document.getElementById('woTypeSelect').value;
@@ -738,6 +1032,7 @@ function updateEntryContinueState(){
 function applyEntryModal(){
   if (!state.groups.length) return;
   state.baseScreen = entrySelectedBaseScreen;
+  state.baseFunction = entrySelectedBaseFunction || functionsOf(state.baseScreen)[0].code;
   state.copyFromGroup = document.getElementById('copyFromGroupSelect').value;
   if (state.baseScreen === 'wo') {
     state.woType = document.getElementById('woTypeSelect').value;
@@ -747,7 +1042,10 @@ function applyEntryModal(){
     state.activeTab = 'eq-recordview';
   }
   document.getElementById('entryModalOverlay').style.display = 'none';
-  showToast('Layout loaded — copied from Group: ' + state.copyFromGroup, 'ti-copy');
+  /* The handoff has been acted on, so the banner stops being true. Reopening
+     via "Change Screen / Group(s)" must not claim to be pre-filled. */
+  handoffNote = null;
+  showToast('Layout loaded — ' + state.baseFunction + ' copied from Group: ' + state.copyFromGroup, 'ti-copy');
   refreshShell();
 }
 
@@ -760,15 +1058,42 @@ function refreshShell(){
   switchTab(state.activeTab);
 }
 
-function currentTabDefs(){ return state.baseScreen === 'equip' ? EQUIP_TABS : WO_TABS; }
+/* Tab set is the FAMILY's catalogue, filtered to what this particular
+   function actually has. A clone with no Checklist tab must not offer one. */
+function currentTabDefs(){
+  const all = state.baseScreen === 'equip' ? EQUIP_TABS : WO_TABS;
+  return all.filter(t => fnHasTab(t.id));
+}
 
 function woTypeName(code){ const t = WO_TYPES.find(x=>x.code===code); return t ? (t.code+' — '+t.name) : 'None (Fallback)'; }
 
+/* The emulator's sample record follows the CLONE, not just the family — a
+   Customer Quotes screen previewing "WO#19257 · Pump Cavitating" is the
+   same one-WO-screen assumption this whole change removes. */
+const EMULATOR_RECORDS = {
+  WSJOBS: 'WO#19257 · Pump Cavitating',
+  CCJOBS: 'CJ#40188 · Annual Service Contract',
+  TRJOBS: 'TR#7734 · Truck 12 Brake Overhaul',
+  ZJ1000: 'CQ#2051 · Quote — Conveyor Retrofit',
+  WSJODC: 'DC#88410 · Dock Leveller Fault',
+  EQUIPMENT: 'EQ-4421 · Boiler Feed Pump',
+};
+function emulatorRecordLabel(){
+  const f = currentFn();
+  return (f && EMULATOR_RECORDS[f.code])
+    || (state.baseScreen === 'wo' ? EMULATOR_RECORDS.WSJOBS : EMULATOR_RECORDS.EQUIPMENT);
+}
+
 function renderContextBar(){
   const bar = document.getElementById('contextBar');
+  const f = currentFn();
+  /* The chip names the FUNCTION, not just the family. With four WSJOBS
+     clones in play, "Base Screen: Work Order" doesn't tell you which
+     screen's 382 rows you're about to edit. */
   const bsChip = state.baseScreen === 'equip'
-    ? `<div class="context-chip"><i class="ti ti-settings"></i> Base Screen: <b>Equipment</b></div>`
-    : `<div class="context-chip"><i class="ti ti-file-description"></i> Base Screen: <b>Work Order</b></div>`;
+    ? `<div class="context-chip"><i class="ti ti-settings"></i> Base Screen: <b>${f?f.code:'EQUIPMENT'}</b> · Equipment</div>`
+    : `<div class="context-chip"><i class="ti ti-file-description"></i> Base Screen: <b>${f?f.code:'WSJOBS'}</b> · ${f?f.desc:'Work Orders'}`
+      + (f && f.parent ? ` <span style="opacity:.6">(clone of ${f.parent})</span>` : '') + `</div>`;
   const woChip = state.baseScreen === 'wo'
     ? `<div class="context-chip"><i class="ti ti-tag"></i> WO Type: <b>${woTypeName(state.woType)}</b></div>` : '';
   const grpChip = `<div class="context-chip"><i class="ti ti-users"></i> Group(s): <b>${state.groups.join(', ')}</b></div>`;
@@ -780,12 +1105,20 @@ function renderContextBar(){
 
 function renderModeBanner(){
   const el = document.getElementById('modeBanner');
+  const gone = missingStepIds();
+  /* A capability banner stacks BELOW whichever mode banner applies, rather
+     than replacing it — "this is the fallback screen" and "this clone has no
+     Checklist tab" are both true at once and an admin needs both. */
+  const capBanner = gone.length
+    ? `<div class="fallback-banner"><i class="ti ti-alert-triangle"></i> <span><b>${currentFn().code} has no ${gone.map(s=>STEP_META[s].label).join(' or ')} tab.</b> ${gone.length>1?'Those steps are':'That step is'} hidden from the tab list and the workflow — a step whose tab doesn't exist on the screen can never render. Give the function the tab in Security ▸ Function Permissions, or design a different screen.</span></div>`
+    : '';
+
   if (state.baseScreen === 'wo' && state.woType === 'none') {
-    el.innerHTML = `<div class="fallback-banner"><i class="ti ti-alert-triangle"></i> <span><b>Fallback screen.</b> No matching WO Workflow header for this WO Type — renders the plain Standard Record View, always Free Form. Hardcoded, not configurable (§11).</span></div>`;
+    el.innerHTML = `<div class="fallback-banner"><i class="ti ti-alert-triangle"></i> <span><b>Fallback screen.</b> No matching WO Workflow header for this WO Type — renders the plain Standard Record View, always Free Form. Hardcoded, not configurable (§11).</span></div>` + capBanner;
   } else if (state.baseScreen === 'equip') {
     el.innerHTML = `<div class="fallback-banner equip"><i class="ti ti-info-circle"></i> <span>Equipment is a plain Standard Record View — no WO Type / workflow concept applies here (§10).</span></div>`;
   } else {
-    el.innerHTML = '';
+    el.innerHTML = capBanner;
   }
 }
 
@@ -904,7 +1237,7 @@ function renderCanvas(){
   let railHtml = '';
   if (showRail) {
     const stepId = state.activeTab === 'recordview' ? 'recordview' : Object.keys(STEP_META).find(k => STEP_META[k].tab === state.activeTab);
-    const order = ['recordview'].concat(state.stepOrder.filter(s => state.steps[s].visible));
+    const order = ['recordview'].concat(availableStepIds().filter(s => state.steps[s].visible));
     const total = order.length;
     const pos = order.indexOf(stepId) + 1;
     let segs = '';
@@ -940,7 +1273,7 @@ function renderCanvas(){
   canvas.innerHTML = `<div class="mobile-shell" id="mobileShell">
     <div class="mob-nav">
       <i class="ti ti-chevron-left mob-nav-back"></i>
-      <div class="mob-nav-title">${state.baseScreen==='wo' ? 'WO#19257 · Pump Cavitating' : 'EQ-4421 · Boiler Feed Pump'}</div>
+      <div class="mob-nav-title">${emulatorRecordLabel()}</div>
       <i class="ti ti-dots-vertical" style="color:rgba(255,255,255,0.4);font-size:14px"></i>
     </div>
     ${lockedHeader}
@@ -1233,17 +1566,24 @@ function addFieldToScreen(i){
 function renderStepRows(){
   const el = document.getElementById('tpStepRows');
   if (!el) return;
-  el.innerHTML = state.stepOrder.map((stepId, idx) => {
+  /* Only steps this function's tab set can actually show. The displayed
+     step number counts VISIBLE available steps, so hiding one renumbers the
+     rest instead of leaving a gap — the old `idx+2` numbered by array
+     position and drifted as soon as anything was switched off. */
+  const avail = availableStepIds();
+  let seq = 1; // record view is always step 1
+  el.innerHTML = avail.map((stepId) => {
     const s = state.steps[stepId];
     const meta = STEP_META[stepId];
     const active = meta.tab === state.activeTab;
+    const stepNo = s.visible ? ++seq : null;
     const hasSettings = stepId === 'booklabor';
     let rowHtml = `<div class="wfp-step-row ${s.visible?'':'dim'} ${active?'active':''}" draggable="true" data-step="${stepId}" style="${active?'border-color:var(--oct-teal)':''}">
       <i class="ti ti-grip-vertical wfp-drag"></i>
       <div class="wfp-step-icon"><i class="ti ${meta.icon}"></i></div>
       <div class="wfp-step-body" style="cursor:pointer" onclick="switchTab('${meta.tab}')">
         <div class="wfp-step-name">${meta.label}</div>
-        <div class="wfp-step-tag">${s.visible ? 'Step ' + (idx+2) : 'Not in this workflow'}</div>
+        <div class="wfp-step-tag">${s.visible ? 'Step ' + stepNo : 'Not in this workflow'}</div>
       </div>
       <div class="wfp-step-controls">
         ${hasSettings ? `<i class="ti ti-settings wfp-step-gear" title="Step-specific settings" onclick="toggleBookLaborSettings(event)"></i>` : ''}
@@ -1263,6 +1603,16 @@ function renderStepRows(){
     }
     return rowHtml;
   }).join('');
+
+  /* Say what was withheld and why. A step silently absent from this pane is
+     indistinguishable from a bug. */
+  const gone = missingStepIds();
+  if(gone.length){
+    el.innerHTML += `<div class="wfp-note" style="margin:8px 4px 2px">
+      <i class="ti ti-alert-triangle"></i> ${gone.map(s=>STEP_META[s].label).join(', ')}
+      ${gone.length>1?'are':'is'} unavailable on <b>${currentFn().code}</b> — the screen has no such tab.
+    </div>`;
+  }
   wireStepDragEvents();
 }
 
@@ -1345,9 +1695,13 @@ function moveStep(fromId, toId, before){
 /* ═══════════════════════════ SAVE / TOAST ═══════════════════════════ */
 
 function saveLayout(){
+  const f = currentFn();
+  /* The function code is in the save message because PLO_PAGENAME is what
+     the rows are actually keyed on — saying "Work Order" would hide which
+     of four clones just took the write. */
   const summary = state.baseScreen === 'wo'
-    ? `Saved: Work Order · WO Type ${woTypeName(state.woType)} · Group(s) ${state.groups.join(', ')}`
-    : `Saved: Equipment · Group(s) ${state.groups.join(', ')}`;
+    ? `Saved: ${f.code} · WO Type ${woTypeName(state.woType)} · Group(s) ${state.groups.join(', ')}`
+    : `Saved: ${f.code} · Group(s) ${state.groups.join(', ')}`;
   showToast(summary, 'ti-device-floppy');
 }
 
@@ -1361,6 +1715,9 @@ function showToast(msg, icon){
 }
 
 /* ═══════════════════════════ INIT ═══════════════════════════ */
+/* Read the handoff BEFORE the modal opens, so openEntryModal() can apply it
+   on top of the defaults it has just populated. */
+entryHandoff = readEntryHandoff();
 openEntryModal();
 </script>
 </body>

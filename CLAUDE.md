@@ -34,10 +34,17 @@ Candidates, roughly in order of how ready they are:
    session: flip its dev toggle and pick `chooser` or `split` (§20). Both
    destinations are real navigation now, so it's a fair comparison.
 
-Long-settled and not worth revisiting: the WO base-function question stays
-on **one function, `WSJOBS`, always**; the WO-Type dimension comes from a
-`PLO_WOTYPE` column plus the two new WO Workflow tables, authored through
-Screen Designer. Full rationale in §11–§13, rejected alternative in §21.
+Settled: the WO-Type dimension comes from a `PLO_WOTYPE` column plus the
+two new WO Workflow tables, authored through Screen Designer, and the app
+mints **no new `FUN_CODE`s** (rationale §11–§13, rejected alternative §21).
+**Reversed 2026-08-24, see §26.7:** the "one function, `WSJOBS`, always" half
+of that is gone. Any function with `FUN_RENTITY = EVNT` may be
+workflow-enabled, opted in per **user group** — this customer already runs
+four `WSJOBS` clones (CCJOBS/TRJOBS/ZJ1000/WSJODC) as distinct business
+processes, and a single blessed function would cost them the per-clone
+labels, boilerplate and field layouts those clones exist for. §26 is the
+new base-side section: function resolution, bottom-nav slot binding, and
+the User Group Setup screen paradigm.
 
 ## Source of truth
 `docs/design-decisions-v3-1.md` is the authoritative design spec. Never
@@ -457,7 +464,10 @@ memory).
 `prototypes/standalone/base screens/eam-screen-designer-v1.html` — a
 separate, self-contained visual system (not `eam-shared.css`/`.js`),
 modeling the real base-EAM admin surface per §10–§13: entry modal (Base
-Screen, WO Type, Copy-from-Group, dual-listbox Save-to-Group), a
+Screen — **clone-aware since 2026-08-24**: family pills plus a function select
+over `BASE_FUNCTIONS`, so all four `WSJOBS` clones are designable, with
+`state.baseScreen` still the family and `state.baseFunction` the `FUN_CODE`
+per §26.2 — WO Type, Copy-from-Group, dual-listbox Save-to-Group), a
 mobile-emulator canvas, a persistent left pane merging tab navigation with
 step management, right-click field editing (Required/Protected/Optional/
 Hidden/Not Available), drag-to-reorder, and a Field Grid Section
@@ -465,6 +475,28 @@ Hidden/Not Available), drag-to-reorder, and a Field Grid Section
 this yet, flag if it becomes real). Separate track from the mobile app
 screens; feeds the compiled-app/`designerMode` plan referenced under
 "START HERE."
+
+`prototypes/standalone/base screens/eam-user-group-setup-prototype-v1.html`
+— the User Group Setup screen (§26, built 2026-08-24). A **binding**
+screen, not a config form: protected group identity + child tabs, where
+Bottom Nav and Sync are real assignment grids and Screen Design / Home
+summarise and deep-link out. No insert (groups come from Security ▸ User
+Groups), so it has **no Create button at all** rather than a disabled one.
+Also self-contained; reuses `eam-base-desktop-ui-prototype-v1.html`'s
+components (rail, crumb, hero, tab capsule, `.fd` fields, `.mg` grid).
+On the Screen Design tab the only editable thing is
+**assignment** — a workflow configuration is an artifact keyed `(function,
+WO Type)`, authored in Screen Designer and saved to N groups, and this
+screen edits that membership from the group's side. Never steps, gating or
+layout. **Assign is not Copy** (§26.5.1). It also runs the cross-domain
+consistency checks no designer can — nav slot vs. function permissions,
+nav slot vs. assigned configs — which is its strongest justification. Its
+**Edit layout** deep link is a real handoff: it writes
+`sessionStorage.eamDesignerEntry` and Screen Designer consumes it, opening
+pre-filled (function by code-or-alias, WO Type name mapped to the designer's
+codes, group injected into Save-to-Group). Both files now share **one**
+user-group list — they used to describe different worlds. Anything that
+can't be honoured is reported, never substituted. §26.5.1.
 
 ### data/ layer
 Real reference data lives in `docs/Data_refs/` (Employees/Crews/Stores/
