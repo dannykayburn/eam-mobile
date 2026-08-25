@@ -176,6 +176,64 @@ no-ops when it's absent, so single-select consumers need no changes.
 time is not a flow. Deduplication is the *consumer's* job, not the
 picker's — the WO Equipment tab skips codes already on the tab.
 
+## Structure Tree
+
+**Named and promoted 2026-08-25 (user direction):** "the structure should be a
+shared component, as it is used in equipment LOV as well." It already *was*
+shared code — it just had no name and was only ever described as "the Equipment
+LOV's Structure tab," which is why §7.4 went on calling a mobile tree an open
+design problem long after one shipped. This entry exists so that stops
+happening.
+
+**Where:** `eam-shared.js` `renderTreeNode()` / `renderEquipTree()`;
+`eam-shared.css` `.tree-*` (~26 rules, `.tree-wrap` through
+`.tree-select-btn`, dark-mode variants included).
+**Consumers today:** the **Equipment LOV**'s Structure tab — which means every
+entry point into that picker: WO Record View's Equipment field, WO Insert Mode's
+Equipment ref card, and the WO Equipment tab's Plus (multi-select mode).
+**Second consumer, not yet built:** Equipment Record View's **Structure Details**
+tab (§7.4).
+
+**What it is:** the recursive Location → Position → System → Asset hierarchy as
+an indented list of cards, not a diagram. Per node: a 32px icon tile, a mono
+uppercase **type** line, a **description** line, a mono **code** line, and an
+optional trailing control. Depth is a 20px left margin per level plus
+`.tree-guide` — an absolutely-positioned elbow (left border + bottom border +
+rounded corner) that draws the connector line into the parent.
+
+**Interaction — "Option B", locked:** tapping a row's *text* focuses/highlights
+that node; a **separate caret** expands/collapses it **without** changing focus.
+Those being two different targets is the whole point — expanding to look around
+must not disturb what you have selected. Only the focused row reveals its
+trailing action. The current node renders `.tree-row.current` (emphasised
+border, filled icon) and its ancestor chain auto-expands.
+
+**Modes:** single-select shows a `Select` button on the focused row plus a
+`Selected` pill on the current node; multi-select (§16.10) shows `Add`/`Added` on
+**every** row instead and no focus requirement.
+
+**What a second consumer needs it to grow — the honest gap:** the component is
+complete as a *renderer* and coupled as a *picker*. Three things are LOV-specific
+and would need parameterizing rather than redesigning:
+1. `renderEquipTree()` hardcodes its mount (`#equipTreeBody`) and its data
+   (`TREE_DATA`).
+2. The trailing control is selection-only. A Structure Details **tab** is not a
+   picker — a node tap should navigate to that asset, so the row action needs to
+   become a handler (the same shape as `ROW_TAP_HANDLERS` elsewhere) rather than
+   a hardcoded Select.
+3. `selectTreeNode()` mutates `current` across `TREE_NODE_MAP` and calls
+   `commitEquipmentSelection()` — both meaningless outside a picker.
+
+Also worth knowing: `treeExpandedIds`/`treeFocusedId` are module-level
+singletons. Harmless while only one tree is ever on screen, which is true today.
+
+**Known delta from the reference material:** §7.4's legacy tablet reference
+(`Structure__Safety_WO.png`) shows **a status dot per node**; this component has
+no per-node status. That is the one genuinely additive piece of design, and it is
+a small one — not a reason to treat the tab as unsolved.
+
+---
+
 ## Equipment ID Badge (separate — not part of the Equipment LOV)
 
 **Where:** Activity Checklist (`eam-activity-checklist-prototype-v1.html`,
@@ -472,6 +530,7 @@ write-up, including the jobType-vs-Type-LOV-code reconciliation
 | Field Types (13, category term) | App-wide | Backfilled 2026-07-28 — locked rules already existed in §5.2, never indexed here |
 | Equipment LOV | WO Record View, WO Insert Mode | Converged 2026-07-21 — one shared picker, both screens (§7.4/§15.5) |
 | Equipment LOV — Multi-Select mode | WO Equipment tab (Plus) | New paradigm 2026-08-10 (§16.10) — same picker, rows toggle + "Add N" footer; single consumer so far |
+| Structure Tree | Equipment LOV's Structure tab (so: WO Record View, WO Insert Mode, WO Equipment tab). **2nd consumer pending: Equipment RV's Structure Details tab** | Named 2026-08-25 (user direction) — already shared code, previously unnamed and mis-described in §7.4 as nonexistent. Complete as a renderer, coupled as a picker: mount/data/row-action need parameterizing for a non-picker consumer |
 | Multi-Select Delete | WO Equipment tab (ellipsis) | New paradigm 2026-08-10 (§16.10) — mirror of the above over records already on screen; mandatory confirm; single consumer so far |
 | Equipment ID Badge | Activity Checklist | Built, read-only, deliberately separate from the LOV (§16) |
 | Notification Card | Notifications | Built 2026-07-22 (§25); single consumer so far |

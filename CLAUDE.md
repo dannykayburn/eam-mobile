@@ -37,6 +37,42 @@ Candidates, roughly in order of how ready they are:
 Settled: the WO-Type dimension comes from a `PLO_WOTYPE` column plus the
 two new WO Workflow tables, authored through Screen Designer, and the app
 mints **no new `FUN_CODE`s** (rationale §11–§13, rejected alternative §21).
+**Equipment resolves the same way off *system type*, and base already models
+it as four screens** — Location/Asset/Position/System, plus clones (§26.8,
+2026-08-25). So mobile collapses four base screens into one surface: tap an
+asset, then a position, and the record view re-renders under a different
+layout without navigating anywhere. Cheaper than WO on the base side (those
+four *are* four `PLO_PAGENAME` values — no new column, no new table), and it
+answers the old "Insert Mode's Equipment Type vs. Class" question: that pill
+is the system type, not a Class. **But the authoring surface for those four
+doesn't exist, and that is a blocker for the Equipment mobile track** — don't
+build Equipment RV against one hardcoded layout, or every child tab inherits
+the assumption. Equipment's system type is **Protected in update mode,
+always** — set once at insert, fixed for life — so Equipment has no
+re-resolution exposure at all; Insert Mode is the only place it's ever set,
+which makes that pill's missing `Location` option a real defect rather than a
+cosmetic one (§20). **WO Type protects later, at Start Work** (§13.5, locked
+2026-08-25) — editable while not started (confirm → immediate commit →
+re-render), Protected from Start Work onward with no exceptions and no
+permission escape. Same §5.2 Protected state as Equipment, later trigger; one
+paradigm, two trigger points. That one rule replaced a proposed four-tier gate
+ladder, closed required-field drift (a re-type is now pre-start only, and Start
+Work is itself a gate), and withdrew the §23 required-marker tension — **§23
+stands as written, don't re-open it.** It also answers "no Parts tab but parts
+were issued?": issuing parts is post-Start-Work by construction, so it can't
+arise from mobile. Only residual is base-issued parts on a pre-start WO (§20).
+
+## Start Work is the commitment boundary (§14.11, locked 2026-08-25)
+Five things happen at once and only make sense together: status → Start Work
+Status, **Type protects**, **the WO pins to the technician**, **all child
+records hydrate**, and (recommended) the **resolved config version is stamped**
+— which is also the answer to workflow-config revisioning. Before Start Work a
+WO is a candidate; after it, it's this technician's committed work. Two
+consequences: starting a WO found by search **is** the Tier 3 → Tier 1
+promotion (so a non-hydrated WO probably needs connectivity to start), and this
+is the **first device-originated pin** — a local pin must survive a server
+membership list that omits it, or the next sync evicts live work. That last
+point is real evidence for punch-list Option B.
 **Reversed 2026-08-24, see §26.7:** the "one function, `WSJOBS`, always" half
 of that is gone. Any function with `FUN_RENTITY = EVNT` may be
 workflow-enabled, opted in per **user group** — this customer already runs
@@ -45,6 +81,20 @@ processes, and a single blessed function would cost them the per-clone
 labels, boilerplate and field layouts those clones exist for. §26 is the
 new base-side section: function resolution, bottom-nav slot binding, and
 the User Group Setup screen paradigm.
+
+## Hydration has a Tier 0 (§2.3, revised 2026-08-25)
+The tier model gained a **Tier 0 — bootstrap configuration** in front of the
+four record tiers, and it is deliberately *not* a record tier: records degrade
+gracefully (fewer rows = a shorter list), configuration doesn't (a missing page
+layout is a blank screen). Ordered by dependency — identity/user group →
+nav/function resolution → **page layout** (+ WO Workflow tables + custom-field
+defs) → status authorizations → dataspy definitions → the code domains layout
+references. **Layout is first because it scopes everything after it**, not only
+because it's most critical. Fetched **inside the login round-trip, not a modal**
+— "no blocking modal" was aimed at waiting on *records*, and Tier 0 is
+kilobytes inside a wait that already exists. Tier 0 is persisted, versioned per
+domain, and **exempt from eviction**. Say **"my open pinned work orders"**, never
+"today's WOs" — the punch list is pin/dataspy-scoped and never date-scoped.
 
 ## Source of truth
 `docs/design-decisions-v3-1.md` is the authoritative design spec. Never
@@ -57,8 +107,21 @@ execution doc — what to build, in what order, and the current plan. Check
 there before design-decisions-v3-1.md for "what should I work on," and
 check design-decisions-v3-1.md for "what's the locked rule for X."
 
-Also read `docs/project-kickoff-whitepaper-v3.md` for project status,
-architecture questions, and proposed sequence.
+`docs/EAM-Dev-Leadership-Review-2026-08-25.md` is the **single
+leadership-facing artifact** — project status, Voice of the Customer, the 8
+design paradigms with their dev consequences, the full lifecycle, the
+screen-by-screen inventory of built vs. outstanding (Equipment's tabs
+enumerated individually, §5.2), the backend asks, the gap analysis and the
+recommended sequence. **Keep it current when project status changes** — its
+predecessor, `project-kickoff-whitepaper-v3.md`, went ~6 weeks stale and
+understated the built surface by half, which is why it was retired into
+`docs/old versions/` (2026-08-25) rather than maintained alongside. Don't
+resurrect a second status doc.
+
+`docs/EAM-Dev-Leadership-Sizing-Appendix-2026-08-25.md` is its only
+companion: measured **relative** per-screen complexity (explicitly not an
+effort estimate) plus the method to re-derive it. Both are deck source, not
+spec — a locked rule still lives only in `design-decisions-v3-1.md`.
 
 `docs/component-library.md` is the human-readable, name-first component
 reference — "what is the thing called X, and what are its rules,"
@@ -168,11 +231,21 @@ All 5 steps are rebuilt onto the shared-file architecture: `eam-wo-record-
 view-prototype-v1.html` (Step 1), `eam-activity-checklist-prototype-v2.html`
 (Step 2), `eam-wo-prototype-issue-parts-v1.html` (Step 3), `eam-book-labor-
 prototype-v2.html` (Step 4), `eam-wo-closing-prototype-v2.html` (Step 5).
-Shared chrome: step rail + timer pill (§14.2), a "Reference" group pinned
-after the last numbered step (§14.8) holding Comments/Documents
-jump-shortcuts plus **Equipment, a real destination screen** (§16.10 — when
-it's on screen the rail marks that row active via `activeRef`), and the
-per-step bottom bar (§14.5–§14.7). The rail (and Equipment RV's tab rail,
+Shared chrome: step rail + timer pill (§14.2), a **"More" group** pinned
+after the last numbered step (§14.8 — renamed from "Reference" 2026-08-25,
+§21) currently holding Comments/Documents plus **Equipment, a real
+destination screen** (§16.10 — when it's on screen the rail marks that row
+active via `activeRef`), and the per-step bottom bar (§14.5–§14.7).
+**Its membership is configuration, not definition** — it's whichever of the
+function's tabs the admin placed outside the sequence (`Placement = More`
+on §12's tier-2 rows, authored in Screen Designer). Those three are a
+default, not the spec. Two rules to preserve: a tab is **either** a
+numbered step **or** a More entry, never both (otherwise forward gating is
+bypassable — Book Labor is both a step and a real WO tab), and a More tab
+**can never be Required** (nothing routes the technician there). Driven by
+`WO_MORE_TABS`/`stepMapMoreGroupHtml()`/`openWoMoreTab()` in
+`eam-shared.js` — data-driven, so don't re-hardcode rows into it. Screen
+Designer has no Placement control yet (§20). The rail (and Equipment RV's tab rail,
 same shared shell) is a floating pill/capsule (§14.2; the old "Flush
 Full-Bleed Card" style is preserved by name in §21 for an easy revert). The
 rail also carries the WO Type Colour + Icon Badge (§23.3) — a colour-tinted
@@ -267,7 +340,7 @@ falls back to 20450.
 `eam-wo-equipment-tab-prototype-v1.html` (§16.10) — the WO's own per-record
 equipment list, and **the first real §8 child-tab screen**; copy it for the
 next child tab. Reached from WO Record View's Route/MEC pill and the step
-rail's Reference-group Equipment item (`goToWoEquipmentTab()`). Not a
+rail's More-group Equipment item (`goToWoEquipmentTab()`). Not a
 workflow step (not in `WO_STEP_FILES`), but it **does carry the WO step
 rail** — it has no bottom bar, so the rail is its only way back. Header is
 §8.1's protected identity; body is the shared List/Detail shell, config only.
@@ -328,7 +401,7 @@ with these sections. WO Record View lost its old "render every comment inline"
 exception. Destinations: Equipment RV uses its existing Comments/Documents
 tabs; **WO uses `eam-wo-reference-tab-prototype-v1.html`** — one child-tab
 screen carrying *both* tabs (copied from the WO Equipment tab, which is still
-the §8 child-tab template). The step rail's Reference group now navigates there
+the §8 child-tab template). The step rail's "More" group now navigates there
 instead of scrolling to the inline section.
 - **The View more row is emitted by the shared excerpt renderers**, never
   appended by a screen — appending died on any re-render, and adding a comment
@@ -474,7 +547,22 @@ Hidden/Not Available), drag-to-reorder, and a Field Grid Section
 (List↔Grid toggle, drag-resizable cells — §12/§13 has no doc section for
 this yet, flag if it becomes real). Separate track from the mobile app
 screens; feeds the compiled-app/`designerMode` plan referenced under
-"START HERE."
+"START HERE." **It is the only workflow-authoring surface** — a separate
+`eam-workflow-designer-v1_1.html` existed undocumented and was **retired
+2026-08-25** (§21) for contradicting §10's one-surface rule; don't rebuild
+it. Two live notes from that retirement: it modelled §13.1–§13.4 features
+that are still deliberately deferred (its existence was never a sign that
+question was settled), and it surfaced **workflow config revisioning** — an
+admin editing a `(function, WO Type)` config while technicians are mid-flow
+against the old shape — now tracked as open in §20.
+
+The base-screens track carries **two visual languages**, which is a known
+inconsistency, not a style choice: Screen Designer is on DM Sans/DM Mono with
+a teal-purple palette and loads none of the shared files, while
+`eam-base-desktop-ui-prototype-v1.html` and User Group Setup are on
+Inter/JetBrains Mono in the app's own language. User Group Setup's **Edit
+layout** deep link crosses that seam mid-flow. Restyling Screen Designer onto
+the Base/Desktop UI components is the fix; nobody has picked it up.
 
 `prototypes/standalone/base screens/eam-user-group-setup-prototype-v1.html`
 — the User Group Setup screen (§26, built 2026-08-24). A **binding**
