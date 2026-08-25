@@ -336,12 +336,12 @@ function renderStepRail(workflow, activeStep, jobType, activeRef) {
   const steps = workflow.steps;
   const activeIdx = steps.indexOf(activeStep);
   woCurrentStep = activeStep;
-  // activeRef (2026-08-10): the screen on display is a Reference destination
+  // activeRef (2026-08-10): the screen on display is a More destination
   // (the Equipment tab), not a numbered step. activeStep still drives the
   // segments and each step's done/locked state — it's the WO's real position,
-  // the step the user came from — but the *highlight* moves to the Reference
+  // the step the user came from — but the *highlight* moves to the More
   // row, so the rail never shows two active rows at once.
-  if (nameEl) nameEl.textContent = activeRef ? (WO_REFERENCE_LABELS[activeRef] || '') : (WO_STEP_LABELS[activeStep] || '');
+  if (nameEl) nameEl.textContent = activeRef ? (woMoreLabel(activeRef)) : (WO_STEP_LABELS[activeStep] || '');
   rail.classList.toggle('rail-not-free-form', !workflow.freeForm);
   renderStepRailTypeSlot(rail, jobType, false);
   // Preserve the expanded-rail timer panel (Steps 2–3's hardcoded first
@@ -371,13 +371,13 @@ function renderStepRail(workflow, activeStep, jobType, activeRef) {
        Forward gating is untouched: a step past the WO's position stays locked
        with its own explanatory toast. */
     if (i < activeIdx) return `<div class="step-map-item" onclick="goToWoStep('${s}')"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">${label}</span><span class="step-map-back">${STEP_BACK_CHEVRON}</span></div>`;
-    // The current step: only navigable from a Reference destination (§16.10),
+    // The current step: only navigable from a More destination (§16.10),
     // where the rail is the only way back into the flow. On a step screen it's
     // the screen you're already on.
     const selfNav = activeRef ? ` onclick="goToWoStep('${s}')"` : '';
     if (i === activeIdx) return `<div class="step-map-item${activeRef ? '' : ' active'}"${selfNav}><div class="step-map-icon smi-active">${i + 1}</div><span class="step-map-label${activeRef ? '' : ' active-label'}">${label}</span></div>`;
     return `<div class="step-map-item"${gated ? ` onclick="showToast('Locked — finish ${activeLabel} first')"` : ''}><div class="step-map-icon smi-locked">${i + 1}</div><span class="step-map-label">${label}</span></div>`;
-  }).join('') + stepMapReferenceGroupHtml(activeRef);
+  }).join('') + stepMapMoreGroupHtml(activeRef);
   if (seg) {
     seg.classList.remove('flat');
     seg.style.display = ''; // undo renderFlatStepRail()'s display:none, in case this rail was flat a moment ago
@@ -411,7 +411,7 @@ function renderFlatStepRail(activeStep, jobType, activeRef) {
   const seg = rail.querySelector('.step-segments');
   const nameEl = rail.querySelector('.step-name');
   woCurrentStep = activeStep;
-  if (nameEl) nameEl.textContent = activeRef ? (WO_REFERENCE_LABELS[activeRef] || '') : (WO_STEP_LABELS[activeStep] || '');
+  if (nameEl) nameEl.textContent = activeRef ? (woMoreLabel(activeRef)) : (WO_STEP_LABELS[activeStep] || '');
   rail.classList.remove('rail-not-free-form'); // §11 fallback is always Free Form
   renderStepRailTypeSlot(rail, jobType, true);
   // No numbered progress bar in flat mode, and (2026-07-28, direct
@@ -424,7 +424,7 @@ function renderFlatStepRail(activeStep, jobType, activeRef) {
   if (seg) { seg.classList.remove('flat'); seg.innerHTML = ''; seg.style.display = 'none'; }
   const timerPanel = map.querySelector('.step-timer-panel');
   map.innerHTML = (timerPanel ? timerPanel.outerHTML : '') + WO_FLAT_STEPS.map(s => {
-    // With a Reference destination on screen no step is "current", so every
+    // With a More destination on screen no step is "current", so every
     // step row stays freely navigable — which is the whole point of the flat
     // rail anyway (§11 fallback is ungated).
     const isCurrent = !activeRef && s === activeStep;
@@ -434,7 +434,7 @@ function renderFlatStepRail(activeStep, jobType, activeRef) {
       <span class="step-map-label${isCurrent ? ' active-label' : ''}">${WO_STEP_LABELS[s]}</span>
       <span class="step-map-ref-icon"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </div>`;
-  }).join('') + stepMapReferenceGroupHtml(activeRef);
+  }).join('') + stepMapMoreGroupHtml(activeRef);
 }
 // Real navigation, not a same-page tab switch — each WO step is its own
 // file. Carries the demo WO's identity forward via the same
@@ -446,39 +446,71 @@ function goToWoStep(step) {
   location.href = WO_STEP_FILES[step];
 }
 
-/* Reference group markup (§14.2, added 2026-07-22) — see the CSS comment
-   on .step-map-group-label for the full rationale. Comments/Documents
-   are owned by WO Record View only (never duplicated on the other 4
-   workflow screens) — jumpToRvSection() below handles both "already on
-   Record View, just jump" and "on a different step, navigate there and
-   jump after load" from the exact same call. Equipment is a real future
-   destination, stubbed for now. */
-const WO_REFERENCE_LABELS = { comments: 'Comments', documents: 'Documents', equipment: 'Equipment' };
-/* Was a plain const string; became a function 2026-08-10 so a Reference
+/* ══════════════════════════════════════════════════════════════════════
+   THE "MORE" GROUP (§14.8) — non-sequenced tabs, reachable from any step.
+   Renamed from "Reference" 2026-08-25 (§21): every destination in here is
+   EDITABLE (add a comment, attach a document, insert/delete equipment
+   rows), so "Reference" claimed a read-only-ness that was never true — and
+   the claim gets worse as membership widens, which is the whole point of
+   the group being configurable.
+
+   MEMBERSHIP IS CONFIGURATION, NOT DEFINITION. The three rows below are a
+   stand-in for what the admin actually authors in Screen Designer: each of
+   the function's tabs carries a Placement of Step or More (§12), so this
+   array is the "Placement = More" subset for the current WO Type × User
+   Group. Two rules fall out of that single-row-per-tab shape and must
+   survive whenever this becomes real config:
+     - A tab is EITHER a numbered step OR a More entry, never both.
+       Otherwise forward gating is bypassed in two taps — Book Labor is a
+       workflow step AND a real WO tab, so it would be openable from here
+       while step 4 is still locked.
+     - A More tab can never be Required. Nothing routes the technician
+       here, so a required-but-unsequenced tab is unenforceable; if it
+       genuinely must happen, it is a step.
+   Not gated by .rail-not-free-form at all, by construction.
+
+   Rendered with a plain icon, never a numbered badge — the badge is what
+   implies sequence membership (see the CSS comment on
+   .step-map-group-label for the rest of the rationale).             */
+const WO_MORE_TAB_ICONS = {
+  comment: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>',
+  paperclip: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>',
+  equipment: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke-linecap="round"/></svg>',
+};
+/* One curated icon per tab. WHICH icon a configured tab gets is an open
+   question, and it is the SAME open question §26.3 already has for
+   bottom-nav slot icons — whether the curated set is authored anywhere or
+   hardcoded. Solve it once for both, not twice. */
+const WO_MORE_TABS = [
+  { key: 'comments',  label: 'Comments',  icon: 'comment',   open: () => goToWoReferenceTab('comments') },
+  { key: 'documents', label: 'Documents', icon: 'paperclip', open: () => goToWoReferenceTab('documents') },
+  { key: 'equipment', label: 'Equipment', icon: 'equipment', open: () => goToWoEquipmentTab() },
+];
+function woMoreLabel(key) {
+  const t = WO_MORE_TABS.find((x) => x.key === key);
+  return t ? t.label : '';
+}
+/* Dispatcher so the rendered rows stay data-driven — an inline onclick can
+   only call a global by name, not an array member's own function. */
+function openWoMoreTab(key) {
+  const t = WO_MORE_TABS.find((x) => x.key === key);
+  if (t) t.open();
+}
+/* Was a plain const string; became a function 2026-08-10 so a More
    destination that is a REAL SCREEN can mark itself active in the rail. The
    WO Equipment tab (§16.10) is reached from this group and keeps the whole
    step rail, because it's part of the WO workflow shell — the technician
    still has to be able to get back to Record View or any step from it. */
-function stepMapReferenceGroupHtml(activeRef) {
-  const rowCls = (k) => 'step-map-item' + (activeRef === k ? ' active' : '');
-  const lblCls = (k) => 'step-map-label' + (activeRef === k ? ' active-label' : '');
-  return `
-  <div class="step-map-group-label">Reference</div>
-  <div class="${rowCls('comments')}" onclick="goToWoReferenceTab('comments')">
-    <span class="step-map-ref-icon"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg></span>
-    <span class="${lblCls('comments')}">Comments</span>
-  </div>
-  <div class="${rowCls('documents')}" onclick="goToWoReferenceTab('documents')">
-    <span class="step-map-ref-icon"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg></span>
-    <span class="${lblCls('documents')}">Documents</span>
-  </div>
-  <div class="${rowCls('equipment')}" onclick="jumpToEquipmentStub()">
-    <span class="step-map-ref-icon"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke-linecap="round"/></svg></span>
-    <span class="${lblCls('equipment')}">Equipment</span>
-  </div>`;
+function stepMapMoreGroupHtml(activeRef) {
+  if (!WO_MORE_TABS.length) return '';
+  return '\n  <div class="step-map-group-label">More</div>' + WO_MORE_TABS.map((t) => `
+  <div class="step-map-item${activeRef === t.key ? ' active' : ''}" onclick="openWoMoreTab('${t.key}')">
+    <span class="step-map-ref-icon">${WO_MORE_TAB_ICONS[t.icon] || ''}</span>
+    <span class="step-map-label${activeRef === t.key ? ' active-label' : ''}">${t.label}</span>
+  </div>`).join('');
 }
 // Collapses whichever rail (step or tab) is present on this screen —
-// used after a Reference-group jump so the rail gets out of the way,
+// used after a More-group jump so the rail gets out of the way,
 // same as a real navigation implicitly would.
 function collapseCurrentRail() {
   const rail = document.getElementById('stepRail') || document.getElementById('tabRail');
@@ -494,7 +526,7 @@ function collapseCurrentRail() {
 // consume-once flag, same pattern as eamSyncReturnUrl/
 // eamArrivedViaNextStep elsewhere in this app — see consumeJumpToSection().
 //
-// ⚠ CURRENTLY UNREFERENCED (2026-08-11). The step rail's Reference group was
+// ⚠ CURRENTLY UNREFERENCED (2026-08-11). The step rail's "More" group was
 // this function's only caller; those two rows now navigate to the real
 // Comments/Documents tab instead (goToWoReferenceTab, §7.2). Kept, not
 // deleted, because the "scroll to a section on this screen, or hand off and
@@ -517,7 +549,7 @@ function jumpToRvSection(key) {
    child tab of the WO, never a numbered/gated workflow step, so it must not
    appear in the step rail's own sequence. Carries the WO identity forward
    the same consume-once way goToWoStep() does. Both entry points route
-   here — the step rail's Reference group (every workflow screen) and WO
+   here — the step rail's "More" group (every workflow screen) and WO
    Record View's Route/MEC pill. */
 const WO_EQUIPMENT_TAB_FILE = 'eam-wo-equipment-tab-prototype-v1.html';
 // Which step the rail is currently showing as the WO's position. Set by both
@@ -531,13 +563,14 @@ function goToWoEquipmentTab(fromStep) {
   sessionStorage.setItem('eamEquipTabOrigin', fromStep || woCurrentStep || 'record');
   location.href = WO_EQUIPMENT_TAB_FILE;
 }
-function jumpToEquipmentStub() { goToWoEquipmentTab(); }
+/* jumpToEquipmentStub() removed 2026-08-25 — the "More" group now dispatches
+   through openWoMoreTab(), so the shim had no callers left. */
 
 /* The WO's Comments/Documents tabs (§7.2, built 2026-08-11) — one screen
    carrying both, mirroring how Equipment Record View holds them as two tabs in
    one file rather than two near-identical standalone files. Same child-tab
    shape as the Equipment tab above. `which` picks the landing tab.
-   Supersedes jumpToRvSection() for these two rows: the step rail's Reference
+   Supersedes jumpToRvSection() for these two rows: the step rail's "More"
    group used to scroll to Record View's inline section, which was the right
    answer only while there was nowhere else to go. */
 const WO_REFERENCE_TAB_FILE = 'eam-wo-reference-tab-prototype-v1.html';
@@ -1887,7 +1920,15 @@ function openSyncPanel() {
   const hydrateEl = document.getElementById('syncPanelHydrate');
   if (hydrateEl) {
     hydrateEl.innerHTML = [
-      ['Today’s WOs', 100], ['Site assets', 100], ['Lookup tables', 100], ['Historical docs', 62],
+      /* §2.3/§4.4.2, resequenced 2026-08-25. Configuration is Tier 0 —
+         bootstrap config (identity, nav/function resolution, page layout +
+         workflow tables, status authorizations, dataspy defs, the code
+         domains layout references), fetched inside the login round-trip
+         rather than progressively. It therefore always reads 100% here on a
+         healthy device; the row exists for RECONNECT, where it is what
+         surfaces a pending config change. "My pinned WOs" replaced "Today's
+         WOs": the punch list is pin/dataspy-scoped, never date-scoped. */
+      ['Configuration', 100], ['My pinned WOs', 100], ['Site assets', 100], ['Lookup tables', 100], ['Historical docs', 62],
     ].map(([label, pct]) => `
       <div class="sync-hydrate-row">
         <div class="sync-hydrate-label"><span>${label}</span><span>${pct}%</span></div>

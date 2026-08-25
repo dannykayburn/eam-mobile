@@ -33,14 +33,112 @@ Core pattern agreed in a separate technical session. All UX decisions must remai
 - SQLite via op-sqlite as the alternative
 - Both sit underneath the UI as the sole read source
 
-## 2.3 Hydration sequence (background, after app launch)
+## 2.3 Hydration sequence
 
-- Today's WOs: ~5 seconds
+**Revised 2026-08-25 (user direction).** Two phases now, and the split
+between them is load-bearing.
+
+### Tier 0 — Bootstrap configuration (blocking, and not a record tier)
+
+Tiers 1–4 (§2.6) are *records*, and records **degrade gracefully** — fewer
+rows is a shorter list. **Configuration does not degrade.** A missing page
+layout is not a shorter screen, it is a blank one. So configuration cannot
+share the record pipeline's "usable immediately, fills in behind you"
+semantics and must not be queued behind records. It is a different kind of
+thing, which is why it gets its own tier number rather than a slot in the
+list below.
+
+Order, narrowest dependency first:
+
+- **0a — Session + identity.** Employee, organization, **user group**.
+  Falls out of authentication. Everything below is keyed by user group.
+- **0b — Nav-slot binding / function resolution** (§26.2/§26.3). Which
+  functions this group has, and in which bottom-nav slots. This scopes
+  *which* layouts there are to fetch at all.
+- **0c — Page layout. The most critical single piece.** `R5PAGELAYOUT` on
+  `PLO_PAGENAME × PLO_USERGROUP × PLO_WOTYPE`, plus the **WO Workflow
+  header** and **WO Workflow Tabs** rows (§12 — field sets, step sequence,
+  gating, and each tab's `Step | More` placement), plus **Custom Field
+  definitions** (§22).
+- **0d — Status authorizations.** Which transitions this user group may
+  perform, and the Completion Status Entity / Start Work Status /
+  Completion Status the workflow reads and writes (§12 tier 1).
+- **0e — Dataspy definitions** for the resolved functions (§6.3/§8.3). WO
+  List cannot draw its dataspy bar without them — and under punch-list
+  Option A (§2.6) the punch list *is* a dataspy.
+- **0f — System codes & descriptions**, scoped to the domains 0c actually
+  references. The long tail defers to the background phase below.
+
+**Why layout is first is not only importance — layout tells you what else
+you need.** Once it resolves, you know exactly which fields exist on the
+screens this group can reach, and therefore exactly which code domains,
+status domains and custom-field definitions matter. Fetch codes *before*
+layout and you fetch the code universe blind; fetch them *after* and you
+fetch a scoped subset. **Layout first is what keeps 0f small.** That is the
+strongest argument for the ordering, stronger than criticality alone.
+
+### Then the record tiers, in the background
+
+- **My open pinned work orders** (Tier 1, ~20–200 records): ~5 seconds
 - Site assets: ~15 seconds
-- Lookup tables: ~30 seconds
-- Historical docs: ~90 seconds+
-- User is practically offline-capable within 30 seconds
-- **No blocking modal on launch** — progressive hydration replaces it; the app is usable immediately and fills in as each tier above completes in the background.
+- Long-tail lookups / remaining code domains: ~30 seconds
+- Historical documents: ~90 seconds+
+- User is practically offline-capable within ~30 seconds
+- **No blocking modal on launch** — progressive hydration replaces it; the
+  app is usable immediately and fills in as each tier completes in the
+  background.
+
+**"My open pinned work orders," not "today's WOs" (corrected 2026-08-25).**
+The punch list is **not date-scoped** under either candidate mechanism
+(§2.6): Option A is a configured dataspy, Option B is EXEC-class pin
+membership. "Today's" both understated it — a WO assigned to me and open for
+three weeks is squarely in my work set — and overstated it, implying a date
+filter that does not exist anywhere in the design. The device-side contract
+is `pinned = 1`, and the phrase should track the contract.
+
+### Where Tier 0 happens — inside the login round-trip, not a modal
+
+**No blocking modal on launch stays locked** (§3.4/§4.1). Note what that
+rule was aimed at, though: waiting on *records*. Tier 0 is kilobytes of
+configuration, and the user is **already blocked** during authentication,
+which has its own expected spinner.
+
+**Recommendation: the authentication response carries the bootstrap-config
+bundle, on the same connection.** No new modal, the locked rule intact, and
+configuration present before the first screen paints. Adding a *second*
+modal after login in order to fetch config would be the thing that violates
+the rule — folding the fetch into the wait that already exists does not.
+
+### Four consequences that follow
+
+1. **Tier 0 is persisted, versioned, and exempt from eviction.** Not
+   "hard-blocked while pinned or dirty" the way a record is (§2.5) — simply
+   out of scope for eviction. First run needs connectivity once; every
+   launch after boots from last-known-good Tier 0, so it has to survive
+   unconditionally. A **version stamp per config domain** lets a reconnect
+   ask "did any of this change?" for a few bytes instead of refetching.
+2. **A first-run Tier 0 failure is the one legitimate hard failure in this
+   design.** Everywhere else the app degrades; here it must stop with a
+   clear error rather than render something broken. No layout means no
+   renderable screen, and a blank screen with no explanation is worse than
+   an honest one.
+3. **Do not enable the write path until status authorizations (0d) are
+   present.** Without them the app either blocks every transition — a
+   technician who cannot Start Work or Close has no app — or permits all of
+   them and queues outbox writes the server will reject. **The second is
+   worse under §2.4's optimistic UI:** the technician sees success, walks
+   away, and the failure surfaces later in the trouble-field banner (§4.4).
+   A systematically wrong authorization set would flood that surface with
+   errors that are not the technician's fault, which is precisely the
+   "did my transaction actually land?" trust problem this app exists to fix.
+4. **A config delta arriving mid-session is the workflow-revisioning
+   problem (§20) seen from the sync side** — the same problem the authoring
+   side raises when an admin edits a live `(function, WO Type)`
+   configuration. Recommended answer for both: **pin the resolved config
+   version to the WO at start-of-work**, so a WO in flight finishes on the
+   shape it started with and the new configuration applies to the next one
+   started. Cheapest correct option, and it requires no migration of
+   already-recorded step state. **Proposal, not locked** — see §20.
 
 ## 2.4 Write path — constant regardless of connectivity
 
@@ -57,6 +155,8 @@ Core pattern agreed in a separate technical session. All UX decisions must remai
 ## 2.6 Related architecture extensions
 
 **Tiered record model / offline search (concept stage, pending review).** Decouples "synced" from "visible" via four record tiers (work set / search index / demand cache / server search). The decisions that affect UX are captured in Section 6.13. Full summary: EAM-Mobile-Offline-Search-Architecture-Summary.md
+
+**Tier 0 sits in front of all four and is not one of them** (added 2026-08-25, §2.3). Bootstrap configuration — identity, nav/function resolution, page layout + workflow tables + custom-field definitions, status authorizations, dataspy definitions, and the code domains layout references — is fetched inside the login round-trip, persisted, versioned, and exempt from eviction. The four record tiers all assume it is already there: Tier 1 cannot *render* a hydrated WO without a layout, and Tier 2's stub rows cannot show descriptions without the code domains. Keep the numbering distinct so nobody plans configuration on record semantics.
 
 **The punch list — open decision, two options.** Tier 1 (the guaranteed-offline work set) is defined by a per-user punch list of work orders. The mechanism that produces that list is deliberately undecided; two candidate options are on the table for the development kickoff:
 
@@ -471,7 +571,7 @@ outbox (retry, discard, the online/offline toggle) re-renders it live.
 - Header: sync icon + title + state label
 - Per-item outbox rows: green/orange/red dot + item name + timestamp/status
 - Retry action on queued items, Review action on failed items
-- Hydration progress section: four bars showing Today's WOs / Site assets / Lookup tables / Historical docs
+- Hydration progress section: **five** bars showing **Configuration / My pinned WOs / Site assets / Lookup tables / Historical docs** (revised 2026-08-25 with §2.3's resequencing — was four, led by "Today's WOs"). Configuration is Tier 0, so on a healthy device it reads 100% by the time this panel can be opened at all; the row earns its place on **reconnect**, where it is what surfaces a pending config change — the one hydration row whose staleness changes what the technician sees rather than just how much of it
 - Removed: bottom sync row from bar area — all sync communication goes through the icon + panel; the bottom bar (§14.5–§14.7) stays dedicated to progression only
 
 ## 4.5 Sync Status Screen
@@ -1040,15 +1140,46 @@ siblings," predating the later §5.2 decision that gave Comments and
 Documents their own dedicated tabs alongside their inline excerpt; the
 code was already correct, this section's prose wasn't.)
 
-## 7.4 Structure Details tab — open design problem
+## 7.4 Structure Details tab — the Structure Tree component
 
-Explicitly flagged as needing original design work: this tab shows the
-equipment's position in the Location → Position → System → Asset hierarchy
-as a tree. No mobile tree-diagram pattern exists yet anywhere in this app.
-Informed by (but needs restyling from) the legacy desktop tablet reference
-screenshot `Structure__Safety_WO.png`, which shows an indented tree with
-connector lines and a status dot per node — not Octave-styled and not
-mobile-vertical-optimized as-is.
+**Corrected 2026-08-25 (user direction).** This section previously read "no
+mobile tree-diagram pattern exists yet anywhere in this app" and flagged
+the tab as needing original design work. **That went stale and was wrong by
+the time it mattered:** the Equipment LOV's own Structure tab (§15.5)
+shipped a complete, Octave-styled, dark-mode-aware mobile tree, and the
+locked position is now that **the structure tree is a shared component** —
+"as it is used in equipment LOV as well." Named **Structure Tree** in
+`component-library.md`, which carries the full anatomy.
+
+This tab shows the equipment's position in the Location → Position →
+System → Asset hierarchy, and it renders through that same component:
+`renderTreeNode()`/`renderEquipTree()` in `eam-shared.js`, `.tree-*` in
+`eam-shared.css`. Already solved and not to be re-designed: the recursive
+indented-card layout, the `.tree-guide` connector elbows, the per-node
+icon/type/description/code anatomy, caret-expand independent of focus
+(§15.5's "Option B"), current-node emphasis, and ancestor auto-expand.
+
+**So Structure Details is a second consumer, not a new component.** What it
+owes is parameterization, not design:
+- the mount and the data source are hardcoded to the LOV (`#equipTreeBody`,
+  `TREE_DATA`);
+- the trailing row control is selection-only (`Select` / `Add`/`Added` /
+  `Selected`). A tab is **not a picker** — a node tap should navigate to
+  that asset, so the row action needs to become a handler, same shape as
+  `ROW_TAP_HANDLERS` elsewhere;
+- `selectTreeNode()` mutates `current` across `TREE_NODE_MAP` and calls
+  `commitEquipmentSelection()`, both meaningless outside a picker.
+
+**The one genuinely additive design piece** is small: the legacy desktop
+tablet reference `Structure__Safety_WO.png` shows **a status dot per node**,
+which this component has no equivalent for. Everything else that screenshot
+shows — indentation, connector lines — already exists here, Octave-styled
+and mobile-vertical, rather than needing restyling from it.
+
+**The general lesson, worth more than this section:** a shared component
+with no name in `component-library.md` is invisible to the spec. This tree
+existed for weeks while §7.4 kept describing it as nonexistent. Name a
+recurring pattern when it lands, per that file's own stated purpose.
 
 ## 7.5 Equipment Photo — icon, preview pop-out, and edit (decided
 2026-07-22; badge, viewer, and source-picker all built 2026-08-10 for the
@@ -2396,11 +2527,36 @@ tiers, narrowest to broadest:
      Activities tab (§20, unbuilt) serving as that WO Type's closing
      surface instead of WO Closing — a future scoping option, not
      designed or built.
-2. **WO Workflow Steps** (new, child of #1) — keyed **WO Type × User
-   Group × Step**. Holds, per step: **Visible**, **Sequence** (order),
-   **Required** (§14.7-style bar-locking behavior). Book Labor gains one
-   more, step-specific column: **Time Entry Mode** (Start/End Time — the
-   only mode built in any prototype — vs. Direct Hours Entry).
+2. **WO Workflow Tabs** (new, child of #1) — keyed **WO Type × User Group
+   × Tab**. **Renamed from "WO Workflow Steps" and given a Placement
+   column 2026-08-25**, when §14.8's More group was reframed as
+   admin-configured: a numbered step and an always-available "More" entry
+   are the same kind of thing — a tab of the function — differing only in
+   whether the workflow sequences it. Holds, per tab:
+   - **Visible** (Y/N).
+   - **Placement** — **`Step`** (numbered, sequenced, gated) or **`More`**
+     (unsequenced, always reachable, never in the Next flow — §14.8).
+   - **Sequence** (order) — `Step` only.
+   - **Required** (§14.7-style bar-locking behavior) — `Step` only. A
+     `More` tab cannot be Required; nothing routes the technician there,
+     so the flag would be unenforceable (§14.8).
+   - **Time Entry Mode** — Book Labor's own step-specific column
+     (Start/End Time, the only mode built in any prototype, vs. Direct
+     Hours Entry).
+
+   **One row per tab is the point, not an implementation detail.** It makes
+   "a tab is either a step or a More entry, never both" a key constraint
+   rather than a validation rule — which is what stops forward gating from
+   being bypassable, since Book Labor is both a workflow step and a real WO
+   tab (§14.8 rule 1). Rejected alternatives: a separate list of More tabs
+   (allows a tab in both places, so gating needs its own explicit guard),
+   and overloading `Sequence = null` to mean More (cheapest schema change,
+   but a null carrying meaning is easy to misread later).
+
+   The §11 fallback — a WO Type with no header row at all — takes its tab
+   placement from the **function's own screen design** instead, which §10
+   already establishes as the fallback screen. See §14.8's resolution
+   order.
 
 `WOTYPE` (the existing base table) is untouched by any of this — no new
 columns land on it; WO Type is just the shared FK every row of both new
@@ -2440,8 +2596,8 @@ another tab/step.*
 **Why this is a different evaluation model, not a bigger table.** Every
 configuration key in §11–§13 resolves **before the record renders**:
 `R5PAGELAYOUT` on `PLO_PAGENAME` × `PLO_USERGROUP` × `PLO_WOTYPE`, the WO
-Workflow header on WO Type × User Group, WO Workflow Steps on WO Type ×
-User Group × Step. All three are functions of *who is looking* and *what
+Workflow header on WO Type × User Group, WO Workflow Tabs on WO Type ×
+User Group × Tab. All three are functions of *who is looking* and *what
 kind of record it is* — nothing in the key can change while the technician
 is on the screen. That's why the whole thing is a pure lookup with a
 blank-row fallback cascade, costs nothing at runtime, and is offline-safe
@@ -2494,7 +2650,7 @@ it — they are the point of the tier, not incidental:
 - predicates over **same-record fields only** — no cross-entity lookups, no
   SQL, no scripting;
 - effects drawn **only** from the existing layout vocabulary (§13.1 item 1),
-  plus step `Visible`, which WO Workflow Steps already carries as a column
+  plus tab `Visible`, which WO Workflow Tabs already carries as a column
   (§12 tier 2) — so "pop off another tab" needs no new concept;
 - ordered by `Sequence`, single pass, no rule-triggering-rule cascades
   (termination and ordering stay trivially provable).
@@ -2566,6 +2722,174 @@ dimension, but that audit did not ask whether base EAM ships a named
 conditional-field-rules feature — worth confirming, so a Tier 2 table
 extends the base product rather than duplicating something already in it.
 
+## 13.5 Changing WO Type re-resolves the layout (2026-08-25)
+
+Type is not an ordinary field. It is **the layout-resolution key**, so
+editing it changes which fields appear, which are required, which tabs
+exist, and which of those tabs are numbered steps versus "More" entries
+(§14.8). No other field on the screen can rewrite the screen. That makes it
+the one field that cannot follow §5.1's "tap it, change it, done" model
+silently.
+
+**Scope: this section is WO-only.** Equipment resolves its layout off system
+type the same way (§26.8), but that field is **Protected in update mode,
+always** — set once at insert and fixed for the record's lifetime — so
+Equipment has no re-resolution exposure at all. Protecting the key after
+insert is in fact the cleanest possible answer to everything below, and WO
+**cannot** take it: re-typing a work order is a real business need (a work
+request triaged into a breakdown, a job reclassified once the technician sees
+the asset). WO therefore absorbs the complexity Equipment sidesteps by
+construction.
+
+### The interaction (locked)
+
+1. **Confirm before anything commits.** Editing Type raises a confirm
+   immediately: *"Changing the type may change the fields and tabs displayed
+   on the screen. Do you want to proceed?"* Name the consequence, not just
+   the risk — where the new layout is already resolvable, say what actually
+   changes rather than that something might.
+2. **On confirm: commit immediately, then re-resolve and re-render.** The
+   type change **cannot be held pending.** Holding it would leave the screen
+   rendering the *old* layout while the field shows the *new* type — the
+   screen would be lying about which configuration governs it. Immediate
+   commit is not a special case here; it is §5.1 applied honestly to a field
+   whose value selects the renderer.
+3. **On cancel: nothing happens.** No partial write, no re-render.
+
+Under §2.4 the commit is a local write plus an outbox enqueue like any
+other, so the re-render is instant and offline-safe.
+
+### Rule: layout decides what is *displayed*, never what *exists*
+
+**A type change never destroys work.** Issued parts, booked labor, completed
+checklist items, comments, documents, meter readings — every recorded
+transaction survives unconditionally. If the new layout has no tab for
+something, the surface disappears and the data does not.
+
+State it explicitly because the obvious implementation is a cascade delete,
+and a technician who re-typed a WO and lost three hours of booked labor has
+been failed in the exact way this app exists to prevent.
+
+### Rule: recompute step state, do not migrate it
+
+Steps are identified by tab (§12), so reconciliation is mechanical and needs
+no migration logic:
+
+- a tab that is a step in **both** shapes keeps its completion state;
+- a tab that was a step and no longer is becomes **orphaned but recorded** —
+  its data survives per the rule above, its step row disappears;
+- a tab that is a step **only in the new** shape starts incomplete.
+
+The visible consequence is worth anticipating: a WO one step from closing can
+legitimately become mid-flow again. Changing PM → Breakdown adds Issue Parts,
+which is then incomplete and, if the new workflow is Not Free Form, gating.
+That is correct behaviour, not a bug — but it must be what the confirm
+warned about.
+
+### The gate: two states, not a ladder (locked, user direction 2026-08-25)
+
+**WO Type is editable only while the WO has not been started.** Once Start
+Work is tapped, Type is **Protected** (§5.2's field state) and cannot be
+updated from mobile at any point after — in progress, complete, or closed.
+
+| State | Type |
+| --- | --- |
+| **Not started** | **Editable.** Confirm → immediate commit → re-render, per the interaction above. |
+| **Started, and everything after it** | **Protected.** No confirm, no tiers, no permission escape. |
+
+Start Work is the boundary because it is already the moment the WO becomes
+this technician's committed work — it also pins the record and hydrates its
+children (§14.11). An earlier draft of this section proposed four escalating
+gate tiers (plain confirm → naming confirm → enumerating confirm + reason/
+permission → block on closed). **That ladder is superseded and deliberately
+gone:** every tier past the first existed to manage consequences that
+protecting at Start Work removes outright, and a ladder invites arguing about
+which rung applies. A hard line needs no adjudication.
+
+This also makes WO **converge on Equipment** (§26.8) rather than diverge from
+it — same Protected field state, later trigger. Equipment protects at insert,
+WO at start-of-work.
+
+**The escape hatch is deliberately base-side.** Re-typing a started WO is a
+base-EAM correction. The mitigation for "I started it and then noticed the
+Type was wrong" is preventative, not corrective: the **Start Work confirm
+surfaces the Type** so the technician sees what is about to be locked
+(§14.11).
+
+### Required-field drift — resolved by the same rule
+
+An earlier draft raised this as an open problem: a re-type could leave the
+record missing a value the new layout requires, with nobody having cleared
+anything. **Two facts close it.**
+
+First, **Type itself is never the missing field** — it is required and
+cannot be cleared, in base or mobile, so it is never null to begin with.
+
+Second, and generally: a re-type can now only happen **before Start Work**,
+and **Start Work is itself a gate.** A WO whose layout requires a field it
+has no value for simply cannot be started until that field is supplied.
+That is ordinary required-field behaviour at a gate that already exists — no
+new mechanism, no new marker, nothing to surface that the Start Work gate
+does not already surface.
+
+**Consequently the §23 tension that draft raised is withdrawn.** The
+required-field-marker removal (§21/§23, direct instruction 2026-07-28) was
+justified on the grounds that a required field's own editor blocks Clear, so
+the marker "warned about a state that can't happen." That draft argued a
+type change *was* that state. With re-typing confined to pre-start and
+gated by Start Work, it isn't — the state is bounded and self-resolving.
+**§23 stands as written; no re-opening needed.**
+
+### Removing a tab that has data behind it — the residual case
+
+The genuinely interesting question: what if the new type has **no Parts tab
+and parts have already been issued?** Issued parts are not display state —
+stock left the storeroom and cost landed on the WO. "Hidden but still
+there" is an audit problem, not a UI one.
+
+**Mostly this cannot happen, for a structural reason.** Issuing parts on
+mobile is Step 3 of a workflow, unreachable without progressing through it,
+which requires Start Work — and Start Work protects Type. **So parts cannot
+be issued and *then* the type changed.** The same holds for booked labor and
+completed checklist items: all of them are post-Start-Work by construction.
+
+**The residual case is base-originated data on a not-yet-started WO** — a
+planner issues parts or books labor in base, then the technician re-types it
+on mobile before starting. Narrow, but real. Recommended rule, drawing the
+line at whether the data *moved something*:
+
+- **Transactional data — issued parts, booked labor: block the re-type.**
+  These moved inventory or recorded cost and time. Leaving them with no
+  surface on the record they belong to is not acceptable, and the WO's cost
+  would include lines nothing on screen explains.
+- **Non-transactional data — comments, documents, attachments: allow, and
+  enumerate in the confirm.** Naming what will stop being visible is
+  sufficient; nothing is misstated by hiding it.
+
+Not locked — see §20. Note how cheap the check is in practice: it runs only
+on a pre-start re-type, where a WO usually has no transactional children at
+all, so it almost always passes silently.
+
+### Relationship to workflow-config revisioning (§20)
+
+These were framed as the same failure mode from opposite directions:
+**revisioning** is the configuration moving under a stable record,
+**re-typing** is the record moving to a different configuration, and both
+end with recorded step state described by a shape that no longer applies.
+
+**Protecting Type at Start Work separates them, and only revisioning is
+still open.** A re-type can no longer reach a WO that has recorded step
+state at all, because it cannot happen after Start Work — so it never
+produces the orphaned-progress problem. Revisioning still can, since an
+admin editing a live `(function, WO Type)` configuration does not care
+whether a technician is mid-flow.
+
+The two now *share a solution point* rather than a problem: §2.3's
+recommended fix for revisioning — **stamp the resolved config version on the
+WO at start-of-work** — lands at exactly the boundary this section just
+established, which is why §14.11 lists it as step 5 of that boundary rather
+than as separate machinery. One moment fixes the layout key, the config
+version, the pin and the child data together.
 # 14. WO Workflow — Runtime Shell
 
 **Navigation & Guided Workflow**
@@ -2773,29 +3097,100 @@ matching what Record View's own back button already did:
 - Implementation is one shared `navBack()` in `eam-shared.js` now, not 4
   screen-local copies.
 
-## 14.8 Comments & Documents — reachable from any step, always
+## 14.8 The "More" group — non-sequenced tabs, reachable from any step
 
-Comments and Documents are not sequence items — they're persistent
-record-level content owned by WO Record View alone, so they don't follow
-the step rail's gating, locking, or the Free Form/Not Free Form flag
-(§15.4). **The technician can reach either from any step, at any point in
-the workflow, unconditionally.**
+**Renamed and reframed 2026-08-25** (was "Reference — Comments &
+Documents, reachable from any step, always"; see §21 for the old name and
+its revert recipe). The mechanism below is unchanged — what changed is
+that **membership is configuration, not definition.** Comments and
+Documents are the obvious defaults, not what the group *is*.
 
-**Mechanism: the step rail's own expanded map, via a "Reference" group
-always pinned after the last numbered step** (§14.3). A numbered done/
-active/locked badge is what implies sequence membership, not a row's mere
-presence in the map — giving Reference rows a plain icon instead of a
-numbered badge removes that implication, and being inside the same
-already-familiar expand/collapse control is more discoverable than a
-buried ellipsis entry (the superseded mechanism — see §21).
-- **Comments** and **Documents** rows jump to those sections on WO Record
-  View: an in-page expand+scroll if already there, or a real navigation
-  there (then expand+scroll on load) from any of the other 4 steps —
-  `jumpToRvSection()`/`consumeJumpToSection()` (`eam-shared.js`). They
-  render nowhere except WO Record View itself.
-- **Equipment** is a 3rd row, a real future per-WO equipment screen,
-  stubbed as a toast for now (`jumpToEquipmentStub()`).
-- Not gated by `.rail-not-free-form` at all, by construction.
+**What the group is.** A place the admin can put **specific tabs of the WO
+that the technician may open at any point in the workflow**, regardless of
+whether that workflow is Free Form or Not Free Form. They are **not in the
+Next-button flow** — nothing ever routes the technician into one, so
+entering one is always a deliberate manual act via this group. The admin
+sets membership in the workflow definition / screen design (§10, §12).
+
+**Mechanism: the step rail's own expanded map, via a "More" group always
+pinned after the last numbered step** (§14.3). A numbered done/active/
+locked badge is what implies sequence membership, not a row's mere
+presence in the map — giving these rows a plain icon instead of a numbered
+badge removes that implication, and being inside the same already-familiar
+expand/collapse control is more discoverable than a buried ellipsis entry
+(the superseded mechanism — see §21). Not gated by `.rail-not-free-form`
+at all, by construction. A row that *is* a real screen marks itself active
+in the rail via `activeRef` (§16.10).
+
+**Why not "Reference".** Everything in the group is **editable** — you add
+a comment, attach a document, insert and delete equipment rows — so
+"Reference" claimed a read-only-ness that was never true. The claim gets
+worse precisely as membership widens, which is the point of the group
+being configurable: the moment an admin places a Permits or Safety tab
+here, something you sign is filed under "Reference." "More" describes an
+overflow of destinations and promises nothing about their contents.
+
+### Two rules, both structural rather than validated
+
+1. **A tab is either a numbered step or a More entry — never both.** §12
+   stores one row per tab carrying a **Placement**, so this is a key
+   constraint, not a check somebody has to remember to write. It matters
+   concretely: **Book Labor is a workflow step *and* a real WO tab**, so
+   were it allowed in both places, forward gating (§14.10) would be
+   bypassed in two taps — open it from More while step 4 is still locked.
+   *A read-only variant of a step-tab, openable out of sequence, is a
+   deliberate non-goal — no read-only field mode exists anywhere in this
+   app (§5.1), so it would be a new concept, not a configuration.*
+2. **A More tab can never be Required.** Nothing routes the technician
+   there, so a required-but-unsequenced tab is unenforceable — the flag
+   would describe an intention, not a behavior. If it genuinely must
+   happen, it is a step. This keeps §12's Required column meaningful.
+
+### Resolution — where membership comes from
+
+Two levels, narrowest first:
+1. **A configured workflow** — the tier-2 rows for this `WO Type × User
+   Group` (§12) decide each tab's Placement, so the More group is exactly
+   the `Placement = More` subset.
+2. **No configured workflow** (the §11 fallback) — **the function's own
+   screen design decides.** This is not a new surface: §10 already locks
+   that the Work Order record view configured in Screen Designer "doubles
+   as the WO fallback screen," so tab placement rides along with the
+   layout it already authors. One authoring surface, no separate default
+   list to keep in sync.
+
+Consequence worth naming: placement therefore exists at **two grains** —
+a function-level default on the screen design, and a `WO Type × User
+Group` override when a workflow header row exists. That mirrors how §13/
+§9.8 already resolve field layout, so it introduces no new resolution
+concept, but it does mean the fallback rail's More group can differ from
+a configured workflow's on the same function.
+
+### Candidate set and authoring
+- **Candidates are the function's own tabs, filtered to what the target
+  user group is permitted** (`R5FUNCTIONTABS`/`R5TABPERMISSIONS`). This is
+  the same check §26.7's workflow-eligibility validation already needs —
+  one check, not two.
+- **Authored in Screen Designer**, per §10's one-surface rule. **User
+  Group Setup does not author it** — that screen assigns a `(function, WO
+  Type)` configuration to groups and never edits steps, gating or layout
+  (§26.5.1); More placement is part of the configuration it assigns.
+- **Order is admin-set.** No hard cap; the expanded step map has more room
+  than the bottom nav's four slots (§26.4), but a long list defeats the
+  purpose of a short always-available shortcut group.
+- **Open: which icon a configured tab gets.** Today's three are hardcoded
+  (`WO_MORE_TAB_ICONS`). This is the *same* unresolved question §26.3 has
+  for bottom-nav slot icons — whether the curated set is authored anywhere
+  or hardcoded. Solve once for both.
+
+### Implementation
+`WO_MORE_TABS` in `eam-shared.js` is the config stand-in — a data-driven
+array (key/label/icon/open) rendered by `stepMapMoreGroupHtml()` and
+dispatched through `openWoMoreTab()`, replacing the previously hardcoded
+three rows. Today's members: **Comments** and **Documents** (both to
+`eam-wo-reference-tab-prototype-v1.html` via `goToWoReferenceTab()`, §7.2)
+and **Equipment** (the real WO Equipment tab, §16.10). *The destination
+file's own name still says "reference" — stale, tracked in §20.*
 
 **Stale, not yet cleaned up:** Activity Checklist, Issue Parts, and Book
 Labor still carry a Comments(3)/Documents(4) ellipsis-menu entry from the
@@ -2881,6 +3276,96 @@ to every workflow screen at once rather than per-screen. Regression-tested in
 `.claude/skills/verify/scripts/tests/test-step-rail-back-nav.js`, which also
 asserts that forward gating survives.
 
+## 14.11 Start Work is the commitment boundary (locked, user direction 2026-08-25)
+
+Start Work was previously documented only in pieces — a status value in
+§12, a protected-when-complete rule in §15.2, timer behaviour in §15.4. It
+is actually the single most consequential moment in the WO lifecycle, and
+this section names it, because **four things happen at once and they only
+make sense together.**
+
+Tapping Start Work:
+
+1. **Sets the status** to the WO Workflow header's **Start Work Status**,
+   in whichever domain Completion Status Entity selects (§12 tier 1).
+2. **Protects WO Type.** From this point the record's layout is fixed —
+   see §13.5.
+3. **Pins the WO to the technician** — `pinned = 1`, Tier 1 membership
+   (§2.6).
+4. **Hydrates all child records** — activities, checklist items, parts
+   lines, labor, equipment, comments, documents.
+5. **Recommended, not yet locked:** stamps the **resolved config version**
+   on the WO, which is §2.3's answer to workflow-config revisioning (§20).
+   Start Work is already the moment things get fixed, so this belongs here
+   rather than as a separate mechanism.
+
+The unifying idea: **before Start Work a WO is a candidate; after it, it is
+this technician's committed work.** Everything above follows from that one
+sentence, which is why they belong in one boundary rather than five
+independent rules.
+
+### Why protecting Type here is the right line (§13.5)
+
+Type is the layout-resolution key, so re-typing a started WO is what
+produces every hard problem in §13.5 — orphaned completed steps, recorded
+transactions with no surface, required-field drift on a record already in
+flight. Protecting at Start Work removes all of them by construction rather
+than managing them, and it makes WO **converge on Equipment's model**
+(§26.8) instead of diverging from it: the same §5.2 **Protected** field
+state, just a later trigger. Equipment protects at insert; WO protects at
+start-of-work. One paradigm, two trigger points.
+
+### The Start Work confirm is the last chance to check Type
+
+Because the boundary is irreversible from mobile, **the Start Work
+confirmation should surface the WO's Type** so the technician sees what is
+about to be locked. This costs nothing — the confirm already exists — and
+it converts an irreversible boundary into an *informed* one. Without it,
+"I started it and then noticed the Type was wrong" ends in a base-EAM
+correction, which is a real cost to accept knowingly rather than discover.
+
+### Starting a WO that is not already on the punch list
+
+This is the case nothing previously covered, and the boundary explains it
+cleanly. A technician can reach a WO by **search** that was never in their
+work set — a Tier 2 stub, or a Tier 3 demand-cached record (§2.6). Start
+Work on that WO is exactly a **Tier 3 → Tier 1 promotion**, and it fits the
+existing rule that tiers "move up only via user intent" with nothing new
+added: **Start Work *is* that intent.** Pinning plus child hydration is the
+promotion.
+
+For a WO already on the punch list, Tier 1 membership has already hydrated
+its children, so steps 3–4 are a no-op or a top-up rather than new work.
+
+**Consequence that needs a decision: starting a non-hydrated WO requires
+connectivity.** Its children do not exist locally yet, and a workflow whose
+checklist and parts lines are missing is not startable in any useful sense.
+Recommendation: require connectivity for this case and **say so plainly**
+rather than half-starting the WO and discovering the gap at step 2. Not yet
+designed — see §20.
+
+### Consequence for the punch list: a device-originated pin
+
+§2.6 states the device-side contract as "a WO-ID membership list arrives at
+sync time and stamps `pinned = 1`" — i.e. **pinning is computed
+server-side.** Start Work pins **from the device**, which is the first thing
+in this design that pins in the other direction. Two rules follow:
+
+- **Locally:** set `pinned = 1` immediately (optimistic, §2.4) so eviction
+  cannot touch the WO, and enqueue the pin through the outbox like any other
+  write.
+- **On the next delta pull:** a **locally-originated pin must survive a
+  server membership list that omits it**, at least until the WO closes.
+  Otherwise the next sync un-pins a WO the technician is actively working —
+  a silent eviction of exactly the record §2.5 promises can never be lost.
+
+**This is real evidence for punch-list Option B** (§2.6), and it was not on
+the table when those options were framed. Option B's `R5PINS` projection
+already models an originating manual/EXEC pin, so "started by this user"
+lands naturally with provenance. Option A would need the sync dataspy's SQL
+to include "WOs I have started" — which is precisely the assignment logic
+Option A re-derives per customer, on the one case where getting it wrong
+evicts live work.
 # 15. WO Workflow — Step 1: WO Record View
 
 ## 15.1 Screen sections (top to bottom)
@@ -4444,8 +4929,9 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **Bin pre-fill from stock list** | Selecting a bin in the bin stock list should pre-fill the Bin LOV. Specified in §17.11; not yet prototyped. |
 | **Record-view child tabs — generic-case ellipsis menu contents** | §8's ellipsis menu for a generic child list/detail tab has no locked content yet (Equipment's own instance ships toast-stub candidates only). |
 | **Activity Selector — no cross-screen hand-off for `selectedActivity`** | Once a technician moves past WO Record View into Activity Checklist, Issue Parts, or Book Labor, none of those screens shows which Activity is in scope, and no session/URL hand-off mechanism for `RECORD.selectedActivity` exists. Harmless today (every demo WO has exactly 1 Activity, which auto-selects) but undefined once a WO has 2+. |
-| **Structure Details tree pattern** | Still an open design problem — see §7.4. |
-| **Insert Mode's Equipment "Type" isn't the Equipment List's Class vocabulary** | Insert Mode offers Asset/Position/System (`ENTITY_FIELD_META.EQUIP.typeOptions`) and `saveInsertRecord()` stores that value as the record's **`class`** — but Equipment List's Class column and its Class filter chip are PUMP/MOTOR/VALVE/COMPRESSOR/BLOWER/FACILITY. So an Equipment record created in-app shows a Class no filter can select, and Custom Fields (§22, gated on Class) never match it. Surfaced 2026-08-11 by making created records persist into the list (§9.5). The real question is which field Insert Mode's third pill actually *is* — a record Type (Asset/Position/System is a genuine EAM distinction) or a Class — not just which list to widen. Not decided, nothing changed on the Insert Mode side. |
+| **Structure Details tab — parameterize the Structure Tree** | **Reframed 2026-08-25 (user direction), and no longer a design problem** — §7.4 rewritten. The tree is a **shared component** (`component-library.md` → Structure Tree), already used by the Equipment LOV's Structure tab from three entry points. §7.4's old "no mobile tree pattern exists" claim was simply stale. What remains is a small parameterization, not design: the mount and data source are hardcoded to the LOV (`#equipTreeBody`/`TREE_DATA`), the trailing row control is selection-only and a tab needs a navigate-style row handler instead, and `selectTreeNode()` is coupled to `commitEquipmentSelection()`. One genuinely additive piece: a **per-node status dot**, which the legacy reference has and the component doesn't. Scoped as a priority-1 Equipment tab (`EAM-Dev-Leadership-Review-2026-08-25.md` §5.2, subject to change based on scope) — and with the tree already built, priority-1 no longer carries a hidden design dependency. |
+| **Insert Mode's Equipment "Type" pill — bind it to system type, and add `Location`** | **The "which field is this?" half is answered — see §26.8.** The pill is the **system type**, Equipment's layout-resolution key and its exact analogue of WO Type; it never fit Class because Class is *what kind of equipment* and system type is *what kind of record*. What remains is mechanical, **and higher-stakes than it looks, because the field is Protected in update mode (§26.8) — Insert Mode is the only place it is ever set, so a wrong or missing option is unrecoverable from mobile:** (a) the pill offers only Asset/Position/System (`ENTITY_FIELD_META.EQUIP.typeOptions`) and must offer all **four**, or Location records simply cannot be created here; (b) `saveInsertRecord()` still writes it to **`class`**, which must stop — Class keeps its own PUMP/MOTOR/VALVE vocabulary, its own filter chip and its Custom Fields gating (§22), so system type needs its own attribute. Until (b) lands, a record created in-app still has a Class no filter selects. Opened 2026-08-11, scope narrowed 2026-08-25. |
+| **Re-typing a pre-start WO that already has data behind a disappearing tab** | Opened 2026-08-25, and **all that survives** of three items this table briefly carried — WO Type gate tiers and required-field drift both closed the same day when Type became Protected at Start Work (§13.5/§14.11), and the §23 required-marker tension they raised was withdrawn with them. What is left is narrow: a planner issues parts or books labor **in base** against a not-yet-started WO, then the technician re-types it on mobile to a type whose layout has no such tab. Cannot arise from mobile activity, because issuing parts and booking labor are post-Start-Work by construction and Start Work protects Type. §13.5 recommends drawing the line at whether the data *moved something*: **block** the re-type for transactional data (issued parts, booked labor — stock left the storeroom, cost landed on the WO, and leaving it with no surface is an audit problem), **allow and enumerate** for non-transactional data (comments, documents). Not locked. The check is cheap — it only runs on a pre-start re-type, where there is usually nothing to find. |
 | **Equipment Record View's routed-in record is an identity overlay, not a real record** | Per-record routing (2026-08-11) hands the tapped Equipment List row over (`eamOpenEquipment`) and overlays asset/description/organization/class/category/assigned-to onto the canonical demo record, clearing the nameplate fields (alias/serial/model/manufacturer/value) that belong to 00067333 specifically. Everything deeper — Comments, Documents, and all 7 child tabs — is still the demo record's. Enough that a card opens as the asset that was tapped; not enough to claim per-record data. A real fix needs per-asset records in `data/equipment.js` (only 00067333 and BLDG-A exist) or a generated set. |
 | **WO List's Search screen shows one sort control but Screen 1 owns it** | The sort button lives in Screen 1's `.res-row`; the Search screen (Screen 2) has a result-count row with no sort control of its own, so a technician filtering on Screen 2 can't reorder those results without going back. `openSortSheet()` and `applySortOrder()` are already shared and re-render both screens, so this is a markup gap, not a behavior one — Equipment List has the same shape. |
 | **Login** | Not started. See §4.1. |
@@ -4467,6 +4953,12 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **Nav-slot binding storage — shape not signed off** | §26.3 locks the paradigm (access control supplies the candidate functions, config supplies the choice and the order) and the four slot-row fields, but the storage itself — a small new table keyed `(user group, sequence)` — is a proposal, not a confirmed base-EAM object. Needs a call with whoever owns the base schema, together with the smaller question of whether §26.3's curated icon set is authored anywhere or hardcoded. `PRM_MOBILESTARTCARDS` was considered and rejected as the home for it (§26.6). Opened 2026-08-24. |
 | **Dataspy sets become function-resolved once `WSJOBS` clones are in play** | §6.3/§8.3 assume one fixed dataspy set behind WO List. Dataspies are per-function, so two user groups bound to different clones (§26.1) see different dataspy sets — different options, different defaults, different favourites — in the same "Work" nav slot. Nothing in the list-screen design accounts for that, and it is the one knock-on of §26.2/§26.7 that reaches a locked mobile-side rule rather than just implementation. Note §11's original one-function decision cited dataspy fragmentation as its own justification; §26.7 accepts that cost deliberately rather than denying it. Opened 2026-08-24. |
 | **`renderBottomNav()` doesn't exist** | Bottom-nav markup is hand-copied into every screen (e.g. `eam-home-screen-prototype-v1.html`); nothing in `eam-shared.js` renders it. §26.4's config-driven nav needs it extracted first, and that extraction is what makes a 4th slot a data row rather than an edit to every screen file. Same consolidation debt as the plan doc's §7.3 (WO List's hand-copied `.bottom-nav`/`.nav-avatar` CSS) — worth doing in one pass. Opened 2026-08-24. |
+| **Screen Designer has no Placement control for the "More" group** | Opened 2026-08-25 with §14.8's reframe. The group's membership is now defined as admin-configured — each of the function's tabs carrying `Placement = Step \| More` (§12 tier 2) — but nothing authors it. `eam-screen-designer-v1.html`'s left pane manages numbered steps only; there is no way to place a tab outside the sequence, and no candidate list drawn from the function's permitted tabs. `WO_MORE_TABS` in `eam-shared.js` is the runtime stand-in (data-driven, so it is ready to be fed) with today's three members hardcoded as the default. Needs: the Placement control itself, the permitted-tab candidate list (same source as §26.7's eligibility check), admin-set ordering, and a decision on the icon question this shares with §26.3. Base-track scope, not mobile. |
+| **The "More" group's destination screen is still named `eam-wo-reference-tab-prototype-v1.html`** | Cosmetic but misleading after §14.8's rename (2026-08-25). The file is the WO's Comments + Documents child-tab screen; its name, `goToWoReferenceTab()`, `WO_REFERENCE_TAB_FILE` and the `eamReferenceTab` sessionStorage key all still say "reference," which now reads as a group name that no longer exists rather than as a description of the screen. Renaming touches the file, `screens.html`, and three identifiers in `eam-shared.js` — cheap, but it is churn with no user-visible effect, so it is deliberately deferred rather than bundled into the rename that surfaced it. Note the screen itself is correctly named for what it *does* in §7.2 terms; only the "reference" word is stale. |
+| **`jumpToRvSection()`/`consumeJumpToSection()` are dead machinery** | Pre-existing, confirmed 2026-08-25. `goToWoReferenceTab()` superseded `jumpToRvSection()` when Comments/Documents became a real child-tab screen (§7.2), leaving nothing that sets the `eamJumpToSection` flag — so `consumeJumpToSection()` still runs on every WO Record View load and always returns early. Both functions plus the flag can go. Not removed alongside §14.8's rename because it touches WO Record View as well as the shared file, and it is unrelated debt rather than that change's residue. (`jumpToEquipmentStub()` *was* that change's residue and is already removed.) |
+| **Tier 0 bootstrap-config contract — shape not defined** | Opened 2026-08-25 with §2.3's resequencing. The *ordering* and the "carried on the authentication response" recommendation are settled; the **contract is not**. Owed: what the bundle actually contains per domain (0a–0f), the per-domain **version-stamp** scheme that makes a reconnect delta-check cheap, and how a partial failure is reported — 0c missing is fatal, 0f missing is degraded-but-usable, and the response needs to say which happened rather than returning one opaque error. Also unresolved: whether 0f is scoped server-side (the server resolves layout, then returns only the code domains it references — smaller payload, more server logic) or client-side (the client resolves layout, then asks for domains by name — chattier, dumber server). Recommend server-side scoping: it is one round-trip inside the login wait instead of two. Needs the API team. |
+| **Write path must be gated on status authorizations, and nothing enforces that yet** | Opened 2026-08-25 (§2.3 consequence 3). If Tier 0's `0d` is absent or stale the app must **not** accept writes — permitting them queues outbox entries the server will reject, and under §2.4's optimistic UI the technician sees success and walks away, with the failure surfacing hours later in §4.4's trouble-field banner. That is exactly the "did my transaction actually land?" trust failure this app exists to fix, so a systematically wrong authorization set is worse than a blocked one. Owed: where the gate lives (a `resolveFieldState`-style seam would be the natural home — see the conditional-field-rules row), what the UI says while gated, and whether a stale-but-present authorization set is treated as usable. No prototype equivalent exists; there is no write path to gate yet. |
+| **Workflow config revisioning — a live config edited mid-execution** | Opened 2026-08-25, surfaced by retiring the Workflow Designer prototype (§21), which is the only artifact that had modelled it (Draft / Current Rev / Create Rev). Nothing in §11–§13 or §26 says what happens to a technician who is part-way through a gated workflow when an admin changes that `(function, WO Type)` configuration — steps reordered, a step removed, a field's required-ness flipped. The offline model makes it sharper than it would be online: the device holds a hydrated work set and a configuration that arrived at sync time, so "the config changed" and "the technician is mid-WO" can be separated by hours or days, and the WO's own step state was recorded against the *old* shape. **Recommendation added 2026-08-25 (§2.3 consequence 4): pin the resolved config version to the WO at start-of-work**, so a WO in flight finishes on the shape it started with and the new configuration applies to the next one started. Cheapest of the three candidates and the only one needing no migration of already-recorded step state; the alternatives were versioning the config and migrating step state on delta pull, or forbidding destructive edits while WOs are in flight. Note this is the same problem as the Tier 0 config-delta case, approached from the authoring side rather than the sync side — resolve them together, once. Still needs a call before workflow config is editable in production, not after. |
 | **Home layout has no authoring surface** | §26.5 gives Home layout a User Group Setup tab that deep-links into a Home layout designer that does not exist. §9.4's open "base-admin configurability" item is the same gap seen from the other side — one is the entry point, the other is the destination. Resolve together. |
 
 # 21. Superseded Design Decisions
@@ -4479,6 +4971,8 @@ its original section with a note attached.
 
 | Former decision | Superseded by |
 | --- | --- |
+| **The step rail's "Reference" group, defined as Comments & Documents** (§14.8, added 2026-07-22). Named "Reference," and framed as a specific affordance for two pieces of "persistent record-level content owned by WO Record View alone," with Equipment later bolted on as "a 3rd row." Membership *was* the definition: three fixed rows, hardcoded in `WO_REFERENCE_LABELS` and `stepMapReferenceGroupHtml()`. | §14.8 (2026-08-25, direct clarification of intent) — the group is **"More"**, and it holds **whichever of the function's tabs the admin placed outside the sequence**. Comments and Documents are the obvious defaults, not the definition. Two reasons the old name had to go with the old framing: everything in the group is **editable** (add a comment, attach a document, insert/delete equipment rows), so "Reference" claimed a read-only-ness that was never true; and the claim gets worse exactly as membership widens — a configurable group could hold a Permits or Safety tab, filing something you sign under "Reference." The *mechanism* is unchanged and was never in question: pinned after the last numbered step, plain icon rather than a numbered badge, ungated by construction. To revert the name only: `stepMapMoreGroupHtml()`'s group label in `eam-shared.js`, the `.step-map-group-label` comment in `eam-shared.css`, and this section's heading — the data-driven `WO_MORE_TABS` shape is independent of what the group is called and should not be reverted with it. |
+| **A separate Workflow Designer admin screen** — `eam-workflow-designer-v1_1.html` (built 2026-07-21, never documented in this doc, CLAUDE.md or the plan doc). Its own visual system (DM Sans/DM Mono, teal-purple palette), and it modelled a considerably larger scope than §10–§13 lock: **workflow revisioning** (Draft / Current Rev / Create Rev), **conditional visibility**, **allow skip with reason**, a node graph with an explicit "fallback when no criteria match," and blank-workflow / create-from templates. | §10 (reaffirmed 2026-08-24/2026-08-25) — "**one surface covers both workflow-driven and non-workflow screens** … there is no separate admin surface for workflow-driven screens." WO Workflow configuration is authored through **Screen Designer**, which gains a WO Type selector; §26 adds User Group Setup as the *binding* side of the same model. **Retired to `prototypes/standalone/base screens/old versions/` on 2026-08-25** and unlinked from `screens.html`. Two things about it are worth keeping in mind rather than losing with the file: its conditional-visibility and skip-with-reason modelling overlaps **§13.1–§13.4, which are deliberately deferred to Phase 4+** — so it is not evidence that question is settled — and it is the only artifact that has considered **workflow revisioning**, i.e. a live configuration being edited while technicians are mid-workflow against the previous version. §13/§26 do not currently address that, and it is a real problem when workflow config becomes editable in production. To revert: restore the file from `old versions/`, re-add its `screens.html` card, and amend §10's one-surface rule first. |
 | **Comment header — no avatar/profile picture** (§7.2). A comment's header row showed exactly two things beside its timestamp: the author's display name and the Edit/Delete/Copy ellipsis. Reasoning given: name text alone carries enough identity for a comment thread, and omitting an avatar "keeps the row from competing visually with the ellipsis." | §7.2 (2026-08-11, confirmed after being flagged) — the chat-style comment card shows a **26px initials avatar** before the name. The first half of the old reasoning was a judgement call; the second half became factually obsolete when the card moved the ellipsis out of the header row entirely and pinned it to the card's top-right corner, so there is nothing left in that row for an avatar to compete with. To revert: drop `.comment-avatar` / `.comment-item[data-mine="true"] .comment-avatar` from `eam-shared.css` and the `<span class="comment-avatar">` (plus `commentInitials()`) from `renderCommentItemHTML()` in `eam-shared.js` — the rest of the card treatment is independent of this call. |
 | **Sync control — five states** (Synced/Syncing/Offline/Pending/Error), with a separate orange "Pending" state ("reconnected, outbox flushing in order") distinct from purple "Syncing" ("outbox draining right now"). | §4.4.1 — four states (Synced/Offline/Syncing/Error). Pending and Syncing described the same event; connectivity alone now decides Offline vs. Syncing. Syncing itself moved off purple onto a distinct gray shade (§23). |
 | **Master field-type reference — `sample-screen-standard-model-prototype.html`** — one canonical example of every field type, rule written as an inline caption, plus the full List/Detail header + Insert Mode reference build. | §5.2 "Grid vs. List field-type consolidation" — `screen-layout-field-behavior-prototype-v1.html` replaces it (every type shown in both Grid and List, not just one); the old scaffolding (header actions, tab rail, Insert Mode, Comments/Documents) is dropped since each has its own canonical home elsewhere. Retired to `prototypes/standalone/old versions/`. |
@@ -4494,7 +4988,7 @@ its original section with a note attached.
 | **Search screen filter chips — fixed row** (§6.11) — always Type · Status · Department · Priority, hardcoded. | §8.3 — filter chips (and sort options) are dataspy-driven: the same 6 fields the card surfaces. |
 | **Dataspy bar — live record count** (§6.3). | §8.3 — dropped entirely; one less number to keep accurate across sync tiers. |
 | **"WO Workflow Setup" — a bespoke 3-screen base-EAM admin entity**, with its own Steps tab and Screen Designer tab, invented from scratch alongside real EAM admin surfaces. | §11–§13 — no new admin screen; Screen Designer (§10) itself gains a WO Type selector. |
-| **Intermediate proposal: route each WO Type to its own distinct `FUN_CODE`**, mirroring this customer's real `CCJOBS`/`TRJOBS`/`ZJ1000`/`WSJODC` precedent. Technically sound and grounded in real data, but rejected. | §11–§13 — fragments the WO List dataspy mechanism (§6.3/§8.3) across multiple functions' dataspy sets for no benefit. Final answer stays on one function, `WSJOBS`, always — the WO-Type dimension comes from a new `PLO_WOTYPE` column plus the new WO Workflow Steps table (§12). |
+| **Intermediate proposal: route each WO Type to its own distinct `FUN_CODE`**, mirroring this customer's real `CCJOBS`/`TRJOBS`/`ZJ1000`/`WSJODC` precedent. Technically sound and grounded in real data, but rejected. | §11–§13 — fragments the WO List dataspy mechanism (§6.3/§8.3) across multiple functions' dataspy sets for no benefit. Final answer stays on one function, `WSJOBS`, always — the WO-Type dimension comes from a new `PLO_WOTYPE` column plus the new WO Workflow Tabs table (§12). |
 | **WO colour language — Type tinted, Status 4-way hex** (§6.7) — Type was a 6-way hex-per-code text tint; Status was a 4-way hex-per-code solid pill. | §6.7/§23 (2026-07-22) — Type loses colour entirely (not one of the 3 instruments); Status converges onto the app-wide 3-tier fill vocabulary (green/outlined/red). |
 | **Type has no colour anywhere** (§6.7/§23, 2026-07-22) — the row directly above. Scoped to the rebuild exercise then underway, not meant as a permanent rule. | §23.3 "WO Type Colour + Icon Badge" (2026-07-28) — Type regains colour via a curated 5th instrument, reused identically across the Type field, WO List row, and step rail. |
 | **Comments & Documents reachable via an ellipsis-menu entry** (§14.8) — each menu row showed a trailing count; kept out of the step map to avoid implying sequence membership. | §14.8/§23 — a "Reference" group inside the step rail's own expanded map, pinned after the last numbered step, using a plain icon (not a numbered badge) so it doesn't imply sequence. |
@@ -5431,3 +5925,101 @@ Three guard rails make B safe:
 If base later ships a workflow-native WO function, it arrives as one more
 eligible `EVNT` function and nothing about this design changes. Choosing A
 now would have to be undone to get there.
+
+## 26.8 Equipment resolves layout off **system type** — and base already models it as four screens (locked paradigm, 2026-08-25)
+
+**User finding, and it is the strongest available proof that §13's
+configuration-driven layout is the right paradigm rather than a WO
+special case.** Base EAM already splits Equipment across **four distinct
+base screens by system type — Location, Asset, Position, System** — and
+each of those supports **clones**, filterable per user group exactly as
+the `WSJOBS` clones are (§26.1/§26.7).
+
+So the same mechanism WO uses, **minus the workflow piece**, gives mobile
+something it could not otherwise have: the technician picks an asset,
+reads its record view, goes back to search, pulls up a **position**, and
+the record view **re-renders under a different layout** — without ever
+navigating to a different screen. **Four base screens collapse into one
+mobile navigational surface:** one Equipment List, one Equipment Record
+View shell, four resolved layouts.
+
+That is the "Unified Mobile Experience" theme answered at the screen
+level, and worth naming when the paradigm is presented — it is the case
+where configuration-driven layout removes navigation rather than just
+moving configuration around.
+
+### Why Equipment is *cheaper* on the base side than WO was
+
+This is the part that reads like a happy accident:
+
+- **WO needed a new column.** One function, one screen, and base had no
+  per-Type layout concept — hence the new `PLO_WOTYPE` column plus the two
+  new WO Workflow tables (§11–§13).
+- **Equipment needs none.** The four system types **already are four
+  `PLO_PAGENAME` values.** Resolution is therefore "which of the four
+  existing pagenames does this record's system type map to," then the
+  clone appropriate to the user group — which is `R5PAGELAYOUT` on
+  `PLO_PAGENAME × PLO_USERGROUP` doing exactly what it already does. No
+  new column, no new table.
+
+Consistent with §26.2's locked rule: resolution switches on the **entity**,
+never on a `FUN_CODE`. Equipment's entity is equipment; system type
+selects among that entity's screens; the clone is a user-group binding.
+Nothing new is being invented, which is the point.
+
+### This resolves the Insert Mode "Type vs. Class" question (§20)
+
+Insert Mode's third pill offers Asset/Position/System and
+`saveInsertRecord()` stored it as the record's **`class`**, which no
+Equipment List Class filter (PUMP/MOTOR/VALVE/…) could ever select and no
+Custom Fields definition (§22, gated on Class) could match. That item asked
+"which field is this pill actually?" — **answered: it is the system type,
+the layout-resolution key, Equipment's exact analogue of WO Type.** It never
+fit Class because it is a different axis entirely: Class is what kind of
+equipment this is, system type is what kind of *record* it is.
+
+Two follow-ons, both small:
+- **The pill is missing `Location`.** It offers three of the four system
+  types. Whatever the pill is bound to must offer all four, or Location
+  records cannot be created on mobile at all.
+- **It must stop writing to `class`.** Class remains its own real field
+  with its own vocabulary and its own filter; the system type needs its own
+  attribute.
+
+### Consequence for the plan: this is a blocker for Equipment
+
+The base-side surface that authors these four layouts (and their clones)
+**does not exist yet** — Screen Designer's declared MVP scope is "two record
+views, Equipment and Work Order" (§10), which was written as though
+Equipment were one screen. It is four, times clones.
+
+**Direct user position: this is a blocker for the Equipment track**, not a
+parallel workstream. Building Equipment Record View against a single
+hardcoded layout would bake in exactly the assumption this finding
+disproves, and every child tab built on top of it would inherit that
+assumption. Tracked in the plan doc's sequence rather than here.
+
+### System type is **Protected in update mode, always** (locked, user direction 2026-08-25)
+
+Once the record exists, its system type cannot be edited. It renders as a
+**Protected** field (§5.2's field states) on Equipment Record View.
+
+**So none of §13.5 applies to Equipment.** No confirm, no re-resolution, no
+step state to reconcile, and no required-field drift — a record's layout is
+fixed for its lifetime the moment it is created. Equipment gets the
+paradigm's benefit (four layouts, one mobile surface) with none of its
+re-typing exposure.
+
+Worth noting *why the two entities diverge deliberately* rather than
+treating this as an inconsistency: protecting the key after insert is the
+cleanest possible answer to the re-resolution problem, and WO **cannot**
+take it. Re-typing a work order is a real business need — a work request
+triaged into a breakdown, a job reclassified once the technician sees the
+asset — so WO has to absorb the complexity in §13.5 that Equipment
+sidesteps by construction.
+
+**The consequence is that Insert Mode is the only place system type is ever
+set — which makes its missing `Location` option a real defect, not a
+cosmetic one.** Pick the wrong system type at create time and it is
+unrecoverable from mobile; omit an option entirely and that kind of record
+simply cannot be created here. See §20.

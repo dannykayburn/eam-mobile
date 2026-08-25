@@ -15,16 +15,21 @@ The framing that unlocked this: **the binary "synced = visible" is false.** Mobi
 
 ## 2. The Resolution — Tiered Record Model
 
-Records live in one of four tiers, and a record moves between tiers based on use, not based on being "in scope" for sync:
+Records live in one of four tiers, and a record moves between tiers based on use, not based on being "in scope" for sync. **Tier 0 was added in front of them 2026-08-25 (design-decisions-v3-1.md §2.3) and is deliberately not a record tier** — it is *configuration*, and the distinction is load-bearing: records degrade gracefully (fewer rows = a shorter list) while configuration does not (a missing page layout is a blank screen, not a shorter one). All four record tiers below assume Tier 0 is already present — Tier 1 cannot *render* a hydrated WO without a layout, and Tier 2's stubs cannot show descriptions without the code domains.
 
 | Tier | Name | Contents | Size / Scale | Behavior |
 |---|---|---|---|---|
-| **1** | Work set | Fully hydrated records + children (activities, checklists, parts) | ~20–200 WOs | Pinned, never evicted, guaranteed offline-executable |
+| **0** | Bootstrap config | Identity + user group → nav/function resolution → **page layout** (`R5PAGELAYOUT` + WO Workflow header/tabs + custom-field defs) → status authorizations → dataspy definitions → the code domains layout references | Kilobytes | **Blocking**, fetched inside the login round-trip (not a modal). Persisted, versioned per domain, **exempt from eviction** — not merely "hard-blocked while pinned or dirty" like a record. Layout resolves first because it *scopes everything after it*: it tells you which code/status domains actually matter, so they can be fetched as a subset rather than blind |
+| **1** | Work set | Fully hydrated records + children (activities, checklists, parts) | ~20–200 WOs — **my open pinned work orders** (never date-scoped; see the note below) | Pinned, never evicted, guaranteed offline-executable |
 | **2** | Search index | Stub rows, ~8–12 projected fields | ~300 bytes/row; 10k rows ≈ 3–4 MB, 100k ≈ 35 MB | Instant offline "contains" search via FTS5; grid renders only 5 summary fields |
 | **3** | Demand cache | Stub → hydrated on tap while online → LRU-evicted back to stub | N/A | "A technician's own work is sacred; everything else is best-effort" |
 | **4** | Server search | Not stored — online-only escalation | Full ~150-field record set | Existing dataspy SQL search API, reused as-is |
 
-**Real scaling limits are not row count.** They are (a) Tier-1 payload size — documents dominate — and (b) sync volume over time. Both are already solved by the existing delta-pull cursor (`last_synced_at`), and index refresh simply slots in as another background stage of the existing hydration sequence (today's WOs → site assets → lookup tables → historical docs).
+**Real scaling limits are not row count.** They are (a) Tier-1 payload size — documents dominate — and (b) sync volume over time. Both are already solved by the existing delta-pull cursor (`last_synced_at`), and index refresh simply slots in as another background stage of the hydration sequence (**Tier 0 config, inside login** → my open pinned WOs → site assets → long-tail lookups → historical docs).
+
+**"My open pinned work orders," not "today's WOs" (corrected 2026-08-25).** The punch list is **not date-scoped** under either candidate mechanism: Option A is a configured dataspy, Option B is EXEC-class pin membership (§5 below). "Today's" both understated Tier 1 — a WO assigned to me and open for three weeks is squarely in my work set — and overstated it, implying a date filter that exists nowhere in the design. The device-side contract is `pinned = 1`, so the phrase should track the contract.
+
+**One defect the resequencing fixes.** The old order put lookup tables at ~30s, which meant that for the first half-minute a Tier-1 record could render with **raw codes and no descriptions** — `BRKD` rather than `Breakdown`. That is the training-dependency regression this product exists to remove, so the code domains layout references belong in Tier 0, not in a background stage.
 
 ## 3. Dataspy Handling
 
