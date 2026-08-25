@@ -77,7 +77,8 @@ all point at the same product:
   continuum — not a mode choice and not an app choice. Strong alignment across
   customers.
 - **Contractor / BYOD access (Medium).** Organizations cannot force app installs
-  on contractor-owned devices; browser-native access is preferred.
+  on contractor-owned devices; browser-native access is preferred. **This is the
+  one theme the architecture does not answer** — see §7.8.
 
 Where the SWG converged: **one unified, technician-first, hybrid online/offline
 app with shared licensing and one architecture.** The corresponding MVPs on the
@@ -86,12 +87,19 @@ Execution, Guided Workflow, Intelligent Search & Filtering, Personalized Home
 Screen & Inbox, Mobile Error Handling & Transaction Confidence, and
 Persona-Based Mobile UX — are exactly what the design below delivers.
 
-Worth drawing the line explicitly when presenting: each theme above maps to a
-paradigm in §3. Two apps → P6/P7 (one component system, one standard model).
-Sync reliability → P1 (one write path, visible sync state). Training dependency
-→ P4 (guided execution). Hybrid connectivity → P1/P2 (no mode switch anywhere in
-the design). BYOD → the PWA delivery target, which is also where the one real
-platform risk sits (§6).
+Worth drawing the line explicitly when presenting: **four of the five themes map
+to a paradigm in §3.** Two apps → P6/P7 (one component system, one standard
+model). Sync reliability → P1 (one write path, visible sync state). Training
+dependency → P4 (guided execution). Hybrid connectivity → P1/P2 (no mode switch
+anywhere in the design).
+
+**The fifth does not, and it is better to say so.** Contractor/BYOD asked for
+*browser-native* access, and the offline architecture requires a **native** app
+(§7.8). Presenting it as answered by "a PWA delivery target" — as an earlier
+draft of this doc did — would not survive the first question from a dev lead who
+notices that `op-sqlite` is React Native-only. It is also the only Medium-priority
+theme of the five, which makes it a defensible one to scope consciously rather
+than paper over.
 
 ---
 
@@ -519,7 +527,8 @@ the first two exist.
 | **Layout/workflow API** | A real JSON API in front of `R5PAGELAYOUT` and the two new WO Workflow tables (spec §12), for both the mobile app and Screen Designer. The legacy framework's server-side postback forms cannot serve it. Needs an owner (P5). Must also serve **Equipment's four system-type layouts** and their clones (§7.5). |
 | **Tier 0 bootstrap-config contract** | The *ordering* and "carried on the auth response" are settled (P2); the contract is not. Owed: what the bundle contains per domain, the **per-domain version stamp** that makes a reconnect delta-check cost bytes instead of a refetch, and how partial failure is reported — a missing layout is fatal, missing long-tail codes is degraded-but-usable, and the response has to say which rather than returning one opaque error. Also: is the code-domain scoping done **server-side** (server resolves layout, returns only referenced domains — smaller payload, more server logic) or client-side (client resolves, then asks by name — chattier)? **Recommend server-side:** one round-trip inside the login wait instead of two. |
 | **Navigation architecture** | Decide the app shell: persistent iframe shell vs. real page-to-page navigation with record identity on the query string. Settled by one small proof-of-concept, which also decides Screen Designer's live emulator — see §8.1. |
-| **Platform & tooling** | Confirm background-sync and storage-quota behavior for the offline PWA on **iOS Safari** — a known risk area, and the one that bears on the BYOD/browser-native theme in §2. Production typeface: **Aptos** (brand, Microsoft-proprietary) vs. **Inter** (prototype stand-in) — licensing owner needed. |
+| **Platform target — confirm, don't assume** | The offline model (Tier 1 hydration, Tier 2 FTS5 index, a persisted outbox that survives app kill) requires a **native React Native app**. The spec's header cell said "responsive PWA" until 2026-08-25 while also naming `op-sqlite`, which is React Native-only — a straight contradiction, now corrected. What dev needs to confirm is the **native** target and its consequences: storage headroom on device for a ~35 MB index plus documents, background-sync behaviour, and app-store distribution for contractor-owned devices (§7.8). |
+| **Production typeface** | **Aptos** (brand, Microsoft-proprietary) vs. **Inter** (prototype stand-in) — licensing owner needed. Note the Octave PowerPoint template is itself built on Aptos, so the brand answer and the app answer may not be the same question. |
 
 ### 6.1 The punch list — what downloads to this device?
 Tier 1 is defined by a per-user punch list of work orders. **The mechanism that
@@ -701,6 +710,50 @@ work nobody has scoped, and it belongs with the layout/workflow API row in §6.
 
 ---
 
+
+### 7.8 "Browser-native for contractors" is not deliverable, and was being reported as if it were
+**Found 2026-08-25 (user direction), and this one was my error in the earlier
+drafts.** The Contractor/BYOD theme asks for browser-native access. The offline
+architecture requires a **native React Native app**. I had been mapping the theme
+to "the PWA delivery target" — turning an unresolved conflict into a checkmark.
+
+**The contradiction was in the specification itself, not just the deck.** Its
+header cell read *"Platform: iOS and Android — responsive PWA"* while §2.2 named
+**`op-sqlite`**, which is React Native-only with no browser build. Both could not
+be true. Corrected: the spec now states native, with the reasoning in spec §2.2
+and the supersession in spec §21.
+
+Four reasons the offline model forces native:
+1. **`op-sqlite` has no browser build.** If it is the engine, the question is closed.
+2. **WatermelonDB's web adapter cannot serve FTS5.** It runs on LokiJS/IndexedDB,
+   and Tier 2 specifies instant offline *contains* search via FTS5 over tens of
+   thousands of stub rows.
+3. **Background Sync is Chromium-only.** Absent from Safari — so "the outbox
+   drains opportunistically whenever a connection exists" could not hold on iOS.
+4. **Storage durability.** On iOS, script-writable storage for a non-installed
+   site can be evicted, including ITP's 7-day rule. "An unsent edit can never be
+   lost" is not a promise a browser tab can make there.
+
+**Not overclaiming:** a browser offline app is not strictly impossible —
+`wa-sqlite` over OPFS (Safari 17+) gives real SQLite with FTS5 and persistent
+storage. But that is a third engine choice not on the table, Safari still has no
+Background Sync, and durability stays weaker. It is a different architecture
+decision with real capability loss, not a delivery-target toggle.
+
+**The likely resolution is a distribution question, not an architecture one.**
+"Cannot *force* installs" is not the same as "cannot install." An organization
+cannot push a managed app via MDM to a device it does not own — but a contractor
+can install a public App Store / Play Store app voluntarily. If that satisfies
+the requirement, nothing about the architecture changes and the theme is answered
+after all. If it does not, every alternative has real cost: a separate thin
+online-only browser surface for contractors (a second UI target, which cuts
+against the "one unified app" premise), re-opening the engine choice toward
+`wa-sqlite`/OPFS, or consciously scoping BYOD out of v1.
+
+**Recommendation: put this on the agenda as an open product question, not a
+solved one.** It is the only Medium-priority theme of the five, which makes it a
+defensible thing to scope deliberately — and naming it is far better than having
+a dev lead point out mid-meeting that `op-sqlite` is React Native-only.
 ## 8. Tracked debt, rolled up into five themes
 
 Spec §20 has all the rows with full detail; don't re-derive it. These are the themes
@@ -839,8 +892,14 @@ the checklist A/B (§8.2) — it needs a device, not a session.
   PIN, who owns the base backend?
 - What's a realistic timeline for the server-side dataspy pre-evaluation
   capability? Both punch-list Option A and Tier 2 search depend on it.
-- Any known constraints on background sync / storage quota for an offline-first
-  PWA on iOS Safari?
+- **Contractor / BYOD (§7.8) — is self-install from the public app store an
+  acceptable answer?** The offline model requires a native app, so browser-native
+  access is not on offer. "Cannot force installs" is not the same as "cannot
+  install" — if that distinction holds with the customer, this closes. If not, we
+  need a product call, because every alternative costs either a second UI target
+  or the offline guarantees.
+- Any known constraints on background sync, or on storage headroom for a ~35 MB
+  index plus cached documents, on the **native** iOS and Android targets?
 - **Who owns the JSON API in front of `R5PAGELAYOUT` and the new workflow
   tables?** Configuration-driven screens are load-bearing for the whole design
   and cannot be worked around from the front end.
