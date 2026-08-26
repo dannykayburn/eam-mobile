@@ -62,41 +62,118 @@ stands as written, don't re-open it.** It also answers "no Parts tab but parts
 were issued?": issuing parts is post-Start-Work by construction, so it can't
 arise from mobile. Only residual is base-issued parts on a pre-start WO (§20).
 
-## Start Work is the commitment boundary (§14.11, locked 2026-08-25)
-Five things happen at once and only make sense together: status → Start Work
-Status, **Type protects**, **the WO pins to the technician**, **all child
-records hydrate**, and (recommended) the **resolved config version is stamped**
-— which is also the answer to workflow-config revisioning. Before Start Work a
+## Locked rules — don't re-derive these
+Conclusions and consequences only. **Rationale, rejected alternatives and
+revert recipes live in the spec at the § given** — follow the pointer rather
+than reasoning it out again. Consolidated 2026-08-25; keep additions here to
+this shape.
+
+**Start Work is the commitment boundary (§14.11).** Five things happen at once
+and only make sense together: status → Start Work Status, **Type protects**,
+**the WO pins to the technician**, **all child records hydrate**, and
+(recommended) the **resolved config version is stamped**. Before Start Work a
 WO is a candidate; after it, it's this technician's committed work. Two
 consequences: starting a WO found by search **is** the Tier 3 → Tier 1
-promotion (so a non-hydrated WO probably needs connectivity to start), and this
+promotion (so a non-hydrated WO probably needs connectivity to start), and it
 is the **first device-originated pin** — a local pin must survive a server
-membership list that omits it, or the next sync evicts live work. That last
-point is real evidence for punch-list Option B.
-**Reversed 2026-08-24, see §26.7:** the "one function, `WSJOBS`, always" half
-of that is gone. Any function with `FUN_RENTITY = EVNT` may be
-workflow-enabled, opted in per **user group** — this customer already runs
-four `WSJOBS` clones (CCJOBS/TRJOBS/ZJ1000/WSJODC) as distinct business
-processes, and a single blessed function would cost them the per-clone
-labels, boilerplate and field layouts those clones exist for. §26 is the
-new base-side section: function resolution, bottom-nav slot binding, and
-the User Group Setup screen paradigm.
+membership list that omits it, or the next sync evicts live work (real evidence
+for punch-list Option B).
 
-## Hydration has a Tier 0 (§2.3, revised 2026-08-25)
-The tier model gained a **Tier 0 — bootstrap configuration** in front of the
-four record tiers, and it is deliberately *not* a record tier: records degrade
+**Function resolution is per user group, never one blessed function (§26.7,
+reversed 2026-08-24).** Any function with `FUN_RENTITY = EVNT` may be
+workflow-enabled, opted in per **user group** — this customer already runs four
+`WSJOBS` clones (CCJOBS/TRJOBS/ZJ1000/WSJODC) as distinct business processes.
+§26 is the base-side section: function resolution, bottom-nav slot binding, the
+User Group Setup paradigm. *(This was filed under Start Work until 2026-08-25,
+where it read as if the commitment boundary had been reversed — it hadn't. It
+reverses the "one function, `WSJOBS`, always" half of the `FUN_CODE` note in
+START HERE.)*
+
+**Hydration has a Tier 0 (§2.3).** Bootstrap configuration, in front of the
+four record tiers and deliberately *not* one of them — records degrade
 gracefully (fewer rows = a shorter list), configuration doesn't (a missing page
-layout is a blank screen). Ordered by dependency — identity/user group →
-nav/function resolution → **page layout** (+ WO Workflow tables + custom-field
-defs) → status authorizations → dataspy definitions → the code domains layout
-references. **Layout is first because it scopes everything after it**, not only
-because it's most critical. Fetched **inside the login round-trip, not a modal**
-— "no blocking modal" was aimed at waiting on *records*, and Tier 0 is
-kilobytes inside a wait that already exists. Tier 0 is persisted, versioned per
-domain, and **exempt from eviction**. Say **"my open pinned work orders"**, never
-"today's WOs" — the punch list is pin/dataspy-scoped and never date-scoped.
+layout is a blank screen). Order: identity/user group → nav/function resolution
+→ **page layout** (+ WO Workflow tables + custom-field defs) → status
+authorizations → dataspy definitions → the code domains layout references.
+**Layout is first because it scopes everything after it.** Fetched **inside the
+login round-trip, not a modal**; persisted, versioned per domain, **exempt from
+eviction**. Say **"my open pinned work orders"**, never "today's WOs" — the
+punch list is pin/dataspy-scoped and never date-scoped.
+
+**The Tier 2 index is declared, not derived from dataspies (§6.13).** The
+governing fact: **dataspies are unbounded** — admin-published plus user-authored,
+on any screen with records, and users normally have permission. (Not authorable
+*from* mobile — out of scope — but mobile consumes what they made on desktop.)
+Three consequences. **1. The projection is declared**: a bounded `Indexed` column
+set (~10–20) flagged per field in Screen Designer, a *primary* source with no
+computed default — otherwise any saved query reshapes every device's index.
+§8.3's card rule is unchanged, but a dataspy touching a **non-indexed** column is
+**online-only** and must say so, never silently under-return. **2. A dataspy is a
+saved filter, classified — not shipped membership.** The server checks (metadata
+only, no SQL run) whether its predicates/columns sit inside the declared set →
+offline-capable local query, or online-only via Tier 4. **Nothing per-dataspy
+ships**, so switching stays zero-network at any dataspy count, and there is still
+**no per-dataspy "delta insert"** (the delta is the index refresh on
+`last_synced_at`; per-record fetch only on a Tier-3 demand tap). Membership
+shipping narrows to **Tier 1 / the punch list** only. Not a new capability —
+§8.3's filter chips already evaluate predicates locally over these columns.
+**3. Index scope is its own config** — **not** "All Work Orders" (that's
+unbounded history). Open WOs by the lifecycle rule, plus a configured extent,
+server-side, parallel to Sync Config scoping Tier 1; deliberately not derived
+from the dataspies, or adding one silently changes every device's storage.
+**Superseded same day: the union-of-projections default (§21) — don't reinstate
+it.** Five open items in §20: the `Indexed` **authoring grain** (§8.5 of the
+leadership review argues *function* grain), **no `Indexed` control exists yet**,
+the **index scope's shape**, the **normalised on-device criteria form**
+classification depends on, and whether **membership shipping** still serves
+punch-list Option A.
+
+**User Defined Screens are scoped, not designed (§27).** A **UDS** is a
+customer-authored *screen* — **not** §22's Custom Fields, which are
+admin-defined *fields* on a screen the product ships. Don't merge the two
+mechanics; a record can carry both. **In: UDS-as-a-tab-on-WO. Deferred:
+standalone UDS destinations. Out: UDS field authoring** (base's own UDS setup
+owns it — building it into Screen Designer repeats the retired Workflow Designer
+mistake). A UDS tab enters §14.8's candidate set **by construction**, takes a
+§12 tier-2 row, and **can be a numbered, gated, Required workflow step** — no
+new placement model needed. What *is* needed: **one generic definition-driven
+tab renderer** (§27.3), never a screen per UDS, following §22's
+`applyCustomFields()` pattern at whole-body scope — and sequence it after a 2nd
+real child tab exists, since the Equipment tab is a sample size of one.
+Authoring is **three-way**: base UDS setup defines → Screen Designer places →
+User Group Setup assigns. **The UI is the cheap part; the offline story is the
+ask** — four open items in §20.
 
 ## Source of truth
+
+### One fact, one home (the rule, added 2026-08-25)
+Every fact below has **exactly one owning file**. Other files may *point*
+at it; they must not restate it. Changing a fact means editing **one**
+file plus, at most, a pointer.
+
+| Kind of fact | Single home |
+| --- | --- |
+| A locked design rule, and its rationale | `docs/design-decisions-v3-1.md` |
+| Open/deferred items, and rejected alternatives | same file, §20 and §21 |
+| What to build next, and in what order | `docs/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md` |
+| Project status, and anything leadership-facing | `docs/EAM-Dev-Leadership-Review-2026-08-25.md` |
+| Relative per-screen complexity | `docs/EAM-Dev-Leadership-Sizing-Appendix-2026-08-25.md` |
+| What a UI pattern is *called*, and its rules | `docs/component-library.md` |
+| Raw CSS-level component audit | `docs/ui-component-inventory.md` |
+| A base-EAM enhancement spec (for the base team) | its own `EAM-DESIGN-*.md` |
+| Current state of the prototypes | this file |
+
+**Why this rule exists, in one line:** the offline-search summary doc
+restated §2.3/§2.6/§6.13, drifted for over a month (it still said Tier 2
+held "~8–12 fields" after §6.13 redefined it to 6), and was retired
+2026-08-25 (§21). **Don't create a "summary of X" doc where X is already
+specified.** If something is hard to find, add a pointer or fix §-numbering
+— don't clone the content.
+
+**Corollary for this file:** CLAUDE.md holds the *decision and its
+consequence*, plus a `§` pointer — never the full rationale. It loads every
+session, so length here is a recurring cost paid on every task.
+
 `docs/design-decisions-v3-1.md` is the authoritative design spec. Never
 contradict a locked decision in that doc without explicitly flagging it to
 the user first. It's long — grep for the section you need rather than
@@ -231,27 +308,14 @@ All 5 steps are rebuilt onto the shared-file architecture: `eam-wo-record-
 view-prototype-v1.html` (Step 1), `eam-activity-checklist-prototype-v2.html`
 (Step 2), `eam-wo-prototype-issue-parts-v1.html` (Step 3), `eam-book-labor-
 prototype-v2.html` (Step 4), `eam-wo-closing-prototype-v2.html` (Step 5).
-Shared chrome: step rail + timer pill (§14.2), a **"More" group** pinned
-after the last numbered step (§14.8 — renamed from "Reference" 2026-08-25,
-§21) currently holding Comments/Documents plus **Equipment, a real
-destination screen** (§16.10 — when it's on screen the rail marks that row
-active via `activeRef`), and the per-step bottom bar (§14.5–§14.7).
-**Its membership is configuration, not definition** — it's whichever of the
-function's tabs the admin placed outside the sequence (`Placement = More`
-on §12's tier-2 rows, authored in Screen Designer). Those three are a
-default, not the spec. Two rules to preserve: a tab is **either** a
-numbered step **or** a More entry, never both (otherwise forward gating is
-bypassable — Book Labor is both a step and a real WO tab), and a More tab
-**can never be Required** (nothing routes the technician there). Driven by
-`WO_MORE_TABS`/`stepMapMoreGroupHtml()`/`openWoMoreTab()` in
-`eam-shared.js` — data-driven, so don't re-hardcode rows into it. Screen
-Designer has no Placement control yet (§20). The rail (and Equipment RV's tab rail,
-same shared shell) is a floating pill/capsule (§14.2; the old "Flush
-Full-Bleed Card" style is preserved by name in §21 for an easy revert). The
-rail also carries the WO Type Colour + Icon Badge (§23.3) — a colour-tinted
-icon plus a Type-tinted glow on the pill's shadow for a configured workflow,
-or the same icon in a solid filled circle for the §11 fallback (plain
-shadow, no glow) — which doubles as the workflow-vs-free-form cue.
+Shared chrome: step rail + timer pill, the **"More" group** pinned after the
+last numbered step, and the per-step bottom bar (§14.2/§14.5–§14.8). More's
+membership is **configuration, not definition** — driven by `WO_MORE_TABS` /
+`stepMapMoreGroupHtml()` / `openWoMoreTab()` in `eam-shared.js`, so don't
+re-hardcode rows into it. Today's three (Comments, Documents, and Equipment —
+a real destination screen, marked active via `activeRef`) are a default, not
+the spec. Rules, rail styling and the WO Type badge: §14.8, §14.2, §23.3.
+Screen Designer has no Placement control yet (§20).
 
 Real cross-screen navigation exists end to end: each step's "Next" button
 carries the current WO's identity forward via `eamOpenDemoWo`. Demo data
@@ -261,257 +325,135 @@ fallback: flat, unordered, ungated step rail). WO List routes any tapped WO
 to the correct identity by its Type (§24 rule 3); an unrecognized WO number
 falls back to 20450.
 
-- **WO Record View:** header status pill is green only for Released
-  (Work Request/Closed render neutral outline, §15.4). Activities section
-  shows Trade + Start Date only. Closing a WO returns here (not to WO
-  List); the workflow's activity gets Completed forced true and its
-  Activity #/Notes line renders with a strikethrough (§15.2/§19.7).
-  Equipment field uses the shared Equipment Lookup popup (Search +
-  Structure tabs, §15.5) — the same component Insert Mode uses. Equipment's
-  grid badge is a 44px photo-slot tile (`.attr-badge-photo`, §7.5/§15.5);
-  tapping the tile itself (not the rest of the row) opens a full-screen photo
-  viewer when a photo's set, or the Camera/Photo library/File source picker
-  when it isn't — shared component, wired up (`equipPhotoOnSet`) on this
-  screen only so far. A conditional **Route/MEC pill** sits below the
-  badge+value row (§16.9): shows iff the WO has equipment rows in the shared
-  store, labelled "Route: `<code>` - `<description>`" when a Route is set or
-  "Multiple Equipment" otherwise, with a counter badge; always jumps to the
-  Equipment tab. **Header Fields grid** holds Equipment (full-width,
-  required), then Type | Priority, then **Department | Route** as the bottom
-  row — Route is a deliberate optional-field exception to §5.2's
-  required-only grid (§21). Equipment itself stays single and required.
-  Type field's badge carries the WO Type Colour + Icon Badge's solid fill
-  (§23.3) — the one field on this screen where that instrument shows as a
-  full badge, not a dot. Header description opens the shared long-text
-  editor's compact variant (`openDescEditor()`), not an inline edit —
-  always required, Save blocked while empty, same as Equipment Record
-  View's own header (both share this behavior via `eam-shared.js`).
-- **Activity Checklist** ("Focused Stepper", v2, §16): one item at a time
-  (Prev/Next), not a scrolling list. Notes is a real always-visible field;
-  Comments/Documents are real per-item containers; an item's answer can
-  insert dynamic follow-on items (§16.5). No separate "Instructions"
-  field on an item — an item's description is the only instructional text
-  (see `feedback_checklist_field_model` memory). A *task plan's own*
-  instructions (a different, per-plan concept, §16.7) render as a
-  one-time, read-only, comment-card-styled screen before item 1 when
-  configured, labeled "Task Instructions" everywhere it appears
-  (renamed 2026-08-10) — "Start Checklist" advances past it, Prev from
-  item 1 returns to it. The Yes/No prompt bar (§14.6) only appears once
-  the last item is reached with all required items complete (§16.6). An
-  equipment-scoped item's own equipment identity is a chip
-  (`.focus-equip-chip`) above the label — supersedes the old low-emphasis
-  protected-field row (§16.2 item 7 → §16.8). "View all" has a
-  Step/Equipment group-by toggle (§16.8) — Equipment mode groups by
-  `equipId`, for checklists carrying one item per piece of Route
-  equipment — both modes now
-  share one group-header component (thin/plain style + a done/total badge
-  + collapse chevron on every group, not just Equipment's), and a dataspy
-  filter (All/Uncompleted, real `.ds-bar` pill) + icon-triggered search
-  sit above that toggle (§16.8 — several filtering/search gotchas
-  recorded there, worth reading before touching this area again).
-  **Equipment-scoped items now fan out per equipment** (2026-08-11, §16.9),
-  which is what that Equipment group-by mode was built for and was never fed:
-  when the WO carries equipment on its Equipment tab, every item with an
-  `equipId` becomes one item per piece of equipment (equipment-major order,
-  deep-cloned so §16.5's dynamic follow-ons work per copy); non-scoped
-  safety/close-out items stay single. Recomputed from the store at load, so
-  removing equipment removes its items with no separate teardown path. A MEC
-  child fans out to its one asset. Note the scale this reaches on purpose —
-  the demo Routes are 24 and 156 equipment, so ~96/~624 items; don't "fix"
-  that by capping the fan-out.
+Per-screen notes — **design rules live in §15–§19; these are implementation
+facts and traps only.**
+- **WO Record View** (§15): Equipment field uses the shared Equipment Lookup;
+  its grid badge is a 44px photo tile wired via `equipPhotoOnSet` — **this
+  screen only, so far**. A conditional **Route/MEC pill** below it (§16.9)
+  shows iff the shared equipment store has rows for this WO, and always jumps
+  to the Equipment tab. Header description uses the shared long-text editor's
+  compact variant (`openDescEditor()`), not an inline edit — same as Equipment
+  RV's header, both via `eam-shared.js`. Closing a WO returns *here*, not to
+  WO List (§15.2/§19.7).
+- **Activity Checklist** ("Focused Stepper", v2, §16): one item at a time.
+  No separate "Instructions" field on an item — the description *is* the
+  instructional text (`feedback_checklist_field_model` memory); a task plan's
+  own instructions are a different concept (§16.7). **Equipment-scoped items
+  fan out per equipment** (§16.9), recomputed from the store at load, so
+  removing equipment removes its items with no separate teardown path. The
+  scale is deliberate — demo Routes of 24 and 156 equipment give ~96/~624
+  items; **don't "fix" that by capping the fan-out.** §16.8 records several
+  filtering/search gotchas worth reading before touching that area again.
 - **Issue Parts** (§17): Store/Bin/Lot picking is screen-local (dynamic
-  per-sheet options), reusing shared sheet/lov-option markup. Parts rows
-  use the shared Action Row component (§17.4) — tap reveals a detail list
-  + action button(s) in place, no navigation. Still uses its own local
-  hardcoded parts data, not yet wired to `data/parts*.js`.
+  per-sheet options). **Still on its own hardcoded parts data — not wired to
+  `data/parts*.js`.**
 - **Book Labor** (§18): wired to `data/employees.js`/`crews.js`/
-  `crew_employees.js` — Employee/Crew pickers and the booked-labor list are
-  data-driven. Booking against a Crew expands to one labor row per
-  employee currently assigned to that crew (§18.7). Labor rows use the
-  shared Action Row component (§18.3). Time Only (24-hour, no AM/PM, Inter
-  not mono) is this screen's own field-type addition to the standard
-  (§3.4/§5.2).
-- **WO Closing** (§19): Closing Codes' Problem/Failure/Cause/Action option
-  lists source from `data/closing_codes.js`. Status change control,
-  Closing Comments, Attachments, and the "every container is collapsible"
-  pattern are all screen-local — no shared equivalent yet.
+  `crew_employees.js`. Booking a Crew expands to one row per current member
+  (§18.7). **Time Only** (24-hour, Inter not mono) is this screen's own
+  field-type addition to the standard (§3.4/§5.2).
+- **WO Closing** (§19): option lists from `data/closing_codes.js`. Status
+  control, Closing Comments, Attachments and the collapsible-container
+  pattern are all **screen-local — no shared equivalent yet.**
 
 ### WO › Equipment tab
-`eam-wo-equipment-tab-prototype-v1.html` (§16.10) — the WO's own per-record
-equipment list, and **the first real §8 child-tab screen**; copy it for the
-next child tab. Reached from WO Record View's Route/MEC pill and the step
-rail's More-group Equipment item (`goToWoEquipmentTab()`). Not a
-workflow step (not in `WO_STEP_FILES`), but it **does carry the WO step
-rail** — it has no bottom bar, so the rail is its only way back. Header is
-§8.1's protected identity; body is the shared List/Detail shell, config only.
-Field set is the real base-EAM screen's 7 grid columns; Status is the
-**equipment's** own and reads `Installed` on every row in this prototype.
-- **State model:** a shared persisted **WO equipment store**
-  (`eamWoEquipment`) is the single truth for this tab *and* WO Record View's
-  pill. The tab is **empty unless a Route is selected on the WO header**;
-  selecting one inserts that Route's equipment (PUMPS 24 / FIREEXT 156) and
-  mints **one MEC child WO per row** parented to the header WO; manual adds
-  do the same; the pill is exactly `rows exist`.
-- **Buttons** follow §8.4: Add WO Header Equipment / Import Route Equipment /
-  Delete Equipment are header actions in the ellipsis (Linear Location
-  Details is out of scope); **Plus opens the multi-select Equipment LOV**,
-  which *is* the insert here.
-- **MEC children are real records now** (2026-08-11): WO List merges them out
-  of the store as child rows under their parent, and a child opens as itself
-  via a shared session-scoped **WO identity override** (`woIdentitySet()`/
-  `woIdentity()`/`woIdentityClear()`) that carries its number/description/
-  equipment while `eamOpenDemoWo` still points at the parent for workflow
-  resolution. A child never shows the parent's Route, pill, or equipment set,
-  and this tab's insert/delete actions are guarded on a child (it's a leaf).
-  All 5 workflow steps pick the override up free via the shared
-  `applyDemoWoIdentity()`.
-- **Open:** row tap isn't locked — `chooser` (default) vs. `split`,
-  live-switchable from the screen's own dev toggle (§20).
+`eam-wo-equipment-tab-prototype-v1.html` (§16.10) — **the first real §8
+child-tab screen; copy it for the next one.** Reached from WO RV's Route/MEC
+pill and the step rail's More Equipment item (`goToWoEquipmentTab()`). Not a
+workflow step (not in `WO_STEP_FILES`) but it **does carry the step rail** —
+it has no bottom bar, so the rail is its only way back.
+- **State model:** a shared persisted store (`eamWoEquipment`) is the single
+  truth for this tab *and* WO RV's pill. Empty unless a Route is set on the WO
+  header; selecting one inserts that Route's equipment (PUMPS 24 / FIREEXT 156)
+  and mints **one MEC child WO per row**; manual adds do the same. The pill is
+  exactly `rows exist`.
+- **MEC children are real records:** WO List merges them in as child rows, and
+  a child opens as itself via the session-scoped **WO identity override**
+  (`woIdentitySet()`/`woIdentity()`/`woIdentityClear()`) while `eamOpenDemoWo`
+  still points at the parent for workflow resolution. All 5 steps pick it up
+  free via `applyDemoWoIdentity()`. Insert/delete are guarded on a child.
+- **Open:** row tap is `chooser` (default) vs. `split`, live-switchable from
+  the screen's own dev toggle (§20).
 
 ### Button placement rule (locked, app-wide)
-§8.4: if a base-EAM link button errors with "Record must be selected before
-performing this action" it is **row-scoped** → candidate for an **Action
-Row** (§17.4/§18.3). Every other button — the ones that 9/10 times open a
-popup — is a **header action** and belongs in the **vertical ellipsis at the
-top of the screen, even when it sits on a tab**. Being on a tab does not make
-a button a tab action. Plus stays Insert Mode only, never a shortcut menu for
-header actions.
+§8.4 owns it. The test: if a base-EAM link button errors with "Record must be
+selected before performing this action" it is **row-scoped** → an **Action
+Row** (§17.4/§18.3). Everything else is a **header action** in the
+top-of-screen ellipsis, **even when it sits on a tab** — being on a tab does
+not make a button a tab action. Plus is Insert Mode only.
 
 ### Home
 `eam-home-screen-prototype-v1.html`. Introduced the app-level nav shell
-(`.nav-avatar`, `.bottom-nav`, profile dropdown), now promoted to the
-shared files (§4.2/§4.3). Create bar opens a new entity-choice menu first
-(`openCreateEntityMenu()`, §9.4.1, changed 2026-07-29 — was straight into
-Insert Mode with an editable entity pill defaulting to Work Order);
-picking WO or Equipment opens the one shared Insert Mode
-(`openCreateSheet(code)`, §9.6) locked to that entity, same as WO List/
-Equipment List's own Create. Home is a **deliberate, named exception** to the app's
-otherwise-monochrome palette rule (§23) — tile/favorite icons keep real
-color. Tile/chip **content** (which dataspies, which tiles, counts) is
-still an open, unlocked design riff; only the layout mechanics
-(scroll-collapse, tap-to-scroll-top, horizontally-scrolling sections) are
-locked. The Favorites section (label + row) hides entirely when there are
-zero favorites, reappearing once one exists (§24.2).
+(`.nav-avatar`, `.bottom-nav`, profile dropdown), since promoted to the shared
+files (§4.2/§4.3). Create opens an entity-choice menu
+(`openCreateEntityMenu()`, §9.4.1) and then the shared Insert Mode locked to
+that entity. **A deliberate, named exception to the monochrome palette rule
+(§23)** — tile/favorite icons keep real colour. **Tile/chip *content* (which
+dataspies, which tiles, counts) is still an unlocked design riff**; only the
+layout mechanics are locked.
 
 ### Comments & Documents (locked 2026-08-11, app-wide)
-§7.2. **Top 3 inline on the Record View + a `View more` footer** that opens the
-matching full tab, everything newest-first. Resolves the old "which record
-types get a tab vs. inline" question — it's **both**, for every record type
-with these sections. WO Record View lost its old "render every comment inline"
-exception. Destinations: Equipment RV uses its existing Comments/Documents
-tabs; **WO uses `eam-wo-reference-tab-prototype-v1.html`** — one child-tab
-screen carrying *both* tabs (copied from the WO Equipment tab, which is still
-the §8 child-tab template). The step rail's "More" group now navigates there
-instead of scrolling to the inline section.
+§7.2 owns the rules: top 3 inline on the Record View plus a `View more` footer
+to the matching full tab, newest-first, for every record type with these
+sections. Destinations: Equipment RV's own tabs; WO uses
+`eam-wo-reference-tab-prototype-v1.html` — one screen carrying both tabs
+(**the filename is stale**, §20). Two implementation traps:
 - **The View more row is emitted by the shared excerpt renderers**, never
   appended by a screen — appending died on any re-render, and adding a comment
   triggers one. Tabbed screen → set `COMMENTS_TAB_KEY` (uses `goToTab()`);
-  untabbed → set `COMMENTS_VIEW_MORE_ONCLICK`/`DOCUMENTS_VIEW_MORE_ONCLICK`.
-- **Comments** are chat-style cards, own comments tinted, action ellipsis
-  pinned top-right of the card. Actions unchanged: Edit+Delete on your own,
-  Copy on everyone's.
-- **Documents** carry `Source:` and group by the base-EAM hierarchy (WO /
-  Equipment / Project / Department / Parent WO / Location / PM Schedule). **A
-  level with no documents renders no group at all** — no "No Document"
-  placeholder, deliberately unlike the base screen.
-- **The preview slot is a fixed 38px box that degrades to a file-type badge,
-  and its size must never depend on whether an image loaded.** Thumbnails
-  can't be load-bearing: S3 generates none for `.sql`/`.dwg`/most CAD-office
-  types, previews are unavailable offline (the normal state), and presigned
-  URLs expire so offline caching must key on a document id, not the URL.
-- **Comment cards carry a 26px initials avatar** — confirmed 2026-08-11,
-  superseding §7.2's earlier "no avatar" call (relocated to §21 with its revert
-  recipe). That call's stated reason was that an avatar would compete with the
-  ellipsis, which stopped being true once the ellipsis moved to the card corner.
+  untabbed → `COMMENTS_VIEW_MORE_ONCLICK`/`DOCUMENTS_VIEW_MORE_ONCLICK`.
+- **The document preview slot is a fixed 38px box that degrades to a file-type
+  badge, and its size must never depend on whether an image loaded.**
+  Thumbnails cannot be load-bearing: S3 generates none for `.sql`/`.dwg`/most
+  CAD-office types, previews are unavailable offline (the normal state), and
+  presigned URLs expire — so offline caching keys on a document id, never a URL.
 
 ### WO List / WO Search
-`eam-wo-list-prototype-v5_1.html` — **treat this file as the template for
-any top-level record-list screen**; copy its dataspy-bar/card-list/nav
-pattern rather than designing a second version. Implements the List
-Search Screen standard (§8.3): card = up to 6 fields from the dataspy's own
-column order (pill headline / muted subline / up to 3 attribute rows,
-Organization as a corner badge); List mode shows every available field
-(tiered online/offline, §6.13); dataspy bar has a favorite star. Type
-shows a small solid colour dot ahead of its plain-text value (WO Type
-Colour + Icon Badge, §23.3 — supersedes the earlier "plain monochrome
-text" call); Status uses the shared green/red/outline tier vocabulary. **All 6 filter
-chips and Sort are real** as of 2026-08-11 (§8.3): code-list chips
-(Status/Type/Organization) use the per-screen multi-select sheet, and the
-other three now use shared, **self-injecting** sheets —
-`openTextFilter()` for Description/WO number, `openDateRangeFilter()` for
-Due date, `openSortSheet()` for Sort. An active text/range chip shows its own
-value, not a `.chip-count`. Create (`+`) opens the shared Insert Mode locked
-to Work Order.
+`eam-wo-list-prototype-v5_1.html` — **the template for any top-level
+record-list screen**; copy its dataspy-bar/card-list/nav pattern rather than
+designing a second version. Implements the §8.3 List Search Screen standard.
+All 6 filter chips and Sort are real: the code-list chips use the per-screen
+multi-select sheet, while Description/WO number, Due date and Sort use the
+shared **self-injecting** sheets `openTextFilter()` / `openDateRangeFilter()` /
+`openSortSheet()`. Create (`+`) opens shared Insert Mode locked to Work Order.
+**A same-named copy also sits in `old versions/`**, so doc references to this
+filename are ambiguous (§20).
 
 ### Equipment Record View / Equipment List
-Equipment Record View (`eam-equipment-record-view-prototype-v1.html`) is
-the canonical full-record-view reference (§5.3) — copy its header/section
-pattern for any new record view. Custom Fields (admin-defined fields per
-record Class+Org, §22) are built for both WO and Equipment Record View,
-sourced from `data/custom_field_defs.js`.
-**Equipment photo is built here now** (§7.5, option A2, 2026-08-11): a 74px
-slot (`.rec-id-split` + `.rec-photo-slot`, `renderRecordPhotoMount()`) left of
-code/description, stretching down beside the status row and **collapsing away
-with status on scroll** — status and the Org pill already vanish together, so
-the photo goes with them. No photo set → camera glyph on a neutral fill, which
-also closes the "what does it show when empty" half of that item. Tapping
-routes into the same shared `openEquipPhotoTap()` flow as WO RV's own 44px
-badge, so there's one photo mechanic, not two. Rejected alternatives (persist-
-shrunk, 44px identity tile, body container, cover strip) are drawn in
-`mockups/equipment-photo-header-placement-options.html`, which has real scroll
-in every frame.
+`eam-equipment-record-view-prototype-v1.html` is the **canonical
+full-record-view reference (§5.3)** — copy its header/section pattern for any
+new record view. Custom Fields (§22) are built here and on WO RV, from
+`data/custom_field_defs.js`. The equipment photo lives in the header (§7.5): a
+74px slot (`.rec-id-split`/`.rec-photo-slot`, `renderRecordPhotoMount()`) that
+collapses with status on scroll, routing into the same shared
+`openEquipPhotoTap()` flow as WO RV's 44px badge — **one photo mechanic, not
+two.**
 
-Equipment List (`eam-equipment-list-prototype-v1.html`) has a real dataspy
-bar/favorites, a Search screen, and — as of 2026-08-11 — **all 6 filter
-chips plus Sort real**: Organization/Class/Assigned To/**Category** as
-multi-select sheets (Category was a stub purely by omission), Description/
-Asset ID via the shared `openTextFilter()`, and Sort via `openSortSheet()`.
-Its chip sheet also finally got the §6.11-locked in-sheet search box WO
-List's always had. Has its own Create entry point
-(`openCreateSheet('EQUIP')`). **Per-record routing exists now**
-(2026-08-11): a tapped card hands its own row over (`eamOpenEquipment`) and
-Equipment Record View opens as that asset. It's an **identity overlay**, not
-a real per-asset record — asset/description/organization/class/category/
-assigned-to are the tapped row's, the nameplate fields specific to 00067333
-(alias/serial/model/manufacturer/value) are cleared, and everything deeper
-(Comments, Documents, all 7 child tabs) is still the demo record's. Enough
-that a card opens as the asset you tapped; not per-record data. §20.
+`eam-equipment-list-prototype-v1.html` has a real dataspy bar/favorites, a
+Search screen, all 6 filter chips + Sort, and its own Create
+(`openCreateSheet('EQUIP')`). **Per-record routing is an identity overlay, not
+a real record:** the tapped row's identity fields carry over
+(`eamOpenEquipment`), 00067333's nameplate fields are cleared, and everything
+deeper (Comments, Documents, all 7 child tabs) is still the demo record's.
+Only 00067333 and BLDG-A exist in `data/equipment.js`. §20.
 
 ### Insert Mode
 One shared implementation (§9.6/§9.7): `openCreateSheet(lockEntity)` in
-`eam-shared.js` is the single entry point every screen's `+`/Create action
-calls — WO List (locked to WO), Equipment List (locked to Equipment), and
-now Home too (§9.4.1, changed 2026-07-29): tapping Home's Create icon
-opens a new entity-choice menu (`openCreateEntityMenu()`, own component,
-not the old editable pill) first, and whichever entity gets picked opens
-Insert Mode locked to it, same as the List screens. Description is required,
-full-width, and pinned first; the Equipment field reuses the same
-Equipment Lookup component as WO Record View; flat fields sit in a
-collapsible section matching Record View's own "details" section pattern.
-Type is a pill now, not a grid field (§9.4.2, changed 2026-07-29) —
-paired with Organization (`[Organization] [Type]`, no connector between
-them) in the pill row; the Screen/entity choice itself moved to a small
-protected badge in the sheet header (always locked now, every entry point
-commits to an entity before Insert Mode opens). Grid is just Description/
-Equipment(WO)/Status now, all full-width.
-**Renders the record's own screen design** (§9.8) — field set/placement/
-required-ness all come from `ENTITY_FIELD_META`/`ENTITY_FLAT_FIELDS`,
-standing in for a real Screen Designer layout, and now vary by **Type**
-too, not just entity (§9.4.2): each entity has a `default` flat-field
-variant (its own default Type) and one shared `alt` variant every other
-Type renders instead — obvious, cheap differences only (which fields
-appear + required-ness), not a bespoke layout per Type code. Insert Mode
-is also the **one documented exception** to the app-wide
-required-marker removal (§21/§23/§9.8) — the red left-bar and required-
-count badge still render, scoped to `#insertModeSheet`, since a blank
-form has nothing to Clear yet.
-**Created records persist now** (2026-08-11, §9.5): Save writes to a shared
-`eamCreatedRecords` store as well as the one-navigation `sessionStorage`
-hand-off, so WO List and Equipment List merge created records in at load
-(`mergeCreatedWos()`/`mergeCreatedEquipment()`) and re-opening one replays
-the hand-off it was born with (`openCreatedWo()`/`openCreatedEquip()`) rather
-than adding a second rendering path. Cleared by `resetDemoState()`. A created
-WO also stays visible in WO List's default dataspy regardless of its scope.
+`eam-shared.js` is the single entry point for every screen's `+`/Create — WO
+List, Equipment List and Home (§9.4.1). **Always locked to an entity before it
+opens**; the entity shows as a protected badge in the sheet header. Layout
+comes from `ENTITY_FIELD_META`/`ENTITY_FLAT_FIELDS`, standing in for a real
+Screen Designer layout, and varies by **Type** as well as entity (§9.4.2) — a
+`default` variant plus one shared `alt`, cheap differences only, never a
+bespoke layout per Type code. **The one documented exception to the app-wide
+required-marker removal** (§21/§23/§9.8): the red left-bar and required-count
+badge still render, scoped to `#insertModeSheet`, since a blank form has
+nothing to Clear yet.
+**Created records persist** (§9.5): Save writes to a shared
+`eamCreatedRecords` store *and* the one-navigation `sessionStorage` hand-off,
+so both List screens merge them at load
+(`mergeCreatedWos()`/`mergeCreatedEquipment()`) and re-opening one replays that
+hand-off (`openCreatedWo()`/`openCreatedEquip()`) rather than adding a second
+rendering path. Cleared by `resetDemoState()`.
 
 ### Sync system
 Nav-bar sync control (`renderSyncControl()`, §4.4.1) shows 4 states
@@ -534,57 +476,31 @@ anywhere in this prototype** (see `project_comment_tagging_circleback`
 memory).
 
 ### Screen Designer (Base Screens track)
-`prototypes/standalone/base screens/eam-screen-designer-v1.html` — a
-separate, self-contained visual system (not `eam-shared.css`/`.js`),
-modeling the real base-EAM admin surface per §10–§13: entry modal (Base
-Screen — **clone-aware since 2026-08-24**: family pills plus a function select
-over `BASE_FUNCTIONS`, so all four `WSJOBS` clones are designable, with
-`state.baseScreen` still the family and `state.baseFunction` the `FUN_CODE`
-per §26.2 — WO Type, Copy-from-Group, dual-listbox Save-to-Group), a
-mobile-emulator canvas, a persistent left pane merging tab navigation with
-step management, right-click field editing (Required/Protected/Optional/
-Hidden/Not Available), drag-to-reorder, and a Field Grid Section
-(List↔Grid toggle, drag-resizable cells — §12/§13 has no doc section for
-this yet, flag if it becomes real). Separate track from the mobile app
-screens; feeds the compiled-app/`designerMode` plan referenced under
-"START HERE." **It is the only workflow-authoring surface** — a separate
-`eam-workflow-designer-v1_1.html` existed undocumented and was **retired
-2026-08-25** (§21) for contradicting §10's one-surface rule; don't rebuild
-it. Two live notes from that retirement: it modelled §13.1–§13.4 features
-that are still deliberately deferred (its existence was never a sign that
-question was settled), and it surfaced **workflow config revisioning** — an
-admin editing a `(function, WO Type)` config while technicians are mid-flow
-against the old shape — now tracked as open in §20.
+`prototypes/standalone/base screens/eam-screen-designer-v1.html` — a separate,
+self-contained visual system (loads none of the shared files), modeling the
+base-EAM admin surface per §10–§13. Clone-aware since 2026-08-24: family pills
+plus a function select over `BASE_FUNCTIONS`, with `state.baseScreen` the
+family and `state.baseFunction` the `FUN_CODE` (§26.2). Its Field Grid Section
+(List↔Grid toggle, drag-resizable cells) **has no doc section — flag it if it
+becomes real.** **It is the only workflow-authoring surface**; a separate
+`eam-workflow-designer-v1_1.html` was **retired 2026-08-25** (§21) for
+contradicting §10 — don't rebuild it.
 
-The base-screens track carries **two visual languages**, which is a known
-inconsistency, not a style choice: Screen Designer is on DM Sans/DM Mono with
-a teal-purple palette and loads none of the shared files, while
-`eam-base-desktop-ui-prototype-v1.html` and User Group Setup are on
-Inter/JetBrains Mono in the app's own language. User Group Setup's **Edit
-layout** deep link crosses that seam mid-flow. Restyling Screen Designer onto
-the Base/Desktop UI components is the fix; nobody has picked it up.
+`…/eam-user-group-setup-prototype-v1.html` — User Group Setup (§26). A
+**binding** screen, not a config form: on its Screen Design tab the only
+editable thing is **assignment** — never steps, gating or layout — and
+**assign is not copy** (§26.5.1). No insert, so **no Create button at all**
+rather than a disabled one. Its **Edit layout** deep link is a real handoff:
+it writes `sessionStorage.eamDesignerEntry`, which Screen Designer consumes to
+open pre-filled; anything that can't be honoured is reported, never
+substituted.
 
-`prototypes/standalone/base screens/eam-user-group-setup-prototype-v1.html`
-— the User Group Setup screen (§26, built 2026-08-24). A **binding**
-screen, not a config form: protected group identity + child tabs, where
-Bottom Nav and Sync are real assignment grids and Screen Design / Home
-summarise and deep-link out. No insert (groups come from Security ▸ User
-Groups), so it has **no Create button at all** rather than a disabled one.
-Also self-contained; reuses `eam-base-desktop-ui-prototype-v1.html`'s
-components (rail, crumb, hero, tab capsule, `.fd` fields, `.mg` grid).
-On the Screen Design tab the only editable thing is
-**assignment** — a workflow configuration is an artifact keyed `(function,
-WO Type)`, authored in Screen Designer and saved to N groups, and this
-screen edits that membership from the group's side. Never steps, gating or
-layout. **Assign is not Copy** (§26.5.1). It also runs the cross-domain
-consistency checks no designer can — nav slot vs. function permissions,
-nav slot vs. assigned configs — which is its strongest justification. Its
-**Edit layout** deep link is a real handoff: it writes
-`sessionStorage.eamDesignerEntry` and Screen Designer consumes it, opening
-pre-filled (function by code-or-alias, WO Type name mapped to the designer's
-codes, group injected into Save-to-Group). Both files now share **one**
-user-group list — they used to describe different worlds. Anything that
-can't be honoured is reported, never substituted. §26.5.1.
+**A known inconsistency, not a style choice:** this track carries **two visual
+languages** — Screen Designer on DM Sans/DM Mono with a teal-purple palette,
+while `eam-base-desktop-ui-prototype-v1.html` and User Group Setup use
+Inter/JetBrains Mono in the app's own language. The Edit-layout deep link
+crosses that seam mid-flow. Restyling Screen Designer onto the Base/Desktop UI
+components is the fix; nobody has picked it up.
 
 ### data/ layer
 Real reference data lives in `docs/Data_refs/` (Employees/Crews/Stores/
@@ -598,67 +514,37 @@ parts.js`/`parts_stock.js`/`wo_parts_lines.js`. **Don't assume a data
 file's existence means a screen uses it** — check per-screen.
 
 ### Palette & navigation (locked, app-wide)
-Color is 2 core instruments now, not 3 — status and sync (§23); the 3rd
-("required") was a static red left-bar + count badge, **removed
-2026-07-28** (direct instruction) since every required field's own edit
-popup already blocks Clear, so the marker warned about a state that
-can't happen (named for revert in §21, "Required Field Marker"). Plus 3
-narrowly-scoped additions, all bold/saturated ("Primary") as of
-2026-07-28: editable-pill fill (§23.2), WO Type's own colour + icon
-badge (§23.3 — one curated colour per Type, reused identically across
-the Type field, WO List row, and step rail; see the WO workflow section
-above for the rail's own split treatment), and Priority High's own
-colour (§23.4). Home is an explicit, named exception to all of this, see
-above. Purple is retired as a UI-state accent; mono is identifiers-only
-and never tinted; icons/chips are outlined, not filled, except Priority
-Critical/High and WO Type's badge. **Counter badges** (§23.5, locked
-2026-08-10) all take the Organization pill's recipe — transparent fill,
-outlined, mono, **black/white text, never gray** — the sole exception being
-the red required-count badge; `.chip-count` is excluded (it's a filled
-active-filter marker, not a counter). **Green is reused, never re-invented**
-— step-rail done, the running timer, and (2026-08-11) the **confirm ✓** on
-keyboard-editing sheets all share the existing green; that ✓ is explicitly
-**not** a new §23 instrument or exception, and its disabled state is gray, not
-a faded green. Back buttons navigate for real on
-every screen (§24); every screen's sync icon opens the shared sync
-panel. One open item: "Not Free Form" (a configured-but-ungated workflow)
-still has no visual signal of its own in the step/tab rail (a prior yellow
-wash was removed and never replaced) — flagged in §3.2.2/§15.4, not
-resolved. This is separate from the rail's WO Type signal, which
-distinguishes a different axis (configured workflow vs. the §11 fallback),
-not Free Form vs. Not Free Form within a configured one.
+§23 owns the instrument set and its rationale — **don't re-derive it here.**
+The shape: 2 core instruments (status, sync) plus 3 narrowly-scoped additions —
+editable-pill fill (§23.2), WO Type colour + icon badge (§23.3, reused
+identically across the Type field, WO List row and step rail) and Priority
+High (§23.4). Purple is retired as a UI-state accent; mono is identifiers-only
+and never tinted; icons/chips are outlined except Priority Critical/High and WO
+Type's badge. Counter badges take the Organization pill's recipe (§23.5).
+**Green is reused, never re-invented.** Home is the one named exception
+(above). Back buttons navigate for real on every screen (§24); every sync icon
+opens the shared panel. **One open item:** "Not Free Form" (configured but
+ungated) still has no rail signal of its own (§3.2.2/§15.4) — a different axis
+from the rail's WO Type cue, which distinguishes configured vs. the §11
+fallback.
 
 ### Workflow gating is FORWARD-ONLY (locked 2026-08-11, §14.10)
 A technician can **always** navigate back to an already-completed step to
-update or change it. **"Not Free Form" dictates the order of moving forward,
-not backward.** This reversed the rail's prior behaviour: a gated workflow used
-to answer a tap on a ✓ step with "Already completed — steps stay in a fixed
-order," and a Free Form *configured* workflow (PM) had no handler at all (a
-silent dead end). Both navigate now. The reasoning: a mistyped reading or
-wrongly-booked hours has to be correctable, or the only options left are
-abandoning the WO or leaving bad data in the system of record — which no
-workflow config intends. **Forward gating is untouched** (a later step stays
-locked and still explains itself). Completed rows carry a trailing chevron
-(`.step-map-back`) because `cursor:pointer` says nothing on a touch device, and
-an undiscoverable corrective action is nearly as useless as none.
-Note §14.7.1's back-button rule is unaffected but its *stated justification* was
-corrected in the same pass — it used to cite the rail refusing backward jumps.
+correct it — **"Not Free Form" dictates the order of moving forward, not
+backward.** **Forward gating is untouched**: a later step stays locked and
+still explains itself. Completed rows carry a trailing chevron
+(`.step-map-back`) because `cursor:pointer` says nothing on a touch device.
+Rationale, and the behaviour this reversed, are in §14.10.
 
 ### Dev/demo tooling
-No design-doc entries — same category as any other dev convenience. Every
-screen's `.proto-theme-bar` carries a theme toggle, an online/offline
-toggle, and a "Restart Demo" button (navigates to login; the actual reset —
-`resetDemoState()` in `eam-shared.js`, clears all demo `localStorage` keys —
-runs on Log In). Cross-screen navigation reaches all 3 demo WO identities
-for real, so the old per-screen "cycle demo WO" pill was removed. The
-online/offline toggle is now a 3-way cycle (Offline → Online → **Synced**
-→ Offline, `toggleDemoOnline()`) — Synced forces the nav-bar sync control
-green regardless of `SYNC_DEMO_ITEMS`' own seeded error rows, so a live
-demo doesn't show "Error" the whole time without manually clearing them
-first. **Defaults to Synced** (2026-07-28) — a fresh load/Reset no longer
-starts on Offline-with-2-errors; flip it by hand to see the real outbox
-state. Present on every main screen including Home (added 2026-07-28 —
-was the one screen missing it).
+No design-doc entries — dev convenience, same as any other. Every screen's
+`.proto-theme-bar` carries a theme toggle, an online/offline toggle and
+"Restart Demo" (which navigates to login; the actual reset, `resetDemoState()`
+in `eam-shared.js`, clears all demo `localStorage` keys and runs on Log In).
+The online/offline toggle is a 3-way cycle (Offline → Online → **Synced**,
+`toggleDemoOnline()`) — Synced forces the nav-bar sync control green regardless
+of `SYNC_DEMO_ITEMS`' own seeded error rows, so a live demo doesn't sit on
+"Error". **Defaults to Synced**; flip it by hand to see the real outbox state.
 
 ## Open / deferred work
 - **Insert Mode Type pill** — noted 2026-07-28, not scoped or built yet.

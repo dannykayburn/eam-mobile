@@ -1,0 +1,22 @@
+# PowerPoint files stay out of git.
+#
+# This repo is deliberately all-text — HTML, CSS, JS, markdown — so everything in
+# it diffs. A .pptx is a zip of XML: git can't diff it, and every regeneration
+# adds a fresh ~1 MB blob to history permanently.
+#
+# What this currently keeps out:
+#   docs/Demo PPT Template - Octave.pptx        the brand template (belongs in
+#                                               Octave's own store, not here)
+#   docs/EAM-Dev-Leadership-Deck-2026-08-25.pptx  a meeting artifact, generated
+#                                               from EAM-Dev-Leadership-Review-2026-08-25.md
+#
+# The deck is reproducible from that review doc, which IS tracked — so the
+# source of truth is in git even though the binary isn't. If a .pptx ever needs
+# committing on purpose, use `git add -f`.
+*.pptx
+*.potx
+*.ppt
+
+# node_modules should never appear here (no build step by design), but a stray
+# `npm install` while generating a deck would otherwise leave one behind.
+node_modules/
