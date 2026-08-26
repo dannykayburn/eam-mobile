@@ -187,7 +187,7 @@ the rule — folding the fetch into the wait that already exists does not.
 
 ## 2.6 Related architecture extensions
 
-**Tiered record model / offline search (concept stage, pending review).** Decouples "synced" from "visible" via four record tiers (work set / search index / demand cache / server search). The decisions that affect UX are captured in Section 6.13. Full summary: EAM-Mobile-Offline-Search-Architecture-Summary.md
+**Tiered record model / offline search.** Decouples "synced" from "visible" via four record tiers (work set / search index / demand cache / server search). **§6.13 is the only home for these rules** — its decision table, the row-lifecycle state machine and the projection rules all live there. The former `EAM-Mobile-Offline-Search-Architecture-Summary.md` was retired 2026-08-25 (§21) after drifting from this doc; don't reinstate a parallel summary.
 
 **Tier 0 sits in front of all four and is not one of them** (added 2026-08-25, §2.3). Bootstrap configuration — identity, nav/function resolution, page layout + workflow tables + custom-field definitions, status authorizations, dataspy definitions, and the code domains layout references — is fetched inside the login round-trip, persisted, versioned, and exempt from eviction. The four record tiers all assume it is already there: Tier 1 cannot *render* a hydrated WO without a layout, and Tier 2's stub rows cannot show descriptions without the code domains. Keep the numbering distinct so nobody plans configuration on record semantics.
 
@@ -1021,8 +1021,12 @@ Added: July 2026. Source: offline search architecture sessions (tiered record mo
 | **"Synced" ≠ "visible"** | The old assumption that a record must be fully synced to be searchable is false. Decoupling the two is what makes offline search of thousands of 150-field WOs tractable. |
 | **Four-tier record model (Work set / Search index / Demand cache / Server search)** | Matches the offline guarantee to actual need — full data for active work, a lightweight index for search, on-demand hydration for occasional access, online escalation for full-fidelity search. |
 | **Tier 2 stores exactly 6 projected fields per row, via FTS5** | Redefined 2026-07-20 from an approximate "~8–12" to exactly 6 — the same 6 fields §8.3's card/filter/sort standard surfaces, so the UI standard and the sync payload are driven by one number, not two that can drift. Tens of thousands of rows at well under 300 bytes each is trivial for SQLite. Keeps offline search instant without needing full records. |
+| **The Tier 2 projection is *declared*, never derived from the dataspies** | Locked 2026-08-25 (revised same day — see §21 for the union-default version this replaced). **Dataspies are unbounded:** admin-published *plus* user-authored, on any screen in the system carrying records, and users normally have permission to create them. So the indexed column set cannot be computed from them — any user saving a query would reshape every device's index. The projection is therefore a **bounded set of columns declared per field by an `Indexed` flag in Screen Designer**, sized by the admin (order ~10–20 columns), independent of how many dataspies exist. This is a *primary* source, not an override on a computed default. §8.3's card rule is untouched — the card still draws its 6 from the **active** dataspy's own column order — but the honest consequence is that **a dataspy referencing a non-indexed column cannot be served offline** (next row). Authoring the set is a real admin responsibility, not a defaulted convenience, and that is the cost of the unbounded case. |
+| **A dataspy is a saved filter over the index, classified — not a shipped membership list** | Locked 2026-08-25. Follows from the row above plus the same unbounded-count fact. At sync time the server **classifies** each of the user's visible dataspies rather than evaluating it: a dataspy whose predicates *and* display columns fall entirely inside the declared `Indexed` set is **offline-capable** and runs as a local query over `wo_index`; any other is **online-only**, served by the Tier 4 escalation. Classification is a metadata comparison, not SQL execution, so it stays cheap at any dataspy count — which is what makes the unbounded case tractable. **Nothing per-dataspy ships**, so switching between offline-capable dataspies remains zero-network and instant, and an unbounded dataspy count costs no payload. **This is not a new device capability:** §8.3's filter chips and sort *already* evaluate predicates locally over these same columns, so a dataspy is a saved set of exactly what the UI already does. What the device does need is each dataspy's **criteria in a normalised form** (not raw SQL) — see §20. An online-only dataspy must **say so** rather than silently under-returning. |
+| **Index scope is its own configuration — the index is not "All Work Orders"** | Locked 2026-08-25, closing a hole nobody had noticed: the "Sync Config dataspy repurposed" row below explicitly scopes **Tier 1** and disclaims the whole local DB, so **nothing defined what populated Tier 2 at all**. It is *not* the broadest dataspy: "All Work Orders" in a mature install means every WO ever raised, mostly closed history, which at ~450 bytes/row runs to hundreds of MB and breaks device storage. Two bounds, one of which was already locked and unconnected: **(a)** the row-lifecycle state machine above already deletes a stub when index sync reports the WO closed — so the index is **open work orders by construction**; and **(b)** the remaining extent (site, org, age) is a **configured index scope**, authored server-side, exactly parallel to how Sync Config scopes Tier 1. Deliberately **not** derived from the display dataspies: if it were, an admin adding a dataspy would silently change every device's storage footprint, invisibly at authoring time. **Invariant:** every dataspy must be a subset of the index scope, or the UI must say so — "showing 412 of ~9,000, connect for the rest", never a silent truncation. |
+| **The projection is authored in Screen Designer, not in a new mobile-dataspy admin screen** | Locked 2026-08-25. The decisive reason is *delivery*, not authoring taste: page layout is already Tier 0's `0c` (§2.3) — fetched inside the login round-trip, persisted, versioned per domain, exempt from eviction — so a per-field `Indexed` flag authored alongside layout rides that vehicle for free. A separate mobile-dataspy artifact would need its own Tier 0 slot, its own version stamp, and its own line in the bootstrap contract §20 already lists as undefined. It also fits the existing interaction exactly — Screen Designer already sets per-field state (Required/Protected/Optional/Hidden/Not Available) by right-click, so `Indexed` is the same gesture on the same surface rather than a new paradigm — and it matches §26's split of **definition** (Screen Designer) from **assignment** (User Group Setup). |
 | **Real scaling limit = payload size + sync volume, not row count** | Both are already handled by the existing delta-pull cursor. Solves the actual constraint instead of an imagined one. |
-| **Dataspy membership pre-evaluated server-side at sync time** | Server computes WO-ID membership for saved dataspies and ships it with the index, rather than shipping dataspy logic for local re-evaluation. Makes offline dataspy switching instant with no local SQL engine needed. |
+| **Dataspy membership pre-evaluated server-side at sync time** — **narrowed 2026-08-25, no longer the general rule** | Original rationale: the server computes WO-ID membership for saved dataspies and ships it with the index, rather than shipping dataspy logic for local re-evaluation; offline switching becomes instant with no local SQL engine needed. **What narrowed it:** dataspies are unbounded and user-authored, so "pre-evaluate each saved dataspy per user per sync" is unbounded server work and unbounded payload. Membership shipping is now reserved for the cases where the set is **small and server-authoritative** — Tier 1 / the punch list (§2.6), where `pinned = 1` genuinely has to come from the server. General dataspy handling is the **classify-and-evaluate-locally** rule above. Note punch-list **Option A leans on the original, broader reading**, so this narrowing is a live input to that still-open choice, not just a search concern. |
 | **Sync Config dataspy repurposed** | Meaning shifts from "what's on the device" to "what's guaranteed executable offline" — i.e., it now scopes Tier 1, not the whole local DB. |
 | **Tier 4 reuses the existing dataspy SQL search API** | No new server search engine. Online-only escalation reuses what already exists. |
 | **Online search results are written into the local DB as ephemeral rows** | Preserves "UI reads only from local DB" with zero special-casing — the grid always re-queries locally, network never feeds the UI directly. |
@@ -1035,7 +1039,43 @@ Added: July 2026. Source: offline search architecture sessions (tiered record mo
 | **Row state surfaced via the existing 4-state sync control language** | No new visual system — consistency with the rest of the app's sync vocabulary. |
 | **Index freshness caption shown when offline (e.g. "results as of 2:14 PM")** | Tier 2 stubs are only as current as the last index sync — the technician needs to know that. |
 
-Still open, not decided: punch-list mechanism (Option A static sync dataspy vs. Option B PIN projection — see §2.6); FTS5 availability in the final DB engine choice; dirty as counter vs. boolean; confirmation that the existing dataspy SQL API can serve Tier 4 as-is.
+### Row lifecycle — state machine
+
+Migrated here 2026-08-25 from the retired offline-search summary doc (§21),
+which was its only home. Row identity (`wo_id` and its FTS entry) is stable
+across every transition below — that stability is what lets mixed-origin
+rows coexist in one grid with no special-casing.
+
+```
+ephemeral --(index sync)--------------> stub
+stub      --(demand tap / sync)-------> hydrated
+hydrated  --(LRU, only if !pinned && !dirty)--> stub
+ephemeral --(swept after ~24h)--------> [deleted]
+stub      --(index sync reports WO closed)---> [deleted]
+```
+
+Two things this makes explicit that the table above only implies: an
+**ephemeral** row (a Tier-4 server-search result written locally so the UI
+never reads from the network) is deleted outright rather than demoted, and
+LRU demotes `hydrated → stub` — it **never deletes a record**. So an
+eviction can lose *completeness*, never a row's existence or its identity.
+
+**Rejected alternative — a static, non-configurable card projection, with List
+mode online-only.** Considered 2026-08-25, rejected. Its List half needed no
+decision at all: §8.3 already locks List mode as tier-dependent — degrading
+offline to the Tier 2 projection, with true full-column completeness online-only
+via Tier 4. Its card half fails on two counts. **First, the projection drives
+more than the card.** §21 retired *both* the bespoke WO-only card anatomy *and*
+the hardcoded `Type · Status · Department · Priority` filter-chip row, in favour
+of "filter chips (and sort options) are dataspy-driven: the same 6 fields the
+card surfaces" — so a static projection resurrects the second of those almost
+verbatim. **Second, it fights the schema's own premise.** `full_payload` is a
+JSON blob precisely because every customer's WO record differs (UDFs, custom
+fields, config drift); a fixed projection means a customer whose triage depends
+on a UDF can never surface it on a card, a filter chip or a sort. Don't
+re-propose this without amending §21's two rows first.
+
+Still open, not decided: punch-list mechanism (Option A static sync dataspy vs. Option B PIN projection — see §2.6, and note the membership narrowing above is a live input to it); **the authoring grain for the `Indexed` flag** (§20 — layout is keyed per WO Type, the index is not); **the normalised form a dataspy's criteria take on the device**, which is what makes local classification and evaluation possible at all (§20); **the configured index scope's own shape** — which axes an admin can bound it on, and where it is authored (§20); FTS5 availability in the final DB engine choice; dirty as counter vs. boolean; confirmation that the existing dataspy SQL API can serve Tier 4 as-is.
 
 # 7. Standard Model — Record View
 
@@ -1637,6 +1677,19 @@ configured column order, first 6, as-is — not a separate curated
 per-module list. Switching dataspy within the same screen/tab can change
 which fields appear, since a different dataspy can expose a different
 column set.
+
+**Offline, this rule has a precondition** (§6.13, 2026-08-25). The Tier 2 index
+holds a **declared** column set — an `Indexed` flag per field in Screen
+Designer, not a set computed from the dataspies, because dataspies are unbounded
+and user-authored. So this rule holds in full for any dataspy whose columns and
+predicates sit inside that declared set: the card draws its 6 from the **active**
+dataspy's own column order, and switching is a zero-network local query. A
+dataspy that references a **non-indexed** column is **online-only** — served by
+the Tier 4 escalation — and must say so rather than silently under-returning.
+Note the same 6 also drive the filter chips and sort options (§21), which is why
+a static, non-configurable *card* projection was separately considered and
+rejected; declaring the *index* is a different question from hardcoding the
+*card*.
 
 **The Organization carve-out.** If Organization is present anywhere
 within the dataspy's first 6 columns, it's pulled out of the normal 1–5
@@ -2577,6 +2630,11 @@ tiers, narrowest to broadest:
      (Start/End Time, the only mode built in any prototype, vs. Direct
      Hours Entry).
 
+   **A tab here is not necessarily a delivered tab.** A User Defined Screen
+   registered as a tab of the function takes a tier-2 row like any other,
+   which is what lets a customer-authored screen be a gated, required
+   numbered step (§27.1).
+
    **One row per tab is the point, not an implementation detail.** It makes
    "a tab is either a step or a More entry, never both" a key constraint
    rather than a validation rule — which is what stops forward gating from
@@ -3203,7 +3261,9 @@ a configured workflow's on the same function.
 - **Candidates are the function's own tabs, filtered to what the target
   user group is permitted** (`R5FUNCTIONTABS`/`R5TABPERMISSIONS`). This is
   the same check §26.7's workflow-eligibility validation already needs —
-  one check, not two.
+  one check, not two. **A User Defined Screen registered as a tab of the
+  function enters this candidate set by construction** — which is why UDS
+  needs no new placement model and can be a numbered step (§27.1).
 - **Authored in Screen Designer**, per §10's one-surface rule. **User
   Group Setup does not author it** — that screen assigns a `(function, WO
   Type)` configuration to groups and never edits steps, gating or layout
@@ -4994,6 +5054,16 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **Write path must be gated on status authorizations, and nothing enforces that yet** | Opened 2026-08-25 (§2.3 consequence 3). If Tier 0's `0d` is absent or stale the app must **not** accept writes — permitting them queues outbox entries the server will reject, and under §2.4's optimistic UI the technician sees success and walks away, with the failure surfacing hours later in §4.4's trouble-field banner. That is exactly the "did my transaction actually land?" trust failure this app exists to fix, so a systematically wrong authorization set is worse than a blocked one. Owed: where the gate lives (a `resolveFieldState`-style seam would be the natural home — see the conditional-field-rules row), what the UI says while gated, and whether a stale-but-present authorization set is treated as usable. No prototype equivalent exists; there is no write path to gate yet. |
 | **Workflow config revisioning — a live config edited mid-execution** | Opened 2026-08-25, surfaced by retiring the Workflow Designer prototype (§21), which is the only artifact that had modelled it (Draft / Current Rev / Create Rev). Nothing in §11–§13 or §26 says what happens to a technician who is part-way through a gated workflow when an admin changes that `(function, WO Type)` configuration — steps reordered, a step removed, a field's required-ness flipped. The offline model makes it sharper than it would be online: the device holds a hydrated work set and a configuration that arrived at sync time, so "the config changed" and "the technician is mid-WO" can be separated by hours or days, and the WO's own step state was recorded against the *old* shape. **Recommendation added 2026-08-25 (§2.3 consequence 4): pin the resolved config version to the WO at start-of-work**, so a WO in flight finishes on the shape it started with and the new configuration applies to the next one started. Cheapest of the three candidates and the only one needing no migration of already-recorded step state; the alternatives were versioning the config and migrating step state on delta pull, or forbidding destructive edits while WOs are in flight. Note this is the same problem as the Tier 0 config-delta case, approached from the authoring side rather than the sync side — resolve them together, once. Still needs a call before workflow config is editable in production, not after. |
 | **Home layout has no authoring surface** | §26.5 gives Home layout a User Group Setup tab that deep-links into a Home layout designer that does not exist. §9.4's open "base-admin configurability" item is the same gap seen from the other side — one is the entry point, the other is the destination. Resolve together. |
+| **The `Indexed` flag's authoring grain — layout is keyed per WO Type, the index is not** | Opened 2026-08-25 with §6.13's union-projection decision. `R5PAGELAYOUT` resolves on `PLO_PAGENAME × PLO_USERGROUP × PLO_WOTYPE`, and Screen Designer's entry modal makes the designer commit to a WO Type before anything is editable — but `wo_index` is **one table across all WO Types**, so a per-Type index does not exist as a concept. The `Indexed` flag therefore has to be authored at a **Type-independent grain** (function / `PLO_PAGENAME`) on a surface that is per-Type throughout. Two candidate shapes: Screen Designer grows a Type-independent scope for this one flag, or the projection is declared once per function outside the per-Type layout pass. **Equipment has the same problem and worse** — it resolves across four `PLO_PAGENAME` values (Location/Asset/Position/System, §26.8) that a designer edits separately, so its projection must span four page names, and its authoring surface does not exist at all yet (see the Equipment-track blocker row). Needs a call at the dev kickoff; this is a base-side schema/UI question, not a mobile one. |
+| **`Indexed` has no Screen Designer control yet** | Opened 2026-08-25. §6.13 locks the projection as Screen Designer-authored, but the prototype's right-click field menu offers only Required/Protected/Optional/Hidden/Not Available — there is no `Indexed` toggle, and no surface showing the resolved union or warning when the cap is hit. Same shape as the existing "Screen Designer has no Placement control" gap: a locked rule whose authoring control is unbuilt. |
+| **Dataspy criteria need a normalised on-device form** | Opened 2026-08-25 with §6.13's classify-and-evaluate-locally rule, and it is the load-bearing prerequisite for it. If the device evaluates a dataspy locally it needs that dataspy's predicates in a form it can execute — a normalised criteria structure (field / operator / value, AND/OR grouping), **not** raw dataspy SQL, which the device has no engine for and which can reference joins and server-side constructs that do not exist in `wo_index`. Owed: the normalised schema, which subset of dataspy predicate constructs is expressible in it, and the **server-side classifier** that decides offline-capable vs. online-only. Note the fallback is safe by design — anything inexpressible classifies as online-only rather than being approximated — so this bounds *how much* works offline, not whether the design is sound. Also unresolved: whether classification is re-run when a user edits a dataspy on desktop, and how the device learns a previously-offline dataspy became online-only. |
+| **The configured index scope has no defined shape** | Opened 2026-08-25 with §6.13's index-scope decision. The *principle* is settled (its own server-side configuration, parallel to Sync Config for Tier 1; open WOs only, by the lifecycle rule). The *shape* is not: which axes an admin may bound it on (site / organization / age / status beyond open-vs-closed), where it is authored, whether it is per user group or per user, and what the app does when a dataspy exceeds it — §6.13 sets the invariant ("showing 412 of ~9,000, connect for the rest", never silent truncation) but no screen implements it, and §6.13's row-state vocabulary describes rows, not result-set completeness. This is the concrete answer owed to "where does the base index come from," which the design could not answer before this date. |
+| **Per-dataspy membership shipping may not scale — and punch-list Option A leans on it** | Opened 2026-08-25. §6.13's membership row was narrowed to Tier 1 / the punch list because pre-evaluating every visible dataspy per user per sync is unbounded server work and unbounded payload once dataspies are unbounded and user-authored. **Option A (static sync dataspy) assumed the broader reading**, so the narrowing is a live input to that still-open choice (§2.6) rather than a search-only concern: Option A needs exactly one dataspy pre-evaluated per user, which is comfortably inside the narrowed rule — worth confirming explicitly rather than leaving it to inference, since the row it depended on no longer says what it used to. |
+| **UDS — where UDS data lives, and whether it survives offline** | Opened 2026-08-25 with §27. Two coupled unknowns, both base-side. **(1)** Does UDS data ride in the WO's `full_payload` blob or a separate child table? If it is a child table it is Tier-1-only, so a Tier-2 stub opened offline surfaces a UDS tab it cannot populate — and §6.13's row-state vocabulary describes *records*, not tabs, so there is no affordance for "this tab needs connectivity." **(2)** Can a dataspy select a UDS field at all? If not, UDS fields can never be indexed, filtered or sorted (§6.13), which is a defensible answer but must be a stated one. Blocks any commitment that a UDS tab is offline-executable. |
+| **UDS — the write path has no shape** | Opened 2026-08-25 with §27.5. A UDS tab is editable, so it needs an outbox write form. If UDS storage is generic (`entity + record key + field + value` rather than typed columns) the outbox has no such form today, and §2.5's last-write-wins resolution needs to still mean something at that grain. Compounding it: **whether UDS fields are governed by status authorizations at all is unknown**, so §2.3 consequence 3's write gate may have a hole in exactly the fields nobody has specified. |
+| **UDS definitions widen Tier 0's `0f`, and nothing accounts for it** | Opened 2026-08-25 with §27.5. `0f` is scoped to the code domains that *delivered* layout references, but a UDS field can reference a customer-defined LOV domain — so §2.3's "layout first, because layout scopes everything after it" has to traverse UDS definitions too. Miss it and a UDS LOV field renders raw codes, which is the exact training-dependency regression that put code domains in Tier 0 to begin with. The per-domain version stamp §20 already owes must cover UDS definitions, or one changed UDS forces a full config refetch. |
+| **UDS standalone screens — scope call not taken** | Opened 2026-08-25. §27.2 recommends **tabs in v1, standalone UDS deferred**, because a standalone UDS is a top-level destination needing a §26.3 nav slot plus its own §8.3 List Search Screen (dataspy bar, card projection, chips, sort, search) — multiplying §8.3 by an unbounded per-customer screen count, with no §6.13 projection answer for a screen whose columns are entirely customer-defined. Recommendation, not a decision. Needs a call at the kickoff. |
+| **No generic definition-driven screen renderer exists** | Opened 2026-08-25 with §27.3. §22's `applyCustomFields()` and §9.8's Insert Mode both prove the definition-driven pattern at container scale, but nothing renders a *whole* screen body from definition — which is the single build UDS tabs require. Also unresolved: a `Placement = Step` UDS tab is the first child-tab screen needing §14.5–§14.7's per-step bottom bar (the Equipment tab has the rail but no bar), and §14.7's required-field bar-locking would have to evaluate fields the app has never seen. That last point is a second, independent argument for the declared-vs-effective field-state split named as a one-way door in §13.1–§13.4. |
 
 # 21. Superseded Design Decisions
 
@@ -5007,6 +5077,8 @@ its original section with a note attached.
 | --- | --- |
 | **Platform: "iOS and Android — responsive PWA"** (§1 header table, since v1). Carried unexamined from the earliest version of this doc, and it quietly shaped how the Contractor/BYOD requirement was reported — as satisfied by a browser-native delivery target. | §2.2 (2026-08-25, user direction) — **a native React Native app.** The doc had been asserting both a PWA *and* `op-sqlite`, which is React Native-only with no browser build, so the two statements could not both be true. Three further reasons in §2.2: WatermelonDB's web adapter cannot serve Tier 2's FTS5 requirement, Background Sync is absent from Safari so the outbox could not drain while the app is closed, and iOS storage durability cannot support "an unsent edit can never be lost." The knock-on is that **Contractor/BYOD becomes an open item (§20) rather than an answered one** — the SWG asked for browser-native access and this architecture does not provide it. To revert would mean re-opening the engine choice toward `wa-sqlite`/OPFS and accepting weaker sync and durability guarantees; it is not a delivery-target toggle. |
 | **The step rail's "Reference" group, defined as Comments & Documents** (§14.8, added 2026-07-22). Named "Reference," and framed as a specific affordance for two pieces of "persistent record-level content owned by WO Record View alone," with Equipment later bolted on as "a 3rd row." Membership *was* the definition: three fixed rows, hardcoded in `WO_REFERENCE_LABELS` and `stepMapReferenceGroupHtml()`. | §14.8 (2026-08-25, direct clarification of intent) — the group is **"More"**, and it holds **whichever of the function's tabs the admin placed outside the sequence**. Comments and Documents are the obvious defaults, not the definition. Two reasons the old name had to go with the old framing: everything in the group is **editable** (add a comment, attach a document, insert/delete equipment rows), so "Reference" claimed a read-only-ness that was never true; and the claim gets worse exactly as membership widens — a configurable group could hold a Permits or Safety tab, filing something you sign under "Reference." The *mechanism* is unchanged and was never in question: pinned after the last numbered step, plain icon rather than a numbered badge, ungated by construction. To revert the name only: `stepMapMoreGroupHtml()`'s group label in `eam-shared.js`, the `.step-map-group-label` comment in `eam-shared.css`, and this section's heading — the data-driven `WO_MORE_TABS` shape is independent of what the group is called and should not be reverted with it. |
+| **Tier 2 projection = the *union* of the screen's dataspy projections** (§6.13, locked and revised the same day, 2026-08-25). The index would hold the union of every indexed field across the screen's dataspies, **defaulted to the union of each dataspy's first 6 columns, overridable per field by an `Indexed` flag, and capped**. Costed on the assumption of a handful of concentric dataspies — WO's All / All Open / My Open — giving ~8–12 distinct columns and ~450 bytes/row. | §6.13 "**The Tier 2 projection is *declared*, never derived from the dataspies**" (2026-08-25, same day, on the correction that **dataspies are unbounded** — admin-published plus user-authored, on any screen with records, with users normally permitted to create them). The union default does not survive that: with thousands of dataspies the union exceeds any cap immediately and permanently, so "which columns survive the cap" becomes an arbitrary truncation rather than a default; and worse, a user saving a personal query would reshape the index on every device. **What survived the reversal:** the `Indexed` flag itself, and every argument about *where* it is authored (Screen Designer, riding Tier 0's `0c`) — the flag was promoted from *override* to *primary source*. **What it took with it:** the "cost is small because dataspies overlap" reasoning, which was only true of the concentric three-dataspy example. To revert you would first need dataspies to be a bounded, admin-only set. |
+| **A standalone offline-search summary doc** — `EAM-Mobile-Offline-Search-Architecture-Summary.md` (created July 2026). A satellite doc restating the tiered record model, the `wo_index` schema, the lifecycle columns and the dataspy handling, alongside §2.3/§2.6/§6.13 which specify the same things. | **Retired to `docs/old versions/` on 2026-08-25** in the doc-hygiene pass, because it was a **proven** drift source, not a hypothetical one: it still described Tier 2 as "~8–12 projected fields" and the grid as showing "5 summary fields" more than a month after §6.13 (2026-07-20) redefined both to 6, and 4 of its own 5 cited source files no longer existed. Every offline change had to be made twice, and the second copy silently lost. Its two genuinely unique pieces were **migrated before retirement**: the row-lifecycle state machine into §6.13, and the SWG "Search & Knowledge" sub-themes into the leadership review's §2.1. **The rule this establishes: a locked rule gets exactly one home — this doc — and other artifacts point at it rather than restating it.** To revert, restore the file, but re-derive its content from §6.13 rather than trusting what is in it. |
 | **A separate Workflow Designer admin screen** — `eam-workflow-designer-v1_1.html` (built 2026-07-21, never documented in this doc, CLAUDE.md or the plan doc). Its own visual system (DM Sans/DM Mono, teal-purple palette), and it modelled a considerably larger scope than §10–§13 lock: **workflow revisioning** (Draft / Current Rev / Create Rev), **conditional visibility**, **allow skip with reason**, a node graph with an explicit "fallback when no criteria match," and blank-workflow / create-from templates. | §10 (reaffirmed 2026-08-24/2026-08-25) — "**one surface covers both workflow-driven and non-workflow screens** … there is no separate admin surface for workflow-driven screens." WO Workflow configuration is authored through **Screen Designer**, which gains a WO Type selector; §26 adds User Group Setup as the *binding* side of the same model. **Retired to `prototypes/standalone/base screens/old versions/` on 2026-08-25** and unlinked from `screens.html`. Two things about it are worth keeping in mind rather than losing with the file: its conditional-visibility and skip-with-reason modelling overlaps **§13.1–§13.4, which are deliberately deferred to Phase 4+** — so it is not evidence that question is settled — and it is the only artifact that has considered **workflow revisioning**, i.e. a live configuration being edited while technicians are mid-workflow against the previous version. §13/§26 do not currently address that, and it is a real problem when workflow config becomes editable in production. To revert: restore the file from `old versions/`, re-add its `screens.html` card, and amend §10's one-surface rule first. |
 | **Comment header — no avatar/profile picture** (§7.2). A comment's header row showed exactly two things beside its timestamp: the author's display name and the Edit/Delete/Copy ellipsis. Reasoning given: name text alone carries enough identity for a comment thread, and omitting an avatar "keeps the row from competing visually with the ellipsis." | §7.2 (2026-08-11, confirmed after being flagged) — the chat-style comment card shows a **26px initials avatar** before the name. The first half of the old reasoning was a judgement call; the second half became factually obsolete when the card moved the ellipsis out of the header row entirely and pinned it to the card's top-right corner, so there is nothing left in that row for an avatar to compete with. To revert: drop `.comment-avatar` / `.comment-item[data-mine="true"] .comment-avatar` from `eam-shared.css` and the `<span class="comment-avatar">` (plus `commentInitials()`) from `renderCommentItemHTML()` in `eam-shared.js` — the rest of the card treatment is independent of this call. |
 | **Sync control — five states** (Synced/Syncing/Offline/Pending/Error), with a separate orange "Pending" state ("reconnected, outbox flushing in order") distinct from purple "Syncing" ("outbox draining right now"). | §4.4.1 — four states (Synced/Offline/Syncing/Error). Pending and Syncing described the same event; connectivity alone now decides Offline vs. Syncing. Syncing itself moved off purple onto a distinct gray shade (§23). |
@@ -5044,6 +5116,14 @@ its original section with a note attached.
 
 Admin-defined fields per record Class + Class Org, scoped to Record View
 only (Work Order and Equipment so far).
+
+**Not the same mechanic as a User Defined Screen (§27).** Custom Fields add
+*fields* to a screen the product ships; a UDS is a customer-authored
+*screen*, surfaced as its own destination or as a tab on a delivered
+record. A record can carry both, and they must not share an
+implementation. What §27 does reuse is this section's *pattern* —
+`applyCustomFields()` merging definitions into the screen's own field
+globals so no parallel edit path is needed (§27.3).
 
 | Decision | Detail |
 | --- | --- |
@@ -6058,3 +6138,177 @@ set — which makes its missing `Location` option a real defect, not a
 cosmetic one.** Pick the wrong system type at create time and it is
 unrecoverable from mobile; omit an option entirely and that kind of record
 simply cannot be created here. See §20.
+
+# 27. User Defined Screens (UDS) — scope
+
+Added 2026-08-25 (user direction: "add scope for User Defined Screens and
+User Defined Screen tabs for work orders"). **This section is scope, not a
+locked design** — it fixes what is in, what is out, which existing rules
+already absorb UDS at no cost, and what is genuinely owed. Nothing here is
+built and no prototype exists.
+
+**Terminology, because two different mechanics are easy to conflate.**
+§22's **Custom Fields** are admin-defined *fields* added to a screen the
+product ships, keyed `entity + class + classOrg`, rendered inside one
+container on a Record View. A **User Defined Screen** is a customer-authored
+*screen* — its own field set, its own data — which base EAM can surface
+either as its own menu destination or as a **tab on a delivered entity's
+record**. They are not the same mechanic and must not share one: Custom
+Fields extend a screen the product knows about, UDS adds a screen it does
+not. A record can carry both.
+
+## 27.1 What the existing rules already absorb, at no cost
+
+This is the important half of the scope, and it is mostly good news.
+
+**A UDS tab is just a tab of the function, so §12 and §14.8 already model
+it.** §14.8 locks the candidate set as "the function's own tabs, filtered to
+what the target user group is permitted" (`R5FUNCTIONTABS` /
+`R5TABPERMISSIONS`). A UDS registered as a tab of a workflow-enabled
+function therefore enters that candidate set **by construction** — no new
+resolution concept, and no new authoring surface for placement. Concretely
+it inherits all of this free:
+
+- A UDS tab takes a §12 tier-2 row keyed `WO Type × User Group × Tab`, so it
+  carries **Visible**, **Placement** (`Step` | `More`), **Sequence** and
+  **Required** exactly like a delivered tab.
+- **A UDS tab can be a numbered workflow step.** This is the capability
+  worth naming out loud: a customer's Permit to Work, Isolation Certificate
+  or site-specific safety screen can be *step 3 of the guided flow* — gated
+  and required — rather than an optional side trip. A significant product
+  capability arriving almost entirely from rules already locked.
+- §14.8's two constraints apply unchanged: a UDS tab is **either** a
+  numbered step **or** a More entry, never both; and a More-placed UDS tab
+  **can never be Required**.
+- §14.10's forward-only gating applies unchanged — a completed UDS step
+  stays reachable for correction.
+- The §11 fallback applies unchanged: a WO Type with no workflow header row
+  takes UDS tab placement from the function's own screen design.
+
+## 27.2 In scope / out of scope
+
+| | |
+| --- | --- |
+| **In — UDS as a tab on Work Order** | The `Placement = Step \| More` model above. The shape that carries real workflow value, and the shape that reuses the most already-locked design. |
+| **In — one generic UDS tab renderer** | A single definition-driven screen, not one screen per customer UDS. See §27.3. |
+| **Deferred, recommended out of v1 — standalone UDS as its own destination** | A UDS surfaced as a top-level menu screen rather than a tab. It needs a §26.3 nav slot or a Home entry and — because it is a destination holding many records rather than a child of one — it needs its own §8.3 List Search Screen: dataspy bar, card projection, filter chips, sort, search. That multiplies §8.3's surface by an unbounded, per-customer screen count, and §6.13's projection rules have no answer for a screen whose columns are *entirely* customer-defined. **Recommendation: tabs in v1, standalone deferred** — stated now rather than discovered late. A scope call for the kickoff, not a locked exclusion. |
+| **Out — UDS field *authoring*** | Base EAM's own UDS setup already owns it (§27.4). Rebuilding it inside Screen Designer would break §10's one-surface rule the same way the retired Workflow Designer did (§21). |
+| **Out for now — UDS on Equipment** | The mechanic is identical, but the authoring surface for Equipment's four `PLO_PAGENAME` system-type layouts does not exist yet (§20), and that already blocks the Equipment track. Stacking UDS on a blocked track buys nothing. Revisit when it clears. |
+
+## 27.3 The one real build — a generic, definition-driven tab renderer
+
+**There cannot be a prototype screen per UDS, and there should not be one.**
+The set of UDS screens is per-customer and unbounded, so a UDS tab has to
+render from its definition at runtime. This app has already proven that
+pattern twice at smaller scale:
+
+- §22's `applyCustomFields()` merges definitions straight into a screen's own
+  `RECORD` / `FIELD_LABELS` / `LOV_DATA` / `LOV_CURRENT` / `LOV_TITLES`
+  globals, so native field rows and their existing edit sheets operate on
+  admin-defined fields with **no parallel edit path and no read-only special
+  case**. A UDS tab is that same trick with no host screen — the whole body
+  is generated.
+- §9.8's Insert Mode already renders field set, placement and required-ness
+  from `ENTITY_FIELD_META` / `ENTITY_FLAT_FIELDS` rather than hardcoded
+  markup.
+
+So the build is: **a §8 child-tab screen whose header is §8.1's protected
+identity and whose body is a §5.2 field grid/list rendered entirely from
+definition.** Two things make that tractable rather than open-ended —
+`screen-layout-field-behavior-prototype-v1.html` is already the canonical
+statement of how every field type behaves in both containers, so the
+renderer has an exact spec to hit, and
+`eam-wo-equipment-tab-prototype-v1.html` is already the §8 child-tab
+template to copy.
+
+**Sequence it after a second real child tab exists, not before.** The
+Equipment tab is a sample size of one, and a generic renderer generalised
+from one example is a guess.
+
+**A UDS tab placed as a numbered step needs the step rail *and* a bottom
+bar**, which the Equipment tab deliberately lacks (§16.10 — it carries the
+rail but has no bar). A `Placement = Step` UDS tab is therefore the first
+child-tab screen needing §14.5–§14.7's per-step bar, including §14.7's
+required-field bar-locking evaluated over fields the app has never seen.
+That is a **second, independent argument for the declared-vs-effective
+field-state split** named as a one-way door in §13.1–§13.4 — the first being
+conditional field rules. Two unrelated features now want the same seam,
+which strengthens the case for building it early rather than retrofitting.
+
+## 27.4 Authoring — a three-way split, not a new surface
+
+UDS extends §26.5.1's definition/assignment line into three roles. Stating
+this now is cheap; discovering it after someone has built field authoring
+into Screen Designer is not.
+
+1. **Base EAM's own UDS setup defines the screen** — fields, types, LOVs,
+   labels, grouping, required-ness. That surface exists in base and is not
+   this project's to rebuild.
+2. **Screen Designer places the tab** — Visible / Placement / Sequence /
+   Required on the §12 tier-2 row, exactly as for a delivered tab. It
+   *consumes* the UDS definition; it never edits it.
+3. **User Group Setup assigns** the resulting `(function, WO Type)`
+   configuration to groups (§26.5/§26.5.1). Unchanged — assign is still not
+   copy.
+
+**Consequence for User Group Setup's consistency checks.** §26.5.1 already
+has it validating nav slot vs. function permissions and nav slot vs.
+assigned configs. UDS adds a third check it is uniquely placed to run: a
+configuration placing a UDS tab as a **required step** for a group that
+lacks permission to that tab is a workflow the technician can neither
+complete nor skip. That is a hard dead end rather than a warning, and no
+designer working inside a single screen can see it.
+
+## 27.5 Offline consequences — the part that needs backend answers
+
+This is where UDS stops being nearly free. Every item below is owed before
+build, and each is tracked in §20.
+
+**Tier 0 (§2.3).** UDS definitions are *configuration*, so they belong in
+`0c` beside page layout, the WO Workflow tables and custom-field
+definitions — a UDS tab with no definition is a blank screen, precisely
+§2.3's "configuration does not degrade" case. Two knock-ons:
+
+- **`0f` gets wider, and nothing has accounted for it.** `0f` is currently
+  scoped to the code domains that *delivered* layout references. A UDS field
+  can reference a **customer-defined** LOV domain, so "layout first, because
+  layout scopes everything after it" now has to traverse UDS definitions
+  too. Miss that and a UDS LOV field renders raw codes — the exact
+  training-dependency regression §2.3 cites as the reason code domains were
+  promoted into Tier 0 in the first place.
+- The per-domain **version stamp** §20 already owes for the Tier 0 contract
+  has to cover UDS definitions, or one changed UDS forces a full config
+  refetch.
+
+**Tier 2 / search (§6.13).** Two new open questions:
+
+- **Can a dataspy select a UDS field at all?** §6.13's projection is the
+  union of the screen's dataspies' column orders. If base dataspies cannot
+  reference UDS data then UDS fields can never be indexed, filtered or
+  sorted — a defensible answer, but it has to be a *stated* one, because a
+  customer whose triage depends on a UDS field will ask.
+- **Does UDS data ride in `full_payload`, or a separate child table?** This
+  decides whether a UDS tab works offline at all. If it is a child table it
+  is Tier-1-only, so a Tier-2 stub opened offline shows a UDS tab it cannot
+  populate — and §6.13's row-state vocabulary describes *records*, not tabs,
+  so there is no existing affordance for "this tab needs connectivity."
+
+**Write path (§2.4).** A UDS tab is editable, so it needs an outbox write
+shape. If UDS storage is generic (`entity + record key + field + value`
+rather than typed columns) the outbox needs a write form it does not have
+today, and §2.5's last-write-wins conflict resolution has to still mean
+something at that grain. Related: §2.3 consequence 3 gates the write path on
+status authorizations — **whether UDS fields are governed by status
+authorizations at all is unknown**, and if they are not, that gate has a hole
+in exactly the fields nobody has specified.
+
+## 27.6 Why it is worth doing
+
+Two reasons, both product rather than technical. It converts the guided
+workflow from "the five steps we designed" into "the steps this customer
+actually runs," which is the difference between a demo and a deployable
+product — and it does so mostly through §12 and §14.8, which are already
+locked. And it is the answer to the customisation demand that otherwise
+arrives as a request to hardcode a customer's screen into the app, which
+§21's retired bespoke-WO-card entry shows this project has already had to
+undo once.

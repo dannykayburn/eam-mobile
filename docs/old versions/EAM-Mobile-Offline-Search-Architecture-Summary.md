@@ -21,7 +21,7 @@ Records live in one of four tiers, and a record moves between tiers based on use
 |---|---|---|---|---|
 | **0** | Bootstrap config | Identity + user group → nav/function resolution → **page layout** (`R5PAGELAYOUT` + WO Workflow header/tabs + custom-field defs) → status authorizations → dataspy definitions → the code domains layout references | Kilobytes | **Blocking**, fetched inside the login round-trip (not a modal). Persisted, versioned per domain, **exempt from eviction** — not merely "hard-blocked while pinned or dirty" like a record. Layout resolves first because it *scopes everything after it*: it tells you which code/status domains actually matter, so they can be fetched as a subset rather than blind |
 | **1** | Work set | Fully hydrated records + children (activities, checklists, parts) | ~20–200 WOs — **my open pinned work orders** (never date-scoped; see the note below) | Pinned, never evicted, guaranteed offline-executable |
-| **2** | Search index | Stub rows, ~8–12 projected fields | ~300 bytes/row; 10k rows ≈ 3–4 MB, 100k ≈ 35 MB | Instant offline "contains" search via FTS5; grid renders only 5 summary fields |
+| **2** | Search index | Stub rows. **6 projected fields per dataspy, unioned across the screen's dataspies** — typically 8–12 distinct columns (see §3) | ~450 bytes/row; 10k rows ≈ 4–5 MB, 100k ≈ 50 MB | Instant offline "contains" search via FTS5; the card renders up to 6 summary fields, from the *active* dataspy's own column order |
 | **3** | Demand cache | Stub → hydrated on tap while online → LRU-evicted back to stub | N/A | "A technician's own work is sacred; everything else is best-effort" |
 | **4** | Server search | Not stored — online-only escalation | Full ~150-field record set | Existing dataspy SQL search API, reused as-is |
 
@@ -35,9 +35,22 @@ Records live in one of four tiers, and a record moves between tiers based on use
 
 **Chosen approach:** at sync time, the server pre-evaluates the user's saved dataspies and downloads *membership* (WO-ID lists) alongside the Tier 2 index — not the SQL logic itself.
 
-- Offline dataspy switching becomes instant (no local SQL re-evaluation needed).
+- Offline dataspy switching becomes instant (no local SQL re-evaluation needed) — it is a **local query**, swapping which ID set the grid selects on. Zero network.
 - The "Sync Config" dataspy is repurposed: it stops meaning *"what exists on this device"* and starts meaning *"what's guaranteed executable offline"* (i.e., it now scopes Tier 1, not the whole local DB).
 - Tier 4 (server search) reuses the existing dataspy SQL search API as the online escalation path — this still needs confirming as a valid as-is reuse (see Open Items).
+
+### The projection is a union across dataspies (locked 2026-08-25)
+
+Membership lists make dataspy *rows* free offline. They say nothing about dataspy *columns*, and that was the gap: `design-decisions-v3-1.md` §8.3 has the card draw its 6 fields from the **active** dataspy's own configured column order, while §6.13 had the Tier 2 index storing "exactly 6." That is coherent for one dataspy and under-specified across several. A WO screen carries at least three — **All Work Orders / All Open Work Orders / My Open Work Orders** — and if their column orders differ, one 6-column index cannot serve them all; switching dataspy offline would render blanks.
+
+**Resolution:** the index holds the **union** of every indexed field across the dataspies resolved for that screen — defaulted to the union of each dataspy's first 6, overridable per field by an **`Indexed` flag in Screen Designer**, and capped.
+
+- §8.3's card rule is untouched: the card still reads the active dataspy's column order, and switching dataspy can still change which fields appear.
+- The cost is small because a screen's dataspies overlap heavily. WO's three are concentric (WO number, Description, Status, Type will be in all three), so the union lands around 8–12 distinct columns rather than 18.
+- The **cap** is what stops a customer with many near-disjoint dataspies from growing the index into a full record table.
+- **Screen Designer, not a new mobile-dataspy admin screen** — the decisive reason is delivery, not authoring taste. Page layout is already Tier 0's `0c`, so a per-field flag authored alongside layout is persisted, versioned and eviction-exempt for free. A separate artifact needs its own Tier 0 slot, version stamp and bootstrap-contract line.
+
+**Rejected:** a static, non-configurable card projection with List mode online-only. Its List half was already locked (§8.3 List mode is tier-dependent, full columns online-only via Tier 4). Its card half fails because the same 6 fields also drive the **filter chips and sort options** — §21 retired the hardcoded `Type · Status · Department · Priority` chip row precisely to make those dataspy-driven — and because `full_payload` is a JSON blob on the premise that every customer's WO differs, so a fixed projection locks a customer out of ever surfacing a triage-critical UDF.
 
 ## 4. UX Consequences
 
@@ -115,6 +128,8 @@ PIN (`R5PINS`) is a related but separate design (materialized projection of WO-a
 2. **Tier 4 reuse confirmation:** confirm the existing dataspy SQL search API can actually serve as the online-escalation path as-is, with no gaps.
 3. **FTS5 availability:** confirm the FTS5 extension is available in whichever local DB engine ships (WatermelonDB vs. SQLite/op-sqlite is still an open selection at the architecture level).
 4. **`dirty` column type:** counter vs. boolean still undecided.
+4a. **`Indexed` flag authoring grain:** layout resolves per `PLO_PAGENAME × PLO_USERGROUP × PLO_WOTYPE`, but `wo_index` is one table across all WO Types — so the flag must be authored at a Type-independent grain on a surface that is per-Type throughout. Equipment is worse (four `PLO_PAGENAME` values, no authoring surface at all yet). Base-side call, needed at the dev kickoff. See `design-decisions-v3-1.md` §20.
+4b. **No `Indexed` control exists in Screen Designer yet** — the prototype's right-click menu offers only Required/Protected/Optional/Hidden/Not Available, and nothing displays the resolved union or warns on the cap.
 5. **UX build-out:** the per-row affordance (mapping 3 states onto the existing 5-state sync icon language) and the index freshness caption are specified but not yet designed as screens — next queued design task is the WO List screen, which is where both will live.
 
 ## 9. Source Files

@@ -62,41 +62,118 @@ stands as written, don't re-open it.** It also answers "no Parts tab but parts
 were issued?": issuing parts is post-Start-Work by construction, so it can't
 arise from mobile. Only residual is base-issued parts on a pre-start WO (§20).
 
-## Start Work is the commitment boundary (§14.11, locked 2026-08-25)
-Five things happen at once and only make sense together: status → Start Work
-Status, **Type protects**, **the WO pins to the technician**, **all child
-records hydrate**, and (recommended) the **resolved config version is stamped**
-— which is also the answer to workflow-config revisioning. Before Start Work a
+## Locked rules — don't re-derive these
+Conclusions and consequences only. **Rationale, rejected alternatives and
+revert recipes live in the spec at the § given** — follow the pointer rather
+than reasoning it out again. Consolidated 2026-08-25; keep additions here to
+this shape.
+
+**Start Work is the commitment boundary (§14.11).** Five things happen at once
+and only make sense together: status → Start Work Status, **Type protects**,
+**the WO pins to the technician**, **all child records hydrate**, and
+(recommended) the **resolved config version is stamped**. Before Start Work a
 WO is a candidate; after it, it's this technician's committed work. Two
 consequences: starting a WO found by search **is** the Tier 3 → Tier 1
-promotion (so a non-hydrated WO probably needs connectivity to start), and this
+promotion (so a non-hydrated WO probably needs connectivity to start), and it
 is the **first device-originated pin** — a local pin must survive a server
-membership list that omits it, or the next sync evicts live work. That last
-point is real evidence for punch-list Option B.
-**Reversed 2026-08-24, see §26.7:** the "one function, `WSJOBS`, always" half
-of that is gone. Any function with `FUN_RENTITY = EVNT` may be
-workflow-enabled, opted in per **user group** — this customer already runs
-four `WSJOBS` clones (CCJOBS/TRJOBS/ZJ1000/WSJODC) as distinct business
-processes, and a single blessed function would cost them the per-clone
-labels, boilerplate and field layouts those clones exist for. §26 is the
-new base-side section: function resolution, bottom-nav slot binding, and
-the User Group Setup screen paradigm.
+membership list that omits it, or the next sync evicts live work (real evidence
+for punch-list Option B).
 
-## Hydration has a Tier 0 (§2.3, revised 2026-08-25)
-The tier model gained a **Tier 0 — bootstrap configuration** in front of the
-four record tiers, and it is deliberately *not* a record tier: records degrade
+**Function resolution is per user group, never one blessed function (§26.7,
+reversed 2026-08-24).** Any function with `FUN_RENTITY = EVNT` may be
+workflow-enabled, opted in per **user group** — this customer already runs four
+`WSJOBS` clones (CCJOBS/TRJOBS/ZJ1000/WSJODC) as distinct business processes.
+§26 is the base-side section: function resolution, bottom-nav slot binding, the
+User Group Setup paradigm. *(This was filed under Start Work until 2026-08-25,
+where it read as if the commitment boundary had been reversed — it hadn't. It
+reverses the "one function, `WSJOBS`, always" half of the `FUN_CODE` note in
+START HERE.)*
+
+**Hydration has a Tier 0 (§2.3).** Bootstrap configuration, in front of the
+four record tiers and deliberately *not* one of them — records degrade
 gracefully (fewer rows = a shorter list), configuration doesn't (a missing page
-layout is a blank screen). Ordered by dependency — identity/user group →
-nav/function resolution → **page layout** (+ WO Workflow tables + custom-field
-defs) → status authorizations → dataspy definitions → the code domains layout
-references. **Layout is first because it scopes everything after it**, not only
-because it's most critical. Fetched **inside the login round-trip, not a modal**
-— "no blocking modal" was aimed at waiting on *records*, and Tier 0 is
-kilobytes inside a wait that already exists. Tier 0 is persisted, versioned per
-domain, and **exempt from eviction**. Say **"my open pinned work orders"**, never
-"today's WOs" — the punch list is pin/dataspy-scoped and never date-scoped.
+layout is a blank screen). Order: identity/user group → nav/function resolution
+→ **page layout** (+ WO Workflow tables + custom-field defs) → status
+authorizations → dataspy definitions → the code domains layout references.
+**Layout is first because it scopes everything after it.** Fetched **inside the
+login round-trip, not a modal**; persisted, versioned per domain, **exempt from
+eviction**. Say **"my open pinned work orders"**, never "today's WOs" — the
+punch list is pin/dataspy-scoped and never date-scoped.
+
+**The Tier 2 index is declared, not derived from dataspies (§6.13).** The
+governing fact: **dataspies are unbounded** — admin-published plus user-authored,
+on any screen with records, and users normally have permission. (Not authorable
+*from* mobile — out of scope — but mobile consumes what they made on desktop.)
+Three consequences. **1. The projection is declared**: a bounded `Indexed` column
+set (~10–20) flagged per field in Screen Designer, a *primary* source with no
+computed default — otherwise any saved query reshapes every device's index.
+§8.3's card rule is unchanged, but a dataspy touching a **non-indexed** column is
+**online-only** and must say so, never silently under-return. **2. A dataspy is a
+saved filter, classified — not shipped membership.** The server checks (metadata
+only, no SQL run) whether its predicates/columns sit inside the declared set →
+offline-capable local query, or online-only via Tier 4. **Nothing per-dataspy
+ships**, so switching stays zero-network at any dataspy count, and there is still
+**no per-dataspy "delta insert"** (the delta is the index refresh on
+`last_synced_at`; per-record fetch only on a Tier-3 demand tap). Membership
+shipping narrows to **Tier 1 / the punch list** only. Not a new capability —
+§8.3's filter chips already evaluate predicates locally over these columns.
+**3. Index scope is its own config** — **not** "All Work Orders" (that's
+unbounded history). Open WOs by the lifecycle rule, plus a configured extent,
+server-side, parallel to Sync Config scoping Tier 1; deliberately not derived
+from the dataspies, or adding one silently changes every device's storage.
+**Superseded same day: the union-of-projections default (§21) — don't reinstate
+it.** Five open items in §20: the `Indexed` **authoring grain** (§8.5 of the
+leadership review argues *function* grain), **no `Indexed` control exists yet**,
+the **index scope's shape**, the **normalised on-device criteria form**
+classification depends on, and whether **membership shipping** still serves
+punch-list Option A.
+
+**User Defined Screens are scoped, not designed (§27).** A **UDS** is a
+customer-authored *screen* — **not** §22's Custom Fields, which are
+admin-defined *fields* on a screen the product ships. Don't merge the two
+mechanics; a record can carry both. **In: UDS-as-a-tab-on-WO. Deferred:
+standalone UDS destinations. Out: UDS field authoring** (base's own UDS setup
+owns it — building it into Screen Designer repeats the retired Workflow Designer
+mistake). A UDS tab enters §14.8's candidate set **by construction**, takes a
+§12 tier-2 row, and **can be a numbered, gated, Required workflow step** — no
+new placement model needed. What *is* needed: **one generic definition-driven
+tab renderer** (§27.3), never a screen per UDS, following §22's
+`applyCustomFields()` pattern at whole-body scope — and sequence it after a 2nd
+real child tab exists, since the Equipment tab is a sample size of one.
+Authoring is **three-way**: base UDS setup defines → Screen Designer places →
+User Group Setup assigns. **The UI is the cheap part; the offline story is the
+ask** — four open items in §20.
 
 ## Source of truth
+
+### One fact, one home (the rule, added 2026-08-25)
+Every fact below has **exactly one owning file**. Other files may *point*
+at it; they must not restate it. Changing a fact means editing **one**
+file plus, at most, a pointer.
+
+| Kind of fact | Single home |
+| --- | --- |
+| A locked design rule, and its rationale | `docs/design-decisions-v3-1.md` |
+| Open/deferred items, and rejected alternatives | same file, §20 and §21 |
+| What to build next, and in what order | `docs/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md` |
+| Project status, and anything leadership-facing | `docs/EAM-Dev-Leadership-Review-2026-08-25.md` |
+| Relative per-screen complexity | `docs/EAM-Dev-Leadership-Sizing-Appendix-2026-08-25.md` |
+| What a UI pattern is *called*, and its rules | `docs/component-library.md` |
+| Raw CSS-level component audit | `docs/ui-component-inventory.md` |
+| A base-EAM enhancement spec (for the base team) | its own `EAM-DESIGN-*.md` |
+| Current state of the prototypes | this file |
+
+**Why this rule exists, in one line:** the offline-search summary doc
+restated §2.3/§2.6/§6.13, drifted for over a month (it still said Tier 2
+held "~8–12 fields" after §6.13 redefined it to 6), and was retired
+2026-08-25 (§21). **Don't create a "summary of X" doc where X is already
+specified.** If something is hard to find, add a pointer or fix §-numbering
+— don't clone the content.
+
+**Corollary for this file:** CLAUDE.md holds the *decision and its
+consequence*, plus a `§` pointer — never the full rationale. It loads every
+session, so length here is a recurring cost paid on every task.
+
 `docs/design-decisions-v3-1.md` is the authoritative design spec. Never
 contradict a locked decision in that doc without explicitly flagging it to
 the user first. It's long — grep for the section you need rather than
