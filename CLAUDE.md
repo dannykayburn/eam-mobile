@@ -122,11 +122,13 @@ unbounded history). Open WOs by the lifecycle rule, plus a configured extent,
 server-side, parallel to Sync Config scoping Tier 1; deliberately not derived
 from the dataspies, or adding one silently changes every device's storage.
 **Superseded same day: the union-of-projections default (§21) — don't reinstate
-it.** Five open items in §20: the `Indexed` **authoring grain** (§8.5 of the
+it.** Six open items in §20: the `Indexed` **authoring grain** (§8.5 of the
 leadership review argues *function* grain), **no `Indexed` control exists yet**,
 the **index scope's shape**, the **normalised on-device criteria form**
-classification depends on, and whether **membership shipping** still serves
-punch-list Option A.
+classification depends on, whether **membership shipping** still serves
+punch-list Option A, and the fact that **both projection numbers are
+provisional** — the card's 6 (display only, re-scoped 2026-08-26) and the
+index's ~10–20.
 
 **User Defined Screens are scoped, not designed (§27).** A **UDS** is a
 customer-authored *screen* — **not** §22's Custom Fields, which are
@@ -161,6 +163,7 @@ file plus, at most, a pointer.
 | What a UI pattern is *called*, and its rules | `docs/component-library.md` |
 | Raw CSS-level component audit | `docs/ui-component-inventory.md` |
 | A base-EAM enhancement spec (for the base team) | its own `EAM-DESIGN-*.md` |
+| An undecided architecture question, while it is undecided | its own `EAM-DECISION-*.md` — **temporary, see below** |
 | Current state of the prototypes | this file |
 
 **Why this rule exists, in one line:** the offline-search summary doc
@@ -173,6 +176,185 @@ specified.** If something is hard to find, add a pointer or fix §-numbering
 **Corollary for this file:** CLAUDE.md holds the *decision and its
 consequence*, plus a `§` pointer — never the full rationale. It loads every
 session, so length here is a recurring cost paid on every task.
+
+### PENDING DECISION — the offline architecture is being re-opened
+`docs/EAM-DECISION-Offline-Architecture-Options-2026-09-03.md`. **A
+deliberate, temporary exception to the one-fact-one-home rule**, opened
+2026-09-03 at user direction: it holds one undecided question until it is
+decided, then **its content is rolled into `design-decisions-v3-1.md` (and
+the leadership review) and the file is deleted** — its own §13 lists exactly
+which sections change under each option. Don't let it become a second spec,
+and don't restate it here.
+
+What it re-opens: the app is being re-framed **online-first with offline
+writes scoped to specific entities**, which inverts §2.1's locked *"UI always
+reads from local DB"*. Four options, on one variable — **does fleet-wide
+search work offline?** — because every painful Tier 2 item (`Indexed` grain,
+dataspy classification, normalised criteria, index scope) is the price of
+answering yes. **Recommendation: Option 1**, and §6.1's scoring was rebuilt
+2026-09-03 with six added rows, **every one favouring it** (vendor precedent,
+un-populatable tabs, UDS dataspy, standalone-UDS-as-server-only, the
+replication switch, and whether offline degrades the online path). Option 1 is
+a **compound**, not just "delete Tier 2": online-first reads + declared
+per-entity policy with caps + reachability traversal + the three lookup classes
++ always-on outbox and Tier 0 + dataspies server-side at full fidelity. **Only
+the last line is the actual decision** — everything else is accepted or holds
+under every option, so **the meeting decides one thing.** Until it's decided
+**§2/§6.13 still govern** — flag the conflict, don't act on the brief.
+**Withdrawn 2026-09-03:** the caveat that Option 2 might be the floor for
+utility/linear customers. §5.5 answers it from the GIS side — an offline map
+area already carries features *and* their related EAM equipment within the
+extent, and Search Around already works offline, so offline "what's near me" is
+delivered by the GIS replica for GIS-integrated assets under **every** option.
+Option 2's residual prize is location search over *non*-integrated records
+only. **The two questions that would change the recommendation are product
+questions for the advisory group:** how often a tech must find an off-device
+record while offline, and whether location search is needed over
+non-GIS-integrated records.
+
+**Market practice was researched 2026-09-03 and it backs Option 1** (§8.1 of
+that file, with vendor sources and adoptable caps). Nobody — SAP/Sigga,
+Salesforce, D365 FS, ServiceMax, Maximo, MaintainX — replicates a whole
+entity or ships offline search over the full record population. The pattern
+is a **declared per-entity filter plus relationship traversal**: master data
+arrives by *reachability from the work*, not by entity. And "create a work
+request offline" needs a **write path carrying an unresolved reference**, not
+an asset registry on the device. **Nobody goes read-only offline either** —
+offline write is the core feature and checklists are the canonical offline
+transaction (§8.2); an earlier "read cached data, not act on it" claim was
+sourced from marketing and is retracted.
+
+**Three things are already ACCEPTED and roll up regardless of which option
+wins** (§8.3/§8.4/§8.5, and §13 items 4–7 say exactly where each lands):
+**(1) offline lookups split three ways** — `replicated` for bounded code
+domains (ship them whole; subsetting these is what breaks a checklist),
+`reachable` for unbounded entity lookups (Equipment/Parts — must *announce*
+its scope, never a silent short list), and **`definition-gated`** for a value
+whose selection **re-resolves configuration** — WO Type (§13.5), Equipment
+system type (§26.8), Class (§22) and Status (`0d`) are offline-pickable only
+if the layout / custom-field defs / authorizations shipped. **(2) A
+per-action offline capability list**, product-declared, resolving the §2.1
+tension by one test — *can the server's answer be deferred without the tech
+acting on a wrong assumption?* Yes → queue, action set stays stable (§2.1
+holds). No → prefer **`substituted`** (a degraded equivalent), else
+**`blocked-visible`** with a stated reason, and only then `blocked-hidden`
+(needs justification — an absent control looks like a config error). §5.3's
+GIS replica interlock is the first unavoidable member. **Field *state* is never
+one of these** — §5.2's Required/Protected/Optional/Hidden resolve from page
+layout (Tier 0) and are **identical online and offline**. Nothing becomes
+Protected because the network dropped; no surveyed competitor does that, and it
+would reintroduce the mode split §5.1 exists to reject (§8.2). What degrades
+instead is **validation timing** (moves to sync), **computed values** (stale),
+**defaults** (don't populate) and **control richness** (substitution).
+Knock-on for §13.1–§13.4: `resolveFieldState()` must be evaluable
+**on-device**, or conditional field rules can't ship offline — a third one-way
+door, and stating it doesn't require picking a tier. **(3) Reachability
+traversal** — §2.3's Tier 1 is "records + children", a *downward* traversal
+that says nothing about a WO's *outward* references, so today the only outcomes
+are replicate-equipment-wholesale (the legacy app's weight) or blank fields
+offline. The rule: **a root pulls its declared children plus its declared
+depth-1 references, and references are TERMINAL** — any onward hop must be
+declared and capped (the one this app needs is `equipment → parent`, N levels,
+default 2, **parents only**). Never traverse a reference back into transactions
+(an asset's WO history/meters/cost are `server-only`). Closure is assembled
+**server-side**; Tier-4 ephemeral rows get **no** traversal. ~200 WOs ⇒ order
+200–300 extra master-data rows after dedup, not a million. Three items it
+opens: eviction becomes **refcounted** (§6.13's `!pinned && !dirty` gains "no
+other root references this"), **"unresolved reference" is a missing
+field-level state** (pair it with §27.5's un-populatable UDS tab), and the
+Work Order traversal declaration is **unblocked** — see UDS below.
+
+**THREE customer-extension mechanisms, not two — don't conflate them (§8.6,
+corrected 2026-09-03 by user; an earlier version of that section got UDS
+wrong).** §22 already says Custom Fields and UDS "must not share an
+implementation"; the same holds at the sync layer, three ways.
+- **UDF (User Defined *Fields*)** — data is **columns on the record's own
+  table**, so **no traversal edge, no policy row, offline-complete under
+  existing rules**. Value lists are a `(column, master function)` code domain
+  → `0f`; definitions → `0c`. **Per master function and identical across
+  clones**, so the four `WSJOBS` clones share one UDF config — the clone model
+  does *not* multiply it (unlike §20's per-clone label problem).
+- **UDS (User Defined *Screens*)** — a **`U5` table**, either a record view
+  **or** a child tab; as a child tab its **PKs are explicitly authored as FKs
+  to the parent**, so one traversal edge **per placed UDS**, join columns from
+  that mapping (the *mechanism* is generic, the *edges* are not). Outbox needs
+  a **generic row-shaped envelope** (`table + PK + column/value map`), **not**
+  an EAV form. **Two shapes, opposite answers, both LOCKED 2026-09-03:**
+  a **standalone UDS record view is NEVER offline — permanently
+  `server-only`** (closes §20's "scope call not taken"; §27.2 is a decision
+  now, not a deferral, and the index-projection cost disappears rather than
+  deferring — it may still exist as an online-only destination, and opening it
+  offline is `blocked-visible`, never hidden). A **UDS child tab traverses iff
+  it is present in the resolved page layout**, then indefinitely. **That makes
+  the edge set derived from layout — no new Tier 0 artifact, no new version
+  stamp** — which is §2.3's own "layout is first because layout scopes
+  everything after it" extended one hop, and it is **per WO Type** since layout
+  resolves on `PLO_WOTYPE`. Knock-ons: the closure cap goes back to being a
+  safety net (placement is the real bound); **Screen Designer's Placement
+  control — already owed in §20 — becomes the surface governing device
+  payload**, so the per-UDS row cap and FK-mapping validation belong there; and
+  re-typing a pre-start WO can **add** a tab whose rows never traversed, which
+  is §20's "disappearing tab" item in reverse and the sharpest reason the
+  not-hydrated affordance has to exist.
+- **Custom Fields (§22)** — per **Class + Class Org**, so neither of the above.
+  Values live in a **separate values table** keyed `(entity, record key, field
+  code)` (resolved 2026-09-03), so **one edge with a fixed, product-declared
+  key** — the cheap kind, in §8.5's core rather than the configuration set. The
+  generic **EAV** write form is right *here* even though it is wrong for UDS,
+  so **the outbox needs two generic write shapes, not one**. Cardinality falls
+  out of the key, so Custom Fields take §10's field-edit conflict rule.
+
+**§8.5's WO traversal declaration is complete** now all three are placed. And
+**Class has two independent offline failure modes needing different messages**:
+*definitions* didn't ship (§8.3 row 3 — Class shouldn't be pickable) vs.
+*values* didn't traverse (fields render, need connectivity). Same screen, two
+failures — the clearest reason `definition-gated` and `not-hydrated` stay
+separate states.
+
+Two findings survive that correction unchanged, both favouring Option 1 and
+both in §6.1's scoring: the **un-populatable child tab** is an ephemeral-row
+edge case under Option 1 but the permanent state of every stub under Options
+2/3 (and the owed affordance is **generic** — an un-traversed row has *no*
+children, so all eight child tabs need "not hydrated, connect to load," pairing
+with §8.5's unresolved-reference field state); and **"can a dataspy select a
+UDS field?"** becomes a base-EAM *join* question under Option 1 instead of a
+flat no. Keep **not-hydrated** distinct from **definition-gated** — the first
+renders and explains itself, the second shouldn't render at all.
+
+**Offline is a replication *switch*, and §8.7 details it.** Decompose it:
+**Tier 0 always persisted**, **the outbox always on** (it serves R6/transaction
+confidence, a High VoC theme on its own — a save dropped mid-request happens at
+full connectivity), and **record replication is the only switchable layer**.
+Express it as **profile assignment, not a boolean** — a named bundle of the
+entity registry + caps + lookup classes + index scope + Sync Config, assigned
+on **User Group Setup** per §26.5's binding paradigm, with **"none" as the off
+state**; primary grain **user group**, plus a **device** axis as `min(group,
+device)`. This product already ships exactly this shape for GIS: `BCBGIS`
+permission gates it per user group. **Two payoffs worth carrying to
+leadership:** §7.8's Contractor/BYOD theme stops being unanswerable — a
+contractor with no profile is an online-only user of the *one unified app*,
+with no customer data at rest on an unmanaged device — and the switch is
+**near-free under Option 1** (removes a fallback) but **near-incoherent under
+Option 3**, where §2.1's "UI always reads from local DB" leaves no read path at
+all. The line against "that's a mode": admin-provisioned, invisible to the
+technician, fixed for the session — it changes what the app *can do*, never
+what it does moment to moment. One real consequence: **§4.4.1's sync control
+changes meaning** — "Offline" means *working from the device* for a replicating
+user and *you can't load work* for an online-only one. Same icon, opposite
+promise; needs its own state.
+
+**GIS is now in scope (requirement 2), and the shipped product already does
+most of it** — four HxGN EAM functional briefs were read 2026-09-03 and their
+facts live in that file's §5/§9, not here. The three that change earlier
+thinking: the Map View is a full **editor** (creates features, edits geometry,
+mints equipment), so "viewer-only v1" isn't a scope reduction; there are
+already **two sync engines with two error surfaces** (EAM outbox + ESRI
+geodatabase replica) and GIS edits must **not** be routed through the outbox;
+and `MOBGEXT`'s **geographic extent** is the configured index scope §20 says
+has no shape, already shipping. Also: the existing app's four hardcoded WO
+download rules are real evidence for punch-list **Option B**, and Main
+Isolation is the precedent for how heavy offline work is done (replicated EAM
+tables + on-device solve, never an ArcGIS network service).
 
 `docs/design-decisions-v3-1.md` is the authoritative design spec. Never
 contradict a locked decision in that doc without explicitly flagging it to
