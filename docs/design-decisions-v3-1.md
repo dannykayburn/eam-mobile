@@ -11,21 +11,58 @@ Version 3.1 — July 2026 — Technician Persona / Work Order Execution
 | **Platform** | iOS and Android — **a native (React Native) app, not a PWA.** Corrected 2026-08-25 (user direction); this cell used to read "responsive PWA" and contradicted the architecture the rest of the doc specifies. See §2.2 for why the offline model forces native, and §21 for the supersession. |
 | **Prototype files** | Don't maintain a file list here — it drifts. `CLAUDE.md`'s "Current state" is the live inventory of which screen lives in which file; `prototypes/standalone/old versions/` holds retired ones. |
 | **Status** | Don't maintain a status summary here either, for the same reason. Open work lives in §20 (design-level) and `docs/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md` §7–§8 (what to build next); built-vs-unbuilt lives in `CLAUDE.md`. |
-| **Doc version** | v3.1. This cell is a pointer, not a changelog — locked rules live in the numbered sections below (§1–§25), each governing its own topic; superseded/reversed decisions live in §21 with a short "old → new, why" note; genuinely open items live in §20. Don't restate a decision here — add it to the section that owns it. Structural convention: Standard Model sections (§5–§9) hold the canonical/generic version of any cross-cutting rule; other sections point back to them rather than repeating them. |
+| **Doc version** | v3.1. This cell is a pointer, not a changelog — locked rules live in the numbered sections below (§1–§28), each governing its own topic; superseded/reversed decisions live in §21 with a short "old → new, why" note; genuinely open items live in §20. Don't restate a decision here — add it to the section that owns it. Structural convention: Standard Model sections (§5–§9) hold the canonical/generic version of any cross-cutting rule; other sections point back to them rather than repeating them. |
 
 # 1. Project Context
 
 This document captures all design decisions made during the UX/UI design phase of the HxGN EAM (Attune EAM) mobile app. It is the authoritative reference for all new chat sessions and contributing team members. The first persona focus is the field technician executing work orders.
 
-# 2. Architecture — Progressive Offline Hydration
+# 2. Architecture — Online-First, with Declared Offline Scope
 
-Core pattern agreed in a separate technical session. All UX decisions must remain consistent with these constraints.
+Core pattern agreed in a separate technical session (July 2026) and **re-based
+2026-09-08** when the read polarity was reversed — see §2.1. All UX decisions
+must remain consistent with these constraints.
 
-## 2.1 Core pattern: Optimistic UI + Sync Queue
+## 2.1 Core pattern: online-first reads + an always-on outbox (locked 2026-09-08)
 
-- UI always reads from local DB — never waits for network
-- Writes always go through a persisted outbox regardless of connectivity
-- Network state is a background concern invisible to the user
+**Polarity reversed 2026-09-08, user direction.** This section read *"UI always
+reads from local DB — never waits for network"* from July 2026 until now. That
+is offline-first; **R1 (§2.7) asks for the opposite**, and the four options
+weighed before landing here are recorded in §21. The one question this settles:
+**fleet-wide record search does not work offline** — there is no on-device index
+of records the technician does not hold (§6.13).
+
+- **Reads are online-first.** When connected, the server is the source of truth
+  and the local store is a cache rather than the primary read source. Dataspies,
+  search and record opens go to the server **at full fidelity** — all fields, all
+  joins, all predicates, exactly as on desktop (this is what makes R4 an
+  improvement rather than a compromise).
+- **The local store is the fallback, and it is deliberately scoped.** It holds
+  Tier 0 configuration, the replicated `reference` entities, the work set, and
+  whatever the technician manually cached (§2.7) — never a projection of the
+  fleet.
+- **Writes always go through a persisted outbox regardless of connectivity** —
+  unchanged from the original pattern, and now the *load-bearing* half of this
+  section. The outbox is never switchable (§2.10): it serves "did my transaction
+  land?" at full connectivity, not only offline.
+- **Network state is a background concern by default**, and visibly narrows the
+  available action set **only as a named exception** (§2.9). "Invisible" survives
+  as the rule; §2.9's deferrability test is the only thing permitted to break it.
+
+**What did *not* change, and it matters more than what did:** the write path is
+still byte-identical online and offline (§2.4); the UI still never reads from the
+network directly (server results are written to the local store first, §6.13); and
+there is still **no offline mode the technician chooses** (§2.10). This is a change
+of read polarity and offline *scope* — not a return to the mode split §5.1 exists
+to reject.
+
+**Why this is the smaller change it looks like.** Because *"row identity never
+changes across the lifecycle"* was already locked (§6.13), the surviving row
+lifecycle is a strict **subset** of the superseded one. Re-adding a `stub` state
+and a fixed projection later would touch neither row identity, nor the grid, nor
+the outbox — which is why deferring fleet-wide offline search costs nothing
+structurally, and why the instrumentation question in §20 is worth answering
+before anyone builds it.
 
 ## 2.2 Local database — and why it makes this a native app
 
@@ -36,14 +73,18 @@ Core pattern agreed in a separate technical session. All UX decisions must remai
 **The offline model forces a native target (locked 2026-08-25, user
 direction).** This was previously left implicit while the header cell
 claimed "responsive PWA," which was a straight contradiction. Four
-reasons, narrowest first:
+reasons, narrowest first — **amended 2026-09-08, one retired and one added,
+and the conclusion is now more firmly held than before:**
 
 1. **`op-sqlite` is React Native-only.** There is no browser build. If it
    is the engine, the app is native — there is nothing to decide.
-2. **WatermelonDB's web adapter does not give FTS5.** It runs on
-   LokiJS/IndexedDB. §2.6 Tier 2 specifies "instant offline *contains*
-   search via FTS5" across tens of thousands of stub rows; the web adapter
-   cannot serve that.
+2. ~~**WatermelonDB's web adapter does not give FTS5.**~~ **Retired
+   2026-09-08.** It rested on Tier 2's "instant offline *contains* search
+   across tens of thousands of stub rows," which §2.1 withdrew. Search now
+   spans the work set plus manually cached records — hundreds of rows, not
+   tens of thousands — and that does not need FTS5 at scale. **This was
+   never a load-bearing reason**; reasons 3 and 4 are, and both are about
+   *writes*, which no option changes.
 3. **Background Sync is Chromium-only.** The API is absent from Safari, so
    "the outbox drains opportunistically whenever a connection exists"
    (§2.4/§2.5) cannot hold on iOS in a browser — it would drain only while
@@ -52,6 +93,10 @@ reasons, narrowest first:
    non-installed site is subject to eviction, including ITP's 7-day rule.
    "A punch-list record or an unsent edit can never be lost" (§2.3) is not
    a promise a browser tab can make there.
+5. **ArcGIS Runtime's offline maps are native** (added 2026-09-08). R2's
+   map requirement is **Phase 2** (§28), so this reason is not load-bearing
+   *yet* — but it is directional, and it means the native decision does not
+   need revisiting when Phase 2 starts.
 
 **Not overclaiming:** a browser-based offline app is not strictly
 impossible — `wa-sqlite` over OPFS (Safari 17+) gives real SQLite with FTS5
@@ -60,11 +105,16 @@ the table**, Background Sync still does not exist on Safari, and the
 durability guarantee stays weaker. So it is a different architecture
 decision with real capability loss, not a delivery-target toggle.
 
-**Consequence for the "Contractor / BYOD" requirement:** the SWG asked for
-browser-native access, and this architecture does not deliver it. That is
-now tracked as genuinely open (§20) rather than treated as answered — see
-that entry for the likely resolution, which is a distribution question
-rather than an architecture one.
+**Consequence for the "Contractor / BYOD" requirement — substantially better
+than it was (revised 2026-09-08).** The SWG asked for browser-native access,
+and this architecture still does not deliver it. But §2.10's replication
+switch means a contractor can be assigned **no offline profile** and run as an
+**online-only user of the one unified app** — same screens, same components,
+same writes through the same outbox, with **no customer data at rest on an
+unmanaged device**, which is usually the real objection behind the request. So
+the theme is now **answered for reads and writes, and unanswered only for the
+install**, which is a distribution question rather than an architecture one.
+§20 tracks the residue.
 
 ## 2.3 Hydration sequence
 
@@ -110,16 +160,151 @@ layout and you fetch the code universe blind; fetch them *after* and you
 fetch a scoped subset. **Layout first is what keeps 0f small.** That is the
 strongest argument for the ordering, stronger than criticality alone.
 
+**Two pieces of competitor evidence that this tier is real** (added
+2026-09-08, researched from shipping products): ServiceMax ships a
+**separate Configuration Sync** distinct from its record sync, and Maximo's
+offline inspection forms **fail outright** when their domain/reference data
+does not arrive. That is "configuration does not degrade" observed in
+production, at LOV grain, on this project's own §16 screen type — the
+argument for Tier 0 is not theoretical.
+
 ### Then the record tiers, in the background
 
-- **My open pinned work orders** (Tier 1, ~20–200 records): ~5 seconds
-- Site assets: ~15 seconds
-- Long-tail lookups / remaining code domains: ~30 seconds
+**Revised 2026-09-08** for §2.1's polarity and §2.7's policy registry. Tier 2
+(the fleet-wide search index) is **gone**, and "site assets" was never a
+replicated bulk — equipment arrives by reachability, not by entity (below).
+
+- **My open pinned work orders** (Tier 1, ~20–200 records) — *fully hydrated
+  records **+ their children + their declared depth-1 references*** (amended
+  2026-09-08): ~5 seconds
+- **Records the technician manually cached** (R5 / §2.7's `on-demand` policy),
+  traversed the same way: on request, non-modal
+- Long-tail lookups / remaining code domains (`reference` policy, §2.8 row 1):
+  ~30 seconds
 - Historical documents: ~90 seconds+
-- User is practically offline-capable within ~30 seconds
+- User is practically offline-capable **for their own work** within ~30 seconds
 - **No blocking modal on launch** — progressive hydration replaces it; the
   app is usable immediately and fills in as each tier completes in the
   background.
+
+### Reachability traversal — how a root acquires its rows (accepted 2026-09-03)
+
+The policy registry (§2.7) says *whether* an entity can be offline; traversal
+says **which rows**. This is the rule that makes §2.8 row 2 and R5's manual
+caching work at all, and it holds regardless of read polarity.
+
+> **A hydration root pulls its declared children (downward, bounded by the
+> root) and its declared references (outward, depth-1). References are
+> TERMINAL by default:** the app does not traverse a referenced record's own
+> children or its own references. Any onward hop must be **explicitly declared
+> and explicitly capped**.
+
+**The default-terminal half is the entire rule.** Without it, `WO → equipment →
+parent equipment → its children → their WOs → their equipment → …` is a
+transitive closure over the whole database reached in four hops from one work
+order. That is not a hypothetical; it is the shape of every "why is our offline
+app 800 MB" post-mortem.
+
+**Roots — traversal is triggered by hydration, not by a row existing:**
+
+| Root | Traversal |
+| --- | --- |
+| A **work-set** WO (Tier 1, `pinned = 1`) | full — children + depth-1 references |
+| A **manually cached** record (R5) | full — **required**, or R5 delivers a pinned record with blank fields, which is worse than not caching it |
+| A **demand tap** while online | full, at tap time — this is what makes the record usable when connectivity later drops |
+| An **ephemeral** server-search result | **none**, deliberately. Traversing every search result makes every search expensive. Consequence: an ephemeral row can render with **unresolved references**, which is a real UI state and a §20 gap |
+
+**Where it stops — five termination rules:**
+
+1. **References are depth-1 and terminal**, unless declared otherwise.
+2. **`reference`-policy entities are never traversed** — they are replicated
+   whole (§2.8 row 1). Traversal must not fetch code-domain rows individually;
+   that is both slow and redundant. **Traversal applies only to the `work-set`
+   and `on-demand` policies**, i.e. entity-scale rows.
+3. **Declared onward hops are the only exception**, each with its own cap. The
+   one this app needs is the **equipment ancestor chain** (§7.4's Structure Tree,
+   the Equipment Lookup's Structure tab) — **ancestors only, never children**,
+   since following an equipment's children pulls a Route of 156 (§16.9) plus
+   everything under it. **Do not implement it as a recursive edge:** an
+   equipment→parent hop is a self-reference, and D365's offline profile refuses
+   self-references and circular references outright — a signal that recursion is
+   the wrong *shape*, not merely an unbounded one. **The server flattens the
+   ancestor chain** into a denormalised path or fixed ancestor columns on the
+   equipment row, which keeps both consumers working and **removes the
+   configurable depth N entirely.**
+4. **Never traverse from a reference back into transactions.** An equipment's WO
+   history, meter readings and cost data are `server-only` (§2.7) and are the
+   single largest thing a naive traversal drags in.
+5. **A closure cap, enforced server-side at payload assembly.** If the closure
+   exceeds it the payload is **truncated with a stated reason**, never silently.
+   **Sized per collection, not per graph:** D365 permits 15 relationships but at
+   most **one** to-many among them, while a WO has roughly eight to-many
+   children — a platform allowing one is saying to-many traversal is the
+   expensive axis. So the binding constraint is a **per-collection row cap**
+   (checklist items, parts lines, labor lines, comments, each placed UDS tab),
+   not the number of edges.
+
+**Worked example — why this is not the million.** 200 work orders in the work
+set:
+
+| | Rows |
+| --- | --- |
+| WOs | 200 |
+| children (activities, checklist items, parts lines, labor lines, comment/doc metadata) | ~2,000–4,000 |
+| **referenced equipment, deduplicated** | ~120–180 (many WOs share assets) |
+| equipment ancestors | ~40–80 (and now flattened server-side rather than traversed) |
+| referenced employees (assigned-to, reported-by), deduplicated | ~30–60 |
+| **referenced code-domain rows** | **0 — replicated whole per §2.8 row 1** |
+
+**Order 200–300 additional master-data rows.** **Deduplication is doing most of
+the work, and that is the whole point:** the closure is bounded by *the work*,
+not by the registry. This is the direct answer to "downloading a million
+equipment just to create a work request is crazy" — the million never comes
+down, and a work request against an *unknown* asset does not need it to (it
+carries a scanned tag or typed code, and the server resolves it on sync). Note
+too that this same set is what §2.8 row 2 offers as the offline Equipment LOV:
+**one mechanism, two consumers.**
+
+**Closure assembly is server-side**, for §2.3's own reason: one round-trip
+inside a wait that already exists, rather than a chatty client walking the graph.
+The client-side alternative is an N+1 fetch per root — chatty and slow on exactly
+the connections this app exists for.
+
+**First-pass traversal declaration for Work Order** (proposal, not locked — the
+value is the shape, and every `terminal` marking is a decision to *not*
+download something):
+
+```
+WORK_ORDER  (root: work-set | manual-cache | demand-tap)
+  children  (downward, bounded by the root)
+    activities, checklist_items, parts_lines, labor_lines,
+    comments, document_metadata, wo_equipment (Route/MEC rows),
+    uds child tabs      -> ONE EDGE PER *PLACED* UDS (§27.5)
+    custom_field_values -> ONE EDGE, fixed key (§22)
+    (UDFs need no edge at all — they are columns on the record)
+  references (outward, depth-1, TERMINAL)
+    equipment            -> + server-flattened ancestor path
+    assigned_to, reported_by  -> employee
+    department, problem_code, priority, organization
+                         -> `reference` policy: already replicated
+    wo_type, status      -> replicated, and additionally definition-gated (§2.8 row 3)
+  never traverse
+    equipment -> work_orders | meter_readings | cost | documents
+    equipment -> children
+    employee  -> anything
+```
+
+**The edge set is a product-declared core plus a configuration-supplied
+extension**, and the extension is **derived from page layout, not an independent
+artifact**: a UDS child tab traverses **iff it is placed in the resolved page
+layout** (§27.5). This is the natural extension of this section's own "layout is
+first because layout scopes everything after it" argument — resolve layout and
+you also know which UDS edges traverse. Because layout resolves per
+`PLO_WOTYPE`, **the UDS edge set is per WO Type**. Two consequences: no new Tier 0
+bundle and no new version stamp, and the closure cap stays a **safety net**
+because *placement* is the real bound. With UDFs (no edge), Custom Fields (one
+fixed-key edge) and UDS (one edge per placed screen) all placed, **this
+declaration is complete** rather than provisional.
 
 **"My open pinned work orders," not "today's WOs" (corrected 2026-08-25).**
 The punch list is **not date-scoped** under either candidate mechanism
@@ -179,24 +364,277 @@ the rule — folding the fetch into the wait that already exists does not.
 - UI reflects the change instantly
 - Sync engine drains the outbox to the API in the background when connected
 
+**The write-enabled set is small and enumerable (added 2026-09-08).** This is
+the direct consequence of R1 and §2.7's registry, and it is what makes R6
+tractable at all: **WO status / step state, checklist results, labor bookings,
+part issues, meter readings, comments, attachments** — plus GIS features on
+their own channel when Phase 2 lands (§28). That is roughly **seven EAM write
+shapes**. A real per-entity conflict UI is buildable for seven; it is not
+buildable for sixty. Everything else the app can reach is read-only offline by
+declaration, not by omission.
+
 ## 2.5 Reconnect / re-sync
 
 - Outbox flushes in order with idempotency UUIDs
 - Delta pull via last_synced_at cursor — server returns only changed records
-- Conflicts resolved last-write-wins by timestamp
+
+**Conflict handling is per write shape (locked 2026-09-08, replacing
+last-write-wins).** The original rule — *"conflicts resolved last-write-wins by
+timestamp"* — is **withdrawn**: LWW is **silently lossy**. If the server wrote
+last, the technician's edit is discarded and there is no discrepancy left to
+surface, which is precisely the failure R6 asks to eliminate and precisely the
+*"did my transaction actually land?"* trust problem this app exists to fix. Over
+§2.4's enumerated set this is **four rules, not sixty**:
+
+| Write shape | Rule |
+| --- | --- |
+| status / step transitions | a state machine, not a value → **reject and surface**; never LWW |
+| field edits on a hydrated record | detect, surface **both** values, let the technician choose |
+| comments / attachments | append-only → cannot conflict |
+| labor bookings / part issues / meter readings | inserts → the idempotency UUID already covers it |
+| Custom Field values (§22) | one row per `(entity, record key, field code)`, so cardinality is known → takes the **field-edit** rule with no ambiguity |
+| GIS feature edits (Phase 2, §28) | ESRI replica sync → **its own** surface, never the EAM outbox |
+
+**No write is ever silently discarded** — that is the invariant, and it is
+required under every option that was on the table, not just this one. §4.4's
+trouble-field banner and §4.5's Sync Status Screen are already the right home;
+what was missing was never the surface, it was the guarantee that a write
+*reaches* the surface instead of being dropped by LWW.
 
 ## 2.6 Related architecture extensions
 
-**Tiered record model / offline search.** Decouples "synced" from "visible" via four record tiers (work set / search index / demand cache / server search). **§6.13 is the only home for these rules** — its decision table, the row-lifecycle state machine and the projection rules all live there. The former `EAM-Mobile-Offline-Search-Architecture-Summary.md` was retired 2026-08-25 (§21) after drifting from this doc; don't reinstate a parallel summary.
+**Tiered record model / offline search — reduced to three tiers 2026-09-08.** It still decouples "synced" from "visible," but **Tier 2 (the fleet-wide search index) is superseded** by §2.1's online-first polarity: what remains is the **work set** (Tier 1, guaranteed offline), **on-demand / manually cached** records, and **server search** at full fidelity. **§6.13 is still the only home for these rules** — the surviving decision table and row lifecycle live there, and §21 records what was removed. The former `EAM-Mobile-Offline-Search-Architecture-Summary.md` was retired 2026-08-25 (§21) after drifting from this doc; don't reinstate a parallel summary.
 
-**Tier 0 sits in front of all four and is not one of them** (added 2026-08-25, §2.3). Bootstrap configuration — identity, nav/function resolution, page layout + workflow tables + custom-field definitions, status authorizations, dataspy definitions, and the code domains layout references — is fetched inside the login round-trip, persisted, versioned, and exempt from eviction. The four record tiers all assume it is already there: Tier 1 cannot *render* a hydrated WO without a layout, and Tier 2's stub rows cannot show descriptions without the code domains. Keep the numbering distinct so nobody plans configuration on record semantics.
+**Tier 0 sits in front of them all and is not one of them** (added 2026-08-25, §2.3). Bootstrap configuration — identity, nav/function resolution, page layout + workflow tables + custom-field definitions, status authorizations, dataspy definitions, and the code domains layout references — is fetched inside the login round-trip, persisted, versioned, and exempt from eviction. Every record tier assumes it is already there: Tier 1 cannot *render* a hydrated WO without a layout, and a server-search result cannot show descriptions without the code domains. Keep the numbering distinct so nobody plans configuration on record semantics.
 
 **The punch list — open decision, two options.** Tier 1 (the guaranteed-offline work set) is defined by a per-user punch list of work orders. The mechanism that produces that list is deliberately undecided; two candidate options are on the table for the development kickoff:
 
-- **Option A — Static sync dataspy.** A configured dataspy defines the punch list, set at the user-group level and overridable down to a specific user. Zero new base schema; admins already know dataspies; the security model already governs them; the server-side dataspy pre-evaluation capability (needed for Tier 2 regardless) delivers it. Trade-offs: assignment logic is re-derived in dataspy SQL per customer, there is no provenance, and nothing is reusable for the personalized home screen, supervisor views, or notifications.
+- **Option A — Static sync dataspy.** A configured dataspy defines the punch list, set at the user-group level and overridable down to a specific user. Zero new base schema; admins already know dataspies; the security model already governs them; the server-side dataspy pre-evaluation capability delivers it — though **weaker since 2026-09-08**, since that capability was previously needed for Tier 2 regardless and Option A now has to justify it alone. Trade-offs: assignment logic is re-derived in dataspy SQL per customer, there is no provenance, and nothing is reusable for the personalized home screen, supervisor views, or notifications.
 - **Option B — PIN enhancement (R5PINS).** A materialized projection of all assignment sources into one table with provenance; a base-EAM enhancement with its own spec: EAM-DESIGN-Pinning-Enhancement-v1.md. Assignment is resolved once and consistently, lifecycle is automatic, and the table backs several roadmap features. Trade-offs: real base-EAM work (new table, app-layer hooks, async diff job) plus its open design decisions.
 
 Either way, the device-side contract is identical: a WO-ID membership list arrives at sync time and stamps pinned = 1 on wo_index rows. Tiers, eviction rules, and device behavior do not change with the choice — the mobile design does not block on it.
+
+**New evidence for Option B (added 2026-09-08), from the existing product's own
+briefs.** Mobile Offline's default download is *already* a multi-source
+projection, and it is hardcoded: (1) WOs **Assigned To** the logged-on user's
+employee; (2) any WO activity with a **Schedule Labor** record for that employee;
+(3) any with a **Dispatch Labor** record for that employee; (4) any with a
+**Dispatch Labor** record for that employee's **crew**, gated on the employee's
+*"Determines Crew Location for Dispatching"* checkbox. Those four rules are
+precisely what the `R5PINS` projection is specified to materialise **with
+provenance**, and today they resolve as hardcoded logic with none. Under Option A
+every customer re-derives all four in dataspy SQL, crew-flag condition included —
+which confirms Option A's stated weakness against a real rule set rather than an
+assumed one. Also: the optimised scheduler's **Dispatch Sequence** already flows
+through to the map WO icon and the WO list and refreshes on reload, so **any**
+punch-list mechanism has to carry it. Separately, the market default for
+Option A's shape is a **capped and validated** admin filter (§2.7) — Option A is
+only sound with the guards it currently lacks.
+
+## 2.7 Per-entity offline policy — the declared registry (locked 2026-09-08)
+
+**R1's real content is "offline for only specific entities,"** and that asks for
+a declared **per-entity offline policy**. This — not the tier model — is the
+reusable asset for the organisation's other mobile apps, and the existing product
+already works this way without naming it.
+
+| Policy | Read offline | Write offline | Examples here |
+| --- | --- | --- | --- |
+| `server-only` | ✗ | ✗ | POs, WO history, meter history, cost, reports, deep lookups, **standalone UDS record views** (§27.2) |
+| `reference` (replicated; small, slow-changing) | ✓ | ✗ | code domains, employees, crews, trades, stores, page layout + UDS definitions |
+| `on-demand` (user-cached — R5) | ✓ if cached | ✗ | any WO or asset the technician chose to keep |
+| `work-set` (auto-replicated + traversed) | ✓ | ✓ | pinned WOs + activities, checklist results, parts lines, labor lines |
+| `external-replica` (foreign engine, own lifecycle) | ✓ | ✓ | **GIS features / geodatabase — Phase 2 only** (§28) |
+
+**"The app is offline" stops being a property of the app** and becomes a property
+of each entity. That declaration is what ports to the next app in the portfolio;
+the tier model does not. `external-replica` earns its place by naming GIS as a
+**policy class rather than an exception**, so the next app needing a foreign sync
+engine has a slot to put it in — even while R2 sits in Phase 2.
+
+**How `work-set` and `on-demand` rows acquire their contents is §2.3's
+reachability traversal.** The policy says *whether* an entity can be offline;
+traversal says *which rows*. `reference` rows bypass traversal entirely and
+`server-only` rows are never traversed into.
+
+**Caps are enforced limits, not guidance (adopted from market practice rather
+than derived).** No surveyed product — SAP/Sigga, Salesforce, D365 Field Service,
+ServiceMax, Maximo, MaintainX — replicates a whole entity or ships offline search
+over a full record population; all four of these are platform-enforced somewhere
+in that set:
+
+- a **device-wide record ceiling** (D365 uses ~200,000)
+- a **per-entity row cap** (Salesforce uses 50,000, default 500)
+- a **traversal depth/breadth cap** counting transitive relationships (D365
+  limits to 15 relationships, at most **one** to-many — see §2.3 rule 5)
+- **filters permitted on indexed columns only**
+- **at least one filter per entity; "all records" is refused**
+- an explicit list of entities that **cannot** be offline, enforced **at
+  authoring time** rather than discovered on the device
+
+## 2.8 Lookup resolution offline — a three-way split (accepted 2026-09-03)
+
+Offline, an LOV is **not** served by replicating its source entity. But *how* it
+is served depends on the lookup, and there are **three** cases. The governing
+insight: split lookups by **cardinality and dependency**, not by reachability —
+reachability is the right answer for exactly one of the three rows.
+
+| # | Lookup class | Offline resolution | Why this row exists |
+| --- | --- | --- | --- |
+| **1** | **Bounded code domains** — Department, Problem Code, Priority, Organization, UOM, Closing Codes, Type of Hours, Trade, Assignment Status | **`replicated` — ship the whole domain.** Already Tier 0 `0f`. | Kilobytes. Subsetting buys nothing and costs correctness: a technician who needs the 41st department cannot pick it, and it reads as a **data error** rather than an offline limitation. Maximo ships this defect today. |
+| **2** | **Unbounded entity lookups** — Equipment, Parts, Employees/Crews at scale, Stores/Bins/Lots | **`reachable` — derive the option set from data already on the device** by traversal from the downloaded work (§2.3). | This is where the million-row problem lives, **and the only place it does.** Replication is impossible, a server call is unavailable, and the WO's own referenced records are already present and are what the technician actually needs. |
+| **3** | **Definition-gated values** — WO Type, Equipment system type, Class, Status | **`definition-gated` — a value whose selection re-resolves configuration is offline-selectable only if that configuration is present.** Bounded by what shipped in Tier 0, not by what values exist. | Picking one of these **re-resolves the screen.** The value being present is not sufficient; the thing it points at has to be present too. **Most likely row to be missed — and every member of it is already a locked rule elsewhere in this doc.** |
+
+**Row 2 carries an obligation: announce the scope.** *"Showing the 12 assets on
+this work order — connect to search all."* **Never a silent short list** — this is
+the single highest-risk failure mode of the whole approach, because a short list
+looks like correct data. Same honesty invariant as §6.13's truncation rule, one
+grain down.
+
+**Row 3, member by member.** All four are existing locked rules that now inherit
+a guard rather than each inventing one:
+
+| Value | Depends on | Consequence offline |
+| --- | --- | --- |
+| **WO Type** | the layout for that Type (`R5PAGELAYOUT` on `PLO_WOTYPE`) **plus** the two WO Workflow tables — `0c` | §13.5 makes Type editable pre-Start-Work with an immediate re-render, so **the offline-pickable Type set is exactly the set whose layouts and workflow rows shipped.** §14.11 protects Type from Start Work onward, so this is a pre-start-only exposure — but a real one. |
+| **Equipment system type** | one of the four `PLO_PAGENAME` layouts (§26.8) | Protected in update mode always, so **Insert Mode is the only place it is ever set** — an unavailable layout is *unrecoverable from mobile*, not merely inconvenient. Compounded by those four layouts having no authoring surface yet (§20). |
+| **Class** | §22 custom-field **definitions** for that Class | Class *values* are a code domain (`0f`); the definitions are configuration (`0c`). Pick a Class whose definitions never shipped and you get a record with blank fields nobody can fill. **The two live in different Tier 0 sub-tiers, which is exactly why this is easy to miss.** |
+| **Status** | status authorizations — `0d` | Already locked: §2.3 consequence 3 forbids enabling the write path without `0d`, so the offline status LOV is bounded **by existing rule**. This row just names it as the same mechanic. |
+
+**Keep `definition-gated` and `not-hydrated` distinct** — they are different
+failures with different messages. `definition-gated` means the value or tab
+**should not render at all**; `not-hydrated` means it renders and **says it needs
+connectivity**. Conflating them reports a configuration error as a sync problem.
+Class is the clearest case, because it can fail **both** ways on the same screen:
+definitions did not ship (row 3 — the Class should not be pickable) versus values
+did not traverse (§22 — the fields render and ask for connectivity).
+
+## 2.9 Per-action offline capability — and the resolution of §2.1's tension (shape proposed 2026-09-08)
+
+§2.7's registry declares what each **entity** does offline; that is not
+sufficient. D365 hides unsupported **commands** when the app goes offline, against
+a documented list. This app has no such list and needs one — because the
+alternative is discovering it per screen.
+
+**The test — one question, two outcomes:**
+
+> **Can the server's answer be deferred without the technician acting on a wrong
+> assumption?**
+> **Yes → queue it, and keep the action set stable.** §2.1 holds; this is the
+> optimistic-UI premise and the right default.
+> **No → the action is visibly unavailable, with a stated reason.** §2.1 yields,
+> narrowly and deliberately.
+
+This keeps **§2.1 as the rule** and makes visible narrowing the **named
+exception**, rather than letting either quietly win. And the app will carry both
+paradigms regardless: a GIS feature edit against an online-mode map genuinely
+cannot be queued (§28), so the visible-narrowing pattern is required *somewhere*
+no matter what was decided for records. Better named as a governed exception than
+discovered in the Phase 2 GIS track.
+
+| State | Meaning | UI |
+| --- | --- | --- |
+| `allowed` | fully local; no server involvement | normal |
+| `queued` | accepted optimistically, drains via the outbox | normal, plus the existing §4.4 sync vocabulary |
+| `substituted` | a degraded equivalent exists | the simpler control replaces the richer one |
+| `blocked-visible` | cannot be deferred and has no degraded equivalent; the technician must know it exists and why it is unavailable | present, disabled, **with a reason** |
+| `blocked-hidden` | not meaningful in this state at all | absent |
+
+**Prefer `substituted` → then `blocked-visible` → and only then
+`blocked-hidden`, which needs a justification**, because an absent control is
+indistinguishable from a configuration error. Two obvious `substituted`
+candidates here: an online-only dataspy falls back to the default rather than
+being disabled, and server-search escalation falls back to searching the cached
+scope **with a stated scope** (§2.8 row 2) rather than refusing.
+
+**Field *state* is never one of these five.** §5.2's states (Required /
+Protected / Optional / Hidden / Not Available) resolve from page layout, which is
+Tier 0 config and therefore **identical online and offline**. Nothing becomes
+Protected because the network dropped — no surveyed product does that, and doing
+it would reintroduce exactly the mode split §5.1 exists to reject. **This table
+governs actions and controls, not field states.**
+
+### First-pass enumeration — what a technician can actually do offline
+
+**Proposal, not locked** (first pass 2026-09-03, re-based 2026-09-08 for §2.1).
+The value is in the shape and in the handful of rows that turn out to be
+interesting. Read it as the work-execution answer to "what is on the device and
+what isn't" — §2.7 answers that for *entities*, this answers it for *actions*.
+
+| Action | Offline | Note |
+| --- | --- | --- |
+| Checklist item complete / value entry | `queued` | the canonical offline transaction; every surveyed competitor does this |
+| Status change | `queued` | gated on Tier 0 `0d` being present — **no `0d`, no write path at all** (§2.3 consequence 3) |
+| **Start Work** on a **hydrated, pinned** WO | `queued` | |
+| **Start Work** on a **non-hydrated** WO | **`blocked-visible`** | §14.11: starting a searched WO *is* the promotion into Tier 1, and it must hydrate children. Already documented as needing connectivity — this table gives it a state and an obligation to explain itself |
+| Book labor | `queued` | crew expansion (§18.7) resolves against the local `crew_employees` snapshot |
+| Issue parts — planned lines | `queued` | |
+| Issue parts — ad-hoc part not in the local stock snapshot | **`blocked-visible`** | bin stock is server truth (§17.11); accepting it optimistically means issuing stock that may not exist |
+| WO Closing | `queued` | |
+| Add comment | `queued` | append-only, cannot conflict (§2.5) |
+| Attach a document | `queued` | upload deferred |
+| **View** a non-cached document | `blocked-visible` | presigned URLs expire and previews are unavailable offline — already locked (§7.2); the 38px slot degrades to a file-type badge by design |
+| Insert WO / Equipment (Insert Mode) | `queued` | needs a client-side temp key + server rekey on sync, and may carry an **unresolved** equipment reference (a scanned tag the server resolves) |
+| Search within the cached scope | `allowed` | **must state the scope** (§2.8 row 2) |
+| Run the active dataspy offline | `substituted` | it filters what is on the device, under the scope rule. If its predicates can't be evaluated locally it falls back to the default view — **never disabled.** *(Revised 2026-09-08: this used to be two rows, `allowed` for an offline-capable dataspy and `blocked-visible` for an online-only one. Classification is gone with the index — there is no longer any such thing as an online-only dataspy.)* |
+| Server search | `substituted` | falls back to cached-scope search **with the scope stated**, rather than refusing. *(Was `blocked-visible` as a Tier 4 escalation; under §2.1 server search is the primary path, so its offline degradation matters more and deserves the better state.)* |
+| Manually cache a record — "keep offline" (R5) | **`blocked-visible`** | it has to fetch and traverse, so it needs connectivity by construction. Worth stating because the control is most tempting exactly when it cannot work |
+| Retry / discard a failed outbox item | `allowed` | queue management is entirely local — and this is **R6's core surface**, so it must never depend on connectivity |
+| Open a **UDS child tab** placed in the resolved layout | `allowed` | its rows traverse with the record, indefinitely (§27.5) |
+| Open a **UDS child tab** on a re-typed WO whose rows never traversed | `blocked-visible` | renders and says *not hydrated* — otherwise indistinguishable from a legitimately empty tab (§27.5's mirror case) |
+| Open a **standalone UDS record view** | **`blocked-visible`** | permanently `server-only` (§27.2). **Never `blocked-hidden`** — a nav destination that silently vanishes offline is this table's own worst failure mode |
+| **Main Isolation** (Phase 2) | `allowed` **iff** the four `r5mainisolation*` tables were downloaded | the **action-level** analogue of §2.8 row 3: an action gated on whether its reference data shipped. The opt-in already exists in the shipping product (§28.4) |
+| GIS feature create / attribute / geometry edit — map in **offline** mode (Phase 2) | `queued` | into the ESRI replica, **not** the EAM outbox (§28.2) |
+| GIS feature create / attribute / geometry edit — map in **online** mode (Phase 2) | **`blocked-visible`** | the shipped product already blocks this and notifies (§28.3). **The one place visible narrowing is unavoidable** — and the reason this whole table exists |
+| GIS feature delete (Phase 2) | `blocked-hidden` | not implemented in the product at all (§28.1) — a justified absence |
+| Anything requiring a server-side rule, flow or recalculation | `blocked-visible` | the general case |
+
+**The last row is a trap for the conditional-field-rules work (§13.1–§13.4).**
+D365 documents that offline *"any actions that require an API call, server call,
+or Power Automate flow will not work."* If a field-level condition is evaluated
+server-side it **silently does not apply offline** — the form accepts values the
+server will later reject, which is §2.3 consequence 3's failure mode arriving
+through a different door. That is the third one-way door recorded in §20.
+
+**Who authors this list is a different answer from §2.7's registry**, and the
+distinction is the point. Entity offline policy is **customer-configured scope**
+— it belongs with Sync Config and gets capped and validated. Per-action
+capability is a **product-declared architectural fact**: whether Start Work can
+complete without a server is not a customer preference. So the list is
+**product-owned and versioned with the app — deliberately not a Screen Designer
+control** (§20). Screen Designer already has unbuilt controls owed to it; adding
+a fourth that nobody should be editing would be a mistake.
+
+## 2.10 Is "offline" a switch? — profile assignment, not a boolean (shape locked 2026-09-08)
+
+**First, decompose it.** "Offline" is three capabilities, not one, and only the
+third is switchable:
+
+1. **Tier 0 configuration — always persisted.** Never switchable; without it
+   there is no renderable screen (§2.3 consequence 2).
+2. **The outbox — always on.** It serves R6 / transaction confidence, which is a
+   High VoC theme **independent of offline**: a save dropped mid-request happens
+   at full connectivity.
+3. **Record replication — the only switchable layer.**
+
+**Second, it is not a boolean — it is profile assignment.** An **offline
+profile** is a named bundle of §2.7's entity registry, its caps, §2.8's lookup
+classes and Sync Config, **assigned on User Group Setup** per §26.5's binding
+paradigm. **"None" is the off state.** Primary grain is **user group**, with a
+**device** axis applied as `min(group, device)` and per-user as override only.
+
+**The line against "this is a mode."** It will be challenged against the SWG's
+*"not a mode choice,"* so state it plainly: an **admin-provisioned capability,
+invisible to the technician and fixed for the session, is provisioning** — the
+same category as nav slots or dataspy assignment. It changes what the app *can
+do* for that user; it never changes what the app does moment to moment. The
+technician is never asked to choose.
+
+**One real design consequence: §4.4.1's sync control changes meaning** and needs
+a distinct state or copy. For a replicating user, "Offline" means *working from
+the device*; for an online-only user it means *you cannot load work*. **Same
+icon, opposite promise** — and this is the only place the switch is visible to
+the technician at all, which is the correct amount of visible.
 
 # 3. Design System
 
@@ -528,9 +966,9 @@ Entry point: the top-left slot of the per-screen nav bar (§4.2), visible
 only while browsing — not a bottom-nav item. Reference:
 `docs/existing_use_cases/EAM.MOBILE.REQ.Settings.doc` (legacy Mobile
 Settings) — reference only; legacy Mobile's own architecture is a
-different, semi-connected model from this app's offline-first design
-(§2), so don't carry over its sync-config mechanics, only its
-screen-level scope ideas.
+different, semi-connected model from this app's own architecture
+(§2 — online-first with declared offline scope), so don't carry over its
+sync-config mechanics, only its screen-level scope ideas.
 
 **Shell — 100% reused, no new menu component.** Tapping the avatar opens
 the exact same `.rec-actions-menu`/`.rec-actions-item`/
@@ -957,9 +1395,10 @@ for the retired bespoke version.
 ## 6.6 List table anatomy
 
 Superseded 2026-07-20 — see §8.3's List mode: shows every field
-available on the WO dataspy (all locally-synced fields offline, full
-server columns via Tier 4 online escalation), not a fixed 5-column
-layout. See §21 for the retired bespoke version.
+available on the WO dataspy (full server columns online, which is now the
+normal case; offline, whatever is actually on the device, with its scope
+stated), not a fixed 5-column layout. See §21 for the retired bespoke
+version.
 
 ## 6.7 WO colour language
 
@@ -1014,30 +1453,35 @@ version.
 
 ## 6.13 Search Functionality — Design Decisions
 
-Added: July 2026. Source: offline search architecture sessions (tiered record model). See also §2.6.
+Added: July 2026. Source: offline search architecture sessions (tiered record
+model). **Substantially reduced 2026-09-08** when §2.1 reversed the read polarity:
+**fleet-wide record search does not work offline**, so the Tier 2 index and
+everything that existed to serve it are superseded (§21). What remains below is
+the part that was never about the index — the row lifecycle, the local-store
+contract, and the rule that the UI never reads from the network. See also §2.6.
+
+**Search, in one line: online-first at full fidelity; offline it covers the work
+set plus what the technician cached, and it says so.**
 
 | Decision | Rationale |
 | --- | --- |
-| **"Synced" ≠ "visible"** | The old assumption that a record must be fully synced to be searchable is false. Decoupling the two is what makes offline search of thousands of 150-field WOs tractable. |
-| **Four-tier record model (Work set / Search index / Demand cache / Server search)** | Matches the offline guarantee to actual need — full data for active work, a lightweight index for search, on-demand hydration for occasional access, online escalation for full-fidelity search. |
-| **The card surfaces exactly 6 fields — a display rule, not the storage projection** | Set 2026-07-20 (redefined then from an approximate "~8–12"), and **re-scoped 2026-08-26** to say only what the number was ever about: 6 is what §8.3's card/filter/sort standard *presents*, drawn from the **active** dataspy's own column order. It was originally justified as coupling the UI standard and the sync payload to "one number, not two that can drift" — **that coupling is withdrawn.** The declared-projection row below sizes **storage** independently (order ~10–20 `Indexed` columns, FTS5 over the text among them), because a bounded index has to serve an unbounded dataspy population rather than whichever 6 columns one dataspy happens to show. Display and storage are two numbers now, deliberately. Storage stays cheap either way — tens of thousands of narrow rows is trivial for SQLite, and column *count* is not the cost driver (see the scaling row below). **Both numbers are provisional, pending design confirmation** (§20). |
-| **The Tier 2 projection is *declared*, never derived from the dataspies** | Locked 2026-08-25 (revised same day — see §21 for the union-default version this replaced). **Dataspies are unbounded:** admin-published *plus* user-authored, on any screen in the system carrying records, and users normally have permission to create them. So the indexed column set cannot be computed from them — any user saving a query would reshape every device's index. The projection is therefore a **bounded set of columns declared per field by an `Indexed` flag in Screen Designer**, sized by the admin (order ~10–20 columns), independent of how many dataspies exist. This is a *primary* source, not an override on a computed default. §8.3's card rule is untouched — the card still draws its 6 from the **active** dataspy's own column order — but the honest consequence is that **a dataspy referencing a non-indexed column cannot be served offline** (next row). Authoring the set is a real admin responsibility, not a defaulted convenience, and that is the cost of the unbounded case. |
-| **A dataspy is a saved filter over the index, classified — not a shipped membership list** | Locked 2026-08-25. Follows from the row above plus the same unbounded-count fact. At sync time the server **classifies** each of the user's visible dataspies rather than evaluating it: a dataspy whose predicates *and* display columns fall entirely inside the declared `Indexed` set is **offline-capable** and runs as a local query over `wo_index`; any other is **online-only**, served by the Tier 4 escalation. Classification is a metadata comparison, not SQL execution, so it stays cheap at any dataspy count — which is what makes the unbounded case tractable. **Nothing per-dataspy ships**, so switching between offline-capable dataspies remains zero-network and instant, and an unbounded dataspy count costs no payload. **This is not a new device capability:** §8.3's filter chips and sort *already* evaluate predicates locally over these same columns, so a dataspy is a saved set of exactly what the UI already does. What the device does need is each dataspy's **criteria in a normalised form** (not raw SQL) — see §20. An online-only dataspy must **say so** rather than silently under-returning. |
-| **Index scope is its own configuration — the index is not "All Work Orders"** | Locked 2026-08-25, closing a hole nobody had noticed: the "Sync Config dataspy repurposed" row below explicitly scopes **Tier 1** and disclaims the whole local DB, so **nothing defined what populated Tier 2 at all**. It is *not* the broadest dataspy: "All Work Orders" in a mature install means every WO ever raised, mostly closed history, which at ~450 bytes/row runs to hundreds of MB and breaks device storage. Two bounds, one of which was already locked and unconnected: **(a)** the row-lifecycle state machine above already deletes a stub when index sync reports the WO closed — so the index is **open work orders by construction**; and **(b)** the remaining extent (site, org, age) is a **configured index scope**, authored server-side, exactly parallel to how Sync Config scopes Tier 1. Deliberately **not** derived from the display dataspies: if it were, an admin adding a dataspy would silently change every device's storage footprint, invisibly at authoring time. **Invariant:** every dataspy must be a subset of the index scope, or the UI must say so — "showing 412 of ~9,000, connect for the rest", never a silent truncation. |
-| **The projection is authored in Screen Designer, not in a new mobile-dataspy admin screen** | Locked 2026-08-25. The decisive reason is *delivery*, not authoring taste: page layout is already Tier 0's `0c` (§2.3) — fetched inside the login round-trip, persisted, versioned per domain, exempt from eviction — so a per-field `Indexed` flag authored alongside layout rides that vehicle for free. A separate mobile-dataspy artifact would need its own Tier 0 slot, its own version stamp, and its own line in the bootstrap contract §20 already lists as undefined. It also fits the existing interaction exactly — Screen Designer already sets per-field state (Required/Protected/Optional/Hidden/Not Available) by right-click, so `Indexed` is the same gesture on the same surface rather than a new paradigm — and it matches §26's split of **definition** (Screen Designer) from **assignment** (User Group Setup). |
+| **"Synced" ≠ "visible"** | Survives the reduction, at a narrower scope. A record can be *visible* from a server query without being *synced*, which is what lets one grid mix server results with local work-set rows and no special-casing. It no longer implies an on-device index of records the technician does not hold. |
+| **Three record tiers: work set / on-demand cache / server search** | Reduced from four 2026-09-08. Full data for active work (§2.3 Tier 1), user-cached records for R5, and **server search at full fidelity** for everything else. The dropped tier is the lightweight fleet index. |
+| **Offline search is scoped, and announces its scope** | Replaces the index-freshness caption. Offline, search covers the work set and cached records only, and must **say what it covered** — *"showing the 12 assets on this work order; connect to search all"* — never a silent short list (§2.8 row 2). A short list looks like correct data, which is why this is the highest-risk failure mode of the whole approach. |
+| **Dataspies execute server-side, at full fidelity** | Locked 2026-09-08, and it is the one place this reduction makes the product *better* rather than cheaper. All fields, all joins, all predicates, identical to desktop — no declared column set to author, no classification step, no offline/online-capable split to explain, no truncation caption. **R4 is satisfied rather than compromised.** Offline, the active dataspy falls back to filtering what is on the device, under the scope rule above (a `substituted` action per §2.9, not a blocked one). |
+| **The card surfaces exactly 6 fields — a display rule, not the storage projection** | Set 2026-07-20 (redefined then from an approximate "~8–12"), and **re-scoped 2026-08-26** to say only what the number was ever about: 6 is what §8.3's card/filter/sort standard *presents*, drawn from the **active** dataspy's own column order. It was originally justified as coupling the UI standard and the sync payload to "one number, not two that can drift"; that coupling was withdrawn 2026-08-26, and **as of 2026-09-08 there is no second number at all** — the storage projection went with the index (§21). So this row is now what it always should have been: **a display rule, and the only projection number in the design.** Still provisional, pending design confirmation (§20). |
 | **Real scaling limit = payload size + sync volume, not row count** | Both are already handled by the existing delta-pull cursor. Solves the actual constraint instead of an imagined one. |
-| **Dataspy membership pre-evaluated server-side at sync time** — **narrowed 2026-08-25, no longer the general rule** | Original rationale: the server computes WO-ID membership for saved dataspies and ships it with the index, rather than shipping dataspy logic for local re-evaluation; offline switching becomes instant with no local SQL engine needed. **What narrowed it:** dataspies are unbounded and user-authored, so "pre-evaluate each saved dataspy per user per sync" is unbounded server work and unbounded payload. Membership shipping is now reserved for the cases where the set is **small and server-authoritative** — Tier 1 / the punch list (§2.6), where `pinned = 1` genuinely has to come from the server. General dataspy handling is the **classify-and-evaluate-locally** rule above. Note punch-list **Option A leans on the original, broader reading**, so this narrowing is a live input to that still-open choice, not just a search concern. |
+| **Membership shipping is reserved for the punch list** — narrowed 2026-08-25, **and as of 2026-09-08 that is its entire scope** | Original rationale: the server computes WO-ID membership for saved dataspies and ships it with the index, rather than shipping dataspy logic for local re-evaluation; offline switching becomes instant with no local SQL engine needed. **What narrowed it:** dataspies are unbounded and user-authored, so "pre-evaluate each saved dataspy per user per sync" is unbounded server work and unbounded payload. Membership shipping is now reserved for the cases where the set is **small and server-authoritative** — Tier 1 / the punch list (§2.6), where `pinned = 1` genuinely has to come from the server. General dataspy handling is the **classify-and-evaluate-locally** rule above. Note punch-list **Option A leans on the original, broader reading**, so this narrowing is a live input to that still-open choice, not just a search concern. |
 | **Sync Config dataspy repurposed** | Meaning shifts from "what's on the device" to "what's guaranteed executable offline" — i.e., it now scopes Tier 1, not the whole local DB. |
-| **Tier 4 reuses the existing dataspy SQL search API** | No new server search engine. Online-only escalation reuses what already exists. |
+| **Server search reuses the existing dataspy SQL search API** | No new server search engine. **As of 2026-09-08 this is the primary read path rather than a last-resort escalation** (§2.1) — which makes "reuse what already exists" a stronger position than it was, because the thing being reused is the thing customers already trust on the desktop. |
 | **Online search results are written into the local DB as ephemeral rows** | Preserves "UI reads only from local DB" with zero special-casing — the grid always re-queries locally, network never feeds the UI directly. |
-| **wo_index schema: narrow columns + full_payload JSON blob for the remaining ~140 fields** | Every customer's WO record differs (UDFs, custom fields, config drift); the blob absorbs that variance. Tier transitions become single-row UPDATEs, not schema migrations. |
-| **Lifecycle columns: hydration / pinned / source / last_synced_at vs. fetched_at / dirty** | Each is a distinct axis — completeness, offline promise, provenance, two separate clock domains, and a safety interlock — needed to make tier transitions and eviction safe. |
+| **Local record schema: narrow columns + `full_payload` JSON blob for the remaining ~140 fields** — the table is still called `wo_index` throughout these docs, but **as of 2026-09-08 it is not an index**, and renaming it is dev's call at schema time | Every customer's WO record differs (UDFs, custom fields, config drift); the blob absorbs that variance. Tier transitions become single-row UPDATEs, not schema migrations. |
+| **Lifecycle columns: hydration / pinned / source / last_synced_at vs. fetched_at / dirty** | Each is a distinct axis — completeness, offline promise, provenance, two separate clock domains, and a safety interlock — needed to make tier transitions and eviction safe. **`hydration` survives the reduction with fewer values** — there is no `stub` — and is retained rather than collapsed to a boolean, because §2.3's traversal makes "how complete?" a real question again: a record can be present with all its children and still carry an unresolved reference. |
 | **pinned is orthogonal to hydration** | Separates "guaranteed offline" from "currently has full data," so manual pinning can exist as its own concept. |
 | **Server-search upsert rule: ON CONFLICT refreshes summary fields only** | Never touches hydration, pinned, dirty, or full_payload. A search result can never demote a tier or clobber a local edit. |
-| **Tiers move up via user intent only; down only via explicit LRU/sweep, hard-blocked by pinned/dirty** | Predictable, safe eviction behavior — no silent data loss. |
-| **Row identity (wo_id / FTS entry) never changes across the lifecycle** | This is what lets mixed-origin rows (sync / demand / server_search) coexist in one grid with no special-casing. |
+| **Tiers move up via user intent only; down only via explicit LRU/sweep, hard-blocked by pinned/dirty — and now by refcount** | Predictable, safe eviction behavior — no silent data loss. **Amended 2026-09-08:** §2.3's traversal means a row can be on the device because *another* retained root references it, so the `!pinned && !dirty` interlock gains a third condition — **no other retained root references this row.** Real refcount column vs. recomputed sweep is open (§20). |
+| **Row identity (`wo_id` / FTS entry) never changes across the lifecycle** | This is what lets mixed-origin rows (sync / demand / server_search) coexist in one grid with no special-casing — **and it is the single reason the 2026-09-08 reduction costs nothing structurally.** Re-adding a `stub` state and a fixed projection later touches neither row identity, the grid, nor the outbox (§2.1). |
 | **Row state surfaced via the existing 4-state sync control language** | No new visual system — consistency with the rest of the app's sync vocabulary. |
-| **Index freshness caption shown when offline (e.g. "results as of 2:14 PM")** | Tier 2 stubs are only as current as the last index sync — the technician needs to know that. |
 
 ### Row lifecycle — state machine
 
@@ -1046,19 +1490,31 @@ which was its only home. Row identity (`wo_id` and its FTS entry) is stable
 across every transition below — that stability is what lets mixed-origin
 rows coexist in one grid with no special-casing.
 
+**Reduced 2026-09-08 with the index (§21).** The `stub` state is gone — nothing
+populates it once there is no fleet-wide projection — which collapses five
+transitions to three:
+
 ```
-ephemeral --(index sync)--------------> stub
-stub      --(demand tap / sync)-------> hydrated
-hydrated  --(LRU, only if !pinned && !dirty)--> stub
-ephemeral --(swept after ~24h)--------> [deleted]
-stub      --(index sync reports WO closed)---> [deleted]
+ephemeral --(demand tap / manual cache, while online)--> hydrated
+ephemeral --(swept after ~24h)-------------------------> [deleted]
+hydrated  --(LRU, only if !pinned && !dirty && !referenced)--> [deleted]
+punch-list membership arrives ------------------------> hydrated (pinned = 1)
 ```
 
-Two things this makes explicit that the table above only implies: an
-**ephemeral** row (a Tier-4 server-search result written locally so the UI
-never reads from the network) is deleted outright rather than demoted, and
-LRU demotes `hydrated → stub` — it **never deletes a record**. So an
-eviction can lose *completeness*, never a row's existence or its identity.
+Three things this makes explicit that the table above only implies. An
+**ephemeral** row (a server-search result written locally so the UI never reads
+from the network) is deleted outright rather than demoted. **LRU now deletes
+rather than demotes**, because there is no lesser state to demote *to* — so an
+eviction can now lose a row's existence, which is exactly why the `pinned` and
+`dirty` interlocks and the new `!referenced` condition are load-bearing rather
+than prudent. And `!referenced` is the refcount condition: a row pulled in as
+another root's depth-1 reference (§2.3) must not be evicted while that root is
+retained.
+
+**The superseded transition worth remembering:** `stub --(index sync reports WO
+closed)--> [deleted]` was what made the index "open work orders by construction."
+With no index there is nothing to bound, which is one of the two reasons the
+configured index scope closed as an open item rather than being answered (§21).
 
 **Rejected alternative — a static, non-configurable card projection, with List
 mode online-only.** Considered 2026-08-25, rejected. Its List half needed no
@@ -1075,7 +1531,21 @@ fields, config drift); a fixed projection means a customer whose triage depends
 on a UDF can never surface it on a card, a filter chip or a sort. Don't
 re-propose this without amending §21's two rows first.
 
-Still open, not decided: punch-list mechanism (Option A static sync dataspy vs. Option B PIN projection — see §2.6, and note the membership narrowing above is a live input to it); **the authoring grain for the `Indexed` flag** (§20 — layout is keyed per WO Type, the index is not); **the normalised form a dataspy's criteria take on the device**, which is what makes local classification and evaluation possible at all (§20); **the configured index scope's own shape** — which axes an admin can bound it on, where it is authored, and whether scope is a *second classification axis* alongside the column test above (§20); FTS5 availability in the final DB engine choice; dirty as counter vs. boolean; confirmation that the existing dataspy SQL API can serve Tier 4 as-is.
+**Rejected alternative, and note it is now moot rather than merely rejected:**
+both halves of the argument above turned on the Tier 2 projection, which no
+longer exists. Retained because §21's two rows it depends on are still live and
+someone re-proposing a fixed projection would need them — but the live question
+it now bears on is the **card's** 6, not storage.
+
+Still open, not decided (**six items closed 2026-09-08** — all six were prices of
+the index; see §21): punch-list mechanism (Option A static sync dataspy vs.
+Option B PIN projection — see §2.6, where the new hardcoded-projection evidence
+favours B); the card's 6-field display number; `dirty` as counter vs. boolean;
+refcount column vs. recomputed sweep for the new eviction condition; and
+confirmation that the existing dataspy SQL API can serve the now-primary server
+search path as-is. **FTS5 is no longer an engine exit criterion** — work-set-scoped
+search does not need it at scale — which also retires one of §2.2's four
+native-forcing reasons without touching the conclusion.
 
 # 7. Standard Model — Record View
 
@@ -1678,18 +2148,24 @@ per-module list. Switching dataspy within the same screen/tab can change
 which fields appear, since a different dataspy can expose a different
 column set.
 
-**Offline, this rule has a precondition** (§6.13, 2026-08-25). The Tier 2 index
-holds a **declared** column set — an `Indexed` flag per field in Screen
-Designer, not a set computed from the dataspies, because dataspies are unbounded
-and user-authored. So this rule holds in full for any dataspy whose columns and
-predicates sit inside that declared set: the card draws its 6 from the **active**
-dataspy's own column order, and switching is a zero-network local query. A
-dataspy that references a **non-indexed** column is **online-only** — served by
-the Tier 4 escalation — and must say so rather than silently under-returning.
+**Online this rule holds unconditionally, and that is now the normal case**
+(revised 2026-09-08). The dataspy runs server-side at full fidelity (§6.13), so
+the card draws its 6 from the **active** dataspy's own column order with no
+column-set precondition of any kind. The declared `Indexed` set that used to
+gate this went with the Tier 2 index (§21) — **there is no longer such a thing as
+an "online-only dataspy,"** because every dataspy is served online.
+
+**Offline the rule still holds, over a smaller row set.** The same 6 fields are
+drawn the same way; what changes is *which rows* are there to filter — the work
+set plus manually cached records — and the screen must **state that scope**
+(§2.8 row 2). If the active dataspy's predicates cannot be evaluated against
+what is on the device, it falls back to the default view rather than being
+disabled — a `substituted` action in §2.9's vocabulary, never a blocked one.
+
 Note the same 6 also drive the filter chips and sort options (§21), which is why
 a static, non-configurable *card* projection was separately considered and
-rejected; declaring the *index* is a different question from hardcoding the
-*card*.
+rejected. That rejection stands on its own merits and is unaffected by the index
+being withdrawn.
 
 **The Organization carve-out.** If Organization is present anywhere
 within the dataspy's first 6 columns, it's pulled out of the normal 1–5
@@ -1761,14 +2237,14 @@ separate spec.
 ### List mode
 
 Shows **every field available on the dataspy** — not the curated 6.
-"Available" is tier-dependent, same tiering §6.13 already locked for
-search: offline, that means whatever's actually synced (§6.13's Tier 2
-projection — the **declared `Indexed` column set**, order ~10–20 columns,
-which is wider than the card's 6, see §6.13); true full-column
-completeness, every field the dataspy defines server-side, is
-online-only, via the existing Tier 4 search escalation —
-no new fetch mechanism, List mode just inherits the tiering search
-already has. Horizontally scrollable table, header row with plain-text
+"Available" is tier-dependent, same tiering §6.13 locks for search, and
+**simpler since 2026-09-08**: online — the normal case — that is every field
+the dataspy defines, server-side, at full fidelity; offline it is whatever
+is actually on the device for the work set and cached records, **with the
+scope stated** (§2.8 row 2). The middle case this used to describe, a
+declared ~10–20 column index projection wider than the card's 6, no longer
+exists (§21). No new fetch mechanism either way — List mode just inherits
+whatever search does. Horizontally scrollable table, header row with plain-text
 column labels, same no-icon rule as the card — but the same colour
 language carries over per column (a status column is still a solid
 pill, a type/code column is still coloured text); dropping icons never
@@ -2823,6 +3299,13 @@ exist, and which of those tabs are numbered steps versus "More" entries
 the one field that cannot follow §5.1's "tap it, change it, done" model
 silently.
 
+**Offline, the pickable Type set is bounded by what shipped** (added 2026-09-08).
+Type is a `definition-gated` value under §2.8 row 3 — offline-selectable only if
+the layout **and** the two WO Workflow rows for that Type are on the device.
+Otherwise the confirm succeeds and the re-render has nothing to draw. §14.11
+protects Type from Start Work onward, so this is a **pre-start-only** exposure —
+but a real one. The rule lives in §2.8; this section just inherits it.
+
 **Scope: this section is WO-only.** Equipment resolves its layout off system
 type the same way (§26.8), but that field is **Protected in update mode,
 always** — set once at insert and fixed for the record's lifetime — so
@@ -3422,11 +3905,17 @@ correction, which is a real cost to accept knowingly rather than discover.
 
 This is the case nothing previously covered, and the boundary explains it
 cleanly. A technician can reach a WO by **search** that was never in their
-work set — a Tier 2 stub, or a Tier 3 demand-cached record (§2.6). Start
-Work on that WO is exactly a **Tier 3 → Tier 1 promotion**, and it fits the
+work set — a server-search result, or a record they manually cached (§2.6/§2.7).
+Start Work on that WO is exactly a **promotion into Tier 1**, and it fits the
 existing rule that tiers "move up only via user intent" with nothing new
-added: **Start Work *is* that intent.** Pinning plus child hydration is the
-promotion.
+added: **Start Work *is* that intent.** Pinning plus child hydration —
+and, since 2026-09-03, the **full traversal** of §2.3 — is the promotion.
+
+**Sharper under §2.1's online-first polarity** (noted 2026-09-08): a WO reached
+by search is now, by construction, a record fetched **while connected**. So the
+"promote it" path is the ordinary one rather than an edge case, and the
+connectivity consequence below is not a surprise — it is visible in the fact
+that the technician just used the network to find the record.
 
 For a WO already on the punch list, Tier 1 membership has already hydrated
 its children, so steps 3–4 are a no-op or a top-up rather than new work.
@@ -5019,7 +5508,6 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **Unified prototype compile** | A real compiled shell that invokes the standalone files rather than duplicating them is still being proven out — see `docs/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md` §7–§8 for the current plan; don't build toward the old `prototypes/wo-workflow/index.html` monolith pattern. |
 | **Date/time formatting is hardcoded to `en-US`, not actually locale-driven** | `isoToDisplay()` and `saveDateTime()` hardcode `'en-US'`. The real rule: dates should follow the logged-in user's own locale (this app targets North America/Europe/Asia — DD/MM/YYYY and YYYY/MM/DD are real cases); time-of-day stays fixed 24-hour regardless of locale (deliberate, not a gap — §3.4). No per-user locale/session concept exists yet to drive the date-format switch. |
 | **Activity Screen** | Timer, task plan reference, assignment status (ref: `Activity_Selector.png`). A future standalone Activities tab could double as the real closing surface for Activity-driven WO Types instead of WO Closing (§12) — not designed, not built. |
-| **Offline-search surfacing — needs dev involvement, not a design pass** | Two specified-but-unbuilt items, kept together because they share the same blocker: the **per-row sync affordance** (map the 3 offline-search row states — stub / hydrated / ephemeral — onto the 4-state sync control language at row level) and the **index freshness caption** ("Results as of \<time\>" when offline). Both specified in §6.13, neither in the v5.1 prototype. **Flagged 2026-08-11 (direct instruction): these need more consideration WITH development involved** — what a row can honestly claim about its own freshness depends on how the real sync/index layer actually behaves, so designing the affordance ahead of that risks specifying a state the backend can't report. Don't prototype these from the design side alone. |
 | **Bin pre-fill from stock list** | Selecting a bin in the bin stock list should pre-fill the Bin LOV. Specified in §17.11; not yet prototyped. |
 | **Record-view child tabs — generic-case ellipsis menu contents** | §8's ellipsis menu for a generic child list/detail tab has no locked content yet (Equipment's own instance ships toast-stub candidates only). |
 | **Activity Selector — no cross-screen hand-off for `selectedActivity`** | Once a technician moves past WO Record View into Activity Checklist, Issue Parts, or Book Labor, none of those screens shows which Activity is in scope, and no session/URL hand-off mechanism for `RECORD.selectedActivity` exists. Harmless today (every demo WO has exactly 1 Activity, which auto-selects) but undefined once a WO has 2+. |
@@ -5041,7 +5529,7 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **Booked Labor's Correction sheet content is hardcoded demo data** | The always-ready red Save button is intentional (§18.6), but the sheet's employee/hours-type/department/trade/duration values are fixed demo constants, not technician-entered. |
 | **Booked Labor List has no defined sort/grouping rule** | Rows render in pure insertion order. Fine at today's scale; flag if this list needs to hold more in a real deployment. |
 | **WO › Equipment tab — row-tap destination not locked** | A row is a join record with two useful destinations (equipment master vs. the child WO Route created for it), so §8's "tapping a row opens this record" doesn't settle it. Both flows are built and live-switchable from the screen's dev toggle: `chooser` (**now the default** — card body → 2-option sheet) vs. `split` (card body → related WO, equipment code → equipment record; lost the default because the code target is too fine on a phone). **Both destinations are now real navigation** (2026-08-11 — the child WO was a toast stub until then), so this is finally a fair comparison on a device. Pick one, then lock it in §16.10 and drop this row. |
-| **Conditional field rules — deferred to Phase 4+, one-way doors only** | §13.1–§13.4 records the evaluation model, a 4-tier option ladder, and 5 prerequisites for field-level conditions ("if field X is Y, make Z required / surface another step"). **Deprioritised 2026-08-11 (direct instruction): this is Phase 4+ consideration, not near-term work.** Don't spend design time picking a tier now. The only thing owed up front is identifying **one-way doors** — decisions that would be expensive to reverse once other work builds on them. Two such prerequisites are worth doing regardless of whether any tier ever ships, because retrofitting either later touches every field on every screen: the single `resolveFieldState(field, context)` seam (§13.3 item 1) and the declared-vs-effective field-state split (item 2). Also still owed whenever this resumes: the `docs/Data_refs/Page Layouts perms/` check in §13.4. |
+| **Conditional field rules — deferred to Phase 4+, one-way doors only** | §13.1–§13.4 records the evaluation model, a 4-tier option ladder, and 5 prerequisites for field-level conditions ("if field X is Y, make Z required / surface another step"). **Deprioritised 2026-08-11 (direct instruction): this is Phase 4+ consideration, not near-term work.** Don't spend design time picking a tier now. The only thing owed up front is identifying **one-way doors** — decisions that would be expensive to reverse once other work builds on them. Two such prerequisites are worth doing regardless of whether any tier ever ships, because retrofitting either later touches every field on every screen: the single `resolveFieldState(field, context)` seam (§13.3 item 1) and the declared-vs-effective field-state split (item 2). **A third one-way door, added 2026-09-08: `resolveFieldState(field, context)` must be evaluable *entirely on-device*.** If any condition is server-evaluated it **silently does not apply offline** — which lands in §2.3 consequence 3's failure mode through a different door (the technician sees a field the server would have required, fills the form, and the write is rejected hours later). Cheap to state now, expensive to retrofit, and it does **not** require picking a tier — so it does not violate this row's own "don't spend design time picking a tier" instruction. Also still owed whenever this resumes: the `docs/Data_refs/Page Layouts perms/` check in §13.4. |
 | **Mobile screens hardcode their own field labels and boilerplate** | §26.7 guard rail 3: allowing the workflow on any `EVNT` function only pays off if the mobile screens read labels, boilerplate and help text from the **bound function's** layout rows. Today every label in the prototypes is a hardcoded English string, so a technician on a clone an admin renamed "Customer Quote" would still read "Work Order." This is the consequence of §26.7's decision that reaches furthest into the prototypes, and it is a real dev-side question (where the label catalogue comes from offline) rather than a design one. Opened 2026-08-24. |
 | **Workflow-eligibility validation in Screen Designer** | §26.7's honest replacement for what a single blessed `WFJOBS` would have guaranteed: enabling the WO workflow on a function must check that the tabs §12's step set requires are present and permitted for the target group(s), and refuse or warn when they are not. Shape undecided — hard block vs. warn-and-save, and whether the check runs at enable time, at save time, or both. It is the one piece of genuinely new work Option B creates. Opened 2026-08-24. |
 | **Nav-slot binding storage — shape not signed off** | §26.3 locks the paradigm (access control supplies the candidate functions, config supplies the choice and the order) and the four slot-row fields, but the storage itself — a small new table keyed `(user group, sequence)` — is a proposal, not a confirmed base-EAM object. Needs a call with whoever owns the base schema, together with the smaller question of whether §26.3's curated icon set is authored anywhere or hardcoded. `PRM_MOBILESTARTCARDS` was considered and rejected as the home for it (§26.6). Opened 2026-08-24. |
@@ -5050,21 +5538,27 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **Screen Designer has no Placement control for the "More" group** | Opened 2026-08-25 with §14.8's reframe. The group's membership is now defined as admin-configured — each of the function's tabs carrying `Placement = Step \| More` (§12 tier 2) — but nothing authors it. `eam-screen-designer-v1.html`'s left pane manages numbered steps only; there is no way to place a tab outside the sequence, and no candidate list drawn from the function's permitted tabs. `WO_MORE_TABS` in `eam-shared.js` is the runtime stand-in (data-driven, so it is ready to be fed) with today's three members hardcoded as the default. Needs: the Placement control itself, the permitted-tab candidate list (same source as §26.7's eligibility check), admin-set ordering, and a decision on the icon question this shares with §26.3. Base-track scope, not mobile. |
 | **The "More" group's destination screen is still named `eam-wo-reference-tab-prototype-v1.html`** | Cosmetic but misleading after §14.8's rename (2026-08-25). The file is the WO's Comments + Documents child-tab screen; its name, `goToWoReferenceTab()`, `WO_REFERENCE_TAB_FILE` and the `eamReferenceTab` sessionStorage key all still say "reference," which now reads as a group name that no longer exists rather than as a description of the screen. Renaming touches the file, `screens.html`, and three identifiers in `eam-shared.js` — cheap, but it is churn with no user-visible effect, so it is deliberately deferred rather than bundled into the rename that surfaced it. Note the screen itself is correctly named for what it *does* in §7.2 terms; only the "reference" word is stale. |
 | **`jumpToRvSection()`/`consumeJumpToSection()` are dead machinery** | Pre-existing, confirmed 2026-08-25. `goToWoReferenceTab()` superseded `jumpToRvSection()` when Comments/Documents became a real child-tab screen (§7.2), leaving nothing that sets the `eamJumpToSection` flag — so `consumeJumpToSection()` still runs on every WO Record View load and always returns early. Both functions plus the flag can go. Not removed alongside §14.8's rename because it touches WO Record View as well as the shared file, and it is unrelated debt rather than that change's residue. (`jumpToEquipmentStub()` *was* that change's residue and is already removed.) |
-| **Contractor / BYOD access — the one SWG theme the architecture does not answer** | Opened 2026-08-25 (user direction), and it had been wrongly presented as solved. The SWG theme is "organizations cannot force app installs on contractor-owned devices; **browser-native access is preferred**" (Medium priority — the only non-High theme). §2.2 now establishes that the offline model requires a **native** app, so browser-native access is not on offer. **Likely resolution, and it is a distribution question rather than an architecture one:** "cannot *force* installs" ≠ "cannot install." An organization cannot push a managed app via MDM to a device it does not own, but a contractor can install a public App Store / Play Store app voluntarily. If that satisfies the requirement, nothing about the architecture changes. If it does not, the alternatives all have real cost: a **separate thin online-only browser surface** for contractors (a second UI target, which cuts directly against the "one unified app" theme that is the product's whole premise), re-opening the engine choice toward `wa-sqlite`/OPFS and accepting weaker sync and durability guarantees, or **consciously scoping BYOD out of v1**. Needs a product call, not a design one — but it must stop being presented as answered. |
+| **Contractor / BYOD access — now narrowed to the install** | Opened 2026-08-25 (user direction), and it had been wrongly presented as solved. **Substantially narrowed 2026-09-08 by §2.10's replication switch:** a contractor assigned **no offline profile** is an online-only user of the *one unified app* — same screens, same components, same writes through the same outbox — with **no customer data at rest on an unmanaged device**, which is usually the real objection behind the request. So the theme is **answered for reads and writes**, and what remains open is only the **install**: whether voluntary App Store / Play Store installation satisfies "cannot force installs." That is a product call and a distribution question, and the remaining detail below is retained because it is what the alternatives cost if the answer is no. The SWG theme is "organizations cannot force app installs on contractor-owned devices; **browser-native access is preferred**" (Medium priority — the only non-High theme). §2.2 now establishes that the offline model requires a **native** app, so browser-native access is not on offer. **Likely resolution, and it is a distribution question rather than an architecture one:** "cannot *force* installs" ≠ "cannot install." An organization cannot push a managed app via MDM to a device it does not own, but a contractor can install a public App Store / Play Store app voluntarily. If that satisfies the requirement, nothing about the architecture changes. If it does not, the alternatives all have real cost: a **separate thin online-only browser surface** for contractors (a second UI target, which cuts directly against the "one unified app" theme that is the product's whole premise), re-opening the engine choice toward `wa-sqlite`/OPFS and accepting weaker sync and durability guarantees, or **consciously scoping BYOD out of v1**. Needs a product call, not a design one — but it must stop being presented as answered. |
 | **Tier 0 bootstrap-config contract — shape not defined** | Opened 2026-08-25 with §2.3's resequencing. The *ordering* and the "carried on the authentication response" recommendation are settled; the **contract is not**. Owed: what the bundle actually contains per domain (0a–0f), the per-domain **version-stamp** scheme that makes a reconnect delta-check cheap, and how a partial failure is reported — 0c missing is fatal, 0f missing is degraded-but-usable, and the response needs to say which happened rather than returning one opaque error. Also unresolved: whether 0f is scoped server-side (the server resolves layout, then returns only the code domains it references — smaller payload, more server logic) or client-side (the client resolves layout, then asks for domains by name — chattier, dumber server). Recommend server-side scoping: it is one round-trip inside the login wait instead of two. Needs the API team. |
 | **Write path must be gated on status authorizations, and nothing enforces that yet** | Opened 2026-08-25 (§2.3 consequence 3). If Tier 0's `0d` is absent or stale the app must **not** accept writes — permitting them queues outbox entries the server will reject, and under §2.4's optimistic UI the technician sees success and walks away, with the failure surfacing hours later in §4.4's trouble-field banner. That is exactly the "did my transaction actually land?" trust failure this app exists to fix, so a systematically wrong authorization set is worse than a blocked one. Owed: where the gate lives (a `resolveFieldState`-style seam would be the natural home — see the conditional-field-rules row), what the UI says while gated, and whether a stale-but-present authorization set is treated as usable. No prototype equivalent exists; there is no write path to gate yet. |
 | **Workflow config revisioning — a live config edited mid-execution** | Opened 2026-08-25, surfaced by retiring the Workflow Designer prototype (§21), which is the only artifact that had modelled it (Draft / Current Rev / Create Rev). Nothing in §11–§13 or §26 says what happens to a technician who is part-way through a gated workflow when an admin changes that `(function, WO Type)` configuration — steps reordered, a step removed, a field's required-ness flipped. The offline model makes it sharper than it would be online: the device holds a hydrated work set and a configuration that arrived at sync time, so "the config changed" and "the technician is mid-WO" can be separated by hours or days, and the WO's own step state was recorded against the *old* shape. **Recommendation added 2026-08-25 (§2.3 consequence 4): pin the resolved config version to the WO at start-of-work**, so a WO in flight finishes on the shape it started with and the new configuration applies to the next one started. Cheapest of the three candidates and the only one needing no migration of already-recorded step state; the alternatives were versioning the config and migrating step state on delta pull, or forbidding destructive edits while WOs are in flight. Note this is the same problem as the Tier 0 config-delta case, approached from the authoring side rather than the sync side — resolve them together, once. Still needs a call before workflow config is editable in production, not after. |
 | **Home layout has no authoring surface** | §26.5 gives Home layout a User Group Setup tab that deep-links into a Home layout designer that does not exist. §9.4's open "base-admin configurability" item is the same gap seen from the other side — one is the entry point, the other is the destination. Resolve together. |
-| **The `Indexed` flag's authoring grain — layout is keyed per WO Type, the index is not** | Opened 2026-08-25 with §6.13's union-projection decision. `R5PAGELAYOUT` resolves on `PLO_PAGENAME × PLO_USERGROUP × PLO_WOTYPE`, and Screen Designer's entry modal makes the designer commit to a WO Type before anything is editable — but `wo_index` is **one table across all WO Types**, so a per-Type index does not exist as a concept. The `Indexed` flag therefore has to be authored at a **Type-independent grain** (function / `PLO_PAGENAME`) on a surface that is per-Type throughout. Two candidate shapes: Screen Designer grows a Type-independent scope for this one flag, or the projection is declared once per function outside the per-Type layout pass. **Equipment has the same problem and worse** — it resolves across four `PLO_PAGENAME` values (Location/Asset/Position/System, §26.8) that a designer edits separately, so its projection must span four page names, and its authoring surface does not exist at all yet (see the Equipment-track blocker row). Needs a call at the dev kickoff; this is a base-side schema/UI question, not a mobile one. |
-| **`Indexed` has no Screen Designer control yet** | Opened 2026-08-25. §6.13 locks the projection as Screen Designer-authored, but the prototype's right-click field menu offers only Required/Protected/Optional/Hidden/Not Available — there is no `Indexed` toggle, and no surface showing the resolved union or warning when the cap is hit. Same shape as the existing "Screen Designer has no Placement control" gap: a locked rule whose authoring control is unbuilt. |
-| **Dataspy criteria need a normalised on-device form** | Opened 2026-08-25 with §6.13's classify-and-evaluate-locally rule, and it is the load-bearing prerequisite for it. If the device evaluates a dataspy locally it needs that dataspy's predicates in a form it can execute — a normalised criteria structure (field / operator / value, AND/OR grouping), **not** raw dataspy SQL, which the device has no engine for and which can reference joins and server-side constructs that do not exist in `wo_index`. Owed: the normalised schema, which subset of dataspy predicate constructs is expressible in it, and the **server-side classifier** that decides offline-capable vs. online-only. Note the fallback is safe by design — anything inexpressible classifies as online-only rather than being approximated — so this bounds *how much* works offline, not whether the design is sound. Also unresolved: whether classification is re-run when a user edits a dataspy on desktop, and how the device learns a previously-offline dataspy became online-only. |
-| **The configured index scope has no defined shape** | Opened 2026-08-25 with §6.13's index-scope decision. The *principle* is settled (its own server-side configuration, parallel to Sync Config for Tier 1; open WOs only, by the lifecycle rule). The *shape* is not: which axes an admin may bound it on (site / organization / age / status beyond open-vs-closed), where it is authored, whether it is per user group or per user, and what the app does when a dataspy exceeds it — §6.13 sets the invariant ("showing 412 of ~9,000, connect for the rest", never silent truncation) but no screen implements it, and §6.13's row-state vocabulary describes rows, not result-set completeness. This is the concrete answer owed to "where does the base index come from," which the design could not answer before this date. **Extended 2026-08-26 — scope is a second classification axis, and nobody has assigned it.** §6.13's classify-and-evaluate-locally rule tests a dataspy's predicates and display columns against the declared `Indexed` set, which is a **column** test. Index scope is an orthogonal **extent** test: a dataspy can reference nothing but indexed columns and still select rows the index was never scoped to hold — "All non-my work orders" against an index bounded by site or age is the worked example. So *offline-capable* is a conjunction of two checks, not one, and only one of them is written down. Owed: whether the sync-time classifier can evaluate the extent axis at all — it can compare a dataspy's own scope predicates to the configured extent as metadata, but only when the dataspy **states** them, and a dataspy silent on site inherits the user's context rather than declaring a bound — or whether extent is only discoverable at query time, as a partial-result count. The two produce different UI at different moments: a classifier verdict is "this dataspy is online-only," shown **before** the user runs it, whereas a query-time count is the "showing 412 of ~9,000" caption, shown **after**. Both may be needed; neither is specified. Resolve alongside the normalised-criteria row above — the classifier needs the same structure to evaluate either axis. |
-| **Both projection numbers are provisional — the card's 6 and the index's ~10–20** | Opened 2026-08-26 (user direction), on re-scoping §6.13's 6-field row from storage to display. Neither figure is confirmed. **6** is the card's current shape under §8.3, not a locked cap on anything; **~10–20** is an order of magnitude for the declared `Indexed` set, not a sized budget. What actually needs deciding is the **trade-off the index number encodes**, which no row states outright: a dataspy is offline-capable only if *all* its predicates and display columns sit inside the declared set, so a narrow set buys cheap sync and pays in online-only dataspies, while a wide set buys offline coverage and pays in churn. Note the cost is **not** column count — storage barely moves between 10 and 20 narrow columns, and the two real drivers are each column's **volatility** (a row enters the delta if *any* indexed column changed, so admitting one frequently-touched field makes a quiet index chatty at unchanged row and column counts) and, for FTS5, whether a column is short codes or long free text. Cannot be settled from the design side alone for the same reason as the offline-surfacing row: it needs the real churn profile of candidate columns. Resolve with the authoring-grain row above — whoever picks the grain is picking who owns this trade-off. |
-| **Per-dataspy membership shipping may not scale — and punch-list Option A leans on it** | Opened 2026-08-25. §6.13's membership row was narrowed to Tier 1 / the punch list because pre-evaluating every visible dataspy per user per sync is unbounded server work and unbounded payload once dataspies are unbounded and user-authored. **Option A (static sync dataspy) assumed the broader reading**, so the narrowing is a live input to that still-open choice (§2.6) rather than a search-only concern: Option A needs exactly one dataspy pre-evaluated per user, which is comfortably inside the narrowed rule — worth confirming explicitly rather than leaving it to inference, since the row it depended on no longer says what it used to. |
-| **UDS — where UDS data lives, and whether it survives offline** | Opened 2026-08-25 with §27. Two coupled unknowns, both base-side. **(1)** Does UDS data ride in the WO's `full_payload` blob or a separate child table? If it is a child table it is Tier-1-only, so a Tier-2 stub opened offline surfaces a UDS tab it cannot populate — and §6.13's row-state vocabulary describes *records*, not tabs, so there is no affordance for "this tab needs connectivity." **(2)** Can a dataspy select a UDS field at all? If not, UDS fields can never be indexed, filtered or sorted (§6.13), which is a defensible answer but must be a stated one. Blocks any commitment that a UDS tab is offline-executable. |
-| **UDS — the write path has no shape** | Opened 2026-08-25 with §27.5. A UDS tab is editable, so it needs an outbox write form. If UDS storage is generic (`entity + record key + field + value` rather than typed columns) the outbox has no such form today, and §2.5's last-write-wins resolution needs to still mean something at that grain. Compounding it: **whether UDS fields are governed by status authorizations at all is unknown**, so §2.3 consequence 3's write gate may have a hole in exactly the fields nobody has specified. |
 | **UDS definitions widen Tier 0's `0f`, and nothing accounts for it** | Opened 2026-08-25 with §27.5. `0f` is scoped to the code domains that *delivered* layout references, but a UDS field can reference a customer-defined LOV domain — so §2.3's "layout first, because layout scopes everything after it" has to traverse UDS definitions too. Miss it and a UDS LOV field renders raw codes, which is the exact training-dependency regression that put code domains in Tier 0 to begin with. The per-domain version stamp §20 already owes must cover UDS definitions, or one changed UDS forces a full config refetch. |
-| **UDS standalone screens — scope call not taken** | Opened 2026-08-25. §27.2 recommends **tabs in v1, standalone UDS deferred**, because a standalone UDS is a top-level destination needing a §26.3 nav slot plus its own §8.3 List Search Screen (dataspy bar, card projection, chips, sort, search) — multiplying §8.3 by an unbounded per-customer screen count, with no §6.13 projection answer for a screen whose columns are entirely customer-defined. Recommendation, not a decision. Needs a call at the kickoff. |
+| **The card's 6-field projection number is provisional** | Opened 2026-08-26, **narrowed 2026-09-08** — it used to be two numbers and the index's ~10–20 closed with the index (§21). **6** is the card's current shape under §8.3, not a locked cap. What needs confirming is whether 6 is right for the card *and* for the chips/sort it also drives. |
+| **Eviction's refcount condition — real column or recomputed sweep?** | Opened 2026-09-08 with §2.3's traversal. §6.13's `!pinned && !dirty` interlock gained a third condition (*no other retained root references this row*), because a row can be present only as another root's depth-1 reference. Whether that is a maintained refcount column or a periodic sweep is a dev call with a correctness consequence: get it wrong and eviction either leaks rows forever or deletes a reference a retained root still needs. |
+| **"Unresolved reference" and "not hydrated" are missing states — one design pass, two grains** | Opened 2026-09-08. §6.13's row-state vocabulary describes **records**; §2.3's traversal introduces two states it cannot express — a *field* pointing at a reference that did not traverse (an ephemeral search result renders this by construction) and a *tab* whose rows did not (§27.5). Both need an affordance, and it must stay distinct from `definition-gated`, which means "should not render at all" (§2.8). **The re-type mirror case is the sharpest justification:** re-typing a pre-start WO can add a UDS tab whose rows were never traversed, and nothing distinguishes that from a legitimately empty tab. |
+| **The closure cap and the per-collection row caps need real numbers** | Opened 2026-09-08 with §2.3 rule 5. The parent-chain depth N is gone (the server flattens the ancestor path), leaving the caps as the only tunable numbers — and they must be **sized per collection** (checklist items, parts lines, labor lines, comments, each placed UDS tab), not per graph, because to-many traversal is the expensive axis. Principle settled, numbers not. |
+| **UDS — per-row cap and authoring-time FK-mapping validation** | Opened 2026-09-08 with §27.5, and **required rather than prudent**: a customer-authored PK→FK mapping can inflate every device's payload. Owed: a per-UDS row cap, plus validation at authoring time that the join column exists, is indexed, is cardinality-bounded, and is single vs. composite — built alongside the existing workflow-eligibility validation. |
+| **UDS — cardinality (1:1 or 1:N per `(WO, UDS)`)** | Opened 2026-09-08 (narrowed from the retired "write path has no shape" row). The write shape is settled — a **row-shaped outbox envelope**, distinct from Custom Fields' EAV form (§22) — but cardinality decides which §2.5 conflict row UDS sits on (field-edit vs. insert), and it must be **answered before the envelope is built**. |
+| **UDS — whether UDS fields are governed by status authorizations** | Opened 2026-08-25, and now the **last genuinely open UDS offline item**. Unchanged by the storage answer. If they are not governed, §2.3 consequence 3's write gate has a hole in exactly the fields nobody has specified. |
+| **Screen Designer's Placement control is now sync-affecting, not just authoring debt** | Re-scoped 2026-09-08 (§27.5). Placement was already owed; now it **governs device payload**, because a UDS child tab traverses iff it is placed. So the per-UDS row cap and the FK-mapping warnings belong on that surface, and shipping Placement without them ships a control that can inflate every device silently. |
+| **Where an offline profile is *authored*** | Opened 2026-09-08 with §2.10. Assignment is settled — User Group Setup, per §26.5's binding paradigm. **Authoring is not:** the profile bundles §2.7's entity registry, its caps, §2.8's lookup classes and Sync Config, and no surface composes that today. Same shape of gap as the retired index scope's, so don't solve it twice. |
+| **Device-grain offline policy has no mechanism** | Opened 2026-09-08 with §2.10. The grain is specified as `min(group, device)` with per-user as override only, but nothing on the base side carries a *device* axis for this — note the existing per-user-per-device map extent override as the nearest precedent when GIS lands (§28). |
+| **The per-action offline capability list is a first pass, not a locked contract** | Opened 2026-09-08 with §2.9. The five states, the deferrability test **and a 26-row first-pass enumeration** are all in §2.9 — what is owed is **confirmation of the interesting rows, not the list itself.** The rows to argue about: ad-hoc part issue (`blocked-visible` on the grounds that bin stock is server truth — a real restriction on a common field action), Start Work on a non-hydrated WO, "keep offline" needing connectivity, and whether server search should degrade to cached scope (`substituted`) or refuse. It is **product-declared and versioned with the app — deliberately not a Screen Designer control**, since whether Start Work can complete without a server is an architectural fact rather than a customer preference. |
+| **Nobody has the number that would justify re-adding fleet-wide offline search** | Opened 2026-09-08 with §2.1. The reduction was taken on the argument that re-adding a `stub` state later costs nothing structurally (row identity is stable). What decides whether to re-add it is **how often a technician needs a record that is not on their device, while offline** — instrument it in v1 rather than re-deciding from first principles. A second, narrower question: **is location-aware search needed over records that are not GIS-integrated?** If yes, it reopens a lat/long projection when Phase 2 lands (§28). |
+| **The sync control needs a state or copy for an online-only user** | Opened 2026-09-08 with §2.10, and it is the **only** place the replication switch is visible to the technician. §4.4.1's four states assume a replicating user: "Offline" means *working from the device*. For a user with no offline profile it means *you cannot load work* — **same icon, opposite promise.** Needs either a fifth state or distinct copy; the rest of §2.10 is deliberately invisible, so this one surface has to carry the whole distinction. |
+| **Manual caching (R5) is ~80% specified and 0% built** | Opened 2026-09-08. The mechanics already exist: `pinned` is orthogonal to `hydration` (§6.13) — exactly the hook manual caching needs — "no blocking modal" is locked (§3.4/§4.1), and §2.3's traversal makes a cached record actually usable rather than a pinned shell with blank fields. **Three small UI pieces are owed:** a **"keep offline"** control on the record header ellipsis (§8.4 makes it a header action, not an Action Row); the download surfacing as a **non-modal progress item in the existing Sync Status Screen** (§4.5) rather than a new surface; and a **device-storage view** so a technician can see and reclaim what they have pinned. Note the existing product's `Clear Files` is the blunt version of that third one — all-or-nothing, per user. |
+| **GIS / maps — nine open items, all Phase 2** | Opened 2026-09-08 with §28. **Enumerated in §28.7 rather than repeated here**, per the one-fact-one-home rule: parity scope, the React Native ↔ ArcGIS native module (likely the largest unpriced item in the programme), what "other map services like OpenStreetMap" means, where a map is *placed* in Screen Designer (R3), **GIS identity as a second Tier 0 domain** with its own hard-failure mode, `GISMAPS` resolving per org/dept while everything else resolves per user group, the basemap credit/storage budget, whether §2.10's replication switch gates the replica, and PerReplica version accumulation. **None of these blocks v1** — that is the point of the Phase 2 call — but item 4 has a v1 consequence: keep §27.3's renderer generic enough for a map tab. |
 | **No generic definition-driven screen renderer exists** | Opened 2026-08-25 with §27.3. §22's `applyCustomFields()` and §9.8's Insert Mode both prove the definition-driven pattern at container scale, but nothing renders a *whole* screen body from definition — which is the single build UDS tabs require. Also unresolved: a `Placement = Step` UDS tab is the first child-tab screen needing §14.5–§14.7's per-step bottom bar (the Equipment tab has the rail but no bar), and §14.7's required-field bar-locking would have to evaluate fields the app has never seen. That last point is a second, independent argument for the declared-vs-effective field-state split named as a one-way door in §13.1–§13.4. |
 
 # 21. Superseded Design Decisions
@@ -5112,6 +5606,10 @@ its original section with a note attached.
 | **WO List's own bespoke Search-screen chrome** — `eam-wo-list-prototype-v5_1.html` never actually migrated its dataspy sheet (`.ov`/`.sheet`/`.sh-*`, `#dsOv`), filter-chip row + sheet (`.chips`/`.chip`/`.chip-badge`, `#csOv`), search bar (`.s-wrap`/`.s-row`/`.s-inp`/`.s-clr`), and toast (2 local instances, `#t1`/`#t2`, `showT1()`/`showT2()`, plus a `showToast(){showT1(msg)}` shim that silently overrode the shared `showToast()` — the shared `#toast` element sat unused in this file's own DOM the whole time) onto the shared component system, even though this file is documented (CLAUDE.md, §8.3) as "the template" every other list/search screen copies. Found 2026-07-31 when a user cross-check ("Equipment's Search screen doesn't match WO List's") turned out to mean the opposite — Equipment's copy (`eam-equipment-list-prototype-v1.html`) already used the shared components correctly; WO List was the outlier. | §8.3 (2026-07-31) — migrated onto the same shared classes/functions Equipment List already used: `.ld-search-bar`/`.ld-search-input`/`.ld-search-close`, `.filter-chip-row`/`.filter-chip`/`.chip-count`, `.bottom-sheet`(`#dsSheet`/`#csSheet`)/`.sheet-handle-row`/`.sheet-header`/`.sheet-close`/`.sheet-title`/`.sheet-clear-btn`/`.sheet-body`/`.sheet-footer`/`.btn-contained`, the single shared `#sheetOverlay`/`openSheet()`/`closeAllSheets()`, and the single shared `showToast()`/`#toast`. `openDS()`/`openCS()`/`renderCSRows()`/`togCS()` now render `.lov-option`/`.lov-check` rows instead of `.lov-row`/`.sh-row`; `closeDS()`/`dsOvTap()`/`closeCS()`/`csOvTap()` are gone (the shared overlay's own `closeAllSheets()` covers click-outside-to-close). The in-sheet chip search box (`filterCSRows()`/`#csSearch`, §6.11-locked) was kept — rebuilt on the shared `.lov-search-row`/`.lov-search-input` markup rather than dropped, even though Equipment's own copy of this sheet lacks one (separate gap, §20). Screen 2's result-count row also moved off a local `.s-rhdr`/`.s-rc` onto the same shared `.res-row`/`.res-count` Screen 1 already used. `LS_FAVORITE_DS_KEY`/`getFavoriteDS()`/`isFavoriteDS()`/`toggleFavDS()` and every WO-specific content piece (Detailed↔List mode toggle, parent/child expand, `renderStdCard()`'s local override, `openWO()`'s Type routing) are untouched — this was chrome-only. |
 | **Route/MEC — optimistic pill, commit on exit, and a sticky cleared-Route pill** (§16.9, 2026-08-10 morning) — selecting/clearing Route only updated the pill locally; the real transaction (adding the Route's equipment, spinning up child WOs) was described as committing when the technician left the screen. Clearing Route deliberately did **not** remove equipment already committed: `equipmentTabTotal` was left untouched by `LOV_ON_CLEAR.route` so a since-cleared Route still fell through to a "Multiple Equipment" pill "rather than losing the signal entirely." | §16.10 (2026-08-10, direct instruction) — commits **immediately** into a shared, persisted per-WO equipment store; clearing the Route removes that Route's rows (manual ones survive); and the pill is a pure function of the stored rows — **rows exist or there is no pill**, so a cleared Route can no longer leave a stale one. `equipmentTabTotal` is gone entirely. |
 | **Route lives outside the Header Fields grid** (§16.9, 2026-08-10 morning) — Route was given its own List row in "Work order details," deliberately not in the grid alongside Equipment, on the reasoning that a field which merely *drives* Equipment's pill is still "a genuinely separate value/field, same different-field-different-row rule as any other 2 fields that happen to interact." | §5.2/§15.1 (2026-08-10, prototype-only request) — Department and Route moved up into the Header Fields grid as a paired bottom row. Department's move is what §5.2 always wanted (it's non-nullable); Route is a deliberate **exception** to the grid's required-fields-only rule, kept because it pairs with Department and sits beside the Equipment row whose pill it drives. |
+| **Offline-first reads — "UI always reads from local DB, never waits for network"** (§2.1, since July 2026). The core pattern for the project's whole first phase, and the premise under which every §6.13 tier rule was written. | §2.1 "**online-first reads + an always-on outbox**" (locked 2026-09-08, user direction). **The requirement inverted the polarity, not the design's quality:** R1 asks for *"online-first, offline capability for transactions of only specific entities."* What survives unchanged is everything that was never about read polarity — one write path, the persisted outbox, no mode split, the UI never reading from the network directly. **Four options were weighed** before landing here: **(1)** online-first, offline scope = what is on the device (**taken**); **(2)** the same plus a thin product-fixed local index; **(3)** the status quo — a declared `Indexed` set with dataspy classification; **(4)** an explicit Online mode / Offline mode (**rejected outright** — it is the mode split §5.1 exists to reject, and the SWG named "not a mode choice" as the requirement). Option 1 was taken on five grounds: it is what R1 asks and the only option that *improves* R4; it is the market consensus, while no surveyed vendor implements Option 3 at all; its row lifecycle is a strict subset of Option 2's, so deferring costs nothing structurally; three independent findings converged on it; and the index had been designed before anyone knew whether it was needed. **Shape the schema so Option 2 stays additive.** |
+| **The Tier 2 search index, and the six open items that existed to serve it** (§6.13, locked 2026-08-25, superseded 2026-09-08). A lightweight fleet-wide projection — a **declared `Indexed` column set** (~10–20 columns) authored in Screen Designer, **dataspy classification** into offline-capable vs. online-only, a **configured index scope** parallel to Sync Config, FTS5 "contains" search over tens of thousands of stub rows, the `stub` row state, and the per-row freshness affordance. | §2.1's online-first polarity, which answers "does fleet-wide record search work offline?" with **no**. Everything in the left column was the *price* of answering yes: **six §20 items closed at once** — the `Indexed` authoring grain, the missing `Indexed` control, the normalised on-device criteria form, the index scope's undefined shape, per-dataspy membership shipping, and the offline-search surfacing pair. Also retired with it: FTS5 as an **engine exit criterion**, and one of §2.2's four native-forcing reasons (the conclusion stands on the other three). **What survived and is load-bearing:** stable row identity, `pinned` orthogonal to `hydration`, ephemeral rows written locally, the server-search upsert rule, and the `full_payload` blob — which is exactly why re-adding an index later is additive. |
+| **Conflicts resolved last-write-wins by timestamp** (§2.5, since July 2026). One global rule for every write shape. | §2.5's **per-shape conflict table** (locked 2026-09-08). LWW is **silently lossy**: if the server wrote last the technician's edit is discarded and there is no discrepancy left to surface — the exact failure R6 asks to eliminate, and the exact trust problem the product exists to fix. Tractable only because §2.4's write-enabled set is ~7 shapes rather than 60. **This one was required under every option on the table**, not just the one taken. |
+| **A standalone offline-architecture decision brief** — `EAM-DECISION-Offline-Architecture-Options-2026-09-03.md` (created 2026-09-03). A 2,200-line options analysis holding the four options, the market research, the GIS product facts, and its own roll-up instructions. | Rolled into this doc 2026-09-08 on the decision being taken, per its own §13 and CLAUDE.md's *one fact, one home* rule: the accepted rules into §2.1/§2.3/§2.5/§2.7–§2.10, GIS into §28, the open items into §20, and the reversals into this section. **Retired to `docs/old versions/`** rather than deleted, since its market-practice sources and scoring are not reproduced anywhere else. Don't cite it as current. |
 | **Equipment List's top-level List/Search screens had no Detailed/List mode toggle at all** — the row directly above explicitly left WO List's own toggle (`.mode-tog`/`setMode()`/`woAllFields()`/`tHdr()`/`tRow()`) untouched as "WO-specific," and it was never separately copied into `eam-equipment-list-prototype-v1.html` either, despite that file already being documented (§8.3's "Applied to," CLAUDE.md) as implementing this standard in full. Found 2026-08-03 via user cross-check ("the equipment search screen... still looks like this — the detail and list toggles aren't present"). | §8.3 "Mode toggle" (2026-08-03) — ported WO List's own screen-local `.mode-tog` markup + CSS override and `setMode()`/`refS1()`/`refS2()` shape verbatim into `eam-equipment-list-prototype-v1.html`. List mode's all-fields table renders via the already-shared `renderStdTable()` helper instead of a local `tHdr()`/`tRow()` pair — Equipment has no parent/child hierarchy, so it doesn't need the chevron/indent logic that kept WO's own table local. |
 
 # 22. Custom Fields
@@ -5126,6 +5624,27 @@ record. A record can carry both, and they must not share an
 implementation. What §27 does reuse is this section's *pattern* —
 `applyCustomFields()` merging definitions into the screen's own field
 globals so no parallel edit path is needed (§27.3).
+
+**That separation is a *sync-layer* rule too, not only a UI one** (added
+2026-09-08). There are in fact **three** customer-extension mechanisms and each
+has a different offline shape: **UDFs** are plain columns on the record — no
+traversal edge, no policy row, offline-complete under existing rules; **Custom
+Field values** live in a **separate values table keyed `(entity, record key,
+field code)`**, which is **one product-declared traversal edge on a fixed key**
+(§2.3's fixed core); and **UDS** is a `U5` table with a per-UDS authored join
+(§27.5). **The outbox therefore needs two generic write shapes, not one:** an
+**EAV form** `(entity, record key, field code, value)` for Custom Fields, and a
+**row-shaped envelope** for UDS. Because the Custom Fields key fixes cardinality
+at one row per record per field code, they take §2.5's **field-edit** conflict
+rule with no ambiguity.
+
+**Class has two independent offline failure modes, and they need different
+messages** (added 2026-09-08). Class *values* are a code domain (Tier 0 `0f`);
+Class *definitions* are configuration (`0c`). So on the same screen: the
+**definitions** did not ship → the Class should not be pickable at all (§2.8
+row 3, `definition-gated`); the **values** did not traverse → the fields render
+and say they need connectivity (`not-hydrated`). Conflating the two reports a
+configuration error as a sync problem.
 
 | Decision | Detail |
 | --- | --- |
@@ -5950,6 +6469,13 @@ because it is the load-bearing decision of this section.
 
 ## 26.7 The one-function question — `WFJOBS` vs. any `EVNT` function (locked)
 
+**One clone-model cost that turns out not to exist** (added 2026-09-08): **UDF
+configuration is per *master function* and is identical across clones**, so the
+four `WSJOBS` clones share one UDF set. The clone model does **not** multiply UDF
+config — unlike the per-clone label problem §20 already tracks, which does.
+Worth recording because "does cloning multiply the configuration surface?" is
+the first question anyone asks about Option B, and for UDFs the answer is no.
+
 The choice, stated plainly:
 
 - **Option A — one static new function.** Mint `WFJOBS`, ship it as the
@@ -6051,6 +6577,14 @@ special case.** Base EAM already splits Equipment across **four distinct
 base screens by system type — Location, Asset, Position, System** — and
 each of those supports **clones**, filterable per user group exactly as
 the `WSJOBS` clones are (§26.1/§26.7).
+
+**Offline, the pickable system type is bounded by which of the four layouts
+shipped** (added 2026-09-08) — a `definition-gated` value per §2.8 row 3. This
+is the **worst** member of that class, and not by a little: system type is
+Protected in update mode always, so **Insert Mode is the only place it is ever
+set**, which makes a missing layout *unrecoverable from mobile* rather than
+merely inconvenient. Compounded by those four layouts having **no authoring
+surface at all** yet (§20). The rule lives in §2.8; this section inherits it.
 
 So the same mechanism WO uses, **minus the workflow piece**, gives mobile
 something it could not otherwise have: the technician picks an asset,
@@ -6193,7 +6727,7 @@ it inherits all of this free:
 | --- | --- |
 | **In — UDS as a tab on Work Order** | The `Placement = Step \| More` model above. The shape that carries real workflow value, and the shape that reuses the most already-locked design. |
 | **In — one generic UDS tab renderer** | A single definition-driven screen, not one screen per customer UDS. See §27.3. |
-| **Deferred, recommended out of v1 — standalone UDS as its own destination** | A UDS surfaced as a top-level menu screen rather than a tab. It needs a §26.3 nav slot or a Home entry and — because it is a destination holding many records rather than a child of one — it needs its own §8.3 List Search Screen: dataspy bar, card projection, filter chips, sort, search. That multiplies §8.3's surface by an unbounded, per-customer screen count, and §6.13's projection rules have no answer for a screen whose columns are *entirely* customer-defined. **Recommendation: tabs in v1, standalone deferred** — stated now rather than discovered late. A scope call for the kickoff, not a locked exclusion. |
+| **`server-only` — standalone UDS as its own destination (locked 2026-09-03; was "deferred, recommended out of v1")** | A UDS surfaced as a top-level menu screen rather than a tab. **A standalone UDS record view is never an offline option — permanently `server-only`** in §2.7's registry, and this is now a decision rather than a recommendation, on a cleaner basis than cost: not "expensive," but **"never offline."** Three consequences. The hardest cost this row used to carry — an index projection over *entirely* customer-defined columns — **disappears outright** rather than being deferred, since there is no index (§21). A standalone UDS may still exist as an **online-only destination** with a nav slot and an online-only list, which is an ordinary `server-only` row needing no new machinery. And per §2.9 it must be **`blocked-visible`** when opened offline, never `blocked-hidden` — a nav destination that silently vanishes is exactly the failure that reads as a configuration error. |
 | **Out — UDS field *authoring*** | Base EAM's own UDS setup already owns it (§27.4). Rebuilding it inside Screen Designer would break §10's one-surface rule the same way the retired Workflow Designer did (§21). |
 | **Out for now — UDS on Equipment** | The mechanic is identical, but the authoring surface for Equipment's four `PLO_PAGENAME` system-type layouts does not exist yet (§20), and that already blocks the Equipment track. Stacking UDS on a blocked track buys nothing. Revisit when it clears. |
 
@@ -6282,27 +6816,59 @@ definitions — a UDS tab with no definition is a blank screen, precisely
   has to cover UDS definitions, or one changed UDS forces a full config
   refetch.
 
-**Tier 2 / search (§6.13).** Two new open questions:
+**Storage and traversal — resolved 2026-09-03.** UDS data lives in its own
+**`U5` table with a per-UDS *authored* PK→FK mapping** back to the parent. Two
+rules follow, and together they close what used to be this section's biggest
+hole:
 
-- **Can a dataspy select a UDS field at all?** §6.13's projection is the
-  union of the screen's dataspies' column orders. If base dataspies cannot
-  reference UDS data then UDS fields can never be indexed, filtered or
-  sorted — a defensible answer, but it has to be a *stated* one, because a
-  customer whose triage depends on a UDS field will ask.
-- **Does UDS data ride in `full_payload`, or a separate child table?** This
-  decides whether a UDS tab works offline at all. If it is a child table it
-  is Tier-1-only, so a Tier-2 stub opened offline shows a UDS tab it cannot
-  populate — and §6.13's row-state vocabulary describes *records*, not tabs,
-  so there is no existing affordance for "this tab needs connectivity."
+- **A UDS child tab traverses iff it is placed in the resolved page layout**
+  (locked), and then indefinitely, as part of the record's offline footprint.
+  **So the edge set is derived from layout, not an independent Tier 0
+  artifact** — no new bundle, no new version stamp, and the Tier 0 contract does
+  not grow a line for it. This is the natural extension of §2.3's own "layout is
+  first because layout scopes everything after it": resolve layout and you also
+  know which UDS edges traverse. Because layout resolves per `PLO_WOTYPE`, **the
+  UDS edge set is per WO Type.**
+- **Screen Designer's Placement control therefore governs device payload**, which
+  promotes it from authoring debt to a **sync-affecting control** (§20). The
+  per-UDS row cap and the FK-mapping warnings belong on that surface. And because
+  placement is the real bound, §2.3's closure cap returns to being a safety net.
 
-**Write path (§2.4).** A UDS tab is editable, so it needs an outbox write
-shape. If UDS storage is generic (`entity + record key + field + value`
-rather than typed columns) the outbox needs a write form it does not have
-today, and §2.5's last-write-wins conflict resolution has to still mean
-something at that grain. Related: §2.3 consequence 3 gates the write path on
-status authorizations — **whether UDS fields are governed by status
-authorizations at all is unknown**, and if they are not, that gate has a hole
-in exactly the fields nobody has specified.
+**Three guards this makes required rather than prudent**, all §20: a **per-UDS
+row cap**; **authoring-time FK-mapping validation** (column exists, is indexed,
+cardinality bounded, single vs. composite join — build it alongside the existing
+workflow-eligibility validation); and the closure cap.
+
+**The re-type mirror case** (§13.5, and §20 already tracks its opposite). A
+pre-start WO can be re-typed, and a layout-derived edge set means re-typing can
+**add** a UDS tab whose rows were never traversed — producing an empty tab the
+device cannot distinguish from a legitimately empty one. Same rule as the
+"disappearing tab" item, opposite direction, and **the sharpest justification for
+the not-hydrated affordance**, which is what makes the two cases distinguishable
+at all.
+
+**`definition-gated` at tab grain, narrowed to the definition.** Two `0c`
+artifacts must arrive: the tab's **placement** (page layout, §12 tier 2) and the
+UDS's **definition** (its field list, consumed by §27.3's renderer). If layout
+arrived, placement arrived — but the definition is a separate row and can still
+be missing, and **a placed tab with no definition is §2.3's blank screen.** Keep
+this distinct from *not hydrated*: definition-gated means the tab **should not
+render**; not-hydrated means it renders and **says it needs connectivity**
+(§2.8).
+
+**Write path (§2.4) — narrowed, not closed.** The shape is a **generic
+row-shaped outbox envelope** (`table + PK + column/value map`), **not** the EAV
+form Custom Fields take (§22) — two generic write shapes, one each. Still open in
+§20: **UDS cardinality (1:1 or 1:N per `(WO, UDS)`)**, which decides only which
+§2.5 conflict row UDS sits on, and must be answered **before the envelope is
+built**; and **whether UDS fields are governed by status authorizations at all** —
+now the last genuinely open UDS offline item, and a hole in §2.3 consequence 3's
+write gate.
+
+**"Can a dataspy select a UDS field?" — re-filed 2026-09-08.** Under §2.1's
+online-first polarity this is a **base-EAM dataspy capability** question (can the
+server join to a `U5` table?), not a mobile index-projection question. It stops
+being a flat "no" and becomes a question with a plausible yes.
 
 ## 27.6 Why it is worth doing
 
@@ -6314,3 +6880,237 @@ locked. And it is the answer to the customisation demand that otherwise
 arrives as a request to hardcode a customer's screen into the app, which
 §21's retired bespoke-WO-card entry shows this project has already had to
 undo once.
+
+# 28. GIS / Maps — Phase 2
+
+**Scope decision, 2026-09-08 (user direction): R2 is Phase 2, held as an
+option and not in the v1 build.** R1's online-first model is locked and being
+built now (§2.1); maps are sequenced after it. This section exists so the
+scoping is deliberate rather than an omission, and because most of what follows
+is **shipped behaviour in the existing product** — facts and constraints, not
+open design. Recording them now is what keeps Phase 2 from re-deriving them,
+and what stops a v1 decision from accidentally foreclosing them.
+
+**Why Phase 2 rather than v1.** Three of the largest unpriced items in the
+whole programme sit here: a **custom React Native ↔ ArcGIS native module**
+(React Native is not a first-party ArcGIS target), full **Map View parity**
+across features / geometry / nonconformities / Search Around / Main Isolation,
+and the **second sync engine** with its own conflict surface. None of them
+blocks the guided-workflow product; all of them would set its schedule if
+bundled into it.
+
+**What v1 must not do.** Two forward commitments are already made, so Phase 2
+stays additive rather than a rework:
+
+- **`external-replica` already has a slot in §2.7's policy registry.** GIS is a
+  **policy class, not an exception** — which is also what gives the next app in
+  the portfolio somewhere to put a foreign sync engine.
+- **§2.9's `blocked-visible` state exists because of the map**, not because of
+  records. A GIS feature edit against an online-mode map genuinely cannot be
+  queued (§28.3), so the visible-narrowing pattern is required *somewhere* in
+  the app regardless. Better named now as a governed exception than discovered
+  mid-track.
+
+## 28.1 The map is an editor, not a viewer — parity is the expensive answer
+
+Offline, today, the existing Map View supports: create point / linear / polygon
+features (tap-to-place vertices, undo/redo); edit feature **geometry** (drag
+vertices); edit GIS **attributes**; **create a corresponding EAM equipment
+record** from a new feature, via attribute mappings authored in the ArcGIS Pro /
+ArcMap EAM toolbar; add work orders against a feature, enter closing details and
+complete them; create and view **nonconformities**, including linear ones
+(from/to point); and **Main Isolation** (§28.4). Feature-server privileges gate
+this per capability (Create / Update / Allow Geometry Updates), checked at the
+moment the user taps the control. **Delete is not implemented in the app at all.**
+
+**Consequence: "make it a viewer to avoid a second sync engine" is not available
+as a scope reduction** if parity with the current app matters. An earlier
+analysis recommended a viewer for v1; that recommendation was **withdrawn
+2026-09-03** on this evidence. The viewer/editor question is not open — it is
+answered, and the answer is the expensive one. Which is itself an argument for
+Phase 2: the reduction people reach for first does not exist.
+
+## 28.2 There are already two sync engines and two error surfaces
+
+Raised once as a risk; it is not a risk, it is the status quo.
+
+| | EAM data sync | GIS sync |
+| --- | --- | --- |
+| Scope | records, per Sync Config | geodatabase replica + basemap tiles + locator files |
+| Configured by | Sync Config screen | Map Configurations screen (per map record) |
+| State shown | sync status | per-map **Sync / Pending / View Sync Errors** |
+| Error surface | — | **Error Log** and **Pending Log**, under GIS Map Settings |
+| Reset | — | **Clear Files** (clears all map/GIS data for the logged-in user) |
+
+Pending-edit and error **counts are surfaced on entry to Map View**, every time —
+a good precedent for the EAM side too, and §4.4/§4.5 are already the right home
+for it.
+
+**The one thing not to do: never route GIS feature edits through the EAM
+outbox.** An offline geodatabase is an ESRI **replica** with its own sync, its
+own conflict model and its own server-side reconcile. Keep the seam where ESRI
+put it, and represent **both** channels in the Sync Status Screen rather than
+pretending there is one. §2.5's conflict table already reserves a row for this.
+
+## 28.3 The map genuinely is a mode — and that does not reopen §5.1
+
+"Don't make connectivity a mode" holds for **EAM records**. It does not hold for
+the map, and the reason is structural rather than a UX preference:
+
+- each map record carries an **Offline** switch (default from install parameter
+  `MOBGOFFL`) — ON downloads a replica, OFF makes live portal calls
+- *"The application does not switch between disconnected and online states
+  automatically. The user must choose the mode…"*
+- **a map cannot be switched offline → online while pending edits exist**;
+  local changes must sync first
+- online, GIS edits post to the geodatabase immediately with no sync step;
+  offline they queue in the replica
+
+The third bullet is the tell: an offline replica is a **checked-out version**, so
+going online means reconciling or abandoning it. **ESRI imposes that, not us.**
+
+**The reconciliation for this app:** do not expose it as a global app-level
+mode. Expose it as **per-map-area download state** — which is exactly R5's
+*"cache this so I can keep working"* rather than a mode toggle. One paradigm,
+"what have I taken offline?", applied to map areas as well as to records. That
+keeps §5.1 and §2.10 intact.
+
+## 28.4 Main Isolation is the precedent for the whole offline pattern
+
+The single most useful architectural precedent available, and it is shipping.
+Main Isolation performs a network isolation solve — given a main, which valves
+must close, which mains are affected, how many hydrants / customers / volume are
+interrupted, plus dead-end block and branch handling. It is **not** implemented
+against ArcGIS network services. It is implemented as **four replicated EAM
+relational tables** (`r5mainisolationmains`, `…valves`, `…blocks`,
+`…depblocks`), populated by the customer via the Import Utility or their own
+geoprocessing service (*"nor will any screen be provided for the purpose of
+populating or managing data in the Main Isolation tables"*), **an on-device
+solve** over those tables, and **an explicit user opt-in** — a *"Download Main
+Isolation tables"* checkbox in Sync Config, changeable later, effective next sync.
+
+Three things it proves, and they reach well beyond maps:
+
+1. **Per-entity, user-opted offline replication is already the product's
+   idiom.** §2.7's policy registry formalises something shipping, rather than
+   inventing a paradigm.
+2. **Heavy analysis offline = replicate a bounded projection and compute
+   locally.** It is the strongest available argument that a *declared, bounded*
+   projection is the right pattern, and that authoring it is a real customer
+   responsibility rather than a defaulted convenience.
+3. **ArcGIS network analysis was never available.** Of the Utility Network's
+   five service types, HxGN EAM supports **map service and feature service
+   only** — `UtilityNetworkServer`, `NetworkDiagramServer` and
+   `VersionManagementServer` are unsupported. Solving off EAM tables was the
+   only route, not a preference.
+
+## 28.5 `MOBGEXT` — the configured extent, and why it matters beyond maps
+
+The GIS briefs supply a **geographic extent** authored server-side as an install
+parameter, overridable per user **and device** on the Map Configurations screen
+(including by drawing a polygon), bounding which EAM records are available:
+
+> *"Defining the extent is important for online and offline maps. For offline
+> maps, this downloaded map is limited to the extent entered. For online maps,
+> map features will be available outside the extent; however, there will be no
+> related EAM data for those features outside of the extent. **This limitation
+> exists for performance reasons.**"*
+
+Three uses. It is a **working precedent customers already accept** as the shape
+of a mobile work area, with a decade of field use behind it. It is the nearest
+existing thing to a **device-grain policy axis**, which §20 lists as having no
+mechanism — worth reaching for when that item is picked up. And it lands the
+online/offline symmetry this doc argues for elsewhere: the extent bounds *EAM
+data* in **both** modes while GIS features stay viewable outside it when online,
+so **degradation is by data class, not by connectivity** (§2.9).
+
+**Where extent and traversal meet: `GISOBJID`.** GIS scopes by **extent**; §2.3
+scopes by **reachability**. Different axes — so an asset can be reachable without
+being in the extent, and in the extent without being reachable. The UI has to be
+honest about both, and the join between them is `GISOBJID` (+ `UPDATE_COUNT`) on
+every integrated layer.
+
+## 28.6 Settled by the product, not by us
+
+- ESRI ArcGIS. **Sync-enabled feature services** (not map services) for mobile;
+  a tiled basemap service with tile-cache export enabled; **single** (not
+  composite) geocoding locators for offline address search.
+- `GISOBJID` (+ `UPDATE_COUNT`) is the EAM ↔ GIS join on every integrated layer.
+- Two sync engines, two error surfaces (§28.2).
+- Per-map-area offline replica lifecycle, with the offline→online pending-edit
+  interlock (§28.3).
+- Editing is in scope if parity matters; **delete is not implemented** (§28.1).
+- ArcGIS network analysis is unavailable; graph work rides replicated EAM
+  tables (§28.4).
+
+**One cross-app inconsistency to note now:** Digital Work supports **online maps
+only** (*"the value of this install parameter is not considered by the Digital
+Work app"*), while Mobile Offline does both. That is the cleanest single instance
+of the SWG's "two separate mobile apps" theme, and the unified app has to pick up
+Mobile Offline's superset.
+
+## 28.7 Open items — all Phase 2, all tracked in §20
+
+1. **Parity scope for Phase 2's own first wave.** Full Map View parity is a large
+   surface. Recommend: display + select + WO/equipment tap-through + Search
+   Around first; feature/geometry editing and Main Isolation second, since each
+   drags in the replica write path and its own conflict surface.
+2. **React Native + ArcGIS.** ArcGIS Maps SDK ships first-party native iOS /
+   Android / .NET / Qt SDKs and a JS API; **React Native is not first-party**,
+   and the existing app is built against the ArcGIS Runtime iOS SDK. Budget a
+   **custom native module** — likely the single largest unpriced item in the
+   programme, and the main reason this section is Phase 2.
+3. **R2's "and other map services like OpenStreetMap."** Nothing in the product
+   supports this, and there are two readings roughly an order of magnitude
+   apart: a **basemap alternative** (feasible via MapLibre + PMTiles/MBTiles,
+   and it sidesteps ESRI basemap credits) or a **full non-ESRI feature/edit
+   pipeline** (a second GIS integration). **Which is meant needs confirming
+   before anything is sized.**
+4. **Where the map is *placed* (R3).** Screen Designer needs a map concept it
+   does not have — likely both a **location field type** (a mini-map on a record
+   view; the product already has "Highlight on Map" from WO, Equipment, the WO
+   Equipment tab and the Checklist tab's Locate From/To Point) and a **map tab**.
+   The tab is the same generic definition-driven renderer §27.3 already owes for
+   UDS — **shared work, not new work**, which is a reason to keep §27.3's
+   renderer genuinely generic when it is built in v1.
+5. **GIS identity is a second identity domain, and Tier 0 has no slot for it.**
+   It needs an **ArcGIS Portal account per mobile user** (for license validation
+   alone, independent of whether the services themselves are secured), **up to
+   three credential sets per map** (portal / feature service / basemap, prompted
+   separately when they differ), fallback to the EAM user's stored `ArcGIS User`
+   / `ArcGIS Password` — which **requires connectivity** to retrieve — encrypted
+   token caching with re-prompt on expiry, and `GISAUTH = OAUTH2` + `MOBGAPID`
+   app registration for SAML with platform-specific redirect URLs
+   (`<bundle-id>://GISAuth`). **Consequence: §2.3 consequence 2's "one
+   legitimate hard failure" gains a second** — no portal license validation
+   means no Map View, a different failure with a different remedy — so Tier 0's
+   bootstrap contract needs a GIS identity domain with its own version stamp and
+   its own partial-failure code. **And a collision to verify rather than
+   assume:** the *Unsupported Functionalities* appendix states that under IWA or
+   OAuth2, EAM web services connecting to the map service fail and several
+   EAM↔GIS validation paths silently do nothing. If this app standardises on
+   OIDC, check it.
+6. **`GISMAPS` resolves per Organization or Department — never per user group.**
+   Maps are authored on the base **Maps** screen, and a map is either desktop or
+   `Mobile Only`, **never both**, so every map is authored twice if both surfaces
+   need it. This collides with §26, which resolves nav slots, layout and
+   dataspies **per user group** — GIS is the one configuration domain in the app
+   resolving on a different axis. Either `GISMAPS` grows a user-group option
+   (base-side change), or mobile maps user group → org/dept to pick a map, or map
+   selection stays a user-device preference outside the §26 model. **Not decided.**
+7. **Basemap extent, zoom, credits and storage as one coupled budget.** Basemap
+   tiles **cost ESRI credits**, charged per download to the account that
+   registered the basemap item, and ArcGIS Online-hosted basemaps cap at
+   **100,000 tiles**; offline levels of detail come from `MOBGBLOD`, default
+   **13–16**. So basemap extent/zoom is a **licensing and cost** decision, not
+   only a storage one — and this is the real answer to "why did the old app fill
+   the device."
+8. **Does §2.10's replication switch gate the GIS replica too?** Recommend
+   **independent**, as `BCBGIS` already is — but decide it rather than inherit
+   it: *"offline is off but the map replicated 400 MB"* is a support call waiting
+   to happen.
+9. **PerReplica sync accumulates server-side versions** — one per downloaded map
+   or per user — and *"if the GIS administrator does NOT manually perform a
+   reconciliation … these DB versions will continue to grow in number."* ESRI
+   recommends a script. Operational burden that **scales with device count**, and
+   it belongs in any "sustainable across our other mobile apps" assessment.
