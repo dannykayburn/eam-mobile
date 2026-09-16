@@ -453,6 +453,38 @@ node (real 390px emulator, not scaled).
   entry: it names the insertion point), are still `kind:'prompt'` underneath, and
   are capped at two answers. `validateForks()` re-runs on **every** structural
   change and clears backward/dangling targets, counting what it rewrote.
+- **TWO FORK KINDS, ONE IMPLEMENTATION** (§30.19, added 2026-09-16). A
+  **condition fork** (`kind:'cond'`) reads a field and routes; a question fork
+  asks. Everything routing-related goes through **`isForkKind()`** and
+  **`forkBranches()`** — never a second copy, or every §29.4 rule has to be
+  re-proved for the second kind.
+  - **It evaluates at the NEXT tap, on the current screen's fields only.** That
+    is what makes it safe: the value is pinned like an answer, it is visible to
+    the person being routed, and it is client-evaluable so online and offline
+    route identically. Don't make it live — §13.3 item 4.
+  - **`condSourceStep()` is the nearest STEP in front of it**, and
+    `validateForks()` clears a **stale field reference** as a third failure
+    mode alongside backward and dangling targets. Reorder the flow and the
+    field's owner changes.
+  - **EMPTY IS NOT FALSE.** `condEval()` returns true / false / **null**, and
+    null continues in sequence. Optional fields are blank by construction.
+  - **Job-captured fields only.** No WO Type, user group, function or system
+    type — §11 resolves the workflow on those already and §13.5 protects WO
+    Type. No Hidden fields (invisible logic), no buttons (no value).
+  - **It is an ACTION that routes** — `isForkKind()` true, `isStepKind()`
+    false. No rail number, no gate, positional. First of its kind.
+  - **No relative dates** on a date condition; literal only (§20).
+- **NO SUMMARY PANELS ANYWHERE** (§30.20, 2026-09-16, user direction — they
+  "put off devs"). No "N to look at", no collision banner, no per-card
+  "to fix" chip, no capability banner, no rail conflict count. **Every
+  validator is KEPT and still called** — `allConflicts`, `profileIssues`,
+  `homeIssues`, `capabilityGaps`, `allHomeGaps`, `wouldClash` — by the control
+  that can violate it: a clash is refused **in the assignment popover before
+  the click**, a missing dataspy is `is-error` on its own select, a capability
+  gap is a tag on the node, a hidden tile outlines red. **Raise the error where
+  the action is; don't add a roll-up back.** `capabilityBannerHtml` and
+  `profileIssueBanner` are deliberate no-ops so the call sites read as absence,
+  not oversight.
 - **The out-of-flow zone is "More", not "Reference"** (§14.8 renamed it) — moving a
   node in **clears Required and both gates**. Free Form is the same zone at full
   extent; switching it **on** confirms and dedupes, switching it **off** doesn't.
@@ -554,9 +586,12 @@ node (real 390px emulator, not scaled).
   width**, not beside it. **No `text-transform:uppercase` anywhere in this file**
   (§30.4) — note `eam-shared.css` still upper-cases the device's own More label,
   deliberately not synchronised.
-**FOUR AREAS, ONE MEMBERSHIP TABLE** (§30.13/§30.14, added 2026-09-16). The rail
-rows under "Mobile configuration" are Workflows, Home Layouts, Offline Profiles
-and User Groups — all areas of this one file.
+**FOUR AREAS, ONE MEMBERSHIP TABLE** (§30.13/§30.14, added 2026-09-16). Three
+rail rows under **Mobile configuration** — Workflows, Home Layouts, Offline
+Profiles — plus **User Groups under Security**, which is where it belongs: a
+group is a security object, created there, and this area only ever *binds*
+(§26.5.1). All four are areas of this one file; the rail listed User Groups
+twice until 2026-09-16.
 - **`ASSIGN` is the ONE store**: a flat `{type, artifactId, group}` array read
   only through `groupsOf()` / `artifactsForGroup()` / `isAssigned()`. **Never add
   a per-artifact `assignments` array back** — that is what `w.assignments` was,
@@ -717,8 +752,14 @@ prototype session trips over, one line each.
   left is the per-action shape call. §9.4.
 - **Conditional field rules** — Phase 4+, deliberately deprioritised. **Don't
   pick a tier**; the only thing owed up front is the two one-way doors
-  (`resolveFieldState()` seam, declared-vs-effective split). **§29's question
-  fork did not reopen this** — don't cite it as precedent. §13.1–§13.4.
+  (`resolveFieldState()` seam, declared-vs-effective split). §13.1–§13.4.
+  **ONE narrow entry was made 2026-09-16 — the condition fork (§30.19) — and
+  it is ROUTING ONLY.** It changes no field's state and adds no seam. Don't
+  read it as Tier 2 being adopted, and don't cite it (or §29's question fork)
+  as precedent for field-level rules. What it did settle: §13.4's
+  verification is paid — the customer's export has **no** condition-shaped
+  column, and base's only such mechanism (`FTB_SQLEXIST`) is unused
+  server-side SQL, so there is no base paradigm to extend.
 - **WO Equipment tab row tap** — `chooser` vs. `split`, both built,
   live-switchable from that screen's dev toggle. Needs a device. §20.
 - **Equipment Record View's routed-in record is an identity overlay** — deep

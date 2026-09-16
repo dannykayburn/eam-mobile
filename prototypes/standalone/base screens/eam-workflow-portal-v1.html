@@ -1153,6 +1153,16 @@ svg{display:block;}
 .homewrap{display:flex;align-items:flex-start;gap:var(--s-4);flex-wrap:wrap;}
 .homepane{flex:1 1 320px;min-width:300px;}
 .homephone{flex:0 0 430px;}
+/* A condition fork reuses the question fork's card shape — they are the
+   same routing object with a different answerer — but takes the PPM hue
+   rather than Routine's, so the two are distinguishable at a glance
+   without inventing a fifth colour (§23). */
+.node--cond{box-shadow:inset 0 0 0 1px var(--wo-type-ppm),var(--elev-1);}
+.node--cond .node__seq{color:var(--wo-type-ppm);}
+/* A rule inside a modal body, where two groups of fields need separating
+   without a heading for each. */
+.pop__sep{height:1px;background:var(--border-subtle);margin:var(--s-4) 0 var(--s-2);}
+
 /* ══ PROTECTED FIELD ══
    §5.2's treatment, brought over for the caps: a protected field loses its
    border and carries a lock, so "you cannot edit this" is legible without
@@ -1312,7 +1322,7 @@ svg{display:block;}
        RAIL — Octave AppShell's labelled rail
        ══════════════════════════════════════════════════════════════════
        Replaces the 76px icon rail + slide-out flyout + dark top bar. The
-       rail IS the navigation now, and every row under "Mobile configuration"
+       rail IS the navigation now, and every AREA row
        is an AREA OF THIS FILE (§30.6).
 
        THERE ARE NO LINKS OUT AT ALL (confirmed 2026-09-16). Screen Designer
@@ -1343,11 +1353,6 @@ svg{display:block;}
       <span class="rail__row-label">Workflows</span>
       <span class="rail__row-count" id="railWfCount">0</span>
     </button>
-    <button class="rail__row" id="railGroups" onclick="setArea('groups')">
-      <span class="ms ms-18">group</span>
-      <span class="rail__row-label">User Groups</span>
-      <span class="rail__row-count" id="railGroupsCount">0</span>
-    </button>
     <button class="rail__row" id="railHome" onclick="setArea('home')">
       <span class="ms ms-18">dashboard</span>
       <span class="rail__row-label">Home Layouts</span>
@@ -1361,9 +1366,10 @@ svg{display:block;}
 
     <div class="rail__divider"></div>
     <div class="rail__section">Security</div>
-    <button class="rail__row" onclick="toast('Security ▸ User Groups — where a group is actually CREATED')">
+    <button class="rail__row" id="railGroups" onclick="setArea('groups')">
       <span class="ms ms-18">badge</span>
       <span class="rail__row-label">User Groups</span>
+      <span class="rail__row-count" id="railGroupsCount">0</span>
     </button>
     <button class="rail__row" onclick="toast('Security ▸ Function Permissions')">
       <span class="ms ms-18">lock</span>
@@ -2058,6 +2064,223 @@ function mkNode(stepOrFork, opts){
   };
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   CONDITION FORK (§30.19) — a fork the SYSTEM answers
+   ═══════════════════════════════════════════════════════════════════════
+   §29.4's question fork asks the technician and routes on the answer. This
+   one reads a FIELD and routes on its value. Same routing model, same
+   forward-only enforcement, same N/A-marks-nothing-retracted — it is a
+   second fork KIND, not a parallel mechanism, which is why isForkKind()
+   and forkBranches() exist below rather than a second copy of everything.
+
+   ── WHEN IT EVALUATES, and why that is the whole design ──
+   User direction, 2026-09-16: "the form is dirty until the user navs to
+   another screen... the user enters required fields/changes optional/etc;
+   and hits 'Next'. At that point, online or offline, app sees the next step
+   is a condition fork, checks the field and its value ONLY OF THE USER'S
+   CURRENT FORM/SCREEN they are on, and moves to the appropriate next step."
+
+   That single sentence is what makes this safe, and it is worth spelling
+   out because the obvious alternatives are not:
+
+     · It evaluates at ONE moment — the Next tap — so the value is pinned
+       exactly the way a question fork's answer is. §13.3 item 4 warns that
+       step-level retraction is a data problem; a live re-evaluating rule
+       would mark a step N/A while a technician typed, possibly a step
+       already holding booked labour. Evaluating on Next has no such window.
+     · It reads only the CURRENT screen's fields, so the value is
+       guaranteed present, current, and VISIBLE to the person it routes.
+       Routing on a field the technician cannot see is invisible logic.
+     · It is client-evaluable by construction — same-record, same-screen,
+       no lookup. §2.7's last row makes anything server-evaluated
+       blocked-visible offline, and a ROUTE that resolves differently
+       offline means two technicians on one WO do different work. Field
+       state failing silently offline is a bad form; routing failing
+       silently is a different category.
+
+   ── WHAT IT DELIBERATELY CANNOT DO ──
+   Conditions on WO Type, user group, function or equipment system type are
+   NOT offered, because §11 already resolves the whole workflow on
+   (WO Type, user group) and §13.5 protects WO Type from Start Work onward.
+   A condition on any of them re-implements workflow resolution one level
+   down and can never change. Job-captured values are the only ones that
+   earn a fork (user direction).
+
+   ── THE THIRD OUTCOME NOBODY ASKS FOR ──
+   An Optional field can be empty at Next. "Boolean" implies two paths, and
+   sending every empty value down the false path is the trap. So an
+   unevaluable condition CONTINUES IN SEQUENCE — the same meaning §29.4
+   gives a null target — and the editor says so rather than leaving it to
+   be discovered.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Operators per field type. Rendered from the field's OWN declared type, so
+   an admin is never offered "is greater than" on a checkbox.
+   NO RELATIVE DATES on purpose (today, today+7, start of shift): they are a
+   sub-feature with their own evaluation-time semantics, and a literal date
+   is the plainest thing that works. Flagged in §20 rather than half-built. */
+const COND_OPS = {
+  text: [
+    {k:'eq', label:'is', val:true},
+    {k:'ne', label:'is not', val:true},
+    {k:'has', label:'contains', val:true},
+    {k:'empty', label:'is empty', val:false},
+    {k:'notempty', label:'is not empty', val:false},
+  ],
+  num: [
+    {k:'eq', label:'is', val:true},
+    {k:'ne', label:'is not', val:true},
+    {k:'gt', label:'is greater than', val:true},
+    {k:'lt', label:'is less than', val:true},
+    {k:'ge', label:'is at least', val:true},
+    {k:'le', label:'is at most', val:true},
+    {k:'empty', label:'is empty', val:false},
+    {k:'notempty', label:'is not empty', val:false},
+  ],
+  lov: [
+    {k:'eq', label:'is', val:true},
+    {k:'ne', label:'is not', val:true},
+    {k:'empty', label:'is empty', val:false},
+    {k:'notempty', label:'is not empty', val:false},
+  ],
+  bool: [
+    {k:'true', label:'is checked', val:false},
+    {k:'false', label:'is not checked', val:false},
+  ],
+  date: [
+    {k:'eq', label:'is on', val:true},
+    {k:'lt', label:'is before', val:true},
+    {k:'gt', label:'is after', val:true},
+    {k:'empty', label:'is empty', val:false},
+    {k:'notempty', label:'is not empty', val:false},
+  ],
+  time: [
+    {k:'eq', label:'is at', val:true},
+    {k:'lt', label:'is before', val:true},
+    {k:'gt', label:'is after', val:true},
+    {k:'empty', label:'is empty', val:false},
+    {k:'notempty', label:'is not empty', val:false},
+  ],
+};
+/* A button is a control, not a value (§30.12) — there is nothing to test,
+   the same reason it takes only Optional or Hidden. */
+function condOpsFor(type){ return COND_OPS[type] || []; }
+function condOpMeta(type, k){ return condOpsFor(type).find(o => o.k === k) || null; }
+function condTypeIsTestable(type){ return condOpsFor(type).length > 0; }
+
+function mkCondNode(opts){
+  opts = opts || {};
+  return {
+    nid:nid(), kind:'cond', zone:'flow',
+    /* The field is addressed by its API name — stable across a rename, and
+       the same string R5PAGELAYOUT would key on. */
+    field:opts.field || '',
+    op:opts.op || '',
+    value:opts.value === undefined ? '' : opts.value,
+    /* null = continue in sequence, exactly as §29.4 means it. */
+    tTrue:opts.tTrue || null,
+    tFalse:opts.tFalse || null,
+  };
+}
+
+/* ── BOTH FORK KINDS, ONE SET OF RULES ──
+   Every routing rule in §29.4 — forward-only, re-validated on reorder,
+   dangling targets cleared, skipped steps marked N/A, wires drawn to real
+   destinations — applies identically whether a human or a field answered.
+   So the code asks isForkKind(), and reads branches through forkBranches(),
+   rather than carrying two implementations that can drift. */
+function isForkKind(n){ return !!n && (n.kind === 'fork' || n.kind === 'cond'); }
+/* [branchKey, targetProperty] pairs, in render order. */
+function forkBranches(n){
+  return n && n.kind === 'cond'
+    ? [['true','tTrue'], ['false','tFalse']]
+    : [['yes','yesTarget'], ['no','noTarget']];
+}
+function forkBranchLabel(n, br){
+  if(!n) return br;
+  if(n.kind === 'cond') return br === 'true' ? 'True' : 'False';
+  return br === 'yes' ? tx(n.yesLabel, BASE_LANG) : tx(n.noLabel, BASE_LANG);
+}
+
+/* ── THE STEP WHOSE FORM THIS READS ──
+   "ONLY OF THE USER'S CURRENT FORM/SCREEN they are on" — so the readable
+   fields are those of the nearest STEP before the fork. Not any earlier
+   step: the technician is not on those any more, and their values are no
+   longer dirty-and-current.
+
+   Returns null when there is no such step, which is a real authoring state
+   (a condition fork dropped first, or after another fork) and is reported
+   rather than rendering an empty field list. Same treatment §29.4 gives a
+   fork appended last with nothing to route to. */
+function condSourceStep(w, cn){
+  const flow = flowNodes(w);
+  const i = flow.indexOf(cn);
+  if(i < 0) return null;
+  for(let j = i - 1; j >= 0; j--) if(isStepKind(flow[j])) return flow[j];
+  return null;
+}
+/* Every testable field on that step's form, flattened out of its
+   containers. A HIDDEN field is excluded: routing on something the
+   technician cannot see is the invisible-logic failure this design exists
+   to avoid, and §2.9's principle is that narrowing may happen but not
+   silently. */
+function condFieldsFor(w, cn){
+  const src = condSourceStep(w, cn);
+  if(!src || !Array.isArray(src.layout)) return [];
+  const out = [];
+  src.layout.forEach(sec => (sec.fields || []).forEach(f => {
+    if(!condTypeIsTestable(f.type)) return;
+    if(f.behavior === 'hid') return;
+    out.push({api:f.api, name:f.name, type:f.type, container:sec.container});
+  }));
+  return out;
+}
+function condFieldMeta(w, cn){
+  if(!cn || !cn.field) return null;
+  return condFieldsFor(w, cn).find(f => f.api === cn.field) || null;
+}
+/* One line an admin can read back. Deliberately the shape of a sentence,
+   because the card shows it as a pill and the point of the pill is that the
+   rule is legible without opening the editor. */
+function condSummary(w, cn){
+  const f = condFieldMeta(w, cn);
+  if(!f) return cn && cn.field ? 'Field no longer on the previous step' : 'No condition yet';
+  const o = condOpMeta(f.type, cn.op);
+  if(!o) return f.name + ' — no operator yet';
+  return f.name + ' ' + o.label + (o.val ? ' ' + (cn.value === '' ? '…' : cn.value) : '');
+}
+/* Evaluated for the PREVIEW only — the runtime does this on the device at
+   the Next tap. Returns true, false, or null for "cannot tell", which is
+   the third outcome the two-branch shape hides. */
+function condEval(cn, fieldType, raw){
+  const o = condOpMeta(fieldType, cn.op);
+  if(!o) return null;
+  const empty = raw === undefined || raw === null || raw === '';
+  if(o.k === 'empty') return empty;
+  if(o.k === 'notempty') return !empty;
+  if(o.k === 'true') return raw === true || raw === 'true';
+  if(o.k === 'false') return !(raw === true || raw === 'true');
+  if(empty) return null;                       /* nothing to compare against */
+  if(fieldType === 'num'){
+    const a = parseFloat(raw), b = parseFloat(cn.value);
+    if(isNaN(a) || isNaN(b)) return null;
+    if(o.k === 'eq') return a === b;
+    if(o.k === 'ne') return a !== b;
+    if(o.k === 'gt') return a > b;
+    if(o.k === 'lt') return a < b;
+    if(o.k === 'ge') return a >= b;
+    if(o.k === 'le') return a <= b;
+    return null;
+  }
+  const a = String(raw), b = String(cn.value);
+  if(o.k === 'eq') return a === b;
+  if(o.k === 'ne') return a !== b;
+  if(o.k === 'has') return a.indexOf(b) > -1;
+  if(o.k === 'lt') return a < b;               /* ISO dates/times sort as text */
+  if(o.k === 'gt') return a > b;
+  return null;
+}
+
 /* ── A STATUS UPDATE action (replaces §12's declared completion pair) ──
    Until 2026-09-16 a workflow declared exactly two statuses — one for Start
    Work, one for completion — as fields on the workflow. That could only ever
@@ -2152,7 +2375,9 @@ function addNodeToWf(wf, stepId, index, zone){
     else wf.nodes.splice(index, 0, sn);
     return sn;
   }
-  const node = stepId === 'fork'
+  const node = stepId === 'cond'
+    ? mkCondNode({})
+    : stepId === 'fork'
     ? mkNode('fork', {})
     : (function(){
         const inst = mintInst(wf, stepId);
@@ -2252,7 +2477,23 @@ function seedRoutedWorkflow(wf){
   const cmt  = mkNode('comments',   {zone:'ref'});
   fork.yesTarget = null;        // continue → Parts
   fork.noTarget  = lab.nid;     // skip Parts, which becomes N/A
-  wf.nodes = [rv, chk, fork, prt, lab, cls, cmt];
+
+  /* ── A CONDITION FORK, seeded so the feature is live on load rather than
+     only reachable by building one — the same reason ZJ1000 ships as a
+     capability-limited clone.
+
+     It sits straight after the checklist because it reads THAT form: the
+     follow-up flag the technician just ticked or left alone. Flagged, and
+     the flow continues into Parts and Labor; not flagged, and it jumps to
+     Closing. That is precisely the case a question fork would otherwise
+     have to ASK about a box the technician has already answered — which is
+     the whole argument for this node existing. ── */
+  const cn = mkCondNode({
+    field:'CHK_FLAG', op:'true',
+    tTrue:null,          /* flagged → continue in sequence */
+    tFalse:cls.nid,      /* not flagged → straight to Closing */
+  });
+  wf.nodes = [rv, chk, cn, fork, prt, lab, cls, cmt];
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -3150,14 +3391,26 @@ function validateForks(w){
   const flow = flowNodes(w);
   let cleared = 0;
   flow.forEach((n, i) => {
-    if(n.kind !== 'fork') return;
-    ['yesTarget','noTarget'].forEach(k => {
+    if(!isForkKind(n)) return;
+    forkBranches(n).forEach(pair => {
+      const k = pair[1];
       const t = n[k];
       if(!t || t === '__end') return;
       const tgt = nodeById(w, t);
       const ti = tgt ? flow.indexOf(tgt) : -1;
       if(ti === -1 || ti <= i){ n[k] = null; cleared++; }
     });
+    /* THIRD FAILURE MODE, and it only exists for a condition fork: its
+       field belongs to whatever STEP now precedes it. Reorder the flow and
+       a different step is in front of it; delete that step and there is no
+       form at all. Either way the field reference silently stops resolving
+       and the fork would evaluate to "cannot tell" forever. Cleared and
+       counted for the same reason a dangling target is — §29.4's "enforced
+       twice" applies to the input as well as the output. */
+    if(n.kind === 'cond' && n.field){
+      const ok = condFieldsFor(w, n).some(f => f.api === n.field);
+      if(!ok){ n.field = ''; n.op = ''; n.value = ''; cleared++; }
+    }
   });
   return cleared;
 }
@@ -3182,9 +3435,14 @@ function naSet(w, answers){
   let i = 0;
   while(i < flow.length){
     const n = flow[i];
-    if(n.kind === 'fork'){
-      const ans = (answers && answers[n.nid]) || 'yes';
-      const tgt = ans === 'yes' ? n.yesTarget : n.noTarget;
+    if(isForkKind(n)){
+      /* The preview supplies an outcome per fork nid; the default is the
+         first branch, which is the "nothing chosen yet" reading for both
+         kinds (yes / true). */
+      const brs = forkBranches(n);
+      const ans = (answers && answers[n.nid]) || brs[0][0];
+      const pair = brs.find(b => b[0] === ans) || brs[0];
+      const tgt = n[pair[1]];
       if(tgt === '__end'){
         for(let j=i+1;j<flow.length;j++) if(isStepKind(flow[j])) na.add(flow[j].nid);
         break;
@@ -3284,7 +3542,9 @@ function renderCrumb(){
   set('railWfCount', WFS.length);
   set('railHomeCount', HOMES.length);
   set('railOfflineCount', PROFILES.length);
-  set('railGroupsCount', allConflicts().length || GROUPS.length);
+  /* The group count, not a conflict count — a badge that silently changes
+     meaning when something is wrong is the summary pattern in miniature. */
+  set('railGroupsCount', GROUPS.length);
   [['railWorkflows','workflows'],['railHome','home'],['railOffline','offline'],['railGroups','groups']]
     .forEach(([id, a]) => {
       const el = $(id);
@@ -3443,29 +3703,20 @@ function artHasConflict(type, id){
 }
 
 /* ── Shared gallery chrome, so four areas cannot drift apart visually ── */
+/* NO SUMMARY BAND (2026-09-16). This used to lead with an assignment-
+   collision roll-up. A clash is now refused where it is made — the
+   assignment popover predicts it before the click and says which artifact
+   it would collide with — which is the house idiom and is what a dev will
+   actually wire up. `o.conflicts` is still accepted and ignored so the
+   callers did not all have to change in the same pass; allConflicts() is
+   untouched if a roll-up is ever wanted again. */
 function galleryShell(o){
-  const issues = o.conflicts && o.conflicts.length
-    ? '<div class="Banner Banner--critical">' +
-        '<span class="ms ms-24 Banner__icon">warning</span>' +
-        '<div class="Banner__body">' +
-          '<div class="Banner__title">Assignment collisions — ' + o.conflicts.length + '</div>' +
-          '<div class="Banner__text">' + esc(assignRuleText(o.type)) + '</div>' +
-          '<div class="Banner__rows">' +
-          o.conflicts.map(c => '<div class="Banner__row"><div class="Banner__row-b"><b>' + esc(c.group) + '</b> ' +
-            esc(c.msg) + '<div class="Banner__row-sub">' + c.arts.map(a => esc(artifactName(c.type, a))).join('  ·  ') +
-            '</div></div>' +
-            '<button class="Button Button--sm" onclick="setArea(\'groups\')">' +
-              '<span class="Button__label">Fix from the group</span></button></div>').join('') +
-          '</div>' +
-        '</div>' +
-      '</div>'
-    : '';
   return '<div class="wrapw">' +
     '<div class="tbar">' +
       '<div><div class="tbar__t">' + esc(o.title) + '</div>' +
         '<div class="tbar__d">' + o.desc + '</div></div>' +
       '<div class="tbar__r">' + (o.actions || '') + '</div>' +
-    '</div>' + issues + o.body + '</div>';
+    '</div>' + o.body + '</div>';
 }
 
 /* ── AREA ROUTER ── */
@@ -3508,8 +3759,8 @@ function renderOfflineArea(){
       '<div class="wfc__foot">' + ic('users',16) +
         '<span class="mono">' + groups.length + '</span> group' + (groups.length===1?'':'s') +
         '<span class="wfc__foot-r">' +
-          (errs ? '<span class="wfc__warn">' + ic('alert',14) + errs + ' to fix</span>' : '') +
-          (artHasConflict('offline', p.id) ? '<span class="wfc__warn">' + ic('alert',14) + 'collision</span>' : '') +
+          /* No "to fix" / "collision" chips — the error belongs on the
+             control that can fix it, not on a card that cannot. */
           '<span class="mono">' + esc(p.updated || '') + '</span>' +
         '</span>' +
       '</div>' +
@@ -3826,20 +4077,13 @@ function setEntityDataspy(entityId, v){
   p.entities[entityId].dataspy = v;
   p.updated = todayStr(); savePortal(); render();
 }
-function profileIssueBanner(issues){
-  const errs = issues.filter(i => i.sev === 'error');
-  const warns = issues.filter(i => i.sev === 'warn');
-  const band = (list, sev, title) => !list.length ? '' :
-    '<div class="Banner Banner--' + sev + '">' +
-      '<span class="ms ms-24 Banner__icon">' + (sev === 'critical' ? 'warning' : 'info') + '</span>' +
-      '<div class="Banner__body"><div class="Banner__title">' + title + ' — ' + list.length + '</div>' +
-        '<div class="Banner__rows">' +
-        list.map(i => '<div class="Banner__row"><div class="Banner__row-b"><b>' + esc(i.entity.label) + '</b> ' +
-          esc(i.msg) + '</div></div>').join('') +
-        '</div></div></div>';
-  return band(errs, 'critical', 'Must be fixed before this profile is assigned') +
-         band(warns, 'info', 'Undecided scope');
-}
+/* REMOVED 2026-09-16 — the two roll-up bands are gone. profileIssues() is
+   NOT removed: every one of its findings already renders on the row that
+   caused it (a filtered policy with no dataspy puts is-error on its own
+   select and says "all records is refused"; an undecided entity carries its
+   status chip). Kept as a no-op so the call site reads as a deliberate
+   absence rather than a forgotten insert. */
+function profileIssueBanner(){ return ''; }
 
 /* ═══════════════════════════════════════════════════════════════════════
    AREA — HOME LAYOUTS (and the tile catalogue underneath them)
@@ -3880,8 +4124,7 @@ function renderHomeArea(){
       '<div class="wfc__foot">' + ic('users',16) +
         '<span class="mono">' + groups.length + '</span> group' + (groups.length===1?'':'s') +
         '<span class="wfc__foot-r">' +
-          (iss.some(i=>i.sev==='error') ? '<span class="wfc__warn">' + ic('alert',14) + 'to fix</span>' : '') +
-          (artHasConflict('home', h.id) ? '<span class="wfc__warn">' + ic('alert',14) + 'collision</span>' : '') +
+          /* No "to fix" / "collision" chips — see galleryShell. */
           '<span class="mono">' + esc(h.updated || '') + '</span>' +
         '</span>' +
       '</div>' +
@@ -3894,12 +4137,7 @@ function renderHomeArea(){
       '<b>Create</b> control. Tiles are authored once in the catalogue below and reused — so editing a tile ' +
       'changes every layout using it. Sections belong to the <b>layout</b>, not the tile, so the same tile can ' +
       'sit under different headings in different layouts. ' +
-      '<b>Tile content is still an open design question</b>; these are the mechanics, not a decided tile set.' +
-      (allHomeGaps().length
-        ? '<br><b>' + allHomeGaps().length + ' tile placement' + (allHomeGaps().length===1?'':'s') +
-          ' would be SILENTLY HIDDEN</b> — a tile whose screen is not in that group\'s menu is dropped by the ' +
-          'product with no error (EAM.DUX.REQ.DigitalWorkHome). Open the layout to see which.'
-        : ''),
+      '<b>Tile content is still an open design question</b>; these are the mechanics, not a decided tile set.',
     conflicts:conflictsFor('home'),
     actions:btn('Create layout', {cls:'Button--contained Button--primary', icon:'plus', on:'createHome()'}),
     body:'<div class="galgrid">' + cards +
@@ -4149,14 +4387,10 @@ function renderHomeEditor(){
           btn('Back to layouts', {icon:'chevL', on:'closeHome()'}) +
         '</div>' +
       '</div>' +
-      (iss.length
-        ? '<div class="Banner Banner--' + (iss.some(i=>i.sev==='error') ? 'critical' : (iss.some(i=>i.sev==='warn') ? 'info' : 'info')) + '">' +
-            '<span class="ms ms-24 Banner__icon">' + (iss.some(i=>i.sev==='error')?'warning':'info') + '</span>' +
-            '<div class="Banner__body"><div class="Banner__title">' + iss.length + ' to look at</div>' +
-            '<div class="Banner__rows">' + iss.map(i =>
-              '<div class="Banner__row"><div class="Banner__row-b">' + esc(i.msg) + '</div></div>').join('') +
-            '</div></div></div>'
-        : '') +
+      /* No "N to look at" band (2026-09-16). homeIssues() still runs — an
+         untitled section renders its title slot in error, an empty section
+         shows its own drop hint, and a silently-hidden tile outlines red
+         with the reason in its menu. The finding is on the thing. */
       '<div class="homewrap">' +
         '<div class="card homepane">' +
           '<div class="card__head">' + ic('grid',16) + '<span class="card__title">Available tiles</span>' +
@@ -4624,24 +4858,13 @@ function renderGroupsArea(){
 }
 function pickGroup(g){ state.selGroup = g; render(); }
 
+/* NO GROUP ROLL-UP (2026-09-16). This was the biggest of them — every
+   finding across all four artifact types, aggregated per group. It read as
+   a dashboard, and a dashboard is the thing to build last, not first.
+   groupIssues() is kept and still called by the assignment control, which
+   is where a group-level violation can actually be prevented. */
 function groupDetailHtml(g){
-  const issues = groupIssues(g);
-  const bands = Object.keys(ARTIFACT_TYPES).map(type => groupTypeBand(g, type)).join('');
-  return (issues.length
-    ? '<div class="Banner Banner--' + (issues.some(i=>i.sev==='error')?'critical':'info') + '">' +
-        '<span class="ms ms-24 Banner__icon">' + (issues.some(i=>i.sev==='error')?'warning':'info') + '</span>' +
-        '<div class="Banner__body">' +
-          '<div class="Banner__title">' + esc(g) + ' — ' + issues.length + ' to look at</div>' +
-          '<div class="Banner__rows">' + issues.map(i =>
-            '<div class="Banner__row"><div class="Banner__row-b">' + i.msg +
-              (i.fix ? '<div class="Banner__row-sub">' + i.fix + '</div>' : '') + '</div>' +
-              (i.area ? '<button class="Button Button--sm" onclick="setArea(\'' + i.area + '\')">' +
-                '<span class="Button__label">Open ' + i.area + '</span></button>' : '') +
-            '</div>').join('') +
-          '</div>' +
-        '</div>' +
-      '</div>'
-    : '') + bands;
+  return Object.keys(ARTIFACT_TYPES).map(type => groupTypeBand(g, type)).join('');
 }
 
 /* ── DECLARED vs. EFFECTIVE (§26.5 mechanic 2) ──
@@ -4777,15 +5000,10 @@ function groupIssues(g){
       msg:'Offline profile <b>' + esc(p.name) + '</b> has ' + errs.length + ' unresolved rule' + (errs.length===1?'':'s') + '.',
       fix:errs.map(e => esc(e.entity.label) + ' ' + esc(e.msg)).join('  ·  ')});
   });
-  /* A workflow placing steps its own function cannot render — a capability
-     gap, reported never worked around (§26.5.1). */
-  wf.arts.forEach(w => {
-    const gaps = capabilityGaps(w);
-    if(gaps.length) out.push({sev:'error', area:'workflows',
-      msg:'Workflow <b>' + esc(w.desc) + '</b> places ' + gaps.length + ' step' + (gaps.length===1?'':'s') +
-        ' that <b>' + esc(w.fn) + '</b> cannot render.',
-      fix:'Fix in Screen Designer or Function Permissions — assigning a different group only moves the problem.'});
-  });
+  /* NOTE: this no longer re-reports capability gaps or home-layout gaps.
+     Those belong to the artifact, are already shown on the offending node
+     or tile, and aggregating them here was how this function turned into a
+     dashboard feed. It is kept for the assignment control's own checks. */
   /* A home layout with a tile that has nothing to count. */
   effectiveFor(g, 'home').arts.forEach(h => {
     homeIssues(h).filter(i => i.sev === 'error').forEach(i => out.push({
@@ -4809,29 +5027,12 @@ function renderGallery(){
         || (w.notes||'').toLowerCase().indexOf(q) !== -1;
   });
 
-  /* ONE Banner, severity critical, with a row per collision inside its body.
-     This is a cross-artifact rule no single workflow can see (§30.2), which
-     is why it is a page-level banner rather than a badge on a card. */
-  let issues = '';
-  if(conflicts.length){
-    issues = '<div class="Banner Banner--critical">' +
-      '<span class="ms ms-24 Banner__icon">warning</span>' +
-      '<div class="Banner__body">' +
-        '<div class="Banner__title">Assignment collisions — ' + conflicts.length + '</div>' +
-        '<div class="Banner__text">A user group may be assigned one workflow per WO Type, and one Free Form.</div>' +
-        '<div class="Banner__rows">' +
-        conflicts.map(c =>
-          '<div class="Banner__row">' +
-            '<div class="Banner__row-b"><b>' + esc(c.group) + '</b> ' + esc(c.msg) +
-              '<div class="Banner__row-sub">' + c.wfs.map(w=>esc(w.desc)).join('  ·  ') + '</div>' +
-            '</div>' +
-            '<button class="Button Button--sm" onclick="setArea(\'groups\')">' +
-              '<span class="Button__label">Fix assignment</span></button>' +
-          '</div>').join('') +
-        '</div>' +
-      '</div>' +
-    '</div>';
-  }
+  /* No collision banner (2026-09-16). §30.2's rule is unchanged and
+     assignmentConflicts() still computes it — it is enforced in the
+     assignment popover, which refuses the second assignment and names the
+     workflow it would collide with. Prevented at the click beats counted
+     on the page. */
+  const issues = '';
 
   $('gallery').innerHTML =
     '<div class="wrapw">' +
@@ -4902,7 +5103,7 @@ function galCard(w){
     '<div class="wfc__foot">' +
       ic('users',13) + '<span class="mono">' + groupsOf('workflow', w.id).length + '</span> group' + (groupsOf('workflow', w.id).length===1?'':'s') +
       '<span class="wfc__foot-r">' +
-        (conflict ? '<span class="wfc__warn">' + ic('alert',12) + 'collision</span>' : '') +
+        /* no collision chip (2026-09-16) */
         '<span style="font-family:var(--font-mono)">' + esc(w.updated||'') + '</span>' +
       '</span>' +
     '</div>' +
@@ -5133,7 +5334,7 @@ function saveWf(){
 function toggleFreeForm(){
   const w = wf(); if(!w) return;
   if(!w.freeForm){
-    const forks = w.nodes.filter(n=>n.kind==='fork').length;
+    const forks = w.nodes.filter(isForkKind).length;
     const seen = {}; const dupes = [];
     w.nodes.filter(n=>n.kind==='step').forEach(n=>{
       if(seen[n.step]) dupes.push(n); else seen[n.step] = n;
@@ -5178,7 +5379,7 @@ function applyFreeForm(w){
   w.nodes = w.nodes.filter(n => {
     /* Forks AND status actions are positional, and Free Form has no
        positions — so both go, not just the fork. */
-    if(n.kind === 'fork' || n.kind === 'action') return false;
+    if(isForkKind(n) || n.kind === 'action') return false;
     if(seen[n.step]) return false;
     seen[n.step] = true; return true;
   });
@@ -5253,6 +5454,9 @@ function renderLib(){
       '<div class="lib__item lib__item--fork" draggable="true" ondragstart="libDragStart(event,\'fork\')" ondragend="dragEnd()">' +
         '<span class="lib__ico">' + ic('split',16) + '</span>' +
         '<span class="lib__item-t">Question fork</span></div>' +
+      '<div class="lib__item lib__item--fork" draggable="true" ondragstart="libDragStart(event,\'cond\')" ondragend="dragEnd()">' +
+        '<span class="lib__ico">' + ic('fork',16) + '</span>' +
+        '<span class="lib__item-t">Condition fork</span></div>' +
       '<div class="lib__item lib__item--act" draggable="true" ondragstart="libDragStart(event,\'status\')" ondragend="dragEnd()">' +
         '<span class="lib__ico">' + ic('flag',16) + '</span>' +
         '<span class="lib__item-t">Status update</span></div>';
@@ -5278,25 +5482,17 @@ function dragEnd(){
 /* Reported at the top of the canvas, because a gap is about the WORKFLOW's
    choice of function rather than any one step — though each offending node is
    marked too, so it is findable. */
-function capabilityBannerHtml(w){
-  const gaps = capabilityGaps(w);
-  if(!gaps.length) return '';
-  const f = fnByCode(w.fn);
-  return '<div class="Banner Banner--critical" style="max-width:440px;margin:0 auto var(--s-4)">' +
-    '<span class="ms ms-24 Banner__icon">block</span>' +
-    '<div class="Banner__body">' +
-      '<div class="Banner__title">' + esc(f ? f.code : w.fn) + ' cannot render ' + gaps.length +
-        ' of these steps</div>' +
-      '<div class="Banner__text">' + gaps.map(g=>esc(g.name)).join(', ') +
-        '. Fix this in Screen Designer or Function Permissions — removing the step here would hide the dead end, ' +
-        'not solve it (§26.5.1).</div>' +
-    '</div>' +
-  '</div>';
-}
+/* REMOVED 2026-09-16 — the capability roll-up is gone. capabilityGaps() is
+   NOT removed and the gap is still unmissable on the canvas: the node
+   itself outlines in error red, and its library entry is disabled with the
+   reason on it. The finding is on the step that has the problem, which is
+   also the only place it can be acted on (§26.5.1 — reported, never
+   auto-fixed). Kept as a no-op so the call site reads as deliberate. */
+function capabilityBannerHtml(){ return ''; }
 
 function renderCvBar(){
   const w = wf(); if(!w) return;
-  const nSeq = seqNodes(w).length, nRef = refNodes(w).length, nFork = w.nodes.filter(n=>n.kind==='fork').length;
+  const nSeq = seqNodes(w).length, nRef = refNodes(w).length, nFork = w.nodes.filter(isForkKind).length;
   $('cvbar').innerHTML =
     '<span class="cvbar__t">' + (w.freeForm ? 'Free Form canvas' : 'Flow canvas') + '</span>' +
     '<span class="chip chip--dense chip--static" title="Base screen this workflow is authored against">' +
@@ -5351,7 +5547,7 @@ function renderCanvas(){
   /* An "End of workflow" terminal, but only when a fork actually routes to
      it — otherwise it is a box explaining a feature nobody used. It is a
      wire destination, which is why it lives inside .flow. */
-  if(flow.some(x => x.kind === 'fork' && (x.yesTarget === '__end' || x.noTarget === '__end'))){
+  if(flow.some(x => isForkKind(x) && forkBranches(x).some(b => x[b[1]] === '__end'))){
     flowHtml += '<div class="conn" style="height:10px"></div><div class="fork-end">End of workflow</div>';
   }
 
@@ -5412,6 +5608,36 @@ function nodeHtml(w, n, inZone){
       '</div>' +
       '<div class="node__acts">' +
         '<button class="IconButton IconButton--sm IconButton--muted" onclick="event.stopPropagation();nodeMenu(event,\'' + n.nid + '\')">' + ic('dots',18) + '</button>' +
+      '</div>' +
+    '</div>';
+  }
+  if(n.kind === 'cond'){
+    const f = condFieldMeta(w, n);
+    const broken = !!n.field && !f;
+    const unset = !n.field || !n.op;
+    const out = (br, label) =>
+      '<button class="fork__ans" data-fork="' + n.nid + '" data-branch="' + br + '" ' +
+        'onclick="event.stopPropagation();openCondEditor(\'' + n.nid + '\')">' + label + '</button>';
+    return '<div class="node node--fork node--cond' + sel + '" draggable="true" data-nid="' + n.nid + '" ' +
+        'ondragstart="nodeDragStart(event,\'' + n.nid + '\')" ondragend="dragEnd()" ' +
+        'onclick="selectNode(\'' + n.nid + '\')">' +
+      '<span class="node__seq">' + ic('fork',13) + '</span>' +
+      '<div class="node__b">' +
+        '<div class="fork__q' + (unset || broken ? ' fork__q--empty' : '') + '">' +
+          esc(condSummary(w, n)) + '</div>' +
+        /* The error sits ON the node, which is the only place it can be
+           fixed — no summary band anywhere (2026-09-16). */
+        (broken
+          ? '<div class="node__sub"><span class="node__tag node__tag--nocap">' + ic('block',14) +
+            'The step in front of this changed — pick a field again</span></div>'
+          : (!condSourceStep(w, n)
+            ? '<div class="node__sub"><span class="node__tag node__tag--nocap">' + ic('block',14) +
+              'No step in front of this, so there is no form to read</span></div>'
+            : '')) +
+        '<div class="fork__ans-row">' + out('true','True') + out('false','False') + '</div>' +
+      '</div>' +
+      '<div class="node__acts">' +
+        '<button class="IconButton IconButton--sm IconButton--muted" onclick="event.stopPropagation();nodeMenu(event,\'' + n.nid + '\')">' + ic('dots',16) + '</button>' +
       '</div>' +
     '</div>';
   }
@@ -5487,8 +5713,8 @@ function forkTargetLabel(w, n, t){
 /* ── A CONNECTOR, with its '+' ── */
 function connHtml(w, i){
   const flow = flowNodes(w);
-  const nextIsFork = flow[i+1] && flow[i+1].kind === 'fork';
-  const thisIsFork = flow[i] && flow[i].kind === 'fork';
+  const nextIsFork = isForkKind(flow[i+1]);
+  const thisIsFork = isForkKind(flow[i]);
   /* A fork's outbound routing is drawn as wires, so the straight connector
      below it is suppressed — showing both claims the flow continues straight
      AND branches. The inbound connector above a fork stays: something does
@@ -5522,7 +5748,7 @@ function selectNode(id){
     const w = wf(); const n = nodeById(w, id);
     /* Neither a fork nor an action has a layout, so the panel has nothing
        to show for them. */
-    if(n && (n.kind === 'fork' || n.kind === 'action')) state.dsnOpen = false;
+    if(n && (isForkKind(n) || n.kind === 'action')) state.dsnOpen = false;
   }
   render();
 }
@@ -5588,7 +5814,7 @@ function drawForkArrows(){
   if(!w || w.freeForm) return;
 
   const flow = flowNodes(w);
-  const forks = flow.filter(x => x.kind === 'fork');
+  const forks = flow.filter(isForkKind);
   if(!forks.length) return;
   if(!flowEl.getBoundingClientRect) return;
   const box = flowEl.getBoundingClientRect();
@@ -5597,7 +5823,7 @@ function drawForkArrows(){
 
   let paths = '';
   forks.forEach(f => {
-    [['yes', f.yesTarget, -1], ['no', f.noTarget, 1]].forEach(function(br){
+    forkBranches(f).map(function(p, k){ return [p[0], f[p[1]], k ? 1 : -1]; }).forEach(function(br){
       const branch = br[0], target = br[1], dir = br[2];
       const src = flowEl.querySelector('.fork__ans[data-fork="' + f.nid + '"][data-branch="' + branch + '"]');
       const dst = forkWireTargetEl(w, flow, f, target);
@@ -5734,9 +5960,10 @@ function flowDrop(ev){
     const node = addNodeToWf(w, drag.stepId, abs, 'flow');
     state.selNid = node.nid;
     drag = null; dropIdx = null; dropZone = null;
-    afterStructuralChange(node.kind === 'fork' ? 'Fork inserted'
+    afterStructuralChange(isForkKind(node) ? 'Fork inserted'
       : (node.kind === 'action' ? 'Status update inserted' : 'Added ' + node.name));
     if(node.kind === 'fork') openForkEditor(node.nid);
+    else if(node.kind === 'cond') openCondEditor(node.nid);
     if(node.kind === 'action') openStatusEditor(node.nid);
     return;
   }
@@ -5763,7 +5990,7 @@ function refDrop(ev){
   ev.preventDefault(); ev.stopPropagation();
   const w = wf(); if(!w || !drag) return;
   if(drag.from === 'lib'){
-    if(drag.stepId === 'fork' || drag.stepId === 'status'){ drag=null; dropZone=null; renderCanvas(); toast('A fork and a status update are positional — neither can sit in the More group'); return; }
+    if(drag.stepId === 'fork' || drag.stepId === 'cond' || drag.stepId === 'status'){ drag=null; dropZone=null; renderCanvas(); toast('Forks and status updates are positional — none of them can sit in the More group'); return; }
     const node = addNodeToWf(w, drag.stepId, w.nodes.length, 'ref');
     state.selNid = node.nid;
     drag=null; dropZone=null; dropIdx=null;
@@ -5773,7 +6000,7 @@ function refDrop(ev){
   const n = nodeById(w, drag.nid);
   drag=null; dropZone=null; dropIdx=null;
   if(!n){ renderCanvas(); return; }
-  if(n.kind === 'fork' || n.kind === 'action'){ renderCanvas(); toast('A fork and a status update are positional — neither can sit in the More group'); return; }
+  if(isForkKind(n) || n.kind === 'action'){ renderCanvas(); toast('A fork and a status update are positional — neither can sit in the More group'); return; }
   moveToRef(n.nid, true);
 }
 
@@ -5797,6 +6024,142 @@ function ffDrop(ev){
     return;
   }
   drag=null; dropZone=null; renderCanvas();
+}
+
+/* ── THE CONDITION EDITOR ──
+   Four controls, in the order the sentence reads: field, operator, value,
+   then a destination per outcome. The operator list is derived from the
+   FIELD'S OWN declared type, so "is greater than" is never offered on a
+   checkbox and "contains" is never offered on a number.
+
+   Two states it refuses to paper over, both rendered as errors in place
+   rather than collected into a banner: no step in front of the fork (so
+   there is no form to read), and a field that no longer exists on the step
+   that IS in front of it. */
+function openCondEditor(id){
+  const w = wf(); const nd = nodeById(w, id); if(!nd || nd.kind !== 'cond') return;
+  const src = condSourceStep(w, nd);
+  const fields = condFieldsFor(w, nd);
+  const f = condFieldMeta(w, nd);
+  const ops = f ? condOpsFor(f.type) : [];
+  const opM = f ? condOpMeta(f.type, nd.op) : null;
+
+  const flow = flowNodes(w);
+  const i = flow.indexOf(nd);
+  const later = flow.slice(i + 1).filter(isStepKind);
+  const tsel = (key, cur) =>
+    '<select class="tinput" onchange="setCondTarget(\'' + id + '\',\'' + key + '\',this.value)">' +
+      '<option value=""' + (!cur ? ' selected' : '') + '>Continue to the next step</option>' +
+      later.map(t => '<option value="' + t.nid + '"' + (cur === t.nid ? ' selected' : '') + '>' +
+        esc(t.name) + '</option>').join('') +
+      '<option value="__end"' + (cur === '__end' ? ' selected' : '') + '>End the workflow</option>' +
+    '</select>';
+
+  openModal('narrow',
+    '<div class="mbox__head"><div class="mbox__head-b">' +
+      '<div class="mbox__title">Condition fork</div>' +
+      '<div class="mbox__sub">Evaluated when the technician taps <b>Next</b> on ' +
+        (src ? '<b>' + esc(src.name) + '</b>' : 'the previous step') +
+        ' \u2014 online or offline, on that screen\'s own values. No tap, no question: ' +
+        'the system routes.</div>' +
+    '</div></div>' +
+    '<div class="mbox__body mbox__body--plain">' +
+
+      (!src
+        ? '<div class="Banner Banner--critical" style="margin:0 0 var(--s-3)">' +
+            '<span class="ms ms-24 Banner__icon">block</span>' +
+            '<div class="Banner__body"><div class="Banner__title">Nothing in front of this fork</div>' +
+            '<div class="Banner__text">It reads the form the technician is <b>currently on</b>, so it needs a ' +
+              'step before it. Move it after one.</div></div></div>'
+        : (nd.field && !f
+          ? '<div class="Banner Banner--critical" style="margin:0 0 var(--s-3)">' +
+              '<span class="ms ms-24 Banner__icon">block</span>' +
+              '<div class="Banner__body"><div class="Banner__title">That field is not on ' + esc(src.name) + '</div>' +
+              '<div class="Banner__text">The step in front of this fork changed, so the field it read is gone. ' +
+                'Pick one from this step.</div></div></div>'
+          : '')) +
+
+      '<label class="pop__l">Field on ' + esc(src ? src.name : 'the previous step') + '</label>' +
+      '<select class="tinput" onchange="setCondField(\'' + id + '\',this.value)"' + (src ? '' : ' disabled') + '>' +
+        '<option value="">' + (fields.length ? 'Pick a field' : 'No testable fields on that step') + '</option>' +
+        fields.map(x => '<option value="' + esc(x.api) + '"' + (nd.field === x.api ? ' selected' : '') + '>' +
+          esc(x.name) + ' \u00b7 ' + esc(x.container) + '</option>').join('') +
+      '</select>' +
+      '<div class="pop__note">Only fields on the screen the technician just left, and never a <b>Hidden</b> one ' +
+        '\u2014 routing on something they cannot see is invisible logic. Buttons are excluded: a control has no ' +
+        'value to test.</div>' +
+
+      '<label class="pop__l">Operator</label>' +
+      '<select class="tinput" onchange="setCondOp(\'' + id + '\',this.value)"' + (f ? '' : ' disabled') + '>' +
+        '<option value="">' + (f ? 'Pick an operator' : 'Pick a field first') + '</option>' +
+        ops.map(o => '<option value="' + o.k + '"' + (nd.op === o.k ? ' selected' : '') + '>' +
+          esc(o.label) + '</option>').join('') +
+      '</select>' +
+      (f ? '<div class="pop__note">Offered for a <b>' + esc(f.type) + '</b> field. A different type offers ' +
+        'different operators \u2014 the list comes from the field, not from a fixed set.</div>' : '') +
+
+      (opM && opM.val
+        ? '<label class="pop__l">Value</label>' +
+          '<input class="tinput" id="cdVal" type="' +
+            (f.type === 'num' ? 'number' : f.type === 'date' ? 'date' : f.type === 'time' ? 'time' : 'text') +
+            '" value="' + esc(String(nd.value === undefined ? '' : nd.value)) + '" ' +
+            'oninput="setCondValue(\'' + id + '\',this.value)">' +
+          (f.type === 'date' || f.type === 'time'
+            ? '<div class="pop__note">A literal date/time. <b>Relative dates</b> (today, today + 7, start of ' +
+              'shift) are deliberately not offered \u2014 they carry their own evaluation-time semantics and are ' +
+              'their own feature (\u00a720).</div>'
+            : '')
+        : '') +
+
+      '<div class="pop__sep"></div>' +
+      '<label class="pop__l">If true</label>' + tsel('tTrue', nd.tTrue) +
+      '<label class="pop__l">If false</label>' + tsel('tFalse', nd.tFalse) +
+      '<div class="pop__note">Forward only, same as a question fork (\u00a729.4): a target is drawn from steps ' +
+        '<b>after</b> this fork, everything skipped is marked <b>N/A</b> and stays in the rail, and both are ' +
+        're-checked on every reorder.<br><b>If the field is empty</b> \u2014 an Optional field the technician left ' +
+        'blank \u2014 the condition cannot be evaluated and the workflow <b>continues in sequence</b>. It does not ' +
+        'take the false branch, because empty is not false.</div>' +
+    '</div>' +
+    '<div class="mbox__foot">' +
+      btn('Done', {cls:'Button--contained Button--primary', on:'closeModal()'}) +
+    '</div>');
+}
+function setCondField(id, v){
+  const w = wf(); const nd = nodeById(w, id); if(!nd) return;
+  nd.field = v;
+  /* An operator only means something against a type, so changing the field
+     clears both \u2014 the same reason switching a status entity re-bases the
+     status (\u00a730.11). Silently keeping "is greater than" on a checkbox is
+     how an unevaluable rule gets saved. */
+  nd.op = ''; nd.value = '';
+  saveWFS(); render(); openCondEditor(id);
+}
+function setCondOp(id, v){
+  const w = wf(); const nd = nodeById(w, id); if(!nd) return;
+  const f = condFieldMeta(w, nd);
+  if(!f || !condOpMeta(f.type, v)){ toast('That operator does not apply to this field type'); return; }
+  nd.op = v;
+  if(!condOpMeta(f.type, v).val) nd.value = '';
+  saveWFS(); render(); openCondEditor(id);
+}
+function setCondValue(id, v){
+  const w = wf(); const nd = nodeById(w, id); if(!nd) return;
+  nd.value = v; saveWFS();
+  /* No re-render: this is a text input and re-rendering would steal focus
+     mid-typing. The card refreshes on close. */
+}
+/* Forward-only, guarded AT THE MUTATION. The dropdown only offers later
+   steps, but a direct call must be refused too \u2014 the house rule. */
+function setCondTarget(id, key, v){
+  const w = wf(); const nd = nodeById(w, id); if(!nd) return;
+  const flow = flowNodes(w);
+  if(v && v !== '__end'){
+    const ti = flow.findIndex(x => x.nid === v);
+    const mi = flow.indexOf(nd);
+    if(ti === -1 || ti <= mi){ toast('A fork can only route forward'); return; }
+  }
+  nd[key] = v || null;
+  saveWFS(); render(); openCondEditor(id);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -5863,7 +6226,7 @@ function moveToRef(id, toRef){
      The drag handler refused it already; this is the same rule at the only
      place that actually moves a node, so a future caller cannot route
      around it (same lesson as the pinned-step clamp). */
-  if(toRef && (n.kind === 'fork' || n.kind === 'action')){
+  if(toRef && (isForkKind(n) || n.kind === 'action')){
     toast('A fork and a status update are positional — neither can sit in the More group');
     return;
   }
@@ -5886,7 +6249,7 @@ function moveToRef(id, toRef){
 }
 
 function duplicateNode(id){
-  const w = wf(); const src = nodeById(w, id); if(!src || src.kind==='fork') return;
+  const w = wf(); const src = nodeById(w, id); if(!src || isForkKind(src)) return;
   const inst = mintInst(w, src.step);
   const dup = deepCopy(src);
   dup.nid = nid();
@@ -5916,13 +6279,12 @@ function deleteNode(id){
      notices until a technician is standing in front of the asset.
      validateForks() re-runs below and catches it either way; doing it here
      too means the count reported to the user is right. */
-  w.nodes.filter(x=>x.kind==='fork').forEach(f=>{
-    if(f.yesTarget === id) f.yesTarget = null;
-    if(f.noTarget === id) f.noTarget = null;
+  w.nodes.filter(isForkKind).forEach(f=>{
+    forkBranches(f).forEach(p => { if(f[p[1]] === id) f[p[1]] = null; });
   });
   w.nodes.splice(w.nodes.indexOf(n), 1);
   if(state.selNid === id){ state.selNid = null; state.dsnOpen = false; }
-  afterStructuralChange('Removed ' + (n.kind==='fork' ? 'the fork' : n.name));
+  afterStructuralChange('Removed ' + (isForkKind(n) ? 'the fork' : n.name));
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -6174,6 +6536,7 @@ function openDsn(id){
      so the panel would have nothing to show and the fork editor is the real
      destination. A UDS DOES open the panel, but read-only. */
   if(n.kind === 'fork'){ openForkEditor(id); return; }
+  if(n.kind === 'cond'){ openCondEditor(id); return; }
   state.selNid = id; state.dsnOpen = true;
   render();
 }
@@ -7011,7 +7374,7 @@ function renderPreview(){
 
   const tabList = (w.freeForm ? w.nodes : flow).map(n => {
     const isNa = na.has(n.nid);
-    const label = n.kind === 'fork' ? 'Fork' : n.name;
+    const label = isForkKind(n) ? (n.kind === 'cond' ? 'Condition' : 'Fork') : n.name;
     const num = (!w.freeForm && n.kind==='step') ? '<span class="prev-tab__n">' + (seq.indexOf(n)+1) + '</span>' : '';
     return '<button class="prev-tab' + (n.nid===cur.nid?' is-active':'') + '" ' +
       (isNa ? 'style="opacity:.45"' : '') + ' onclick="pvSet(\'nid\',\'' + n.nid + '\')">' +
@@ -7020,21 +7383,30 @@ function renderPreview(){
       '<button class="prev-tab' + (n.nid===cur.nid?' is-active':'') + '" onclick="pvSet(\'nid\',\'' + n.nid + '\')">' +
       ic('layers',12) + esc(n.name) + '</button>').join('') : '');
 
-  const forks = flow.filter(n=>n.kind==='fork');
+  const forks = flow.filter(isForkKind);
   const answerBar = forks.length
     ? '<div class="Banner Banner--info" style="margin-bottom:' + 'var(--s-4)">' +
         '<span class="ms ms-24 Banner__icon">alt_route</span>' +
         '<div class="Banner__body">' +
-          '<div class="Banner__title">Fork answers</div>' +
-          '<div class="Banner__text">Switch an answer to see the rail change.</div>' +
+          '<div class="Banner__title">Fork outcomes</div>' +
+          '<div class="Banner__text">Switch one to see the rail change. A <b>question</b> fork is answered by the ' +
+            'technician; a <b>condition</b> fork is answered by the field, at the Next tap.</div>' +
           '<div class="Banner__rows">' +
           forks.map(f => {
-            const a = pv.answers[f.nid] || 'yes';
+            /* Both kinds route the same way, so one switcher reads both —
+               the labels differ because the ANSWERER differs. */
+            const brs = forkBranches(f);
+            const a = pv.answers[f.nid] || brs[0][0];
+            const title = f.kind === 'cond'
+              ? condSummary(pvWf(), f) + ' ?'
+              : (tx(f.question,BASE_LANG) || 'No question set');
             return '<div class="Banner__row">' +
-              '<div class="Banner__row-b">' + esc(tx(f.question,BASE_LANG) || 'No question set') + '</div>' +
+              '<div class="Banner__row-b">' +
+                (f.kind === 'cond' ? '<b>System</b> \u00b7 ' : '') + esc(title) + '</div>' +
               '<div class="seg seg--sm">' +
-                '<button class="seg__btn' + (a==='yes'?' is-active':'') + '" onclick="pvAnswer(\'' + f.nid + '\',\'yes\')">' + esc(shortLabel(tx(f.yesLabel,BASE_LANG))) + '</button>' +
-                '<button class="seg__btn' + (a==='no'?' is-active':'') + '" onclick="pvAnswer(\'' + f.nid + '\',\'no\')">' + esc(shortLabel(tx(f.noLabel,BASE_LANG))) + '</button>' +
+                brs.map(p => '<button class="seg__btn' + (a===p[0]?' is-active':'') + '" ' +
+                  'onclick="pvAnswer(\'' + f.nid + '\',\'' + p[0] + '\')">' +
+                  esc(shortLabel(forkBranchLabel(f, p[0]))) + '</button>').join('') +
               '</div>' +
             '</div>';
           }).join('') +
@@ -7043,7 +7415,13 @@ function renderPreview(){
       '</div>'
     : '';
 
-  const phone = cur.kind === 'fork' ? forkEmulatorHtml(w, cur) : emulatorHtml(w, cur, pv.answers, false);
+  /* A condition fork has no screen: the technician never sees it, which is
+     the whole point. So the preview shows the form it READS \u2014 the step
+     whose Next tap triggers it \u2014 rather than an empty phone. */
+  const condSrc = cur.kind === 'cond' ? condSourceStep(w, cur) : null;
+  const phone = cur.kind === 'fork'
+    ? forkEmulatorHtml(w, cur)
+    : emulatorHtml(w, condSrc || cur, pv.answers, false);
   const railHtml = pv.railOpen ? '<div class="emu" style="margin-top:13px">' + stepMapHtml(w, cur, na) + '</div>' : '';
 
   openModal('wide',
@@ -7144,7 +7522,7 @@ function stepMapHtml(w, cur, na){
       (done ? '<span class="emu-mi-ch">' + ic('chevR',14) + '</span>' : '') +
     '</div>';
   });
-  const forks = flow.filter(n=>n.kind==='fork');
+  const forks = flow.filter(isForkKind);
   const forkNote = forks.length
     ? '<div class="emu-mgrp" style="border-top:none;margin-top:0;padding-top:8px;text-transform:none;letter-spacing:0;font-weight:500;font-size:10.5px">' +
       forks.length + ' question fork' + (forks.length===1?'':'s') + ' route through this rail — a fork is a screen, not a numbered step.</div>'
