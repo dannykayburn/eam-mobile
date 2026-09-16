@@ -569,19 +569,51 @@ and User Groups — all areas of this one file.
 - **Deleting an artifact drops its membership rows** (`dropAssignmentsFor()`) —
   a row pointing at a deleted artifact is a group silently provisioned with
   nothing.
-- **Offline Profiles** authors §2.7's per-entity registry: five policies, caps
-  enforced **at authoring time** (200,000 / 50,000 / 15 / 1 — §2.7's own market
-  figures), `server-only` shown as a decided-out state, and **"all records" is
-  refused** — a filtered policy with no dataspy is an error, not a default.
+- **Offline Profiles** authors §2.7's per-entity registry: five policies, each
+  **defined at the point of choice** on the axis that distinguishes them —
+  *who decided this is on the device* (§30.14). Caps are **protected**: they are
+  platform limits, not profile preferences, so raising one would only move the
+  failure from authoring time to the technician's morning. Still shown
+  (200,000 / 50,000 / 15 / 1 — §2.7's own market figures), because a budget you
+  cannot see is not a budget. `server-only` shows as a decided-out state, and
+  **"all records" is refused** — a filtered policy with no dataspy is an error, not a default.
   Tier 0 + the outbox render first on every profile, **including `None`**, which
   is valid and informational. **11 of its 31 entities have no policy decision**
   and say so on the row (§20) — don't quietly default them in. Dataspies are
   *selected* here and **authored on the record list screen**, same boundary as
   UDS definitions.
-- **Home Layouts is two levels**: a global tile catalogue plus layouts that hold
-  **tile ids, never copies**. So editing a tile reaches every layout using it —
-  the catalogue shows usage, the editor states the blast radius, and deleting a
-  tile **prunes the references**. Only the *layout* is assignable.
+- **Home Layouts is THREE levels** (§30.16, reworked 2026-09-16 against
+  `existing_use_cases/EAM.DUX.REQ.DigitalWorkHome.docx` — the product's own
+  requirement, whose setup screen **Digital Work Home Setup** is the admin
+  surface §9.4 had logged as "not yet located"). Layout ▸ **section** ▸
+  placement, plus the pinned Create control's contents. A global tile catalogue
+  holds **tile ids, never copies**, so editing a tile reaches every layout using
+  it. Only the *layout* is assignable.
+  - **The section lives on the LAYOUT, never on the tile.** A section column on
+    the tile would pin one tile to one section everywhere it appears, killing
+    the reuse §30.13 exists for.
+  - **Insert Mode is a FLAG on a tile, not a kind** — the product's own
+    checkbox, drawn as a `+` badge. A flagged tile drops **only** into the
+    Create control; an unflagged one **only** into a section. Both directions,
+    guarded in the drop handler *and* in `normalizeHome()`. The rule is §9.4.1's:
+    Home's tiles mean "go look at a list", not "start a new record".
+  - **The count is SEPARATE from the dataspy.** Dataspy = where it goes; a SQL
+    statement = what the badge says. `>= 1000` renders `999+`; a statement
+    returning **0 renders no badge at all**. Counts refresh on demand, not live.
+  - **The editor WRAPS at `HOME_FOLD = 3` where the device scrolls sideways** —
+    because HTML5 DnD does not auto-scroll a container, so a tile past the fold
+    would be undroppable. Three is arithmetic (390 − 28 padding, 100px tiles,
+    10px gaps), so **line one is what the technician sees without swiping**, and
+    the editor draws the fold.
+  - **Favorites is the TECHNICIAN's row** — built from their own starred
+    dataspies. `showFavorites` positions/toggles it; the admin can never fill it.
+  - **A layout with no tiles falls back to the STANDARD MENU**, not a blank
+    screen — so it reports as info, never a warning.
+  - **A tile whose screen is not in a group's menu is SILENTLY DROPPED by the
+    product** (§30.17). `allHomeGaps()` is the only place that is visible.
+    Reported, never auto-fixed. **Key it on `targetScreen()`, not the raw
+    target** — a create target is an insert mode *of* a screen, and getting
+    that wrong reported every create tile as hidden (the §29.7 shape again).
 - **User Groups is the inverse view**, and a **binding surface** — assignment
   only. `effectiveFor()` distinguishes explicit / inherited / unset, and
   `allConflicts()` is what the rail badge counts. **Create refuses here**: a user
@@ -654,11 +686,11 @@ prototype session trips over, one line each.
 - **The `*` default group has no model** — the User Groups area is built, but a
   wildcard row is a different shape from a named group: under one-per-group
   cardinality it *always* collides unless the resolver reads it as a fallback
-  rather than a member. §30.15.
+  rather than a member. §30.18.
 - **What happens to in-flight work when an assignment is removed** — the
   membership table makes removal one click from either side, which raises the
   question harder than §26.5 did. §29.5's config-version stamp is the mechanism;
-  nothing joins them up. §30.15.
+  nothing joins them up. §30.18.
 - **The punch-list dataspy selector still has no home** — User Group Setup is
   retired and the portal's User Groups area is a *binding* surface, so this
   would be its first configuring control. Keep it separate from the offline
@@ -680,8 +712,9 @@ prototype session trips over, one line each.
   A real defect, since insert is the only place system type is ever set. §20.
 - **Home's system-action entities** — the Create menu covers WO/Equipment only;
   Meter Reading, Work Request, Operator Checklist are candidates, each needing a
-  call on full-Insert-Mode vs. action sheet. Whichever set Home exposes also
-  needs an admin surface that doesn't exist. §9.4.
+  call on full-Insert-Mode vs. action sheet. **The admin surface half is now
+  built** (§30.16 — the portal authors the Create control's contents), so what's
+  left is the per-action shape call. §9.4.
 - **Conditional field rules** — Phase 4+, deliberately deprioritised. **Don't
   pick a tier**; the only thing owed up front is the two one-way doors
   (`resolveFieldState()` seam, declared-vs-effective split). **§29's question

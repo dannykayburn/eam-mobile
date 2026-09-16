@@ -1153,13 +1153,127 @@ svg{display:block;}
 .homewrap{display:flex;align-items:flex-start;gap:var(--s-4);flex-wrap:wrap;}
 .homepane{flex:1 1 320px;min-width:300px;}
 .homephone{flex:0 0 430px;}
-.hometiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:14px;background:var(--d-bg-page);}
-.hometile{display:flex;flex-direction:column;gap:2px;padding:12px;border-radius:12px;cursor:grab;
-  background:var(--d-bg-card);box-shadow:0 1px 3px rgba(0,0,0,.1);user-select:none;}
+/* ══ PROTECTED FIELD ══
+   §5.2's treatment, brought over for the caps: a protected field loses its
+   border and carries a lock, so "you cannot edit this" is legible without
+   clicking it to find out. */
+.input--prot{display:flex;align-items:center;gap:var(--s-2);background:transparent;
+  box-shadow:none;border:none;padding:7px 0;min-height:var(--uxt-theme-height-input,36px);}
+.input__v{flex:1;min-width:0;font-size:var(--uxt-theme-typography-body-2-font-size);
+  font-weight:600;color:var(--fg-default);}
+.input__lock{flex-shrink:0;color:var(--fg-faint);}
+
+/* ══ POLICY DEFINITIONS ══
+   A definition list, not a legend of colours — the question an author has
+   at the dropdown is "what does work-set actually mean", and the answer is
+   three sentences, not a swatch. */
+.pdef{display:grid;gap:1px;background:var(--border-subtle);}
+.pdef__r{display:grid;grid-template-columns:150px 108px 1fr;gap:var(--s-4);
+  padding:var(--s-3) var(--s-4);background:var(--bg-surface);align-items:start;}
+.pdef__h{background:var(--bg-app);}
+.pdef__h .pdef__n,.pdef__h .pdef__rw,.pdef__h .pdef__d{
+  font-size:var(--uxt-theme-typography-caption-font-size);font-weight:500;
+  letter-spacing:.06em;color:var(--fg-muted);text-transform:none;}
+.pdef__n{font-size:var(--uxt-theme-typography-body-2-font-size);font-weight:700;color:var(--fg-default);}
+.pdef__who{font-size:var(--uxt-theme-typography-caption-font-size);color:var(--fg-faint);
+  line-height:1.5;margin-top:3px;}
+.pdef__rw{display:flex;flex-direction:column;gap:4px;}
+.pdef__d{font-size:var(--uxt-theme-typography-body-2-font-size);line-height:1.6;color:var(--fg-default);}
+.pdef__why{font-size:var(--uxt-theme-typography-caption-font-size);line-height:1.6;
+  color:var(--fg-muted);margin-top:5px;}
+.pdef__f{margin-top:6px;}
+@media (max-width:900px){.pdef__r{grid-template-columns:1fr;gap:var(--s-2);}}
+
+/* A section marker in the gallery card's chip run, so a card shows the
+   SHAPE of the layout and not just a flat list of tile names. */
+.sstep--sec{background:var(--bg-hover);font-weight:600;color:var(--fg-default);}
+/* "optional" beside a field label — the offline registry needed the same
+   distinction and this is its 2nd consumer, so it is a class not an inline. */
+.pop__opt{margin-left:5px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--fg-faint);}
+/* A menu row that is offered but cannot apply (first section cannot move
+   up). Kept visible rather than omitted, so the menu does not change shape
+   row to row — the clamp itself lives at the mutation. */
+.menu__item--off{opacity:.4;pointer-events:none;}
+
+/* ══ HOME PREVIEW ══
+   Rebuilt 2026-09-16 against eam-home-screen-prototype-v1.html, which the
+   old 2-up grid of big-number cards did not resemble at all. The device is:
+   a PINNED create bar outside the scroll container, then a Favorites row of
+   56px circles, then labelled sections of 100px square tiles in
+   HORIZONTALLY SCROLLING rows.
+
+   THE ONE DELIBERATE DIVERGENCE — the editor wraps where the device
+   scrolls, because HTML5 drag-and-drop does not auto-scroll a container
+   and a tile past the fold would otherwise be undroppable. Three columns
+   is not a design choice, it is the device arithmetic: 390 − 28 padding =
+   362px, and 100px tiles with 10px gaps put the 4th at 430px. So LINE ONE
+   OF THIS GRID IS EXACTLY WHAT THE TECHNICIAN SEES without scrolling, and
+   everything below it is behind a swipe. .emu-sec__fold draws that line. */
+.emu-body{background:var(--d-bg-page);padding:0 0 14px;}
+
+/* The create bar: pinned, outside the scroll body on the device (§9.4). */
+.emu-cbar{padding:10px 14px 12px;border-bottom:1px solid var(--d-border);background:var(--d-bg-page);}
+.emu-cpill{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;
+  background:var(--d-bg-nav);border-radius:100px;padding:11px 0;color:#fff;font-size:13px;font-weight:700;}
+.emu-cpill .ms{color:#fff;}
+.emu-ctray{margin-top:8px;border-radius:10px;border:1px dashed var(--d-border-strong);padding:6px;min-height:52px;}
+.emu-ctray.is-over{border-color:var(--d-ink);background:var(--d-bg-section);}
+.emu-ctray.is-bad{border-color:var(--d-red);background:rgba(220,38,38,.06);}
+.emu-ctray__e{padding:14px 6px;text-align:center;font-size:10.5px;color:var(--d-gray-4);line-height:1.5;}
+.emu-crow{display:flex;align-items:center;gap:9px;padding:8px 8px;border-radius:8px;cursor:grab;
+  background:var(--d-bg-card);box-shadow:0 1px 2px rgba(0,0,0,.08);margin-bottom:5px;user-select:none;}
+.emu-crow:last-child{margin-bottom:0;}
+.emu-crow.dragging{opacity:.35;}
+.emu-crow__l{flex:1;min-width:0;font-size:12px;font-weight:600;color:var(--d-ink);}
+.emu-crow__x{flex-shrink:0;color:var(--d-gray-3);}
+
+/* Favorites — TECHNICIAN-OWNED. Shown as ghosts because the admin cannot
+   put anything in it; the row is a placeholder for the technician's own
+   starred dataspies. Position and presence are the only authorable facts. */
+.emu-fav{padding:12px 14px 4px;}
+.emu-fav__r{display:flex;gap:16px;margin-top:8px;}
+.emu-fav__g{width:56px;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.emu-fav__c{width:56px;height:56px;border-radius:50%;border:1px dashed var(--d-border-strong);}
+.emu-fav__t{width:38px;height:7px;border-radius:4px;background:var(--d-border);}
+.emu-fav__n{font-size:10px;color:var(--d-gray-4);margin-top:6px;line-height:1.5;}
+
+/* A section: label, then the wrapped tile grid. */
+.emu-sec{padding:14px 14px 0;}
+.emu-sec__h{display:flex;align-items:center;gap:6px;margin-bottom:2px;}
+.emu-sec__t{flex:1;min-width:0;font-size:15px;font-weight:800;letter-spacing:.1px;color:var(--d-ink);}
+.emu-sec__t--none{color:var(--d-red);font-weight:600;font-style:italic;}
+.emu-sec__c{flex-shrink:0;font-family:var(--font-mono);font-size:10px;color:var(--d-gray-4);}
+.emu-sec__row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding-top:10px;position:relative;}
+.emu-sec__row.is-over{outline:2px dashed var(--d-ink);outline-offset:3px;border-radius:8px;}
+.emu-sec__row.is-bad{outline:2px dashed var(--d-red);outline-offset:3px;border-radius:8px;}
+/* The fold: everything after this line needs a horizontal swipe on the
+   device. Spans the grid so it reads as a rule, not a gap. */
+.emu-sec__fold{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:2px 0 -2px;}
+.emu-sec__fold::before,.emu-sec__fold::after{content:"";flex:1;height:1px;background:var(--d-border-strong);}
+.emu-sec__fold-t{flex-shrink:0;font-size:9.5px;font-weight:700;letter-spacing:.04em;color:var(--d-gray-4);}
+
+.hometile{display:flex;flex-direction:column;align-items:center;cursor:grab;user-select:none;position:relative;}
 .hometile.dragging{opacity:.35;}
+.hometile__sq{width:100%;aspect-ratio:1;border-radius:18px;display:flex;align-items:center;justify-content:center;
+  background:var(--d-bg-card);box-shadow:0 1px 3px rgba(0,0,0,.1);position:relative;}
 .hometile__ico{color:var(--d-gray-4);}
-.hometile__n{font-family:var(--font-mono);font-size:22px;font-weight:700;line-height:1.1;color:var(--d-ink);}
-.hometile__l{font-size:12px;font-weight:600;color:var(--d-ink);}
+.hometile__b{position:absolute;top:-6px;right:-6px;background:var(--d-ink);color:var(--d-white);font-size:10px;
+  font-weight:700;font-family:var(--font-mono);border-radius:100px;padding:1px 5px;min-width:17px;text-align:center;
+  border:2px solid var(--d-bg-page);}
+.hometile__l{font-size:11.5px;font-weight:500;color:var(--d-ink);text-align:center;margin-top:6px;line-height:1.3;}
+.hometile--past .hometile__sq{opacity:.55;}
+.hometile--gap .hometile__sq{box-shadow:inset 0 0 0 2px var(--d-red);}
+
+/* Editor-only affordance on a device surface — same licence the designer
+   panel takes: real emulator, plus the controls authoring needs. */
+.emu-secbtn{flex-shrink:0;width:22px;height:22px;border-radius:6px;display:flex;align-items:center;
+  justify-content:center;color:var(--d-gray-4);cursor:pointer;}
+.emu-secbtn:hover{background:var(--d-bg-section);color:var(--d-ink);}
+.emu-addsec{margin:14px 14px 0;padding:11px;border-radius:10px;border:1px dashed var(--d-border-strong);
+  display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;
+  font-size:12px;font-weight:600;color:var(--d-gray-4);background:transparent;width:calc(100% - 28px);
+  font-family:inherit;}
+.emu-addsec:hover{border-color:var(--d-ink);color:var(--d-ink);}
 .tilechip{width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
   border-radius:var(--radius-sm);background:var(--bg-hover);color:var(--fg-muted);}
 
@@ -2230,12 +2344,38 @@ function saveAssign(){ try{ localStorage.setItem(LS_ASSIGN, JSON.stringify(ASSIG
                    otherwise is how an undecided entity becomes a commitment
                    nobody made.
    ═══════════════════════════════════════════════════════════════════════ */
+/* The five §2.7 classes. Each carries its own definition rather than the
+   registry explaining them in prose somewhere else, because the dropdown
+   is where the choice is actually made.
+
+   THE AXIS THAT MAKES THEM MEMORABLE IS "WHO DECIDED THIS IS ON THE
+   DEVICE" — nobody, the admin, the technician, the work itself, or another
+   system. Read/write is the consequence, not the definition. */
 const OFFLINE_POLICIES = [
-  {k:'server-only',      label:'Server only',       read:false, write:false},
-  {k:'reference',        label:'Reference',         read:true,  write:false},
-  {k:'on-demand',        label:'On demand',         read:true,  write:false},
-  {k:'work-set',         label:'Work set',          read:true,  write:true},
-  {k:'external-replica', label:'External replica',  read:true,  write:true},
+  {k:'server-only', label:'Server only', read:false, write:false,
+   who:'Nobody — it is never replicated',
+   def:'Not on the device at all. Opening it offline renders the screen and says why, rather than showing an empty one.',
+   why:'The cost of holding it beats the value: history and cost are unbounded and grow forever, and a technician executing work does not read them.'},
+
+  {k:'reference', label:'Reference', read:true, write:false,
+   who:'The admin, once, for everyone',
+   def:'A whole small, slow-changing domain shipped down and held. Employees, crews, trades, stores, cost codes.',
+   why:'Read-only because it is not this technician\'s data to change. Ships WHOLE rather than filtered — a subset of a code list reads as a data error, not as an offline limit (§2.8 row 1).'},
+
+  {k:'on-demand', label:'On demand', read:true, write:false,
+   who:'The technician, record by record',
+   def:'Only what was deliberately kept — R5\'s "keep offline" on a specific work order or asset.',
+   why:'Read-only offline because it arrived without its write context. Needs a filter to bound WHAT IS KEEPABLE, and the keep action itself needs connectivity, so it is the one control most tempting to reach for at exactly the wrong moment (§2.9).'},
+
+  {k:'work-set', label:'Work set', read:true, write:true,
+   who:'The work — pinned WOs and everything hanging off them',
+   def:'The live job. Auto-replicated from the punch list and TRAVERSED to its children: checklist results, parts lines, labor lines.',
+   why:'THE ONLY CLASS THAT ACCEPTS WRITES, which is the sharpest line in this table — everything a technician changes offline is in the work set, and everything else is read-only. Writes go to the outbox and sync in order (§2.4).'},
+
+  {k:'external-replica', label:'External replica', read:true, write:true,
+   who:'Another system, on its own schedule',
+   def:'A foreign sync engine holding its own copy with its own lifecycle. GIS features today (§28), Phase 2.',
+   why:'Writes NEVER ride the EAM outbox — a geometry edit syncs through ESRI. It is a policy class rather than an exception so the next foreign engine has a slot to go in.'},
 ];
 function policyMeta(k){ return OFFLINE_POLICIES.find(p => p.k === k) || OFFLINE_POLICIES[0]; }
 /* A dataspy is required on the two policies whose contents are a FILTERED
@@ -2427,29 +2567,65 @@ function profileEnabledCount(p){
    this builds the AUTHORING MECHANICS and deliberately does not lock any
    particular tile set. The demo tiles are a demo.
    ═══════════════════════════════════════════════════════════════════════ */
-const TILE_KINDS = [
-  {k:'count',    label:'Dataspy count', icon:'list',   needsDataspy:true,
-   note:'A live count over a dataspy, tapping through to that list. The dataspy is SELECTED here and authored on the record list screen.'},
-  {k:'shortcut', label:'Shortcut',      icon:'arrowR', needsDataspy:false,
-   note:'Opens a screen. No count, no query.'},
-  {k:'create',   label:'Create action', icon:'plus',   needsDataspy:false,
-   note:'Opens Insert Mode locked to an entity (§9.4.1).'},
-  {k:'kpi',      label:'KPI',           icon:'flag',   needsDataspy:true,
-   note:'A single number with a label. Same dataspy mechanic as a count, different emphasis.'},
-];
-function tileKind(k){ return TILE_KINDS.find(x => x.k === k) || TILE_KINDS[0]; }
+/* ── ONE TILE RECORD, NOT FOUR KINDS (reworked 2026-09-16) ──
+   Read off EAM.DUX.REQ.DigitalWorkHome: a tile is a "Digital Work Home
+   record" carrying Screen + dataspy/filter + an INSERT MODE CHECKBOX + a
+   SQL statement for the count. So:
+
+     · A "Create" is NOT a different kind of tile. It is the same record
+       with insertMode set, which the device draws with a + badge. Keeping
+       it as a flag is what lets a customer's existing Digital Work Home
+       records migrate with no transform.
+     · THE COUNT IS NOT DERIVED FROM THE DATASPY. The requirement is
+       explicit: the dataspy is where the tile GOES, the SQL statement is
+       what the badge SAYS. They are two fields. The old model conflated
+       them, which made "a shortcut that shows a count" unauthorable.
+     · KPI is gone. It had no renderer on the device at all — its own
+       note admitted it was a count with "different emphasis". Authoring a
+       component the runtime cannot draw is the failure mode this surface
+       exists to prevent.
+
+   The two count rules are the requirement's, not ours: >= 1000 renders as
+   999+, and a statement returning 0 renders NO BADGE AT ALL. A zero badge
+   reads as "nothing to do"; no badge reads as "no counter here", and the
+   product deliberately picked the second. */
+const TILE_CAP = {countHigh:1000};
+
+/* Derived label — kind is a READING of the record, never stored, so the
+   two can never disagree. */
+function tileKindLabel(t){
+  if(!t) return '—';
+  if(t.insertMode) return 'Create action';
+  return t.countSql ? 'Screen + count' : 'Screen link';
+}
+/* The badge the device would draw. Returns '' for "no badge". */
+function tileCountBadge(t, raw){
+  if(!t || t.insertMode || !t.countSql) return '';
+  const v = typeof raw === 'number' ? raw : (t.demoCount === undefined ? 12 : t.demoCount);
+  if(!v) return '';                                   /* 0 → no badge */
+  return v >= TILE_CAP.countHigh ? '999+' : String(v);
+}
 
 /* Tile targets — what a tile can point at. Deliberately the screens that
    exist, so a tile cannot be authored against a destination the app has no
    route to. */
 const TILE_TARGETS = [
-  {id:'wolist',    label:'Work Order list'},
-  {id:'equiplist', label:'Equipment list'},
-  {id:'notif',     label:'Notifications'},
-  {id:'sync',      label:'Sync status'},
-  {id:'createwo',  label:'Create Work Order'},
-  {id:'createeq',  label:'Create Equipment'},
+  {id:'wolist',    label:'Work Order list',   screen:'wolist'},
+  {id:'equiplist', label:'Equipment list',    screen:'equiplist'},
+  {id:'notif',     label:'Notifications',     screen:'notif'},
+  {id:'sync',      label:'Sync status',       screen:'sync'},
+  /* A create target is an INSERT MODE OF a screen, not a screen of its
+     own — so it resolves to the same menu entry as the list it inserts
+     into. Getting this wrong makes every create tile report as hidden. */
+  {id:'createwo',  label:'Create Work Order', screen:'wolist'},
+  {id:'createeq',  label:'Create Equipment',  screen:'equiplist'},
 ];
+/* The menu entry a target needs. Falls back to the target id so a target
+   added without a screen is caught by the gate rather than exempted. */
+function targetScreen(id){
+  const t = tileTarget(id);
+  return (t && t.screen) || id;
+}
 function tileTarget(id){ return TILE_TARGETS.find(t => t.id === id) || null; }
 
 const TILE_COLORS = [
@@ -2470,44 +2646,219 @@ function mkTile(o){
   o = o || {};
   return {
     id:'tl-' + Math.random().toString(36).slice(2,8),
-    label:o.label || '', kind:o.kind || 'count', icon:o.icon || 'list',
-    target:o.target || 'wolist', dataspy:o.dataspy || '', color:o.color || 'none',
+    label:o.label || '', icon:o.icon || 'list',
+    target:o.target || 'wolist',
+    dataspy:o.dataspy || '',        /* where it GOES (optional) */
+    countSql:o.countSql || '',      /* what the badge SAYS (optional, separate) */
+    insertMode:!!o.insertMode,      /* the product's checkbox — this is a Create */
+    demoCount:o.demoCount,          /* prototype only: lets 0 and 999+ be shown */
+    color:o.color || 'none',
     updated:todayStr(),
   };
+}
+/* Migration off the old four-kind model. Runs on read so stored layouts
+   from before 2026-09-16 keep working rather than rendering as blanks. */
+function normalizeTile(t){
+  if(!t) return t;
+  if(t.kind !== undefined){
+    if(t.insertMode === undefined) t.insertMode = (t.kind === 'create');
+    if(!t.countSql && (t.kind === 'count' || t.kind === 'kpi')){
+      t.countSql = 'SELECT COUNT(*) — ' + (t.dataspy || 'unfiltered');
+    }
+    delete t.kind;
+  }
+  if(t.insertMode === undefined) t.insertMode = false;
+  if(t.countSql === undefined) t.countSql = '';
+  /* A Create opens a screen in insert mode; it can carry no counter. */
+  if(t.insertMode) t.countSql = '';
+  return t;
 }
 function tileById(id){ return TILES.find(t => t.id === id) || null; }
 /* WHICH LAYOUTS USE THIS TILE. A tile is a reference, so an edit reaches
    every one of them — this is what makes that blast radius visible before
    the edit rather than after. */
 function tileUsage(tileId){
-  return HOMES.filter(h => (h.tiles || []).indexOf(tileId) > -1);
+  return HOMES.filter(h => homeTileIds(h).indexOf(tileId) > -1);
+}
+/* Every tile id on a layout, across every section AND the create tray —
+   one accessor, so usage/pruning/counting can never drift from placement.
+   Same discipline as ASSIGN's accessors (§30.13). */
+function homeTileIds(h){
+  if(!h) return [];
+  const secs = Array.isArray(h.sections) ? h.sections : [];
+  const out = secs.reduce((a, sec) => a.concat(Array.isArray(sec.tiles) ? sec.tiles : []), []);
+  return out.concat(Array.isArray(h.creates) ? h.creates : []);
 }
 
+/* ── SECTIONS BELONG TO THE LAYOUT (locked 2026-09-16, user direction) ──
+   "It's just home screen code, available sections with titles, and then
+   subsequent tile locations and sequence." Three levels, all inside the
+   Home domain and touching nothing else:
+
+     layout  (home screen code)
+       └ section  (title + sequence)
+           └ tile placement  (tile id + sequence)
+
+   THE SECTION IS NOT A PROPERTY OF THE TILE, and that is the load-bearing
+   part. A section enum on the tile record would pin one tile to one
+   section everywhere it appears — which contradicts §30.13's by-reference
+   decision, where the same tile is meant to be reusable across layouts.
+   Placement is a property of the LAYOUT, so "My Open Work" can sit under
+   "Today" in one layout and "Work" in another. */
+function mkSection(title){
+  return {id:'sc-' + Math.random().toString(36).slice(2,8), title:title || '', tiles:[]};
+}
 function mkHome(name, desc){
   return {
     id:'hl-' + Math.random().toString(36).slice(2,8),
     name:name || '', desc:desc || '', updated:todayStr(),
-    /* An ordered list of TILE IDS — references, never embedded copies. */
-    tiles:[],
+    /* Ordered sections, each an ordered list of TILE IDS — references,
+       never embedded copies. */
+    sections:[mkSection('My Work')],
+    /* The pinned Create control's contents. NOT a section: on the device
+       the create bar sits outside the scroll container (§9.4/§9.4.1). */
+    creates:[],
+    /* Favorites is TECHNICIAN-OWNED (see normalizeHome). Toggle only. */
+    showFavorites:true,
   };
 }
 function normalizeHome(h){
   if(!h) return h;
-  if(!Array.isArray(h.tiles)) h.tiles = [];
+
+  /* Migration: the pre-sections model was a flat h.tiles array. Fold it
+     into one section rather than dropping it, and split the Creates out
+     to where they now belong. */
+  if(Array.isArray(h.tiles)){
+    const flat = h.tiles.filter(id => !!tileById(id));
+    const isCreate = id => { const t = tileById(id); return !!(t && normalizeTile(t).insertMode); };
+    if(!Array.isArray(h.sections)){
+      const screens = flat.filter(id => !isCreate(id));
+      h.sections = screens.length ? [{id:'sc-mig01', title:'My Work', tiles:screens}] : [mkSection('My Work')];
+    }
+    if(!Array.isArray(h.creates)) h.creates = flat.filter(isCreate);
+    delete h.tiles;
+  }
+  if(!Array.isArray(h.sections)) h.sections = [];
+  if(!Array.isArray(h.creates)) h.creates = [];
+  if(h.showFavorites === undefined) h.showFavorites = true;
+
   /* A reference to a deleted tile is a hole in a layout nobody can see the
-     cause of, so prune on read. */
-  h.tiles = h.tiles.filter(id => !!tileById(id));
+     cause of, so prune on read — now per section and on the tray. */
+  h.sections.forEach(sec => {
+    if(!Array.isArray(sec.tiles)) sec.tiles = [];
+    sec.tiles = sec.tiles.filter(id => {
+      const t = tileById(id);
+      return !!t && !normalizeTile(t).insertMode;   /* a Create cannot live in a section */
+    });
+  });
+  h.creates = h.creates.filter(id => {
+    const t = tileById(id);
+    return !!t && normalizeTile(t).insertMode;      /* and a screen link cannot live in the tray */
+  });
   return h;
 }
-/* A layout with no tiles is a blank Home screen — legal to author, worth
-   reporting before it is assigned to anyone. */
+
+/* ── HOW MANY TILES ARE VISIBLE WITHOUT SCROLLING ──
+   The device section is a horizontally-scrolling row (.home-tilegrid:
+   display:flex; overflow-x:auto), chosen there precisely because there is
+   no cap on tiles and a scroll row absorbs growth without the page
+   getting taller. The EDITOR cannot reproduce that, for a functional
+   reason rather than an ergonomic one: HTML5 drag-and-drop DOES NOT
+   AUTO-SCROLL A CONTAINER, so any tile past the fold would be
+   undroppable. So the editor WRAPS.
+
+   Wrapping destroys exactly one fact — where the fold is — so the editor
+   draws it. The arithmetic, from eam-home-screen-prototype-v1.html:
+     390px device − 14px padding × 2      = 362px usable
+     100px tile + 10px gap                = 110px per tile after the first
+     100 → 210 → 320 → (430 > 362)        = 3 fit, the 4th shows 42px
+   That 4th peeking tile is the device's only signal that a row scrolls,
+   which is why a section of 4+ is fine and a section of exactly 4 is the
+   one worth looking at twice. */
+const HOME_FOLD = 3;
+/* ── THE MENU CAPABILITY GATE ──
+   The single highest-value rule in EAM.DUX.REQ.DigitalWorkHome, and the
+   reason this area belongs in THIS portal rather than anywhere else:
+
+     "The system will check to see if the screen exists in the menu. If the
+      screen does not exist in the menu, that Digital Work Home record
+      will NOT BE DISPLAYED."
+
+   So a tile pointing at a screen the group's menu does not carry is
+   silently dropped — no error, no placeholder, no trace. An admin
+   configures a tile, assigns the layout, and for that group it simply is
+   not there. That is the same failure shape as §27.4's Required-UDS-step-
+   without-permission, and it is computable ONLY where the layout and its
+   assignments are both known, which is here.
+
+   Reported, never auto-fixed (§26.5.1). Removing the tile would be wrong
+   for the other groups that CAN see the screen. */
+const GROUP_MENUS = {
+  '*':           ['wolist','equiplist','notif','sync'],
+  'DK':          ['wolist','equiplist','notif','sync'],
+  'MAINT-TECH':  ['wolist','equiplist','notif','sync'],
+  'SUPERVISOR':  ['wolist','equiplist','notif','sync'],
+  /* Deliberately capability-limited, so the gap path is LIVE ON LOAD
+     rather than only reachable by hand-editing demo data — same technique
+     as ZJ1000 in the workflow area. */
+  'TRANSPORT':   ['wolist','notif','sync'],              /* no Equipment screen */
+  'CONTRACTOR':  ['wolist'],                             /* no Notifications, no Sync */
+  'SALES-ENG':   ['wolist','equiplist','notif','sync'],
+  'DC-OPS':      ['wolist','equiplist','notif','sync'],
+  'STORES':      ['equiplist','notif','sync'],           /* no WO list */
+};
+function groupMenu(g){ return GROUP_MENUS[g] || GROUP_MENUS['*']; }
+/* Which of this layout's tiles this group would never see. */
+function homeTileGaps(h, group){
+  const menu = groupMenu(group);
+  return homeTileIds(h).map(tileById).filter(Boolean)
+    .filter(t => menu.indexOf(targetScreen(t.target)) === -1);
+}
+
+/* Every (layout, group, tile) the product would silently drop. Flat, so
+   the area banner can count them without re-walking the model. */
+function allHomeGaps(){
+  const out = [];
+  HOMES.forEach(h => {
+    normalizeHome(h);
+    groupsOf('home', h.id).forEach(g => {
+      homeTileGaps(h, g).forEach(t => out.push({home:h.id, homeName:h.name, group:g, tile:t.label, target:t.target}));
+    });
+  });
+  return out;
+}
+
+/* ── WHAT IS WORTH REPORTING ON A LAYOUT ──
+   Note what is NOT here any more: "no tiles → a blank Home screen" was
+   wrong. The requirement is explicit that a group with no Digital Work
+   Home records gets THE STANDARD MENU, not a blank screen — the same
+   shape as §11's flat-rail fallback for a WO Type with no workflow. So an
+   empty layout is INFORMATIONAL, and the copy says where the user
+   actually lands. Reporting a fallback as a fault is how an admin learns
+   to ignore the banner. */
 function homeIssues(h){
   const out = [];
   if(!h) return out;
-  if(!h.tiles.length) out.push({sev:'warn', msg:'has no tiles — a group assigned this gets a blank Home screen.'});
-  const missingSpy = h.tiles.map(tileById).filter(t => t && tileKind(t.kind).needsDataspy && !t.dataspy);
-  missingSpy.forEach(t => out.push({sev:'error',
-    msg:'"' + t.label + '" is a ' + tileKind(t.kind).label.toLowerCase() + ' with no dataspy — it has nothing to count.'}));
+  normalizeHome(h);
+
+  if(!homeTileIds(h).length){
+    out.push({sev:'info', msg:'has no tiles — a group assigned this falls back to the standard menu, not a blank screen.'});
+  }
+  h.sections.forEach((sec, i) => {
+    if(!(sec.title || '').trim()){
+      out.push({sev:'error', msg:'section ' + (i+1) + ' has no title — it would render as a row of tiles with nothing naming it.'});
+    }
+    if(!sec.tiles.length){
+      out.push({sev:'warn', msg:'"' + (sec.title || 'section ' + (i+1)) + '" is empty — a title with no tiles under it.'});
+    }
+  });
+  /* The gate, per assigned group. Only computable once assignment exists,
+     which is exactly why it lives in this portal. */
+  groupsOf('home', h.id).forEach(g => {
+    homeTileGaps(h, g).forEach(t => out.push({sev:'error',
+      msg:'"' + t.label + '" needs the ' + ((tileTarget(targetScreen(t.target))||{label:targetScreen(t.target)}).label) +
+        ' screen, which is not in ' + g + "'s menu — the product SILENTLY HIDES that tile for that group."}));
+  });
   return out;
 }
 
@@ -2564,25 +2915,58 @@ function loadPortal(){
 function seedPortalDemo(){
   if(!TILES.length){
     TILES = [
-      mkTile({label:'My Open Work', kind:'count', icon:'route', target:'wolist', dataspy:'My Open WOs', color:'breakdown'}),
-      mkTile({label:'Breakdowns', kind:'count', icon:'alert', target:'wolist', dataspy:'Breakdowns Only', color:'breakdown'}),
-      mkTile({label:'Due This Week', kind:'count', icon:'clock', target:'wolist', dataspy:'This Week', color:'ppm'}),
-      mkTile({label:'My Route Assets', kind:'count', icon:'wrench', target:'equiplist', dataspy:'My Route Assets', color:'routine'}),
-      mkTile({label:'Create Work Order', kind:'create', icon:'plus', target:'createwo'}),
-      mkTile({label:'Sync Status', kind:'shortcut', icon:'cloudoff', target:'sync'}),
-      /* Deliberately incomplete, so homeIssues() has something to report. */
-      mkTile({label:'Open Inspections', kind:'count', icon:'clipboard', target:'wolist', dataspy:''}),
+      mkTile({label:'My Open Work', icon:'route', target:'wolist', dataspy:'My Open WOs',
+        countSql:'SELECT COUNT(*) FROM r5events WHERE assigned = :user', demoCount:7, color:'breakdown'}),
+      mkTile({label:'Breakdowns', icon:'alert', target:'wolist', dataspy:'Breakdowns Only',
+        countSql:'SELECT COUNT(*) FROM r5events WHERE type = BR', demoCount:2, color:'breakdown'}),
+      mkTile({label:'Due This Week', icon:'clock', target:'wolist', dataspy:'This Week',
+        countSql:'SELECT COUNT(*) FROM r5events WHERE sched BETWEEN :mon AND :sun', demoCount:1240, color:'ppm'}),
+      mkTile({label:'My Route Assets', icon:'wrench', target:'equiplist', dataspy:'My Route Assets',
+        countSql:'SELECT COUNT(*) FROM r5equipment WHERE route = :route', demoCount:24, color:'routine'}),
+      /* A plain screen link: no counter at all, which the old model could
+         not express alongside a dataspy. */
+      mkTile({label:'Sync Status', icon:'sliders', target:'sync'}),
+      /* demoCount 0 — the requirement says a statement returning 0 shows NO
+         BADGE. Seeded so that rule is visible on load rather than trusted. */
+      mkTile({label:'Nonconformities', icon:'flag', target:'wolist', dataspy:'All Open WOs',
+        countSql:'SELECT COUNT(*) FROM r5nonconf WHERE open = Y', demoCount:0}),
+      /* Creates: insertMode, so these can only reach the Create control. */
+      mkTile({label:'Work Order', icon:'plus', target:'createwo', insertMode:true}),
+      mkTile({label:'Equipment', icon:'plus', target:'createeq', insertMode:true}),
+      /* Points at Notifications, which CONTRACTOR's menu does not carry. */
+      mkTile({label:'My Alerts', icon:'message', target:'notif',
+        countSql:'SELECT COUNT(*) FROM r5mailevents WHERE person = :user', demoCount:5}),
     ];
   }
   if(!HOMES.length){
     const t = TILES;
+    const sec = (title, ids) => ({id:'sc-' + Math.random().toString(36).slice(2,8), title:title, tiles:ids});
     HOMES = [
-      Object.assign(mkHome('Technician home', 'Work-first: open work, breakdowns, this week, create.'),
-        {tiles:[t[0].id, t[1].id, t[2].id, t[4].id]}),
-      Object.assign(mkHome('Route technician home', 'Adds the route asset list for planned rounds.'),
-        {tiles:[t[0].id, t[3].id, t[2].id, t[5].id]}),
-      Object.assign(mkHome('Supervisor home', 'Read-heavy; no create action.'),
-        {tiles:[t[1].id, t[2].id, t[3].id]}),
+      Object.assign(mkHome('Technician home', 'Work-first, with both creates on the Create control.'), {
+        sections:[
+          sec('My Work', [t[0].id, t[1].id, t[2].id]),
+          sec('Reference', [t[4].id]),
+        ],
+        creates:[t[6].id, t[7].id],
+      }),
+      /* FOUR tiles in one section, deliberately — four is the case worth
+         looking at twice, because the device shows three and a 42px sliver
+         of the fourth, and that sliver is its only scroll cue. */
+      Object.assign(mkHome('Route technician home', 'A section past the fold, so the editor has to draw one.'), {
+        sections:[
+          sec('Today', [t[0].id, t[3].id, t[2].id, t[5].id]),
+          sec('Reference', [t[4].id]),
+        ],
+        creates:[t[6].id],
+      }),
+      /* Read-heavy: no creates at all, so the Create control renders empty
+         rather than hidden — the admin should see the tray they have not
+         filled. It also carries the Notifications tile, which is what makes
+         the silent-hide gate fire once TRANSPORT is assigned. */
+      Object.assign(mkHome('Supervisor home', 'Read-heavy; no create actions.'), {
+        sections:[ sec('Oversight', [t[1].id, t[2].id, t[8].id]) ],
+        creates:[],
+      }),
     ];
   }
   if(!PROFILES.length){
@@ -2623,6 +3007,11 @@ function seedDemoAssignments(){
   if(P1){ add('offline', P1.id, 'CONTRACTOR'); }
   if(H[0]){ add('home', H[0].id, 'MAINT-TECH'); add('home', H[0].id, 'DK'); }
   if(H[1]){ add('home', H[1].id, 'MAINT-TECH'); }   // ← the collision
+  /* TRANSPORT's menu has no Equipment screen, and this layout carries the
+     route-asset tile — so the SILENT-HIDE gate fires on load rather than
+     only when someone happens to build the combination. Same technique as
+     shipping one demo workflow on the capability-limited ZJ1000 clone. */
+  if(H[1]){ add('home', H[1].id, 'TRANSPORT'); }
   if(H[2]){ add('home', H[2].id, 'SUPERVISOR'); }
   saveAssign();
 }
@@ -3279,6 +3668,8 @@ function renderProfileEditor(){
 
       (issues.length ? profileIssueBanner(issues) : '') +
 
+      policyDefsHtml() +
+
       '<div class="card">' +
         '<div class="card__head">' + ic('cloudoff',16) + '<span class="card__title">Per-entity policy</span>' +
           '<span class="eyebrow" style="margin-left:auto">§2.7 — five classes, not a checkbox</span></div>' +
@@ -3304,19 +3695,87 @@ function renderProfileEditor(){
       '</div>' +
     '</div>';
 }
+/* ── CAPS ARE PROTECTED (2026-09-16, user direction) ──
+   And the reason is the interesting part: these are not preferences of
+   this profile, they are PLATFORM limits — §2.7 takes each number from a
+   shipping product (D365's ~200,000 device ceiling, Salesforce's 50,000
+   per entity, D365's 15 traversal relationships, §2.3 rule 5's single
+   to-many). A profile author raising the device ceiling would not raise
+   what the device can actually hold; it would only move where the failure
+   shows up, from authoring time to the technician's morning.
+
+   So they render as PROTECTED fields — a lock, no border, per §5.2's
+   protected treatment — and they are shown rather than hidden, because
+   the whole point of §2.7's caps is that the author can see the budget
+   they are spending. Changing one is a spec change, not a config change. */
+/* ── WHAT EACH POLICY MEANS ──
+   Every value in the dropdown below, defined once, where the choice is
+   made. Ordered least-to-most present on the device, so the table reads as
+   a scale rather than a list — and the two facts an author actually needs
+   are in the first two columns: who put it there, and whether it can be
+   written. */
+function policyDefsHtml(){
+  const yn = (ok, label) =>
+    '<span class="chip chip--dense chip--lead ' + (ok ? 'sev-success' : 'chip--static') + '">' +
+      '<span class="chip__dot"></span>' + (ok ? label : 'no ' + label.toLowerCase()) + '</span>';
+
+  return '<div class="card" style="margin-bottom:var(--s-4)">' +
+    '<div class="card__head">' + ic('info',16) + '<span class="card__title">What each policy means</span>' +
+      '<span class="eyebrow" style="margin-left:auto">§2.7 — the five classes, least to most present on the device</span></div>' +
+    '<div class="pdef">' +
+      '<div class="pdef__r pdef__h">' +
+        '<div class="pdef__n">Policy</div>' +
+        '<div class="pdef__rw">Offline</div>' +
+        '<div class="pdef__d">What it means, and why it is that way</div>' +
+      '</div>' +
+      OFFLINE_POLICIES.map(pol =>
+        '<div class="pdef__r">' +
+          '<div>' +
+            '<div class="pdef__n">' + esc(pol.label) + '</div>' +
+            '<div class="pdef__who">' + esc(pol.who) + '</div>' +
+          '</div>' +
+          '<div class="pdef__rw">' + yn(pol.read, 'Read') + yn(pol.write, 'Write') +
+            (policyNeedsFilter(pol.k)
+              ? '<span class="chip chip--dense chip--lead sev-critical pdef__f">' +
+                  '<span class="chip__dot"></span>needs a filter</span>'
+              : '') +
+          '</div>' +
+          '<div>' +
+            '<div class="pdef__d">' + pol.def + '</div>' +
+            '<div class="pdef__why">' + pol.why + '</div>' +
+          '</div>' +
+        '</div>').join('') +
+    '</div>' +
+    '<div class="card__body">' +
+      '<div class="menu__row"><div class="menu__row-b">' +
+        '<div class="menu__row-t">Two things that catch people out</div>' +
+        '<div class="menu__row-d"><b>Only Work set accepts writes.</b> Everything a technician changes offline is in ' +
+          'the work set; every other class is readable at best. That is the same rule §2.9 states from the other ' +
+          'side — actions may narrow offline, field state never does.<br>' +
+          '<b>Only the two filtered classes take a dataspy.</b> Reference ships a whole domain and Server only ships ' +
+          'nothing, so neither has anything to filter. And a <b>traversed</b> entity takes no filter even inside the ' +
+          'work set, because it arrives attached to its parent rather than being selected in its own right.</div>' +
+      '</div></div>' +
+    '</div>' +
+  '</div>';
+}
+
 function capField(p, key, label, note){
   return '<div class="field">' +
     '<div class="field__label">' + esc(label) + '</div>' +
-    '<div class="input"><input type="number" value="' + esc(String(p.caps[key])) + '" ' +
-      'oninput="setCap(\'' + key + '\',this.value)"></div>' +
+    '<div class="input input--prot" title="Platform limit — not editable per profile">' +
+      '<span class="input__v mono">' + esc(Number(p.caps[key]).toLocaleString()) + '</span>' +
+      '<span class="ms ms-16 input__lock">lock</span></div>' +
     '<div class="menu__row-d">' + esc(note) + '</div>' +
   '</div>';
 }
+/* Kept, and kept REFUSING, rather than deleted: the protection has to hold
+   against a direct call too, not only against an input that is no longer
+   rendered. Same house rule as every other guard here — at the mutation,
+   not at the gesture. */
 function setCap(key, v){
-  const p = artifactOf('offline', state.openProfile); if(!p) return;
-  const n = parseInt(v, 10);
-  p.caps[key] = isNaN(n) ? 0 : n;
-  p.updated = todayStr(); savePortal();
+  toast('Caps are platform limits from §2.7, not per-profile settings');
+  return false;
 }
 function entityRow(p, e){
   const row = p.entities[e.id];
@@ -3394,21 +3853,29 @@ function renderHomeArea(){
     normalizeHome(h);
     const groups = groupsOf('home', h.id);
     const iss = homeIssues(h);
-    return '<div class="wfc' + (h.tiles.length ? '' : ' wfc--ff') + '" onclick="openHome(\'' + h.id + '\')">' +
+    const ids = homeTileIds(h);
+    return '<div class="wfc' + (ids.length ? '' : ' wfc--ff') + '" onclick="openHome(\'' + h.id + '\')">' +
       '<div class="wfc__head">' +
         '<div class="wfc__title">' + esc(h.name || 'Untitled layout') + '</div>' +
         iconBtn('dots', {on:'event.stopPropagation();homeMenu(event,\'' + h.id + '\')', cls:'IconButton--sm IconButton--muted'}) +
       '</div>' +
       '<div class="wfc__pills">' +
         '<span class="chip chip--dense chip--lead chip--static">' + ic('grid',16) +
-          h.tiles.length + ' tile' + (h.tiles.length===1?'':'s') + '</span>' +
+          ids.length + ' tile' + (ids.length===1?'':'s') + '</span>' +
+        '<span class="chip chip--dense chip--lead chip--static">' + ic('layers',16) +
+          h.sections.length + ' section' + (h.sections.length===1?'':'s') + '</span>' +
+        (h.creates.length ? '<span class="chip chip--dense chip--lead chip--static">' + ic('plus',16) +
+          h.creates.length + ' create' + (h.creates.length===1?'':'s') + '</span>' : '') +
       '</div>' +
       '<div class="wfc__body">' +
         '<div class="eyebrow">' + esc(h.desc || '—') + '</div>' +
-        '<div class="wfc__chips">' + h.tiles.map(id => {
-          const t = tileById(id); if(!t) return '';
-          return '<span class="sstep">' + ic(t.icon,14) + esc(t.label) + '</span>';
-        }).join('') + '</div>' +
+        '<div class="wfc__chips">' + h.sections.map(sc =>
+          '<span class="sstep sstep--sec">' + ic('layers',14) + esc(sc.title || 'Untitled') + '</span>' +
+          sc.tiles.map(id => {
+            const t = tileById(id); if(!t) return '';
+            return '<span class="sstep">' + ic(t.icon,14) + esc(t.label) + '</span>';
+          }).join('')
+        ).join('') + '</div>' +
       '</div>' +
       '<div class="wfc__foot">' + ic('users',16) +
         '<span class="mono">' + groups.length + '</span> group' + (groups.length===1?'':'s') +
@@ -3423,9 +3890,16 @@ function renderHomeArea(){
 
   $('gallery').innerHTML = galleryShell({
     type:'home', title:'Home Layouts',
-    desc:'A layout is an ordered set of <b>tile references</b>, assigned to groups. Tiles are authored once in the ' +
-      'catalogue below and reused — so editing a tile changes every layout using it. ' +
-      '<b>Tile content is still an open design question</b>; these are the mechanics, not a decided tile set.',
+    desc:'A layout is <b>labelled sections</b> of <b>tile references</b>, plus the contents of the pinned ' +
+      '<b>Create</b> control. Tiles are authored once in the catalogue below and reused — so editing a tile ' +
+      'changes every layout using it. Sections belong to the <b>layout</b>, not the tile, so the same tile can ' +
+      'sit under different headings in different layouts. ' +
+      '<b>Tile content is still an open design question</b>; these are the mechanics, not a decided tile set.' +
+      (allHomeGaps().length
+        ? '<br><b>' + allHomeGaps().length + ' tile placement' + (allHomeGaps().length===1?'':'s') +
+          ' would be SILENTLY HIDDEN</b> — a tile whose screen is not in that group\'s menu is dropped by the ' +
+          'product with no error (EAM.DUX.REQ.DigitalWorkHome). Open the layout to see which.'
+        : ''),
     conflicts:conflictsFor('home'),
     actions:btn('Create layout', {cls:'Button--contained Button--primary', icon:'plus', on:'createHome()'}),
     body:'<div class="galgrid">' + cards +
@@ -3450,18 +3924,20 @@ function tileCatalogueHtml(){
     '<div class="card__body">' +
       (TILES.length ? TILES.map(t => {
         const use = tileUsage(t.id);
-        const k = tileKind(t.kind);
-        const bad = k.needsDataspy && !t.dataspy;
+        normalizeTile(t);
+        const where = t.insertMode ? 'the Create control' : 'a section';
         return '<div class="menu__row">' +
           '<span class="tilechip" style="' + (tileColorVar(t.color) ? 'color:' + tileColorVar(t.color) : '') + '">' +
             ic(t.icon,20) + '</span>' +
           '<div class="menu__row-b">' +
             '<div class="menu__row-t">' + esc(t.label || 'Untitled tile') +
-              (bad ? ' <span class="chip chip--fill chip--dense chip--lead sev-critical"><span class="chip__dot"></span>no dataspy</span>' : '') +
+              (t.insertMode ? ' <span class="chip chip--fill chip--dense chip--lead sev-info"><span class="chip__dot"></span>insert mode</span>' : '') +
             '</div>' +
-            '<div class="menu__row-d">' + esc(k.label) +
+            '<div class="menu__row-d">' + esc(tileKindLabel(t)) +
+              ' · opens ' + esc((tileTarget(t.target)||{label:'—'}).label) +
               (t.dataspy ? ' · ' + esc(t.dataspy) : '') +
-              ' · opens ' + esc((tileTarget(t.target)||{label:'—'}).label) + '</div>' +
+              (t.countSql ? ' · counted' : '') +
+              ' · drops into ' + where + '</div>' +
           '</div>' +
           '<span class="chip chip--dense chip--static" title="Layouts using this tile">' +
             ic('layers',14) + use.length + '</span>' +
@@ -3481,7 +3957,8 @@ function editTile(id){ tileModal(id); }
 function tileModal(id){
   const t = id ? tileById(id) : null;
   const use = id ? tileUsage(id) : [];
-  const v = t || {label:'', kind:'count', icon:'list', target:'wolist', dataspy:'', color:'none'};
+  const v = t ? normalizeTile(t)
+    : {label:'', icon:'list', target:'wolist', dataspy:'', countSql:'', insertMode:false, color:'none'};
   openModal('narrow',
     '<div class="mbox__head"><div class="mbox__head-b">' +
       '<div class="mbox__title">' + (t ? 'Edit tile' : 'New tile') + '</div>' +
@@ -3493,21 +3970,28 @@ function tileModal(id){
     '<div class="mbox__body mbox__body--plain">' +
       '<label class="pop__l">Label</label>' +
       '<input class="tinput" id="tlLabel" value="' + esc(v.label) + '" placeholder="e.g. My Open Work">' +
-      '<label class="pop__l">Kind</label>' +
-      '<select class="tinput" id="tlKind" onchange="tileModalKind()">' +
-        TILE_KINDS.map(k => '<option value="' + k.k + '"' + (v.kind===k.k?' selected':'') + '>' + esc(k.label) + '</option>').join('') +
-      '</select>' +
-      '<div class="pop__note" id="tlKindNote">' + esc(tileKind(v.kind).note) + '</div>' +
-      '<div id="tlSpyWrap" style="' + (tileKind(v.kind).needsDataspy ? '' : 'display:none') + '">' +
-        '<label class="pop__l">Dataspy</label>' +
+      '<label class="pop__l">Insert mode</label>' +
+      '<label class="cbx"><input type="checkbox" id="tlInsert"' + (v.insertMode?' checked':'') +
+        ' onchange="tileModalKind()"><span>Opens the screen ready to create a record</span></label>' +
+      '<div class="pop__note">The product\'s own <b>Insert Mode</b> checkbox, drawn on the device as a <b>+</b> badge. ' +
+        'It is what makes this tile a <b>Create</b>, and a Create drops <b>only into the Create control</b> — never ' +
+        'into a section, because Home\'s tiles mean "go look at a list", not "start a new record" (§9.4.1).</div>' +
+      '<div id="tlSpyWrap" style="' + (v.insertMode ? 'display:none' : '') + '">' +
+        '<label class="pop__l">Dataspy <span class="pop__opt">optional</span></label>' +
         '<select class="tinput" id="tlSpy">' +
-          '<option value="">Required — pick a dataspy</option>' +
+          '<option value="">None — open the screen unfiltered</option>' +
           Object.keys(DATASPIES).reduce((a,k)=>a.concat(DATASPIES[k]),[])
             .filter((d,i,arr)=>arr.indexOf(d)===i)
             .map(d => '<option value="' + esc(d) + '"' + (v.dataspy===d?' selected':'') + '>' + esc(d) + '</option>').join('') +
         '</select>' +
-        '<div class="pop__note">Dataspies are authored on the record list screen, never here — this selects one ' +
-          '(same boundary as UDS definitions).</div>' +
+        '<div class="pop__note">Where the tile <b>goes</b>. Dataspies are authored on the record list screen, never ' +
+          'here — this selects one (same boundary as UDS definitions).</div>' +
+        '<label class="pop__l">Count statement <span class="pop__opt">optional</span></label>' +
+        '<input class="tinput" id="tlCount" value="' + esc(v.countSql || '') + '" placeholder="SELECT COUNT(*) FROM …">' +
+        '<div class="pop__note"><b>Separate from the dataspy</b>, which is the part worth knowing: the dataspy is ' +
+          'where the tile goes, this is what the badge says. Leave it empty for a plain link. ' +
+          'Returns 0 → <b>no badge at all</b> (not a zero); 1000 or more → <b>999+</b>. Refreshed by the header ' +
+          'refresh, not live.</div>' +
       '</div>' +
       '<label class="pop__l">Opens</label>' +
       '<select class="tinput" id="tlTarget">' +
@@ -3529,18 +4013,22 @@ function tileModal(id){
     '</div>');
   const el = $('tlLabel'); if(el) el.focus();
 }
+/* An insert-mode tile has no dataspy and no counter, so the fields that
+   cannot apply are hidden rather than left to be filled and ignored. */
 function tileModalKind(){
-  const k = tileKind($('tlKind').value);
-  $('tlKindNote').textContent = k.note;
-  $('tlSpyWrap').style.display = k.needsDataspy ? '' : 'none';
+  const ins = !!($('tlInsert') && $('tlInsert').checked);
+  const w = $('tlSpyWrap'); if(w) w.style.display = ins ? 'none' : '';
 }
 function commitTile(id){
   const label = ($('tlLabel') && $('tlLabel').value || '').trim();
   if(!label){ toast('A tile needs a label'); return; }
-  const kind = $('tlKind').value;
-  const icon = tileKind(kind).icon;
-  const data = {label:label, kind:kind, icon:icon, target:$('tlTarget').value,
-    dataspy:(tileKind(kind).needsDataspy && $('tlSpy')) ? $('tlSpy').value : '', color:$('tlColor').value};
+  const insertMode = !!($('tlInsert') && $('tlInsert').checked);
+  const data = {label:label, insertMode:insertMode,
+    icon:insertMode ? 'plus' : (($('tlTarget').value.indexOf('equip') > -1) ? 'box' : 'list'),
+    target:$('tlTarget').value,
+    dataspy:(!insertMode && $('tlSpy')) ? $('tlSpy').value : '',
+    countSql:(!insertMode && $('tlCount')) ? $('tlCount').value.trim() : '',
+    color:$('tlColor').value};
   if(id){
     const t = tileById(id); if(!t) return;
     Object.assign(t, data); t.updated = todayStr();
@@ -3594,7 +4082,11 @@ function copyHome(id){
   dup.name = src.name + ' (copy)';
   dup.updated = todayStr();
   /* The tile references copy — they are references, so both layouts point
-     at the same tiles, which is the whole reason tiles are shared. */
+     at the same tiles, which is the whole reason tiles are shared. But
+     SECTION IDS are re-minted: a section belongs to one layout, so two
+     layouts sharing a section id would let an edit addressed by id land on
+     the wrong one. Same reasoning as re-minting node ids on a copy (§30.2). */
+  (dup.sections || []).forEach(sc => { sc.id = 'sc-' + Math.random().toString(36).slice(2,8); });
   HOMES.splice(HOMES.indexOf(src) + 1, 0, dup);
   savePortal(); render(); toast('Copied — same tiles, no groups assigned');
 }
@@ -3624,9 +4116,24 @@ function renderHomeEditor(){
   if(!h){ state.openHome = null; return renderHomeArea(); }
   const groups = groupsOf('home', h.id);
   const iss = homeIssues(h);
+  const onLayout = homeTileIds(h);
   /* Available = the catalogue minus what is already on this layout. Same
-     complement idea as the field sidebar — "what is left to add". */
-  const avail = TILES.filter(t => h.tiles.indexOf(t.id) === -1);
+     complement idea as the designer's field sidebar — "what is left to
+     add". Split by insertMode, because the two halves have DIFFERENT
+     DESTINATIONS and a single pooled list would imply they are
+     interchangeable. */
+  const avail = TILES.map(normalizeTile).filter(t => onLayout.indexOf(t.id) === -1);
+  const screens = avail.filter(t => !t.insertMode);
+  const creates = avail.filter(t => t.insertMode);
+
+  const libItem = t =>
+    '<div class="lib__item' + (t.insertMode ? ' lib__item--act' : '') + '" draggable="true" ' +
+      'ondragstart="tileDragStart(event,\'' + t.id + '\')" ondragend="tileDragEnd()">' +
+      '<span class="lib__ico" style="' + (tileColorVar(t.color)?'color:'+tileColorVar(t.color):'') + '">' +
+        ic(t.insertMode ? 'plus' : t.icon, 16) + '</span>' +
+      '<span class="lib__item-t">' + esc(t.label) + '</span>' +
+      '<span class="lib__used" title="Layouts using it">' + tileUsage(t.id).length + '</span>' +
+    '</div>';
 
   $('gallery').innerHTML =
     '<div class="wrapw">' +
@@ -3643,7 +4150,7 @@ function renderHomeEditor(){
         '</div>' +
       '</div>' +
       (iss.length
-        ? '<div class="Banner Banner--' + (iss.some(i=>i.sev==='error')?'critical':'info') + '">' +
+        ? '<div class="Banner Banner--' + (iss.some(i=>i.sev==='error') ? 'critical' : (iss.some(i=>i.sev==='warn') ? 'info' : 'info')) + '">' +
             '<span class="ms ms-24 Banner__icon">' + (iss.some(i=>i.sev==='error')?'warning':'info') + '</span>' +
             '<div class="Banner__body"><div class="Banner__title">' + iss.length + ' to look at</div>' +
             '<div class="Banner__rows">' + iss.map(i =>
@@ -3655,98 +4162,405 @@ function renderHomeEditor(){
           '<div class="card__head">' + ic('grid',16) + '<span class="card__title">Available tiles</span>' +
             '<span style="margin-left:auto">' + btn('New', {cls:'Button--sm', icon:'plus', on:'createTile()'}) + '</span></div>' +
           '<div class="card__body">' +
-            (avail.length ? avail.map(t =>
-              '<div class="lib__item" draggable="true" ondragstart="tileDragStart(event,\'' + t.id + '\')" ' +
-                'ondragend="tileDragEnd()">' +
-                '<span class="lib__ico" style="' + (tileColorVar(t.color)?'color:'+tileColorVar(t.color):'') + '">' +
-                  ic(t.icon,16) + '</span>' +
-                '<span class="lib__item-t">' + esc(t.label) + '</span>' +
-                '<span class="lib__used" title="Layouts using it">' + tileUsage(t.id).length + '</span>' +
-              '</div>').join('')
-            : '<div class="menu__row-d">Every tile is on this layout. Create another, or remove one to put it back.</div>') +
+            '<div class="lib__grp">Available screens</div>' +
+            (screens.length ? screens.map(libItem).join('')
+              : '<div class="menu__row-d">Every screen tile is on this layout.</div>') +
+            '<div class="lib__grp">Creates</div>' +
+            '<div class="lib__head-d" style="padding:0 6px 6px">A tile with Insert Mode set. It drops into the ' +
+              'Create control only \u2014 never into a section, because Home\'s tiles mean ' +
+              '"go look at a list", not "start a new record" (\u00a79.4.1).</div>' +
+            (creates.length ? creates.map(libItem).join('')
+              : '<div class="menu__row-d">No create tiles left to add.</div>') +
           '</div>' +
         '</div>' +
         '<div class="homephone">' +
           '<div class="eyebrow" style="text-align:center;margin-bottom:var(--s-2)">Home screen preview</div>' +
-          '<div class="emu" ondragover="tileDragOver(event)" ondrop="tileDrop(event,-1)">' +
-            '<div class="emu-nav">' + ic('grid',20) + '<span class="emu-nav-t">Home</span></div>' +
-            '<div class="hometiles">' +
-              (h.tiles.length ? h.tiles.map((id,i) => {
-                const t = tileById(id); if(!t) return '';
-                const k = tileKind(t.kind);
-                return '<div class="hometile" draggable="true" ondragstart="tileMoveStart(event,' + i + ')" ' +
-                  'ondragend="tileDragEnd()" ondragover="tileDragOver(event)" ondrop="tileDrop(event,' + i + ')" ' +
-                  'oncontextmenu="tileOnLayoutMenu(event,\'' + h.id + '\',' + i + ')" title="Right-click to remove">' +
-                  '<span class="hometile__ico" style="' + (tileColorVar(t.color)?'color:'+tileColorVar(t.color):'') + '">' +
-                    ic(t.icon,24) + '</span>' +
-                  '<span class="hometile__n">' + (k.needsDataspy ? (t.dataspy ? '12' : '—') : '') + '</span>' +
-                  '<span class="hometile__l">' + esc(t.label) + '</span>' +
-                '</div>';
-              }).join('')
-              : '<div class="emu-dropzone" style="grid-column:1/-1">Drag a tile here</div>') +
-            '</div>' +
-          '</div>' +
+          emuHomeHtml(h) +
+          '<div class="reg__dash" style="margin-top:var(--s-3);text-align:center">' +
+            'The device scrolls each section sideways; this wraps at ' + HOME_FOLD +
+            ' so every tile is droppable. Line one is what the technician sees without swiping.</div>' +
         '</div>' +
       '</div>' +
     '</div>';
 }
+
+/* ── THE PREVIEW ──
+   Ordered exactly as the device orders it: pinned create bar, then the
+   technician-owned Favorites row, then the authored sections. */
+function emuHomeHtml(h){
+  const gapIds = {};
+  groupsOf('home', h.id).forEach(g => homeTileGaps(h, g).forEach(t => {
+    gapIds[t.id] = (gapIds[t.id] || []).concat(g);
+  }));
+
+  return '<div class="emu">' +
+    '<div class="emu-nav">' + ic('grid',20) + '<span class="emu-nav-t">Home</span></div>' +
+
+    /* CREATE BAR — one pill, whose CONTENTS the admin authors. The chooser
+       stays a chooser (§9.4.1 locked that: defaulting blindly was the
+       original defect), so what is authored here is the menu, not a row of
+       competing buttons. */
+    '<div class="emu-cbar">' +
+      '<div class="emu-cpill">' + ic('plus',16) + 'Create</div>' +
+      '<div class="emu-ctray" id="ctray" ondragover="createDragOver(event)" ' +
+        'ondragleave="createDragLeave(event)" ondrop="createDrop(event)">' +
+        (h.creates.length
+          ? h.creates.map((id,ci) => {
+              const t = normalizeTile(tileById(id)); if(!t) return '';
+              const bad = !!gapIds[t.id];
+              return '<div class="emu-crow" draggable="true" ondragstart="createMoveStart(event,' + ci + ')" ' +
+                'ondragend="tileDragEnd()" oncontextmenu="createOnLayoutMenu(event,\'' + h.id + '\',' + ci + ')" ' +
+                'title="Right-click to remove">' +
+                '<span class="hometile__ico">' + ic('plus',16) + '</span>' +
+                '<span class="emu-crow__l">' + esc(t.label) +
+                  (bad ? ' \u00b7 hidden for ' + esc(gapIds[t.id].join(', ')) : '') + '</span>' +
+                '<span class="emu-crow__x">' + ic('chevR',14) + '</span>' +
+              '</div>';
+            }).join('')
+          : '<div class="emu-ctray__e">Drag a create tile here.<br>These become the Create sheet\'s rows.</div>') +
+      '</div>' +
+    '</div>' +
+
+    '<div class="emu-body">' +
+
+      /* FAVORITES — the admin can position and toggle it, never fill it.
+         On the device it is built from the technician's own starred
+         dataspies (loadWoFavorites/loadEquipFavorites), so drawing
+         authorable tiles here would be a preview of something else. */
+      (h.showFavorites
+        ? '<div class="emu-fav">' +
+            '<div class="emu-sec__h"><span class="emu-sec__t">Favorites</span>' +
+              '<span class="emu-secbtn" onclick="toggleHomeFavorites()" title="Hide the Favorites row">' +
+                ic('eye',16) + '</span></div>' +
+            '<div class="emu-fav__r">' +
+              '<div class="emu-fav__g"><div class="emu-fav__c"></div><div class="emu-fav__t"></div></div>' +
+              '<div class="emu-fav__g"><div class="emu-fav__c"></div><div class="emu-fav__t"></div></div>' +
+              '<div class="emu-fav__g"><div class="emu-fav__c"></div><div class="emu-fav__t"></div></div>' +
+            '</div>' +
+            '<div class="emu-fav__n">The technician\'s own starred dataspies. Not authorable here \u2014 ' +
+              'position and presence are the only choices.</div>' +
+          '</div>'
+        : '') +
+
+      /* SECTIONS */
+      h.sections.map((sec, si) => {
+        const titled = (sec.title || '').trim();
+        const over = sec.tiles.length - HOME_FOLD;
+        return '<div class="emu-sec">' +
+          '<div class="emu-sec__h">' +
+            '<span class="emu-sec__t' + (titled ? '' : ' emu-sec__t--none') + '">' +
+              (titled ? esc(sec.title) : 'Untitled section') + '</span>' +
+            (sec.tiles.length ? '<span class="emu-sec__c">' + sec.tiles.length + '</span>' : '') +
+            '<span class="emu-secbtn" oncontextmenu="sectionMenu(event,' + si + ')" ' +
+              'onclick="sectionMenu(event,' + si + ')" title="Section options">' + ic('dots',16) + '</span>' +
+          '</div>' +
+          '<div class="emu-sec__row" ondragover="secDragOver(event,' + si + ')" ' +
+            'ondragleave="secDragLeave(event)" ondrop="tileDrop(event,' + si + ',-1)">' +
+            (sec.tiles.length
+              ? sec.tiles.map((id, ti) => {
+                  const t = normalizeTile(tileById(id)); if(!t) return '';
+                  const badge = tileCountBadge(t);
+                  const gap = gapIds[t.id];
+                  return (ti === HOME_FOLD && sec.tiles.length > HOME_FOLD
+                    ? '<div class="emu-sec__fold"><span class="emu-sec__fold-t">SWIPE TO SEE ' +
+                        (sec.tiles.length - HOME_FOLD) + ' MORE</span></div>'
+                    : '') +
+                    '<div class="hometile' + (ti >= HOME_FOLD ? ' hometile--past' : '') +
+                      (gap ? ' hometile--gap' : '') + '" draggable="true" ' +
+                      'ondragstart="tileMoveStart(event,' + si + ',' + ti + ')" ondragend="tileDragEnd()" ' +
+                      'ondragover="secDragOver(event,' + si + ')" ondrop="tileDrop(event,' + si + ',' + ti + ')" ' +
+                      'oncontextmenu="tileOnLayoutMenu(event,\'' + h.id + '\',' + si + ',' + ti + ')" ' +
+                      'title="' + (gap ? 'Hidden for ' + esc(gap.join(', ')) + ' \u2014 not in that menu' : 'Right-click for options') + '">' +
+                      '<span class="hometile__sq" style="' + (tileColorVar(t.color)?'color:'+tileColorVar(t.color):'') + '">' +
+                        '<span class="hometile__ico">' + ic(t.icon,24) + '</span>' +
+                        (badge ? '<span class="hometile__b">' + esc(badge) + '</span>' : '') +
+                      '</span>' +
+                      '<span class="hometile__l">' + esc(t.label) + '</span>' +
+                    '</div>';
+                }).join('')
+              : '<div class="emu-dropzone" style="grid-column:1/-1">Drag a screen tile here</div>') +
+          '</div>' +
+        '</div>';
+      }).join('') +
+
+      '<button class="emu-addsec" onclick="addSection()">' + ic('plus',16) + 'Add a section</button>' +
+      (h.showFavorites ? '' :
+        '<button class="emu-addsec" onclick="toggleHomeFavorites()">' + ic('eye',16) + 'Show the Favorites row</button>') +
+    '</div>' +
+  '</div>';
+}
+
 function setHomeField(k, v){
   const h = artifactOf('home', state.openHome); if(!h) return;
   h[k] = v; h.updated = todayStr(); savePortal();
 }
-let tileDrag = null;   // {tileId} from the catalogue, or {from:index} within
+function toggleHomeFavorites(){
+  const h = artifactOf('home', state.openHome); if(!h) return;
+  h.showFavorites = !h.showFavorites; h.updated = todayStr(); savePortal(); render();
+}
+
+/* ── SECTION CRUD ── */
+function addSection(){
+  const h = artifactOf('home', state.openHome); if(!h) return;
+  h.sections.push(mkSection('New section'));
+  h.updated = todayStr(); savePortal(); render();
+  toast('Section added \u2014 rename it from its menu');
+}
+function sectionMenu(ev, si){
+  ev.preventDefault(); ev.stopPropagation();
+  const h = artifactOf('home', state.openHome); if(!h) return;
+  const sec = h.sections[si]; if(!sec) return;
+  openMenu(ev,
+    '<div class="menu__label">' + esc(sec.title || 'Untitled section') + '</div>' +
+    '<div class="menu__item" onclick="closeMenu();renameSection(' + si + ')">' + ic('pencil',16) + 'Rename</div>' +
+    '<div class="menu__item' + (si === 0 ? ' menu__item--off' : '') + '" onclick="closeMenu();moveSection(' + si + ',-1)">' +
+      ic('chevU',16) + 'Move up</div>' +
+    '<div class="menu__item' + (si === h.sections.length-1 ? ' menu__item--off' : '') + '" onclick="closeMenu();moveSection(' + si + ',1)">' +
+      ic('chevD',16) + 'Move down</div>' +
+    '<div class="menu__sep"></div>' +
+    '<div class="menu__item menu__item--danger" onclick="closeMenu();deleteSection(' + si + ')">' +
+      ic('trash',16) + 'Delete section<span class="menu__meta">' + sec.tiles.length + ' tiles</span></div>');
+}
+function renameSection(si){
+  const h = artifactOf('home', state.openHome); if(!h) return;
+  const sec = h.sections[si]; if(!sec) return;
+  openModal('narrow',
+    '<div class="mbox__head"><div class="mbox__head-b">' +
+      '<div class="mbox__title">Section title</div>' +
+      '<div class="mbox__sub">The technician reads this above the row. It is the only thing naming those tiles, ' +
+        'so an empty title is reported rather than allowed to render.</div>' +
+    '</div></div>' +
+    '<div class="mbox__body mbox__body--plain">' +
+      '<label class="pop__l">Title</label>' +
+      '<input class="tinput" id="scTitle" value="' + esc(sec.title) + '" placeholder="e.g. My Work">' +
+    '</div>' +
+    '<div class="mbox__foot">' +
+      btn('Cancel', {on:'closeModal()'}) +
+      btn('Save', {cls:'Button--contained Button--primary', on:'commitSectionTitle(' + si + ')'}) +
+    '</div>');
+  const el = $('scTitle'); if(el){ el.focus(); el.select(); }
+}
+function commitSectionTitle(si){
+  const h = artifactOf('home', state.openHome); if(!h) return;
+  const sec = h.sections[si]; if(!sec) return;
+  const v = (($('scTitle') && $('scTitle').value) || '').trim();
+  if(!v){ toast('A section needs a title'); return; }
+  sec.title = v; h.updated = todayStr(); savePortal(); closeModal(); render();
+}
+/* Clamped AT THE MUTATION, not in the menu that offers it — the house
+   rule, learned three times over (pinned step, container 0, the More
+   group). A disabled menu row is a courtesy; this is the guard. */
+function moveSection(si, dir){
+  const h = artifactOf('home', state.openHome); if(!h) return;
+  const to = si + dir;
+  if(si < 0 || si >= h.sections.length || to < 0 || to >= h.sections.length) return;
+  const [m] = h.sections.splice(si, 1);
+  h.sections.splice(to, 0, m);
+  h.updated = todayStr(); savePortal(); render();
+}
+function deleteSection(si){
+  const h = artifactOf('home', state.openHome); if(!h) return;
+  const sec = h.sections[si]; if(!sec) return;
+  const go = function(){
+    h.sections.splice(si, 1);
+    h.updated = todayStr(); savePortal(); render();
+    toast('Section deleted \u2014 its tiles are back in the catalogue');
+  };
+  if(!sec.tiles.length) return go();
+  confirmBox({title:'Delete this section?', sub:esc(sec.title || 'Untitled section'), danger:true, ok:'Delete section',
+    body:'<div style="font-size:var(--uxt-theme-typography-body-2-font-size);line-height:1.6">It holds <b>' +
+      sec.tiles.length + '</b> tile' + (sec.tiles.length===1?'':'s') + '.</div>' +
+      '<ul class="bullets"><li>The <b>placements</b> go; the tiles themselves are untouched and return to the ' +
+      'available list, because a tile belongs to the catalogue and not to this layout.</li></ul>',
+    onOk:go});
+}
+
+/* ── DRAG AND DROP ──
+   tileDrag is one of three shapes: a catalogue tile, a move within a
+   section, or a move within the create tray.
+
+   NOTHING HERE RE-RENDERS DURING dragover. That was the container bug in
+   the designer panel: re-rendering destroys the drag source mid-gesture.
+   Only classes are toggled. */
+let tileDrag = null;
 function tileDragStart(ev, tileId){
   tileDrag = {tileId:tileId};
   ev.dataTransfer.effectAllowed = 'copy';
   try{ ev.dataTransfer.setData('text/plain', tileId); }catch(e){}
   if(ev.currentTarget.classList) ev.currentTarget.classList.add('dragging');
 }
-function tileMoveStart(ev, i){
-  tileDrag = {from:i};
+function tileMoveStart(ev, si, ti){
+  tileDrag = {fromSec:si, from:ti};
   ev.dataTransfer.effectAllowed = 'move';
   try{ ev.dataTransfer.setData('text/plain','m'); }catch(e){}
+  if(ev.currentTarget.classList) ev.currentTarget.classList.add('dragging');
+  ev.stopPropagation();
+}
+function createMoveStart(ev, ci){
+  tileDrag = {fromCreate:ci};
+  ev.dataTransfer.effectAllowed = 'move';
+  try{ ev.dataTransfer.setData('text/plain','c'); }catch(e){}
   if(ev.currentTarget.classList) ev.currentTarget.classList.add('dragging');
   ev.stopPropagation();
 }
 function tileDragEnd(){
   tileDrag = null;
   document.querySelectorAll('.dragging').forEach(e => e.classList.remove('dragging'));
+  document.querySelectorAll('.is-over,.is-bad').forEach(e => { e.classList.remove('is-over'); e.classList.remove('is-bad'); });
 }
-function tileDragOver(ev){ if(tileDrag){ ev.preventDefault(); ev.stopPropagation(); } }
-function tileDrop(ev, atIdx){
+/* What is being dragged, as a tile record — so the drop rule can be
+   shown DURING the gesture, not only reported after it. */
+function dragTile(){
+  if(!tileDrag) return null;
+  if(tileDrag.tileId) return normalizeTile(tileById(tileDrag.tileId));
+  const h = artifactOf('home', state.openHome); if(!h) return null;
+  if(typeof tileDrag.fromCreate === 'number') return normalizeTile(tileById(h.creates[tileDrag.fromCreate]));
+  const sec = h.sections[tileDrag.fromSec];
+  return sec ? normalizeTile(tileById(sec.tiles[tileDrag.from])) : null;
+}
+function rowOf(el){
+  while(el && el.classList && !el.classList.contains('emu-sec__row')) el = el.parentNode;
+  return el;
+}
+function secDragOver(ev, si){
   if(!tileDrag) return;
   ev.preventDefault(); ev.stopPropagation();
-  const h = artifactOf('home', state.openHome); if(!h){ tileDragEnd(); return; }
+  const t = dragTile(); const row = rowOf(ev.currentTarget);
+  if(row && row.classList) row.classList.add(t && t.insertMode ? 'is-bad' : 'is-over');
+}
+function secDragLeave(ev){
+  const row = rowOf(ev.currentTarget);
+  if(row && row.classList){ row.classList.remove('is-over'); row.classList.remove('is-bad'); }
+}
+function createDragOver(ev){
+  if(!tileDrag) return;
+  ev.preventDefault(); ev.stopPropagation();
+  const t = dragTile(); const el = $('ctray');
+  if(el && el.classList) el.classList.add(t && t.insertMode ? 'is-over' : 'is-bad');
+}
+function createDragLeave(ev){
+  const el = $('ctray');
+  if(el && el.classList){ el.classList.remove('is-over'); el.classList.remove('is-bad'); }
+}
+
+/* ── THE DROP RULE, GUARDED AT THE MUTATION ──
+   "One tile with insert mode flag means it can't be drug onto layout, but
+   only to the create icon. And vice versa for non-flagged tiles."
+   (user direction 2026-09-16)
+
+   Both directions, and refused HERE rather than in the gesture, because a
+   gesture guard is bypassed the moment anything calls the mutation
+   directly — which is how the More-group guard was got round. */
+/* Returns true iff something was placed or moved. The return value is what
+   makes the REFUSAL testable independently of normalizeHome's prune \u2014 see
+   the note above setCap for the same "guard at the mutation" discipline. */
+function tileDrop(ev, si, atIdx){
+  if(!tileDrag) return false;
+  ev.preventDefault(); ev.stopPropagation();
+  const h = artifactOf('home', state.openHome); if(!h){ tileDragEnd(); return false; }
+  const sec = h.sections[si]; if(!sec){ tileDragEnd(); return false; }
   const d = tileDrag; tileDragEnd();
+
   if(d.tileId){
-    /* By REFERENCE — the layout stores an id, never a copy of the tile. */
-    if(h.tiles.indexOf(d.tileId) > -1){ toast('That tile is already on this layout'); return; }
-    if(atIdx < 0 || atIdx >= h.tiles.length) h.tiles.push(d.tileId);
-    else h.tiles.splice(atIdx, 0, d.tileId);
-  } else if(typeof d.from === 'number'){
-    const [m] = h.tiles.splice(d.from, 1);
-    if(m === undefined) return;
-    const to = atIdx < 0 ? h.tiles.length : (atIdx > d.from ? atIdx - 1 : atIdx);
-    h.tiles.splice(Math.max(0, Math.min(h.tiles.length, to)), 0, m);
+    const t = normalizeTile(tileById(d.tileId)); if(!t) return false;
+    if(t.insertMode){
+      toast('"' + t.label + '" has Insert Mode set \u2014 it belongs in the Create control, not a section');
+      return false;
+    }
+    if(homeTileIds(h).indexOf(d.tileId) > -1){ toast('That tile is already on this layout'); return false; }
+    if(atIdx < 0 || atIdx >= sec.tiles.length) sec.tiles.push(d.tileId);
+    else sec.tiles.splice(atIdx, 0, d.tileId);
+  } else if(typeof d.fromCreate === 'number'){
+    /* Dragging a Create out of the tray and into a section is the same
+       refusal from the other side. */
+    const t = normalizeTile(tileById(h.creates[d.fromCreate]));
+    toast(t ? '"' + t.label + '" is a create action \u2014 it cannot sit among the tiles' : 'Not a section tile');
+    return false;
+  } else if(typeof d.fromSec === 'number'){
+    const src = h.sections[d.fromSec]; if(!src) return false;
+    const [m] = src.tiles.splice(d.from, 1);
+    if(m === undefined) return false;
+    let to = atIdx < 0 ? sec.tiles.length : atIdx;
+    if(d.fromSec === si && atIdx > d.from) to = atIdx - 1;
+    sec.tiles.splice(Math.max(0, Math.min(sec.tiles.length, to)), 0, m);
   }
   h.updated = todayStr(); savePortal(); render();
+  return true;
 }
-function tileOnLayoutMenu(ev, homeId, i){
+function createDrop(ev){
+  if(!tileDrag) return false;
+  ev.preventDefault(); ev.stopPropagation();
+  const h = artifactOf('home', state.openHome); if(!h){ tileDragEnd(); return false; }
+  const d = tileDrag; tileDragEnd();
+
+  if(d.tileId){
+    const t = normalizeTile(tileById(d.tileId)); if(!t) return false;
+    if(!t.insertMode){
+      toast('"' + t.label + '" opens a screen \u2014 the Create control only takes tiles with Insert Mode set');
+      return false;
+    }
+    if(homeTileIds(h).indexOf(d.tileId) > -1){ toast('That tile is already on this layout'); return false; }
+    h.creates.push(d.tileId);
+  } else if(typeof d.fromCreate === 'number'){
+    /* Reorder within the tray: the sheet shows them in this order. */
+    const [m] = h.creates.splice(d.fromCreate, 1);
+    if(m === undefined) return false;
+    h.creates.push(m);
+  } else {
+    const t = dragTileFromSection(h, d);
+    toast(t ? '"' + t.label + '" has no Insert Mode \u2014 it stays in its section' : 'Not a create tile');
+    return false;
+  }
+  h.updated = todayStr(); savePortal(); render();
+  return true;
+}
+function dragTileFromSection(h, d){
+  const sec = h.sections[d.fromSec];
+  return sec ? normalizeTile(tileById(sec.tiles[d.from])) : null;
+}
+
+function tileOnLayoutMenu(ev, homeId, si, ti){
   ev.preventDefault(); ev.stopPropagation();
   const h = artifactOf('home', homeId); if(!h) return;
-  const t = tileById(h.tiles[i]);
+  const sec = h.sections[si]; if(!sec) return;
+  const t = normalizeTile(tileById(sec.tiles[ti]));
+  const gaps = groupsOf('home', h.id).filter(g => t && groupMenu(g).indexOf(t.target) === -1);
   openMenu(ev,
     '<div class="menu__label">' + esc(t ? t.label : 'Tile') + '</div>' +
+    (gaps.length
+      ? '<div class="menu__row is-warn"><div class="menu__row-b"><div class="menu__row-t">' +
+          'Hidden for ' + esc(gaps.join(', ')) + '</div><div class="menu__row-d">' +
+          esc((tileTarget(targetScreen(t.target))||{label:t.target}).label) + ' is not in that menu, so the product drops the ' +
+          'tile silently. Reported, not auto-fixed \u2014 removing it would be wrong for the groups that can see it.' +
+          '</div></div></div><div class="menu__sep"></div>'
+      : '') +
     '<div class="menu__item" onclick="closeMenu();editTile(\'' + (t?t.id:'') + '\')">' + ic('pencil',16) +
       'Edit tile<span class="menu__meta">' + (t?tileUsage(t.id).length:0) + ' layouts</span></div>' +
     '<div class="menu__sep"></div>' +
-    '<div class="menu__item menu__item--danger" onclick="closeMenu();removeTileFromHome(\'' + homeId + '\',' + i + ')">' +
+    '<div class="menu__item menu__item--danger" onclick="closeMenu();removeTileFromHome(\'' + homeId + '\',' + si + ',' + ti + ')">' +
       ic('trash',16) + 'Remove from this layout</div>');
 }
-function removeTileFromHome(homeId, i){
+function createOnLayoutMenu(ev, homeId, ci){
+  ev.preventDefault(); ev.stopPropagation();
   const h = artifactOf('home', homeId); if(!h) return;
-  h.tiles.splice(i, 1); h.updated = todayStr(); savePortal(); render();
-  toast('Removed from this layout — the tile itself is untouched');
+  const t = normalizeTile(tileById(h.creates[ci]));
+  openMenu(ev,
+    '<div class="menu__label">' + esc(t ? t.label : 'Create') + '</div>' +
+    '<div class="menu__item" onclick="closeMenu();editTile(\'' + (t?t.id:'') + '\')">' + ic('pencil',16) + 'Edit tile</div>' +
+    '<div class="menu__sep"></div>' +
+    '<div class="menu__item menu__item--danger" onclick="closeMenu();removeCreateFromHome(\'' + homeId + '\',' + ci + ')">' +
+      ic('trash',16) + 'Remove from the Create control</div>');
+}
+function removeTileFromHome(homeId, si, ti){
+  const h = artifactOf('home', homeId); if(!h) return;
+  const sec = h.sections[si]; if(!sec) return;
+  sec.tiles.splice(ti, 1); h.updated = todayStr(); savePortal(); render();
+  toast('Removed from this layout \u2014 the tile itself is untouched');
+}
+function removeCreateFromHome(homeId, ci){
+  const h = artifactOf('home', homeId); if(!h) return;
+  h.creates.splice(ci, 1); h.updated = todayStr(); savePortal(); render();
+  toast('Removed from the Create control \u2014 the tile itself is untouched');
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
