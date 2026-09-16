@@ -52,18 +52,21 @@
   constraint is visible before the editor exists rather than after.
 
   ── STYLING ───────────────────────────────────────────────────────────
-  Inter / JetBrains Mono, tokens copied verbatim from eam-shared.css, every
-  component lifted from eam-base-desktop-ui-prototype-v1.html and
+  SUPERSEDED BY THE OCTAVE BLOCK ABOVE — kept because it records where these
+  components came from. The first pass was Inter / JetBrains Mono with tokens
+  copied from eam-shared.css and every component lifted from
+  old versions/eam-base-desktop-ui-prototype-v1.html and
   old versions/eam-user-group-setup-prototype-v1.html (rail, flyout, crumb,
-  tab capsule,
-  .fd field system, .pop, .card, .iss strip, .sw, .cbx, .toast).
+  tab capsule, .fd field system, .pop, .card, .iss strip, .sw, .cbx, .toast).
+  Both source files are now retired — Desktop UI went OUT OF SCOPE 2026-09-16
+  ("just the Mobile App and this portal now"), so this is the last trace of
+  its component set and there is nothing to restyle back onto.
 
-  DELIBERATELY NOT eam-screen-designer-v1.html's DM Sans / teal-purple
-  system, even for the embedded designer panel. CLAUDE.md records those two
-  visual languages as a known inconsistency whose fix is "restyle Screen
-  Designer onto the Base/Desktop UI components." A new file gets the
-  destination, not the thing being migrated away from. The embedded panel is
-  therefore the same designer AFFORDANCES in the app's own token language.
+  It was DELIBERATELY NOT eam-screen-designer-v1.html's DM Sans / teal-purple
+  system, even for the embedded designer panel: a new file gets the
+  destination, not the thing being migrated away from. That reasoning held
+  and then went further — the whole screen moved to Octave / OUX, which is
+  now the only visual language on this track.
 
   Colour discipline (§23): no new hue is invented here.
     · WO Type pill        — the four §23.3 --wo-type-* tokens and nothing

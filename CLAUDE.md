@@ -590,13 +590,17 @@ and User Groups — all areas of this one file.
   only. The demo tile set is a demo; don't read it as deciding a technician's
   Home screen.
 
-**The two-visual-languages problem CLOSED on 2026-09-16** — by a surface going
-away, not by a restyle (§30.9). Screen Designer's DM Sans/teal-purple system is
-no longer on anything reachable: the portal is Octave/OUX and so is its embedded
-designer panel. What is left on this track is
-`eam-base-desktop-ui-prototype-v1.html`, still on Inter/JetBrains Mono in the
-app's own language — a different base screen and its own open question, not the
-seam that was being tracked.
+**THE BASE TRACK IS THIS PORTAL AND NOTHING ELSE** (user direction 2026-09-16:
+*"Desktop UI is completely out of scope for this project. It is just the Mobile
+App and this portal now. Total."*). `eam-base-desktop-ui-prototype-v1.html` is
+retired to `old versions/` — a **scope** call, not a quality one (§21/NG9). Two
+consequences: **"restyle onto the Base/Desktop UI components" is no longer a fix
+for anything** — it was the standing answer to the two-visual-languages problem,
+which is now closed twice over (§30.9 removed Screen Designer's surface, this
+removed the other language entirely) — and the four departures from base plus
+its banner/header split were never promoted into the spec **on purpose**, since
+a spec section for an out-of-scope surface is exactly the doc debt §21 prevents.
+Don't mine that file for patterns without re-opening the scope statement first.
 
 ### data/ layer
 Real reference data lives in `docs/Data_refs/` (Employees/Crews/Stores/

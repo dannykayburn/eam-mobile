@@ -206,21 +206,17 @@
 
   <h2>Base admin screens — separate track</h2>
   <p class="sub" style="font-size:13px;margin:0 0 10px;">
-    <b>Screen Designer has no card on purpose.</b> It is not a standalone destination — it is
-    invoked per step node from the Workflow Designer Portal and opens in that screen's own panel.
-    The standalone prototype still exists as the reference for that panel's target fidelity, but
-    nothing navigates to it.
+    <b>One card, on purpose.</b> The portal is the whole base track.
+    <b>Screen Designer</b> is not a standalone destination — it is invoked per step node from the
+    portal and opens in that screen's own panel. <b>Base / Desktop UI</b> went out of scope
+    2026-09-16: this programme is the mobile app and this portal, nothing else. Both prototypes
+    are still in <code>base screens/old versions/</code> for history; nothing navigates to either.
   </p>
   <div class="grid">
     <a class="card" href="prototypes/standalone/base%20screens/eam-workflow-portal-v1.html">
       <div class="name">Workflow Designer Portal <span style="font-size:11px;font-weight:600;color:var(--teal, #007B87)">· base entry point</span></div>
       <div class="desc"><b>The single base-screen entry point</b> — mobile configuration is one portal with areas, not a folder of sibling screens. Four areas — <b>Workflows</b>, <b>Home Layouts</b>, <b>Offline Profiles</b>, <b>User Groups</b> — all on one paradigm: every artifact is authored once and <i>applied</i> to user groups, with assignment running both directions over one membership table. Workflows are a gallery of cards, then a drag-and-drop flow canvas with the Screen Designer opening alongside it for the selected step: question forks, status-update actions, completion gates, the More group, Free Form. Open the ⓘ Design notes panel for what it reverses and why.</div>
       <div class="file">base screens/eam-workflow-portal-v1.html</div>
-    </a>
-    <a class="card" href="prototypes/standalone/base%20screens/eam-base-desktop-ui-prototype-v1.html">
-      <div class="name">Base / Desktop UI</div>
-      <div class="desc">The base product's own web UI restyled to the app's design language — WO list/search → record view → Closing tab. Left nav instead of the top menu bar, no list/split/record tri-toggle, Create as its own surface. Open the ⓘ Design notes panel for what changed and why.</div>
-      <div class="file">base screens/eam-base-desktop-ui-prototype-v1.html</div>
     </a>
   </div>
 
