@@ -980,13 +980,19 @@ console.log('\nAreas: one membership table, two views');
     'return fromArtifact === fromGroups && fromArtifact.length > 0;})()'));
   ok('there is no second store — w.assignments is gone entirely',
     ev(ctx, 'WFS.every(function(w){return w.assignments === undefined;})'));
+  /* Asserts AGREEMENT between the two views, not a row count: TRANSPORT
+     now carries a seeded layout (it is what makes the silent-hide gate
+     live on load), and a count would break on a seed change without the
+     model being wrong. */
   ok('a write from either side lands in the one table', evb(ctx,
-    '(function(){var h=HOMES[0];' +
-    'setAssigned("home", h.id, "TRANSPORT", true);' +
-    'var a = groupsOf("home", h.id).indexOf("TRANSPORT") > -1;' +
-    'var b = artifactsForGroup("TRANSPORT","home").length === 1;' +
-    'setAssigned("home", h.id, "TRANSPORT", false);' +
-    'return a && b && groupsOf("home", h.id).indexOf("TRANSPORT") === -1;})()'));
+    '(function(){var h=HOMES[0]; var G="SALES-ENG";' +
+    'setAssigned("home", h.id, G, true);' +
+    'var a = groupsOf("home", h.id).indexOf(G) > -1;' +
+    'var b = artifactsForGroup(G,"home").some(function(r){return r.artifactId===h.id;});' +
+    'setAssigned("home", h.id, G, false);' +
+    'var c = groupsOf("home", h.id).indexOf(G) === -1;' +
+    'var d = !artifactsForGroup(G,"home").some(function(r){return r.artifactId===h.id;});' +
+    'return a && b && c && d;})()'));
   /* Deleting an artifact must take its membership with it — a row pointing
      at a deleted artifact is a group silently provisioned with nothing. */
   ok('deleting an artifact drops its membership rows', evb(ctx,
@@ -1095,34 +1101,40 @@ console.log('\nAreas: home tiles are reusable BY REFERENCE');
 {
   const ctx = boot();
   ev(ctx, 'setArea("home");');
-  ok('a layout stores tile IDS, not copies', ev(ctx,
-    'HOMES[0].tiles.every(function(x){return typeof x === "string" && !!tileById(x);})'));
+  ok('a layout stores tile IDS, not copies', evb(ctx,
+    'homeTileIds(HOMES[0]).every(function(x){return typeof x === "string" && !!tileById(x);})'));
   /* The cost of by-reference, made visible before the edit rather than
      discovered after it. */
   ok('a tile knows which layouts use it', evb(ctx,
     '(function(){var t=TILES[0]; var u=tileUsage(t.id);' +
-    'return u.length>0 && u.every(function(h){return h.tiles.indexOf(t.id)>-1;});})()'));
+    'return u.length>0 && u.every(function(h){return homeTileIds(h).indexOf(t.id)>-1;});})()'));
   ok('editing a tile reaches every layout using it', evb(ctx,
     '(function(){var t=TILES[0]; var n=tileUsage(t.id).length;' +
     't.label="Renamed";' +
-    'return n>1 && tileUsage(t.id).every(function(h){return tileById(h.tiles[h.tiles.indexOf(t.id)]).label==="Renamed";});})()'));
+    'return n>1 && tileUsage(t.id).every(function(h){' +
+    '  return tileById(homeTileIds(h).filter(function(x){return x===t.id;})[0]).label==="Renamed";});})()'));
   /* A reference to a deleted tile would be a hole with no visible cause. */
   ok('deleting a tile prunes the references rather than dangling them', evb(ctx,
-    '(function(){var t=TILES[TILES.length-1]; var id=t.id;' +
-    'HOMES[0].tiles.push(id);' +
+    '(function(){var t=TILES.filter(function(x){return !normalizeTile(x).insertMode;}).pop(); var id=t.id;' +
+    'HOMES[0].sections[0].tiles.push(id);' +
     'TILES.splice(TILES.indexOf(t),1);' +
     'HOMES.forEach(normalizeHome);' +
-    'return HOMES.every(function(h){return h.tiles.indexOf(id)===-1;});})()'));
-  /* Mints its own incomplete tile rather than relying on the seed — the
-     delete assertion above removes the last one, and a test that depends on
-     another test's leftovers fails for the wrong reason. */
-  ok('a tile that needs a dataspy and has none is an error on the layout', evb(ctx,
-    '(function(){var t=mkTile({label:"No spy", kind:"count", dataspy:""});' +
+    'return HOMES.every(function(h){return homeTileIds(h).indexOf(id)===-1;});})()'));
+  /* WITHDRAWN 2026-09-16, and asserted as withdrawn so the missing rule
+     reads as a decision rather than lost coverage. The old model required a
+     dataspy on any "count" tile, because count was derived FROM the
+     dataspy. EAM.DUX.REQ.DigitalWorkHome separates them — the dataspy is
+     where the tile goes, a SQL statement is what the badge says — so a
+     tile with neither is a plain screen link, which is legal and common
+     (Sync Status is one). Mints its own tile rather than relying on the
+     seed, since the assertion above removes one. */
+  ok('a tile with no dataspy is NOT an error — that is a plain screen link', evb(ctx,
+    '(function(){var t=mkTile({label:"Plain link", target:"sync"});' +
     'TILES.push(t);' +
-    'var h=HOMES[0]; h.tiles.push(t.id);' +
-    'var bad=homeIssues(h).some(function(i){return i.sev==="error";});' +
-    'h.tiles.pop(); TILES.pop();' +
-    'return bad;})()'));
+    'var h=HOMES[0]; h.sections[0].tiles.push(t.id);' +
+    'var errs=homeIssues(h).filter(function(i){return i.sev==="error" && i.msg.indexOf("Plain link")>-1;});' +
+    'h.sections[0].tiles.pop(); TILES.pop();' +
+    'return errs.length===0;})()'));
   ok('an empty layout is warned about before anyone is assigned it', evb(ctx,
     '(function(){var h=mkHome("Empty",""); return homeIssues(h).some(function(i){return i.sev==="warn";});})()'));
   /* §23's one named exception: Home tiles keep colour — but only the four
@@ -1406,6 +1418,298 @@ console.log('\nEvery library step renders');
       wf().nodes.pop(); return okk; })`));
   ok('a fork has no layout, so the designer defers to the fork editor',
     ev(ctx, 'mkNode("fork",{}).layout') === undefined);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   HOME LAYOUT — sections, the drop rule, and the silent-hide gate
+   ═══════════════════════════════════════════════════════════════════════
+   Reworked 2026-09-16 against EAM.DUX.REQ.DigitalWorkHome, the shipping
+   product's own requirement. Several of these pin rules taken from that
+   document rather than invented here, which is why they are worth having
+   as executable code: a future edit that "simplifies" the tile model will
+   break one of them rather than quietly diverging from the product. */
+console.log('\nHome layout — sections and the drop rule');
+{
+  const ctx = boot('wf-bk-full');
+  ev(ctx, 'resetPortal(); setArea("home");');
+
+  /* THE LOAD-BEARING ONE. Section is a property of the LAYOUT, not the
+     tile — a section field on the tile record would pin one tile to one
+     section everywhere it appears, which contradicts §30.13's
+     by-reference model. */
+  ok('a tile record carries NO section field',
+    evb(ctx, 'TILES.every(function(t){ return t.section === undefined && t.sectionId === undefined; })'));
+  ok('a layout holds sections, each with a title and its own tile list',
+    evb(ctx, 'HOMES.every(function(h){ return Array.isArray(h.sections) && h.sections.every(function(s){ return typeof s.title === "string" && Array.isArray(s.tiles); }); })'));
+  ok('the flat h.tiles array is gone from every layout',
+    evb(ctx, 'HOMES.every(function(h){ return h.tiles === undefined; })'));
+
+  /* One accessor for placement, so usage/count/prune cannot drift — the
+     same discipline ASSIGN's accessors enforce for membership. */
+  ok('homeTileIds() spans sections AND the create tray',
+    evb(ctx, '(function(){' +
+      'var h = HOMES[0];' +
+      'var inSecs = h.sections.reduce(function(a,s){ return a.concat(s.tiles); }, []);' +
+      'var all = homeTileIds(h);' +
+      'return inSecs.concat(h.creates).length === all.length &&' +
+      '  h.creates.every(function(id){ return all.indexOf(id) > -1; }); })()'));
+
+  /* THE DROP RULE, both directions, asserted at the MUTATION — a gesture
+     guard is bypassed by any direct call, which is how the More-group
+     guard was once got round. */
+  /* ASSERTED ON THE RETURN VALUE, not on the array length. Negative control
+     showed why: with the guard removed the create still ended up absent,
+     because render() -> normalizeHome() pruned it right back out. The array
+     therefore proves the SECOND layer while appearing to prove the first.
+     The handlers report whether they placed anything, so the two layers can
+     be told apart. */
+  const NOEV = '{preventDefault:function(){},stopPropagation:function(){}}';
+  /* MINTS ITS OWN TILE. The seeded creates are already in HOMES[0].creates,
+     so reusing one let the DUPLICATE guard answer first and the insertMode
+     guard was never reached — negative control caught exactly that. One
+     rule under test per assertion. */
+  ok('a create tile CANNOT be dropped into a section',
+    evb(ctx, '(function(){' +
+      'var h = HOMES[0]; state.openHome = h.id;' +
+      'var t = mkTile({label:"Fresh create", target:"createwo", insertMode:true});' +
+      'TILES.push(t);' +
+      'var n = h.sections[0].tiles.length;' +
+      'tileDrag = {tileId: t.id};' +
+      'var placed = tileDrop(' + NOEV + ', 0, -1);' +
+      'var out = placed === false && h.sections[0].tiles.indexOf(t.id) === -1 &&' +
+      '          h.sections[0].tiles.length === n;' +
+      'TILES.splice(TILES.indexOf(t), 1); HOMES.forEach(normalizeHome);' +
+      'return out; })()'));
+  ok('a screen tile CANNOT be dropped into the create tray',
+    evb(ctx, '(function(){' +
+      'var h = HOMES[0]; state.openHome = h.id;' +
+      'var t = mkTile({label:"Fresh link", target:"sync"});' +
+      'TILES.push(t);' +
+      'var n = h.creates.length;' +
+      'tileDrag = {tileId: t.id};' +
+      'var placed = createDrop(' + NOEV + ');' +
+      'var out = placed === false && h.creates.indexOf(t.id) === -1 && h.creates.length === n;' +
+      'TILES.splice(TILES.indexOf(t), 1); HOMES.forEach(normalizeHome);' +
+      'return out; })()'));
+  /* The positive control for both: a legal drop must actually report true,
+     or "returns false" would pass by never returning anything. */
+  ok('a LEGAL drop reports true and lands',
+    evb(ctx, '(function(){' +
+      'var h = HOMES[0]; state.openHome = h.id;' +
+      'var free = TILES.filter(function(t){ return !normalizeTile(t).insertMode && homeTileIds(h).indexOf(t.id) === -1; })[0];' +
+      'if(!free) return false;' +
+      'var n = h.sections[0].tiles.length;' +
+      'tileDrag = {tileId: free.id};' +
+      'var placed = tileDrop(' + NOEV + ', 0, -1);' +
+      'return placed === true && h.sections[0].tiles.length === n + 1; })()'));
+  ok('a legal CREATE drop reports true and lands in the tray',
+    evb(ctx, '(function(){' +
+      'var h = HOMES[0]; state.openHome = h.id;' +
+      'var free = TILES.filter(function(t){ return normalizeTile(t).insertMode && homeTileIds(h).indexOf(t.id) === -1; })[0];' +
+      'if(!free) return true;' +
+      'var n = h.creates.length;' +
+      'tileDrag = {tileId: free.id};' +
+      'var placed = createDrop(' + NOEV + ');' +
+      'return placed === true && h.creates.length === n + 1; })()'));
+  ok('normalizeHome() ALSO enforces it, so stored data cannot carry a violation',
+    evb(ctx, '(function(){' +
+      'var h = HOMES[0];' +
+      'var create = TILES.filter(function(t){ return normalizeTile(t).insertMode; })[0].id;' +
+      'h.sections[0].tiles.push(create);' +
+      'normalizeHome(h);' +
+      'return h.sections[0].tiles.indexOf(create) === -1; })()'));
+
+  /* The editor wraps where the device scrolls. The constant is device
+     arithmetic (390 − 28 padding, 100px tiles, 10px gaps), not taste. */
+  ok('HOME_FOLD is 3 — what fits a 390px row without scrolling',
+    ev(ctx, 'HOME_FOLD') === 3);
+  ok('a section past the fold draws the fold marker',
+    evb(ctx, '(function(){' +
+      'var h = HOMES.filter(function(x){ return x.sections.some(function(s){ return s.tiles.length > HOME_FOLD; }); })[0];' +
+      'if(!h) return false;' +
+      'openHome(h.id);' +
+      'return document.getElementById("gallery").innerHTML.indexOf("emu-sec__fold") > -1; })()'));
+
+  /* Migration: stored layouts predate sections. */
+  ok('a pre-sections layout migrates, splitting creates out of the flat list',
+    evb(ctx, '(function(){' +
+      'var create = TILES.filter(function(t){ return normalizeTile(t).insertMode; })[0].id;' +
+      'var screen = TILES.filter(function(t){ return !normalizeTile(t).insertMode; })[0].id;' +
+      'var old = {id:"hl-mig", name:"Legacy", desc:"", updated:"x", tiles:[screen, create]};' +
+      'HOMES.push(old); normalizeHome(old);' +
+      'return old.tiles === undefined && old.creates.length === 1 &&' +
+      '  old.creates[0] === create && old.sections[0].tiles[0] === screen; })()'));
+
+  /* Favorites is the technician's row, not the admin's. */
+  ok('a layout can position/toggle Favorites but holds no favorite CONTENT',
+    evb(ctx, 'HOMES.every(function(h){ return typeof h.showFavorites === "boolean" && h.favorites === undefined; })'));
+
+  /* One path to placement. tileUsage() reading h.sections directly would
+     work today and drift the moment the create tray is in play — the same
+     reason every membership read goes through groupsOf/artifactsForGroup. */
+  ok('tileUsage() sees a tile placed in the CREATE TRAY, not just in sections',
+    evb(ctx, '(function(){' +
+      'var h = HOMES[0];' +
+      'var c = h.creates[0];' +
+      'if(!c) return false;' +
+      'return tileUsage(c).some(function(x){ return x.id === h.id; }); })()'));
+  ok('a copied layout re-mints section ids',
+    evb(ctx, '(function(){' +
+      'var src = HOMES[0], before = src.sections.map(function(s){ return s.id; }).join(",");' +
+      'copyHome(src.id);' +
+      'var dup = HOMES.filter(function(h){ return h.name.indexOf("(copy)") > -1; })[0];' +
+      'return !!dup && dup.sections.map(function(s){ return s.id; }).join(",") !== before; })()'));
+
+  /* Clamped at the mutation, like the pinned step and container 0. */
+  ok('moveSection clamps at the array, not only in the menu that offers it',
+    evb(ctx, '(function(){' +
+      'var h = HOMES[0]; state.openHome = h.id;' +
+      'var n = h.sections.length, first = h.sections[0].id;' +
+      'moveSection(0, -1); moveSection(n - 1, 1);' +
+      'return h.sections.length === n && h.sections[0].id === first; })()'));
+}
+
+console.log('\nHome layout — the count rules are the product\'s, not ours');
+{
+  const ctx = boot('wf-bk-full');
+  ev(ctx, 'resetPortal();');
+  /* EAM.DUX.REQ.DigitalWorkHome: 1000 or more shows 999+, and a statement
+     returning 0 shows NO BADGE. A zero badge reads as "nothing to do"; no
+     badge reads as "no counter here", and the product picked the second. */
+  ok('1000 or more renders as 999+',
+    ev(ctx, 'tileCountBadge({countSql:"x", demoCount:1240})') === '999+');
+  ok('exactly 1000 is already 999+',
+    ev(ctx, 'tileCountBadge({countSql:"x", demoCount:1000})') === '999+');
+  ok('a count of 0 renders NO badge at all, not a zero',
+    ev(ctx, 'tileCountBadge({countSql:"x", demoCount:0})') === '');
+  ok('no count statement means no badge, even with a dataspy set',
+    ev(ctx, 'tileCountBadge({countSql:"", dataspy:"My Open WOs", demoCount:9})') === '');
+  ok('the count is SEPARATE from the dataspy — either can exist alone',
+    evb(ctx, '(function(){' +
+      'var t = mkTile({label:"x", dataspy:"My Open WOs"});' +
+      'var u = mkTile({label:"y", countSql:"SELECT COUNT(*)"});' +
+      'return t.countSql === "" && u.dataspy === ""; })()'));
+  ok('an insert-mode tile can never carry a counter',
+    evb(ctx, 'normalizeTile({insertMode:true, countSql:"SELECT COUNT(*)"}).countSql === ""'));
+  ok('KPI is gone — it had no renderer on the device',
+    evb(ctx, 'typeof TILE_KINDS === "undefined"'));
+}
+
+console.log('\nHome layout — the SILENT-HIDE gate (the product hides, we report)');
+{
+  const ctx = boot('wf-bk-full');
+  ev(ctx, 'resetPortal();');
+  /* "If the screen does not exist in the menu, that Digital Work Home
+     record will not be displayed." The product drops it with no error, so
+     this surface is the only place it can be seen. */
+  ok('the gate fires ON LOAD, not only when someone builds the case',
+    evb(ctx, 'allHomeGaps().length > 0'));
+  ok('it reports as an ERROR on the layout',
+    evb(ctx, '(function(){' +
+      'var g = allHomeGaps()[0];' +
+      'return homeIssues(artifactOf("home", g.home)).some(function(i){' +
+      '  return i.sev === "error" && i.msg.indexOf("SILENTLY HIDES") > -1; }); })()'));
+  /* The §29.7 false positive in its Home form: a create target is an
+     INSERT MODE OF a screen, not a screen — keying the check on the raw
+     target reported every create tile as hidden for every group. Caught by
+     reading the gap list rather than the pass/fail. */
+  ok('a create target resolves to its underlying SCREEN, not its own id',
+    evb(ctx, 'targetScreen("createwo") === "wolist" && targetScreen("createeq") === "equiplist"'));
+  ok('so a create tile is NOT reported hidden for a group that has the list',
+    evb(ctx, 'allHomeGaps().every(function(g){' +
+      'return !(g.target === "createwo" && groupMenu(g.group).indexOf("wolist") > -1); })'));
+  ok('an unknown target falls back to itself, so it is caught not exempted',
+    evb(ctx, 'targetScreen("nosuchtarget") === "nosuchtarget"'));
+  ok('reported, never auto-fixed — the tile stays on the layout',
+    evb(ctx, '(function(){' +
+      'var g = allHomeGaps()[0];' +
+      'var h = artifactOf("home", g.home);' +
+      'var n = homeTileIds(h).length;' +
+      'homeIssues(h); renderHomeArea();' +
+      'return homeTileIds(h).length === n; })()'));
+}
+
+console.log('\nHome layout — an empty layout is a FALLBACK, not a fault');
+{
+  const ctx = boot('wf-bk-full');
+  ev(ctx, 'resetPortal();');
+  /* The requirement: no Digital Work Home records for the group means the
+     system opens the STANDARD MENU. Same shape as §11's flat-rail
+     fallback. Reporting a fallback as a fault teaches an admin to ignore
+     the banner. */
+  ok('an empty layout reports INFO and names the standard-menu fallback',
+    evb(ctx, '(function(){' +
+      'var e = mkHome("Empty",""); e.sections = []; HOMES.push(e);' +
+      'var iss = homeIssues(e);' +
+      'return iss.length === 1 && iss[0].sev === "info" && iss[0].msg.indexOf("standard menu") > -1; })()'));
+  ok('an untitled section IS an error — nothing would name that row',
+    evb(ctx, '(function(){' +
+      'var e = mkHome("T",""); e.sections = [{id:"s1", title:"", tiles:[TILES[0].id]}];' +
+      'return homeIssues(e).some(function(i){ return i.sev === "error" && i.msg.indexOf("no title") > -1; }); })()'));
+  ok('an empty titled section is a warning, not an error',
+    evb(ctx, '(function(){' +
+      'var e = mkHome("T",""); e.sections = [{id:"s1", title:"Work", tiles:[]}];' +
+      'return homeIssues(e).some(function(i){ return i.sev === "warn"; }); })()'));
+}
+
+console.log('\nOffline profile — caps are PROTECTED platform limits');
+{
+  const ctx = boot('wf-bk-full');
+  ev(ctx, 'resetPortal(); setArea("offline"); openProfile(PROFILES[0].id);');
+  /* §2.7's numbers come from shipping products. Raising one here would not
+     raise what a device can hold; it would only move the failure from
+     authoring time to the technician's morning. */
+  ok('the caps render as protected fields with a lock',
+    evb(ctx, '(function(){' +
+      'var h = document.getElementById("gallery").innerHTML;' +
+      'return h.indexOf("input--prot") > -1 && h.indexOf("input__lock") > -1; })()'));
+  ok('no editable cap input is rendered at all',
+    evb(ctx, 'document.getElementById("gallery").innerHTML.indexOf("oninput=\\"setCap(") === -1'));
+  ok('setCap REFUSES a direct call, not just a missing input',
+    evb(ctx, '(function(){' +
+      'var b = PROFILES[0].caps.deviceCeiling;' +
+      'setCap("deviceCeiling", 999999);' +
+      'return PROFILES[0].caps.deviceCeiling === b; })()'));
+  ok('the caps are still SHOWN — a budget you cannot see is not a budget',
+    evb(ctx, '(function(){' +
+      'var h = document.getElementById("gallery").innerHTML;' +
+      'return h.indexOf("Device record ceiling") > -1 && h.indexOf("200,000") > -1; })()'));
+  ok('the defaults are still §2.7 market figures',
+    evb(ctx, 'OFFLINE_CAP_DEFAULTS.deviceCeiling === 200000 && OFFLINE_CAP_DEFAULTS.rowCap === 50000 && ' +
+             'OFFLINE_CAP_DEFAULTS.depth === 15 && OFFLINE_CAP_DEFAULTS.toMany === 1'));
+  ok('per-entity policy is STILL editable — only the caps are protected',
+    evb(ctx, '(function(){' +
+      'var e = OFFLINE_ENTITIES.filter(function(x){ return x.allow.length > 1 && x.allow.indexOf("server-only") > -1; })[0];' +
+      'setEntityPolicy(e.id, "server-only");' +
+      'return PROFILES[0].entities[e.id].policy === "server-only"; })()'));
+}
+
+console.log('\nOffline profile — every policy value is DEFINED where it is chosen');
+{
+  const ctx = boot('wf-bk-full');
+  ev(ctx, 'resetPortal(); setArea("offline"); openProfile(PROFILES[0].id);');
+  ok('all five policies carry who / def / why',
+    evb(ctx, 'OFFLINE_POLICIES.length === 5 && OFFLINE_POLICIES.every(function(p){ return !!p.who && !!p.def && !!p.why; })'));
+  ok('the definitions card renders every one of them',
+    evb(ctx, '(function(){' +
+      'var h = document.getElementById("gallery").innerHTML;' +
+      'return h.indexOf("What each policy means") > -1 &&' +
+      '  OFFLINE_POLICIES.every(function(p){ return h.indexOf(p.label) > -1; }); })()'));
+  ok('exactly the two filtered classes are flagged as needing a filter',
+    evb(ctx, '(function(){' +
+      'var h = document.getElementById("gallery").innerHTML;' +
+      'return (h.match(/needs a filter/g) || []).length === 2 &&' +
+      '  POLICY_NEEDS_FILTER.length === 2 &&' +
+      '  POLICY_NEEDS_FILTER.indexOf("work-set") > -1 && POLICY_NEEDS_FILTER.indexOf("on-demand") > -1; })()'));
+  ok('work-set and external-replica are the ONLY writable classes',
+    evb(ctx, 'OFFLINE_POLICIES.filter(function(p){ return p.write; }).map(function(p){ return p.k; }).sort().join(",") === "external-replica,work-set"'));
+  ok('server-only is the only class that reads nothing',
+    evb(ctx, 'OFFLINE_POLICIES.filter(function(p){ return !p.read; }).map(function(p){ return p.k; }).join(",") === "server-only"'));
+  ok('the card states the two things that catch people out',
+    evb(ctx, '(function(){' +
+      'var h = document.getElementById("gallery").innerHTML;' +
+      'return h.indexOf("Only Work set accepts writes") > -1 && h.indexOf("traversed") > -1; })()'));
 }
 
 console.log(fail ? '\n' + fail + ' FAILED\n' : '\nAll passed\n');

@@ -2783,21 +2783,21 @@ both, connected by a small chevron:
   construction: WO List/Equipment List still lock the pill
   (`insertEntityLocked`), so the picker these render into never opens on
   those screens.
-- **Open — base-admin configurability.** Whatever set of system actions
-  Home ends up exposing (previous bullet) shouldn't be hardcoded the way
-  today's prototype hardcodes WO/Equipment — real EAM has a base admin
-  screen (referred to informally as the "Home Icon" or "digital work
-  home" setup screen; not yet located/named precisely in `docs/Data_refs/`
-  or captured anywhere in this doc) that lets an admin pick which quick
-  actions surface on the mobile Home screen per user group/org. This
-  rebuild has no equivalent admin screen yet — it's a candidate addition
-  to the Screen Designer / Base Screens track (§10), analogous to §11's
-  "WO Workflow — Setup (Base EAM Admin)" pattern (a small admin config
-  screen driving mobile runtime behavior), but scoped to Home's action
-  set rather than WO workflow steps. Not scoped or prototyped.
-  **Cross-ref 2026-08-24:** §26.5 places this designer as the
-  destination of User Group Setup's Home-layout tab, so the entry point
-  and the missing designer are one problem, not two.
+- **Base-admin configurability — ANSWERED 2026-09-16 (§30.16).** The admin
+  screen this item could not name is the product's own **Digital Work Home
+  Setup**, with a **Digital Work Home for User Groups** tab — documented all
+  along in `docs/existing_use_cases/EAM.DUX.REQ.DigitalWorkHome.docx`. **Check
+  that folder before designing an admin surface**; several of its rules could
+  not have been guessed, including one silent failure (§30.17). The authoring
+  surface is now built as the portal's **Home Layouts** area, and the set of
+  quick actions is no longer hardcoded — an admin authors it as the contents of
+  the pinned Create control.
+- **Open — which entities populate the Screen/entity pill's option list.**
+  **Narrowed by the above:** the list is *whatever create actions the admin
+  pinned to this group's Home layout*, which is now an authorable fact rather
+  than a choice between two hardcoded sets. What remains open is the shape of
+  each **system action** — full Insert Mode vs. a lighter action sheet — which
+  is the previous bullet and still needs a pass per action.
 
 ## 9.4.1 Home's Create icon — entity menu, not straight into Insert Mode
 
@@ -8653,10 +8653,17 @@ group is created in Security ▸ User Groups and never here.
 ### Decision 4 — Home tiles are global, and reused BY REFERENCE
 
 **Chosen.** A tile is created once into a catalogue and pulled into any layout
-as an **id, never an embedded copy**. Two levels, and **only the layout is
-assignable** — a tile is a component, not a provisioned thing. That is the
-difference from a workflow, whose steps come from a *delivered* catalogue
-rather than being user-created.
+as an **id, never an embedded copy**. **Only the layout is assignable** — a
+tile is a component, not a provisioned thing. That is the difference from a
+workflow, whose steps come from a *delivered* catalogue rather than being
+user-created.
+
+**REVISED the same day to THREE levels** — layout ▸ **section** ▸ placement
+(§30.16, user direction). A layout is labelled sections of tile references,
+not one flat list. The by-reference decision here is what forced the section
+to live on the **layout** rather than on the tile: a section column on the
+tile record would pin one tile to one section everywhere it appeared, which
+is precisely the reuse this decision exists to allow.
 
 **The cost, accepted deliberately:** editing a tile reaches every layout using
 it. So the catalogue shows **usage per tile**, the edit modal states the blast
@@ -8689,12 +8696,30 @@ rule already locked elsewhere rather than a preference expressed now:
    shared config from one group's side re-provisions every other member.
 2. **A checkbox cannot express §2.7.** Five policy classes, not a boolean.
    "Download Employees ✓" resolves to *Employees = `reference`, read-only, no
-   traversal* — which is a sentence the checkbox cannot say.
+   traversal* — which is a sentence the checkbox cannot say. Since five
+   classes are only an improvement if an admin knows what they mean, **each
+   policy carries its own definition at the point of choice** (2026-09-16),
+   keyed on the axis that actually distinguishes them: **who decided this is
+   on the device** — nobody, the admin, the technician, the work itself, or
+   another system. Read/write is the *consequence*, not the definition. Two
+   things the surface says out loud because they catch people out:
+   **`work-set` is the only class a technician can write to** (the same rule
+   §2.9 states from the other side), and **only the two filtered classes take
+   a dataspy** — `reference` ships a whole domain, `server-only` ships
+   nothing, and a **traversed** entity takes no filter even inside the work
+   set because it arrives attached to its parent.
 3. **Caps are mandatory and enforced at authoring time** (§2.7) — device
    ceiling, per-entity row cap, traversal depth, to-many count. The shipping
    screen has none. Defaults are the market figures §2.7 already cites
    (200,000 / 50,000 / 15 / 1), so the numbers are traceable rather than
-   invented here.
+   invented here. **They render PROTECTED** (2026-09-16, user direction),
+   and the reason is worth stating: they are **platform** limits, not
+   preferences of this profile. Raising the device ceiling here would not
+   raise what a device can hold — it would only move where the failure
+   shows up, from authoring time to the technician's morning. Changing one
+   is a spec change. They are still **shown**, because §2.7's whole point is
+   that the author can see the budget being spent, and a budget you cannot
+   see is not a budget.
 4. **"All records" is refused** (§2.7). Most `For Dataspy` fields on that
    screen sit empty, which is exactly the state §2.7 rejected — so a
    filtered policy with no dataspy is a reported **error**, not a default.
@@ -8772,9 +8797,194 @@ same boundary §27.4 role 1 draws around UDS definitions. That boundary is why
 both the profile registry and the Home tile editor offer a *picker* and no
 authoring affordance at all.
 
-## 30.15 What §30 does not settle
 
-*(Relocated to the end of §30 on 2026-09-16 — it had been sitting between
+## 30.16 Home layout, reconciled against the shipping requirement (locked)
+
+Reworked 2026-09-16, the same day §30.13 first built it, after reading
+**`docs/existing_use_cases/EAM.DUX.REQ.DigitalWorkHome.docx`** — the
+product's own Digital Work Home requirement, whose setup screen is
+**Digital Work Home Setup** with a companion **Digital Work Home for User
+Groups** tab.
+
+**That closes a §9.4 open item by finding it rather than deciding it.** §9.4
+had carried, since 2026-07-28, the note that "real EAM has a base admin
+screen (referred to informally as the 'Home Icon' or 'digital work home'
+setup screen; **not yet located/named precisely**)". It was in the repo the
+whole time. The lesson is cheap and worth keeping: **check
+`existing_use_cases/` before designing an admin surface** — three of the
+rules below could not have been guessed, and one of them is a silent
+failure.
+
+### What the product models, and where we diverged
+
+A tile is a **Digital Work Home record**: `Screen` + `dataspy and/or
+filter` + an **Insert Mode checkbox** + a **SQL Statement** for the count +
+icon + **sequence** + description, assigned per user group.
+
+| The requirement | What we had | Resolution |
+| --- | --- | --- |
+| **Insert Mode is a CHECKBOX on a tile**, drawn as a `+` badge | `create` was one of four tile *kinds* | **Flag, not a kind.** A customer's existing records migrate with no transform. |
+| **The count comes from a SQL Statement, separate from the dataspy** | count was derived *from* the dataspy | **Two fields.** The dataspy is where the tile GOES; the statement is what the badge SAYS. The old shape could not express "a shortcut that also shows a count", or a dataspy with no counter. |
+| `>= 1000` shows **`999+`**; a statement returning **0 shows NO BADGE** | no rules at all | Both implemented and pinned. A zero badge reads as *"nothing to do"*; no badge reads as *"no counter here"* — the product picked the second, and it is right. |
+| Counts refresh from a **header Refresh button** | assumed live | Recorded. It also answers a worry worth not having: a section of twenty counted tiles is not twenty live queries on the app's most latency-sensitive screen. |
+| **No records for the group → the STANDARD MENU opens** | warned *"a group assigned this gets a blank Home screen"* | **The warning was wrong and is now an info** naming the fallback. Same shape as §11's flat-rail fallback. Reporting a fallback as a fault teaches an admin to ignore the banner. |
+| **Favorites is a tile** appended after the records | our device has a Favorites *row* of 56px chips, built from the technician's own starred dataspies | Divergence kept, and it forces a rule — see below. |
+| Flat sequence; **no section concept** | our device already has labelled section rows | Divergence kept deliberately — see below. |
+
+### Sections belong to the LAYOUT (locked, user direction)
+
+> *"It's just home screen code, available sections with titles, and then
+> subsequent tile locations and sequence."*
+
+Three levels, entirely inside the Home domain:
+
+```
+layout   (home screen code)
+  └ section       (title + sequence)
+      └ placement (tile id + sequence)
+```
+
+**The section is NOT a property of the tile, and that is the load-bearing
+part.** A section column on the tile record would pin one tile to one
+section *everywhere it appears*, which contradicts §30.13's by-reference
+decision — the whole point of a shared tile is that "My Open Work" can sit
+under *Today* in one layout and *Work* in another. A middle option was
+offered (a fixed section enum on the tile, smaller schema delta) and
+**rejected for exactly that reason**.
+
+Scope of the ask, stated because it was initially overstated as comparable
+to `PLO_WOTYPE`: **it is not.** It touches no WO Type resolution and no tile
+definition — a home-screen table, its sections, and their placements. Self-
+contained.
+
+### The editor WRAPS where the device SCROLLS
+
+The device section is a horizontally-scrolling row (`.home-tilegrid`:
+`display:flex; overflow-x:auto`), chosen there on its own merits — the CSS
+comment says *"there's no cap on how many tiles a user can add to a
+section, and a scroll row absorbs that growth without the page getting
+taller, the way an ever-wrapping grid would."*
+
+The editor cannot reproduce that, **for a functional reason and not an
+ergonomic one: HTML5 drag-and-drop does not auto-scroll a container**, so
+any tile past the fold would be *undroppable*. Same family as the rule
+already learned the hard way — never re-render a drag's own container
+during `dragover` (§30.12).
+
+So the editor wraps at three, and **three is arithmetic, not taste**:
+
+```
+390px device − 14px padding × 2        = 362px usable
+100px tile + 10px gap                  = 110px each after the first
+100 → 210 → 320 → (430 > 362)          = 3 fit, the 4th shows 42px
+```
+
+**Line one of the editor grid is therefore exactly what the technician sees
+without swiping**, and `HOME_FOLD = 3` is pinned to that. Wrapping destroys
+exactly one fact — where the fold is — so the editor draws it as a rule
+across the grid. A section of **four** is the case worth looking at twice:
+the device shows three tiles and a 42px sliver of the fourth, and that
+sliver is its only scroll cue.
+
+### Creates and screen links are separated BOTH ways (locked, user direction)
+
+> *"One tile with insert mode flag means it can't be drug onto layout, but
+> only to the create icon. And vice versa for non-flagged tiles."*
+
+The library splits into **Available screens** and **Creates**, and the drop
+rule is refused in both directions. The rule is not invented here — §9.4.1
+already justified it when it removed Home's blind default: Home's colourful
+tiles *"mean 'go look at a list,' not 'start a new record'"*. So a create
+tile in a section contradicts a locked decision, and the refusal says so.
+
+**Guarded in TWO places on purpose**, and the distinction matters because a
+test can confuse them: the drop handler refuses the gesture, and
+`normalizeHome()` prunes a violation on read, so stored data cannot carry
+one either. The drop handlers **return a boolean** specifically so the two
+layers can be told apart — see §30.17.
+
+**Where the authored creates land: the chooser's contents, not the bar.**
+The pinned bar stays one Create pill opening §9.4.1's sheet; what the admin
+authors is the sheet's rows. That preserves §9.4.1 exactly (defaulting
+blindly was the original defect), scales past the bar's width budget, and
+**answers §9.4's other open item** — *"which entities populate the
+Screen/entity pill's option list"* is now *"whatever the admin pinned"*.
+
+### Favorites is the TECHNICIAN's row
+
+On our device `FAVORITES` is built from `loadWoFavorites()` /
+`loadEquipFavorites()` — the technician's own starred dataspies. So the
+layout carries `showFavorites` and **no favorite content at all**: the admin
+positions and toggles the row, never fills it. It renders in the editor as
+ghost circles with that stated, because drawing authorable tiles there
+would be a preview of something else, which is §30.3's argument against a
+scaled emulator one step worse.
+
+### KPI is gone
+
+It was one of four tile kinds and **had no renderer on the device** — its
+own note admitted it was a count with "different emphasis". Authoring a
+component the runtime cannot draw is the failure mode this surface exists
+to prevent.
+
+## 30.17 The silent-hide gate, and a false positive of the §29.7 shape
+
+The highest-value rule in the whole requirement, and the reason this area
+belongs in this portal rather than anywhere else:
+
+> *"The system will check to see if the screen exists in the menu. **If the
+> screen does not exist in the menu, that Digital Work Home record will not
+> be displayed.**"*
+
+A tile pointing at a screen the group's menu does not carry is **silently
+dropped** — no error, no placeholder, no trace. An admin configures a tile,
+assigns the layout, and for that group it simply is not there. Same failure
+shape as §27.4's Required-UDS-step-without-permission, and computable
+**only where the layout and its assignments are both known**.
+
+**Reported, never auto-fixed** (§26.5.1): removing the tile would be wrong
+for the groups that *can* see the screen. The gate is live on load — one
+demo layout is assigned to a group whose menu lacks the Equipment screen,
+the same technique that keeps the ZJ1000 capability path live.
+
+### The false positive, and why it is worth recording
+
+The first implementation keyed the check on the tile's **target** — and
+reported *every create tile as hidden for every group*, because `createwo`
+is not a menu entry. **A create target is not a screen; it is an insert
+mode OF a screen**, so it resolves to the same menu entry as the list it
+inserts into.
+
+This is §29.7 again, in a different area: that one compared a function's
+tabs against a fixed list and reported a gap on every ZJ1000 configuration.
+**Both had the same tell — a gap reported for a case that obviously has the
+capability — and both were found by reading the gap list rather than the
+pass/fail.** A green suite with a wrong gate is worse than a red one,
+because the next person believes it. An unknown target now falls back to
+itself, so a target added later is *caught* rather than silently exempted.
+
+### Two testing lessons from the same session
+
+Recorded because both produced a passing assertion that proved nothing:
+
+1. **A two-layer guard needs an observable difference per layer.** Removing
+   the insertMode guard from the drop handler changed nothing a test could
+   see, because `render()` → `normalizeHome()` pruned the tile straight back
+   out. The assertion was proving the second layer while reading as the
+   first. Fixed by giving the drop handlers a **return value**.
+2. **An assertion must isolate the rule it names.** The same test then still
+   passed with the guard removed, because it reused a seeded create tile
+   that was *already on the layout* — so the duplicate guard answered first.
+   It now mints its own tile.
+
+Both were found by negative control, not by review. Ten injected bugs, ten
+caught, after those two fixes.
+
+## 30.18 What §30 does not settle
+
+*(Kept LAST in §30 by convention — it is a rolling open-items list, so it
+is renumbered rather than left mid-section whenever §30 grows. Was §30.5,
+then §30.15, on 2026-09-16 — it had been sitting between
 §30.6 and §30.7 purely from insertion order. Several items were closed the
 same day and removed rather than marked.)*
 
