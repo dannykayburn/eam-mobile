@@ -161,7 +161,7 @@ decision is taken. Full reasoning and the four options weighed: spec §2.1 and
 Reads go to the server **at full fidelity** when connected, and the local store
 is a **scoped fallback** rather than the primary source: Tier 0 configuration,
 the replicated `reference` entities, the technician's work set, and whatever
-they manually cached. **Fleet-wide record search does not work offline** — that
+they manually cached. **Database-wide record search does not work offline** — that
 single answer is what retired the Tier 2 index and, with it, six open items
 (P2).
 
@@ -1086,7 +1086,8 @@ and it was previously item 1's main content. What replaces it is smaller.
    the (now smaller) state machine + **server-side closure assembly** for
    traversal. Nothing user-facing is trustworthy before this exists.
 6. **Instrument off-work-set offline search from day one.** The one thing that
-   would justify re-adding a fleet index is a number nobody has. Ship without it,
+   would justify re-adding a database-wide index is a number nobody has. Ship
+   without it,
    measure, and let the data decide — the schema is shaped so re-adding stays
    additive.
 6. **Extract the nav shell for real** — `renderBottomNav()`, then §8.3's
@@ -1145,7 +1146,8 @@ the checklist A/B (§8.2) — it needs a device, not a session.
   and a caps decision (device ceiling, per-entity row cap, per-collection
   traversal caps).
 - **Two product questions only the advisory group can answer, and they decide
-  whether we ever re-add a fleet index:** how often does a technician need a
+  whether we ever re-add a database-wide index:** how often does a technician
+  need a
   record that is **not** on their device, **while offline**? And is
   location-aware search needed over records that are **not** GIS-integrated? We
   shipped without an index on the assumption that both answers are "rarely" —
@@ -1162,7 +1164,8 @@ the checklist A/B (§8.2) — it needs a device, not a session.
   closes outright.
 - Any known constraints on background sync, or on storage headroom, on the
   **native** iOS and Android targets? **Note the headroom question got much
-  smaller** — the ~35 MB fleet index is gone; the work set, cached records and
+  smaller** — the ~35 MB database-wide index is gone; the work set, cached
+  records and
   documents dominate now.
 - **Who owns the JSON API in front of `R5PAGELAYOUT` and the new workflow
   tables?** Configuration-driven screens are load-bearing for the whole design
@@ -1195,7 +1198,7 @@ the checklist A/B (§8.2) — it needs a device, not a session.
 | Sizing | **Built, as a separate appendix.** Main slides stay descriptive. |
 | Leadership artifact | **One doc.** The July whitepaper's durable content is rolled into this one and the file is retired (§7.1). |
 | Equipment scope | **Each tab is its own endeavour** (§5.2), priority Events / Structure / Parts Associated, subject to change based on scope. Equipment is now explicit in the sequence (§9 step 8). |
-| Offline model — the read polarity | **Decided 2026-09-08 (user direction): online-first, with declared per-entity offline scope** (R1; spec §2.1). Reads go to the server at full fidelity; the local store is a scoped fallback. **Fleet-wide record search does not work offline** — which is the one question the whole model turned on. Four options were weighed: online-first (**taken**), online-first plus a thin fixed index (**kept additive for later**), the previous declared-`Indexed`-set-plus-classification design (**superseded**), and explicit Online/Offline modes (**rejected outright** — it is the mode split §5.1 exists to reject). **Superseded with it:** the Tier 2 index and **six** tracked open items, FTS5 as an engine exit criterion, and last-write-wins (replaced by per-shape conflict rules, which were required under every option). **Retained deliberately** so re-adding an index stays additive: stable row identity, `pinned` orthogonal to `hydration`, ephemeral rows, the `full_payload` blob. |
+| Offline model — the read polarity | **Decided 2026-09-08 (user direction): online-first, with declared per-entity offline scope** (R1; spec §2.1). Reads go to the server at full fidelity; the local store is a scoped fallback. **Database-wide record search does not work offline** — which is the one question the whole model turned on. Four options were weighed: online-first (**taken**), online-first plus a thin fixed index (**kept additive for later**), the previous declared-`Indexed`-set-plus-classification design (**superseded**), and explicit Online/Offline modes (**rejected outright** — it is the mode split §5.1 exists to reject). **Superseded with it:** the Tier 2 index and **six** tracked open items, FTS5 as an engine exit criterion, and last-write-wins (replaced by per-shape conflict rules, which were required under every option). **Retained deliberately** so re-adding an index stays additive: stable row identity, `pinned` orthogonal to `hydration`, ephemeral rows, the `full_payload` blob. |
 | GIS / maps (R2) | **Phase 2 (2026-09-08, user direction)** — a real requirement, held as an option, out of the v1 build (spec §28). Already settled inside it and not to be re-litigated: the map is an **editor, not a viewer**; it is a **second sync engine** whose edits never ride the EAM outbox; its offline unit is a **per-map-area download**, not an app mode. Deferred because React Native is not a first-party ArcGIS target, so offline maps likely mean a **custom native module** — the largest unpriced item in the programme. One v1 consequence: keep the definition-driven tab renderer generic enough for a map tab. |
 | User Defined Screens | **Scoped, not designed** (spec §27). **In:** UDS as a tab on Work Order, able to be a numbered gated step via §12's existing tier-2 row, plus one generic definition-driven tab renderer. **Deferred:** standalone UDS destinations (each needs a nav slot and its own full List Search Screen). **Out:** UDS field authoring — base's own UDS setup already owns it, and rebuilding it in Screen Designer repeats the Workflow Designer mistake (§7.2). The UI is cheap; the **offline data/search/write story is the real ask** (§6). |
 

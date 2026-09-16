@@ -43,10 +43,10 @@ the test any offline-scope proposal has to pass.
   and not two applications. No screen in the product asks the technician which
   one they are in. *(VoC "Hybrid connectivity", High.)*
 - **Online-first reads, with the local store as a scoped fallback** — never a
-  replica of the fleet. **Locked 2026-09-08**, reversing the offline-first
+  replica of the whole database. **Locked 2026-09-08**, reversing the offline-first
   polarity the design carried from July 2026. *(R1; spec §2.1, supersession in
   §21.)*
-- **Fleet-wide record search does not work offline.** Offline search covers the
+- **Database-wide record search does not work offline.** Offline search covers the
   work set plus what the technician cached, and **says so**. This is the single
   question the offline model turns on, and it is answered. *(Spec §2.1/§6.13.)*
 - **Dataspies run server-side at full fidelity** — all fields, all joins, all
@@ -123,7 +123,8 @@ the test any offline-scope proposal has to pass.
   customer data at rest on an unmanaged device. *(Spec §2.2/§2.10.)*
 - **The question to instrument rather than re-decide:** how often does a
   technician need a record that is not on their device, while offline? Nobody
-  has that number, the answer is what would justify re-adding a fleet index,
+  has that number, the answer is what would justify re-adding a database-wide
+  index,
   and the schema is shaped so that re-adding one stays additive. *(Spec §20.)*
 
 ## 2. UI/UX

@@ -22,11 +22,19 @@
      - An empty config renders NO group, not an orphan "MORE" header over
        nothing.
 
-   Not pinned here, because they are not frontend-checkable: that a tab is
-   either a Step or a More entry and never both (a §12 key constraint — if it
-   were violated, forward gating would be bypassable in two taps, since Book
-   Labor is both a workflow step and a real WO tab), and that a More tab is
-   never Required. Both live in the base-side schema. */
+   Not pinned here, because they are not checkable from the MOBILE side: that
+   a tab is either a Step or a More entry and never both (a §12 key constraint
+   — if it were violated, forward gating would be bypassable in two taps,
+   since Book Labor is both a workflow step and a real WO tab), and that a
+   More tab is never Required.
+
+   Both ARE pinned now, one file over. §29 (2026-09-08) moved the placement
+   model into Screen Designer, at instance grain, so
+   `test-step-instances.js` asserts both against the authoring surface that
+   actually owns them — including that Required is refused on a More entry in
+   the *setter* rather than only hidden in the markup, so a placement change
+   cannot leave a stale flag behind. This file still can't check them, and
+   shouldn't try. */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 
 const SHARED = path.join('C:/Users/dkilburn/Projects/eam-mobile/prototypes/standalone/shared/eam-shared.js');

@@ -1,5 +1,5 @@
 // data/wo-19831.js — demo WO #2: Free Form workflow. New second demo WO
-// (docs/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md §1's goal — one Free
+// (docs/archive/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md §1's goal — one Free
 // Form WO, one Not Free Form WO, both reachable via real navigation).
 // Reuses the same equipment as 19257 (00067333, per 2026-07-20 decision —
 // simplest, and Free Form vs. Not Free Form is a WO-level flag, not an

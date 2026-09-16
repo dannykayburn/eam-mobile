@@ -6,224 +6,98 @@ for HxGN EAM. We are prototyping a guided 5-step WO workflow — WO Record
 View, Activity Checklist, Issue Parts, Book Labor, WO Closing — plus a Home
 screen and the app-level navigation shell (bottom nav, avatar/profile menu,
 sync icon) that wraps around all of it. The nav shell's *mechanics* are
-locked (§4.2/§4.3 of the design doc); Home's own *content* (which dataspy
+locked (§4.2/§4.3 of the spec); Home's own *content* (which dataspy
 tiles/chips, counts) is still an open, unlocked design riff — don't treat
 anything about Home's tile/chip choices as decided.
 
 ## START HERE next session
-Read `docs/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md` §7–§8 first —
-that's the live plan. **Don't re-derive a plan or re-run the §7/§8
-conformance audit**: it ran once, its cross-cutting fixes are applied, and
-its leftovers are tracked as open debt in `design-decisions-v3-1.md` §20.
-Re-auditing is exactly the token burn to avoid.
+Read `docs/EAM-Mobile-Design-Doc-v1.md` first — it's the squad-facing summary
+layer, and its **Timeline** (M0–M9) is the live sequence. **Don't re-derive a
+plan and don't re-run the conformance audit**: it ran once, its cross-cutting
+fixes are applied, and its leftovers are open debt in §20. Re-auditing is
+exactly the token burn to avoid.
 
 Candidates, roughly in order of how ready they are:
-1. **Compiled-shell proof-of-concept** (§7.2 of the plan doc) — a 2-file
-   throwaway proving parent↔iframe scripting under both `npx serve` and raw
-   `file://`. Decides Option A (iframe shell) vs. Option B (real navigation)
-   and unblocks Phase 7. Small and decisive.
-2. **WO List shared-component consolidation** (§7.3) — `eam-wo-list-
-   prototype-v5_1.html` still hand-copies `.nav-avatar`/`.bottom-nav`/
-   `.nav-title` CSS that already exists correctly in `eam-shared.css`.
-3. **Insert Mode's Equipment Type-vs-Class question** (§20, surfaced
-   2026-08-11) — Insert Mode's third pill offers Asset/Position/System and
-   saves it as the record's `class`, which no Equipment List filter can
-   select and no Custom Fields definition matches. Needs a call on what that
-   field actually is, not just a wider list.
-4. **Row-tap decision on the WO Equipment tab** — needs a device, not a
-   session: flip its dev toggle and pick `chooser` or `split` (§20). Both
-   destinations are real navigation now, so it's a fair comparison.
+1. **Compiled-shell proof-of-concept** (design doc M3) — a 2-file throwaway
+   proving parent↔iframe scripting under both `npx serve` and raw `file://`.
+   Decides iframe shell vs. real navigation, and unblocks the compile. Small and
+   decisive.
+2. **WO List shared-component consolidation** — `eam-wo-list-prototype-v5_1.html`
+   still hand-copies `.nav-avatar`/`.bottom-nav`/`.nav-title` CSS that already
+   exists correctly in `eam-shared.css`.
+3. **Insert Mode's Equipment `Location` option** — the pill is the system type
+   (answered, §26.8) but still offers only Asset/Position/System and saves it as
+   `class`. See Open work.
+4. **Row-tap decision on the WO Equipment tab** — needs a device, not a session:
+   flip its dev toggle and pick `chooser` or `split`. Both destinations are real
+   navigation now, so it's a fair comparison.
 
-**Settled 2026-09-08, and it closed the largest open architecture question: the
-offline model.** R1 is locked (online-first, declared per-entity offline scope)
-and R2 (GIS/maps) is Phase 2 — both in "Locked rules" below, with `docs/EAM-
-Project-Requirements-v1.md` as the requirement-level one-pager. **Don't re-open
-either, and don't re-run the options analysis** — four options were weighed once
-and the brief was rolled up and retired (§21). Three practical consequences for
-picking up work: **six §20 items closed**, so §20 is shorter than it looks in
-older notes; the **prototype is unaffected** (no screen changes fell out of it)
-except one new §20 item — the sync control needs a state or copy for an
-online-only user (§4.4.1/§2.10); and **§28 is new** (GIS, Phase 2), so the spec
-now runs §1–§28.
-
-Settled: the WO-Type dimension comes from a `PLO_WOTYPE` column plus the
-two new WO Workflow tables, authored through Screen Designer, and the app
-mints **no new `FUN_CODE`s** (rationale §11–§13, rejected alternative §21).
-**Equipment resolves the same way off *system type*, and base already models
-it as four screens** — Location/Asset/Position/System, plus clones (§26.8,
-2026-08-25). So mobile collapses four base screens into one surface: tap an
-asset, then a position, and the record view re-renders under a different
-layout without navigating anywhere. Cheaper than WO on the base side (those
-four *are* four `PLO_PAGENAME` values — no new column, no new table), and it
-answers the old "Insert Mode's Equipment Type vs. Class" question: that pill
-is the system type, not a Class. **But the authoring surface for those four
-doesn't exist, and that is a blocker for the Equipment mobile track** — don't
-build Equipment RV against one hardcoded layout, or every child tab inherits
-the assumption. Equipment's system type is **Protected in update mode,
-always** — set once at insert, fixed for life — so Equipment has no
-re-resolution exposure at all; Insert Mode is the only place it's ever set,
-which makes that pill's missing `Location` option a real defect rather than a
-cosmetic one (§20). **WO Type protects later, at Start Work** (§13.5, locked
-2026-08-25) — editable while not started (confirm → immediate commit →
-re-render), Protected from Start Work onward with no exceptions and no
-permission escape. Same §5.2 Protected state as Equipment, later trigger; one
-paradigm, two trigger points. That one rule replaced a proposed four-tier gate
-ladder, closed required-field drift (a re-type is now pre-start only, and Start
-Work is itself a gate), and withdrew the §23 required-marker tension — **§23
-stands as written, don't re-open it.** It also answers "no Parts tab but parts
-were issued?": issuing parts is post-Start-Work by construction, so it can't
-arise from mobile. Only residual is base-issued parts on a pre-start WO (§20).
+**Two things are settled that older notes may contradict.** The **offline model**
+closed 2026-09-08 — R1 is locked (online-first, declared per-entity scope) and R2
+(GIS) is Phase 2. Six §20 items closed with it, so §20 is shorter than it looks
+in older notes, and the prototype was unaffected except one new item: the sync
+control needs a state or copy for an online-only user (§4.4.1/§2.10). **Don't
+re-open either, and don't re-run the options analysis** — four options were
+weighed once, and the brief was rolled up and retired (§21). Separately, the
+spec now runs **§1–§30**; §30 (the Workflow Designer Portal — four configuration
+areas over one membership table) is the newest, and §29 (step instances, gates,
+forks) sits under it.
 
 ## Locked rules — don't re-derive these
-Conclusions and consequences only. **Rationale, rejected alternatives and
-revert recipes live in the spec at the § given** — follow the pointer rather
-than reasoning it out again. Consolidated 2026-08-25; keep additions here to
-this shape.
+**Conclusions only. The rationale, rejected alternatives and revert recipes live
+in the spec at the § given — follow the pointer rather than reasoning it out
+again.** Requirement-level versions of several of these also appear in the design
+doc's Requirements section; neither file holds the reasoning.
 
-**Start Work is the commitment boundary (§14.11).** Five things happen at once
-and only make sense together: status → Start Work Status, **Type protects**,
-**the WO pins to the technician**, **all child records hydrate**, and
-(recommended) the **resolved config version is stamped**. Before Start Work a
-WO is a candidate; after it, it's this technician's committed work. Two
-consequences: starting a WO found by search **is** the promotion into Tier 1 (so
-a non-hydrated WO probably needs connectivity to start — and under §2.1's
-online-first reads that's now the ordinary path, since the search that found it
-used the network), and it is the **first device-originated pin** — a local pin
-must survive a server membership list that omits it, or the next sync evicts
-live work (real evidence for punch-list Option B).
-
-**Function resolution is per user group, never one blessed function (§26.7,
-reversed 2026-08-24).** Any function with `FUN_RENTITY = EVNT` may be
-workflow-enabled, opted in per **user group** — this customer already runs four
-`WSJOBS` clones (CCJOBS/TRJOBS/ZJ1000/WSJODC) as distinct business processes.
-§26 is the base-side section: function resolution, bottom-nav slot binding, the
-User Group Setup paradigm. *(This was filed under Start Work until 2026-08-25,
-where it read as if the commitment boundary had been reversed — it hadn't. It
-reverses the "one function, `WSJOBS`, always" half of the `FUN_CODE` note in
-START HERE.)*
-
-**The app is online-first, with declared offline scope (§2.1, locked
-2026-09-08).** Reverses the offline-first polarity the design carried from July
-2026, on requirement **R1**. Reads go to the server at full fidelity when
-connected; the local store is a **scoped fallback** (Tier 0 config, replicated
-`reference` entities, the work set, manual caches) — never a projection of the
-fleet. **Fleet-wide record search does not work offline**, and that one answer
-is what retired the Tier 2 index. What did *not* change: one write path, the
-always-on outbox, the UI never reading from the network directly, and **no mode
-the technician chooses**. Five consequences, each with its own home: **offline is
-declared per entity** with enforced caps plus **reachability traversal** —
-children + depth-1 references, references *terminal* (§2.3/§2.7); **lookups
-resolve three ways** — replicate / reachable / **definition-gated** (§2.8);
-**actions may narrow visibly, field state never does** (§2.9); **replication is a
-profile assigned per user group**, "none" = online-only, which is now the
-Contractor/BYOD answer for reads and writes (§2.10); and **last-write-wins is
-withdrawn** for per-shape conflict rules, because LWW is silently lossy and R6
-forbids a dropped write (§2.5). The write-enabled set is **~7 shapes** — that is
-what makes a real conflict UI buildable. Rationale, the four options weighed and
-what survived: §21.
-
-**R2 (GIS / maps) is Phase 2 (§28, scoped 2026-09-08).** A real requirement,
-held as an option, deliberately not in v1 — a React Native ↔ ArcGIS native
-module is likely the programme's largest unpriced item. Don't re-derive these:
-the map is an **editor, not a viewer** (the viewer reduction does not exist);
-it is a **second sync engine** and GIS edits **never** ride the EAM outbox; its
-offline unit is a **per-map-area download**, not an app mode. One v1
-consequence only: keep §27.3's definition-driven renderer generic enough for a
-map tab.
-
-**Hydration has a Tier 0 (§2.3).** Bootstrap configuration, in front of the
-record tiers and deliberately *not* one of them — records degrade
-gracefully (fewer rows = a shorter list), configuration doesn't (a missing page
-layout is a blank screen). Order: identity/user group → nav/function resolution
-→ **page layout** (+ WO Workflow tables + custom-field defs) → status
-authorizations → dataspy definitions → the code domains layout references.
-**Layout is first because it scopes everything after it.** Fetched **inside the
-login round-trip, not a modal**; persisted, versioned per domain, **exempt from
-eviction**. Say **"my open pinned work orders"**, never "today's WOs" — the
-punch list is pin/dataspy-scoped and never date-scoped.
-
-**User Defined Screens are scoped, not designed (§27).** A **UDS** is a
-customer-authored *screen* — **not** §22's Custom Fields, which are
-admin-defined *fields* on a screen the product ships. Don't merge the two
-mechanics; a record can carry both. **In: UDS-as-a-tab-on-WO. Deferred:
-standalone UDS destinations. Out: UDS field authoring** (base's own UDS setup
-owns it — building it into Screen Designer repeats the retired Workflow Designer
-mistake). A UDS tab enters §14.8's candidate set **by construction**, takes a
-§12 tier-2 row, and **can be a numbered, gated, Required workflow step** — no
-new placement model needed. What *is* needed: **one generic definition-driven
-tab renderer** (§27.3), never a screen per UDS, following §22's
-`applyCustomFields()` pattern at whole-body scope — and sequence it after a 2nd
-real child tab exists, since the Equipment tab is a sample size of one.
-Authoring is **three-way**: base UDS setup defines → Screen Designer places →
-User Group Setup assigns. **The UI is the cheap part; the offline story is the
-ask** — four open items in §20.
+| Rule | § | The consequence that bites |
+| --- | --- | --- |
+| **Start Work is the commitment boundary** | §14.11 | Five things happen at once and only make sense together: status → Start Work Status, **Type protects**, **the WO pins to the technician**, **children hydrate**, config version stamped. Starting a WO found by search **is** its promotion into Tier 1, and it is the **first device-originated pin** — a local pin must survive a server list that omits it, or the next sync evicts live work. |
+| **The punch list is BOTH a dataspy and pins** | §2.6 | Locked 2026-09-11, replacing a two-month A-or-B open item. A **dataspy named per user group** is the *automatic* layer — **and its selector still has no home**, since User Group Setup is retired and the portal's User Groups area is a binding surface (§20/§30.14, which also keeps it separate from the offline profile's per-entity dataspy); **pinning** (`R5PINS`) is the *manual* layer on top. Costs both backend asks, not one. The membership row must record **which source** pinned it, or a dataspy re-evaluation evicts a manual pin — and a local pin must survive a server list that omits it, which is now architecturally required rather than just advisable. |
+| **One paradigm for every configuration artifact** | §30.13 | Workflows, offline profiles, Home layouts and Home tiles are all **authored once and applied**, and the four answers are shared, not per-area: assignment runs **both directions over ONE membership table** (`{type, artifactId, group}`, every read through an accessor — four parallel arrays is the failure mode); **cardinality follows what the runtime resolves on** (§11 resolves a workflow on *(WO Type, group)* → one per Type plus Free Form; everything else resolves on the group alone → exactly one); **Create follows size** (modal for what fits one form, blank canvas for an arrangement); **Home tiles are global and reused by reference**, so editing one reaches every layout using it and only the *layout* is assignable. |
+| **Gating is forward-only** | §14.10 | A completed step is **always** reopenable; "Not Free Form" dictates forward order, not backward. Forward gating is untouched — a later step stays locked and explains itself. Completed rows carry a trailing chevron (`.step-map-back`), because `cursor:pointer` says nothing on a touch device. |
+| **Function resolution is per user group, never one blessed function** | §26.7 | Any function with `FUN_RENTITY = EVNT` may be workflow-enabled, opted in per **user group** — this customer already runs four `WSJOBS` clones (CCJOBS/TRJOBS/ZJ1000/WSJODC) as distinct business processes. **This half is still locked and holds either way.** *(What is NOT locked any more: "no new `FUN_CODE`s" — reuse `WSJOBS`/clones vs. a new standalone mobile function was reopened 2026-09-11 and is a **decision required**, §11/§20. A new Equipment function that renders by equipment type is **required** regardless, §26.8. Don't re-derive §26.7 with it.)* |
+| **Online-first, with declared offline scope** | §2.1 | Reads hit the server at full fidelity; the local store is a **scoped fallback**, never a projection of the whole database. **Database-wide search does not work offline.** Unchanged: one write path, always-on outbox, the UI never reads the network directly, **no mode the technician chooses**. Consequences live at §2.3/§2.7 (per-entity scope + traversal), §2.8 (three-way lookups), §2.9 (actions may narrow, field state never does), §2.10 (profile per user group), §2.5 (LWW withdrawn — per-shape conflicts). |
+| **R2 (GIS / maps) is Phase 2** | §28 | The map is an **editor, not a viewer** (the viewer reduction does not exist); it is a **second sync engine** and GIS edits **never** ride the EAM outbox; its offline unit is a **per-map-area download**. One v1 consequence: keep §27.3's definition-driven renderer generic enough for a map tab. |
+| **Hydration has a Tier 0** | §2.3 | Bootstrap config sits in front of the record tiers and is deliberately not one of them — records degrade (fewer rows), configuration doesn't (a missing layout is a blank screen). **Layout is first because it scopes everything after it.** Fetched inside the login round-trip — **not a separate modal**, though login itself legitimately blocks (§2.3 clarifies what "no blocking modals" actually prohibits: bulk record download and connectivity-triggered interruptions, not a user-initiated round-trip). Say **"my open pinned work orders"**, never "today's WOs". |
+| **WO resolves on Type; Equipment on system type** | §11–§13, §26.8 | WO needs a `PLO_WOTYPE` column + two WO Workflow tables. Equipment's four system types **already are** four `PLO_PAGENAME` values — no new column, no new table — so four base screens collapse into one mobile surface. **But the authoring surface for those four doesn't exist, and that blocks the Equipment track**: don't build Equipment RV against one hardcoded layout, or every child tab inherits it. |
+| **Type protects at its commitment point** | §13.5 | WO Type is editable while not started (confirm → immediate commit → re-render) and **Protected from Start Work onward, no exceptions, no permission escape**. Equipment's system type is **Protected in update mode, always** — so Equipment has no re-resolution exposure at all. One paradigm, two triggers. This replaced a four-tier gate ladder and withdrew the §23 required-marker tension — **§23 stands as written.** |
+| **User Defined Screens are scoped, not designed** | §27 | A **UDS** is a customer-authored *screen* — **not** §22's Custom Fields, which are admin-defined *fields*. Don't merge the mechanics; a record can carry both. **In:** UDS-as-a-tab-on-WO. **Deferred:** standalone UDS. **Out:** UDS field authoring. What's needed is **one generic definition-driven tab renderer** (§27.3), never a screen per UDS — and sequence it after a 2nd real child tab exists, since the Equipment tab is a sample size of one. |
+| **Workflow steps are *instances*** | §29 | The tier-2 key gained an `Instance` dimension — `(WO Type, User Group, Tab, Instance)` — because "a tab placed twice" and "a second Record View with a different layout" are the same requirement. Layout key is the bare tab id for instance 1 and `tab#n` after, so **nothing migrates**. An instance is either a Step or a More entry, never both, so **forward gating stays unbypassable**. Adds comment/document gates (§29.3) and a **question fork** that routes forward-only and marks skipped steps **N/A rather than hiding them** (§29.4). Authoring is Screen Designer's alone — **don't put any of it on User Group Setup** (§26.5.1) and don't revive a third surface. |
 
 ## Source of truth
 
-### One fact, one home (the rule, added 2026-08-25)
-Every fact below has **exactly one owning file**. Other files may *point*
-at it; they must not restate it. Changing a fact means editing **one**
-file plus, at most, a pointer.
+**One fact, one home.** Every fact below has exactly one owning file. Other
+files may *point* at it; they must not restate it. Changing a fact means editing
+**one** file plus, at most, a pointer.
 
 | Kind of fact | Single home |
 | --- | --- |
-| A product-level requirement (not a screen decision) | `docs/EAM-Project-Requirements-v1.md` |
+| Requirements R1–R6, objective, goals/non-goals, scenarios, SLOs, security/privacy/legal, timeline, sign-offs | `docs/EAM-Mobile-Design-Doc-v1.md` |
 | A locked design rule, and its rationale | `docs/design-decisions-v3-1.md` |
 | Open/deferred items, and rejected alternatives | same file, §20 and §21 |
-| What to build next, and in what order | `docs/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md` |
-| Project status, and anything leadership-facing | `docs/EAM-Dev-Leadership-Review-2026-08-25.md` |
-| Relative per-screen complexity | `docs/EAM-Dev-Leadership-Sizing-Appendix-2026-08-25.md` |
+| What to build next, and in what order | the design doc's **Timeline** |
 | What a UI pattern is *called*, and its rules | `docs/component-library.md` |
 | Raw CSS-level component audit | `docs/ui-component-inventory.md` |
-| A base-EAM enhancement spec (for the base team) | its own `EAM-DESIGN-*.md` |
-| Current state of the prototypes | this file |
+| Current state of the prototypes, and their traps | this file |
 
-**Why this rule exists, in one line:** the offline-search summary doc
-restated §2.3/§2.6/§6.13, drifted for over a month (it still said Tier 2
-held "~8–12 fields" after §6.13 redefined it to 6), and was retired
-2026-08-25 (§21). **Don't create a "summary of X" doc where X is already
-specified.** If something is hard to find, add a pointer or fix §-numbering
-— don't clone the content.
+**Why the rule exists, in one line:** the offline-search summary doc restated
+§2.3/§2.6/§6.13, drifted for over a month, and was retired 2026-08-25 (§21).
+**Don't create a "summary of X" doc where X is already specified** — if something
+is hard to find, add a pointer or fix §-numbering.
 
-**Corollary for this file:** CLAUDE.md holds the *decision and its
-consequence*, plus a `§` pointer — never the full rationale. It loads every
-session, so length here is a recurring cost paid on every task.
+`docs/EAM-Mobile-Design-Doc-v1.md` is the **squad-facing summary layer** — read
+it before the spec. It owns requirements and sequence, and **no design rule**.
+Check it for "what should I work on."
 
-`docs/design-decisions-v3-1.md` is the authoritative design spec. Never
-contradict a locked decision in that doc without explicitly flagging it to
-the user first. It's long — grep for the section you need rather than
-reading it end to end.
+`docs/design-decisions-v3-1.md` is the authoritative spec — check it for
+"what's the locked rule for X." **Never contradict a locked decision in it
+without flagging that to the user first.** It's long — **grep for the section
+you need rather than reading it end to end.**
 
-`docs/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md` is the process/
-execution doc — what to build, in what order, and the current plan. Check
-there before design-decisions-v3-1.md for "what should I work on," and
-check design-decisions-v3-1.md for "what's the locked rule for X."
-
-`docs/EAM-Dev-Leadership-Review-2026-08-25.md` is the **single
-leadership-facing artifact** — project status, Voice of the Customer, the 8
-design paradigms with their dev consequences, the full lifecycle, the
-screen-by-screen inventory of built vs. outstanding (Equipment's tabs
-enumerated individually, §5.2), the backend asks, the gap analysis and the
-recommended sequence. **Keep it current when project status changes** — its
-predecessor, `project-kickoff-whitepaper-v3.md`, went ~6 weeks stale and
-understated the built surface by half, which is why it was retired into
-`docs/old versions/` (2026-08-25) rather than maintained alongside. Don't
-resurrect a second status doc.
-
-`docs/EAM-Dev-Leadership-Sizing-Appendix-2026-08-25.md` is its only
-companion: measured **relative** per-screen complexity (explicitly not an
-effort estimate) plus the method to re-derive it. Both are deck source, not
-spec — a locked rule still lives only in `design-decisions-v3-1.md`.
-
-`docs/component-library.md` is the human-readable, name-first component
-reference — "what is the thing called X, and what are its rules,"
-browsable by proper name rather than CSS class. Different job from the
-other two: `design-decisions-v3-1.md` is the locked-rule spec,
-`docs/ui-component-inventory.md` is the raw CSS-level audit,
-`component-library.md` is the named catalog that ties a plain-English name
-to both. Add an entry here whenever a recurring on-screen pattern gets
-named/audited/resolved — don't let "what do we call this thing" become a
-re-investigation every time it comes up.
+**The doc set was cut back 2026-09-11** to the four files above plus this one.
+Anything not in that set is not pointed at on purpose — **don't add pointers
+back**, and don't treat a doc's absence from this file as evidence it never
+existed.
 
 ## Current state
 
@@ -490,32 +364,239 @@ forward reference — **@mention tagging in Comments itself is not built
 anywhere in this prototype** (see `project_comment_tagging_circleback`
 memory).
 
-### Screen Designer (Base Screens track)
-`prototypes/standalone/base screens/eam-screen-designer-v1.html` — a separate,
-self-contained visual system (loads none of the shared files), modeling the
-base-EAM admin surface per §10–§13. Clone-aware since 2026-08-24: family pills
-plus a function select over `BASE_FUNCTIONS`, with `state.baseScreen` the
-family and `state.baseFunction` the `FUN_CODE` (§26.2). Its Field Grid Section
-(List↔Grid toggle, drag-resizable cells) **has no doc section — flag it if it
-becomes real.** **It is the only workflow-authoring surface**; a separate
-`eam-workflow-designer-v1_1.html` was **retired 2026-08-25** (§21) for
-contradicting §10 — don't rebuild it.
+### Base Screens track — the portal is the only live surface
+`…/old versions/eam-screen-designer-v1.html` — **RETIRED 2026-09-16** (§30.9).
+Screen Designer standalone "is not a thing": it is invoked **per step node**
+from the portal's workflow configurator and opens in the portal's own
+right-hand panel. The panel was built **to parity** the same day, so the old
+file is history, not a reference — nothing navigates to it, no `screens.html`
+card, and `component-library.md`'s Step Instance Row points at the portal now.
+`test-step-instances.js` still executes §29 against the archived copy (headered
+to say so), but **the live coverage is `test-workflow-portal.js`** — extend
+that one. §10–§13 still describe the model it prototyped, and its Field Grid
+Section (List↔Grid toggle, drag-resizable cells) **still has no doc section —
+flag it if it becomes real.** The clone-aware function picker it introduced
+(`BASE_FUNCTIONS`, §26.2) lives in the portal's banner now, by grain (§30.9).
+**The "which surface authors workflows" question is closed** — the portal does,
+and nothing else does.
+`eam-workflow-designer-v1_1.html` stays retired (§21) — the *field-level* half of
+that retirement still holds; don't restore it, and note it modelled several §29
+features, so its retirement is not evidence against them.
 
-`…/eam-user-group-setup-prototype-v1.html` — User Group Setup (§26). A
-**binding** screen, not a config form: on its Screen Design tab the only
-editable thing is **assignment** — never steps, gating or layout — and
-**assign is not copy** (§26.5.1). No insert, so **no Create button at all**
-rather than a disabled one. Its **Edit layout** deep link is a real handoff:
-it writes `sessionStorage.eamDesignerEntry`, which Screen Designer consumes to
-open pre-filled; anything that can't be honoured is reported, never
-substituted.
+**`state.steps` is one ordered row per step instance** (§29) — replacing
+`stepOrder` + a `steps` map keyed by tab id, which could express none of it. Each
+row carries a **kind** (`tab`/`uds`/`prompt`), a **placement** (`step`/`more`,
+both lists real and drag-transferable), `visible`, `required`, and the two gates
+(`reqComment`/`reqDoc`). Book Labor's Time Entry Mode moved onto the instance,
+since Book Labor can now be placed twice. Pinned by `test-step-instances.js` —
+**the load-bearing assertion is that instance 2's layout is a copy, not a shared
+reference**, which is the one way to break the whole feature while everything
+still renders.
 
-**A known inconsistency, not a style choice:** this track carries **two visual
-languages** — Screen Designer on DM Sans/DM Mono with a teal-purple palette,
-while `eam-base-desktop-ui-prototype-v1.html` and User Group Setup use
-Inter/JetBrains Mono in the app's own language. The Edit-layout deep link
-crosses that seam mid-flow. Restyling Screen Designer onto the Base/Desktop UI
-components is the fix; nobody has picked it up.
+`…/old versions/eam-user-group-setup-prototype-v1.html` — **RETIRED
+2026-09-16** (§30.6/§21) when the portal became the single base entry point.
+**§26's model is not retired** — it was **rebuilt as the portal's User Groups
+area** the same day (§30.13), carrying §21's six mechanics rather than
+re-deriving them. `test-user-group-offline.js` still runs against the archived
+copy, so those rules stay executable — but a green run says nothing about the
+portal, and the **severity** cases (§2.10/§27.4) still need porting across; the
+"All records" refusal is already re-pinned in `test-workflow-portal.js` (§20).
+
+<!-- retired, kept for the carry-over pointer only -->
+What it was: User Group Setup (§26). A
+**binding** screen, not a config form: the only editable thing is **assignment**
+— never steps, gating or layout — and **assign is not copy** (§26.5.1). No
+insert, so **no Create button at all** rather than a disabled one. Its **Edit
+layout** deep link writes `sessionStorage.eamDesignerEntry`, which Screen
+Designer consumed to open pre-filled. **That contract is now entirely inside
+`old versions/`** — both ends retired together, and the portal deliberately
+replaced it with a *panel* rather than a hand-off, so there is nothing to
+reconnect. Don't revive `eamDesignerEntry` as the way into the designer.
+
+Its **Offline tab assigns one §2.10 offline profile** (§29.6) and shows that
+profile's per-entity policy read-only — one artifact serves many groups, so
+editing it here would re-provision every other member. It renders the two
+never-switchable layers first (Tier 0 + the outbox) and treats profile `None` as
+**valid and informational**, not a warning. It also carries §27.4's third check:
+a **Required** UDS step for a group without that tab permission is an **error**
+(a dead end the WO can't be finished through); the same step optional is a
+warning. `capabilityGap()` is keyed on the **configuration**, not the function —
+which killed a live false positive. Pinned by `test-user-group-offline.js`.
+
+`…/eam-workflow-portal-v1.html` — **Workflow Designer Portal** (§30, added
+2026-09-16). **Built on the Octave / OUX design system** (§30.7), not the
+app's own — tokens come from a `<link>` to `DESIGN_FILES/uxt-tokens.css`
+(uxt-dsp@2.4.0), which is therefore a **runtime dependency, committed**. Noto
+Sans + Material Symbols; `data-uxt-theme` switches light/dark. Octave
+component classes throughout (`.Button`, `.chip`, `.rail__row`, `.app-bar__*`,
+`.Banner`, `.uxt-switch`, `.seg__btn`). **The single base-screen entry point**
+(§30.6): mobile
+configuration is one portal with *areas*, not a folder of sibling screens —
+a rail row under "Mobile configuration" is an area, **never a link to another
+file**. **There are now ZERO links out** (§30.9) — Screen Designer is a panel
+invoked from a step node, not a sibling screen — and a test asserts it, because
+the dead User Group Setup link is how this erodes. A workflow is an **artifact** you author, copy, preview and apply to
+user groups — not the residue of saving a layout to one. Gallery of workflow cards
+→ edit mode: banner (description / Free Form / WO Type / notes), **Step Library**
+(left, drag-only, inert on click), auto-laid-out single-column flow canvas, and the
+**Screen Designer panel opening alongside it in the right third** for the selected
+node (real 390px emulator, not scaled).
+- **A node IS a §29.2 step instance.** `inst` is minted (smallest unused) and
+  stable, the layout key is `id` then `id#n`, and **each instance deep-copies its
+  own layout** — same load-bearing assertion as `test-step-instances.js`.
+- **New locked rule (§30.2):** a group gets **one workflow per WO Type** and **one
+  Free Form** — now a special case of §30.13's cardinality rule rather than a
+  workflow-only rule. Collisions are **predicted in the assignment control before
+  the click**, from either side, and **Copy carries no assignments** (it would
+  collide with its own source on every group) and re-mints every nid.
+- **Forks are authored from the `+` on a connector** (recommended over a library
+  entry: it names the insertion point), are still `kind:'prompt'` underneath, and
+  are capped at two answers. `validateForks()` re-runs on **every** structural
+  change and clears backward/dangling targets, counting what it rewrote.
+- **The out-of-flow zone is "More", not "Reference"** (§14.8 renamed it) — moving a
+  node in **clears Required and both gates**. Free Form is the same zone at full
+  extent; switching it **on** confirms and dedupes, switching it **off** doesn't.
+- **OCTAVE SCOPE: base screens only.** It does not apply to the mobile app
+  unless explicitly stated (confirmed 2026-09-16). §23/`eam-shared.css` still
+  own the app. **§30.8 catalogues where the two systems differ** — the short
+  version: the greys are literally the same HUES primitives (13 tokens match
+  hex-for-hex), while every semantic hue differs, mobile has **no `warning`
+  and no `info` token at all**, "good" is green on mobile and **blue** in
+  Octave, and mobile's 10px radius is not on Octave's scale. No component
+  crosses the seam unchanged.
+- **Five documented exceptions to Octave** (§30.7), all declared in one place
+  so they stay countable: WO Type's four raw hexes and its four SVG glyphs
+  (§23.3 needs byte-identical rendering with the device), the emulator keeping
+  the **device** palette as `--d-*` tokens scoped to `.emu`, the action-state
+  overlay as `::after` rather than a child span, and the fork-wire arrowhead.
+- **A mistyped token is INVISIBLE** — `var(--nope)` resolves to nothing and the
+  screen still renders. It bit once: the package ships `h-5`/`sub-title-2`, not
+  `h5`/`subtitle-2`. `test-workflow-portal.js` now diffs every
+  `var(--uxt-theme-*)` against the linked package. **Don't guess token names.**
+- **Six capabilities ported from the standalone designer** (§30.9), placed by
+  grain rather than all in the panel: the **clone-aware function picker**
+  (`BASE_FUNCTIONS`, §26.2) and the **§12 completion trio** are in the
+  **banner** (workflow-level — the function decides which steps can exist, and
+  §12 is keyed on WO Type with no Group dimension); **grid spans** are in the
+  panel; **UDS placement** is a `uds` node kind in the Step Library with a
+  **read-only** panel (§27.4 — no add-field, no property menu, ever); **fork
+  translations** are in the fork editor; **Time Entry Mode** is per-instance in
+  step settings.
+- **Capability gaps are REPORTED, never auto-fixed** (§26.5.1). `ZJ1000` is a
+  real capability-limited clone and one demo workflow ships on it, so the gap
+  path is live on load: library entries disable with the reason, the node
+  outlines in error red, a Banner counts them. A **family** switch confirms
+  first; a clone switch inside a family does not.
+- **`isStepKind()` — a UDS IS a step** (§29.5). It replaced every
+  `kind==='step'` test in sequencing, N/A propagation and fork targets, so a
+  UDS numbers, gates and gets skipped exactly like a delivered tab. Don't
+  reintroduce a bare `kind==='step'` check.
+- **Fork text is a language map** (§29.4). Read via `tx()`, write only the
+  current slot, `toTx()` migrates a plain string on read. A missing
+  translation **falls back and never blanks**; an empty *base* language is the
+  one state the editor refuses.
+- **§5.2 CHANGED 2026-09-16 — container shape is per-container, not positional.**
+  A Grid container can sit anywhere and a form can have several; what survived
+  is **nothing goes above container 0** (pinned) and **a Grid cannot be
+  Collapsed but CAN be Hidden** (collapsing a two-up grid destroys the point of
+  it). Enforced in the setter, not just omitted from a menu. **No mobile screen
+  demonstrates this yet** — the canonical reference files still show the old
+  leading-grid arrangement, so treat it as authored-but-unproven on device (§20).
+- **Designer panel rework** (§30.10): a collapsible **Available fields** sidebar
+  (4th column, panel-only, and it is the *complement* of the screen — a field
+  leaves when placed, returns when removed), **Add container is a drag source**
+  not a button, containers **reorder by header drag**, and the container header
+  **right-click** owns display state + To Grid/To List + Rename + Remove. The
+  old container button-row and  menu are both gone.
+- **WO Record View's Activities container is NOT a field container** (§15.2) —
+  it is a single-select record list with its own +, its own Add/Edit popup and a
+  per-row completion state. Flagged on the data (`sec.std === false`, derived
+  in `normalizeWf()`), marked in the panel, and it **refuses dropped fields**.
+  Don't re-derive it by name-matching at a render site.
+- **§12 RESHAPED 2026-09-16 (§30.11): status transitions are PLACED, not
+  declared.** The Completion Entity / Start Work status / Completion status
+  fields are gone; a **Status update action** is dragged into the flow where
+  the transition happens (popup: Status Entity + one status, defaults to Work
+  Order). The §12 resolution key is unchanged. **An action is not a step** —
+  no rail entry, no number, no gate; `seqNodes()` excludes it. It is
+  positional, so the More group and Free Form both refuse it, guarded in
+  `moveToRef()` at the mutation.
+- **Library is `Available screens` then `Actions`** — the Execution /
+  Record-tabs headings are gone (they implied a rule §14.8 denies), and UDS
+  entries sit in the same list marked by icon.
+- **`LAYOUTS.recordview` is the REAL WO Record View** (from a screenshot):
+  Header Fields / Work Order Details / Activity / Scheduling / User Defined
+  Fields / Custom Fields, with the rest of the real screen in the sidebar.
+  Don't replace it with invented fields — the point is that a real screen is
+  demonstrably authorable.
+- **Buttons are fields** (`type:'button'`) so they carry hide/show behavior.
+  They take **Optional or Hidden only** — guarded in `setFieldBehavior()`,
+  since Required/Protected/N/A are meaningless for a control.
+- **DESIGN DECISION: the Activity container can be HIDDEN, never DELETED**
+  (§15.2) — the screen's code depends on it existing, so removing it is a
+  broken screen, not a layout choice. It *does* accept fields.
+- **NEVER re-render a drag's own container during `dragover`.** That was the
+  container-DnD bug: `contDragOver()` called `renderDsn()`, destroying the
+  drag source mid-gesture. Toggle classes instead — which is the only reason
+  the field drag always worked. Also: a container menu is **right-click
+  only** (binding it to `onclick` too made clicking away reopen it).
+- Record View instance 1 is **pinned as step 1**, clamped at the array mutation
+  rather than only in the drag geometry. Persists to `localStorage.eamWorkflowDefs`.
+- **A fork card is a question pill over two answer pills, and its routing is
+  DRAWN** — wires measured from live layout, curving through the canvas gutter
+  into each destination (`drawForkArrows()`). So the straight connector below a
+  fork is suppressed, "continue" resolves to the next *step* (never an adjacent
+  fork — `forkBranchTargetNid()`, pinned), and an End chip renders only when a
+  fork targets it. The renderer guards on **DOM capability, not box size**: a
+  headless rect is non-zero, so a size check alone throws on `createElementNS`.
+- **Designer panel is 40%, drag-resizable, width persisted** (`eamWfpDsnWidth`),
+  floored at a real 390px emulator. **More sits under the flow at the same
+  width**, not beside it. **No `text-transform:uppercase` anywhere in this file**
+  (§30.4) — note `eam-shared.css` still upper-cases the device's own More label,
+  deliberately not synchronised.
+**FOUR AREAS, ONE MEMBERSHIP TABLE** (§30.13/§30.14, added 2026-09-16). The rail
+rows under "Mobile configuration" are Workflows, Home Layouts, Offline Profiles
+and User Groups — all areas of this one file.
+- **`ASSIGN` is the ONE store**: a flat `{type, artifactId, group}` array read
+  only through `groupsOf()` / `artifactsForGroup()` / `isAssigned()`. **Never add
+  a per-artifact `assignments` array back** — that is what `w.assignments` was,
+  and with four artifact types it becomes four arrays free to disagree with each
+  other and with the group view. A test asserts both directions return the same
+  rows; if that fails the area is decoration.
+- **`ARTIFACT_TYPES` declares cardinality**, and the rule text a user reads is
+  *derived* from it — `per-wotype` for workflows (§11 resolves on *(WO Type,
+  group)*), `per-group` for the rest. Don't hardcode a cardinality sentence.
+- **Deleting an artifact drops its membership rows** (`dropAssignmentsFor()`) —
+  a row pointing at a deleted artifact is a group silently provisioned with
+  nothing.
+- **Offline Profiles** authors §2.7's per-entity registry: five policies, caps
+  enforced **at authoring time** (200,000 / 50,000 / 15 / 1 — §2.7's own market
+  figures), `server-only` shown as a decided-out state, and **"all records" is
+  refused** — a filtered policy with no dataspy is an error, not a default.
+  Tier 0 + the outbox render first on every profile, **including `None`**, which
+  is valid and informational. **11 of its 31 entities have no policy decision**
+  and say so on the row (§20) — don't quietly default them in. Dataspies are
+  *selected* here and **authored on the record list screen**, same boundary as
+  UDS definitions.
+- **Home Layouts is two levels**: a global tile catalogue plus layouts that hold
+  **tile ids, never copies**. So editing a tile reaches every layout using it —
+  the catalogue shows usage, the editor states the blast radius, and deleting a
+  tile **prunes the references**. Only the *layout* is assignable.
+- **User Groups is the inverse view**, and a **binding surface** — assignment
+  only. `effectiveFor()` distinguishes explicit / inherited / unset, and
+  `allConflicts()` is what the rail badge counts. **Create refuses here**: a user
+  group is made in Security ▸ User Groups.
+- **Home's CONTENT is still unlocked** — §30.13 locks the authoring mechanics
+  only. The demo tile set is a demo; don't read it as deciding a technician's
+  Home screen.
+
+**The two-visual-languages problem CLOSED on 2026-09-16** — by a surface going
+away, not by a restyle (§30.9). Screen Designer's DM Sans/teal-purple system is
+no longer on anything reachable: the portal is Octave/OUX and so is its embedded
+designer panel. What is left on this track is
+`eam-base-desktop-ui-prototype-v1.html`, still on Inter/JetBrains Mono in the
+app's own language — a different base screen and its own open question, not the
+seam that was being tracked.
 
 ### data/ layer
 Real reference data lives in `docs/Data_refs/` (Employees/Crews/Stores/
@@ -529,27 +610,18 @@ parts.js`/`parts_stock.js`/`wo_parts_lines.js`. **Don't assume a data
 file's existence means a screen uses it** — check per-screen.
 
 ### Palette & navigation (locked, app-wide)
-§23 owns the instrument set and its rationale — **don't re-derive it here.**
-The shape: 2 core instruments (status, sync) plus 3 narrowly-scoped additions —
+§23 owns the instrument set and its rationale — **don't re-derive it here.** The
+shape: 2 core instruments (status, sync) plus 3 narrowly-scoped additions —
 editable-pill fill (§23.2), WO Type colour + icon badge (§23.3, reused
-identically across the Type field, WO List row and step rail) and Priority
-High (§23.4). Purple is retired as a UI-state accent; mono is identifiers-only
-and never tinted; icons/chips are outlined except Priority Critical/High and WO
+identically across the Type field, WO List row and step rail) and Priority High
+(§23.4). Purple is retired as a UI-state accent; mono is identifiers-only and
+never tinted; icons/chips are outlined except Priority Critical/High and WO
 Type's badge. Counter badges take the Organization pill's recipe (§23.5).
-**Green is reused, never re-invented.** Home is the one named exception
-(above). Back buttons navigate for real on every screen (§24); every sync icon
-opens the shared panel. **One open item:** "Not Free Form" (configured but
-ungated) still has no rail signal of its own (§3.2.2/§15.4) — a different axis
-from the rail's WO Type cue, which distinguishes configured vs. the §11
-fallback.
-
-### Workflow gating is FORWARD-ONLY (locked 2026-08-11, §14.10)
-A technician can **always** navigate back to an already-completed step to
-correct it — **"Not Free Form" dictates the order of moving forward, not
-backward.** **Forward gating is untouched**: a later step stays locked and
-still explains itself. Completed rows carry a trailing chevron
-(`.step-map-back`) because `cursor:pointer` says nothing on a touch device.
-Rationale, and the behaviour this reversed, are in §14.10.
+**Green is reused, never re-invented.** Home is the one named exception.
+Back buttons navigate for real on every screen (§24); every sync icon opens the
+shared panel. **One open item:** "Not Free Form" (configured but ungated) has no
+rail signal of its own (§3.2.2/§15.4) — a different axis from the rail's WO Type
+cue, which distinguishes configured vs. the §11 fallback.
 
 ### Dev/demo tooling
 No design-doc entries — dev convenience, same as any other. Every screen's
@@ -562,62 +634,71 @@ of `SYNC_DEMO_ITEMS`' own seeded error rows, so a live demo doesn't sit on
 "Error". **Defaults to Synced**; flip it by hand to see the real outbox state.
 
 ## Open / deferred work
-- **Insert Mode Type pill** — noted 2026-07-28, not scoped or built yet.
-  Add a 3rd pill to Insert Mode's entity→Organization pair (§9.4/§9.8),
-  for both WO and Equipment, that re-renders Insert Mode's own grid/flat
-  layout per selected Type — the same WOTYPE-driven page-layout mechanism
-  already resolved for real screens (§11–§13), live inside Insert Mode
-  itself rather than only visible after saving.
-- **Home's system-action entities + their base-admin config** — noted
-  2026-07-28, not scoped or built. Home's Create entity menu (§9.4.1)
-  covers WO/Equipment only; legacy non-WO/Equipment menu items — Meter Reading,
-  Work Request, Operator Checklist (and possibly Batch Book Labor/Hours
-  Worked/Permit to Work) — are candidates to add, each needing its own
-  call on full-Insert-Mode vs. lighter action-sheet shape. Separately,
-  whichever set Home exposes needs to be admin-configurable rather than
-  hardcoded — a base EAM admin screen (informally "Home Icon"/"digital
-  work home" setup) for picking which quick actions surface, not yet
-  located/named or built; candidate addition to the Screen Designer track
-  (§10). Full detail in `design-decisions-v3-1.md` §9.4.
-- **Conditional field rules — Phase 4+, deliberately deprioritised**
-  (2026-08-11): "if field X is Y, make Z required / surface another step."
-  Options ladder + prerequisites are in `design-decisions-v3-1.md`
-  §13.1–§13.4; no tier chosen, nothing built. **Don't spend design time
-  picking a tier** — the only thing owed up front is naming the **one-way
-  doors**. Two prerequisites qualify, because retrofitting either later
-  touches every field on every screen: a single `resolveFieldState(field,
-  context)` seam, and a declared-vs-effective field-state split.
-- **@mention tagging in Comments** — not built (see
-  `project_comment_tagging_circleback` memory).
-- **Insert Mode's Equipment Type vs. Equipment List's Class** — Insert Mode's
-  third pill offers Asset/Position/System and `saveInsertRecord()` stores it
-  as the record's `class`, but the list's Class column/filter is PUMP/MOTOR/
-  VALVE/…, so a created Equipment record has a Class no filter selects and no
-  Custom Fields definition matches. Needs a call on what that field *is*, not
-  just a wider list. Surfaced 2026-08-11 by persisting created records. §20.
-- **Equipment Record View's routed-in record is an identity overlay**, not a
-  real per-asset record — deep content (Comments/Documents/all 7 child tabs)
-  is still the demo record's. A real fix needs per-asset records in
-  `data/equipment.js` (only 00067333 and BLDG-A exist). §20.
-- **Issue Parts' parts data** isn't wired to `data/parts.js`/
-  `parts_stock.js`/`wo_parts_lines.js` yet — still screen-local hardcoded
-  data.
-- Remaining per-screen conformance findings from earlier audits are
-  tracked in `docs/design-decisions-v3-1.md` §20 — check there rather than
-  re-auditing.
-- **WO Equipment tab row tap** — `chooser` (default) vs. `split`, both built,
-  live-switchable from that screen's dev toggle. Pick one on a device and
-  lock it. Both destinations are real navigation now, so it's a fair
-  comparison. §20.
-- **Sort control only exists on each list screen's Screen 1**, not on its
-  Search screen — a markup gap, not a behavior one (the shared sort sheet
-  already re-renders both). §20.
-- **Profile Picture** — viewing/setting the tech's own avatar photo; today's
-  tiny nav-bar icon "adds no real value on mobile." Explored alongside
-  Equipment's photo in `prototypes/standalone/mockups/record-photo-section-
-  equipment-and-profile-options.html`; nothing promoted. Equipment's own
-  photo folded into §7.5 instead of becoming a shared component, so this is
-  now a standalone open problem. §16.9.
+**Don't re-audit — everything open is already tracked.** `design-decisions-v3-1.md`
+§20 is the full list; the design doc's **Open issues** holds the subset that
+blocks a milestone, with a proposed next step each. Below is only what a
+prototype session trips over, one line each.
+
+- **`WSJOBS` reuse vs. a new standalone mobile function — DECISION REQUIRED**
+  (reopened 2026-09-11). Needed before any base-side layout authoring, since
+  every layout row, dataspy and permission set keys to the resolved function.
+  §11/§20.
+- **A new Equipment screen function that renders by equipment type is required**
+  and unspecified — the function, its `PLO_PAGENAME` mapping across the four
+  system types and their clones, and the Screen Designer surface for them.
+  **Blocks the Equipment track.** §20/§26.8.
+- **The `*` default group has no model** — the User Groups area is built, but a
+  wildcard row is a different shape from a named group: under one-per-group
+  cardinality it *always* collides unless the resolver reads it as a fallback
+  rather than a member. §30.15.
+- **What happens to in-flight work when an assignment is removed** — the
+  membership table makes removal one click from either side, which raises the
+  question harder than §26.5 did. §29.5's config-version stamp is the mechanism;
+  nothing joins them up. §30.15.
+- **The punch-list dataspy selector still has no home** — User Group Setup is
+  retired and the portal's User Groups area is a *binding* surface, so this
+  would be its first configuring control. Keep it separate from the offline
+  profile's per-entity dataspy (§30.14), and keep its output distinguishable
+  from a manual pin. §20.
+- **§2.7 narrows offline capability vs. the SHIPPING product — DECISION
+  REQUIRED.** It puts equipment/WO history and meter readings in `server-only`;
+  the live product downloads both. Either communicate the regression or give
+  §2.7 a **bounded** carve-out (last N), never unbounded history. §20.
+- **11 offline entities have no policy decision** — marked in the registry and
+  warned on, which is not the same as decided. Main Isolation Tables and
+  Inspection Results deserve deliberate calls. §20.
+- **Insert Mode Type pill** — a 3rd pill that re-renders Insert Mode's own
+  layout per selected Type, the §11–§13 mechanism live inside the sheet. Not
+  scoped. §9.4.
+- **Insert Mode's Equipment Type pill is missing `Location`** — the pill is the
+  **system type** (answered, §26.8), but it offers only Asset/Position/System and
+  `saveInsertRecord()` still stores it as `class`, which no list filter selects.
+  A real defect, since insert is the only place system type is ever set. §20.
+- **Home's system-action entities** — the Create menu covers WO/Equipment only;
+  Meter Reading, Work Request, Operator Checklist are candidates, each needing a
+  call on full-Insert-Mode vs. action sheet. Whichever set Home exposes also
+  needs an admin surface that doesn't exist. §9.4.
+- **Conditional field rules** — Phase 4+, deliberately deprioritised. **Don't
+  pick a tier**; the only thing owed up front is the two one-way doors
+  (`resolveFieldState()` seam, declared-vs-effective split). **§29's question
+  fork did not reopen this** — don't cite it as precedent. §13.1–§13.4.
+- **WO Equipment tab row tap** — `chooser` vs. `split`, both built,
+  live-switchable from that screen's dev toggle. Needs a device. §20.
+- **Equipment Record View's routed-in record is an identity overlay** — deep
+  content (Comments/Documents/all 7 child tabs) is still the demo record's. Needs
+  per-asset records in `data/equipment.js`; only 00067333 and BLDG-A exist. §20.
+- **Issue Parts is on hardcoded parts data** — not wired to `data/parts.js` /
+  `parts_stock.js` / `wo_parts_lines.js`.
+- **Sort is missing from each list screen's Search sub-screen** — markup gap
+  only; the shared sort sheet already re-renders both. §20.
+- **`eam-wo-reference-tab-prototype-v1.html` has a stale filename** after §14.8's
+  rename, and a same-named copy of the WO List file sits in `old versions/`, so
+  doc references to it are ambiguous. §20.
+- **@mention tagging in Comments** — not built; Notifications' `comment_mention`
+  type is a forward reference. See the `project_comment_tagging_circleback` memory.
+- **Profile Picture** — the tech's own avatar; today's nav-bar icon adds no real
+  value on mobile. Explored in `mockups/record-photo-section-equipment-and-
+  profile-options.html`; nothing promoted. §16.9.
 
 ## Prototype conventions
 - Each prototype is one HTML file per screen, loading the two shared files
@@ -627,24 +708,20 @@ of `SYNC_DEMO_ITEMS`' own seeded error rows, so a live demo doesn't sit on
   `prototypes/reference-screenshots/`.
 
 ## Working style
-- Flag any place where a request would conflict with a locked decision above.
-- When a new design decision gets made during a session, add it to
-  `docs/design-decisions-v3-1.md` in the same session — don't let the doc
-  lag the prototypes.
-- **Token economy (sessions were burning tokens fast):**
-  - Grep for the specific section/pattern you need instead of reading a
-    whole large file (the design doc, a 600–1000+ line standalone) end to
-    end. Read tool calls should be targeted, not exploratory by default.
-  - Don't re-run the full conformance audit "just to check" — it already
-    ran once; extend `design-decisions-v3-1.md` §20 for anything new
-    instead of re-discovering what's already tracked there.
-  - New generic component → `eam-shared.css`/`.js` by default, screen-
-    local only until there's a real 2nd consumer. This is the actual fix
-    for "why did updating one thing touch 3 files" — not a tooling
-    change, a discipline one.
-  - Prefer fixing a bug at its source (the shared file, or the canonical
-    reference file everyone copies from) over patching every screen that
-    exhibits it — same file, one edit, cascades everywhere it's loaded.
-  - Keep this file (`CLAUDE.md`) a current-state snapshot, not a
-    changelog — record rationale/history in `design-decisions-v3-1.md`
-    instead of narrating it here.
+- **Flag any request that conflicts with a locked rule** before acting on it.
+- **A new design decision goes into `design-decisions-v3-1.md` the same
+  session** — don't let the spec lag the prototypes. A new *requirement* or a
+  changed sequence goes into the design doc instead.
+- **Keep this file a current-state snapshot, not a changelog.** Rationale and
+  history belong in the spec; requirements and plan belong in the design doc. It
+  loads every session, so length here is billed on every task. Trimmed
+  2026-09-11 for exactly this reason — don't grow it back with narrative.
+- **Token economy:**
+  - Grep for the section/pattern you need. Don't read the spec or a 1,000-line
+    standalone end to end.
+  - Don't re-run the conformance audit "just to check" — it ran once; add
+    anything new to §20.
+  - New generic component → `eam-shared.css`/`.js` by default. This is the real
+    fix for "why did one change touch three files."
+  - Fix a bug at its source — the shared file, or the canonical reference file
+    everyone copies from — not in every screen that shows it.

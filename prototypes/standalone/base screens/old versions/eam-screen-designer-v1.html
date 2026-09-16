@@ -261,6 +261,116 @@
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--oct-gray-800); color: #fff; padding: 9px 18px; border-radius: 8px; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 8px; z-index: 500; animation: toastIn 0.2s ease; }
   @keyframes toastIn { from { opacity:0; transform: translateX(-50%) translateY(8px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
 
+  /* ══ §29 — STEP INSTANCES, GATES, QUESTION FORKS, UDS PLACEMENT ══ */
+
+  /* Section label gains an inline Add affordance. Both step lists are
+     addable now, so the label is the natural place for it. */
+  .tp-section-label { display: flex; align-items: baseline; gap: 6px; }
+  .tp-add { margin-left: auto; display: inline-flex; align-items: center; gap: 3px; color: var(--oct-teal); cursor: pointer; font-size: 10px; font-weight: 700; text-transform: none; letter-spacing: 0; }
+  .tp-add:hover { color: var(--oct-teal-mid); text-decoration: underline; }
+  .tp-add i { font-size: 12px; }
+
+  /* Kind tag on a row — only non-`tab` kinds carry one, so a plain function
+     tab row looks exactly as it did before §29. */
+  .wfp-kind { margin-left: 6px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--oct-purple); background: var(--oct-purple-light); border-radius: 4px; padding: 1px 5px; vertical-align: 1px; }
+
+  /* Gate chips: visible on the row so a workflow's stopping points can be
+     scanned without opening every drawer. */
+  .wfp-gate { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; font-size: 9.5px; font-weight: 600; color: var(--oct-amber); background: var(--oct-amber-light); border-radius: 4px; padding: 1px 5px; }
+  .wfp-gate i { font-size: 11px; }
+  .wfp-gate.fork { color: var(--oct-teal-mid); background: var(--oct-teal-light); }
+
+  .wfp-mini.dimmed label { opacity: .5; }
+  .wfp-na { font-size: 9px; font-weight: 700; color: var(--oct-gray-400); height: 19px; display: flex; align-items: center; }
+
+  .wfp-step-gear.on { color: var(--oct-teal); }
+  .wfp-note.warn { color: var(--oct-amber); }
+  .wfp-note.warn b { color: var(--oct-amber); }
+  .wfp-ro { margin-top: 6px; font-size: 11.5px; color: var(--oct-gray-700); background: #fff; border: 1px solid var(--oct-gray-200); border-radius: 6px; padding: 7px 9px; }
+  .wfp-ro.mono { font-family: var(--font-mono); font-size: 11px; }
+  .wfp-inline-link { color: var(--oct-teal); font-weight: 600; cursor: pointer; text-decoration: underline; }
+
+  .wfp-inst-actions { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+  .wfp-ibtn { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 600; color: var(--oct-gray-600); background: #fff; border: 1px solid var(--oct-gray-300); border-radius: 6px; padding: 5px 8px; cursor: pointer; }
+  .wfp-ibtn:hover { border-color: var(--oct-teal); color: var(--oct-teal); }
+  .wfp-ibtn i { font-size: 12px; }
+  .wfp-ibtn.danger:hover { border-color: var(--oct-red); color: var(--oct-red); }
+  .wfp-ibtn.off { opacity: .55; cursor: default; }
+  .wfp-ibtn.off:hover { border-color: var(--oct-gray-300); color: var(--oct-gray-600); }
+
+  /* Add-step modal rows */
+  .as-group { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--oct-gray-400); margin: 10px 0 2px; }
+  .as-group:first-child { margin-top: 0; }
+  .as-group-note { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--oct-gray-400); }
+  .as-item { border: 1px solid var(--oct-gray-200); border-radius: 6px; display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 10px; }
+  .as-item:hover { border-color: var(--oct-teal); background: var(--oct-teal-light); }
+  .as-ico { font-size: 14px; color: var(--oct-teal-mid); flex-shrink: 0; }
+  .as-name { flex: 1; font-size: 12.5px; font-weight: 600; }
+  .as-used { font-size: 10px; font-weight: 600; color: var(--oct-gray-500); background: var(--oct-gray-100); border-radius: 4px; padding: 1px 6px; }
+  .as-key { font-family: var(--font-mono); font-size: 10px; color: var(--oct-gray-400); }
+  .as-plus { color: var(--oct-teal); font-size: 14px; }
+
+  /* Question-fork / UDS editor panel — sits above the emulator in the
+     canvas rather than beside it, so the emulator keeps its real width. */
+  .prompt-editor { background: #fff; border: 1px solid var(--oct-gray-200); border-radius: 12px; padding: 16px 18px; max-width: 620px; margin: 0 auto 18px; }
+  .pe-hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .pe-title { font-size: 14px; font-weight: 700; color: var(--oct-gray-800); display: flex; align-items: center; gap: 7px; }
+  .pe-title i { color: var(--oct-purple); font-size: 17px; }
+  .pe-lead { font-size: 11.5px; color: var(--oct-gray-500); line-height: 1.5; margin-bottom: 14px; }
+  .pe-langs { margin-left: auto; display: flex; gap: 4px; }
+  .pe-lang { position: relative; font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; color: var(--oct-gray-500); border: 1px solid var(--oct-gray-300); border-radius: 5px; padding: 3px 7px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; }
+  .pe-lang:hover { border-color: var(--oct-teal); color: var(--oct-teal); }
+  .pe-lang.on { background: var(--oct-teal); border-color: var(--oct-teal); color: #fff; }
+  .pe-lang.done i { font-size: 11px; color: var(--oct-green); }
+  .pe-lang.on.done i { color: #fff; }
+  .pe-lang sup { font-size: 8px; }
+  .pe-field-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--oct-gray-400); margin-bottom: 5px; }
+  .pe-textarea { width: 100%; border: 1px solid var(--oct-gray-300); border-radius: 7px; padding: 9px 10px; font-size: 12.5px; font-family: var(--font-main); color: var(--oct-gray-800); resize: vertical; }
+  .pe-textarea:focus { outline: none; border-color: var(--oct-teal); }
+  .pe-answer { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+  .pe-anum { width: 18px; height: 18px; border-radius: 50%; background: var(--oct-gray-100); color: var(--oct-gray-600); font-size: 9.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .pe-input { flex: 0 0 150px; border: 1px solid var(--oct-gray-300); border-radius: 6px; padding: 6px 8px; font-size: 12px; font-family: var(--font-main); }
+  .pe-input:focus { outline: none; border-color: var(--oct-teal); }
+  .pe-arrow { color: var(--oct-gray-400); font-size: 14px; flex-shrink: 0; }
+  .pe-select { flex: 1; border: 1px solid var(--oct-gray-300); border-radius: 6px; padding: 6px 8px; font-size: 12px; font-family: var(--font-main); background: #fff; min-width: 0; }
+  .pe-del { color: var(--oct-gray-400); font-size: 14px; cursor: pointer; flex-shrink: 0; }
+  .pe-del:hover { color: var(--oct-red); }
+  .pe-add { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 600; color: var(--oct-teal); cursor: pointer; margin-top: 2px; }
+  .pe-add:hover { text-decoration: underline; }
+  .pe-effect { margin-top: 16px; background: var(--oct-gray-50); border: 1px solid var(--oct-gray-200); border-radius: 8px; padding: 11px 13px; }
+  .pe-effect-hdr { font-size: 11px; font-weight: 700; color: var(--oct-gray-700); display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
+  .pe-effect-hdr i { color: var(--oct-teal); font-size: 13px; }
+  .pe-effect ul { margin: 0 0 0 16px; padding: 0; }
+  .pe-effect li { font-size: 11.5px; color: var(--oct-gray-600); line-height: 1.55; margin-bottom: 3px; }
+  .pe-effect-note { font-size: 10.5px; color: var(--oct-gray-500); line-height: 1.5; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--oct-gray-300); }
+
+  /* UDS placement summary */
+  .uds-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .uds-meta > div { background: var(--oct-gray-50); border: 1px solid var(--oct-gray-200); border-radius: 7px; padding: 7px 10px; }
+  .uds-meta span { display: block; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--oct-gray-400); }
+  .uds-meta b { font-size: 12px; color: var(--oct-gray-800); }
+  .uds-field { display: flex; align-items: center; justify-content: space-between; border: 1px dashed var(--oct-gray-300); border-radius: 7px; padding: 8px 12px; margin-bottom: 5px; }
+  .uds-field-lbl { font-size: 11px; color: var(--oct-gray-500); }
+  .uds-field-val { font-size: 11px; color: var(--oct-gray-400); }
+
+  /* Emulator: gate boxes + the Next bar they lock */
+  .mob-gate { margin-top: 12px; }
+  .mob-gate-box { border: 1px solid var(--oct-amber); background: var(--oct-amber-light); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; }
+  .mob-gate-lbl { font-size: 10.5px; font-weight: 700; color: var(--oct-gray-700); display: flex; align-items: center; gap: 5px; }
+  .mob-gate-lbl i { font-size: 12px; }
+  .mob-gate-req { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--oct-amber); margin-left: auto; }
+  .mob-gate-input { margin-top: 5px; background: #fff; border: 1px solid var(--oct-gray-200); border-radius: 6px; padding: 7px 9px; font-size: 11px; color: var(--oct-gray-400); }
+  .mob-next-bar { margin: 14px 14px 12px; background: var(--oct-black); color: #fff; border-radius: 50px; padding: 12px; width: calc(100% - 28px); font-size: 13px; font-weight: 600; text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .mob-next-bar.locked { background: var(--oct-gray-300); color: var(--oct-gray-600); }
+  .mob-next-bar i { font-size: 14px; }
+
+  /* Emulator: the prompt as the technician sees it */
+  .mob-prompt { margin-top: 10px; }
+  .mob-prompt-q { font-size: 14px; font-weight: 600; color: var(--oct-gray-800); line-height: 1.45; padding: 14px 12px 16px; text-align: center; }
+  .mob-prompt-empty { color: var(--oct-gray-400); font-weight: 400; font-style: italic; }
+  .mob-prompt-answers { display: flex; flex-direction: column; gap: 7px; }
+  .mob-prompt-btn { border: 1.5px solid var(--oct-gray-300); border-radius: 50px; padding: 11px; text-align: center; font-size: 13px; font-weight: 600; color: var(--oct-gray-700); }
+
   ::-webkit-scrollbar { width: 5px; height:5px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--oct-gray-300); border-radius: 10px; }
@@ -423,6 +533,22 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="addStepOverlay" style="display:none">
+  <div class="modal" style="width:560px">
+    <div class="modal-hdr">
+      <h3 id="addStepTitle">Add a Workflow Step</h3>
+      <div class="close" onclick="closeAddStepModal()"><i class="ti ti-x"></i></div>
+    </div>
+    <div class="modal-body">
+      <p class="lead" style="margin-top:0" id="addStepLead"></p>
+      <div id="addStepList" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeAddStepModal()">Close</button>
+    </div>
+  </div>
+</div>
+
 <div id="toastContainer"></div>
 
 <script>
@@ -440,7 +566,8 @@ const WO_TYPES = [
 
 /* One environment, one set of user groups. Until 2026-08-24 this file carried
    its own invented list (CUST-FULL/CUST-LITE/DCOPS/DW-CONT/TECH/SUPV) that
-   didn't overlap the one in eam-user-group-setup-prototype-v1.html — which
+   didn't overlap the one in eam-user-group-setup-prototype-v1.html (retired
+   2026-09-16; the Workflow Designer Portal carries the same list now) — which
    meant a group handed over from there wasn't selectable here, and the two
    screens described different worlds. `DK` is kept because it is the only
    group that appears in the real export (PLO_USERGROUP / PRM_GROUP in
@@ -464,14 +591,75 @@ const AAST_STATUSES = [
 ];
 function statusListForEntity(entity){ return entity === 'activity' ? AAST_STATUSES : EVST_STATUSES; }
 
-// step id -> display meta. Order here is fixed catalog order; actual sequence is state.stepOrder.
-const STEP_META = {
-  recordview: {label:'WO Record View', icon:'ti-file-description', tab:'recordview'},
-  checklist:  {label:'Activity Checklist', icon:'ti-clipboard-check', tab:'checklist'},
-  parts:      {label:'Issue / Return Parts', icon:'ti-box-multiple', tab:'parts'},
-  booklabor:  {label:'Book Labor', icon:'ti-clock-hour-4', tab:'booklabor'},
-  closing:    {label:'WO Closing', icon:'ti-circle-check', tab:'closing'}
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   STEP KINDS — what a workflow step can BE (§29.2)
+   ═══════════════════════════════════════════════════════════════════════
+   STEP_META used to be a closed map of five hardcoded steps keyed by step
+   id, which quietly asserted three things that are all now false: that a
+   step is always a delivered function tab, that a tab appears at most once,
+   and that the step set is fixed at five. §29 replaces it with a step
+   *instance* list (see `state.steps`) whose rows each declare a KIND.
+
+   Only `tab` carries a field layout of its own. `uds` renders from a
+   definition authored in base EAM (§27.4 role 1 — this designer PLACES it
+   and never edits it), and `prompt` has no fields at all, just a question
+   and its answers. That is why `hasLayout` is a property of the kind rather
+   than something each render path re-decides. */
+const STEP_KINDS = {
+  tab:    {label:'Function tab',        icon:'ti-browser',            hasLayout:true},
+  uds:    {label:'User Defined Screen', icon:'ti-layout-board-split', hasLayout:false},
+  prompt: {label:'Question fork',       icon:'ti-help-octagon',       hasLayout:false}
 };
+
+/* User Defined Screens available to place. In real EAM these come from
+   base's own UDS setup, which owns fields/types/LOVs/labels/required-ness
+   (§27.4 role 1). Rebuilding that authoring here is explicitly out of scope
+   (§27.2) — it is the mistake that retired the old Workflow Designer.
+   `fields` is shown so an admin can see they are placing a real screen. */
+const UDS_DEFS = [
+  {id:'uds-permit',   label:'Hot Work Permit',      fields:7, modified:'2026-08-19'},
+  {id:'uds-loto',     label:'LOTO Verification',    fields:5, modified:'2026-07-30'},
+  {id:'uds-handover', label:'Shift Handover Notes', fields:4, modified:'2026-08-22'}
+];
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TRANSLATIONS — for admin-authored text only (§29.4)
+   ═══════════════════════════════════════════════════════════════════════
+   A question fork is the first thing in this programme where an ADMIN types
+   prose the TECHNICIAN reads. Every other string on a mobile screen is
+   either a delivered product label (already translated by the product) or
+   record data (never translated). So this is the one place needing a
+   translation surface, which is why it lives on the prompt row and nowhere
+   else.
+
+   BASE_LANG is the authoring language: it is the only one that can be
+   required to be non-empty, and it is the fallback whenever a technician's
+   own language has no row. Falling back rather than blanking matters — a
+   missing translation must degrade to "readable in the base language",
+   never to an unanswerable empty question that blocks a gated step.
+
+   Modelled as a language-keyed map on the row. Where the real EAM
+   equivalent lives is an open backend question (§20) — user-defined text
+   translation is not something this project has confirmed a table for. */
+const LANGUAGES = [
+  {code:'EN', label:'English'},
+  {code:'ES', label:'Español'},
+  {code:'FR', label:'Français'},
+  {code:'DE', label:'Deutsch'},
+  {code:'PT', label:'Português'}
+];
+const BASE_LANG = 'EN';
+function langLabel(code){ const l = LANGUAGES.find(x=>x.code===code); return l ? l.label : code; }
+/* Text is a {EN:'...', ES:'...'} map. Read ALWAYS falls back to BASE_LANG. */
+function tx(map, lang){
+  if(!map) return '';
+  return (map[lang] && map[lang].trim()) ? map[lang] : (map[BASE_LANG] || '');
+}
+function txMissing(map){
+  return LANGUAGES.filter(l => l.code !== BASE_LANG && !(map && map[l.code] && map[l.code].trim())).map(l => l.code);
+}
 
 const WO_TABS = [
   {id:'recordview', label:'Record View', step:true, icon:'ti-file-description'},
@@ -568,11 +756,86 @@ function fnHasTab(tabId){
   if(!known.includes(tabId)) return true;
   return f.tabs.includes(tabId);
 }
-/* Steps whose tab this function actually has. Everything that renders or
-   counts steps goes through here, so a clone can never be given a step it
-   cannot show. */
-function availableStepIds(){ return state.stepOrder.filter(s => fnHasTab(STEP_META[s].tab)); }
-function missingStepIds(){ return state.stepOrder.filter(s => !fnHasTab(STEP_META[s].tab)); }
+/* ═══════════════════════════════════════════════════════════════════════
+   STEP INSTANCE HELPERS (§29)
+   ═══════════════════════════════════════════════════════════════════════
+   THE KEY CHANGE, AND WHY IT IS NOT COSMETIC. §12 tier 2 keyed one row per
+   `(WO Type, User Group, Tab)` and said so deliberately: one row per tab
+   made "a tab is either a Step or a More entry, never both" a KEY
+   constraint rather than a validation rule. Two requirements broke that —
+   the same tab appearing more than once, and a second Record View step
+   carrying a DIFFERENT field layout from the first. Both need an INSTANCE
+   dimension, so the key becomes `(WO Type, User Group, Tab, Instance)`.
+
+   What is preserved: the constraint that made one-row-per-tab worth having
+   still holds, one grain finer — an INSTANCE is either a Step or a More
+   entry, never both, because `placement` sits on the instance row. Forward
+   gating is therefore still unbypassable, because a More entry pointing at
+   the same tab is a different instance with its own row and its own layout.
+
+   THE LAYOUT KEY IS THE PART TO GET RIGHT. Instance 1 of a tab keys on the
+   bare tab id, so every layout authored before instances existed still
+   resolves unchanged and no migration is implied. Instance 2+ appends `#n`.
+   That suffix IS the page-variant dimension §13's `R5PAGELAYOUT` needs in
+   order to hold two different layouts for one tab — modelled here as a key
+   shape rather than a new table, which is what keeps "Record View twice
+   with two layouts" from being a schema rewrite. */
+function layoutKeyFor(tab, n){ return (n||1) <= 1 ? tab : tab + '#' + n; }
+function baseTabOf(key){ return String(key).split('#')[0]; }
+function instanceNoOf(key){ const p = String(key).split('#'); return p[1] ? +p[1] : 1; }
+
+function stepInstances(){ return state.steps.filter(s => s.placement === 'step'); }
+function moreInstances(){ return state.steps.filter(s => s.placement === 'more'); }
+/* Only `tab` instances can be missing — a UDS or a prompt is not a function
+   tab, so no clone's tab set can withhold it. */
+function instHasTab(s){ return s.kind !== 'tab' ? true : fnHasTab(s.tab); }
+function availableSteps(){ return stepInstances().filter(instHasTab); }
+function missingSteps(){ return state.steps.filter(s => !instHasTab(s)); }
+function instByIid(iid){ return state.steps.find(s => s.iid === iid) || null; }
+function activeInst(){ return instByIid(state.activeInst); }
+/* A non-tab instance still needs a stable key for the canvas to switch on,
+   but it is deliberately NOT a layout key — nothing in WORK_FIELDS answers
+   to it, which is what routes those kinds to their own editors. */
+function layoutKeyOf(s){ return s.kind === 'tab' ? layoutKeyFor(s.tab, s.inst) : s.kind + ':' + s.iid; }
+/* Resolves against the current function's tabs FIRST, then falls back to the
+   family catalogue. The fallback is what stops a withheld tab from losing its
+   name: a clone that lacks Checklist still has instances pointing at it, and
+   the capability banner has to read "no Checklist or Book Labor tab", not "no
+   checklist or booklabor tab" — a raw id in admin-facing prose reads as a bug
+   in the screen rather than a fact about the function. */
+function tabDefOf(tabId){
+  return currentTabDefs().find(t => t.id === tabId)
+    || WO_TABS.find(t => t.id === tabId)
+    || EQUIP_TABS.find(t => t.id === tabId)
+    || null;
+}
+function udsDefOf(id){ return UDS_DEFS.find(u => u.id === id) || null; }
+
+function shortText(t){ t = String(t); return t.length > 34 ? t.slice(0,33) + '…' : t; }
+function instLabel(s){
+  if(!s) return '';
+  if (s.kind === 'prompt') return tx(s.question, BASE_LANG) ? shortText(tx(s.question, BASE_LANG)) : 'Question (untitled)';
+  if (s.kind === 'uds')    return (udsDefOf(s.uds)||{}).label || 'User Defined Screen';
+  const base = (tabDefOf(s.tab)||{}).label || s.tab;
+  /* The instance number is part of the NAME, not a hover badge — two rows
+     both reading "Record View" with the difference hidden in a tooltip is
+     how an admin edits the wrong layout. */
+  return s.inst > 1 ? base + ' (' + s.inst + ')' : base;
+}
+function instIcon(s){
+  if(!s) return 'ti-browser';
+  if (s.kind !== 'tab') return STEP_KINDS[s.kind].icon;
+  return (tabDefOf(s.tab)||{}).icon || 'ti-browser';
+}
+/* Lowest unused instance number, so removing instance 2 of three and adding
+   again reuses 2 rather than climbing to 4 — the number is part of the
+   layout key, and a climbing counter orphans WORK_FIELDS entries. */
+function nextInstanceNo(tab){
+  const used = state.steps.filter(s => s.kind === 'tab' && s.tab === tab).map(s => s.inst);
+  let n = 1; while (used.includes(n)) n++; return n;
+}
+let instSeq = 100;
+function nextIid(){ return 'i' + (++instSeq); }
 
 function cloneFields(list){ return JSON.parse(JSON.stringify(list)); }
 
@@ -703,23 +966,67 @@ let state = {
   completionEntity: 'wo', // 'wo' (EVST) | 'activity' (AAST) — §12, WO Type only, no Group dimension
   startWorkStatus: 'INPROG', // status set on the completion entity when Start Work is tapped, §15.4
   completionStatus: 'CLOSE', // status set on the completion entity when the workflow completes
-  bookLaborTimeEntryMode: 'startend', // 'startend' | 'direct' — §18.4, Book Labor-specific
-  stepOrder: ['checklist','parts','booklabor','closing'], // recordview is always pinned first
-  steps: {
-    checklist: {visible:true, required:true},
-    parts: {visible:true, required:false},
-    booklabor: {visible:true, required:true},
-    closing: {visible:true, required:true}
-  },
+  /* Book Labor's Time Entry Mode (§18.4) used to live here, one value for
+     the whole configuration. It moved onto the step instance row, because
+     Book Labor can now be placed more than once and two placements sharing
+     one mode would be a coupling nothing on screen explains. */
+  /* ═════════════════════════════════════════════════════════════════════
+     STEPS — one row per INSTANCE, in author order (§29)
+     ═════════════════════════════════════════════════════════════════════
+     Replaces the old `stepOrder` array + `steps` object keyed by tab id.
+     That pair could not express any of: the same tab twice, a step that is
+     not a tab at all, or a second Record View with its own layout.
+
+     Every row carries, per §12 tier 2 plus §29's additions:
+       kind        'tab' | 'uds' | 'prompt'
+       placement   'step' (numbered, sequenced, gated) | 'more' (§14.8)
+       visible     §12 Visible
+       required    §14.7 bar-locking. A 'more' row can never be Required —
+                   nothing routes the technician there, so the flag would be
+                   unenforceable (§14.8).
+       reqComment  §29.3 — Next stays locked until a comment is entered.
+       reqDoc      §29.3 — Next stays locked until a document is attached.
+       inst        instance number, part of the layout key (tab kind only)
+
+     `pinned` is Record View instance 1 only: §14 fixes it as step 1. It can
+     still be DUPLICATED — that is the whole point of the second Record View
+     requirement — it just cannot be moved, hidden or removed.
+
+     The trailing four rows are placement:'more'. They used to be a static
+     "Other Tabs (not step-governed)" list derived from WO_TABS' own `step`
+     flag, which made More-group membership a property of the PRODUCT. §14.8
+     reframed it as CONFIGURATION on 2026-08-25, so they are real rows an
+     admin can move into the sequence or back out of it.
+
+     Closing seeds reqComment:true because a closing comment is the one gate
+     of this shape the app already had before §29 named the mechanic (§19.5)
+     — it is here to show the model absorbing an existing behaviour rather
+     than only adding new ones. */
+  steps: [
+    {iid:'i1', kind:'tab', tab:'recordview',       inst:1, pinned:true, placement:'step', visible:true, required:true,  reqComment:false, reqDoc:false},
+    {iid:'i2', kind:'tab', tab:'checklist',        inst:1, placement:'step', visible:true, required:true,  reqComment:false, reqDoc:false},
+    {iid:'i3', kind:'tab', tab:'parts',            inst:1, placement:'step', visible:true, required:false, reqComment:false, reqDoc:false},
+    {iid:'i4', kind:'tab', tab:'booklabor',        inst:1, placement:'step', visible:true, required:true,  reqComment:false, reqDoc:false, timeEntry:'startend'},
+    {iid:'i5', kind:'tab', tab:'closing',          inst:1, placement:'step', visible:true, required:true,  reqComment:true,  reqDoc:false},
+    {iid:'i6', kind:'tab', tab:'comments',         inst:1, placement:'more', visible:true, required:false, reqComment:false, reqDoc:false},
+    {iid:'i7', kind:'tab', tab:'activities',       inst:1, placement:'more', visible:true, required:false, reqComment:false, reqDoc:false},
+    {iid:'i8', kind:'tab', tab:'costsummary',      inst:1, placement:'more', visible:true, required:false, reqComment:false, reqDoc:false},
+    {iid:'i9', kind:'tab', tab:'workflowapproval', inst:1, placement:'more', visible:true, required:false, reqComment:false, reqDoc:false}
+  ],
+  activeInst: 'i1',
+  authorLang: BASE_LANG,   // which language the prompt editor is currently typing in
   availGroups: GROUPS.slice()
 };
 
 let WORK_FIELDS = cloneFields(FIELD_TEMPLATE);
 let ctxMenuTarget = null; // {tabId, cIdx, fIdx}
 let dragField = null; // {cIdx, fIdx}
-let dragStep = null; // stepId
+let dragStep = null; // instance iid
 let dragGroup = null; // group code
-let bookLaborSettingsOpen = false;
+/* Was `bookLaborSettingsOpen` — one boolean for the one step that had
+   settings. Every step has settings now (gates, at minimum), so it holds the
+   iid of the single open drawer instead. */
+let openStepSettings = null;
 
 // Pre-existing grid containers may start with an odd field count — balance them once at load.
 Object.values(WORK_FIELDS).forEach(tabData => {
@@ -728,6 +1035,13 @@ Object.values(WORK_FIELDS).forEach(tabData => {
 
 /* ═══════════════════════════════════════════════════════════════════════
    HANDOFF FROM USER GROUP SETUP (design-decisions-v3-1 §26.5.1)
+   ── PRODUCER RETIRED 2026-09-16. This READER is unchanged and still correct,
+   but nothing writes the key any more: the screen that did was retired to
+   `old versions/` when the Workflow Designer Portal became the single
+   base-screen entry point (§30.6/§21). Do not "clean up" this reader — the
+   reason it exists still applies, and the portal is the natural producer
+   (a step node already knows its function, WO Type and layout key). Open
+   debt in §20. ──
    ═══════════════════════════════════════════════════════════════════════
    eam-user-group-setup-prototype-v1.html writes
    `sessionStorage.eamDesignerEntry` and navigates here. Without this reader,
@@ -934,10 +1248,10 @@ function onBaseFunctionChange(){
   /* Capability gap is stated at pick time, not discovered later when a step
      is missing from the left pane with no explanation. */
   const gap = (f.family === 'wo')
-    ? Object.keys(STEP_META).filter(s => s !== 'recordview' && !f.tabs.includes(STEP_META[s].tab))
+    ? WO_TABS.filter(t => t.step && t.id !== 'recordview' && !f.tabs.includes(t.id)).map(t => t.label)
     : [];
   let html = `<i class="ti ti-info-circle"></i> <span>${bits.join(' · ')}`;
-  if(gap.length) html += `<br><b style="color:var(--oct-amber,#B45309)">No ${gap.map(s=>STEP_META[s].label).join(' or ')} tab on this screen</b>`
+  if(gap.length) html += `<br><b style="color:var(--oct-amber,#B45309)">No ${gap.join(' or ')} tab on this screen</b>`
     + ` — ${gap.length>1?'those steps':'that step'} can't be configured here. Fix the function's tabs in Security ▸ Function Permissions, or pick a different screen.`;
   html += `</span>`;
   hint.innerHTML = html;
@@ -1037,9 +1351,14 @@ function applyEntryModal(){
   if (state.baseScreen === 'wo') {
     state.woType = document.getElementById('woTypeSelect').value;
     state.activeTab = 'recordview';
+    state.activeInst = 'i1';        // Record View instance 1 — always step 1 (§14)
   } else {
     state.woType = null;
     state.activeTab = 'eq-recordview';
+    /* Equipment has no workflow, so it has no step instances at all. The
+       canvas falls back to keying straight off activeTab, which is exactly
+       what it did before instances existed. */
+    state.activeInst = null;
   }
   document.getElementById('entryModalOverlay').style.display = 'none';
   /* The handoff has been acted on, so the banner stops being true. Reopening
@@ -1105,12 +1424,16 @@ function renderContextBar(){
 
 function renderModeBanner(){
   const el = document.getElementById('modeBanner');
-  const gone = missingStepIds();
+  const gone = missingSteps();
+  /* De-duplicated by LABEL, not by row. With instances, the same missing tab
+     can appear twice (Record View placed twice on a clone that lacks it) and
+     "has no Checklist or Checklist tab" reads as a bug in the banner. */
+  const goneLabels = [...new Set(gone.map(instLabel))];
   /* A capability banner stacks BELOW whichever mode banner applies, rather
      than replacing it — "this is the fallback screen" and "this clone has no
      Checklist tab" are both true at once and an admin needs both. */
-  const capBanner = gone.length
-    ? `<div class="fallback-banner"><i class="ti ti-alert-triangle"></i> <span><b>${currentFn().code} has no ${gone.map(s=>STEP_META[s].label).join(' or ')} tab.</b> ${gone.length>1?'Those steps are':'That step is'} hidden from the tab list and the workflow — a step whose tab doesn't exist on the screen can never render. Give the function the tab in Security ▸ Function Permissions, or design a different screen.</span></div>`
+  const capBanner = goneLabels.length
+    ? `<div class="fallback-banner"><i class="ti ti-alert-triangle"></i> <span><b>${currentFn().code} has no ${goneLabels.join(' or ')} tab.</b> ${gone.length>1?'Those steps are':'That step is'} hidden from the tab list and the workflow — a step whose tab doesn't exist on the screen can never render. Give the function the tab in Security ▸ Function Permissions, or design a different screen.</span></div>`
     : '';
 
   if (state.baseScreen === 'wo' && state.woType === 'none') {
@@ -1135,20 +1458,21 @@ function renderTabPane(){
   let html = '';
 
   if (showSteps) {
-    const recordviewTab = defs.find(t => t.id === 'recordview');
-    const otherTabs = defs.filter(t => !t.step);
-    html += `<div class="tp-section-label">Guided Workflow Steps</div>
-      <div class="wfp-pinned-step" style="margin:0 16px 8px">
-        <i class="ti ti-lock wfp-drag" style="cursor:default"></i>
-        <div class="wfp-step-icon"><i class="ti ${recordviewTab.icon}"></i></div>
-        <div class="wfp-step-body" style="cursor:pointer" onclick="switchTab('${recordviewTab.id}')">
-          <div class="wfp-step-name">${recordviewTab.label}</div>
-          <div class="wfp-step-tag">Always step 1 — not togglable</div>
-        </div>
-      </div>
+    /* TWO REAL LISTS NOW, both fed from `state.steps`.
+       Before §29 this pane showed one list of steps plus a static "Other
+       Tabs (not step-governed)" nav list derived from WO_TABS' own `step`
+       flag — which made More-group membership a property of the PRODUCT.
+       §14.8 reframed it as configuration on 2026-08-25, so both lists hold
+       the same kind of row, both can be added to, and a row can move between
+       them. The pinned Record View row is no longer special-cased here
+       either; it is instance `i1` with `pinned:true`, rendered by the same
+       row renderer as everything else. */
+    html += `<div class="tp-section-label">Guided Workflow Steps
+        <span class="tp-add" onclick="openAddStepModal('step')" title="Add a step"><i class="ti ti-plus"></i> Add</span></div>
       <div id="tpStepRows" style="padding:0 16px"></div>
-      <div class="tp-section-label">Other Tabs (not step-governed)</div>`;
-    otherTabs.forEach(t => { html += navItemHtml(t); });
+      <div class="tp-section-label">More — reachable from any step, never sequenced
+        <span class="tp-add" onclick="openAddStepModal('more')" title="Add a More entry"><i class="ti ti-plus"></i> Add</span></div>
+      <div id="tpMoreRows" style="padding:0 16px"></div>`;
   } else {
     // No guided workflow at all (fallback, or Equipment) — every tab is just a plain nav item.
     html += `<div class="tp-section-label">Tabs</div>`;
@@ -1159,6 +1483,7 @@ function renderTabPane(){
 
   if (showSteps) {
     renderStepRows();
+    renderMoreRows();
     renderWorkflowSettingsBlock();
   }
 }
@@ -1208,20 +1533,51 @@ function refreshWorkflowSettingsBlock(){
   renderWorkflowSettingsBlock();
 }
 
+/* Used by the no-workflow path (Equipment, or the §11 fallback screen),
+   where a tab is just a tab and there are no instances to select. */
 function switchTab(tabId){
   state.activeTab = tabId;
+  state.activeInst = null;
+  renderTabPane();
+  renderCanvas();
+}
+
+/* The workflow path. `activeTab` is kept in step with the instance and holds
+   its LAYOUT KEY, which is why the whole field-editing half of this file
+   (WORK_FIELDS[state.activeTab], container drag, the right-click menu)
+   needed no changes to gain per-instance layouts — it was already keying off
+   one string, that string just used to be a bare tab id. */
+function switchToInst(iid){
+  const s = instByIid(iid);
+  if (!s) return;
+  state.activeInst = iid;
+  state.activeTab = layoutKeyOf(s);
   renderTabPane();
   renderCanvas();
 }
 
 /* ═══════════════════════════ CANVAS / EMULATOR ═══════════════════════════ */
 
-function tabLabel(tabId){
-  const t = currentTabDefs().find(x => x.id === tabId);
-  return t ? t.label : tabId;
+/* Instance-aware. The toolbar has to name the INSTANCE, not the tab, or two
+   Record View steps are indistinguishable while you are editing them —
+   which is how the wrong layout gets saved to real groups. */
+function tabLabel(key){
+  const t = tabDefOf(baseTabOf(key));
+  const base = t ? t.label : baseTabOf(key);
+  const n = instanceNoOf(key);
+  return n > 1 ? base + ' (' + n + ')' : base;
 }
 
 function renderCanvas(){
+  const inst = activeInst();
+
+  /* KIND ROUTING. `uds` and `prompt` have no field layout of their own
+     (STEP_KINDS[...].hasLayout === false), so they get their own editors
+     rather than the "isn't modeled in this prototype" empty state, which
+     would be actively misleading — there is nothing to model. */
+  if (inst && inst.kind === 'prompt') return renderPromptEditor(inst);
+  if (inst && inst.kind === 'uds')    return renderUdsPlacement(inst);
+
   document.getElementById('canvasToolbarLabel').textContent = tabLabel(state.activeTab);
   const canvas = document.getElementById('designerCanvas');
   const data = WORK_FIELDS[state.activeTab];
@@ -1231,25 +1587,37 @@ function renderCanvas(){
     return;
   }
 
-  const isWoStepTab = state.baseScreen === 'wo' && ['recordview','checklist','parts','booklabor','closing'].includes(state.activeTab);
-  const showRail = isWoStepTab && state.woType !== 'none';
+  /* The rail is a property of the INSTANCE's placement now, not of a
+     hardcoded list of five tab ids. A More entry gets no rail because it is
+     not in the sequence (§14.8), and any tab placed as a step gets one —
+     including tabs that were never step-flagged in WO_TABS. */
+  /* "Is this instance actually a live numbered step of a guided workflow?"
+     Everything the emulator draws below the form keys off this one answer —
+     the rail, the gate preview and the bottom bar — because on the §11
+     fallback screen (no WO Workflow header, so no workflow at all) and on a
+     More entry, all three would otherwise assert a sequence that does not
+     exist. Getting this wrong is subtle rather than loud: the screen renders,
+     it just promises a Next that nothing would draw. */
+  const inWorkflow = state.baseScreen === 'wo' && state.woType !== 'none'
+    && !!inst && inst.placement === 'step' && inst.visible;
+  const showRail = inWorkflow;
 
   let railHtml = '';
   if (showRail) {
-    const stepId = state.activeTab === 'recordview' ? 'recordview' : Object.keys(STEP_META).find(k => STEP_META[k].tab === state.activeTab);
-    const order = ['recordview'].concat(availableStepIds().filter(s => state.steps[s].visible));
+    const order = availableSteps().filter(s => s.visible);
     const total = order.length;
-    const pos = order.indexOf(stepId) + 1;
+    const pos = order.findIndex(s => s.iid === inst.iid) + 1;
     let segs = '';
     for (let i=1;i<=total;i++) segs += `<div class="mob-seg ${i<pos?'done':(i===pos?'active':'future')}"></div>`;
     railHtml = `<div class="mob-step-rail">
       <span class="mob-step-pill">${pos} of ${total}</span>
-      <span class="mob-step-name">${tabLabel(state.activeTab)}</span>
+      <span class="mob-step-name">${esc(instLabel(inst))}</span>
       <div class="mob-step-bar">${segs}</div>
     </div>`;
   }
 
-  const lockedHeader = (state.activeTab === 'recordview' || state.activeTab === 'eq-recordview')
+  const baseTab = baseTabOf(state.activeTab);
+  const lockedHeader = (baseTab === 'recordview' || baseTab === 'eq-recordview')
     ? `<div class="mob-locked-header"><i class="ti ti-lock"></i> Identity header (icon / number / description / status / pin) — locked out of Screen Designer, §5.3</div>` : '';
 
   let bodyHtml = '';
@@ -1270,6 +1638,21 @@ function renderCanvas(){
     }
   });
 
+  /* GATES RENDERED IN THE EMULATOR (§29.3). The point of having an emulator
+     is that a configuration choice shows its consequence, and a gate's whole
+     consequence is a locked Next bar plus the box the technician has to
+     fill. Left out of the emulator, "Require a comment" is a toggle with no
+     visible effect anywhere in the designer. */
+  const gateHtml = (inWorkflow && (inst.reqComment || inst.reqDoc)) ? `
+    <div class="mob-gate">
+      ${inst.reqComment ? `<div class="mob-gate-box"><div class="mob-gate-lbl"><i class="ti ti-message-plus"></i> Comment <span class="mob-gate-req">required</span></div><div class="mob-gate-input">Type a comment…</div></div>` : ''}
+      ${inst.reqDoc ? `<div class="mob-gate-box"><div class="mob-gate-lbl"><i class="ti ti-paperclip"></i> Attachment <span class="mob-gate-req">required</span></div><div class="mob-gate-input">Add a document…</div></div>` : ''}
+    </div>` : '';
+
+  const barHtml = inWorkflow
+    ? `<div class="mob-next-bar ${(inst.reqComment||inst.reqDoc)?'locked':''}">${(inst.reqComment||inst.reqDoc)?'<i class="ti ti-lock"></i> Next':'Next'}</div>`
+    : `<div class="mob-save-btn">Save</div>`;
+
   canvas.innerHTML = `<div class="mobile-shell" id="mobileShell">
     <div class="mob-nav">
       <i class="ti ti-chevron-left mob-nav-back"></i>
@@ -1278,11 +1661,233 @@ function renderCanvas(){
     </div>
     ${lockedHeader}
     ${railHtml}
-    <div class="mob-form" id="mobForm">${bodyHtml}</div>
-    <div class="mob-save-btn">Save</div>
+    <div class="mob-form" id="mobForm">${bodyHtml}${gateHtml}</div>
+    ${barHtml}
   </div>`;
 
   wireFieldDragEvents();
+}
+
+/* ═══════════════════════════ QUESTION FORK EDITOR (§29.4) ═══════════════════════════ */
+/*
+   WHY A FORK IS ITS OWN KIND rather than a field on a step. It carries no
+   record data — nothing it produces lands on the WO. Its entire output is a
+   routing decision, so it has no field layout to design and no place in
+   `R5PAGELAYOUT` at all. Modelling it as a step with a weird field set would
+   have put a routing rule inside a layout table.
+
+   FORWARD-ONLY, ENFORCED. Targets are drawn only from steps AFTER this one.
+   §14.10 locked gating as forward-only — a technician may always go back,
+   but the workflow only ever dictates forward order — and a backward route
+   would be a loop with no defined meaning. `pruneBackwardForks()` re-checks
+   after every reorder, because a valid target can become a backward one
+   without anybody touching the fork.
+
+   SKIPPED STEPS BECOME NOT APPLICABLE, NOT HIDDEN. Per §13.3 item 4, a step
+   effect must ADD rather than retract: a skipped step may already hold
+   booked labor or issued parts from an earlier pass, and un-hiding a step
+   the technician has passed has no defined meaning. So a skipped step stays
+   in the rail, greyed, marked N/A, and stops gating Next. It also stays
+   auditable — you can see what the answer skipped, which "hidden" destroys.
+*/
+
+function promptTargets(inst){
+  /* Only later steps in the sequence. A More entry is never a target — it is
+     not in the flow, so "route there" has no continuation. */
+  const seq = stepInstances().filter(instHasTab);
+  const i = seq.findIndex(s => s.iid === inst.iid);
+  return seq.slice(i + 1).filter(s => s.visible);
+}
+
+function renderPromptEditor(inst){
+  document.getElementById('canvasToolbarLabel').textContent = instLabel(inst);
+  const canvas = document.getElementById('designerCanvas');
+  const lang = state.authorLang;
+  const targets = promptTargets(inst);
+  const answers = inst.answers || [];
+
+  const langPills = LANGUAGES.map(l => {
+    const isBase = l.code === BASE_LANG;
+    const done = (inst.question && inst.question[l.code] && inst.question[l.code].trim())
+      && answers.every(a => a.label && a.label[l.code] && a.label[l.code].trim());
+    return `<span class="pe-lang ${l.code===lang?'on':''} ${done?'done':''}" onclick="setAuthorLang('${l.code}')" title="${esc(l.label)}${isBase?' — authoring language':''}">${l.code}${isBase?'<sup>*</sup>':''}${done?'<i class="ti ti-check"></i>':''}</span>`;
+  }).join('');
+
+  const missing = txMissing(inst.question);
+  const baseEmpty = !(inst.question && inst.question[BASE_LANG] && inst.question[BASE_LANG].trim());
+
+  const answerRows = answers.map((a, i) => `
+    <div class="pe-answer">
+      <span class="pe-anum">${i+1}</span>
+      <input class="pe-input" placeholder="${lang===BASE_LANG?'Answer label':'Translation of “'+esc(tx(a.label, BASE_LANG))+'”'}"
+             value="${esc((a.label||{})[lang]||'')}"
+             oninput="setAnswerLabel('${inst.iid}','${a.id}',this.value)">
+      <i class="ti ti-arrow-narrow-right pe-arrow"></i>
+      <select class="pe-select" onchange="setAnswerTarget('${inst.iid}','${a.id}',this.value)">
+        <option value="" ${!a.target?'selected':''}>Continue to next step</option>
+        ${targets.map(t => `<option value="${t.iid}" ${a.target===t.iid?'selected':''}>Jump to: ${esc(instLabel(t))}</option>`).join('')}
+        <option value="__end" ${a.target==='__end'?'selected':''}>End the workflow</option>
+      </select>
+      ${answers.length > 1 ? `<i class="ti ti-x pe-del" title="Remove answer" onclick="removeAnswer('${inst.iid}','${a.id}')"></i>` : ''}
+    </div>`).join('');
+
+  /* What each answer actually skips, spelled out. An admin cannot hold a
+     branch table in their head, and this is the only place the consequence
+     of a target is visible before a technician hits it. */
+  const seq = stepInstances().filter(instHasTab);
+  const myIdx = seq.findIndex(s => s.iid === inst.iid);
+  const effect = answers.map(a => {
+    const label = esc(tx(a.label, BASE_LANG) || '(unlabelled)');
+    if (a.target === '__end') return `<li><b>${label}</b> → ends the workflow. Every remaining step is marked <b>N/A</b>.</li>`;
+    if (!a.target) return `<li><b>${label}</b> → continues to the next step. Nothing is skipped.</li>`;
+    const ti = seq.findIndex(s => s.iid === a.target);
+    const skipped = seq.slice(myIdx + 1, ti).filter(s => s.visible);
+    return `<li><b>${label}</b> → jumps to <b>${esc(instLabel(seq[ti]))}</b>. ${skipped.length ? `Skips ${skipped.length} step${skipped.length>1?'s':''}, each marked <b>N/A</b> and still visible in the rail: ${skipped.map(s=>esc(instLabel(s))).join(', ')}.` : 'Skips nothing — that is already the next step.'}</li>`;
+  }).join('');
+
+  canvas.innerHTML = `
+    <div class="prompt-editor">
+      <div class="pe-hdr">
+        <div class="pe-title"><i class="ti ti-help-octagon"></i> Question fork</div>
+        <div class="pe-langs">${langPills}</div>
+      </div>
+      <p class="pe-lead">Asks the technician a question, then routes on the answer. It stores nothing on the work order — its only output is which step comes next, which is why it has no field layout.</p>
+
+      <div class="pe-field-label">Question (${esc(langLabel(lang))}${lang===BASE_LANG?' — authoring language':''})</div>
+      <textarea class="pe-textarea" rows="2"
+        placeholder="${lang===BASE_LANG?'e.g. Is the asset safe to isolate?':'Translation of “'+esc(tx(inst.question, BASE_LANG))+'”'}"
+        oninput="setPromptQuestion('${inst.iid}',this.value)">${esc((inst.question||{})[lang]||'')}</textarea>
+      ${baseEmpty
+        ? `<div class="wfp-note warn"><i class="ti ti-alert-triangle"></i> The <b>${BASE_LANG}</b> question is empty. ${BASE_LANG} is the authoring language and the fallback for every other one, so an empty ${BASE_LANG} leaves the technician a blank question they still have to answer to get past a gated step.</div>`
+        : (lang === BASE_LANG && missing.length
+            ? `<div class="wfp-note"><i class="ti ti-language"></i> No translation yet for <b>${missing.join(', ')}</b>. Those users see the ${BASE_LANG} text — a missing translation falls back, it never blanks (§29.4).</div>`
+            : '')}
+
+      <div class="pe-field-label" style="margin-top:16px">Answers &amp; routing</div>
+      ${answerRows}
+      <div class="pe-add" onclick="addAnswer('${inst.iid}')"><i class="ti ti-plus"></i> Add answer</div>
+      ${targets.length ? '' : `<div class="wfp-note warn"><i class="ti ti-alert-triangle"></i> No later steps exist, so nothing can be jumped to. A fork can only route <b>forward</b> (§14.10) — move this step earlier in the sequence, or add the steps it should branch into.</div>`}
+
+      <div class="pe-effect">
+        <div class="pe-effect-hdr"><i class="ti ti-route"></i> What each answer does</div>
+        <ul>${effect}</ul>
+        <div class="pe-effect-note">A skipped step is marked <b>N/A</b> and stays visible in the step rail — it is not hidden. A step may already hold booked labor or issued parts from an earlier pass, and hiding one the technician has passed has no defined meaning (§13.3 item 4). It also keeps the skip auditable.</div>
+      </div>
+    </div>
+
+    <div class="mobile-shell" id="mobileShell">
+      <div class="mob-nav">
+        <i class="ti ti-chevron-left mob-nav-back"></i>
+        <div class="mob-nav-title">${emulatorRecordLabel()}</div>
+        <i class="ti ti-dots-vertical" style="color:rgba(255,255,255,0.4);font-size:14px"></i>
+      </div>
+      <div class="mob-form">
+        <div class="mob-prompt">
+          <div class="mob-prompt-q">${esc(tx(inst.question, lang)) || '<span class="mob-prompt-empty">Your question appears here</span>'}</div>
+          <div class="mob-prompt-answers">
+            ${answers.map(a => `<div class="mob-prompt-btn">${esc(tx(a.label, lang) || '—')}</div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function setAuthorLang(code){ state.authorLang = code; renderCanvas(); }
+
+function setPromptQuestion(iid, val){
+  const s = instByIid(iid); if (!s) return;
+  s.question = s.question || {};
+  s.question[state.authorLang] = val;
+  /* The row's own label is derived from the question, so the left pane has
+     to re-render — but re-rendering the canvas mid-typing would blow away
+     the caret, so only the pane refreshes here. */
+  renderStepRows();
+}
+
+function setAnswerLabel(iid, aid, val){
+  const s = instByIid(iid); if (!s) return;
+  const a = (s.answers||[]).find(x => x.id === aid); if (!a) return;
+  a.label = a.label || {};
+  a.label[state.authorLang] = val;
+}
+
+function setAnswerTarget(iid, aid, val){
+  const s = instByIid(iid); if (!s) return;
+  const a = (s.answers||[]).find(x => x.id === aid); if (!a) return;
+  a.target = val || null;
+  renderStepRows();
+  renderCanvas();
+}
+
+function addAnswer(iid){
+  const s = instByIid(iid); if (!s) return;
+  s.answers = s.answers || [];
+  s.answers.push({id:'a' + (++instSeq), label:{}, target:null});
+  renderCanvas();
+}
+
+function removeAnswer(iid, aid){
+  const s = instByIid(iid); if (!s) return;
+  s.answers = (s.answers||[]).filter(x => x.id !== aid);
+  renderStepRows();
+  renderCanvas();
+}
+
+/* ═══════════════════════════ UDS PLACEMENT (§27) ═══════════════════════════ */
+
+function renderUdsPlacement(inst){
+  document.getElementById('canvasToolbarLabel').textContent = instLabel(inst);
+  const canvas = document.getElementById('designerCanvas');
+  const d = udsDefOf(inst.uds);
+  const showRail = state.woType !== 'none' && inst.placement === 'step' && inst.visible;
+
+  let railHtml = '';
+  if (showRail) {
+    const order = availableSteps().filter(s => s.visible);
+    const pos = order.findIndex(s => s.iid === inst.iid) + 1;
+    let segs = '';
+    for (let i=1;i<=order.length;i++) segs += `<div class="mob-seg ${i<pos?'done':(i===pos?'active':'future')}"></div>`;
+    railHtml = `<div class="mob-step-rail">
+      <span class="mob-step-pill">${pos} of ${order.length}</span>
+      <span class="mob-step-name">${esc(instLabel(inst))}</span>
+      <div class="mob-step-bar">${segs}</div>
+    </div>`;
+  }
+
+  /* Deliberately NOT an editable field grid. The whole §27.4 split is that
+     base EAM's UDS setup owns the definition and this designer only places
+     it — so the fields render as a read-only preview with the reason stated,
+     rather than as something that looks draggable and silently isn't. */
+  const preview = d
+    ? Array.from({length: d.fields}).map((_, i) => `<div class="uds-field"><span class="uds-field-lbl">Field ${i+1}</span><span class="uds-field-val">—</span></div>`).join('')
+    : '';
+
+  canvas.innerHTML = `
+    <div class="prompt-editor">
+      <div class="pe-hdr"><div class="pe-title"><i class="ti ti-layout-board-split"></i> ${esc(d ? d.label : 'User Defined Screen')}</div></div>
+      <p class="pe-lead">A customer-authored screen placed as a tab of this function. It takes an ordinary §12 tier-2 row, so it can be a numbered, gated, Required step exactly like a delivered tab — no separate placement model.</p>
+      <div class="uds-meta">
+        <div><span>Definition</span><b>${esc(inst.uds)}</b></div>
+        <div><span>Fields</span><b>${d ? d.fields : '—'}</b></div>
+        <div><span>Modified</span><b>${d ? d.modified : '—'}</b></div>
+        <div><span>Placement</span><b>${inst.placement === 'step' ? 'Numbered step' : 'More entry'}</b></div>
+      </div>
+      <div class="wfp-note"><i class="ti ti-lock"></i> <b>Read-only here, on purpose.</b> Fields, types, LOVs, labels and required-ness belong to base EAM's own UDS setup (§27.4 role 1). Screen Designer <b>places</b> the tab; User Group Setup <b>assigns</b> the configuration. Building field authoring into this screen is the mistake that retired the old Workflow Designer (§27.2).</div>
+      <div class="wfp-note"><i class="ti ti-info-circle"></i> On the device this renders through <b>one generic definition-driven tab renderer</b> (§27.3), never a screen per UDS. A UDS placed as a <b>Required step</b> also needs §14.7 bar-locking evaluated over fields the app has never seen — one of the two independent arguments for the declared-vs-effective field-state split (§13.3 item 2).</div>
+      ${inst.placement === 'step' && inst.required
+        ? `<div class="wfp-note warn"><i class="ti ti-alert-triangle"></i> Required + UDS is the combination User Group Setup has to check: a group without permission to this tab gets a step it can neither complete nor skip — a hard dead end, not a warning (§27.4).</div>` : ''}
+    </div>
+
+    <div class="mobile-shell" id="mobileShell">
+      <div class="mob-nav">
+        <i class="ti ti-chevron-left mob-nav-back"></i>
+        <div class="mob-nav-title">${emulatorRecordLabel()}</div>
+        <i class="ti ti-dots-vertical" style="color:rgba(255,255,255,0.4);font-size:14px"></i>
+      </div>
+      ${railHtml}
+      <div class="mob-form"><div class="mob-section-hdr" style="cursor:default"><span class="csh-name">${esc(d ? d.label : 'User Defined Screen')}</span></div>${preview}</div>
+      ${inst.placement === 'step' ? '<div class="mob-next-bar">Next</div>' : '<div class="mob-save-btn">Save</div>'}
+    </div>`;
 }
 
 function behaviorMeta(b){
@@ -1535,7 +2140,10 @@ function addNewContainer(){
 
 function openAddFieldModal(){
   const list = document.getElementById('addFieldList');
-  const candidates = AVAILABLE_FIELD_CANDIDATES[state.activeTab] || [];
+  /* Candidates come from the BASE tab, not the layout key — the un-placed
+     field pool is a property of the entity, not of which instance you happen
+     to be editing. */
+  const candidates = AVAILABLE_FIELD_CANDIDATES[baseTabOf(state.activeTab)] || [];
   list.innerHTML = candidates.length ? candidates.map((f, i) => `
     <div class="listbox-item" style="border:1px solid var(--oct-gray-200);border-radius:6px;display:flex;align-items:center;gap:8px;cursor:pointer" onclick="addFieldToScreen(${i})">
       <span style="width:8px;height:8px;border-radius:50%;background:${FIELD_TYPE_DOT[f.type]};flex-shrink:0"></span>
@@ -1547,7 +2155,7 @@ function openAddFieldModal(){
 }
 function closeAddFieldModal(){ document.getElementById('addFieldModalOverlay').style.display = 'none'; }
 function addFieldToScreen(i){
-  const candidates = AVAILABLE_FIELD_CANDIDATES[state.activeTab];
+  const candidates = AVAILABLE_FIELD_CANDIDATES[baseTabOf(state.activeTab)];
   const f = candidates.splice(i, 1)[0];
   const data = WORK_FIELDS[state.activeTab];
   if (!data.length) data.push({container:'General', fields:[]});
@@ -1563,79 +2171,355 @@ function addFieldToScreen(i){
 
 /* ═══════════════════════════ WORKFLOW STEP ROWS (left pane) ═══════════════════════════ */
 
+/* ONE ROW RENDERER FOR BOTH LISTS. A Step row and a More row differ in
+   exactly two visible ways — whether a sequence number is shown and whether
+   Req is offered — and both of those follow from `placement`. Rendering them
+   from one function is what keeps "move this to More" a one-field change
+   rather than a migration between two row shapes. */
+function stepRowHtml(s, stepNo){
+  const active = s.iid === state.activeInst;
+  const isStep = s.placement === 'step';
+  const kindTag = s.kind === 'tab' ? ''
+    : `<span class="wfp-kind">${STEP_KINDS[s.kind].label}</span>`;
+
+  /* Gates are surfaced ON THE ROW, not only inside the settings drawer. An
+     admin scanning a workflow needs to see where the technician will be
+     stopped without opening five drawers. */
+  const gates = [];
+  if (s.reqComment) gates.push(`<span class="wfp-gate" title="Next locked until a comment is entered"><i class="ti ti-message-plus"></i>comment</span>`);
+  if (s.reqDoc)     gates.push(`<span class="wfp-gate" title="Next locked until a document is attached"><i class="ti ti-paperclip"></i>doc</span>`);
+  if (s.kind === 'prompt') {
+    const routed = (s.answers||[]).filter(a => a.target).length;
+    if (routed) gates.push(`<span class="wfp-gate fork" title="${routed} answer(s) route past the next step"><i class="ti ti-arrow-ramp-right-2"></i>${routed} fork${routed>1?'s':''}</span>`);
+  }
+
+  const tag = s.pinned ? 'Step 1 — pinned (§14)'
+    : !s.visible ? 'Not in this workflow'
+    : isStep ? 'Step ' + stepNo
+    : 'Always reachable';
+
+  const settingsOpen = openStepSettings === s.iid;
+  let row = `<div class="wfp-step-row ${s.visible?'':'dim'} ${active?'active':''}" ${s.pinned?'':'draggable="true"'} data-iid="${s.iid}" style="${active?'border-color:var(--oct-teal)':''}">
+      <i class="ti ${s.pinned?'ti-lock':'ti-grip-vertical'} wfp-drag"${s.pinned?' style="cursor:default"':''}></i>
+      <div class="wfp-step-icon"><i class="ti ${instIcon(s)}"></i></div>
+      <div class="wfp-step-body" style="cursor:pointer" onclick="switchToInst('${s.iid}')">
+        <div class="wfp-step-name">${esc(instLabel(s))}${kindTag}</div>
+        <div class="wfp-step-tag">${tag}${gates.length ? ' ' + gates.join('') : ''}</div>
+      </div>
+      <div class="wfp-step-controls">
+        <i class="ti ti-settings wfp-step-gear${settingsOpen?' on':''}" title="Step settings" onclick="toggleStepSettings(event,'${s.iid}')"></i>
+        <div class="wfp-mini"><label>Vis</label><label class="toggle"><input type="checkbox" ${s.visible?'checked':''} ${s.pinned?'disabled':''} onchange="toggleStepVisible('${s.iid}', this.checked)"><div class="toggle-track"></div></label></div>
+        ${isStep
+          ? `<div class="wfp-mini"><label>Req</label><label class="toggle"><input type="checkbox" ${s.required?'checked':''} ${(s.visible && !s.pinned)?'':'disabled'} onchange="toggleStepRequired('${s.iid}', this.checked)"><div class="toggle-track"></div></label></div>`
+          : `<div class="wfp-mini dimmed" title="A More entry can never be Required — nothing routes the technician there, so the flag would be unenforceable (§14.8)"><label>Req</label><span class="wfp-na">n/a</span></div>`}
+      </div>
+    </div>`;
+  if (settingsOpen) row += stepSettingsHtml(s);
+  return row;
+}
+
 function renderStepRows(){
   const el = document.getElementById('tpStepRows');
   if (!el) return;
-  /* Only steps this function's tab set can actually show. The displayed
-     step number counts VISIBLE available steps, so hiding one renumbers the
-     rest instead of leaving a gap — the old `idx+2` numbered by array
-     position and drifted as soon as anything was switched off. */
-  const avail = availableStepIds();
-  let seq = 1; // record view is always step 1
-  el.innerHTML = avail.map((stepId) => {
-    const s = state.steps[stepId];
-    const meta = STEP_META[stepId];
-    const active = meta.tab === state.activeTab;
-    const stepNo = s.visible ? ++seq : null;
-    const hasSettings = stepId === 'booklabor';
-    let rowHtml = `<div class="wfp-step-row ${s.visible?'':'dim'} ${active?'active':''}" draggable="true" data-step="${stepId}" style="${active?'border-color:var(--oct-teal)':''}">
-      <i class="ti ti-grip-vertical wfp-drag"></i>
-      <div class="wfp-step-icon"><i class="ti ${meta.icon}"></i></div>
-      <div class="wfp-step-body" style="cursor:pointer" onclick="switchTab('${meta.tab}')">
-        <div class="wfp-step-name">${meta.label}</div>
-        <div class="wfp-step-tag">${s.visible ? 'Step ' + stepNo : 'Not in this workflow'}</div>
-      </div>
-      <div class="wfp-step-controls">
-        ${hasSettings ? `<i class="ti ti-settings wfp-step-gear" title="Step-specific settings" onclick="toggleBookLaborSettings(event)"></i>` : ''}
-        <div class="wfp-mini"><label>Vis</label><label class="toggle"><input type="checkbox" ${s.visible?'checked':''} onchange="toggleStepVisible('${stepId}', this.checked)"><div class="toggle-track"></div></label></div>
-        <div class="wfp-mini"><label>Req</label><label class="toggle"><input type="checkbox" ${s.required?'checked':''} ${s.visible?'':'disabled'} onchange="toggleStepRequired('${stepId}', this.checked)"><div class="toggle-track"></div></label></div>
-      </div>
-    </div>`;
-    if (hasSettings && bookLaborSettingsOpen) {
-      rowHtml += `<div class="wfp-step-settings">
-        <div class="wfp-section-label" style="padding-top:0">Time Entry Mode</div>
-        <select class="wfp-select" onchange="setBookLaborTimeEntryMode(this.value)">
-          <option value="startend" ${state.bookLaborTimeEntryMode==='startend'?'selected':''}>Start / End Time</option>
-          <option value="direct" ${state.bookLaborTimeEntryMode==='direct'?'selected':''}>Direct Hours Entry</option>
-        </select>
-        <div class="wfp-note"><i class="ti ti-info-circle"></i> §18.4 — was hardcoded to Start/End only; now a real per-step flag.</div>
-      </div>`;
-    }
-    return rowHtml;
-  }).join('');
+  /* Only instances this function can actually show. The displayed step
+     number counts VISIBLE available steps, so hiding one renumbers the rest
+     instead of leaving a gap. */
+  const avail = availableSteps();
+  let seq = 0;
+  el.innerHTML = avail.map(s => stepRowHtml(s, s.visible ? ++seq : null)).join('');
 
   /* Say what was withheld and why. A step silently absent from this pane is
      indistinguishable from a bug. */
-  const gone = missingStepIds();
+  const gone = [...new Set(missingSteps().map(instLabel))];
   if(gone.length){
     el.innerHTML += `<div class="wfp-note" style="margin:8px 4px 2px">
-      <i class="ti ti-alert-triangle"></i> ${gone.map(s=>STEP_META[s].label).join(', ')}
+      <i class="ti ti-alert-triangle"></i> ${gone.join(', ')}
       ${gone.length>1?'are':'is'} unavailable on <b>${currentFn().code}</b> — the screen has no such tab.
     </div>`;
   }
   wireStepDragEvents();
 }
 
-function toggleStepVisible(stepId, val){
-  state.steps[stepId].visible = val;
-  if (!val) state.steps[stepId].required = false;
+function renderMoreRows(){
+  const el = document.getElementById('tpMoreRows');
+  if (!el) return;
+  const rows = moreInstances().filter(instHasTab);
+  el.innerHTML = rows.length
+    ? rows.map(s => stepRowHtml(s, null)).join('')
+    : `<div class="wfp-note" style="margin:2px 4px"><i class="ti ti-info-circle"></i> No More entries. Every tab of this function is either a numbered step or not placed at all.</div>`;
+  wireStepDragEvents();
+}
+
+/* ═══════════════════════════ STEP SETTINGS DRAWER ═══════════════════════════ */
+
+function stepSettingsHtml(s){
+  let h = `<div class="wfp-step-settings">`;
+
+  /* ── COMPLETION GATES (§29.3) ──────────────────────────────────────────
+     Deliberately ATTRIBUTES ON ANY STEP rather than two new step kinds.
+     "Force a comment here" is a property of the step the technician is
+     already on; as a separate step kind, a Book Labor step could never
+     require one without an extra screen sitting next to it. A step whose
+     only content is the comment box is then the degenerate case of the same
+     mechanic, not a second one.
+
+     Where the content LANDS is the other half of the decision: the comment
+     goes to the WO's normal Comments (§7.2) and the file to Documents, not
+     to a private per-step store. A forced note nobody can find afterwards
+     is worse than no note, and §7.2 already puts both on the record view
+     with a View-more into the full tab. */
+  h += `<div class="wfp-section-label" style="padding-top:0">Completion gates (§29.3)</div>
+    <div class="wfp-row">
+      <div>
+        <div class="lbl">Require a comment</div>
+        <div class="desc">Next stays locked until one is entered. Saved to the WO's normal Comments (§7.2) — not a private per-step note.</div>
+      </div>
+      <label class="toggle"><input type="checkbox" ${s.reqComment?'checked':''} onchange="setStepGate('${s.iid}','reqComment',this.checked)"><div class="toggle-track"></div></label>
+    </div>
+    <div class="wfp-row">
+      <div>
+        <div class="lbl">Require a document</div>
+        <div class="desc">Next stays locked until at least one attachment exists. Lands in Documents (§7.2) against this WO.</div>
+      </div>
+      <label class="toggle"><input type="checkbox" ${s.reqDoc?'checked':''} onchange="setStepGate('${s.iid}','reqDoc',this.checked)"><div class="toggle-track"></div></label>
+    </div>`;
+
+  /* A gate on a step the technician never has to open never fires. Worth
+     saying at authoring time — it is invisible on the device. */
+  if ((s.reqComment || s.reqDoc) && s.placement === 'step' && !s.required) {
+    h += `<div class="wfp-note warn"><i class="ti ti-alert-triangle"></i> This step isn't <b>Required</b>, so the technician can finish the workflow without ever opening it — and a gate on a step nobody must visit never fires. Turn <b>Req</b> on, or accept the gate as advisory.</div>`;
+  }
+  if ((s.reqComment || s.reqDoc) && s.placement === 'more') {
+    h += `<div class="wfp-note warn"><i class="ti ti-alert-triangle"></i> Gates do nothing on a <b>More</b> entry — there is no Next button to lock (§14.8). Move it into the sequence for the gate to mean anything.</div>`;
+  }
+
+  /* ── PER-KIND SETTINGS ─────────────────────────────────────────────── */
+  if (s.kind === 'tab' && s.tab === 'booklabor') {
+    h += `<div class="wfp-section-label">Time Entry Mode</div>
+      <select class="wfp-select" onchange="setInstTimeEntry('${s.iid}', this.value)">
+        <option value="startend" ${(s.timeEntry||'startend')==='startend'?'selected':''}>Start / End Time</option>
+        <option value="direct" ${s.timeEntry==='direct'?'selected':''}>Direct Hours Entry</option>
+      </select>
+      <div class="wfp-note"><i class="ti ti-info-circle"></i> §18.4. Now stored on the INSTANCE, not globally — Book Labor can be placed twice, and two placements with one shared mode would be a hidden coupling.</div>`;
+  }
+
+  if (s.kind === 'uds') {
+    const d = udsDefOf(s.uds);
+    h += `<div class="wfp-section-label">User Defined Screen</div>
+      <div class="wfp-ro">${d ? esc(d.label) + ' · ' + d.fields + ' fields · modified ' + d.modified : 'definition not found'}</div>
+      <div class="wfp-note"><i class="ti ti-lock"></i> Fields, types, LOVs, labels and required-ness are authored in <b>base EAM's own UDS setup</b> (§27.4 role 1). Screen Designer <b>places</b> the tab and never edits the definition — rebuilding that authoring here is the mistake that retired the old Workflow Designer (§27.2).</div>`;
+  }
+
+  if (s.kind === 'prompt') {
+    h += `<div class="wfp-section-label">Question &amp; answers</div>
+      <div class="wfp-note"><i class="ti ti-arrow-right"></i> Edited on the canvas — <span class="wfp-inline-link" onclick="switchToInst('${s.iid}')">open this step</span> to type the question, add answers and set where each one routes.</div>`;
+  }
+
+  if (s.kind === 'tab' && s.inst > 1) {
+    h += `<div class="wfp-section-label">Layout</div>
+      <div class="wfp-ro mono">${esc(layoutKeyOf(s))}</div>
+      <div class="wfp-note"><i class="ti ti-info-circle"></i> This instance has its <b>own</b> field layout, seeded as a copy of instance 1 and free to diverge — that is what makes "Record View twice, two layouts" work. The <code>#${s.inst}</code> suffix is the page-variant dimension on §13's <code>R5PAGELAYOUT</code> key.</div>`;
+  }
+
+  /* ── INSTANCE ACTIONS ──────────────────────────────────────────────── */
+  h += `<div class="wfp-section-label">This instance</div>
+    <div class="wfp-inst-actions">
+      <div class="wfp-ibtn" onclick="duplicateInst('${s.iid}')"><i class="ti ti-copy"></i> Duplicate</div>
+      <div class="wfp-ibtn" onclick="setPlacement('${s.iid}','${s.placement==='step'?'more':'step'}')"><i class="ti ti-transfer"></i> Move to ${s.placement==='step'?'More':'Steps'}</div>
+      ${s.pinned ? `<div class="wfp-ibtn off" title="Record View instance 1 is step 1 by definition (§14)"><i class="ti ti-lock"></i> Pinned</div>`
+                 : `<div class="wfp-ibtn danger" onclick="removeInst('${s.iid}')"><i class="ti ti-trash"></i> Remove</div>`}
+    </div>`;
+
+  h += `</div>`;
+  return h;
+}
+
+function toggleStepSettings(e, iid){
+  e.stopPropagation();
+  openStepSettings = (openStepSettings === iid) ? null : iid;
+  renderStepRows();
+  renderMoreRows();
+}
+
+function toggleStepVisible(iid, val){
+  const s = instByIid(iid); if (!s || s.pinned) return;
+  s.visible = val;
+  if (!val) s.required = false;
   renderTabPane();
   renderCanvas();
 }
 
-function toggleStepRequired(stepId, val){
-  state.steps[stepId].required = val;
-}
-
-function toggleBookLaborSettings(e){
-  e.stopPropagation();
-  bookLaborSettingsOpen = !bookLaborSettingsOpen;
+function toggleStepRequired(iid, val){
+  const s = instByIid(iid); if (!s) return;
+  /* Enforced, not just hidden: §14.8 says a More entry cannot be Required
+     because nothing routes the technician there. Guarding the setter as well
+     as the markup means a placement change can't leave a stale flag behind. */
+  if (s.placement !== 'step') return;
+  s.required = val;
   renderStepRows();
 }
 
-function setBookLaborTimeEntryMode(val){
-  state.bookLaborTimeEntryMode = val;
-  showToast('Book Labor Time Entry Mode: ' + (val === 'direct' ? 'Direct Hours Entry' : 'Start / End Time'), 'ti-clock-hour-4');
+function setStepGate(iid, key, val){
+  const s = instByIid(iid); if (!s) return;
+  s[key] = val;
+  renderStepRows();
+  renderMoreRows();
+  renderCanvas();
+  showToast(`${instLabel(s)}: ${key === 'reqComment' ? 'comment' : 'document'} ${val ? 'required' : 'no longer required'}`, val ? 'ti-lock' : 'ti-lock-open');
+}
+
+function setInstTimeEntry(iid, val){
+  const s = instByIid(iid); if (!s) return;
+  s.timeEntry = val;
+  showToast('Time Entry Mode: ' + (val === 'direct' ? 'Direct Hours Entry' : 'Start / End Time'), 'ti-clock-hour-4');
+}
+
+/* ═══════════════════════════ INSTANCE LIFECYCLE ═══════════════════════════ */
+
+/* Duplicating a TAB instance copies its field layout too, so the copy opens
+   as what the admin was just looking at and is then free to diverge. Copying
+   the layout rather than sharing it is the whole requirement — a shared
+   reference would make two Record View steps permanently identical. */
+function duplicateInst(iid){
+  const src = instByIid(iid); if (!src) return;
+  const copy = JSON.parse(JSON.stringify(src));
+  copy.iid = nextIid();
+  delete copy.pinned;                 // only Record View instance 1 is ever pinned
+  if (copy.kind === 'tab') {
+    copy.inst = nextInstanceNo(copy.tab);
+    const srcKey = layoutKeyOf(src), newKey = layoutKeyOf(copy);
+    if (WORK_FIELDS[srcKey]) WORK_FIELDS[newKey] = cloneFields(WORK_FIELDS[srcKey]);
+  }
+  state.steps.splice(state.steps.indexOf(src) + 1, 0, copy);
+  openStepSettings = null;
+  switchToInst(copy.iid);
+  showToast(instLabel(copy) + ' added — its own layout, seeded from the original', 'ti-copy');
+}
+
+function removeInst(iid){
+  const s = instByIid(iid); if (!s || s.pinned) return;
+
+  /* Anything forking TO this step would be left pointing at nothing. Clear
+     those targets rather than leaving a dangling route: a fork whose target
+     vanished is a workflow that silently falls through to the next step,
+     which is exactly the kind of failure nobody notices until a technician
+     is standing in front of the asset. */
+  let cleared = 0;
+  state.steps.forEach(o => {
+    if (o.kind !== 'prompt') return;
+    (o.answers||[]).forEach(a => { if (a.target === iid) { a.target = null; cleared++; } });
+  });
+
+  if (s.kind === 'tab') delete WORK_FIELDS[layoutKeyOf(s)];
+  state.steps.splice(state.steps.indexOf(s), 1);
+  openStepSettings = null;
+  if (state.activeInst === iid) {
+    const first = state.steps[0];
+    if (first) switchToInst(first.iid); else { renderTabPane(); renderCanvas(); }
+  } else {
+    renderTabPane(); renderCanvas();
+  }
+  showToast(instLabel(s) + ' removed' + (cleared ? ` · ${cleared} fork target${cleared>1?'s':''} cleared` : ''), 'ti-trash');
+}
+
+function setPlacement(iid, placement){
+  const s = instByIid(iid); if (!s || s.pinned) return;
+  s.placement = placement;
+  /* Required is meaningless on a More entry (§14.8) — drop it on the way
+     across rather than carrying a flag that silently reactivates if the row
+     is moved back. */
+  if (placement === 'more') s.required = false;
+  openStepSettings = null;
+  renderTabPane();
+  renderCanvas();
+  showToast(instLabel(s) + ' → ' + (placement === 'step' ? 'numbered step' : 'More group'), 'ti-transfer');
+}
+
+/* ═══════════════════════════ ADD STEP / TAB ═══════════════════════════ */
+
+let addStepPlacement = 'step';
+
+function openAddStepModal(placement){
+  addStepPlacement = placement;
+  const isStep = placement === 'step';
+  document.getElementById('addStepTitle').textContent = isStep ? 'Add a Workflow Step' : 'Add a More Entry';
+  document.getElementById('addStepLead').innerHTML = isStep
+    ? `Anything added here becomes a <b>numbered, sequenced, gateable</b> step (§12 <code>Placement = Step</code>). A tab already in the workflow can be added <b>again</b> — the second placement gets its own instance number and its own field layout.`
+    : `A <b>More</b> entry is always reachable from any step and never enters the Next flow (§14.8). It cannot be Required, because nothing routes the technician to it.`;
+
+  const body = document.getElementById('addStepList');
+  const defs = currentTabDefs();
+
+  const usedCount = tabId => state.steps.filter(s => s.kind === 'tab' && s.tab === tabId).length;
+
+  let h = `<div class="as-group">Function tabs</div>`;
+  h += defs.map(t => {
+    const n = usedCount(t.id);
+    return `<div class="listbox-item as-item" onclick="addInst('tab','${t.id}')">
+      <i class="ti ${t.icon} as-ico"></i>
+      <span class="as-name">${t.label}</span>
+      ${n ? `<span class="as-used">placed ${n}×</span>` : ''}
+      <span class="as-key">${esc(layoutKeyFor(t.id, nextInstanceNo(t.id)))}</span>
+      <i class="ti ti-plus as-plus"></i>
+    </div>`;
+  }).join('');
+
+  h += `<div class="as-group">User Defined Screens <span class="as-group-note">defined in base EAM's UDS setup — placed here, never edited here (§27.4)</span></div>`;
+  h += UDS_DEFS.map(d => `<div class="listbox-item as-item" onclick="addInst('uds','${d.id}')">
+      <i class="ti ti-layout-board-split as-ico"></i>
+      <span class="as-name">${esc(d.label)}</span>
+      <span class="as-used">${d.fields} fields</span>
+      <i class="ti ti-plus as-plus"></i>
+    </div>`).join('');
+
+  h += `<div class="as-group">Flow control</div>
+    <div class="listbox-item as-item" onclick="addInst('prompt','')">
+      <i class="ti ti-help-octagon as-ico"></i>
+      <span class="as-name">Question fork</span>
+      <span class="as-used">asks, then routes</span>
+      <i class="ti ti-plus as-plus"></i>
+    </div>`;
+  if (!isStep) {
+    h += `<div class="wfp-note warn" style="margin-top:10px"><i class="ti ti-alert-triangle"></i> A question fork in the <b>More</b> group can't route anything — it isn't in the sequence, so there is no "next step" for an answer to redirect. It is offered here only so a placement mistake is visible rather than refused without explanation.</div>`;
+  }
+
+  body.innerHTML = h;
+  document.getElementById('addStepOverlay').style.display = 'flex';
+}
+function closeAddStepModal(){ document.getElementById('addStepOverlay').style.display = 'none'; }
+
+function addInst(kind, ref){
+  const s = {iid: nextIid(), kind, placement: addStepPlacement, visible: true, required: false, reqComment: false, reqDoc: false};
+
+  if (kind === 'tab') {
+    s.tab = ref;
+    s.inst = nextInstanceNo(ref);
+    /* Instance 2+ starts as a COPY of instance 1's layout. A blank second
+       Record View would be useless — the admin wants a variant of the first,
+       and starting from empty means rebuilding 20 fields to change three. */
+    const key = layoutKeyFor(ref, s.inst);
+    const baseKey = ref;
+    if (!WORK_FIELDS[key] && WORK_FIELDS[baseKey]) WORK_FIELDS[key] = cloneFields(WORK_FIELDS[baseKey]);
+    if (ref === 'booklabor') s.timeEntry = 'startend';
+  } else if (kind === 'uds') {
+    s.uds = ref;
+  } else if (kind === 'prompt') {
+    /* Seeded with the two-answer Yes/No shape, which is what a fork almost
+       always is, and with NO targets — an unrouted answer just continues to
+       the next step, so a freshly added fork is inert rather than silently
+       rerouting a live workflow. */
+    s.question = {EN: ''};
+    s.answers = [
+      {id:'a1', label:{EN:'Yes'}, target:null},
+      {id:'a2', label:{EN:'No'},  target:null}
+    ];
+  }
+
+  state.steps.push(s);
+  closeAddStepModal();
+  openStepSettings = null;
+  switchToInst(s.iid);
+  showToast(instLabel(s) + ' added as ' + (addStepPlacement === 'step' ? 'a step' : 'a More entry'), 'ti-plus');
 }
 
 function setFreeForm(val){
@@ -1657,9 +2541,15 @@ function setStartWorkStatus(val){ state.startWorkStatus = val; }
 function setCompletionStatus(val){ state.completionStatus = val; }
 
 function wireStepDragEvents(){
-  const rows = document.querySelectorAll('#wfpStepRows .wfp-step-row');
+  /* PRE-EXISTING BUG, fixed here rather than carried forward: this selector
+     read `#wfpStepRows`, but the container's id has been `tpStepRows` since
+     the pane was merged with tab navigation. It matched nothing, so
+     drag-to-reorder was dead — every listener below was being attached to an
+     empty NodeList. Both lists are wired now, so a row can also be dragged
+     from Steps into More. */
+  const rows = document.querySelectorAll('#tpStepRows .wfp-step-row, #tpMoreRows .wfp-step-row');
   rows.forEach(row => {
-    row.addEventListener('dragstart', () => { dragStep = row.dataset.step; row.classList.add('dragging'); });
+    row.addEventListener('dragstart', () => { dragStep = row.dataset.iid; row.classList.add('dragging'); });
     row.addEventListener('dragend', () => row.classList.remove('dragging'));
     row.addEventListener('dragover', e => {
       e.preventDefault();
@@ -1672,24 +2562,63 @@ function wireStepDragEvents(){
     row.addEventListener('drop', e => {
       e.preventDefault();
       row.classList.remove('dragover-top','dragover-bottom');
-      if (!dragStep || dragStep === row.dataset.step) return;
+      if (!dragStep || dragStep === row.dataset.iid) return;
       const rect = row.getBoundingClientRect();
       const before = (e.clientY - rect.top) < rect.height/2;
-      moveStep(dragStep, row.dataset.step, before);
+      moveStep(dragStep, row.dataset.iid, before);
       dragStep = null;
     });
   });
 }
 
-function moveStep(fromId, toId, before){
-  const order = state.stepOrder;
-  const fromIdx = order.indexOf(fromId);
-  order.splice(fromIdx, 1);
-  let toIdx = order.indexOf(toId);
-  order.splice(before ? toIdx : toIdx + 1, 0, fromId);
+function moveStep(fromIid, toIid, before){
+  const from = instByIid(fromIid), to = instByIid(toIid);
+  if (!from || !to || from.pinned) return;
+
+  /* Dropping onto a row in the other list is a PLACEMENT change as well as a
+     reorder — which is the natural reading of the gesture, and cheaper than
+     making the admin use the drawer's "Move to More" for the same intent. */
+  const crossed = from.placement !== to.placement;
+  if (crossed) {
+    from.placement = to.placement;
+    if (from.placement === 'more') from.required = false;
+  }
+
+  const arr = state.steps;
+  arr.splice(arr.indexOf(from), 1);
+  const toIdx = arr.indexOf(to);
+  arr.splice(before ? toIdx : toIdx + 1, 0, from);
+
+  /* A fork can only route FORWARD (§14.10 — gating dictates the order of
+     moving forward, and a backward route would be a loop). Reordering can
+     therefore invalidate an existing target, so re-check after every move
+     rather than only when a target is picked. */
+  const broke = pruneBackwardForks();
+
   renderTabPane();
   renderCanvas();
-  showToast('Step reordered', 'ti-arrows-sort');
+  showToast(crossed
+      ? instLabel(from) + ' → ' + (from.placement === 'step' ? 'numbered step' : 'More group')
+      : 'Step reordered'
+    + (broke ? ` · ${broke} fork target${broke>1?'s':''} cleared (would have routed backwards)` : ''),
+    crossed ? 'ti-transfer' : 'ti-arrows-sort');
+}
+
+/* Clears any fork target that now sits at or before its own prompt. Returns
+   how many were cleared, so the caller can say so — a silently dropped route
+   is the failure this whole guard exists to prevent. */
+function pruneBackwardForks(){
+  const seq = stepInstances();
+  let n = 0;
+  seq.forEach((p, i) => {
+    if (p.kind !== 'prompt') return;
+    (p.answers||[]).forEach(a => {
+      if (!a.target) return;
+      const ti = seq.findIndex(x => x.iid === a.target);
+      if (ti <= i) { a.target = null; n++; }
+    });
+  });
+  return n;
 }
 
 /* ═══════════════════════════ SAVE / TOAST ═══════════════════════════ */
@@ -1703,6 +2632,23 @@ function saveLayout(){
     ? `Saved: ${f.code} · WO Type ${woTypeName(state.woType)} · Group(s) ${state.groups.join(', ')}`
     : `Saved: ${f.code} · Group(s) ${state.groups.join(', ')}`;
   showToast(summary, 'ti-device-floppy');
+
+  /* A second toast counting what the tier-2 write actually contains. With
+     instances, "saved" no longer implies a fixed five rows — the row count,
+     the gates and the forks are the things an admin most wants confirmed,
+     and the old single toast said none of them. */
+  if (state.baseScreen === 'wo' && state.woType !== 'none') {
+    const steps = availableSteps().filter(s => s.visible).length;
+    const more  = moreInstances().filter(instHasTab).length;
+    const gates = state.steps.filter(s => s.reqComment || s.reqDoc).length;
+    const forks = state.steps.filter(s => s.kind === 'prompt').length;
+    const dupes = state.steps.filter(s => s.kind === 'tab' && s.inst > 1).length;
+    const bits = [`${steps} step${steps===1?'':'s'}`, `${more} More`];
+    if (gates) bits.push(`${gates} gated`);
+    if (forks) bits.push(`${forks} fork${forks===1?'':'s'}`);
+    if (dupes) bits.push(`${dupes} extra instance${dupes===1?'':'s'}`);
+    showToast('WO Workflow Tabs: ' + bits.join(' · '), 'ti-list-numbers');
+  }
 }
 
 function showToast(msg, icon){

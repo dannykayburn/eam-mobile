@@ -458,6 +458,94 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 .iss-b b{font-family:var(--font-mono);font-size:11.5px;}
 .iss.error{border-left:3px solid var(--red);}
 .iss.warn{border-left:3px solid var(--border-strong);}
+/* Informational, not a fault. An online-only group is a deliberate
+   provisioning choice (§2.10), so it must not read as a broken row. */
+.iss.info{border-left:3px solid var(--teal);}
+.iss-h.calm{color:var(--gray-4);}
+.iss-h.calm svg{color:var(--teal);}
+.iss-b .mono{font-family:var(--font-mono);font-size:11px;}
+
+/* ══ §29 — step instances on the Screen Design tab ══ */
+.cell-steps{white-space:normal;line-height:2.1;}
+.sstep{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border-strong);
+  border-radius:100px;padding:1px 8px;font-size:11px;color:var(--octave-black);white-space:nowrap;}
+[data-theme="dark"] .sstep{color:var(--white);}
+.sstep .sk-i{display:inline-flex;}
+.sstep .sk-i svg{width:11px;height:11px;}
+/* A UDS and a fork are different KINDS of thing, not differently-named tabs —
+   two configurations differing only in that would otherwise read alike. */
+.sstep.sk-uds{border-color:var(--wo-type-ppm);color:var(--wo-type-ppm);}
+.sstep.sk-fork{border-color:var(--wo-type-routine);color:var(--wo-type-routine);}
+.sarr{color:var(--gray-3);margin:0 4px;font-size:10px;}
+.sgate{display:inline-flex;color:var(--wo-type-breakdown);}
+.sgate svg{width:11px;height:11px;}
+.sreq{color:var(--red);font-weight:700;margin-left:1px;}
+
+/* ══ §2.10 — Offline & Sync tab ══ */
+/* The never-switchable band, rendered first and for every profile. */
+.always-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:11px;overflow:hidden;}
+.always-h{padding:9px 14px;background:var(--bg-section);border-bottom:1px solid var(--border);
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-4);
+  display:flex;align-items:center;gap:7px;}
+.always-h svg{width:13px;height:13px;}
+.always-b{display:grid;grid-template-columns:1.35fr 1fr;gap:0;}
+.always-card{padding:13px 15px;}
+.always-card+.always-card{border-left:1px solid var(--border);}
+.always-t{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;margin-bottom:5px;}
+.always-t svg{width:14px;height:14px;color:var(--teal);flex-shrink:0;}
+.always-tag{margin-left:auto;font-family:var(--font-mono);font-size:9.5px;font-weight:600;
+  border:1px solid var(--border-strong);border-radius:100px;padding:1px 7px;color:var(--gray-4);}
+.always-d{font-size:11.5px;color:var(--gray-4);line-height:1.5;}
+.always-d b{color:var(--octave-black);}
+[data-theme="dark"] .always-d b{color:var(--white);}
+.always-note{font-size:11px;color:var(--gray-4);margin-top:7px;}
+.t0-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:9px;}
+.t0{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);border-radius:6px;
+  padding:2px 7px;font-size:10.5px;color:var(--gray-4);background:var(--bg-section);}
+.t0-k{font-family:var(--font-mono);font-size:9.5px;font-weight:700;color:var(--teal);}
+.t0-arr{color:var(--gray-3);font-size:10px;}
+
+/* The assigned profile. `none` is styled as a distinct, valid state — not as
+   an error and not as an empty placeholder. */
+.prof-wrap{margin-top:13px;background:var(--bg-card);border:1px solid var(--border);
+  border-left:3px solid var(--teal);border-radius:11px;padding:12px 15px;}
+.prof-wrap.none{border-left-color:var(--gray-3);}
+.prof-h{display:flex;align-items:center;gap:10px;}
+.prof-i{display:inline-flex;color:var(--teal);}
+.prof-wrap.none .prof-i{color:var(--gray-4);}
+.prof-i svg{width:17px;height:17px;}
+.prof-n{display:flex;flex-direction:column;gap:1px;min-width:0;}
+.prof-t{font-size:13.5px;font-weight:700;}
+.prof-c{font-size:10px;color:var(--gray-4);}
+.prof-mem{font-size:11px;color:var(--gray-4);display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+.prof-d{font-size:11.5px;color:var(--gray-4);line-height:1.5;margin-top:7px;}
+
+/* §2.7 policy classes. Deliberately not five hues for their own sake — the
+   only distinction that carries weight is writable vs. not, so `work-set`
+   and `external-replica` read strongest and `server-only` reads as absence. */
+.pol{display:inline-flex;align-items:center;border:1.5px solid var(--border-strong);border-radius:100px;
+  padding:1px 9px;font-size:10.5px;font-weight:700;white-space:nowrap;color:var(--gray-4);}
+.pol.po-work{border-color:var(--green);color:var(--green);}
+.pol.po-ext{border-color:var(--wo-type-routine);color:var(--wo-type-routine);}
+.pol.po-ref{border-color:var(--teal);color:var(--teal);}
+.pol.po-dem{border-color:var(--border-strong);color:var(--octave-black);}
+[data-theme="dark"] .pol.po-dem{color:var(--white);}
+.pol.po-none{border-style:dashed;}
+.yn{display:inline-flex;align-items:center;justify-content:center;}
+.yn.y{color:var(--green);}
+.yn.y svg{width:13px;height:13px;}
+.yn.n{color:var(--gray-3);}
+
+/* §2.8's three lookup classes. */
+.lk-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:11px;overflow:hidden;}
+.lk{display:flex;gap:12px;padding:11px 14px;border-bottom:1px solid var(--border);}
+.lk:last-child{border-bottom:none;}
+.lk-k{flex:0 0 132px;font-size:10.5px;font-weight:600;color:var(--teal);padding-top:1px;}
+.lk-b{flex:1;min-width:0;}
+.lk-t{font-size:12.5px;font-weight:700;margin-bottom:2px;}
+.lk-d{font-size:11.5px;color:var(--gray-4);line-height:1.5;}
+
+.pop-opt.on{background:var(--bg-section);}
 .ok-strip{background:var(--bg-card);border:1px solid var(--border);border-left:3px solid var(--green);
   border-radius:11px;padding:11px 15px;margin-bottom:13px;font-size:12px;color:var(--gray-4);
   display:flex;align-items:center;gap:9px;line-height:1.5;}
@@ -866,8 +954,47 @@ const FUNCTIONS = {
 /* The tabs a configured WO workflow needs (§12's step set). Enabling the
    workflow on a function that can't supply these is what §20's
    workflow-eligibility validation exists to catch. */
-const WORKFLOW_REQ_TABS = ['ACT','CHK','PRT','LAB','CLS'];
-const TAB_NAMES = {ACT:'Activities', CHK:'Checklist', PRT:'Parts', LAB:'Book Labor', CLS:'Closing'};
+const TAB_NAMES = {RV:'Record View', ACT:'Activities', CHK:'Checklist', PRT:'Parts', LAB:'Book Labor', CLS:'Closing'};
+
+/* User Defined Screens registered as tabs of a function (§27). A UDS takes an
+   ordinary §12 tier-2 row, so from this screen's point of view it is just
+   another tab a configuration can place — which is the whole reason §27 was
+   nearly free. `perm` is the R5TABPERMISSIONS-style key a group needs
+   PRM_SELECT on; that is what makes §27.4's dead-end check possible here and
+   nowhere else. */
+const UDS_TABS = {
+  'uds-permit':   {name:'Hot Work Permit',      perm:'UDSPERMIT'},
+  'uds-loto':     {name:'LOTO Verification',    perm:'UDSLOTO'},
+  'uds-handover': {name:'Shift Handover Notes', perm:'UDSHAND'},
+};
+
+/* §29's step kinds, as this screen needs to READ them. It never authors any
+   of this — steps, gating, layout and now instances, gates and forks all
+   belong to Screen Designer (§26.5.1). It only has to describe a
+   configuration accurately enough that an admin can tell two apart. */
+const STEP_KIND_MARK = {
+  tab:  {ico:null,   cls:''},
+  uds:  {ico:'uds',  cls:'sk-uds'},
+  fork: {ico:'fork', cls:'sk-fork'},
+};
+
+/* One step instance → its display label. The instance number is part of the
+   name, because a configuration reading "Record View → Checklist → Record
+   View" tells an admin nothing about which layout each one carries. */
+function stepLabel(s){
+  if(s.k === 'fork') return 'Question fork';
+  if(s.k === 'uds')  return (UDS_TABS[s.t] || {name:s.t}).name;
+  const base = TAB_NAMES[s.t] || s.t;
+  return (s.n && s.n > 1) ? `${base} (${s.n})` : base;
+}
+/* Gate marks (§29.3). Rendered inline on the Steps cell so a workflow's
+   stopping points are visible without opening anything. */
+function stepGates(s){
+  const g = [];
+  if(s.gc) g.push('comment');
+  if(s.gd) g.push('doc');
+  return g;
+}
 
 const BUILTINS = {
   home:   {code:'home',   desc:'Home',          ico:'home'},
@@ -875,15 +1002,151 @@ const BUILTINS = {
   sync:   {code:'sync',   desc:'Sync Status',   ico:'sync'},
 };
 
-const SYNC_ENTITIES = [
+/* ═══════════════════════════════════════════════════════════════════════
+   OFFLINE — PROFILE ASSIGNMENT, NOT A FIELD FORM (§2.10, locked 2026-09-08)
+   ═══════════════════════════════════════════════════════════════════════
+   WHAT THIS REPLACED, AND WHY. This tab used to be a per-group grid of
+   `record type × scope × date horizon × row cap`, on §26.5's reading that
+   sync was "the only one of the four domains that is genuinely field-shaped
+   — which is why it is edited here rather than deep-linked to a designer."
+
+   Two things then changed and both point the other way:
+
+   1. §2.1 reversed the polarity to ONLINE-FIRST with declared offline scope.
+      "What a device downloads at login" is no longer the interesting
+      question, because reads go to the server at full fidelity when
+      connected. The interesting question is what is GUARANTEED EXECUTABLE
+      OFFLINE — a different, narrower thing.
+
+   2. §2.10 named the unit: an OFFLINE PROFILE — a named bundle of §2.7's
+      per-entity policy registry, its caps, and §2.8's lookup classes —
+      ASSIGNED per user group. Which makes its grain one artifact → many
+      groups, exactly like a workflow configuration. §26.5.1 already ruled
+      on that grain: an artifact shared by N groups is authored once
+      elsewhere and only its MEMBERSHIP is edited from the group's side.
+      Editing profile contents here would edit them for every other group
+      silently — the precise fault §26.5.1 Fault 1 exists to prevent.
+
+   So §26.5's "field-shaped, edited here" row is superseded: sync is
+   assignment now, like the other three. The profile-authoring surface does
+   not exist yet, which is a NAMED GAP in the same category as the missing
+   Home layout designer (§9.4) and Equipment's four `PLO_PAGENAME` layouts
+   (§20) — not something to improvise into this screen.
+
+   THREE CAPABILITIES, ONLY THE THIRD SWITCHABLE (§2.10). Tier 0 config is
+   always persisted and the outbox is always on; only record replication is
+   assignable. That decomposition is rendered on the tab, because an admin
+   handed a single "offline" switch will reasonably assume turning it off
+   also turns off the outbox — and it never does.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const OFFLINE_ENTITIES = [
   {code:'WSJOBS',  name:'Work Orders'},
-  {code:'WSEQUIP', name:'Equipment'},
-  {code:'WSPART',  name:'Parts & Stock'},
-  {code:'WSEMPL',  name:'Employees & Crews'},
+  {code:'WSACT',   name:'WO Activities'},
   {code:'WSCHK',   name:'Checklists / Task Plans'},
+  {code:'WSPART',  name:'Parts & Stock'},
+  {code:'WSEQUIP', name:'Equipment'},
+  {code:'WSEMPL',  name:'Employees & Crews'},
+  {code:'WSDOM',   name:'Code domains'},
+  {code:'WSPO',    name:'Purchase Orders'},
+  {code:'WSHIST',  name:'WO / meter history'},
+  {code:'WSGIS',   name:'GIS features'},
 ];
-const SCOPES = ['Assigned to me','My crew','My department','My organization','All records'];
-const HORIZONS = ['7 days','14 days','30 days','90 days','No date limit'];
+
+/* §2.7's declared registry. The policy says WHETHER an entity can be
+   offline; §2.3's reachability traversal says WHICH ROWS. `write` is the
+   column that matters most on this screen — exactly one class is writable
+   offline, and that is what makes a real conflict UI buildable (§2.5). */
+const OFFLINE_POLICIES = {
+  'server-only':      {label:'Server only',       read:false, write:false, cls:'po-none',
+    note:'Never on the device. Opened offline it must be blocked-<b>visible</b>, never hidden — a destination that silently vanishes reads as a configuration error (§2.9).'},
+  'reference':        {label:'Reference',         read:true,  write:false, cls:'po-ref',
+    note:'Replicated whole: small, slow-changing. Bypasses traversal entirely (§2.7). Subsetting a code domain costs correctness — a technician who cannot pick the 41st department reads it as a data error (§2.8 row 1).'},
+  'on-demand':        {label:'On demand',         read:true,  write:false, cls:'po-dem',
+    note:'Present only if the technician chose to keep it (R5), or if traversal reached it from pinned work.'},
+  'work-set':         {label:'Work set',          read:true,  write:true,  cls:'po-work',
+    note:'Auto-replicated and traversed. <b>The only class writable offline</b>, which is what keeps the write-enabled set at ~7 shapes.'},
+  'external-replica': {label:'External replica',  read:true,  write:true,  cls:'po-ext',
+    note:'A foreign sync engine with its own lifecycle — GIS only, and Phase 2 (§28). Its edits never ride the EAM outbox.'},
+};
+
+/* Tier 0 (§2.3) — bootstrap configuration, in front of the record tiers and
+   deliberately not one of them. Records degrade gracefully (fewer rows = a
+   shorter list); configuration does not (a missing page layout is a blank
+   screen). Order matters: layout is first because it scopes everything after
+   it. Shown read-only, because none of it is assignable. */
+const TIER0_ITEMS = [
+  {k:'0a', t:'Identity / user group'},
+  {k:'0b', t:'Nav slots + function resolution'},
+  {k:'0c', t:'Page layout, WO Workflow tables, custom-field defs'},
+  {k:'0d', t:'Status authorizations'},
+  {k:'0e', t:'Dataspy definitions'},
+  {k:'0f', t:'The code domains layout references'},
+];
+
+/* §2.8's three-way lookup split, carried on the profile. Row 2 is the one
+   with a UI obligation attached: announce the scope, never a silent short
+   list — a truncated LOV looks like correct data, which is the single
+   highest-risk failure mode of the whole approach. */
+const LOOKUP_CLASSES = [
+  {k:'replicated',      t:'Bounded code domains',    d:'Shipped whole in Tier 0 — Department, Priority, Problem Code, UOM, Trade, Closing Codes.'},
+  {k:'reachable',       t:'Unbounded entity lookups', d:'Derived from data already on the device by traversal — Equipment, Parts, Stores/Bins. Must announce its scope: “showing the 12 assets on this work order — connect to search all.”'},
+  {k:'definition-gated',t:'Definition-gated values',  d:'Selectable only if the configuration the value re-resolves is present — WO Type, Equipment system type, Class, Status.'},
+];
+
+/* ── The profiles themselves. `NONE` is the off state (§2.10), and it is a
+      real row rather than an absence, so "this group is online-only" is
+      something an admin chose and can see rather than something inferred
+      from a missing record. ── */
+const OFFLINE_PROFILES = [
+  {code:'NONE', name:'None — online-only', short:'Online-only',
+   desc:'No record replication. Tier 0 config still persists and the outbox is still on, so writes are never dropped — but nothing can be loaded without connectivity.',
+   entities:[]},
+
+  {code:'TECH-FULL', name:'Field Technician — full work set', short:'Full work set',
+   desc:'The default technician profile. Pinned work orders and everything reachable from them are executable offline.',
+   entities:[
+     {e:'WSJOBS',  policy:'work-set',   filter:'My open pinned work orders',                 cap:500},
+     {e:'WSACT',   policy:'work-set',   filter:'Children of a pinned WO',                    cap:2000},
+     {e:'WSCHK',   policy:'work-set',   filter:'Task plans reached from a pinned WO',         cap:1000},
+     {e:'WSPART',  policy:'work-set',   filter:'Parts lines on a pinned WO',                  cap:2000},
+     {e:'WSEQUIP', policy:'on-demand',  filter:'Reached from a pinned WO, plus manual caches',cap:2000},
+     {e:'WSEMPL',  policy:'reference',  filter:'My crew + my department',                     cap:250},
+     {e:'WSDOM',   policy:'reference',  filter:'Whole domain',                                cap:0},
+     {e:'WSPO',    policy:'server-only',filter:'—',                                           cap:0},
+     {e:'WSHIST',  policy:'server-only',filter:'—',                                           cap:0},
+   ]},
+
+  {code:'TECH-LIGHT', name:'Field Technician — light', short:'Light',
+   desc:'Same shape, smaller caps and no manual caching — for shared or low-storage devices.',
+   entities:[
+     {e:'WSJOBS',  policy:'work-set',   filter:'My open pinned work orders',           cap:100},
+     {e:'WSACT',   policy:'work-set',   filter:'Children of a pinned WO',              cap:400},
+     {e:'WSCHK',   policy:'work-set',   filter:'Task plans reached from a pinned WO',   cap:200},
+     {e:'WSEQUIP', policy:'on-demand',  filter:'Reached from a pinned WO',              cap:400},
+     {e:'WSDOM',   policy:'reference',  filter:'Whole domain',                          cap:0},
+     {e:'WSPART',  policy:'server-only',filter:'—',                                     cap:0},
+     {e:'WSPO',    policy:'server-only',filter:'—',                                     cap:0},
+   ]},
+
+  {code:'INSPECTION', name:'Inspection rounds', short:'Inspection',
+   desc:'Route-heavy work: a large equipment set matters more than parts. Sized for §16.9 fan-out (a 156-equipment route is ~624 checklist items).',
+   entities:[
+     {e:'WSJOBS',  policy:'work-set',   filter:'My open pinned work orders',       cap:200},
+     {e:'WSACT',   policy:'work-set',   filter:'Children of a pinned WO',          cap:1000},
+     {e:'WSCHK',   policy:'work-set',   filter:'Task plans on a pinned route',     cap:5000},
+     {e:'WSEQUIP', policy:'work-set',   filter:'Equipment on a pinned route',      cap:5000},
+     {e:'WSDOM',   policy:'reference',  filter:'Whole domain',                     cap:0},
+     {e:'WSPART',  policy:'server-only',filter:'—',                                cap:0},
+   ]},
+];
+function profileByCode(code){ return OFFLINE_PROFILES.find(p => p.code === code) || null; }
+function profileMembers(code){
+  /* Derived, never stored on the profile. A group holds exactly one profile,
+     so the group side is the single source of truth and a `groups` array on
+     the profile would be a second one — the §26.5.1 Fault 1 shape. */
+  return GROUPS.filter(g => (effective(g,'sync').value || 'NONE') === code).map(g => g.code);
+}
 
 /* ═══════════════════════════════════════════════════════════════════════
    WORKFLOW CONFIGURATIONS — the artifacts, NOT a per-group flag
@@ -905,17 +1168,60 @@ const HORIZONS = ['7 days','14 days','30 days','90 days','No date limit'];
    freeForm, or which configs exist. Everything in the right-hand column
    below is Screen Designer's; only `groups` is this screen's.
    ═══════════════════════════════════════════════════════════════════════ */
+/* STEPS ARE INSTANCE ROWS NOW (§29), not a list of tab codes. `steps` used to
+   be `['ACT','CHK','PRT','LAB','CLS']`, which could not represent any of the
+   things Screen Designer can now author — so this screen would have
+   described every configuration as if it were still five delivered tabs in a
+   fixed order, and two genuinely different configurations would have read
+   identically.
+
+   Per row:  k  'tab' | 'uds' | 'fork'
+             t  tab code, or UDS id
+             n  instance number (>1 means a second placement, own layout)
+             gc / gd  §29.3 comment / document gate
+   Read-only here in every respect — §26.5.1. */
 const WORKFLOW_CONFIGS = [
-  {id:'c1', fn:'WSJOBS', type:'Breakdown',  steps:['ACT','CHK','PRT','LAB','CLS'], freeForm:false, modified:'2026-08-06', groups:['*','MAINT-TECH','SUPERVISOR']},
-  {id:'c2', fn:'WSJOBS', type:'PM',         steps:['ACT','CHK','LAB','CLS'],       freeForm:false, modified:'2026-08-02', groups:['*','MAINT-TECH']},
-  {id:'c3', fn:'WSJOBS', type:'Routine',    steps:['ACT','CLS'],                   freeForm:true,  modified:'2026-07-28', groups:['MAINT-TECH']},
-  {id:'c4', fn:'CCJOBS', type:'Contract',   steps:['ACT','CHK','PRT','LAB','CLS'], freeForm:false, modified:'2026-07-30', groups:['MAINT-TECH','CONTRACTOR']},
-  {id:'c5', fn:'TRJOBS', type:'Breakdown',  steps:['ACT','CHK','PRT','LAB','CLS'], freeForm:false, modified:'2026-08-01', groups:['TRANSPORT']},
-  {id:'c6', fn:'TRJOBS', type:'Inspection', steps:['ACT','CHK','CLS'],             freeForm:true,  modified:'2026-07-15', groups:['TRANSPORT']},
+  {id:'c1', fn:'WSJOBS', type:'Breakdown', freeForm:false, modified:'2026-08-06', groups:['*','MAINT-TECH','SUPERVISOR'],
+   steps:[{k:'tab',t:'RV'},{k:'tab',t:'ACT'},{k:'tab',t:'CHK'},{k:'tab',t:'PRT'},{k:'tab',t:'LAB'},{k:'tab',t:'CLS',gc:true}]},
+
+  /* Exercises the fork + a second Record View instance: a PM that asks
+     whether the asset could be isolated, and if not routes straight to a
+     follow-up Record View with its own reduced layout. */
+  {id:'c2', fn:'WSJOBS', type:'PM', freeForm:false, modified:'2026-09-08', groups:['*','MAINT-TECH'],
+   steps:[{k:'tab',t:'RV'},{k:'fork'},{k:'tab',t:'CHK'},{k:'tab',t:'RV',n:2},{k:'tab',t:'LAB'},{k:'tab',t:'CLS',gc:true}]},
+
+  {id:'c3', fn:'WSJOBS', type:'Routine', freeForm:true, modified:'2026-07-28', groups:['MAINT-TECH'],
+   steps:[{k:'tab',t:'RV'},{k:'tab',t:'ACT'},{k:'tab',t:'CLS'}]},
+
+  /* Exercises a UDS placed as a step, with a document gate — a contractor
+     job that cannot proceed without a signed permit on file. */
+  {id:'c4', fn:'CCJOBS', type:'Contract', freeForm:false, modified:'2026-09-08', groups:['MAINT-TECH','CONTRACTOR'],
+   steps:[{k:'tab',t:'RV'},{k:'uds',t:'uds-permit',gd:true},{k:'tab',t:'CHK'},{k:'tab',t:'PRT'},{k:'tab',t:'LAB'},{k:'tab',t:'CLS',gc:true}]},
+
+  {id:'c5', fn:'TRJOBS', type:'Breakdown', freeForm:false, modified:'2026-08-01', groups:['TRANSPORT'],
+   steps:[{k:'tab',t:'RV'},{k:'tab',t:'ACT'},{k:'tab',t:'CHK'},{k:'tab',t:'PRT'},{k:'tab',t:'LAB'},{k:'tab',t:'CLS'}]},
+
+  /* Checklist placed TWICE — a pre-trip and a post-trip inspection off one
+     task plan set, which is the plainest real reading of "a tab can be added
+     more than once". */
+  {id:'c6', fn:'TRJOBS', type:'Inspection', freeForm:true, modified:'2026-09-08', groups:['TRANSPORT'],
+   steps:[{k:'tab',t:'RV'},{k:'tab',t:'CHK'},{k:'tab',t:'LAB'},{k:'tab',t:'CHK',n:2},{k:'tab',t:'CLS',gc:true,gd:true}]},
+
   /* Authored and saved to nobody yet — the case that makes "assign an
      existing configuration" the useful action rather than a formality. */
-  {id:'c7', fn:'WSJODC', type:'Breakdown',  steps:['ACT','CHK','PRT','LAB','CLS'], freeForm:false, modified:'2026-08-12', groups:[]},
-  {id:'c8', fn:'ZJ1000', type:'Quote',      steps:['ACT','PRT','CLS'],             freeForm:true,  modified:'2026-06-30', groups:[]},
+  {id:'c7', fn:'WSJODC', type:'Breakdown', freeForm:false, modified:'2026-08-12', groups:[],
+   steps:[{k:'tab',t:'RV'},{k:'tab',t:'ACT'},{k:'tab',t:'CHK'},{k:'tab',t:'PRT'},{k:'tab',t:'LAB'},{k:'tab',t:'CLS'}]},
+
+  {id:'c8', fn:'ZJ1000', type:'Quote', freeForm:true, modified:'2026-06-30', groups:[],
+   steps:[{k:'tab',t:'RV'},{k:'tab',t:'ACT'},{k:'tab',t:'PRT'},{k:'tab',t:'CLS'}]},
+
+  /* THE §27.4 DEAD END, on purpose. LOTO Verification is placed as a
+     REQUIRED step, and SALES-ENG has no PRM_SELECT on that tab — so a
+     technician in that group gets a step they can neither complete nor skip.
+     Not a warning: a hard dead end, and no designer working inside a single
+     screen can see it. */
+  {id:'c9', fn:'ZJ1000', type:'Quote', freeForm:false, modified:'2026-09-08', groups:['SALES-ENG'],
+   steps:[{k:'tab',t:'RV'},{k:'uds',t:'uds-loto',req:true},{k:'tab',t:'PRT'},{k:'tab',t:'CLS'}]},
 ];
 
 /* ── The groups. `*` first: it is the fallback every unconfigured group
@@ -923,51 +1229,67 @@ const WORKFLOW_CONFIGS = [
       Note there is no `wf` key — workflow membership lives on the config
       artifact above, which is the whole point of the correction. ── */
 const GROUPS = [
+/* `sync` is an OFFLINE PROFILE CODE now (§2.10), not a row set. `tabPerms`
+   is the R5TABPERMISSIONS-style list of tab permissions the group holds —
+   only UDS tabs are modelled, because those are the ones a configuration can
+   require and a group can lack independently (§27.4). */
   {code:'*', desc:'Default — inherited by any group with no explicit config', users:0, dflt:true,
    perms:['WSJOBS','WSEQUIP'],
+   tabPerms:[],
    nav:[{label:'Home',kind:'builtin',target:'home'},
         {label:'Work',kind:'function',target:'WSJOBS'},
         {label:'Alerts',kind:'builtin',target:'notif'}],
    navSet:true,
    home:null,
-   sync:[{e:'WSJOBS',scope:'Assigned to me',horizon:'30 days',cap:500},
-         {e:'WSEQUIP',scope:'My organization',horizon:'No date limit',cap:2000}],
-   syncSet:true},
+   /* The `*` default takes the conservative profile deliberately. An
+      unconfigured group inheriting the LARGEST work set is how a shared
+      tablet fills up for a reason nobody configured. */
+   sync:'TECH-LIGHT', syncSet:true},
 
   {code:'MAINT-TECH', desc:'Maintenance Technicians', users:34, perms:['WSJOBS','CCJOBS','WSEQUIP'],
+   tabPerms:['UDSPERMIT','UDSLOTO','UDSHAND'],
    nav:[{label:'Home',kind:'builtin',target:'home'},
         {label:'Work',kind:'function',target:'WSJOBS'},
         {label:'Assets',kind:'function',target:'WSEQUIP'},
         {label:'Alerts',kind:'builtin',target:'notif'}],
    navSet:true,
    home:{tiles:6, favs:3, actions:['Work Order','Equipment','Meter Reading'], modified:'2026-08-04'},
-   sync:[{e:'WSJOBS',scope:'Assigned to me',horizon:'30 days',cap:500},
-         {e:'WSEQUIP',scope:'My department',horizon:'No date limit',cap:2000},
-         {e:'WSPART',scope:'My organization',horizon:'No date limit',cap:5000},
-         {e:'WSEMPL',scope:'My crew',horizon:'No date limit',cap:250},
-         {e:'WSCHK',scope:'Assigned to me',horizon:'30 days',cap:1000}],
-   syncSet:true},
+   sync:'TECH-FULL', syncSet:true},
 
   {code:'TRANSPORT', desc:'Fleet & Transportation', users:12, perms:['TRJOBS','WSEQUIP'],
+   tabPerms:['UDSHAND'],
    nav:[{label:'Home',kind:'builtin',target:'home'},
         {label:'Transport',kind:'function',target:'TRJOBS'},
         {label:'Alerts',kind:'builtin',target:'notif'}],
    navSet:true,
    home:null,
-   sync:[{e:'TRJOBS',scope:'My crew',horizon:'14 days',cap:300}],
-   syncSet:true},
+   sync:'INSPECTION', syncSet:true},
 
+  /* Profile None, made concrete. Reads and writes both go to the server, Tier 0
+     still persists, and the outbox is still on — so a save is never dropped, it
+     just can't be composed without connectivity. This group is why §4.4.1's sync
+     control needs its own copy: for a replicating user "Offline" means working
+     from the device; for this one it means you cannot load work. Same icon,
+     opposite promise (§20).
+
+     NOT the Contractor/BYOD answer — that framing was withdrawn 2026-09-11
+     (§2.2/§21); contractors use base EAM in a mobile browser, not this app.
+     Profile None models an online-only user group, which is what it always was. */
   {code:'CONTRACTOR', desc:'External Contractors', users:8, perms:['CCJOBS'],
+   tabPerms:['UDSPERMIT'],
    nav:[{label:'Home',kind:'builtin',target:'home'},
         {label:'Jobs',kind:'function',target:'CCJOBS'},
         {label:'Alerts',kind:'builtin',target:'notif'}],
    navSet:true,
    home:null,
-   sync:null, syncSet:false},
+   sync:'NONE', syncSet:true},
 
-  /* Nav points at ZJ1000 with no configuration assigned — the cross-domain
-     inconsistency only this screen can see (§26.5.1). */
+  /* Two inconsistencies at once, both only visible from here (§26.5.1/§27.4):
+     nav points at ZJ1000, and its assigned config c9 places LOTO
+     Verification as a REQUIRED step — a tab this group has no PRM_SELECT on.
+     That second one is the hard dead end §27.4 names. */
   {code:'SALES-ENG', desc:'Sales Engineering (quotes)', users:5, perms:['ZJ1000','WSEQUIP'],
+   tabPerms:[],
    nav:[{label:'Home',kind:'builtin',target:'home'},
         {label:'Quotes',kind:'function',target:'ZJ1000'},
         {label:'Alerts',kind:'builtin',target:'notif'}],
@@ -978,11 +1300,13 @@ const GROUPS = [
   /* Inherits the * default's nav, which points at WSJOBS — a function
      DC-OPS has no PRM_SELECT on. The second cross-domain inconsistency. */
   {code:'DC-OPS', desc:'Distribution Centre Operations', users:19, perms:['WSJODC','WSEQUIP'],
+   tabPerms:[],
    nav:null, navSet:false,
    home:null,
    sync:null, syncSet:false},
 
   {code:'SUPERVISOR', desc:'Maintenance Supervisors', users:6, perms:['WSJOBS','CCJOBS','TRJOBS','WSEQUIP'],
+   tabPerms:['UDSPERMIT','UDSLOTO','UDSHAND'],
    nav:[{label:'Home',kind:'builtin',target:'home'},
         {label:'Work',kind:'function',target:'WSJOBS'},
         {label:'Contracts',kind:'function',target:'CCJOBS'},
@@ -992,6 +1316,7 @@ const GROUPS = [
    sync:null, syncSet:false},
 
   {code:'STORES', desc:'Storeroom & Inventory', users:11, perms:['WSJOBS','WSEQUIP'],
+   tabPerms:[],
    nav:null, navSet:false, home:null, sync:null, syncSet:false},
 ];
 
@@ -1014,12 +1339,51 @@ function inheritedFor(g){
 function assignableTo(g){
   return configsFor(g).filter(c => !c.groups.includes(g.code) && !c.groups.includes('*'));
 }
-/* Can this function carry a full guided workflow at all? A capability of
+/* Can this function show the steps THIS configuration places? A capability of
    the FUNCTION (its tab set), so it is reported here and fixed in Screen
-   Designer — never "fixed" by assigning around it. */
-function capabilityGap(fnCode){
-  const f = FUNCTIONS[fnCode];
-  return f ? WORKFLOW_REQ_TABS.filter(t => !f.tabs.includes(t)) : [];
+   Designer — never "fixed" by assigning around it.
+
+   NOW KEYED ON THE CONFIG, NOT THE FUNCTION, and that fixed a real false
+   positive. It used to compare the function's tabs against a fixed
+   `WORKFLOW_REQ_TABS = ['ACT','CHK','PRT','LAB','CLS']`, so ZJ1000 reported
+   a Checklist + Book Labor gap on EVERY ZJ1000 configuration — including
+   c8 (Quote: Record View → Activities → Parts → Closing), which places
+   neither of them and renders perfectly. A warning that fires on a
+   configuration with nothing wrong is how admins learn to ignore warnings.
+
+   Record View is excluded: it always exists (§14 pins it as step 1), and it
+   is not a row in any function's tab list. A duplicate instance needs no
+   extra capability either — instance 2 of a tab the function HAS is still
+   that one tab. */
+function capabilityGap(c){
+  const f = FUNCTIONS[c.fn];
+  if(!f) return [];
+  const placed = [...new Set(c.steps.filter(s => s.k === 'tab' && s.t !== 'RV').map(s => s.t))];
+  return placed.filter(t => !f.tabs.includes(t));
+}
+
+/* ── §27.4's third check, the one only this screen can run ──────────────
+   A configuration placing a UDS tab as a REQUIRED step, for a group with no
+   PRM_SELECT on that tab, is a workflow the technician can neither complete
+   nor skip. That is a hard dead end rather than a warning, and no designer
+   working inside a single screen can see it: Screen Designer knows the
+   configuration but not the group's tab permissions, and Security knows the
+   permissions but not what any configuration requires.
+
+   Deliberately narrower than "the group lacks the tab": a NON-required UDS
+   step the group cannot open is a gap worth flagging, but a technician can
+   still finish the work order. Required is what turns it into a trap, so the
+   severity follows Required rather than the permission alone. */
+function udsDeadEnds(g){
+  const out = [];
+  effective(g,'screens').value.forEach(c => {
+    c.steps.filter(s => s.k === 'uds').forEach(s => {
+      const u = UDS_TABS[s.t];
+      if(!u || (g.tabPerms || []).includes(u.perm)) return;
+      out.push({cfg:c, uds:u, tab:s.t, required:!!s.req});
+    });
+  });
+  return out;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1033,7 +1397,10 @@ const TABS = [
   {id:'overview', label:'Overview'},
   {id:'screens',  label:'Screen Design & Workflow'},
   {id:'nav',      label:'Bottom Nav'},
-  {id:'sync',     label:'Sync & Download'},
+  /* Renamed from "Sync & Download" (§2.10). Under §2.1's online-first model
+     "download" describes the wrong thing: the tab is about what is
+     guaranteed executable OFFLINE, not about what arrives at login. */
+  {id:'sync',     label:'Offline & Sync'},
   {id:'home',     label:'Home Layout'},
 ];
 
@@ -1081,6 +1448,14 @@ const ICO = {
   check:'<path d="M5 12l5 5L19 7"/>',
   ext:'<path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/>',
   users:'<path d="M16 20v-1.5a4 4 0 00-4-4H7a4 4 0 00-4 4V20"/><circle cx="9.5" cy="7.5" r="3.5"/><path d="M21 20v-1.5a4 4 0 00-3-3.85"/><path d="M16.5 4.15a3.5 3.5 0 010 6.7"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+  uds:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 9v12"/>',
+  fork:'<path d="M12 20V9"/><path d="M12 9a5 5 0 015-5h3"/><path d="M12 9a5 5 0 00-5-5H4"/><circle cx="12" cy="20" r="1.6"/>',
+  msg:'<path d="M21 15a2 2 0 01-2 2H8l-4 4V5a2 2 0 012-2h13a2 2 0 012 2z"/>',
+  clip:'<path d="M21.4 11.05 12.25 20.2a5 5 0 01-7.07-7.07l8.49-8.49a3.33 3.33 0 014.71 4.71l-8.49 8.49a1.67 1.67 0 01-2.36-2.36l7.78-7.78"/>',
+  cloud:'<path d="M17.5 19a4.5 4.5 0 00.5-8.97A6 6 0 006.1 11.2A3.9 3.9 0 006.5 19z"/>',
+  cloudoff:'<path d="M3 3l18 18"/><path d="M17.5 19H6.5a3.9 3.9 0 01-.4-7.8"/><path d="M9.5 6.1A6 6 0 0118 10.03a4.5 4.5 0 012.5 7.3"/>',
+  db:'<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/>',
 };
 function svgIco(name, sw){
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw||1.8}" stroke-linecap="round" stroke-linejoin="round">${ICO[name]||ICO.cog}</svg>`;
@@ -1193,12 +1568,39 @@ function consistencyIssues(g){
     }
   });
   assignedTo(g).forEach(c=>{
-    const gap = capabilityGap(c.fn);
+    const gap = capabilityGap(c);
     if(gap.length) out.push({sev:'warn', tab:'screens',
       msg:`<b>${c.fn} · ${c.type}</b> is assigned, but ${c.fn} has no ${gap.map(t=>TAB_NAMES[t]).join(' or ')} tab. Those steps cannot render.`});
   });
-  if(resolve(g,'sync').state==='unset' && !g.dflt) out.push({sev:'warn', tab:'sync',
-    msg:`No download policy anywhere. A device logging in as ${g.code} would sync nothing.`});
+
+  /* §27.4's third check. A REQUIRED UDS step the group cannot open is a
+     dead end, not a warning — the technician can neither complete it nor
+     skip it, so the work order cannot be finished at all. A non-required one
+     is a real gap but a survivable one, hence the split severity. */
+  udsDeadEnds(g).forEach(d=>{
+    out.push(d.required
+      ? {sev:'error', tab:'screens',
+         msg:`<b>${d.cfg.fn} · ${d.cfg.type}</b> places <b>${d.uds.name}</b> as a <b>Required</b> step, but ${g.code} has no PRM_SELECT on that tab (<span class="mono">${d.uds.perm}</span>). The technician can neither complete it nor skip it — the work order cannot be finished. Fix it in <b>Security ▸ Tab Permissions</b>, or make the step optional in Screen Designer.`}
+      : {sev:'warn', tab:'screens',
+         msg:`<b>${d.cfg.fn} · ${d.cfg.type}</b> places <b>${d.uds.name}</b>, a tab ${g.code} has no PRM_SELECT on (<span class="mono">${d.uds.perm}</span>). The step is optional, so the workflow still completes — but that step will never render.`});
+  });
+
+  /* OFFLINE (§2.10). Two different facts, and conflating them is how the old
+     single "no download policy" warning read as an error for a group that is
+     online-only on purpose. */
+  const offRes = resolve(g,'sync');
+  const prof = effective(g,'sync').value;
+  if(offRes.state === 'unset' && !g.dflt){
+    out.push({sev:'warn', tab:'sync',
+      msg:`No offline profile resolves for ${g.code} — not even from <b>*</b>. Under §2.1's online-first model the app still works while connected, but nothing is guaranteed executable offline.`});
+  } else if(prof === 'NONE'){
+    /* Not an error. It is a legitimate, deliberate provisioning choice for an
+       online-only user group. Surfaced because it changes what §4.4.1's sync
+       control PROMISES, which is the only place the choice is visible to the
+       technician at all. */
+    out.push({sev:'info', tab:'sync',
+      msg:`${g.code} is <b>online-only</b> (profile None). Legitimate — Tier 0 config still persists and the outbox is still on, so no write is ever dropped. But <b>§4.4.1's sync control needs different copy for this group</b>: "Offline" means <i>you cannot load work</i>, not <i>working from the device</i>. Same icon, opposite promise — open in §20.`});
+  }
   return out;
 }
 function effBadge(r){
@@ -1352,7 +1754,13 @@ function renderTabs(){
 function tabBadge(id){
   if(id==='screens') return String((effective(cur,'screens').value||[]).length);
   if(id==='nav')     { const e=effective(cur,'nav'); return e.value?String(e.value.length):'0'; }
-  if(id==='sync')    { const e=effective(cur,'sync'); return e.value?String(e.value.length):'0'; }
+  if(id==='sync')    {
+    /* Counts entities the resolved profile declares offline. Online-only is
+       a dash, not a 0 — "0" reads as an empty configuration, and this one is
+       a deliberate choice (§2.10). */
+    const p = profileByCode(effective(cur,'sync').value || 'NONE');
+    return (p && p.entities.length) ? String(p.entities.length) : '—';
+  }
   return '';
 }
 function goTab(id){ tab=id; renderTabs(); renderBody(); $('body').scrollTop=0; onBodyScroll(); }
@@ -1388,12 +1796,19 @@ function tabOverview(){
        if(!v) return `No nav configured anywhere, not even on <b>*</b>. The app would fall back to its built-in Home / Work / Notifications.`;
        return `<b>${v.length}</b> slots: ${v.map(s=>esch(s.label)).join(' · ')}.`;
      }, go:()=>goTab('nav')},
-    {id:'sync', t:'Sync & Download Defaults', ico:'download',
-     grain:'one per group', where:'Edited here',
+    {id:'sync', t:'Offline Profile', ico:'download',
+     /* Grain changed with §2.10: a profile is one artifact assigned to many
+        groups, so this row now reads like Screen Design rather than like a
+        field form. §26.5's "field-shaped, edited here" is superseded. */
+     grain:'one artifact → many groups', where:'Assigned here, authored elsewhere',
      sum:()=>{
        const v = effective(cur,'sync').value;
-       if(!v) return `No download policy. A device logging in as this group would sync nothing until one is set.`;
-       return `<b>${v.length}</b> record type${v.length>1?'s':''} downloaded at login — ${v.map(r=>entName(r.e)).join(', ')}.`;
+       if(!v) return `No offline profile resolves — not even from <b>*</b>. The app still works while connected (§2.1), but nothing is guaranteed executable offline.`;
+       const p = profileByCode(v);
+       if(!p) return `Assigned <b>${esch(v)}</b>, which is not a known profile.`;
+       if(p.code === 'NONE') return `<b>Online-only</b> — no record replication. Tier 0 config still persists and the outbox is still on, so no write is dropped; but work cannot be loaded without connectivity.`;
+       const w = p.entities.filter(e=>OFFLINE_POLICIES[e.policy].write).length;
+       return `<b>${esch(p.short)}</b> — ${p.entities.length} entities declared, <b>${w}</b> writable offline.`;
      }, go:()=>goTab('sync')},
     {id:'home', t:'Home Screen Layout', ico:'layers',
      grain:'one per group', where:'Authored in the Home Layout Designer',
@@ -1425,10 +1840,19 @@ function tabOverview(){
        because each one only ever sees a single domain. */
     const iss = consistencyIssues(cur);
     if(!iss.length) return `<div class="ok-strip">${svgIco('check',2.4)}
-      Nav slots, workflow assignments and download policy agree with each other and with
-      ${esch(cur.code)}'s function permissions.</div>`;
+      Nav slots, workflow assignments, tab permissions and the offline profile agree with
+      each other and with ${esch(cur.code)}'s function permissions.</div>`;
+    /* Counted by SEVERITY, not by row. An online-only group is an
+       informational note about a deliberate choice, and heading it
+       "1 inconsistency" would report a correct configuration as broken —
+       which is how a consistency panel loses its credibility. */
+    const bad = iss.filter(i => i.sev !== 'info').length;
+    const nErr = iss.filter(i => i.sev === 'error').length;
+    const hdr = bad
+      ? `${bad} inconsistenc${bad>1?'ies':'y'} across domains${nErr?` · ${nErr} would break the workflow`:''}`
+      : `Nothing inconsistent — ${iss.length} note${iss.length>1?'s':''} worth knowing`;
     return `<div class="iss-wrap">
-      <div class="iss-h">${svgIco('warn',2)} ${iss.length} inconsistenc${iss.length>1?'ies':'y'} across domains</div>
+      <div class="iss-h ${bad?'':'calm'}">${svgIco(bad?'warn':'info',2)} ${hdr}</div>
       ${iss.map(i=>`<div class="iss ${i.sev}">
         <span class="iss-b">${i.msg}</span>
         <button class="btn btn-sm" onclick="goTab('${i.tab}')">Go</button>
@@ -1486,7 +1910,7 @@ const DOMGO = {
   home:    ()=>toast('Home Layout Designer does not exist yet — §20 tracks it'),
 };
 function entName(code){
-  const e = SYNC_ENTITIES.find(x=>x.code===code);
+  const e = OFFLINE_ENTITIES.find(x=>x.code===code);
   return e ? e.name : (FUNCTIONS[code] ? FUNCTIONS[code].desc : code);
 }
 
@@ -1522,10 +1946,22 @@ function tabScreens(){
   const open = assignableTo(cur);
   const rows = mine.concat(inh);
 
-  const stepCell = c => c.steps.map(s=>TAB_NAMES[s]).join(' → ');
+  /* Steps render as §29 instances: the instance number is part of the name,
+     a UDS and a fork are marked as the different kinds of thing they are,
+     and a gate is shown inline. Before §29 this cell was
+     `c.steps.map(s=>TAB_NAMES[s]).join(' → ')`, which would now describe
+     "Record View → Question fork → Checklist → Record View (2)" as
+     "undefined → undefined → …" — the step rows stopped being bare codes. */
+  const stepCell = c => c.steps.map(s=>{
+    const mark = STEP_KIND_MARK[s.k] || STEP_KIND_MARK.tab;
+    const gates = stepGates(s).map(g=>`<span class="sgate" title="${g==='comment'?'A comment is required before Next unlocks (§29.3)':'A document is required before Next unlocks (§29.3)'}">${svgIco(g==='comment'?'msg':'clip',2)}</span>`).join('');
+    const reqd = s.req ? `<span class="sreq" title="Required step (§14.7)">*</span>` : '';
+    return `<span class="sstep ${mark.cls}">${mark.ico?`<span class="sk-i">${svgIco(mark.ico,2)}</span>`:''}${esch(stepLabel(s))}${reqd}${gates}</span>`;
+  }).join('<span class="sarr">→</span>');
+
   const cfgRow = (c, viaDefault) => {
     const f = FUNCTIONS[c.fn];
-    const gap = capabilityGap(c.fn);
+    const gap = capabilityGap(c);
     return `<tr>
       <td>
         <span class="cell-2">
@@ -1536,7 +1972,7 @@ function tabScreens(){
       <td>${viaDefault
         ? `<span class="effb inherited"><span class="effb-dot"></span>via *</span>`
         : `<span class="effb explicit"><span class="effb-dot"></span>Assigned</span>`}</td>
-      <td class="cell-mute" style="white-space:normal;min-width:220px">${esch(stepCell(c))}</td>
+      <td class="cell-mute cell-steps" style="min-width:260px">${stepCell(c)}</td>
       <td class="ctr">${c.freeForm
         ? `<span class="pill pill-outline">Free Form</span>`
         : `<span class="pill pill-outline">Gated</span>`}</td>
@@ -1621,7 +2057,7 @@ function tabScreens(){
           <span class="cell-mono">${esch(c.fn)} · ${esch(c.type)}</span>
           <span class="cell-sub">${esch(FUNCTIONS[c.fn]?FUNCTIONS[c.fn].desc:c.fn)}</span>
         </span></td>
-        <td class="cell-mute" style="white-space:normal">${esch(stepCell(c))}</td>
+        <td class="cell-mute cell-steps">${stepCell(c)}</td>
         <td class="ctr"><span class="pill pill-outline">${c.freeForm?'Free Form':'Gated'}</span></td>
         <td>${c.groups.length?c.groups.map(g=>`<span class="orgb" style="margin-right:4px">${esch(g)}</span>`).join('')
               :'<span class="cell-mute">nobody yet</span>'}</td>
@@ -1637,7 +2073,17 @@ function assignConfig(id){
   if(!c || c.groups.includes(cur.code)) return;
   c.groups.push(cur.code);
   dirty = true;
-  const gap = capabilityGap(c.fn);
+  const gap = capabilityGap(c);
+  const dead = udsDeadEnds(cur).filter(d => d.cfg.id === c.id && d.required);
+  if(dead.length){
+    /* Assigning is allowed — the fix belongs in Security or Screen Designer,
+       and refusing here would just hide the problem behind a disabled button
+       with nowhere to go. But it is said at the moment of the action, not
+       only in a panel further up the page. */
+    toast(`${c.fn} · ${c.type} assigned — but ${dead[0].uds.name} is a Required step ${cur.code} cannot open. The workflow cannot be completed.`);
+    renderAll();
+    return;
+  }
   toast(gap.length
     ? `${c.fn} · ${c.type} assigned — but ${c.fn} has no ${gap.map(t=>TAB_NAMES[t]).join('/')} tab`
     : `${c.fn} · ${c.type} assigned to ${cur.code}`);
@@ -1871,11 +2317,20 @@ function iconFor(s){
    on that tab), because there is no group-side copy of a config to own. */
 function makeExplicit(domain){
   const src = effective(cur, domain).value;
-  const clone = src ? JSON.parse(JSON.stringify(src)) : [];
-  if(domain==='nav'){  cur.nav  = clone; cur.navSet  = true; }
-  if(domain==='sync'){ cur.sync = clone; cur.syncSet = true; }
+  if(domain==='nav'){
+    cur.nav = src ? JSON.parse(JSON.stringify(src)) : [];
+    cur.navSet = true;
+  }
+  if(domain==='sync'){
+    /* A profile is a CODE now, not a row set, so there is nothing to deep
+       copy — and the empty fallback must be the explicit off state rather
+       than `[]`, which would leave the tab resolving a profile that isn't a
+       profile. */
+    cur.sync = src || 'NONE';
+    cur.syncSet = true;
+  }
   dirty = true;
-  toast(`${domain==='nav'?'Bottom nav':'Sync policy'} is now explicit for ${cur.code}`);
+  toast(`${domain==='nav'?'Bottom nav':'Offline profile'} is now explicit for ${cur.code}`);
   renderAll();
 }
 /* Mints this group's own row set on first edit when nothing existed. Never
@@ -1945,87 +2400,199 @@ function setTarget(i, kind, target){
 /* ── SYNC: the one genuinely field-shaped domain ── */
 function tabSync(){
   const r = resolve(cur,'sync');
-  const rows = effective(cur,'sync').value || [];
+  const code = effective(cur,'sync').value || 'NONE';
+  const p = profileByCode(code) || profileByCode('NONE');
   const inherited = r.state === 'inherited';   /* see the note in tabNav() */
-  const unused = SYNC_ENTITIES.filter(e=>!rows.some(x=>x.e===e.code));
+  const members = profileMembers(p.code).filter(m => m !== cur.code);
+  const isNone = p.code === 'NONE';
+
+  const writable = p.entities.filter(e => OFFLINE_POLICIES[e.policy].write);
 
   return `
   <div class="tbar">
     <div>
-      <div class="tbar-t">Sync &amp; Download Defaults ${effBadge(r)}</div>
+      <div class="tbar-t">Offline &amp; Sync ${effBadge(r)}</div>
       <div class="tbar-d">
-        What a device downloads when this group logs in. The only one of the four
-        domains that is genuinely <b>field-shaped</b> — which is why it is edited
-        here rather than deep-linked to a designer.
+        Which <b>offline profile</b> this group is assigned (§2.10). The profile is a
+        named bundle of §2.7's per-entity policy, its caps and §2.8's lookup classes —
+        one artifact, many groups — so this tab edits <b>membership</b>, exactly like
+        Screen Design. It is not "what the device downloads": under §2.1 the app is
+        <b>online-first</b>, and a profile declares what is guaranteed <i>executable
+        offline</i>.
       </div>
     </div>
     <div class="tbar-r">
       ${inherited?`<button class="btn" onclick="makeExplicit('sync')">Override for ${esch(cur.code)}</button>`:''}
-      <button class="btn" onclick="addSync(event)" ${inherited||!unused.length?'disabled':''}>${svgIco('plus')} Add record type</button>
+      <button class="btn" onclick="pickProfile(event)" ${inherited?'disabled':''}>${svgIco('cog')} Change profile</button>
     </div>
   </div>
 
   ${r.state!=='explicit'?`<div class="mg-wrap" style="margin-bottom:12px"><div class="mg-hint">
-    <b>${r.state==='inherited'?'Inherited from the * default.':'Nothing is configured anywhere.'}</b>
+    <b>${r.state==='inherited'?'Inherited from the * default.':'No profile resolves anywhere.'}</b>
     ${r.state==='inherited'
-      ? 'Editing is disabled until you override, so an edit here cannot silently change every other inheriting group.'
-      : 'A device logging in as this group would download nothing. This is the state §26.5’s <b>*</b> default row exists to prevent.'}
+      ? 'Changing it is disabled until you override, so a change here cannot silently re-provision every other inheriting group.'
+      : 'Nothing is guaranteed executable offline for this group. Under §2.1 the app still works while connected — this is a narrower gap than it used to be, but the <b>*</b> default exists so it need not happen at all.'}
   </div></div>`:''}
 
-  ${rows.length ? rows.map((row,i)=>`
-    <div class="card" style="margin-bottom:10px">
-      <div class="card-h">
-        <span class="card-t">${esch(entName(row.e))}</span>
-        <span class="orgb">${esch(row.e)}</span>
-        <span style="flex:1"></span>
-        ${inherited?'':`<button class="slot-del" onclick="delSync(${i})" title="Remove">${svgIco('trash')}</button>`}
+  <!-- ─ 1. THE PART THAT IS NEVER SWITCHABLE (§2.10 items 1–2) ─────────
+       Rendered first, and rendered even for profile None. An admin handed a
+       single "offline" control will reasonably assume switching it off also
+       switches off the outbox. It never does: the outbox serves R6 /
+       transaction confidence, which is a High VoC theme INDEPENDENT of
+       offline — a save dropped mid-request happens at full connectivity. -->
+  <div class="always-wrap">
+    <div class="always-h">${svgIco('lock',2)} Always on for every group — not part of any profile</div>
+    <div class="always-b">
+      <div class="always-card">
+        <div class="always-t">${svgIco('db',2)} Tier 0 configuration <span class="always-tag">persisted &amp; versioned</span></div>
+        <div class="always-d">Bootstrap config, in front of the record tiers and deliberately not one of them: records degrade gracefully (fewer rows = a shorter list), configuration does not (a missing page layout is a blank screen). Fetched inside the login round-trip, exempt from eviction (§2.3).</div>
+        <div class="t0-row">${TIER0_ITEMS.map((t,i)=>`<span class="t0"><span class="t0-k">${t.k}</span>${esch(t.t)}</span>${i<TIER0_ITEMS.length-1?'<span class="t0-arr">→</span>':''}`).join('')}</div>
+        <div class="always-note">Layout is <b>first</b> because it scopes everything after it.</div>
       </div>
-      <div class="card-b">
-        <div class="fdgrid">
-          ${fld('select','Scope',{v:row.scope, opts:SCOPES, prot:inherited,
-              onchange:`setSync(${i},'scope',this.value)`})}
-          ${fld('select','Date horizon',{v:row.horizon, opts:HORIZONS, prot:inherited,
-              onchange:`setSync(${i},'horizon',this.value)`})}
-          ${fld('number','Max rows',{v:row.cap, unit:'rows', prot:inherited, num:true,
-              onchange:`setSync(${i},'cap',this.value)`})}
-        </div>
+      <div class="always-card">
+        <div class="always-t">${svgIco('cloud',2)} The outbox <span class="always-tag">always on</span></div>
+        <div class="always-d">One write path regardless of connectivity. It serves R6 / transaction confidence, which is a High VoC theme independent of offline — a save dropped mid-request happens at full connectivity too. <b>Turning a profile off never turns the outbox off.</b></div>
       </div>
-    </div>`).join('')
-  : `<div class="ph">
-      <div class="ph-i">${svgIco('download')}</div>
-      <div class="ph-t">No download policy</div>
-      <div class="ph-d">Nothing would reach the device at login. Add a record type, or copy a policy from another group.</div>
-      <div class="ph-tag">§26.5 — the <b>*</b> default exists so this state is unreachable in practice</div>
-    </div>`}
+    </div>
+  </div>
 
+  <!-- ─ 2. THE ONE SWITCHABLE LAYER: record replication ───────────────── -->
+  <div class="prof-wrap ${isNone?'none':''}">
+    <div class="prof-h">
+      <span class="prof-i">${svgIco(isNone?'cloudoff':'download',2)}</span>
+      <span class="prof-n">
+        <span class="prof-t">${esch(p.name)}</span>
+        <span class="prof-c mono">${esch(p.code)}</span>
+      </span>
+      <span style="flex:1"></span>
+      ${members.length
+        ? `<span class="prof-mem" title="Every other group on this profile — a change to its contents reaches all of them, which is why they are authored elsewhere">also on ${members.length} other group${members.length>1?'s':''}: ${members.map(m=>`<span class="orgb">${esch(m)}</span>`).join('')}</span>`
+        : `<span class="prof-mem">only ${esch(cur.code)}</span>`}
+    </div>
+    <div class="prof-d">${esch(p.desc)}</div>
+  </div>
+
+  ${isNone
+  ? `<div class="mg-wrap" style="margin-top:12px"><div class="mg-hint">
+      <b>Online-only is a real answer, not a missing configuration.</b> §2.10's decomposition
+      is explicit that record replication is the only switchable layer, and <b>None</b> is its
+      off state — for a user group that is always in network.
+      <br><br>
+      <b>The one consequence that reaches the technician:</b> §4.4.1's sync control changes
+      meaning. For a replicating group "Offline" means <i>working from the device</i>; for this
+      group it means <i>you cannot load work</i>. <b>Same icon, opposite promise</b>, and this is
+      the only place the assignment is visible to the technician at all — which is the correct
+      amount of visible. The distinct state or copy is still owed (§20).
+    </div></div>`
+  : `
+  <!-- Per-entity policy: READ-ONLY here, and the reason matters more than
+       the fact. The profile is one artifact shared by N groups, so an edit
+       from this side would silently re-provision every other member — the
+       exact §26.5.1 Fault 1 shape. -->
+  <div class="mg-wrap" style="margin-top:12px">
+    <table class="mg">
+      <thead><tr>
+        <th>Entity</th><th>Offline policy</th>
+        <th class="ctr">Read</th><th class="ctr">Write</th>
+        <th>Filter (§2.3 traversal)</th><th class="num">Row cap</th>
+      </tr></thead>
+      <tbody>${p.entities.map(row=>{
+        const pol = OFFLINE_POLICIES[row.policy];
+        return `<tr>
+          <td><span class="cell-2">
+            <span class="cell-mono">${esch(row.e)}</span>
+            <span class="cell-sub">${esch(entName(row.e))}</span>
+          </span></td>
+          <td><span class="pol ${pol.cls}">${esch(pol.label)}</span></td>
+          <td class="ctr">${pol.read?`<span class="yn y">${svgIco('check',2.6)}</span>`:`<span class="yn n">—</span>`}</td>
+          <td class="ctr">${pol.write?`<span class="yn y">${svgIco('check',2.6)}</span>`:`<span class="yn n">—</span>`}</td>
+          <td class="cell-mute">${esch(row.filter)}</td>
+          <td class="num">${row.cap?row.cap.toLocaleString():'<span class="cell-mute">whole</span>'}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+    <div class="mg-hint">
+      <b>Read-only, and not because it is unfinished.</b> A profile is one artifact assigned to
+      many groups (§2.10), so editing its contents from one group's side would re-provision
+      every other member without saying so — §26.5.1 Fault 1. The authoring surface for
+      profiles <b>does not exist yet</b>: a named gap, in the same category as the missing Home
+      layout designer (§9.4) and Equipment's four <span class="mono">PLO_PAGENAME</span>
+      layouts (§20) — not something to improvise into this screen.
+      <br><br>
+      <b>Caps are enforced limits, not guidance</b> (§2.7). Every surveyed product enforces a
+      per-entity row cap somewhere, requires <b>at least one filter per entity</b>, and
+      <b>refuses "all records"</b> — which is why no filter column here reads "All records"
+      and the old Scope list that offered it is gone.
+      <b>Writable offline is exactly ${writable.length} entit${writable.length===1?'y':'ies'}</b>
+      on this profile; keeping that set small is what makes a real per-shape conflict UI
+      buildable (§2.5 withdrew last-write-wins).
+    </div>
+  </div>
+
+  <!-- §2.8 travels with the profile: how an LOV resolves offline is part of
+       the same bundle, not a separate domain. Split by CARDINALITY AND
+       DEPENDENCY, not by reachability — reachability is the right answer for
+       exactly one of the three rows. -->
+  <div class="tbar" style="margin:16px 0 8px">
+    <div>
+      <div class="tbar-t" style="font-size:13px">Lookup resolution offline (§2.8)</div>
+      <div class="tbar-d">Part of the same profile. An LOV is never served by replicating its source entity — how it resolves depends on the lookup, and there are three cases.</div>
+    </div>
+  </div>
+  <div class="lk-wrap">${LOOKUP_CLASSES.map(l=>`
+    <div class="lk">
+      <div class="lk-k mono">${esch(l.k)}</div>
+      <div class="lk-b"><div class="lk-t">${esch(l.t)}</div><div class="lk-d">${esch(l.d)}</div></div>
+    </div>`).join('')}</div>
   <div class="mg-wrap" style="margin-top:3px"><div class="mg-hint">
+    <b>Keep <span class="mono">definition-gated</span> and <span class="mono">not-hydrated</span>
+    distinct.</b> Definition-gated means the value or tab <b>should not render at all</b>;
+    not-hydrated means it renders and <b>says it needs connectivity</b>. Conflating them reports
+    a configuration error as a sync problem.
+  </div></div>`}
+
+  <div class="mg-wrap" style="margin-top:12px"><div class="mg-hint">
+    <b>Device axis, and per-user.</b> Primary grain is the user group, shown here. A device axis
+    applies as <span class="mono">min(group, device)</span> — a low-storage or shared device can
+    only ever narrow what the group grants, never widen it — and per-user exists as an override
+    only. Neither is modelled on this screen.
+    <br><br>
+    <b>Database-wide record search does not work offline</b> (§2.1). That single answer is what
+    retired the Tier 2 index: the local store is a scoped fallback, never a projection of the
+    whole database. Say <b>"my open pinned work orders"</b>, never "today's WOs" — the punch list is
+    pin/dataspy-scoped and never date-scoped (§2.3).
+    <br><br>
     <b>Not specified here, deliberately:</b> what a row can honestly claim about its own
     freshness offline. §20 keeps that with development — the per-row sync affordance and
     the "results as of &lt;time&gt;" caption depend on how the real sync layer behaves,
     so designing them from this side would specify a state the backend can't report.
   </div></div>`;
 }
-function ensureSync(){ if(!cur.syncSet){ cur.sync = []; cur.syncSet = true; } return cur.sync; }
-function setSync(i,k,v){
-  ensureSync()[i][k] = (k==='cap') ? (parseInt(v,10)||0) : v;
-  dirty = true;
-}
-function delSync(i){ ensureSync().splice(i,1); dirty=true; renderAll(); }
-function addSync(e){
+
+/* Assignment, not authoring — the only edit this tab makes. */
+function pickProfile(e){
   e.stopPropagation();
-  const unused = SYNC_ENTITIES.filter(x=>!ensureSync().some(r=>r.e===x.code));
+  const curCode = effective(cur,'sync').value || 'NONE';
   showPop(e.currentTarget, `
-    <div class="pop-h"><div class="pop-t">Add record type</div>
-      <div class="pop-s">Record types not already in this group's download policy.</div></div>
-    <div class="pop-b">${unused.map(x=>`
-      <div class="pop-opt" onclick="doAddSync('${x.code}')">
-        <span class="pop-opt-b"><span class="pop-opt-t">${esch(x.name)}</span>
-        <span class="pop-opt-s mono">${esch(x.code)}</span></span>
-      </div>`).join('')}</div>`);
+    <div class="pop-h"><div class="pop-t">Assign an offline profile</div>
+      <div class="pop-s">One profile per group (§2.10). Contents are authored elsewhere — assigning is not copying.</div></div>
+    <div class="pop-b">${OFFLINE_PROFILES.map(p=>{
+      const n = profileMembers(p.code).length;
+      return `<div class="pop-opt${p.code===curCode?' on':''}" onclick="setProfile('${p.code}')">
+        <span class="pop-opt-b">
+          <span class="pop-opt-t">${esch(p.name)}</span>
+          <span class="pop-opt-s">${p.entities.length?`${p.entities.length} entities · ${p.entities.filter(x=>OFFLINE_POLICIES[x.policy].write).length} writable offline`:'no record replication'}${n?` · ${n} group${n>1?'s':''}`:''}</span>
+        </span>
+      </div>`;
+    }).join('')}</div>`);
 }
-function doAddSync(code){
-  ensureSync().push({e:code, scope:'My organization', horizon:'30 days', cap:500});
+function setProfile(code){
+  cur.sync = code; cur.syncSet = true;
   dirty = true; closePop(); renderAll();
+  const p = profileByCode(code);
+  toast(code === 'NONE'
+    ? `${cur.code} is online-only — Tier 0 and the outbox are unaffected`
+    : `${cur.code} assigned ${p.name}`);
 }
 
 /* ── HOME: summary + a deep link to a designer that doesn't exist yet ── */
@@ -2111,7 +2678,7 @@ function drawCopyPop(){
       <div class="pop-grp">Domains</div>
       ${domRow('screens','Screen design &amp; workflow enablement')}
       ${domRow('nav','Bottom nav')}
-      ${domRow('sync','Sync &amp; download defaults')}
+      ${domRow('sync','Offline profile assignment')}
       ${domRow('home','Home layout')}
       ${src && copyState.doms.nav ? navWarning(src) : ''}
     </div>
@@ -2155,8 +2722,12 @@ function doCopy(){
     cur.nav = v?JSON.parse(JSON.stringify(v)):null; cur.navSet = !!v; done.push('bottom nav');
   }
   if(copyState.doms.sync){
+    /* Copying the profile ASSIGNMENT, not its contents — which is the only
+       thing there is to copy now, and happens to be the correct semantics:
+       both groups end up members of one profile rather than owners of two
+       drifting copies of the same policy. */
     const v = effective(src,'sync').value;
-    cur.sync = v?JSON.parse(JSON.stringify(v)):null; cur.syncSet = !!v; done.push('sync');
+    cur.sync = v || null; cur.syncSet = !!v; done.push('offline profile');
   }
   if(copyState.doms.home){
     const v = effective(src,'home').value;
