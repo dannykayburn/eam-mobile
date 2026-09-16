@@ -3463,9 +3463,21 @@ second emulator.
 
 **Status: analysis only, added 2026-08-10. Nothing in §13.1–§13.4 is a
 locked decision** — no table shape, column name, or tier is committed, and
-none of it is built. It exists so the question "can this foundation carry
-field-level conditions later" has a recorded answer instead of being
-re-derived. Tracked as open in §20.
+none of it is built for FIELD state. It exists so the question "can this
+foundation carry field-level conditions later" has a recorded answer instead
+of being re-derived. Tracked as open in §20.
+
+**ONE NARROW ENTRY WAS MADE 2026-09-16 (§30.19), and it is routing only.**
+The condition fork reads a field and routes the flow; it changes no field's
+state, adds no resolveFieldState() seam, and picks no tier for field
+rules. It satisfies §13.3 item 4 by retracting nothing (a skipped step is
+N/A and stays visible, §29.4) and it is client-evaluable by construction.
+**Everything below still stands unbuilt** — do not read §30.19 as Tier 2
+having been adopted. Two things it did settle for this section: §13.4's
+verification is **paid** (see §30.19 — the customer's export carries no
+condition-shaped column, and base's only such mechanism is unused
+server-side SQL), and the prerequisite list in §13.3 is unchanged and still
+owed.
 
 The question: extend the WO-Type layout mechanism into genuinely dynamic
 per-field behavior — *if field X is Y, make Z required; if X is Y, surface
@@ -5815,6 +5827,7 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **The offline profile's two SECOND axes are still unmodelled** *(narrowed 2026-09-16 — the authoring surface now exists)* | Opened 2026-09-08 with §29.6 as "no surface authors profiles." That half is **closed**: the portal's Offline Profiles area authors §2.7's per-entity registry, its caps and §2.8's lookup classes read-only, and profiles are assigned from either side of one membership table (§30.13/§30.14). `PROFILES` is now authorable rather than demo data standing in for records nobody can create. **What is still unmodelled is everything past the group axis** — §2.10 names two more and the new surface implements neither: the **device** axis, applied as `min(group, device)`, and **per-user as override only**. Both are narrowing-only by definition, so neither can widen what the group grants; that is the property the surface has to make visible rather than merely obey. Whoever builds them also owns what a technician sees when the device axis is the binding one, since the profile UI is admin-side and §4.4.1's sync control is the only technician-visible trace.
 | **§2.7 narrows offline capability relative to the SHIPPING product — DECISION REQUIRED** | Opened 2026-09-16 by building the offline registry against the live **User Group ▸ Mobile Settings** tab (§30.14). §2.7 places **Equipment/WO history** and **meter readings** in `server-only`; the shipping product **downloads both**, and customers use them. So this is not a mapping error, it is a deliberate reduction in offline capability that nothing has acknowledged as one — and it is exactly the kind of thing found during a migration rather than during design. Two ways out, and they are not equivalent: **(a)** §2.7 stands, the narrowing is real, and it needs communicating as a known regression with the online path as the answer — defensible under §2.1 (online-first, reads at full fidelity) but only where coverage is good; or **(b)** §2.7 gets a carve-out, which means a **bounded** history policy (last N readings, last N work orders per asset) rather than the unbounded history the current product ships, because unbounded history is what §2.7's row cap exists to refuse. Note the asymmetry that makes this urgent: a technician who could read meter history offline yesterday and cannot today experiences a *downgrade*, and the registry row currently says `server-only` with no note. **Cost, Purchase Orders** are the other two `server-only` rows and are not in tension — nothing suggests the product ships those offline. |
 | **Eleven offline entities have no policy decision** | Opened 2026-09-16 with §30.14. Mapping the shipping product's ~35 `Download X` booleans onto §2.7 left **11 of 31 entities genuinely undecided**: Inspection Results, WO Nonconformity, Permit to Work, Calibrations, Equipment Structure, Equipment Comments, Equipment Custom Fields, Mobile Notebook, Main Isolation Tables, Physical Inventory, Asset Inventory. The registry marks each one and warns on enabling it, so none of them can become a decision by accident — but the marking is not the decision. Two deserve deliberate calls rather than drift: **Main Isolation Tables**, safety-critical whichever way it goes (an isolation an offline technician cannot see is a different class of problem from a missing cost code), and **Inspection Results**, which is `work-set`-shaped and probably belongs with the three children already reached by traversal from the WO. The other nine are ordinary scoping calls and can be taken as a batch. **Do not resolve these by defaulting them in** — every one is a row cap and a sync cost against a device ceiling §2.7 sets at 200,000. |
+| **Relative dates in a condition fork** | Opened 2026-09-16 with §30.19. Operators are offered per field type, and a date field currently takes a **literal** date only. The cases an admin will ask for are relative — *due date is before today*, *within 7 days*, *before end of shift* — and every one of them carries evaluation-time semantics the literal form does not: relative to the device clock or the server's, evaluated at the Next tap or re-evaluated later, and what "end of shift" means for a group with no shift pattern. Deliberately not half-built. **Note the offline constraint makes this narrower than it looks:** the whole point of §30.19 is that a condition is client-evaluable at the Next tap, so any relative date has to resolve against the device clock — which is the answer, but it needs stating before someone reaches for a server call (§2.7's last row). |
 | **Where user-defined text translations live is unanswered** | Opened 2026-09-08 with §29.4. A question fork is the first place an **admin** types prose a **technician** reads, so it is the first thing in this programme needing a translation surface — every other mobile string is a delivered product label or record data. The prototype models it as a language-keyed map on the prompt row with a base-language fallback, which is a **stand-in, not a schema proposal**: this project has confirmed no EAM table for user-defined text translation. The one rule that must survive whatever the answer is: **a missing translation falls back to the base language and never blanks**, because an empty question on a gated step is unanswerable. |
 | **Workflow config revisioning — now more pressing, still unaddressed** | §21 recorded that the retired Workflow Designer was the only artifact to have considered a live configuration being edited while technicians are mid-workflow against the previous version. §29 makes this worse rather than better: a fork's target is a *pointer to another step*, so an admin deleting or reordering a step invalidates routing that a technician may be halfway through. The prototype clears dangling and backward fork targets at authoring time (§29.4), which is the authoring-side half; the **runtime** half — what happens to an in-flight workflow whose configuration just changed underneath it — has no answer. §13.3 item 5's "version the ruleset against the offline payload" and §14.11's recommended "stamp the resolved config version at Start Work" are both parts of it. |
 | **Checklist navigation — "scroll mode" A/B is live, undecided** | Opened 2026-08-12. §16.1's Prev/Next pager is unchanged and still the locked model; a snap-pager alternative is built as a **toggleable A/B copy**, `eam-activity-checklist-prototype-v2-scrollmode.html`, for a device comparison. Same focused-item model — one item owns the screen, neighbours render as label+control stubs — but the *transition* is a scroll rather than a button, so a fanned-out Route checklist (§16.9, ~96/~624 items) doesn't read as an endless run of discrete screens. DOM stays at 3 panels regardless of item count. Rejected on the way: a virtualised continuous list (reintroduces exactly the perf + dynamic-update problems the Focused Stepper was chosen to avoid) and equipment-grouped pages (grouping is a task-plan composition property, often absent, so it can't carry the model). **Decides §16.1's letter** — folding it into v2 means amending that rule; §16.1's stated *reason* (a list made every item carry idle chrome) stays satisfied either way, since only the focused item has chrome. Judge on device: whether a flick reliably lands one item on, and whether Notes typing fights the snap. Settled through four device rounds: snapping is JS-owned (CSS `scroll-snap-type: proximity` did not fire reliably on iOS and left items resting half-placed; `mandatory` would fight both long-item reading and iOS scrolling a focused input into view), it fires on deceleration rather than an idle timeout, Prev/Next commit directly rather than scrolling and waiting to be noticed, and each item carries a fixed-height **banner** — mono item number plus the equipment — which is what the snap lands on. **Rejected on device: auto-collapsing the step rail on scroll** ("way too problematic") — `.step-rail` is in flow, so hiding it reflows `.content` and lurches the surface mid-gesture; animating the height and re-measuring the snap band afterwards was not enough. Don't retry without making the rail float first (§14.2). **Narrowed 2026-08-12: the Item Banner came out of this A/B and is now LOCKED for both modes (§16.11), so what remains under test is navigation alone — whether items should be paged through or scrolled between.** Paged mode is therefore no longer byte-identical to v2. On resolution: fold the winner into v2, delete the copy and its `test-checklist-scrollmode.js`, put `WO_STEP_FILES.checklist` back to a single live file, amend §16.1 if scroll wins, and rename the `.snap-*` CSS prefix — a fossil of when the banner was scroll-only. |
@@ -8979,6 +8992,192 @@ Recorded because both produced a passing assertion that proved nothing:
 
 Both were found by negative control, not by review. Ten injected bugs, ten
 caught, after those two fixes.
+
+
+## 30.19 Condition fork — a fork the system answers (locked)
+
+Added 2026-09-16 on direct instruction. §29.4's question fork asks the
+technician and routes on the answer; this reads a **field** and routes on
+its value. It is a second fork **kind**, not a parallel mechanism —
+`isForkKind()` and `forkBranches()` exist so that every §29.4 rule
+(forward-only, re-validated on reorder, dangling targets cleared, skipped
+steps marked N/A and left visible, wires drawn to real destinations) holds
+for both without a second implementation to keep in step.
+
+### ⚠ This is a deliberate, narrow entry into §13.2's Tier 2
+
+**Flagged before building, because CLAUDE.md says not to do it:** *"§29's
+question fork did not reopen [conditional field rules] — don't cite it as
+precedent."* The request cited it by name. So the conflict is recorded
+rather than glossed:
+
+- **§13.1–§13.4 stay parked.** No field-state effects, no
+  `resolveFieldState()` seam, no tier picked for field rules. The *only*
+  effect here is **routing**, which §29.4 already implements and which
+  §13.2 Tier 2 already contemplated ("plus tab `Visible`… so 'pop off
+  another tab' needs no new concept").
+- **§13.3 item 4 is the binding constraint**: *"Flipping a step to hidden
+  is a data problem… step-level rules should ADD rather than retract."*
+  This retracts nothing — a skipped step is **N/A and stays in the rail**,
+  exactly as §29.4 requires, so the objection is satisfied by inheriting
+  §29.4's answer rather than arguing with it.
+- **§13.4's verification debt is PAID** — see the base-schema finding below.
+
+### The evaluation moment is the whole design
+
+User direction: *"the form is dirty until the user navs to another screen…
+the user enters required fields/changes optional/etc; and hits 'Next'. At
+that point, online or offline, app sees the next step is a condition fork,
+checks the field and its value **ONLY OF THE USER'S CURRENT FORM/SCREEN
+they are on**, and moves to the appropriate next step."*
+
+Three problems dissolve at once, and it is worth naming them because the
+obvious alternatives do not solve any of them:
+
+| Problem | Why "on Next, current screen only" answers it |
+| --- | --- |
+| **Mutable input.** A question fork's answer is one deliberate act; a field is edited continuously. | It evaluates at **one moment**, so the value is pinned exactly like an answer. A live rule would mark a step N/A *while someone typed* — possibly a step already holding booked labour (§13.3 item 4). |
+| **Invisible logic.** A skipped step with no visible cause. | The field is **on the screen they just left**, so it is present, current and *visible to the person being routed*. |
+| **Offline divergence.** §2.7 makes anything server-evaluated `blocked-visible` offline. | Same-record, same-screen, no lookup — **client-evaluable by construction**. And routing is a harder case than field state: a field that silently fails to become required offline is a bad form, but a **route** that resolves differently offline means two technicians on one WO do different work. |
+
+**Rejected:** evaluating live on every field change (flicker, and retraction
+of steps holding data), and evaluating on arrival at the fork (the value can
+change afterwards, so the route goes stale with nothing flagging it).
+
+### What it deliberately cannot read
+
+Only **job-captured** fields — values the technician enters during
+execution. Not WO Type, user group, function, or equipment system type,
+because **§11 already resolves the whole workflow on (WO Type, user
+group)** and §13.5 protects WO Type from Start Work onward. A condition on
+any of them re-implements workflow resolution one level down *and can never
+change*. This was the sharpest objection raised against the feature and the
+answer narrowed it rather than dismissing it.
+
+Two further exclusions, each a rule rather than an omission:
+
+- **A Hidden field is never offered.** Routing on something the technician
+  cannot see is the invisible-logic failure this design exists to avoid
+  (§2.9 — narrowing may happen, silent narrowing may not).
+- **A button is never offered.** A control has no value to test, the same
+  reason §30.12 gives it only Optional or Hidden.
+
+### EMPTY IS NOT FALSE — the third outcome
+
+The request was for a *"boolean type scenario"*, and that is the trap.
+Forward gating means a later field is empty **by construction**, and an
+Optional field can be left blank. Sending every unknown down the false path
+would be wrong *and* invisible.
+
+So `condEval()` returns **true, false, or null**, and null means the
+workflow **continues in sequence** — the same meaning §29.4 gives a null
+target. The editor states it rather than leaving it to be discovered. A
+checkbox is the one type that is never unknown: unticked *is* false.
+
+### Operators come from the field's own type
+
+Rendered from the field's declared `type`, so "is greater than" is never
+offered on a checkbox and "contains" is never offered on a number.
+Changing the field **clears the operator and the value**, because an
+operator only means something against a type — the same reason switching a
+status entity re-bases the status (§30.11).
+
+**No relative dates** (today, today + 7, start of shift). They carry their
+own evaluation-time semantics and are their own feature; a literal date is
+the plainest thing that works. Open in §20 rather than half-built.
+
+### A third failure mode §29.4 never had
+
+§29.4 enforces forward-only routing **twice** — on pick and after every
+reorder. A condition fork adds a symmetrical problem on the **input** side:
+its field belongs to whatever step now *precedes* it. Reorder the flow and
+a different step is in front; delete that step and there is no form at all.
+Either way the reference silently stops resolving and the fork evaluates to
+"cannot tell" forever, routing nothing, with nothing on screen saying so.
+
+So `validateForks()` also clears a **stale field reference** and counts it,
+and the node reports it **on itself**. "Enforced twice" now covers the
+input as well as the output.
+
+### It is an ACTION that routes — the first of its kind
+
+By §30.11's rule (*"an action is not a step — no rail entry, no number, no
+gate"*) a condition fork is an **action**: the technician never visits it.
+But it **routes**, which no action did before. So it is `isForkKind()` and
+**not** `isStepKind()` — both at once — and it is positional, which means
+the More group and Free Form refuse it exactly as they refuse the other
+two.
+
+### §13.4's verification, now paid — and there is no base paradigm
+
+§13.4 owed a check of the customer's real export before any table design.
+Done 2026-09-16 against `docs/Data_refs/Page Layouts perms/`:
+
+| Table | Condition-shaped columns |
+| --- | --- |
+| `r5pagelayout` (19 cols) | **none.** No trigger, no operator, no value. (Also no `PLO_WOTYPE`, re-confirming §11.) It *does* carry `PLO_DEFAULTVALUE` — base does default values, not conditions. |
+| `r5functiontabs` | **`FTB_SQLEXIST`** — a tab-level SQL existence check. **Empty in all 242 rows.** |
+| `r5functions` | `FUN_FIELDFILTER*` — plain `+`/`-` switches on 4 rows, not expressions |
+| `r5permissions` | the only "rule" match is `PRM_OVERRULE`. Not a rules engine |
+
+**So base EAM ships no conditional-field-rules feature here, and the
+nearest thing is server-side SQL that nobody uses.** That matters twice
+over: §13.2's Tier 2 was premised on aligning with a base paradigm, and
+there is none to align with; and base's own instinct for "show this
+conditionally" is exactly the server-side evaluation §2.7 makes
+unavailable offline. A condition fork therefore **cannot** lean on base —
+which is the strongest argument for keeping it as narrow as it is.
+
+## 30.20 The summary panels are gone (locked)
+
+Removed 2026-09-16 on direct instruction: *"remove all 'Action Summary'
+type features from the portal. '3 things to look at', collisions, etc. We
+handle these with raising errors usually and I think it will put off devs,
+even though I would consider them in the future."*
+
+**Removed:** the gallery assignment-collision banner, the "N to look at"
+band in every editor, the offline profile's two issue bands, the group
+detail's cross-area roll-up, the canvas capability banner, the per-card
+"to fix" / "collision" chips, the rail's conflict count, and the Home
+area's silently-hidden-tiles line.
+
+**NOT removed — and this is the point:** every validator.
+`allConflicts()`, `profileIssues()`, `homeIssues()`, `capabilityGaps()`,
+`allHomeGaps()` and `wouldClash()` are all still there and still called —
+by the controls that can actually violate them:
+
+| Rule | Where it surfaces now |
+| --- | --- |
+| §30.2 assignment cardinality | **Refused in the assignment popover before the click**, naming the artifact it would collide with |
+| §2.7 "all records is refused" | `is-error` on the offending entity's own dataspy select |
+| §26.5.1 capability gap | A tag **on the node** — *"ZJ1000 has no such tab"* — plus the library entry disabled with the reason |
+| §30.17 silently-hidden tile | The tile outlines red, with the group named in its own menu |
+| §30.16 untitled / empty section | On the section header and in its own row |
+
+**Prevented at the click beats counted on the page**, and the finding
+belongs on the control that can fix it — a card cannot fix anything. Two
+functions are kept as explicit no-ops (`capabilityBannerHtml`,
+`profileIssueBanner`) so the call sites read as a deliberate absence rather
+than a forgotten insert, and `galleryShell` still *accepts* `conflicts` and
+ignores it.
+
+**Deliberately reversible.** The user was explicit that they would consider
+these in the future, which is exactly why the validators stayed: bringing a
+panel back is a render change, not a re-derivation.
+
+**One behaviour change worth noting rather than burying:** `groupIssues()`
+no longer re-reports capability gaps or Home-layout gaps. Those belong to
+the artifact and already show on the offending node or tile; aggregating
+them on the group is what turned that function into a dashboard feed.
+
+### The rail also lost its duplicate
+
+**User Groups appeared twice** — once as this portal's binding area under
+"Mobile configuration", once as a stub under "Security". They are now one
+row, **under Security**, which is the right way round: a user group *is* a
+security object, it is created there (§26.5.1 — this area only ever binds),
+and "Mobile configuration" is left holding exactly the three things this
+portal authors — Workflows, Home Layouts, Offline Profiles.
 
 ## 30.18 What §30 does not settle
 

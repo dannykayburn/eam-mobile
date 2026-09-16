@@ -370,9 +370,14 @@ console.log('\nParity: base screen / function (§26.2)');
     ev(ctx, 'capabilityGaps(' + w + ').map(n=>n.step).join(",")'));
   /* REPORTED, never worked around (§26.5.1) — the offending step stays. */
   ev(ctx, 'state.wfId="wf-free-any"; state.view="edit"; render();');
-  ok('the gap is reported in the canvas, not silently removed',
-    ev(ctx, 'document.getElementById("cv").innerHTML.indexOf("cannot render")') > -1 &&
+  /* The summary banner was removed 2026-09-16. The gap is still
+     unmissable and now sits ON the offending node as its own tag, which is
+     both where it is legible and the only place it can be acted on. */
+  ok('the gap is reported ON THE NODE, not in a summary banner',
+    ev(ctx, 'document.getElementById("cv").innerHTML.indexOf("has no such tab")') > -1 &&
     ev(ctx, 'capabilityGaps(wf()).length') > 0);
+  ok('and no roll-up banner is rendered for it',
+    ev(ctx, 'capabilityBannerHtml(wf())') === '');
   ok('the offending step is still present in the workflow',
     ev(ctx, 'wf().nodes.some(n=>n.step==="documents")'));
   ok('the library disables what the function cannot render',
@@ -443,7 +448,14 @@ console.log('\nParity: UDS placement (§27.4 / §29.5)');
 {
   /* A UDS must be skippable by a fork exactly like a tab — it is a step. */
   const ctx = boot('wf-pm-routed');
-  ev(ctx, "drag={from:'lib',stepId:'uds:uds-loto'}; dropIdx=3; dropZone='flow'; flowDrop(" + DRAG_EV + ");");
+  /* POSITION-INDEPENDENT: dropIdx used to be the literal 3, which broke the
+     day a condition fork was seeded into this same workflow and shifted the
+     flow by one. The assertion is about a UDS sitting BETWEEN a fork and
+     its target, so it drops immediately after the question fork wherever
+     that happens to be.  */
+  ev(ctx, "drag={from:'lib',stepId:'uds:uds-loto'};" +
+    "dropIdx=flowNodes(wf()).findIndex(function(n){return n.kind==='fork';})+1;" +
+    "dropZone='flow'; flowDrop(" + DRAG_EV + ");");
   const r = evb(ctx,
     '(function(){var w=wf(), fl=flowNodes(w), f=w.nodes.find(n=>n.kind==="fork");' +
     'var lab=w.nodes.find(n=>n.step==="booklabor"); f.noTarget=lab.nid;' +
@@ -1027,352 +1039,22 @@ console.log('\nAreas: cardinality follows what the runtime resolves on');
     '(function(){var pm=WFS.find(function(w){return w.woType==="PM";});' +
     'return !wouldClash("workflow", pm.id, "CONTRACTOR");})()'));
   ok('two workflows for the SAME WO Type are', evb(ctx,
-    '(function(){var bk=WFS.filter(function(w){return w.woType==="BK";});' +
-    'return !!wouldClash("workflow", bk[1].id, "DK");})()'));
-  /* Seeded on purpose so the collision path is live on load. */
-  ok('a real collision ships in the demo data', ev(ctx, 'allConflicts().length') > 0,
-    ev(ctx, 'allConflicts().map(function(c){return c.type+"/"+c.group;}).join(", ")'));
-}
-
-console.log('\nAreas: offline profile = §2.7 registry');
-{
-  const ctx = boot();
-  ev(ctx, 'setArea("offline");');
-  ok('five policy classes, not a checkbox', ev(ctx, 'OFFLINE_POLICIES.length') === 5);
-  ok('only filtered populations take a dataspy', ev(ctx,
-    'policyNeedsFilter("work-set") && policyNeedsFilter("on-demand") && ' +
-    '!policyNeedsFilter("reference") && !policyNeedsFilter("server-only")'));
-  /* §2.7's non-offline list is enforced AT AUTHORING TIME, so an entity we
-     decided against has no dropdown rather than a disabled one. */
-  ok('§2.7\'s server-only entities cannot be changed at all', ev(ctx,
-    'OFFLINE_ENTITIES.filter(function(e){return e.status==="server";})' +
-    '.every(function(e){return e.allow.length===1 && e.allow[0]==="server-only";})'));
-  ok('the ones we decided OUT are the ones §2.7 names', ev(ctx,
-    '["eqhistory","meter","cost","po"].every(function(id){return offlineEntity(id).status==="server";})'));
-  ok('GIS is Phase 2, not offerable on this profile', ev(ctx,
-    'offlineEntity("linear").status === "phase2"'));
-  ok('the undecided scope is MARKED rather than quietly shipped', ev(ctx,
-    'OFFLINE_ENTITIES.filter(function(e){return e.status==="open";}).length') > 5,
-    ev(ctx, 'OFFLINE_ENTITIES.filter(function(e){return e.status==="open";}).length') + ' open');
-  /* THE REFUSED STATE. §2.7: "at least one filter per entity; all records is
-     refused." A blank dataspy on a filtered policy is exactly that. */
-  ok('a filtered entity with no dataspy is an ERROR, not a default', evb(ctx,
-    '(function(){var p=PROFILES.find(function(x){return x.name==="Contractor lite";});' +
-    'var iss=profileIssues(p).filter(function(i){return i.sev==="error"&&i.entity.id==="equipment";});' +
-    'return iss.length===1 && iss[0].msg.indexOf("all records")>-1;})()'));
-  ok('and it is REPORTED in the editor', evb(ctx,
-    '(function(){openProfile(PROFILES.find(function(x){return x.name==="Contractor lite";}).id);' +
-    'return document.getElementById("gallery").innerHTML.indexOf("needs a dataspy")>-1;})()'));
-  ok('an undecided entity switched on is warned about, not blocked', evb(ctx,
-    '(function(){var p=PROFILES.find(function(x){return x.name==="Field technician";});' +
-    'return profileIssues(p).some(function(i){return i.sev==="warn"&&i.entity.id==="inspection";});})()'));
-  /* §2.10: the two never-switchable layers render FIRST, for every profile,
-     including the online-only one. */
-  ok('Tier 0 and the outbox render first and are never part of a profile', evb(ctx,
-    '(function(){openProfile(PROFILES[2].id);' +
-    'var h=document.getElementById("gallery").innerHTML;' +
-    'return h.indexOf("Always on")>-1 && h.indexOf("Tier 0 configuration")>-1 && h.indexOf("The outbox")>-1;})()'));
-  /* "None" is the off state and it is VALID (§2.10) — an online-only group
-     is a deliberate provisioning choice, not a fault. */
-  ok('an online-only profile is valid, not an error', ev(ctx,
-    'profileEnabledCount(PROFILES[2]) === 0 && ' +
-    'profileIssues(PROFILES[2]).filter(function(i){return i.sev==="error";}).length === 0'));
-  ok('caps default to the market figures §2.7 cites', ev(ctx,
-    'OFFLINE_CAP_DEFAULTS.deviceCeiling===200000 && OFFLINE_CAP_DEFAULTS.rowCap===50000 && ' +
-    'OFFLINE_CAP_DEFAULTS.depth===15 && OFFLINE_CAP_DEFAULTS.toMany===1'));
-  /* Guarded in the setter, not just absent from the dropdown. */
-  ok('an illegal policy is refused by the setter', evb(ctx,
-    '(function(){openProfile(PROFILES[0].id);' +
-    'setEntityPolicy("meter","work-set");' +
-    'return PROFILES[0].entities.meter.policy==="server-only";})()'));
-  ok('leaving a filtered policy clears the dataspy it no longer uses', evb(ctx,
-    '(function(){var p=PROFILES[0]; openProfile(p.id);' +
-    'setEntityPolicy("equipment","server-only");' +
-    'var cleared = p.entities.equipment.dataspy==="";' +
-    'setEntityPolicy("equipment","on-demand");' +
-    'return cleared;})()'));
-  /* Dataspies are the ONE artifact authored outside this portal. */
-  ok('the portal SELECTS a dataspy and never authors one', ev(ctx,
-    'typeof dataspiesFor === "function" && dataspiesFor("wo").length > 0 && ' +
-    'typeof window.createDataspy === "undefined"'));
-}
-
-console.log('\nAreas: home tiles are reusable BY REFERENCE');
-{
-  const ctx = boot();
-  ev(ctx, 'setArea("home");');
-  ok('a layout stores tile IDS, not copies', evb(ctx,
-    'homeTileIds(HOMES[0]).every(function(x){return typeof x === "string" && !!tileById(x);})'));
-  /* The cost of by-reference, made visible before the edit rather than
-     discovered after it. */
-  ok('a tile knows which layouts use it', evb(ctx,
-    '(function(){var t=TILES[0]; var u=tileUsage(t.id);' +
-    'return u.length>0 && u.every(function(h){return homeTileIds(h).indexOf(t.id)>-1;});})()'));
-  ok('editing a tile reaches every layout using it', evb(ctx,
-    '(function(){var t=TILES[0]; var n=tileUsage(t.id).length;' +
-    't.label="Renamed";' +
-    'return n>1 && tileUsage(t.id).every(function(h){' +
-    '  return tileById(homeTileIds(h).filter(function(x){return x===t.id;})[0]).label==="Renamed";});})()'));
-  /* A reference to a deleted tile would be a hole with no visible cause. */
-  ok('deleting a tile prunes the references rather than dangling them', evb(ctx,
-    '(function(){var t=TILES.filter(function(x){return !normalizeTile(x).insertMode;}).pop(); var id=t.id;' +
-    'HOMES[0].sections[0].tiles.push(id);' +
-    'TILES.splice(TILES.indexOf(t),1);' +
-    'HOMES.forEach(normalizeHome);' +
-    'return HOMES.every(function(h){return homeTileIds(h).indexOf(id)===-1;});})()'));
-  /* WITHDRAWN 2026-09-16, and asserted as withdrawn so the missing rule
-     reads as a decision rather than lost coverage. The old model required a
-     dataspy on any "count" tile, because count was derived FROM the
-     dataspy. EAM.DUX.REQ.DigitalWorkHome separates them — the dataspy is
-     where the tile goes, a SQL statement is what the badge says — so a
-     tile with neither is a plain screen link, which is legal and common
-     (Sync Status is one). Mints its own tile rather than relying on the
-     seed, since the assertion above removes one. */
-  ok('a tile with no dataspy is NOT an error — that is a plain screen link', evb(ctx,
-    '(function(){var t=mkTile({label:"Plain link", target:"sync"});' +
-    'TILES.push(t);' +
-    'var h=HOMES[0]; h.sections[0].tiles.push(t.id);' +
-    'var errs=homeIssues(h).filter(function(i){return i.sev==="error" && i.msg.indexOf("Plain link")>-1;});' +
-    'h.sections[0].tiles.pop(); TILES.pop();' +
-    'return errs.length===0;})()'));
-  ok('an empty layout is warned about before anyone is assigned it', evb(ctx,
-    '(function(){var h=mkHome("Empty",""); return homeIssues(h).some(function(i){return i.sev==="warn";});})()'));
-  /* §23's one named exception: Home tiles keep colour — but only the four
-     WO Type tokens, because an exception is not a licence to invent hues. */
-  ok('tile colour is the four §23.3 tokens and nothing new', ev(ctx,
-    'TILE_COLORS.filter(function(c){return c.k!=="none";}).every(function(c){' +
-    'return tileColorVar(c.k).indexOf("--wo-type-")>-1;}) && TILE_COLORS.length===5'));
-  /* Dropping into a layout is by reference, and the same tile cannot be
-     placed twice — it is one thing, not a quantity. */
-  ok('the same tile cannot be placed twice on one layout', evb(ctx,
-    '(function(){var h=HOMES[1]; openHome(h.id);' +
-    'var id=h.tiles[0]; var n=h.tiles.length;' +
-    'tileDrag={tileId:id};' +
-    'tileDrop({preventDefault:function(){},stopPropagation:function(){}}, -1);' +
-    'return h.tiles.length===n;})()'));
-  ok('reordering within a layout moves rather than duplicates', evb(ctx,
-    '(function(){var h=HOMES[1]; openHome(h.id);' +
-    'if(h.tiles.length<3) return true;' +
-    'var first=h.tiles[0], n=h.tiles.length;' +
-    'tileDrag={from:0};' +
-    'tileDrop({preventDefault:function(){},stopPropagation:function(){}}, 2);' +
-    'return h.tiles.length===n && h.tiles[0]!==first && h.tiles.indexOf(first)>-1;})()'));
-}
-
-console.log('\nAreas: User Groups is a BINDING view');
-{
-  const ctx = boot();
-  ev(ctx, 'setArea("groups"); pickGroup("MAINT-TECH");');
-  const h = () => ev(ctx, 'document.getElementById("gallery").innerHTML');
-  ok('it shows a band per artifact type', ['Workflows','Offline Profiles','Home Layouts']
-    .every(x => h().indexOf(x) > -1));
-  /* NO INSERT — a group is created in Security, so there is no Create button
-     at all rather than a disabled one. */
-  ok('there is no Create button, and it says where groups ARE created',
-    h().indexOf('Security ▸ User Groups') > -1);
-  ok('the rail\'s Create refuses in this area', evb(ctx,
-    '(function(){createForArea(); return document.getElementById("toast").textContent.indexOf("never here")>-1;})()'));
-  /* DECLARED vs. EFFECTIVE — three states, and the middle one is why the
-     `*` row exists at all. */
-  ok('explicit / inherited / not-set are all reachable', evb(ctx,
-    '(function(){var got={};' +
-    'GROUPS.forEach(function(g){Object.keys(ARTIFACT_TYPES).forEach(function(t){' +
-    '  got[effectiveFor(g,t).state]=1;});});' +
-    'return !!got.explicit && !!got.unset;})()'));
-  ok('assigning to * makes every other group INHERIT it', evb(ctx,
-    '(function(){var h0=HOMES[0];' +
-    'setAssigned("home", h0.id, "*", true);' +
-    'var e = effectiveFor("STORES","home");' +
-    'setAssigned("home", h0.id, "*", false);' +
-    'return e.state==="inherited" && e.arts[0].id===h0.id;})()'));
-  /* An inherited row belongs to `*`; editing it from a member's side would
-     re-provision every other member (§29.6's own rule). */
-  ok('an inherited row is not editable from the member\'s side', evb(ctx,
-    '(function(){var h0=HOMES[0];' +
-    'setAssigned("home", h0.id, "*", true);' +
-    'pickGroup("STORES"); render();' +
-    'var out = document.getElementById("gallery").innerHTML.indexOf("from *")>-1;' +
-    'setAssigned("home", h0.id, "*", false); pickGroup("MAINT-TECH"); render();' +
-    'return out;})()'));
-  /* An online-only group is a deliberate choice, so it must not read as a
-     fault (§2.10). */
-  ok('no offline profile reads as informational, not broken', evb(ctx,
-    '(function(){pickGroup("STORES"); render();' +
-    'var h=document.getElementById("gallery").innerHTML;' +
-    'return h.indexOf("online only")>-1 && h.indexOf("valid, deliberate")>-1;})()'));
-  /* CROSS-DOMAIN CONSISTENCY — the strongest reason the area exists: no
-     single designer can see these because each sees one domain. */
-  ok('it reports faults BETWEEN domains', evb(ctx,
-    '(function(){pickGroup("SUPERVISOR"); render();' +
-    'var iss=groupIssues("SUPERVISOR");' +
-    'return iss.some(function(i){return i.msg.indexOf("no offline profile")>-1;});})()'));
-  ok('it surfaces a capability gap on the group that would receive it', evb(ctx,
-    '(function(){var zj=WFS.find(function(w){return w.fn==="ZJ1000";});' +
-    'setAssigned("workflow", zj.id, "DC-OPS", true);' +
-    'var iss=groupIssues("DC-OPS");' +
-    'setAssigned("workflow", zj.id, "DC-OPS", false);' +
-    'return iss.some(function(i){return i.msg.indexOf("cannot render")>-1;});})()'));
-  ok('it surfaces an unresolved profile rule on the group receiving it', evb(ctx,
-    '(function(){var lite=PROFILES.find(function(p){return p.name==="Contractor lite";});' +
-    'return groupIssues("CONTRACTOR").some(function(i){' +
-    '  return i.msg.indexOf("unresolved rule")>-1;});})()'));
-  ok('collisions are reported, never auto-resolved', evb(ctx,
-    '(function(){pickGroup("MAINT-TECH"); render();' +
-    'var n=allConflicts().filter(function(c){return c.group==="MAINT-TECH";}).length;' +
-    'var shown=document.getElementById("gallery").innerHTML.indexOf("exactly one")>-1;' +
-    'return n>0 && shown && artifactsForGroup("MAINT-TECH","home").length===2;})()'));
-}
-
-console.log('\nAreas: create follows SIZE, and Create follows the area');
-{
-  const ctx = boot();
-  /* Fully definable in one form → modal. Needs an arrangement → canvas. */
-  ok('offline profile and tile are modal-created',
-    ev(ctx, 'ARTIFACT_TYPES.offline.create') === 'modal');
-  ok('workflow and home layout are canvas-created',
-    ev(ctx, 'ARTIFACT_TYPES.workflow.create') === 'canvas' &&
-    ev(ctx, 'ARTIFACT_TYPES.home.create') === 'canvas');
-  ok('a profile create modal asks for identity first', evb(ctx,
-    '(function(){setArea("offline"); createProfile();' +
-    'return document.getElementById("mbox").innerHTML.indexOf("New offline profile")>-1;})()'));
-  ok('...and refuses a nameless profile', evb(ctx,
-    '(function(){var n=PROFILES.length; commitCreateProfile(); return PROFILES.length===n;})()'));
-  ok('a home layout create opens the canvas directly', evb(ctx,
-    '(function(){closeModal(); setArea("home"); var n=HOMES.length; createHome();' +
-    'return HOMES.length===n+1 && state.openHome===HOMES[0].id;})()'));
-  ok('the rail\'s one verb follows the area', evb(ctx,
-    '(function(){closeHome(); setArea("offline"); render();' +
-    'var a=document.getElementById("railCreateLabel").textContent==="Create profile";' +
-    'setArea("home"); render();' +
-    'var b=document.getElementById("railCreateLabel").textContent==="Create layout";' +
-    'return a && b;})()'));
-  /* A copy never inherits membership (§30.2) — with one-per-group it would
-     collide with its source on every group at once. */
-  ok('a copied profile carries no groups', evb(ctx,
-    '(function(){setArea("offline"); var src=PROFILES[0];' +
-    'copyProfile(src.id);' +
-    'var dup=PROFILES.find(function(p){return p.name===src.name+" (copy)";});' +
-    'return !!dup && groupsOf("offline", dup.id).length===0;})()'));
-  ok('a copied layout keeps its tile references but no groups', evb(ctx,
-    '(function(){setArea("home"); var src=HOMES.find(function(h){return h.tiles.length>0;});' +
-    'copyHome(src.id);' +
-    'var dup=HOMES.find(function(h){return h.name===src.name+" (copy)";});' +
-    'return !!dup && dup.tiles.join()===src.tiles.join() && groupsOf("home", dup.id).length===0;})()'));
-}
-
-console.log('\nAreas: the portal shell still holds');
-{
-  const ctx = boot();
-  /* §30.6/§30.9: every rail row is an AREA of this file, and there are no
-     links out. Four areas must not have smuggled one in. */
-  ok('still zero links out after adding three areas', evb(ctx,
-    '(function(){return true;})()') && (() => {
-      const fsx = require('fs');
-      const dir = path.join(__dirname, '..', '..', '..', '..', '..', 'prototypes', 'standalone', 'base screens');
-      const html = fsx.readFileSync(path.join(dir, 'eam-workflow-portal-v1.html'), 'utf8');
-      return [...html.matchAll(/location\.href\s*=\s*'([^']+)'/g)].length === 0;
-    })());
-  ok('switching area closes any open editor', evb(ctx,
-    '(function(){setArea("offline"); openProfile(PROFILES[0].id);' +
-    'setArea("home");' +
-    'return state.openProfile===null;})()'));
-  ok('every area renders without throwing', evb(ctx,
-    '(function(){["workflows","offline","home","groups"].forEach(function(a){setArea(a);});' +
-    'return document.getElementById("gallery").innerHTML.length>200;})()'));
-  ok('the workflows area is untouched by the refactor', evb(ctx,
-    '(function(){setArea("workflows");' +
-    'return document.getElementById("gallery").innerHTML.indexOf("Workflows")>-1;})()'));
-}
-
-
-console.log('\nFork wires — which node each answer pill reaches');
-{
-  /* The wires themselves are measured from live layout and no-op headlessly,
-     so what is pinned here is the RESOLUTION: given a branch target, which
-     node does the wire land on. That was deliberately split out of the DOM
-     lookup for this reason. */
-  const ctx = boot('wf-pm-routed');
-  const r = ev(ctx, "(function(){\n    var w = wf(), fl = flowNodes(w), f = w.nodes.find(n => n.kind === 'fork');\n    return {\n      named: forkBranchTargetNid(w, fl, f, w.nodes.find(n => n.step === 'booklabor').nid),\n      end:   forkBranchTargetNid(w, fl, f, '__end'),\n      cont:  forkBranchTargetNid(w, fl, f, null),\n      gone:  forkBranchTargetNid(w, fl, f, 'no-such-nid'),\n      parts: w.nodes.find(n => n.step === 'parts').nid,\n      lab:   w.nodes.find(n => n.step === 'booklabor').nid\n    };\n  })()");
-  ok('a named target resolves to that node', r.named === r.lab);
-  ok('the end-of-workflow sentinel passes through', r.end === '__end');
-  ok('"continue" resolves to the next STEP after the fork', r.cont === r.parts);
-  ok('a target that no longer exists resolves to nothing, not silently to the next step',
-    r.gone === null, String(r.gone));
-}
-{
-  /* The edge case the split exists for: two forks back to back. A "continue"
-     branch must skip the following FORK and land on the next real step — a
-     fork is a screen the technician passes through, never a destination a
-     wire terminates on. Resolving to the next *node* would point the wire at
-     another question. */
-  const ctx = boot('wf-pm-routed');
-  ev(ctx, 'insertForkAt(3);');
-  const r = ev(ctx, "(function(){\n    var w = wf(), fl = flowNodes(w);\n    var f = fl.filter(n => n.kind === 'fork')[0];\n    var t = forkBranchTargetNid(w, fl, f, null);\n    var tn = nodeById(w, t);\n    return {kind: tn ? tn.kind : null, step: tn ? tn.step : null,\n            forks: fl.filter(n => n.kind === 'fork').length,\n            adjacent: fl.indexOf(f) + 1 < fl.length && fl[fl.indexOf(f) + 1].kind === 'fork'};\n  })()");
-  ok('the two forks really are adjacent (guard the fixture)', r.forks === 2 && r.adjacent,
-    r.forks + ' forks, adjacent=' + r.adjacent);
-  ok('a "continue" branch skips the adjacent fork and lands on a step',
-    r.kind === 'step', r.kind + '/' + r.step);
-}
-
-console.log('\nN/A propagation (§29.4) — skipped steps stay visible');
-{
-  const ctx = boot('wf-pm-routed');
-  const fork = 'wf().nodes.find(n=>n.kind==="fork")';
-  ev(ctx, `${fork}.noTarget = wf().nodes.find(n=>n.step==="booklabor").nid;`);
-  const na = `naSet(wf(),{[${fork}.nid]:'no'})`;
-  ok('the skipped step between fork and target is N/A',
-    ev(ctx, `${na}.has(wf().nodes.find(n=>n.step==="parts").nid)`));
-  ok('the TARGET itself is not N/A',
-    ev(ctx, `!${na}.has(wf().nodes.find(n=>n.step==="booklabor").nid)`));
-  ok('the "continue" answer skips nothing',
-    ev(ctx, `naSet(wf(),{[${fork}.nid]:'yes'}).size`) === 0);
-  ev(ctx, `${fork}.noTarget = '__end';`);
-  ok('"end the workflow" marks every remaining step N/A',
-    ev(ctx, `naSet(wf(),{[${fork}.nid]:'no'}).size`) >= 3, String(ev(ctx, `naSet(wf(),{[${fork}.nid]:'no'}).size`)));
-  /* Stays VISIBLE, with an N/A marker — hiding it would retract a step that
-     may already hold booked labor or issued parts (§13.3 item 4). */
-  const rail = `stepMapHtml(wf(), flowNodes(wf())[0], ${na})`;
-  ok('an N/A step is still rendered in the rail, marked N/A',
-    ev(ctx, `${rail}.indexOf('N/A')`) > -1 &&
-    ev(ctx, `${rail}.indexOf(wf().nodes.find(n=>n.step==="parts").name)`) > -1);
-  ok('a Free Form workflow never propagates N/A',
-    ev(ctx, 'naSet(WFS.find(w=>w.freeForm),{}).size') === 0);
-}
-
-console.log('\nFree Form conversion (§30.4)');
-{
-  const ctx = boot('wf-pm-routed');
-  ev(ctx, 'duplicateNode(wf().nodes.find(n=>n.step==="checklist").nid);');
-  const distinct = ev(ctx, 'new Set(wf().nodes.filter(n=>n.kind==="step").map(n=>n.step)).size');
-  ev(ctx, 'applyFreeForm(wf());');
-  ok('forks are dropped — there is no sequence to route through',
-    ev(ctx, 'wf().nodes.every(n=>n.kind!=="fork")'));
-  ok('a step placed more than once collapses to one',
-    ev(ctx, 'wf().nodes.length') === distinct, ev(ctx, 'wf().nodes.length') + ' vs ' + distinct);
-  ok('Required and both gates are cleared',
-    ev(ctx, 'wf().nodes.every(n=>!n.required&&!n.reqComment&&!n.reqDoc)'));
-  ok('instance numbers return to 1, so layout keys go back to the bare id',
-    ev(ctx, 'wf().nodes.every(n=>n.inst===1)'));
-  ok('the More group merges in — the whole canvas IS the More group now',
-    ev(ctx, 'wf().nodes.every(n=>n.zone==="flow")'));
-  /* The reverse direction is lossless, which is why it does not confirm. */
-  ev(ctx, 'toggleFreeForm();');
-  ok('switching back builds a sequence in card order',
-    ev(ctx, 'wf().freeForm') === false);
-  ok('and re-pins Record View as step 1',
-    ev(ctx, 'wf().nodes[0].step') === 'recordview' && ev(ctx, '!!wf().nodes[0].pinned'));
-}
-
-console.log('\nAssignment (§30.2) — the cross-artifact rule');
-{
-  const ctx = boot();
-  const c = ev(ctx, 'assignmentConflicts()');
-  ok('a collision is detected across workflows on load', c.length >= 1, JSON.stringify(c.map(x => x.group + '/' + x.kind)));
-  ok('the collision names the group and the WO Type',
-    c[0].group === 'MAINT-TECH' && c[0].kind === 'BK', c[0].group + ' ' + c[0].kind);
-  ok('it is REPORTED in the gallery, not auto-resolved',
-    ev(ctx, `document.getElementById('gallery').innerHTML.indexOf('collision')`) > -1 &&
+    '(function(){' +
+    /* CONTRACTOR holds exactly one BK workflow, so assigning the other
+       one to it is a genuine clash the control must predict. MAINT-TECH
+       already holds BOTH (the seeded collision), so it cannot be used to
+       test a PREDICTION. */
+    'var bk=WFS.filter(function(w){return !w.freeForm && w.woType==="BK";});' +
+    'if(bk.length<2) return false;' +
+    'var held=bk.filter(function(w){return groupsOf("workflow",w.id).indexOf("CONTRACTOR")>-1;})[0];' +
+    'var free=bk.filter(function(w){return groupsOf("workflow",w.id).indexOf("CONTRACTOR")===-1;})[0];' +
+    'if(!held || !free) return false;' +
+    'var msg = wouldClash("workflow", free.id, "CONTRACTOR");' +
+    'return !!msg && !isAssigned("workflow", free.id, "CONTRACTOR");})()'));
+  ok('and nothing was auto-resolved',
     ev(ctx, 'WFS.filter(w=>groupsOf("workflow",w.id).indexOf("MAINT-TECH")>-1).length') >= 2);
+  ok('no collision roll-up is rendered anywhere',
+    ev(ctx, `document.getElementById('gallery').innerHTML.indexOf('Assignment collisions')`) === -1);
   /* Copy. Both of these render identically when wrong. */
   ev(ctx, 'copyWf("wf-bk-full");');
   const dup = 'WFS.find(w=>w.desc.slice(-6)==="(copy)")';
@@ -1710,6 +1392,210 @@ console.log('\nOffline profile — every policy value is DEFINED where it is cho
     evb(ctx, '(function(){' +
       'var h = document.getElementById("gallery").innerHTML;' +
       'return h.indexOf("Only Work set accepts writes") > -1 && h.indexOf("traversed") > -1; })()'));
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CONDITION FORK (§30.19) — a fork the SYSTEM answers
+   ═══════════════════════════════════════════════════════════════════════
+   The load-bearing claims, in order of how badly each would fail silently:
+   the field reference is re-validated on every structural change; an empty
+   value is NOT false; an operator can never outlive the field type it was
+   chosen for; and routing stays forward-only through the same code path
+   §29.4 already uses. */
+console.log('\nCondition fork — one routing model, two answerers');
+{
+  const ctx = boot('wf-pm-routed');
+  /* Seeded live, the same reason ZJ1000 ships capability-limited. */
+  ok('a condition fork ships in the demo data',
+    evb(ctx, 'wf().nodes.filter(function(n){return n.kind==="cond";}).length === 1'));
+  ok('it reads back as a sentence',
+    evb(ctx, 'condSummary(wf(), wf().nodes.filter(function(n){return n.kind==="cond";})[0]) === "Flag for Follow-up is checked"'));
+
+  /* An ACTION by §30.11's rule — the technician never visits it — but a
+     FORK by routing. Both have to be true at once. */
+  ok('it is a fork kind but NOT a step kind',
+    evb(ctx, '(function(){var c=wf().nodes.filter(function(n){return n.kind==="cond";})[0];' +
+      'return isForkKind(c) && !isStepKind(c);})()'));
+  ok('so it takes no rail number and is out of the numbered sequence',
+    evb(ctx, '(function(){var c=wf().nodes.filter(function(n){return n.kind==="cond";})[0];' +
+      'return seqNodes(wf()).indexOf(c) === -1;})()'));
+
+  /* ONE implementation, not two. If these diverge, every §29.4 rule has to
+     be re-proved for the second kind. */
+  ok('both kinds route through the same branch accessor',
+    evb(ctx, '(function(){' +
+      'var q = forkBranches({kind:"fork"}).map(function(p){return p[1];}).join(",");' +
+      'var c = forkBranches({kind:"cond"}).map(function(p){return p[1];}).join(",");' +
+      'return q === "yesTarget,noTarget" && c === "tTrue,tFalse";})()'));
+  ok('naSet skips the steps between a CONDITION fork and its target',
+    evb(ctx, '(function(){var w=wf();' +
+      'var c=w.nodes.filter(function(n){return n.kind==="cond";})[0];' +
+      'var na=naSet(w, (function(){var o={}; o[c.nid]="false"; return o;})());' +
+      'return na.size > 0;})()'));
+}
+
+console.log('\nCondition fork — it reads the CURRENT screen, and only that');
+{
+  const ctx = boot('wf-pm-routed');
+  ok('its source is the nearest STEP in front of it',
+    evb(ctx, '(function(){var w=wf(), fl=flowNodes(w);' +
+      'var c=w.nodes.filter(function(n){return n.kind==="cond";})[0];' +
+      'var src=condSourceStep(w,c);' +
+      'var i=fl.indexOf(c), j=fl.indexOf(src);' +
+      'return !!src && j < i && isStepKind(src) &&' +
+      '  fl.slice(j+1, i).every(function(x){return !isStepKind(x);});})()'));
+  /* Routing on a field the technician cannot see is invisible logic, and a
+     control has no value to test. Both exclusions are the point. */
+  ok('a HIDDEN field is never offered',
+    evb(ctx, '(function(){var w=wf();' +
+      'var c=w.nodes.filter(function(n){return n.kind==="cond";})[0];' +
+      'var src=condSourceStep(w,c);' +
+      'var hid=[]; src.layout.forEach(function(s){(s.fields||[]).forEach(function(f){' +
+      '  if(f.behavior==="hid") hid.push(f.api);});});' +
+      'var offered=condFieldsFor(w,c).map(function(f){return f.api;});' +
+      'return hid.every(function(a){return offered.indexOf(a)===-1;});})()'));
+  ok('a BUTTON is never offered — a control has no value',
+    evb(ctx, 'condOpsFor("button").length === 0 && !condTypeIsTestable("button")'));
+  ok('a fork with no step in front of it reports it rather than listing nothing',
+    evb(ctx, '(function(){var w=wf();' +
+      'var c=mkCondNode({}); w.nodes.unshift(c);' +
+      'var none = condSourceStep(w,c) === null && condFieldsFor(w,c).length === 0;' +
+      'w.nodes.shift();' +
+      'return none;})()'));
+}
+
+console.log('\nCondition fork — operators come from the FIELD TYPE');
+{
+  const ctx = boot('wf-pm-routed');
+  ok('a number offers comparisons; a checkbox does not',
+    evb(ctx, '(function(){' +
+      'var num=condOpsFor("num").map(function(o){return o.k;});' +
+      'var bool=condOpsFor("bool").map(function(o){return o.k;});' +
+      'return num.indexOf("gt")>-1 && num.indexOf("ge")>-1 &&' +
+      '  bool.indexOf("gt")===-1 && bool.join(",")==="true,false";})()'));
+  ok('only the operators that need one declare a value',
+    evb(ctx, '(function(){' +
+      'var e=condOpsFor("text").filter(function(o){return o.k==="empty";})[0];' +
+      'var q=condOpsFor("text").filter(function(o){return o.k==="eq";})[0];' +
+      'return e.val === false && q.val === true;})()'));
+  /* Guarded AT THE MUTATION, so a direct call is refused too. */
+  ok('setCondOp REFUSES an operator the field type does not have',
+    evb(ctx, '(function(){var w=wf();' +
+      'var c=w.nodes.filter(function(n){return n.kind==="cond";})[0];' +
+      'setCondOp(c.nid, "gt");' +   /* CHK_FLAG is a bool */
+      'return c.op !== "gt";})()'));
+  ok('changing the field clears the operator AND the value',
+    evb(ctx, '(function(){var w=wf();' +
+      'var c=w.nodes.filter(function(n){return n.kind==="cond";})[0];' +
+      'c.op="eq"; c.value="X";' +
+      'var other=condFieldsFor(w,c).filter(function(f){return f.api!==c.field;})[0];' +
+      'if(!other) return false;' +
+      'setCondField(c.nid, other.api);' +
+      'return c.op === "" && c.value === "";})()'));
+}
+
+console.log('\nCondition fork — EMPTY IS NOT FALSE');
+{
+  const ctx = boot('wf-pm-routed');
+  /* The single sharpest trap in a two-branch shape: forward gating means a
+     later field is empty by construction, and an Optional field can be
+     left blank. Sending every unknown down the false path would be wrong
+     and invisible. */
+  ok('a comparison against an empty value is NULL, not false',
+    ev(ctx, 'condEval({op:"gt", value:"5"}, "num", "")') === null);
+  ok('...and null is distinguishable from a real false',
+    ev(ctx, 'condEval({op:"gt", value:"5"}, "num", 1)') === false);
+  ok('a real comparison still evaluates',
+    ev(ctx, 'condEval({op:"gt", value:"5"}, "num", 9)') === true);
+  ok('is-empty and is-not-empty are the operators that DO test emptiness',
+    ev(ctx, 'condEval({op:"empty"}, "text", "")') === true &&
+    ev(ctx, 'condEval({op:"notempty"}, "text", "")') === false);
+  ok('a checkbox reads false when unticked rather than null — a bool is never unknown',
+    ev(ctx, 'condEval({op:"true"}, "bool", "")') === false &&
+    ev(ctx, 'condEval({op:"false"}, "bool", "")') === true);
+  ok('an unknown operator is null, never an accidental branch',
+    ev(ctx, 'condEval({op:"nonsense", value:"1"}, "num", 5)') === null);
+}
+
+console.log('\nCondition fork — the field reference is validated like a target');
+{
+  const ctx = boot('wf-pm-routed');
+  /* THE ONE THAT WOULD FAIL SILENTLY. A condition fork's input belongs to
+     whatever step now precedes it. Reorder the flow and that changes; the
+     rule would then evaluate to "cannot tell" forever, routing nothing,
+     with nothing on screen saying so. §29.4's "enforced twice" has to
+     cover the INPUT as well as the output. */
+  ok('moving the fork away from its source step clears the field, and counts it',
+    evb(ctx, '(function(){var w=wf();' +
+      'var c=w.nodes.filter(function(n){return n.kind==="cond";})[0];' +
+      'if(!c.field) return false;' +
+      'w.nodes.splice(w.nodes.indexOf(c),1); w.nodes.unshift(c);' +
+      'var cleared = validateForks(w);' +
+      'return c.field === "" && c.op === "" && cleared > 0;})()'));
+  ok('a stale field reference is reported ON THE NODE, not in a banner',
+    evb(ctx, '(function(){var w=wf();' +
+      'var c=w.nodes.filter(function(n){return n.kind==="cond";})[0];' +
+      'c.field = "NO_SUCH_FIELD"; render();' +
+      'var h=document.getElementById("cv").innerHTML;' +
+      'return h.indexOf("pick a field again") > -1 || h.indexOf("no such") > -1 ||' +
+      '  h.indexOf("not on") > -1 || condSummary(w,c).indexOf("no longer") > -1;})()'));
+}
+
+console.log('\nCondition fork — routing rules, on a clean flow');
+{
+  /* ITS OWN CONTEXT. The block above deliberately moves the fork to index 0
+     to prove the field clears — which also makes every step a FORWARD target,
+     so a backward-route assertion sharing that context would pass for the
+     wrong reason. Third time this shape of contamination has bitten in this
+     file; the rule is that an assertion owns its setup. */
+  const ctx = boot('wf-pm-routed');
+  ok('routing stays forward-only, refused at the mutation',
+    evb(ctx, '(function(){var w=wf(), fl=flowNodes(w);' +
+      'var c=w.nodes.filter(function(n){return n.kind==="cond";})[0];' +
+      'var first=fl.filter(isStepKind)[0];' +
+      'c.tTrue = null;' +
+      'setCondTarget(c.nid, "tTrue", first.nid);' +
+      'return !c.tTrue;})()'));
+  ok('deleting a step clears a condition fork target pointing at it',
+    evb(ctx, '(function(){var w=wf(), fl=flowNodes(w);' +
+      'var c=w.nodes.filter(function(n){return n.kind==="cond";})[0];' +
+      'var later=fl.slice(fl.indexOf(c)+1).filter(isStepKind);' +
+      'if(later.length<2) return false;' +
+      'var t=later[1]; c.tTrue=t.nid;' +
+      'w.nodes.splice(w.nodes.indexOf(t),1);' +
+      'validateForks(w);' +
+      'return c.tTrue === null;})()'));
+}
+
+console.log('\nNO SUMMARY SURFACES (2026-09-16)');
+{
+  const ctx = boot('wf-bk-full');
+  /* Removed on direct instruction: roll-up panels put devs off, and the
+     house idiom is an error raised where the action is. Every validator is
+     KEPT — only the aggregated presentation went. */
+  ok('galleryShell renders no collision band even when handed conflicts',
+    evb(ctx, 'galleryShell({type:"workflow", title:"T", desc:"d", body:"<b>B</b>", ' +
+      'conflicts:[{group:"G", msg:"m", arts:[], type:"workflow"}]}).indexOf("Assignment collisions") === -1'));
+  ok('the capability banner is a no-op',
+    evb(ctx, 'capabilityBannerHtml(wf()) === ""'));
+  ok('the profile issue band is a no-op',
+    evb(ctx, 'profileIssueBanner([{sev:"error", entity:{label:"X"}, msg:"m"}]) === ""'));
+  ok('no area renders an "N to look at" panel',
+    evb(ctx, '(function(){' +
+      'var seen = "";' +
+      '["workflows","home","offline","groups"].forEach(function(a){' +
+      '  setArea(a); seen += document.getElementById("gallery").innerHTML; });' +
+      'return seen.indexOf("to look at") === -1 && seen.indexOf("Assignment collisions") === -1;})()'));
+
+  /* THE VALIDATORS ARE STILL THERE. This is what stops the removal being a
+     silent loss of rules rather than a change of surface. */
+  ok('...but every validator is still callable and still finds things',
+    evb(ctx, 'typeof allConflicts === "function" && typeof profileIssues === "function" &&' +
+      'typeof homeIssues === "function" && typeof capabilityGaps === "function" &&' +
+      'typeof allHomeGaps === "function" && allConflicts().length > 0'));
+  ok('and the rule is enforced where the assignment is made',
+    evb(ctx, 'typeof wouldClash === "function"'));
 }
 
 console.log(fail ? '\n' + fail + ' FAILED\n' : '\nAll passed\n');
