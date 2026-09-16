@@ -36,6 +36,7 @@ can read and change it.
 
 | Open this | For |
 | --- | --- |
+| [`docs/EAM-Mobile-Design-Doc-v1.md`](docs/EAM-Mobile-Design-Doc-v1.md) | **The summary layer — read this first.** Objective, requirements R1–R6, goals/non-goals, scenarios, SLOs, security/privacy/legal, the build timeline, and the open-issue shortlist. Owns no design rule; points at the spec. |
 | **`index.html`** | Redirects to Login, which is how the app is meant to be entered. Use for user testing. |
 | **`screens.html`** | Direct index of every screen and mockup. Use for design review and walkthroughs, **not** for moderated testing — deep links skip the navigation you'd want to observe. |
 
@@ -51,9 +52,7 @@ performs the demo-state reset.
 | --- | --- |
 | [`docs/handoffs/EAM-HANDOFF-UX-User-Testing-Brief.md`](docs/handoffs/EAM-HANDOFF-UX-User-Testing-Brief.md) | **Start here for testing.** Demo data, the flows worth building tasks around, and — most importantly — which dead ends are known stubs rather than findings. |
 | [`docs/component-library.md`](docs/component-library.md) | Name-first component reference: "what is the thing called X, and what are its rules." Browsable by plain-English name. |
-| [`docs/design-decisions-v3-1.md`](docs/design-decisions-v3-1.md) | The authoritative locked spec (§1–§25). Long — grep for the section you need. Reversed decisions live in §21 with their revert recipe; genuinely open items in §20. |
-| [`docs/figma-migration-game-plan.md`](docs/figma-migration-game-plan.md) | How to transcribe this system into Figma. Note the direction of travel is code → Figma, which is the reverse of most tutorials. |
-| [`docs/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md`](docs/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md) | Build sequence and current plan (§7–§8 are live). |
+| [`docs/design-decisions-v3-1.md`](docs/design-decisions-v3-1.md) | The authoritative locked spec (§1–§30). Long — grep for the section you need. Reversed decisions live in §21 with their revert recipe; genuinely open items in §20. |
 | [`CLAUDE.md`](CLAUDE.md) | Current-state snapshot of every screen and rule, written for whoever picks the work up next. Densest single description of what exists. |
 
 ---

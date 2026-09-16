@@ -46,6 +46,47 @@ device and were invisible to every static check:
   not evidence the action works — drive the action.**
 - **`test-editors.js`** — the ✕/✓ keyboard-editing popups: confirm gating,
   required-empty refusal, sheet exclusivity, and the CSS contract.
+- **`test-step-instances.js`** — Screen Designer's §29 step-instance model.
+  The three files below cover the **base screens** track, which is
+  self-contained (no `eam-shared.js`), so they drive `runScreen()` with a
+  `base screens/…` path and read state through `vm.runInContext` — top-level
+  `let` lives in the context's global *lexical* environment, not on the
+  context object, so `ctx.state` is undefined while `state` is alive. The
+  load-bearing assertion is that instance 2 of a tab owns a **copy** of
+  instance 1's layout, not a shared reference: sharing passes every smoke
+  test, renders correctly, and makes "Record View twice with two layouts"
+  silently impossible. Also pins forward-only fork routing across reorders
+  and deletions, and that a `More` entry can never be `Required`.
+- **`test-user-group-offline.js`** — **guards a RETIRED screen** as of
+  2026-09-16: the prototype moved to `base screens/old versions/` when the
+  portal became the single base entry point (§30.6), and this file was kept
+  rather than deleted so its rules stay executable code instead of prose. **A
+  green run says nothing about the portal** — re-pin every case against the
+  portal's User Groups area once it exists, and never delete the archived file
+  without porting the cases first. It covers User Group Setup's §2.10 offline-profile
+  model and §27.4's UDS dead-end check. Pins the severity splits, which are
+  the parts that rot invisibly: **online-only is informational, not a
+  warning** (it is a deliberate provisioning choice, and conflating it with
+  "no profile resolves anywhere" reports a correct config as broken), and a
+  **Required** UDS step the group cannot open is an error while the same step
+  optional is a warning. Also guards that "All records" has not crept back
+  into any filter — §2.7 refuses it.
+- **`test-workflow-portal.js`** — the Workflow Designer Portal's §30
+  applied-artifact model. It reuses §29's instance model but re-implements the
+  authoring of it on a drag-and-drop canvas, so every invariant
+  `test-step-instances.js` pins has to hold again through a different code
+  path — layout independence per instance most of all. Four assertions here
+  are the kind that pass every smoke test while broken, and all four were
+  verified by re-introducing the bug: a **shallow** duplicate makes both
+  instances share one layout; the **pinned-step clamp** living only in the
+  drag geometry means any other caller of `flowDrop()` walks past it (that
+  was a real bug, found by this file); fork forward-only checked **only at
+  pick time** misses the case where nobody touched the fork and the fork
+  *moved*; and a **copy that inherits assignments** violates §30.2's
+  one-per-(group, WO Type) rule on creation while rendering identically.
+  Also pins that a skipped step stays **visible and marked N/A** rather than
+  hidden (§29.4), that a More entry can never be gated (§14.8), and that no
+  fifth `--wo-type-*` hue was invented for CAL/INS/MOD (§23.3).
 
 **This is step 0 because skipping it shipped a dead app on 2026-08-11.** The
 recipe below used to be prose, a past session re-implemented it as a weaker

@@ -521,10 +521,124 @@ write-up, including the jobType-vs-Type-LOV-code reconciliation
 
 ---
 
+## Completion Gate
+
+**What it is.** A step-level requirement that locks the workflow's Next
+button until the technician supplies something: a **comment** or a
+**document attachment**. Authored per step instance in Screen Designer as two
+columns on the §12 tier-2 row (`Requires Comment` / `Requires Document`).
+
+**Screens.** Specified §29.3, **built on the authoring side only** — Screen
+Designer renders both toggles and previews the locked bar in its emulator. The
+technician-facing half is **not built on any mobile screen yet**; WO Closing's
+Closing Comments (§19.5) is the one existing instance of the shape, predating
+the mechanic being named.
+
+**Rules.**
+- It is an **attribute of any step**, never a step type of its own. "Force a
+  comment here" is a property of the step the technician is already on — as a
+  separate step, Book Labor could never require one without an extra screen
+  beside it. A step whose only content is the comment box is the degenerate
+  case of the same mechanic.
+- **The content lands in the record's normal Comments / Documents (§7.2)**, not
+  a private per-step store. A forced note nobody can find afterwards is worse
+  than no note, and §7.2 already surfaces both on the record view with a
+  View-more into the full tab.
+- Bar-locking follows §14.7 — same mechanism as a required field, different
+  trigger.
+- **Two authoring-time warnings, because neither is visible on device:** a gate
+  on a step that isn't `Required` never fires (the technician can finish
+  without opening it), and a gate on a `More` entry does nothing at all —
+  there is no Next button to lock (§14.8).
+
+**Open.** The mobile-side rendering is unspecified beyond "a box and a locked
+bar": whether the comment box is inline in the step body or a sheet, and
+whether it reuses the shared long-text editor (`openDescEditor()`), is not
+decided. Design it against §3.4's keyboard rules — a control at a sheet's
+bottom edge collides with iOS's accessory bar.
+
+---
+
+## Question Prompt Card
+
+**What it is.** The technician-facing face of a **question fork** (§29.4): a
+question with N answer buttons, where the answer chosen decides which step
+comes next. Carries no record data — its only output is a routing decision.
+
+**Screens.** Specified §29.4, **built on the authoring side only** (Screen
+Designer's prompt editor plus an emulator preview). No mobile screen renders
+one yet.
+
+**Rules.**
+- **The question and every answer label are admin-authored prose**, which
+  makes this the only component in the app carrying **translations** — every
+  other string is a delivered product label or record data. A missing
+  translation **falls back to the base language and never blanks**: an empty
+  question on a gated step is unanswerable.
+- **Answers route forward only** (§14.10). A skipped step is marked **Not
+  Applicable and stays visible in the step rail** — never hidden, per §13.3
+  item 4, because it may already hold booked labor or issued parts.
+- Distinct from Activity Checklist's **Yes/No prompt bar** (§14.6), which
+  records an answer *on an item*. This one records nothing and moves the
+  workflow. Don't merge them.
+
+**Open.** Whether it reuses the checklist prompt bar's visual language or gets
+its own full-screen treatment. It is one item owning the screen with no
+scrolling content, which is closer to §16.7's Task Instructions screen than to
+a prompt bar.
+
+---
+
+## Step Instance Row *(Base Screens track)*
+
+**What it is.** One row in Screen Designer's left pane representing a single
+**step instance** (§29.2) — a `tab`, a `uds` or a `prompt`, with its
+placement, visibility, Required flag, gates and per-instance settings.
+
+**Screens.** `base screens/eam-workflow-portal-v1.html` — the canvas node and
+the More zone. **Moved 2026-09-16** (§30.9): Screen Designer has no standalone
+surface any more, so the step-instance row lives on the portal's canvas and
+`eam-screen-designer-v1.html` is archived in `old versions/`. The original was
+the left pane's Guided Workflow Steps + More lists. **One renderer serves both** — the only
+differences (a sequence number, whether Req is offered) follow from
+`placement`, which is what makes "move this to More" a one-field change rather
+than a migration between two row shapes.
+
+**Note on scope.** This is the first entry here from the **Base Screens
+track**, which is a separate, self-contained visual system (DM Sans/DM Mono,
+teal-purple) and loads none of the shared files. It is named here because "is
+this the same row as that one" is exactly the question this doc exists to
+answer — not because the two tracks share code. They don't.
+
+**Rules.**
+- **The instance number is part of the displayed name** ("Record View (2)"),
+  never a hover badge. Two rows both reading "Record View" with the difference
+  in a tooltip is how an admin edits the wrong layout.
+- **Gates and forks are surfaced as chips on the row**, so a workflow's
+  stopping points and branch count can be scanned without opening five
+  drawers.
+- **A More row shows `Req` as `n/a` with the reason on hover**, rather than
+  omitting the control — an absent control reads as an oversight.
+- Record View instance 1 renders with a lock instead of a drag handle: pinned
+  as step 1 by §14, though still duplicable.
+
+**Related, on the same track:** the **Offline Policy Pill** on User Group
+Setup's Offline tab — one pill per §2.7 policy class (`work-set`,
+`reference`, `on-demand`, `server-only`, `external-replica`). Deliberately
+not five hues for their own sake: the only distinction carrying weight is
+**writable offline vs. not**, so the two writable classes read strongest and
+`server-only` reads as absence (dashed outline).
+
+---
+
 ## Index
 
 | Component | Screens | Status |
 |---|---|---|
+| Completion Gate | Screen Designer (authoring). **Mobile side unbuilt** | Named 2026-09-08 (§29.3) — attribute on any step, content lands in §7.2 Comments/Documents |
+| Question Prompt Card | Screen Designer (authoring). **Mobile side unbuilt** | Named 2026-09-08 (§29.4) — the only component carrying admin-authored translations; distinct from §14.6's Yes/No prompt bar |
+| Step Instance Row *(Base track)* | Screen Designer, both step lists | Named 2026-09-08 (§29.2) — first Base Screens entry here; separate visual system, no shared code |
+| Offline Policy Pill *(Base track)* | User Group Setup ▸ Offline | Named 2026-09-08 (§2.7/§29.6) — five classes, but only writable-vs-not carries weight |
 | Field Grid Container | WO Record View, Equipment Record View, Insert Mode, field-behavior reference | Backfilled 2026-07-28 — always existed as a shape, never had a name entry here (§5.2) |
 | Collapsible Container | Equipment Record View, Custom Fields, Insert Mode, field-behavior reference | Backfilled 2026-07-28 — same gap as Field Grid Container (§5.2) |
 | Field Types (13, category term) | App-wide | Backfilled 2026-07-28 — locked rules already existed in §5.2, never indexed here |

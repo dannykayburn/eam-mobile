@@ -1,6 +1,6 @@
 // data/wo-registry.js — maps a WO number to its data file + workflow
 // type. For future use by real navigation (?wo= query string, per
-// docs/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md Phase 1) — not
+// docs/archive/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md Phase 1) — not
 // wired into any screen's routing yet, just the lookup table for when
 // that lands.
 const EAM_WO_REGISTRY = {
