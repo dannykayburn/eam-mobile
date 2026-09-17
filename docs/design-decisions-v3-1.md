@@ -5511,7 +5511,108 @@ either.
 
 - The WO Record View "Start" button starts the WO timer
 - Timer is visible as a small running pill in the collapsed step rail during Steps 2–4
-- When Book Labor is reached, the timer stops; its value loads into the timer banner and pre-fills the Add Labor form start/end times
+- When Book Labor is reached, the timer stops; its value loads into the timer banner
+
+### The booking pull-up, and its one condition (locked 2026-09-17)
+
+**Direct instruction**, given alongside §30.21's Stop Timer action:
+
+> When the Book Labor tab is opened **and a timer is running**, it invokes a
+> pull-up with the hours calculated. If Book Labor is opened and **no timer is
+> running**, it just sits with no action.
+
+This replaces the old *"pre-fills the Add Labor form start/end times"* half of
+the rule above. Pre-filling a form still required the technician to find it,
+open it and save it; the pull-up presents the booking and asks.
+
+**ONE CONDITION — "a timer is running" — and it is the whole design.** The
+same pull-up has two invocation points:
+
+| Trigger | Asks? |
+| --- | --- |
+| **Opening this tab** with a timer running | Always — it is the technician's own navigation, so they are already looking at it |
+| **§30.21's Stop Timer action**, placed in the flow | Per the action's own `mode` |
+
+**Why that condition settles the double-booking question.** A workflow may
+legitimately hold a Stop Timer action *and* a Book Labor step. Both are
+guarded by the same condition, and a timer can only run once — so whichever
+fires first books the time and stops the clock, and the other finds nothing to
+do and stays quiet. There is **no validator, no warning and no refused
+combination**, because there is nothing to detect.
+
+**Discard leaves the timer running** (§30.21). This matters most at *this*
+invocation point: a technician who opens Book Labor from the **More** group
+just to look at the list must not lose their clock to a glance at a tab.
+
+**The sheet is Hours-editable, everything else protected** — the field list and
+the reasoning are §30.21's, which owns them. This is the second consumer of
+that one sheet, not a second sheet.
+
+### Built 2026-09-17 — and what building it settled
+
+It is **one shared component** (`openBookingPullup()` in `eam-shared.js`),
+self-injecting via `ensureSharedSheet()` so it needs no per-screen markup
+(§8.3). Book Labor is the only wired caller; §30.21's Stop Timer action calls
+the same entry point unchanged once the app is fed workflow definitions, which
+is why every derived value is an **argument** rather than a global read off
+this screen.
+
+**HOURS IS A STEPPER, NOT A NUMBER INPUT.** §18.6's correction stepper was
+promoted out of this screen into `eam-shared.css`/`.js`
+(`startHoldStep()`, 1-minute tap → 15-minute repeat after 3s) when the
+pull-up became its second consumer. The reason it matters is not
+de-duplication: **a stepper raises no keyboard**, so this sheet never engages
+§3.4's accessory-bar collision at all. That is a stronger position than
+complying with §3.4 — there is nothing to comply with. The affirmative control
+is still the header's ✓ with no footer, because that is the house pattern for
+a full-attention sheet.
+
+**AN ADJUSTED BOOKING LOSES THE TIMER SPAN.** Once the technician says "I
+worked 45 of those 83 minutes", the timer's start and end cannot both survive
+and stay true. So an adjusted booking is written as **direct hours** (§18's own
+Time Entry Mode already models that) and its row shows no span; an **untouched**
+booking keeps the real one, because there it is still true. The sheet says which
+it is doing, because an adjusted figure is a *claim about worked time* rather
+than a reading off a clock.
+
+**NO CEILING ON THE HOURS, and a floor of one minute.** A technician adjusting
+*up* is claiming time the timer missed, which happens when they start it late —
+so the elapsed value is a starting point, not a maximum. One minute is the
+floor because a zero-hour labour row is not a booking.
+
+**THE TIMER STOPS WHEN THE TIME IS BOOKED — that is the only place.** The
+§18.1 Timer Stopped banner is set at that moment and takes the **booked**
+value, so it keeps meaning exactly what §18.7 said it means ("a timer stopped,
+here is its value") rather than being tied to an arrival route. It is no longer
+gated on `eamArrivedViaNextStep`, which could only ever be true on a guided
+hand-off — the arrival flag gating the whole feature is what would have stopped
+a technician reaching Book Labor from **More** from ever being offered the
+booking, which is the configuration §30.21 exists to enable.
+
+**IT REPLACED THE AUTO-OPENED ADD LABOR SHEET.** Arriving on a stopped timer
+used to pre-fill and auto-open §18.4's form. Pre-filling still made the
+technician find it, read it and save it. Add Labor is still reachable from its
+own button; it is no longer what a stopped timer lands you in.
+
+#### Two bugs this found, both of the "renders perfectly, is a trap" kind
+
+- **A screen that shadows `closeAllSheets()` can close sheets BY ID.** This
+  one did — `['addLaborSheet','correctionSheet','crewSheet']` — and a
+  **self-injecting** sheet can never be in that list, so the pull-up opened and
+  could not be dismissed by ✕ or by scrim. Fixed at the source (it now closes
+  every `.bottom-sheet`, which is what the list stood in for; its
+  nested-sheet early return is untouched). The component also closes itself by
+  id, so the next override that misses it still dismisses.
+- **The scrim bypasses any per-control handler.** `.sheet-overlay`'s onclick
+  is `closeAllSheets()` on every screen, so cleanup hung off the ✕ alone
+  would have left live state behind and skipped `onDiscard` — making
+  §30.21's "discard never stops the timer" true of one of two dismissals a
+  technician cannot tell apart. The release is registered on the **close path**
+  instead (`releaseBookingPullup()`), so ✕, scrim and any future route are
+  one behaviour. A booking clears the state *before* closing, which is the line
+  that keeps a book from also reporting a discard.
+
+Pinned by `test-booking-pullup.js`, including all of the above.
 
 ## 18.3 Labor list rows
 
@@ -5822,6 +5923,8 @@ into a locked-decision row in the section that governs it, or is deleted.
 
 | Item | Detail |
 | --- | --- |
+| **The booking pull-up's SECOND caller is not wired** | Narrowed 2026-09-17 from "the pull-up is not built" — it is now built and wired to §18.2's tab trigger (see §18.2). What remains is that **nothing feeds a workflow definition to the app**, so §30.21's placed Stop Timer action cannot reach in and its `system` mode (book with no sheet) has no runtime caller. The component takes every derived value as an argument and honours `mode` itself, so the hand-off calls it unchanged — what is owed is the hand-off, not the sheet. A dev toggle on Book Labor's own theme bar drives the real `eamTimerRunning` key so the §18.2 condition is exercisable meanwhile. This is the first concrete instance of the general gap: **the portal authors workflows and the app cannot yet be told about them.** |
+| **A labour row's write shape when the hours are untouched** | Opened 2026-09-17. §18.2's pull-up books **direct hours** once the technician adjusts the figure, because an adjusted value cannot keep the timer's start and end true — and keeps the real span when it is untouched. That is two write shapes off one sheet. It is the honest rendering of what is known in each case, and §18's Time Entry Mode already models both, but whether the real outbox envelope should carry a span at all for a timer-derived booking is not settled. Low stakes while there is no backend; decide it before the envelope is built. |
 | **No mobile screen demonstrates §5.2's revised container model** | Opened 2026-09-16 with §5.2's "Container shape is per-container" revision. The base-side designer can now author a Grid container anywhere in a form and a form with several Grids, but **every mobile prototype still shows the old arrangement** — one leading grid, collapsible List sections beneath. So the canonical references (`screen-layout-field-behavior-prototype-v1.html`, `eam-equipment-record-view-prototype-v1.html`) no longer demonstrate the full model they are canonical for, and a layout the designer can now produce has never been rendered. **Deliberately not fixed by rebuilding seven screens unasked** — the rule changed on the authoring side, which is where it was asked for. What is owed before the model is real end to end: one mobile screen showing a non-leading Grid, and a check that `.attr-item` / `.fg-section` CSS actually copes with a Grid that is not first (the `--bar-reserve` and `.full-width` interactions are the likely friction). Until then, treat the revised rule as authored-but-unproven on the device. |
 | **The §2.10 / §27.4 severity rules are pinned against an ARCHIVED screen** *(now actionable — 2026-09-16)* | Opened 2026-09-16. `test-user-group-offline.js` was kept rather than deleted with the retired prototype and runs against `old versions/`. That keeps the rules as executable code instead of prose — deliberately, because one of them (`capabilityGap()` keyed on the *configuration* rather than the function) already killed a live false positive. **A green run still says nothing about the portal.** The blocker is gone: the portal's User Groups area now exists (§30.13), so the port can happen. Re-pin every case against it — the two severity splits (online-only is *informational*, not a warning; a **Required** UDS step the group cannot open is an *error* while the same step optional is a warning) and the guard that "All records" has not crept back into any filter (§2.7 refuses it). `test-workflow-portal.js` already asserts the refusal on the authoring side, so what is owed is the **severity** half. Do not delete the archived file without porting the cases first.
 | **The offline profile's two SECOND axes are still unmodelled** *(narrowed 2026-09-16 — the authoring surface now exists)* | Opened 2026-09-08 with §29.6 as "no surface authors profiles." That half is **closed**: the portal's Offline Profiles area authors §2.7's per-entity registry, its caps and §2.8's lookup classes read-only, and profiles are assigned from either side of one membership table (§30.13/§30.14). `PROFILES` is now authorable rather than demo data standing in for records nobody can create. **What is still unmodelled is everything past the group axis** — §2.10 names two more and the new surface implements neither: the **device** axis, applied as `min(group, device)`, and **per-user as override only**. Both are narrowing-only by definition, so neither can widen what the group grants; that is the property the surface has to make visible rather than merely obey. Whoever builds them also owns what a technician sees when the device axis is the binding one, since the profile UI is admin-side and §4.4.1's sync control is the only technician-visible trace.
@@ -5901,6 +6004,7 @@ its original section with a note attached.
 
 | Former decision | Superseded by |
 | --- | --- |
+| **"There is no Stop Timer action, and that is a decision"** (§30.21, 2026-09-17, held for a matter of hours). The argument: stopping a timer produces a labour record, a labour record needs a screen, that screen is Book Labor — so a Stop placed anywhere else needs a second labour form invented behind it, diverging from §18.4 the first time it changes. **The premise was wrong**, and §30.11's own paradigm is why: §18.4's whole field set is derivable from a running timer plus the session, so nothing has to be asked and no form has to exist. Recorded because the reasoning is seductive and reads as sound — it is worth knowing it was tried and where it broke, rather than re-deriving it the next time an action looks like it needs a screen. | §30.21's **Stop Timer** (2026-09-17, user direction). The action books the time itself; `User selected` mode confirms with **Hours editable and every derived field protected**, which is the narrow version of the form the refusal feared. One consequence survived unchanged: the rail's timer pill keeps its own manual stop. |
 | **§12 tier 2 keyed one row per `(WO Type, User Group, Tab)`** — "one row per tab is the point, not an implementation detail," on the reasoning that it made *"a tab is either a step or a More entry, never both"* a **key** constraint rather than a validation rule, which is what stopped forward gating from being bypassable. Rejected at the time: a separate list of More tabs, and overloading `Sequence = null`. | §29.2 (2026-09-08, on five workflow-authoring requirements) — the key gains an **`Instance`** dimension: `(WO Type, User Group, Tab, Instance)`. Two requirements broke the old key and turned out to be the **same** requirement: a tab placed more than once, and a second Record View carrying a *different* layout. **What survived intact:** the constraint that made one-row-per-tab worth having, one grain finer — an *instance* is either a Step or a More entry, never both, because `Placement` sits on the instance row, so a More entry pointing at the same tab is a different row and forward gating stays unbypassable. **What it cost:** `R5PAGELAYOUT` gains a page-variant dimension (§13), blank for instance 1. To revert: collapse instances back to one per tab, and the second-Record-View requirement goes with it — they are not separable. |
 | **§26.5's sync row: "one per group, edited *here*, field-shaped"** — `record type × filter scope × horizon × row cap`, with the explicit reasoning that "sync config is the only one of the four that is genuinely field-shaped, which is why the *select a UG, edit a handful of fields* instinct kept surfacing — it was right for one domain out of four." Its Scope list offered **"All records."** | §29.6 (2026-09-08), on two decisions taken after §26.5 was written. §2.1 reversed the polarity to **online-first**, so "what a device downloads at login" stopped being the question — "what is guaranteed *executable offline*" is narrower and different. §2.10 then named the unit: an **offline profile**, a named bundle of §2.7's registry, its caps and §2.8's lookup classes, **assigned** per user group — grain one artifact → many groups, which §26.5.1 had already ruled on. So the instinct was right for **zero** domains out of four, and User Group Setup is simpler than §26.5 described, not more complex. **"All records" is now refused outright by §2.7** ("at least one filter per entity"), which is independently fatal to the old row set. To revert you would first have to re-open §2.1. |
 | **Platform: "iOS and Android — responsive PWA"** (§1 header table, since v1). Carried unexamined from the earliest version of this doc, and it quietly shaped how the Contractor/BYOD requirement was reported — as satisfied by a browser-native delivery target. | §2.2 (2026-08-25, user direction) — **a native React Native app.** The doc had been asserting both a PWA *and* `op-sqlite`, which is React Native-only with no browser build, so the two statements could not both be true. Three further reasons in §2.2: WatermelonDB's web adapter cannot serve Tier 2's FTS5 requirement, Background Sync is absent from Safari so the outbox could not drain while the app is closed, and iOS storage durability cannot support "an unsent edit can never be lost." The knock-on at the time was that **Contractor/BYOD became an open item rather than an answered one** *(and it stayed open until 2026-09-11, when it was scoped out of this app entirely — see the row below and §2.2)* — the SWG asked for browser-native access and this architecture does not provide it. To revert would mean re-opening the engine choice toward `wa-sqlite`/OPFS and accepting weaker sync and durability guarantees; it is not a delivery-target toggle. |
@@ -8511,7 +8615,14 @@ screen.
 
 **Switching entity re-bases the status.** An EVST code is not an AAST code,
 so carrying the value over would leave a status that does not exist in the
-selected domain.
+selected domain. The authored status is **kept** across a flip to User
+selected mode (§30.21), so flipping back loses nothing — nothing is re-based
+there, because the entity has not changed.
+
+**AMENDED 2026-09-17 — the action gained a mode.** A status update is now
+either a system action or a technician prompt; see **§30.21**, which also
+replaces the "End of Workflow when Closing isn't present" idea this section
+was written before.
 
 ### Both dropdowns are description-only, and so is WO Type
 
@@ -8645,6 +8756,10 @@ why one rule covers four areas, and why the rule text a user reads is *derived*
 from the artifact type's declared cardinality rather than written out per area.
 A clash is predicted **before** the click, in the assignment control, not
 reported after it.
+
+**The control's SHAPE is derived from it too** — checkboxes where a group may
+hold several, radios where it holds exactly one. See **§30.23**; that is the
+same derivation as the rule text, one level down.
 
 ### Decision 3 — Create follows SIZE
 
@@ -9004,6 +9119,11 @@ its value. It is a second fork **kind**, not a parallel mechanism —
 steps marked N/A and left visible, wires drawn to real destinations) holds
 for both without a second implementation to keep in step.
 
+*Two later amendments live in §30.22, both of them this section's own rule
+applied to a site that had been missed: the ⋯ menu tested `kind === 'fork'`
+and so offered a condition fork the whole step menu, and the field picker now
+groups its options under the container they sit in.*
+
 ### ⚠ This is a deliberate, narrow entry into §13.2's Tier 2
 
 **Flagged before building, because CLAUDE.md says not to do it:** *"§29's
@@ -9178,6 +9298,260 @@ row, **under Security**, which is the right way round: a user group *is* a
 security object, it is created there (§26.5.1 — this area only ever binds),
 and "Mobile configuration" is left holding exactly the three things this
 portal authors — Workflows, Home Layouts, Offline Profiles.
+
+## 30.21 An action either asks or it doesn't — the System/User mode (locked)
+
+Direct instruction, 2026-09-17. §30.11 made a status transition something you
+**place**; this makes it something that can **ask**. Both of the flow's
+actions now carry exactly one mode field, with the same two values and the
+same segmented control, because the question is the same question:
+
+| | `System action` (default) | `User selected` |
+| --- | --- | --- |
+| **Status update** | Sets the authored status unattended. No prompt. | A pull-up opens on the **Next** tap: current status **protected**, new one picked from a dropdown. |
+| **Start Timer** | Starts the rail's labour timer (§14.2) silently. | A pull-up asks first. |
+| **Stop Timer** | Stops the timer and **books the hours** unattended. | A pull-up shows the booking; **Hours** editable, the rest protected. |
+
+**ONE FIELD, ONE ACCESSOR.** All three carry the same `mode` and every read
+goes through `actionAsks()`. Start Timer shipped with its own boolean `ask`
+for a few hours on 2026-09-17; two field shapes for one concept across three
+kinds is §30.13's four-parallel-arrays failure at a smaller scale, so it
+migrates in `normalizeWf()` rather than being read in two shapes forever.
+Pinned by test, including the migration.
+
+**This replaces the "End of Workflow when Closing isn't present" idea.** That
+was a special case — a prompt bolted to the end of a workflow that happened to
+lack a Closing step, triggered by an absence. A user-selected Status update
+placed last **is** that prompt, and it is better in the way that matters: it
+**composes**. It can sit anywhere in the flow, there can be more than one, and
+nothing has to detect the absence of a step to decide whether to fire.
+
+### What the technician's dropdown holds is NOT authored in the portal
+
+Answered 2026-09-17, choosing the strictest of three options. The list is
+resolved **on the device**, from base EAM's own **user-group status
+authorisation** for the record's current status. The portal authors the
+*entity* and nothing else, and the editor says so with a **protected** field
+rather than by omission.
+
+Rejected: an admin-picked subset of statuses on the action (the recommendation
+at the time). It reads well and it is demonstrable, but it would be a **fifth
+place a status list lives** — and the first one free to disagree with the other
+four. It is the same boundary §27.4 draws around a UDS definition and §30.14
+draws around a dataspy: **base owns what exists; this portal says where it is
+asked for.**
+
+### Cancel returns; it does not advance
+
+The pull-up has a Cancel. Cancelling sets nothing and leaves the technician on
+the step they were on, free to change something and tap Next again.
+
+That is not politeness — it is what keeps an **empty authorisation set** a
+"nothing to pick here" state instead of a **dead end the work order cannot be
+finished through**. §27.4 already found that failure once, as a Required UDS
+step for a group without the tab permission; a modal with no dismiss and an
+empty list is the same dead end with a different cause. The alternative — no
+dismiss, so the transition is guaranteed — buys a guarantee the portal cannot
+honour, because it does not know what base will authorise.
+
+### The timer's decline STILL ADVANCES, and the asymmetry is the decision
+
+Declining a timer prompt leaves the timer stopped and **moves on**. Cancelling
+a status prompt **holds**. The two are deliberately not symmetrical:
+
+- A status update exists **to move a record to a status**. A decline leaves its
+  whole reason unmet, so continuing would advance past an action that did
+  nothing.
+- The timer is an **aid to labour capture**. "I am not on the clock for this
+  one" is a legitimate answer rather than an incomplete one, and **no record
+  state depends on it**. Blocking a flow on a preference is a gate on nothing.
+
+### Stop Timer — the action that BOOKS the time (locked)
+
+*Refused earlier the same day, reversed on direct instruction. The refusal is
+replaced here rather than kept as a decision log — the doc convention is that
+a superseded decision is physically relocated, not stacked beside the thing
+that supersedes it. It is listed once in §21 so nobody re-derives it.*
+
+**The refusal stood on one premise, and the premise was wrong.** It ran:
+stopping a timer produces a labour record; a labour record needs a screen;
+that screen is Book Labor (§18); therefore a Stop placed anywhere else needs a
+**second labour form invented behind it**.
+
+What that missed is §30.11's own paradigm. **§18.4's entire Add Labor field
+set is derivable** from a running timer plus the session:
+
+| Field (§18.4) | Where it comes from |
+| --- | --- |
+| Employee | The signed-in technician |
+| Trade / Department | That employee's own record |
+| Activity | The activity in context on the WO |
+| Date Worked | The date the timer started |
+| Start Time / End Time | The timer's own start and stop |
+| Hours Worked | The elapsed time |
+| Type of Hours | **Normal** — see below |
+| Crew | Empty; it is the either/or partner of Employee |
+
+Nothing has to be **asked**, so nothing needs a form, so the action can simply
+do it — which is exactly the move §30.11 made for a status transition. The
+rule an action must satisfy is unchanged; Stop Timer satisfies it.
+
+**The payoff, and the reason it exists:** Book Labor can sit in the **More**
+group, or not be placed at all. Time capture stops depending on the technician
+visiting a screen. That is the requirement this answers.
+
+#### Type of Hours is deliberately NOT authorable
+
+The one field that is not derivable is also the one that must not be a
+workflow-level constant. Whether a given hour is overtime depends on **the
+shift worked**, not on the workflow the technician happened to run — so a
+constant would misbook every callout it did not anticipate. It books
+**Normal**, and §18.3's correction path is how a misbooking is fixed, since
+booked labour is immutable.
+
+#### In `User selected` mode, Hours is the ONE editable field
+
+Answered 2026-09-17. The pull-up shows the booking before it is written:
+**Hours Worked editable**, every derived field **protected**.
+
+- **Hours, because elapsed time is not worked time.** A technician who took a
+  30-minute break inside a two-hour timer needs to book 1.5. §18.3 makes
+  booked labour immutable, so getting the number right *before* writing beats
+  filing a correction after.
+- **Nothing else, because nothing else is a judgement.** Making the rest
+  editable would rebuild §18.4's sheet inside an action — the original
+  objection, and it would still be right. **There is one labour form in this
+  app and this is not it.** Editing the rest is what Book Labor is for.
+
+#### Three runtime rules, all stated in the editor
+
+- **No timer running → nothing happens and the flow continues.** Nothing to
+  book is not an error, the same way an empty field is not a false condition
+  (§30.19's "empty is not false").
+- **Discard never stops the timer.** One rule for both invocation points
+  below, chosen over a cleverer intent-based pair: no path through this action
+  can silently cost a technician their clock, and the rail pill stays the
+  single truth about whether time is running. It does mean the action's name
+  over-promises in that one branch, which is the cheaper of the two prices.
+- **A Book Labor step alongside a Stop Timer is fine.** See §18.2 — the
+  trigger is *"a timer is running"*, and one can only run once, so the second
+  of the two finds nothing to do. Not refused, not warned about.
+
+#### Two invocation points, one sheet
+
+The same pull-up is reached two ways, and it must not be built twice:
+
+1. **This action**, placed in the flow.
+2. **Opening Book Labor while a timer runs** (§18.2) — the technician's own
+   navigation, so it always asks.
+
+That is also why the double-booking question dissolves rather than needing a
+validator: both are guarded by the same single condition.
+
+#### One consequence kept from the refusal
+
+The rail's timer pill keeps its own stop control. A technician can always stop
+a running timer by hand; the action adds a *placed*, booking stop, it does not
+replace the manual one.
+
+## 30.22 The 2026-09-17 authoring pass — five smaller calls
+
+All five are the same kind of finding: a control that renders fine and says
+the wrong thing about the rule behind it.
+
+### 1. The condition fork's field picker is grouped by container
+
+Every option used to read `Field name · Container`, which repeated the
+container on every row and still left the list flat. The container is a
+**grouping**, so it is drawn as one — an `<optgroup>` label, which is
+natively unselectable. That is the "protected section label" for free, with no
+JS holding it up, and the option text is then the **field description alone**
+(§5.2's description-only rule, applied to a picker).
+
+Grouped on the container **index**, not its title: two containers can
+legitimately share a title, and merging them would claim a field lives
+somewhere it does not.
+
+### 2. A condition fork is a fork in its own ⋯ menu
+
+`nodeMenu()` tested `kind === 'fork'`, so a **condition** fork fell through
+to the *step* menu and was offered **Screen Designer, Rename, Step settings and
+Move to More** — four controls on a node with no layout, no rail entry and no
+gates. Every one was dead or actively wrong. It now goes through
+`isForkKind()`, which is §30.19's own rule ("never a second copy") applied to
+one more site. `renderDsn()` had the same bare test and now defers for every
+layoutless kind, which covers both actions too.
+
+### 3. WO Type moved under the Description, and wears its badge
+
+The two banner slots swapped. The **function** is the widest of the four values
+(a code, a description and a `(clone)` marker) so it takes the wide third
+column; **WO Type** is one short description and reads better directly under the
+Description it qualifies.
+
+More importantly it now carries the **§23.3 colour and glyph** inside the
+control. The one thing about a WO Type that is instantly recognisable was
+absent from the control that *sets* it. Same four hexes, same four SVG glyphs,
+same recipe as `woTypePill()` — not a second badge, and a Type outside the
+four families still gets the **neutral slot, never a fifth hue**.
+
+### 4. One close affordance for the designer panel
+
+The canvas bar carried a "Close designer" pill while the panel already had an
+**✕** in its own header. Two controls for one action, over two different
+columns, and the one further from the panel was the more prominent of the two.
+The **✕** won — it is where the thing being closed is — and the bar now says
+where the close is instead of being a second one.
+
+### 5. The UDS demo labels are numbered, not named
+
+`Hot Work Permit` / `LOTO Verification` / `Shift Handover Notes` →
+**`UDS Tab 1/2/3`**. Three plausible screen names in the demo data read as a
+claim that the product ships those three screens. It does not: a UDS is
+whatever the customer authored, and this surface only ever **places** one
+(§27.4 role 1). Numbering them says the true thing.
+
+## 30.23 The assignment control's shape follows cardinality (locked)
+
+§30.13 locked that **cardinality follows what the runtime resolves on**. The
+User Groups area was enforcing that rule with a control that contradicted it,
+and doing it through the wrong writer.
+
+**The second popover.** Assigning from the group side opened a popover, took a
+click — and then opened a **second popover**. The click went to
+`toggleAssign()`, which is the *gallery-side* artifact→groups control: a
+different view of the same table, asking about every **other** group. It was
+never meant to appear there. There is now **one writer from the group side**
+(`groupAssignPick()`), and it never calls the gallery-side control. Pinned by
+test, at the function, because the two controls still legitimately exist and
+the wrong one is one identifier away.
+
+**One-of-many is not a checkbox.** Three of the four artifact types are
+**exactly one per group**. A tick box beside each of them invites a second tick
+and then reports a **collision** for taking the invitation — the screen
+creating the fault it exists to prevent. So the control shape is now *derived
+from* `ARTIFACT_TYPES`, the same place the rule text comes from:
+
+| Cardinality | Control | On pick |
+| --- | --- | --- |
+| `per-wotype` (workflows) | **Checkboxes**, and a Done button | Toggles; a clash is **refused at the click** (§30.2), popover stays open |
+| `per-group` (offline, home) | **Radios**, no Done button | **Replaces** whatever was there, and **closes** |
+
+A radio pick **replaces**, which is what makes it honest: a per-group collision
+can no longer be created from this side at all, rather than being predicted and
+then reported.
+
+**The radio set includes None**, because a control should be able to express
+every state it is enforcing. Without it "exactly one" would be settable but
+never unsettable from the control that sets it. On a group that inherits from
+`*`, None reads as *"fall back to the `*` default"* — which is what unset
+means (§26.5 mechanic 2), not a fourth state.
+
+**The "No insert here" footer is gone.** The area's own header paragraph already
+says a group is created in **Security ▸ User Groups**, so this was the same
+sentence twice — and the second copy sat exactly where a Create button would
+be, drawing the eye to an absence. §26.5.1's rule is unchanged: there is still
+no Create here, and still nothing to click for one.
 
 ## 30.18 What §30 does not settle
 

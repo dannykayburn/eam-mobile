@@ -360,6 +360,15 @@ svg{display:block;}
 .tpill__badge{width:26px;height:26px;border-radius:var(--radius-full);flex-shrink:0;display:flex;
   align-items:center;justify-content:center;color:#fff;background:var(--uxt-theme-palette-ui-grey-500);}
 .tpill--dense .tpill__badge{width:22px;height:22px;}
+/* THE SAME BADGE, INSIDE AN INPUT (2026-09-17). The WO Type select used to be
+   a bare dropdown, so the one thing §23.3 makes instantly recognisable — the
+   colour and the glyph the technician sees on the rail, the list row and the
+   Type field — was absent from the control that SETS it. Same four hexes and
+   same four SVG glyphs as the pill: one of §30.7's five declared Octave
+   exceptions, not a second badge recipe. */
+.input__wt{width:24px;height:24px;flex-shrink:0;border-radius:var(--radius-full);
+  display:flex;align-items:center;justify-content:center;color:#fff;}
+.input__wt--none{background:var(--bg-hover);color:var(--fg-faint);}
 
 /* ══════════════════════════════════════════════════════════════════════
    SHELL — Octave AppShell: labelled rail + inset rounded main panel
@@ -495,6 +504,20 @@ svg{display:block;}
   box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform 180ms cubic-bezier(.16,1,.3,1);}
 .uxt-switch.is-on{background:var(--accent);}
 .uxt-switch.is-on .uxt-switch__thumb{transform:translateX(16px);}
+
+/* ══ RADIO ══
+   ONE-OF-MANY IS NOT A CHECKBOX (2026-09-17). Three of the four artifact
+   types are exactly one per group (§30.13's cardinality rule), and a tick
+   box next to each of them says the opposite of that — it invites a second
+   tick and then reports a collision for taking the invitation. The control
+   now matches the rule it is enforcing. */
+.rdo{width:16px;height:16px;flex-shrink:0;border:2px solid var(--border-default);
+  border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;
+  transition:border-color .15s;}
+.rdo.is-on{border-color:var(--accent);}
+.rdo__dot{width:8px;height:8px;border-radius:var(--radius-full);background:var(--accent);
+  opacity:0;transform:scale(.5);transition:opacity .18s,transform .18s;}
+.rdo.is-on .rdo__dot{opacity:1;transform:scale(1);}
 
 /* ══ CHECKBOX ══ */
 .cbx{width:16px;height:16px;flex-shrink:0;border:2px solid var(--border-subtle);border-radius:var(--radius-xs);
@@ -1073,6 +1096,44 @@ svg{display:block;}
 .emu-ans-b{padding:11px;border:1.5px solid var(--d-gray-2);border-radius:100px;text-align:center;
   font-size:13.5px;font-weight:700;}
 .emu-ans-s{margin-top:-4px;text-align:center;font-size:10px;font-weight:500;color:var(--d-gray-4);}
+/* ── A PULL-UP SHEET, drawn (2026-09-17) ──
+   Both "User selected" actions interrupt the technician with a sheet rather
+   than a screen, so the preview has to draw one or the difference between
+   the two modes is invisible. The screen behind it is faded, not removed —
+   that IS the difference from a fork, which is a screen of its own.
+   Device palette only; the §30.8 quarantine holds. */
+.emu-behind{padding:4px 14px 14px;opacity:.34;}
+.emu-scrim{height:14px;background:linear-gradient(rgba(26,26,31,0),rgba(26,26,31,.12));}
+.emu-sheet{background:var(--d-bg-card);border-radius:18px 18px 0 0;padding:9px 16px 16px;
+  box-shadow:0 -7px 22px rgba(0,0,0,.15);}
+.emu-sheet__grab{width:38px;height:4px;border-radius:3px;background:var(--d-gray-2);margin:0 auto 12px;}
+.emu-sheet__t{font-size:15px;font-weight:700;line-height:1.3;}
+.emu-sheet__d{font-size:11px;color:var(--d-gray-4);line-height:1.5;margin-top:4px;}
+.emu-sheet__sel{margin-top:11px;display:flex;align-items:center;gap:8px;padding:11px 12px;
+  border:1.5px solid var(--d-border-strong);border-radius:10px;font-size:12.5px;font-weight:600;
+  color:var(--d-gray-4);}
+/* The one EDITABLE row in a sheet whose other rows are protected. Reads as a
+   real input rather than a value, because "which of these can I change" is
+   the only question worth answering on that sheet. */
+.emu-sheet__in{margin-top:9px;display:flex;align-items:center;gap:8px;padding:10px 12px;
+  border:1.5px solid var(--d-ink);border-radius:10px;background:var(--d-bg-card);}
+.emu-sheet__in-l{flex:1;min-width:0;font-size:11px;color:var(--d-gray-4);}
+.emu-sheet__in-v{flex-shrink:0;font-size:14px;font-weight:700;}
+.emu-sheet__sel .ms{margin-left:auto;color:var(--d-gray-3);}
+.emu-sheet__note{margin-top:11px;padding:8px 10px;border-radius:9px;background:var(--d-bg-section);
+  font-size:10.5px;color:var(--d-gray-4);line-height:1.5;}
+.emu-sheet__note b{color:var(--d-ink);}
+.emu-sheet__acts{display:flex;gap:8px;margin-top:13px;}
+.emu-sheet__b{flex:1;padding:11px;border-radius:100px;text-align:center;font-size:13px;font-weight:700;
+  background:var(--d-ink);color:var(--d-white);}
+.emu-sheet__b--out{background:transparent;color:var(--d-ink);box-shadow:inset 0 0 0 1.5px var(--d-gray-2);}
+/* A "no screen at all" state — the system-action modes. Says what the
+   technician sees, which is nothing, rather than drawing an empty phone. */
+.emu-silent{padding:26px 20px;text-align:center;}
+.emu-silent__i{width:44px;height:44px;margin:0 auto 11px;border-radius:50%;display:flex;
+  align-items:center;justify-content:center;background:var(--d-bg-section);color:var(--d-gray-4);}
+.emu-silent__t{font-size:14px;font-weight:700;}
+.emu-silent__d{font-size:11px;color:var(--d-gray-4);line-height:1.6;margin-top:6px;}
 .emu-map{background:var(--d-bg-card);border-top:1px solid var(--d-border);padding:10px 0 12px;}
 .emu-mi{display:flex;align-items:center;gap:10px;padding:6px 14px;margin:0 6px;border-radius:4px;}
 .emu-mi.active{background:var(--d-bg-section);}
@@ -1513,6 +1574,7 @@ const ICONS = {
   wrench:'build', fork:'help', split:'alt_route', alert:'warning', info:'info',
   users:'group', save:'save', down:'arrow_downward', flag:'flag', arrowR:'arrow_forward',
   stop:'cancel', na:'remove', undo:'undo', layers:'layers', open:'open_in_new',
+  timerOff:'timer_off',
   /* A UDS is a customer-authored screen, so the glyph is a board split rather
      than a document — it is a layout, not a record. The block glyph is the
      capability gap: the function cannot render this tab at all. */
@@ -1617,6 +1679,19 @@ function woTypePill(code){
     esc(woTypeName(code))+'</span>';
 }
 
+/* The badge alone, for use INSIDE a control rather than beside one. Reads the
+   same palette and the same glyph set as woTypePill(); a Type outside the four
+   §23.3 families gets the neutral slot, never a fifth hue. */
+function woTypeBadge(code, size){
+  const fam = code ? TYPECODE_TO_WOTYPE_FAMILY[code] : null;
+  const pal = fam ? WO_TYPE_PALETTE[fam] : null;
+  if(!pal) return '<span class="input__wt input__wt--none" title="' +
+    (code ? esc(woTypeName(code)) + ' has no §23 colour' : 'Any WO Type') + '">' +
+    ic(code ? 'file' : 'na', size || 14) + '</span>';
+  return '<span class="input__wt" style="background:' + pal.color + '" title="' +
+    esc(woTypeName(code)) + '">' + woTypeIconSvg(fam, size || 14) + '</span>';
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    STEP LIBRARY — the MVP nine, plus the fork
    ═══════════════════════════════════════════════════════════════════════
@@ -1701,10 +1776,16 @@ function capabilityGaps(w){
    Workflow Designer. `fields` is shown only so an admin can see they are
    placing a real screen.
    ═══════════════════════════════════════════════════════════════════════ */
+/* THE LABELS ARE DELIBERATELY GENERIC (2026-09-17). They used to be
+   plausible customer screens — Hot Work Permit, LOTO Verification, Shift
+   Handover Notes — and that read as a claim that the product ships those
+   three. It does not: a UDS is whatever the customer authored in base EAM,
+   and this surface only ever PLACES one (§27.4 role 1). Numbering them says
+   the true thing — "there are three of them, base owns what they are". */
 const UDS_DEFS = [
-  {id:'uds-permit',   label:'Hot Work Permit',      fields:7, modified:'2026-08-19'},
-  {id:'uds-loto',     label:'LOTO Verification',    fields:5, modified:'2026-07-30'},
-  {id:'uds-handover', label:'Shift Handover Notes', fields:4, modified:'2026-08-22'},
+  {id:'uds-permit',   label:'UDS Tab 1', fields:7, modified:'2026-08-19'},
+  {id:'uds-loto',     label:'UDS Tab 2', fields:5, modified:'2026-07-30'},
+  {id:'uds-handover', label:'UDS Tab 3', fields:4, modified:'2026-08-22'},
 ];
 function udsDefOf(id){ return UDS_DEFS.find(u => u.id === id) || null; }
 
@@ -2212,13 +2293,7 @@ function forkBranchLabel(n, br){
    (a condition fork dropped first, or after another fork) and is reported
    rather than rendering an empty field list. Same treatment §29.4 gives a
    fork appended last with nothing to route to. */
-function condSourceStep(w, cn){
-  const flow = flowNodes(w);
-  const i = flow.indexOf(cn);
-  if(i < 0) return null;
-  for(let j = i - 1; j >= 0; j--) if(isStepKind(flow[j])) return flow[j];
-  return null;
-}
+function condSourceStep(w, cn){ return prevStepOf(w, cn); }
 /* Every testable field on that step's form, flattened out of its
    containers. A HIDDEN field is excluded: routing on something the
    technician cannot see is the invisible-logic failure this design exists
@@ -2228,12 +2303,35 @@ function condFieldsFor(w, cn){
   const src = condSourceStep(w, cn);
   if(!src || !Array.isArray(src.layout)) return [];
   const out = [];
-  src.layout.forEach(sec => (sec.fields || []).forEach(f => {
+  src.layout.forEach((sec, ci) => (sec.fields || []).forEach(f => {
     if(!condTypeIsTestable(f.type)) return;
     if(f.behavior === 'hid') return;
-    out.push({api:f.api, name:f.name, type:f.type, container:sec.container});
+    out.push({api:f.api, name:f.name, type:f.type, container:sec.container, cIdx:ci});
   }));
   return out;
+}
+/* ── THE PICKER'S OWN SHAPE (2026-09-17) ──
+   Every option used to read "Field name · Container", which put the
+   container on every row and still left the list flat. The container is a
+   GROUPING, so it is drawn as one: an <optgroup> label, which is natively
+   unselectable — the protected section label, for free and with no JS.
+
+   Order follows the container order on the screen, so the list reads top to
+   bottom exactly as the technician's form does. Grouped on the container
+   INDEX rather than its title: two containers can legitimately share a
+   title, and merging them would claim a field lives somewhere it does not. */
+function condFieldOptions(fields, cur){
+  const groups = [];
+  fields.forEach(f => {
+    const last = groups[groups.length - 1];
+    if(last && last.cIdx === f.cIdx) last.fields.push(f);
+    else groups.push({container:f.container, cIdx:f.cIdx, fields:[f]});
+  });
+  return groups.map(g =>
+    '<optgroup label="' + esc(g.container) + '">' +
+    g.fields.map(f => '<option value="' + esc(f.api) + '"' + (cur === f.api ? ' selected' : '') + '>' +
+      esc(f.name) + '</option>').join('') +
+    '</optgroup>').join('');
 }
 function condFieldMeta(w, cn){
   if(!cn || !cn.field) return null;
@@ -2296,19 +2394,141 @@ function condEval(cn, fieldType, raw){
    activities) and defaults to Work Order; the status is one code from that
    entity's own domain. Switching entity re-bases the status, because an EVST
    code is not an AAST code. ── */
+/* ── TWO MODES (2026-09-17, replacing "End of Workflow when Closing is not
+   present") ──
+   `system`  — the workflow sets the authored status, unattended. What this
+              action has always done.
+   `user`    — the technician is asked. At the Next tap a pull-up opens with
+              the record's CURRENT status shown protected, and they pick the
+              new one from a dropdown.
+
+   WHAT THE DROPDOWN HOLDS IS NOT AUTHORED HERE (answered 2026-09-17). It is
+   resolved on the device from base EAM's own user-group status
+   authorisation for the record's current status — the same boundary §27.4
+   draws around a UDS definition and §30.14 draws around a dataspy: base
+   owns what exists, this portal only says WHERE it is asked for. So an
+   authored subset would be a fifth place to maintain a status list, and the
+   first one able to disagree with the other four.
+
+   `status` is kept while in `user` mode rather than cleared, so flipping
+   the mode back does not lose the authored value.
+
+   CANCEL RETURNS, IT DOES NOT ADVANCE. Nothing is set and the technician is
+   back on the step they were on, free to change something and tap Next
+   again. That is what keeps an empty authorisation set a "nothing to pick
+   here" state instead of a dead end a WO cannot be finished through — the
+   §27.4 Required-UDS failure, which this action would otherwise reinvent. */
 function mkStatusNode(opts){
   opts = opts || {};
   const entity = opts.entity || 'wo';
-  const list = statusListForEntity(entity);
   return {
     nid:nid(), kind:'action', action:'status', zone:'flow',
+    mode:opts.mode || 'system',
     entity:entity,
     status:opts.status || (COMPLETION_DEFAULTS[entity] || COMPLETION_DEFAULTS.wo).complete,
   };
 }
 function statusNodeLabel(nd){
-  return statusDesc(nd.entity, nd.status);
+  return nd.mode === 'user' ? 'Technician selects' : statusDesc(nd.entity, nd.status);
 }
+
+/* ── ONE MODE FIELD, EVERY ACTION (§30.21) ──
+   All three actions answer the same question — does the technician get
+   asked, or does the workflow just do it — so all three carry the same
+   `mode` field and every read goes through `actionAsks()`. Start Timer
+   shipped with its own boolean `ask` for a few hours; two field shapes for
+   one concept across three kinds is the four-parallel-arrays failure
+   (§30.13) at a smaller scale, and `normalizeWf()` migrates it. */
+const ACTION_MODES = ['system', 'user'];
+function actionAsks(nd){ return !!nd && nd.mode === 'user'; }
+
+/* ── A START TIMER action (§14.2's timer pill, placed) ──
+   The app already draws a timer on the step rail; what was never authorable
+   is WHEN it starts.
+
+   DECLINING STILL ADVANCES, unlike the status action's Cancel. The two are
+   asymmetric on purpose: a status action exists to move a record to a
+   status, so a decline leaves its whole reason unmet; the timer is an aid
+   to labour capture, and "not on the clock for this one" is a legitimate
+   answer rather than an incomplete one. Blocking the flow on a preference
+   would be a gate on something no record depends on. */
+function mkTimerNode(opts){
+  opts = opts || {};
+  return {
+    nid:nid(), kind:'action', action:'timer', zone:'flow',
+    mode:opts.mode || 'system',
+  };
+}
+function timerNodeLabel(nd){
+  return actionAsks(nd) ? 'Asks before starting' : 'Starts automatically';
+}
+
+/* ── A STOP TIMER action — it BOOKS, which is why it can exist ──
+   Reversed 2026-09-17, same session it was refused. The refusal stood on one
+   premise: stopping a timer produces a labour record, a labour record needs a
+   screen, and that screen is Book Labor — so a Stop placed anywhere else
+   needs a second labour form invented behind it.
+
+   The premise is wrong, and §30.11's own paradigm is why. §18.4's Add Labor
+   field set is ENTIRELY DERIVABLE from a running timer plus the session:
+
+     Employee      the signed-in technician
+     Trade / Dept  from that employee's own record
+     Activity      the activity in context on the WO
+     Date Worked   the date the timer started
+     Start / End    the timer's own start and stop
+     Hours Worked  the elapsed time
+     Type of Hours Normal — see below
+     Crew          empty; it is the either/or partner of Employee
+
+   Nothing has to be ASKED, so nothing needs a form, so the action can just
+   do it — which is exactly what §30.11 established for a status transition.
+
+   THE PAYOFF, and the reason this exists: Book Labor can now sit in the
+   MORE group, or not be placed at all. Time capture stops depending on the
+   technician visiting a screen.
+
+   TYPE OF HOURS IS NOT AUTHORABLE, and that is deliberate. Whether a given
+   hour is overtime depends on the shift worked, not on the workflow the
+   technician happened to run — so a workflow-level constant would misbook
+   every callout it did not anticipate. It books Normal; §18.3's correction
+   path is how a misbooking is fixed, since booked labour is immutable. */
+function mkStopTimerNode(opts){
+  opts = opts || {};
+  return {
+    nid:nid(), kind:'action', action:'stoptimer', zone:'flow',
+    mode:opts.mode || 'system',
+  };
+}
+function stopTimerNodeLabel(nd){
+  return actionAsks(nd) ? 'Confirms the hours first' : 'Books the time automatically';
+}
+
+const ACTION_KIND_LABELS = {timer:'Start Timer', stoptimer:'Stop Timer', status:'Status update'};
+function actionKindLabel(nd){ return ACTION_KIND_LABELS[nd && nd.action] || 'Action'; }
+function actionIcon(nd){
+  return nd && nd.action === 'timer' ? 'clock'
+    : nd && nd.action === 'stoptimer' ? 'timerOff' : 'flag';
+}
+/* The label a node's main line carries — the thing that DIFFERS between two
+   of the same kind, since the eyebrow already names the kind. */
+function actionNodeLine(nd){
+  if(nd.action === 'timer') return timerNodeLabel(nd);
+  if(nd.action === 'stoptimer') return stopTimerNodeLabel(nd);
+  return statusEntityLabel(nd.entity) + ' \u2192 ' + statusNodeLabel(nd);
+}
+/* WHAT AN AUTOMATED BOOKING WRITES — one list, because the editor, the
+   emulator's pull-up and the mobile screen all have to describe the same
+   row. `derived` is where the value comes from; nothing here is authored. */
+const STOP_TIMER_BOOKING = [
+  {label:'Employee',      derived:'The signed-in technician'},
+  {label:'Trade',         derived:'From the employee record'},
+  {label:'Department',    derived:'From the employee record'},
+  {label:'Activity',      derived:'The activity in context'},
+  {label:'Date Worked',   derived:'The date the timer started'},
+  {label:'Start / End',   derived:'The timer\'s own start and stop'},
+  {label:'Type of Hours', derived:'Normal \u2014 not authorable'},
+];
 function statusEntityLabel(e){ return e === 'activity' ? 'Activity' : 'Work Order'; }
 
 /* ── A UDS node. A separate KIND, not a tab with an odd field set: it carries
@@ -2369,8 +2589,9 @@ function addNodeToWf(wf, stepId, index, zone){
     else wf.nodes.splice(index, 0, un);
     return un;
   }
-  if(stepId === 'status'){
-    const sn = mkStatusNode({});
+  if(stepId === 'status' || stepId === 'timer' || stepId === 'stoptimer'){
+    const sn = stepId === 'timer' ? mkTimerNode({})
+      : stepId === 'stoptimer' ? mkStopTimerNode({}) : mkStatusNode({});
     if(index == null || index < 0 || index > wf.nodes.length) wf.nodes.push(sn);
     else wf.nodes.splice(index, 0, sn);
     return sn;
@@ -3337,6 +3558,13 @@ function normalizeWf(w){
       nd.noLabel  = toTx(nd.noLabel);
     }
     if(nd.kind === 'step' && nd.step === 'booklabor' && !nd.timeEntry) nd.timeEntry = 'startend';
+    /* EVERY action carries `mode`, filled in here rather than guarded at
+       each read site. Start Timer shipped with a boolean `ask` for a few
+       hours; it migrates rather than being read in two shapes forever. */
+    if(nd.kind === 'action'){
+      if(nd.ask !== undefined){ if(!nd.mode) nd.mode = nd.ask ? 'user' : 'system'; delete nd.ask; }
+      if(ACTION_MODES.indexOf(nd.mode) === -1) nd.mode = 'system';
+    }
     (nd.layout || []).forEach(sec => {
       /* A grid container's cells need a span before one can be resized. */
       if(sec.layout === 'grid') sec.fields.forEach(f => { if(!f.span) f.span = 1; });
@@ -4847,10 +5075,6 @@ function renderGroupsArea(){
         '<div class="card grppane">' +
           '<div class="card__head">' + ic('users',16) + '<span class="card__title">Groups</span></div>' +
           '<div class="card__body" style="padding:var(--s-2)">' + rows + '</div>' +
-          '<div class="card__body" style="border-top:1px solid var(--border-subtle)">' +
-            '<div class="menu__row-d">No insert here. A group is created in <b>Security ▸ User Groups</b>; ' +
-              'this area provisions one that already exists.</div>' +
-          '</div>' +
         '</div>' +
         '<div class="grpmain">' + groupDetailHtml(sel) + '</div>' +
       '</div>' +
@@ -4945,27 +5169,103 @@ function artSummary(type, a){
   if(type === 'home') return (a.tiles || []).length + ' tiles';
   return '';
 }
+/* ── ONE POPOVER, ONE GROUP (reworked 2026-09-17) ──
+   It used to open, take a click, and then open a SECOND popover — because
+   the click went to toggleAssign(), which re-opens the artifact→groups
+   control from the gallery side. Two different views of the same table,
+   stacked, with the second one asking about every OTHER group. Nobody could
+   tell what the second one was for, and the honest answer is that it was
+   never meant to appear here.
+
+   Now it is one popover, scoped to the group in the rail, and its SHAPE
+   follows §30.13's cardinality rule rather than being uniform:
+
+     workflow (per-wotype)  — checkboxes. A group legitimately holds several,
+                              one per WO Type plus Free Form, so it stays
+                              open and a clash is refused at the click.
+     everything else        — radios, and it CLOSES on the pick. Exactly one
+                              per group, so a pick is a replacement and there
+                              is nothing further to do in the popover.
+
+   The radio set includes NONE, so the control can express every state it is
+   enforcing. Without it, "exactly one" would be settable but never
+   unsettable from the control that sets it. */
 function openGroupAssign(ev, g, type){
-  /* Assigning FROM the group side writes the same table the gallery writes —
-     this is the second view, not a second store. */
+  const t = artType(type);
   const arts = allArtifacts(type);
+  const multi = t.cardinality === 'per-wotype';
+  const mine = artifactsForGroup(g, type).map(r => r.artifactId);
+  const inherits = g !== '*' && !mine.length && artifactsForGroup('*', type).length > 0;
+
+  const row = a => {
+    const on = mine.indexOf(a.id) > -1;
+    /* Predicted before the click, from this side too (§30.2). Only a
+       multi-select can clash: a radio pick replaces, so it cannot. */
+    const clash = multi && !on ? wouldClash(type, a.id, g) : null;
+    return '<div class="menu__item' + (clash ? ' is-warn' : '') + '" ' +
+      'onclick="groupAssignPick(\'' + type + '\',\'' + a.id + '\',\'' + g + '\')">' +
+      (multi
+        ? '<span class="cbx' + (on?' is-on':'') + '">' + ic('check',14) + '</span>'
+        : '<span class="rdo' + (on?' is-on':'') + '"><span class="rdo__dot"></span></span>') +
+      '<span class="menu__row-b"><span class="menu__row-t">' + esc(artifactName(type, a)) + '</span>' +
+      (clash ? '<span class="menu__row-d" style="color:var(--critical)">' + esc(clash) + '</span>'
+             : '<span class="menu__row-d">' + esc(artSummary(type, a)) + '</span>') +
+      '</span></div>';
+  };
+
+  const noneRow = multi ? '' :
+    '<div class="menu__item" onclick="groupAssignPick(\'' + type + '\',\'\',\'' + g + '\')">' +
+      '<span class="rdo' + (mine.length?'':' is-on') + '"><span class="rdo__dot"></span></span>' +
+      '<span class="menu__row-b"><span class="menu__row-t">None</span>' +
+      '<span class="menu__row-d">' + (inherits
+        ? 'Fall back to the * default'
+        : (type === 'offline' ? 'Online only — valid and deliberate (§2.10)' : 'No layout — the standard menu')) +
+      '</span></span></div>' +
+    '<div class="menu__sep"></div>';
+
   openPopAt(ev,
-    '<div class="pop__head"><div class="pop__title">Assign to ' + esc(g) + '</div>' +
-      '<div class="pop__sub">' + esc(assignRuleText(type)) + '</div></div>' +
+    '<div class="pop__head"><div class="pop__title">' + esc(t.plural) + ' for ' + esc(g) + '</div>' +
+      '<div class="pop__sub">' + esc(assignRuleText(type)) +
+        (multi ? '' : ' Picking one replaces what is there.') + '</div></div>' +
     '<div class="pop__body">' +
-      (arts.length ? arts.map(a => {
-        const on = isAssigned(type, a.id, g);
-        const clash = !on && wouldClash(type, a.id, g);
-        return '<div class="menu__item" onclick="toggleAssign(\'' + type + '\',\'' + a.id + '\',\'' + g + '\')">' +
-          '<span class="cbx' + (on?' is-on':'') + '">' + ic('check',14) + '</span>' +
-          '<span class="menu__row-b"><span class="menu__row-t">' + esc(artifactName(type, a)) + '</span>' +
-          (clash ? '<span class="menu__row-d" style="color:var(--critical)">' + esc(clash) + '</span>'
-                 : '<span class="menu__row-d">' + esc(artSummary(type, a)) + '</span>') +
-          '</span></div>';
-      }).join('')
+      (arts.length ? noneRow + arts.map(row).join('')
       : '<div class="menu__row-d" style="padding:var(--s-3)">Nothing to assign — none exist yet.</div>') +
     '</div>' +
-    '<div class="pop__foot"><button class="Button Button--contained Button--primary" onclick="closePop()">Done</button></div>');
+    /* A multi-select needs a way out; a radio closes itself, so giving it a
+       Done button would be a second click for a finished job. */
+    (multi
+      ? '<div class="pop__foot"><button class="Button Button--contained Button--primary" onclick="closePop()">Done</button></div>'
+      : ''));
+}
+/* THE ONE WRITER FROM THE GROUP SIDE. It never re-opens the gallery-side
+   control, which is what produced the second popover. */
+function groupAssignPick(type, artifactId, g){
+  const t = artType(type);
+  if(t.cardinality === 'per-wotype'){
+    const on = isAssigned(type, artifactId, g);
+    if(!on){
+      const clash = wouldClash(type, artifactId, g);
+      if(clash){ toast(esc(g) + ' ' + clash + ' — un-assign that one first'); return; }
+    }
+    setAssigned(type, artifactId, g, !on);
+    render();
+    /* Re-open THIS popover, so the ticks update in place. lastMenuEv is the
+       original click, which is still where the control belongs. */
+    openGroupAssign(lastMenuEv, g, type);
+    return;
+  }
+  /* PER-GROUP: a pick REPLACES. Every other row for this group and type goes,
+     which is the difference between a radio and a checkbox being honest and
+     the screen reporting a collision the user was invited to create. */
+  const had = artifactsForGroup(g, type).map(r => r.artifactId);
+  had.forEach(id => setAssigned(type, id, g, false));
+  if(artifactId) setAssigned(type, artifactId, g, true);
+  closePop();
+  render();
+  const a = artifactId ? artifactOf(type, artifactId) : null;
+  toast(a
+    ? esc(g) + ' → ' + artifactName(type, a) + (had.length ? ' (replaced)' : '')
+    : esc(g) + ' → no ' + t.label.toLowerCase());
 }
 function unassignFromGroup(type, id, g){
   setAssigned(type, id, g, false);
@@ -5225,19 +5525,15 @@ function renderBanner(){
           '</div>' +
         '</div>' +
       '</div>' +
-      '<div class="field">' +
-        '<div class="field__label">WO Type</div>' +
-        '<div class="input">' +
-          '<select onchange="setWfField(\'woType\',this.value||null)">' +
-            '<option value=""' + (w.woType?'':' selected') + '>Any WO Type (fallback)</option>' +
-            WO_TYPES.map(t=>'<option value="' + t.code + '"' + (w.woType===t.code?' selected':'') + '>' +
-              esc(t.name) + '</option>').join('') +
-          '</select>' + ic('chevD',14) +
-        '</div>' +
-      '</div>' +
       /* BASE SCREEN / FUNCTION (§26.2) — workflow-level, because the function
          decides which steps can exist at all. Grouped by family so a clone is
-         visibly a clone of something. */
+         visibly a clone of something.
+
+         IT TOOK WO TYPE'S OLD SLOT (2026-09-17). The two swapped: the function
+         is the widest of the four values (a code, a description and a "(clone)"
+         marker), so it wants the wide third column, while WO Type is one short
+         description and reads better directly under the Description it
+         qualifies — the pair a reader scans first. */
       '<div class="field">' +
         '<div class="field__label">Base screen · function</div>' +
         '<div class="input">' +
@@ -5248,6 +5544,17 @@ function renderBanner(){
                 esc(f.code) + ' — ' + esc(f.desc) + (f.parent ? ' (clone)' : '') + '</option>').join('') +
               '</optgroup>').join('') +
           '</select>' + ic('chevD',20) +
+        '</div>' +
+      '</div>' +
+      '<div class="field">' +
+        '<div class="field__label">WO Type</div>' +
+        '<div class="input">' +
+          woTypeBadge(w.woType, 14) +
+          '<select onchange="setWfField(\'woType\',this.value||null)">' +
+            '<option value=""' + (w.woType?'':' selected') + '>Any WO Type (fallback)</option>' +
+            WO_TYPES.map(t=>'<option value="' + t.code + '"' + (w.woType===t.code?' selected':'') + '>' +
+              esc(t.name) + '</option>').join('') +
+          '</select>' + ic('chevD',14) +
         '</div>' +
       '</div>' +
       '<div class="field" style="grid-column:1/-1">' +
@@ -5459,7 +5766,13 @@ function renderLib(){
         '<span class="lib__item-t">Condition fork</span></div>' +
       '<div class="lib__item lib__item--act" draggable="true" ondragstart="libDragStart(event,\'status\')" ondragend="dragEnd()">' +
         '<span class="lib__ico">' + ic('flag',16) + '</span>' +
-        '<span class="lib__item-t">Status update</span></div>';
+        '<span class="lib__item-t">Status update</span></div>' +
+      '<div class="lib__item lib__item--act" draggable="true" ondragstart="libDragStart(event,\'timer\')" ondragend="dragEnd()">' +
+        '<span class="lib__ico">' + ic('clock',16) + '</span>' +
+        '<span class="lib__item-t">Start Timer</span></div>' +
+      '<div class="lib__item lib__item--act" draggable="true" ondragstart="libDragStart(event,\'stoptimer\')" ondragend="dragEnd()">' +
+        '<span class="lib__ico">' + ic('timerOff',16) + '</span>' +
+        '<span class="lib__item-t">Stop Timer</span></div>';
   }
   $('libBody').innerHTML = html;
 }
@@ -5502,10 +5815,15 @@ function renderCvBar(){
         ? w.nodes.length + ' tab' + (w.nodes.length===1?'':'s') + ' · unordered'
         : nSeq + ' step' + (nSeq===1?'':'s') + (nFork?' · ' + nFork + ' fork' + (nFork===1?'':'s'):'') + (nRef?' · ' + nRef + ' in More':'')) +
     '</span>' +
+    /* ONE CLOSE AFFORDANCE (2026-09-17). This used to carry a "Close
+       designer" pill while the panel itself already had an ✕ in its header —
+       two controls for one action, over two different columns, and the one
+       further from the panel was the more prominent of the two. The ✕ won:
+       it is where the thing being closed is. */
     '<span class="cvbar__r">' +
-      (state.dsnOpen
-        ? '<button class="Button Button--sm" onclick="closeDsn()">' + ic('x',13) + ' Close designer</button>'
-        : '<span class="cvbar__d">A step\'s ⋯ menu ▸ Screen Designer lays out its fields</span>') +
+      '<span class="cvbar__d">' + (state.dsnOpen
+        ? 'Screen Designer is open on the right — close it with its own ✕'
+        : 'A step\'s ⋯ menu ▸ Screen Designer lays out its fields') + '</span>' +
     '</span>';
 }
 
@@ -5597,14 +5915,28 @@ function freeFormHtml(w){
 /* ── A NODE ── */
 function nodeHtml(w, n, inZone){
   const sel = state.selNid === n.nid ? ' sel' : '';
-  if(n.kind === 'action' && n.action === 'status'){
+  if(n.kind === 'action'){
+    const glyph = actionIcon(n);
+    /* The MODE is on the card, because it is the difference between an
+       action the technician never notices and one that stops them. */
+    const asks = actionAsks(n);
+    /* The eyebrow already names the kind, so the main line carries the thing
+       that DIFFERS between two of the same kind. It read "Start Timer ·
+       Start Timer · Ask the technician" before this. */
+    const line = actionNodeLine(n);
     return '<div class="node node--act' + sel + '" draggable="true" data-nid="' + n.nid + '" ' +
         'ondragstart="nodeDragStart(event,\'' + n.nid + '\')" ondragend="dragEnd()" ' +
         'onclick="selectNode(\'' + n.nid + '\')">' +
-      '<span class="node__seq node__seq--act">' + ic('flag',14) + '</span>' +
+      '<span class="node__seq node__seq--act">' + ic(glyph,14) + '</span>' +
       '<div class="node__b">' +
-        '<span class="node__orig">' + ic('flag',14) + 'Status update</span>' +
-        '<div class="node__name">' + esc(statusEntityLabel(n.entity)) + ' → ' + esc(statusNodeLabel(n)) + '</div>' +
+        '<span class="node__orig">' + ic(glyph,14) + esc(actionKindLabel(n)) + '</span>' +
+        '<div class="node__name">' + esc(line) + '</div>' +
+        (asks
+          ? '<div class="node__sub"><span class="node__tag">' + ic('message',11) +
+            (n.action === 'status' ? 'Technician picks the status'
+              : n.action === 'stoptimer' ? 'Technician confirms the hours'
+              : 'Asks the technician') + '</span></div>'
+          : '') +
       '</div>' +
       '<div class="node__acts">' +
         '<button class="IconButton IconButton--sm IconButton--muted" onclick="event.stopPropagation();nodeMenu(event,\'' + n.nid + '\')">' + ic('dots',18) + '</button>' +
@@ -5961,10 +6293,10 @@ function flowDrop(ev){
     state.selNid = node.nid;
     drag = null; dropIdx = null; dropZone = null;
     afterStructuralChange(isForkKind(node) ? 'Fork inserted'
-      : (node.kind === 'action' ? 'Status update inserted' : 'Added ' + node.name));
+      : (node.kind === 'action' ? actionKindLabel(node) + ' inserted' : 'Added ' + node.name));
     if(node.kind === 'fork') openForkEditor(node.nid);
     else if(node.kind === 'cond') openCondEditor(node.nid);
-    if(node.kind === 'action') openStatusEditor(node.nid);
+    else if(node.kind === 'action') openActionEditor(node.nid);
     return;
   }
   const n = nodeById(w, drag.nid); if(!n){ dragEnd(); return; }
@@ -5990,7 +6322,7 @@ function refDrop(ev){
   ev.preventDefault(); ev.stopPropagation();
   const w = wf(); if(!w || !drag) return;
   if(drag.from === 'lib'){
-    if(drag.stepId === 'fork' || drag.stepId === 'cond' || drag.stepId === 'status'){ drag=null; dropZone=null; renderCanvas(); toast('Forks and status updates are positional — none of them can sit in the More group'); return; }
+    if(['fork','cond','status','timer','stoptimer'].indexOf(drag.stepId) > -1){ drag=null; dropZone=null; renderCanvas(); toast('Forks and actions are positional — none of them can sit in the More group'); return; }
     const node = addNodeToWf(w, drag.stepId, w.nodes.length, 'ref');
     state.selNid = node.nid;
     drag=null; dropZone=null; dropIdx=null;
@@ -6000,7 +6332,7 @@ function refDrop(ev){
   const n = nodeById(w, drag.nid);
   drag=null; dropZone=null; dropIdx=null;
   if(!n){ renderCanvas(); return; }
-  if(isForkKind(n) || n.kind === 'action'){ renderCanvas(); toast('A fork and a status update are positional — neither can sit in the More group'); return; }
+  if(isForkKind(n) || n.kind === 'action'){ renderCanvas(); toast('A fork and an action are positional — neither can sit in the More group'); return; }
   moveToRef(n.nid, true);
 }
 
@@ -6082,12 +6414,12 @@ function openCondEditor(id){
       '<label class="pop__l">Field on ' + esc(src ? src.name : 'the previous step') + '</label>' +
       '<select class="tinput" onchange="setCondField(\'' + id + '\',this.value)"' + (src ? '' : ' disabled') + '>' +
         '<option value="">' + (fields.length ? 'Pick a field' : 'No testable fields on that step') + '</option>' +
-        fields.map(x => '<option value="' + esc(x.api) + '"' + (nd.field === x.api ? ' selected' : '') + '>' +
-          esc(x.name) + ' \u00b7 ' + esc(x.container) + '</option>').join('') +
+        condFieldOptions(fields, nd.field) +
       '</select>' +
-      '<div class="pop__note">Only fields on the screen the technician just left, and never a <b>Hidden</b> one ' +
-        '\u2014 routing on something they cannot see is invisible logic. Buttons are excluded: a control has no ' +
-        'value to test.</div>' +
+      '<div class="pop__note">Grouped by the <b>container</b> the field sits in, because that is how the ' +
+        'technician sees the screen \u2014 the container is a heading here, not a value to pick. Only fields on ' +
+        'the screen they just left, and never a <b>Hidden</b> one \u2014 routing on something they cannot see ' +
+        'is invisible logic. Buttons are excluded: a control has no value to test.</div>' +
 
       '<label class="pop__l">Operator</label>' +
       '<select class="tinput" onchange="setCondOp(\'' + id + '\',this.value)"' + (f ? '' : ' disabled') + '>' +
@@ -6171,16 +6503,27 @@ function nodeMenu(ev, id){
 
   if(n.kind === 'action'){
     openMenu(ev,
-      '<div class="menu__label">Status update</div>' +
-      '<div class="menu__item" onclick="closeMenu();openStatusEditor(\'' + id + '\')">' + ic('flag',16) + 'Edit status</div>' +
+      '<div class="menu__label">' + esc(actionKindLabel(n)) + '</div>' +
+      '<div class="menu__item" onclick="closeMenu();openActionEditor(\'' + id + '\')">' +
+        ic(actionIcon(n),16) +
+        (n.action === 'status' ? 'Edit status' : 'Edit behaviour') + '</div>' +
       '<div class="menu__sep"></div>' +
       '<div class="menu__item menu__item--danger" onclick="closeMenu();deleteNode(\'' + id + '\')">' + ic('trash',16) + 'Delete action</div>');
     return;
   }
-  if(n.kind === 'fork'){
+  /* BOTH fork kinds, through isForkKind() — never a bare kind==='fork' test
+     (§30.19). A condition fork used to fall through to the STEP menu below,
+     which offered it Screen Designer, Rename, Step settings and Move to
+     More: four controls on a node that has no layout, no rail entry and no
+     gates. Every one of them was either dead or actively wrong. */
+  if(isForkKind(n)){
+    const isCond = n.kind === 'cond';
     openMenu(ev,
-      '<div class="menu__label">Question fork</div>' +
-      '<div class="menu__item" onclick="closeMenu();openForkEditor(\'' + id + '\')">' + ic('split',14) + ' Edit question and routing</div>' +
+      '<div class="menu__label">' + (isCond ? 'Condition fork' : 'Question fork') + '</div>' +
+      '<div class="menu__item" onclick="closeMenu();' +
+        (isCond ? 'openCondEditor' : 'openForkEditor') + '(\'' + id + '\')">' +
+        ic(isCond ? 'fork' : 'split',14) +
+        (isCond ? ' Edit condition and routing' : ' Edit question and routing') + '</div>' +
       '<div class="menu__sep"></div>' +
       '<div class="menu__item menu__item--danger" onclick="closeMenu();deleteNode(\'' + id + '\')">' + ic('trash',14) + ' Delete fork</div>');
     return;
@@ -6227,7 +6570,7 @@ function moveToRef(id, toRef){
      place that actually moves a node, so a future caller cannot route
      around it (same lesson as the pinned-step clamp). */
   if(toRef && (isForkKind(n) || n.kind === 'action')){
-    toast('A fork and a status update are positional — neither can sit in the More group');
+    toast('A fork and an action are positional — neither can sit in the More group');
     return;
   }
   n.zone = toRef ? 'ref' : 'flow';
@@ -6486,32 +6829,204 @@ function setForkTarget(id, key, v){
    code; carrying it over would leave a status that does not exist in the new
    domain.
    ═══════════════════════════════════════════════════════════════════════ */
+/* A two-way mode switch, as a SEGMENTED CONTROL rather than a Switch or a
+   radio pair. Octave's `.uxt-switch` is on/off of one named thing, and
+   neither of these modes is the absence of the other — "System action" and
+   "User selected" are two named behaviours, which is exactly what `.seg` is
+   for. Used identically by both action editors so they cannot drift. */
+function actionModeSeg(opts){
+  return '<div class="seg" style="width:100%">' +
+    opts.options.map(o => '<button class="seg__btn' + (opts.value === o.v ? ' is-active' : '') + '" ' +
+      'style="flex:1;justify-content:center" onclick="' + opts.on.replace('%v', o.v) + '">' +
+      ic(o.icon, 14) + esc(o.label) + '</button>').join('') +
+  '</div>';
+}
+
+/* ONE DOOR. Three action kinds and a fourth is plausible, so the callers
+   (the node menu, the drop handler) route by `action` in one place rather
+   than each growing its own if-chain. */
+function openActionEditor(id){
+  const w = wf(); const nd = nodeById(w, id);
+  if(!nd || nd.kind !== 'action') return;
+  if(nd.action === 'timer') return openTimerEditor(id);
+  if(nd.action === 'stoptimer') return openStopTimerEditor(id);
+  return openStatusEditor(id);
+}
+/* The mode control every action editor opens with, so the three cannot
+   describe the same choice three ways. */
+function actionModeField(nd, setter, copy){
+  return '<label class="pop__l">' + esc(copy.label) + '</label>' +
+    actionModeSeg({value:nd.mode, on:setter + '(\'' + nd.nid + '\',\'%v\')', options:[
+      {v:'system', label:'System action', icon:copy.icon},
+      {v:'user',   label:'User selected', icon:'users'},
+    ]}) +
+    '<div class="pop__note">' + (actionAsks(nd) ? copy.user : copy.system) + '</div>';
+}
+
 function openStatusEditor(id){
   const w = wf(); const nd = nodeById(w, id);
   if(!nd || nd.action !== 'status') return;
   state.selNid = id; renderCanvas();
+  const isUser = nd.mode === 'user';
   openModal('narrow',
     '<div class="mbox__head"><div class="mbox__head-b">' +
       '<div class="mbox__title">Status update</div>' +
-      '<div class="mbox__sub">Set when the workflow reaches this point.</div>' +
+      '<div class="mbox__sub">Applied when the workflow reaches this point \u2014 on the technician\'s ' +
+        '<b>Next</b> tap, before the following step opens.</div>' +
     '</div>' + iconBtn('x', {on:'closeModal()', cls:'IconButton--muted', title:'Close'}) + '</div>' +
     '<div class="mbox__body mbox__body--plain">' +
+
+      actionModeField(nd, 'setActionMode', {label:'Who decides the new status', icon:'flag',
+        system:'The workflow sets the status below and the technician never sees it. No prompt, no tap.',
+        user:'The technician is asked. A <b>pull-up</b> opens with the record\'s current status shown ' +
+          '<b>protected</b>, and they pick the new one from a dropdown.'}) +
+
       '<label class="pop__l">Status entity</label>' +
       '<select class="tinput" onchange="setStatusEntity(\'' + id + '\',this.value)">' +
         '<option value="wo"' + (nd.entity==='wo'?' selected':'') + '>Work Order</option>' +
         '<option value="activity"' + (nd.entity==='activity'?' selected':'') + '>Activity</option>' +
       '</select>' +
-      '<label class="pop__l">Status</label>' +
-      '<select class="tinput" onchange="setStatusValue(\'' + id + '\',this.value)">' +
-        statusListForEntity(nd.entity).map(st => '<option value="' + st.code + '"' +
-          (nd.status===st.code?' selected':'') + '>' + esc(st.desc) + '</option>').join('') +
-      '</select>' +
+      (isUser
+        ? '<div class="pop__note">Which record the pull-up is about, and therefore which status domain ' +
+            'it draws from \u2014 ' + esc(nd.entity === 'activity' ? 'AAST' : 'EVST') + '.</div>'
+        : '') +
+
+      (isUser
+        /* NOTHING IS AUTHORED HERE. The list comes from base EAM's own
+           user-group status authorisation at runtime (answered 2026-09-17):
+           an authored subset would be a fifth place a status list lives, and
+           the first one free to disagree with the other four. Stated in the
+           editor rather than left as an absence, so the admin knows the
+           control is missing on purpose. */
+        ? '<div class="pop__sep"></div>' +
+          '<label class="pop__l">What the technician can pick</label>' +
+          '<div class="input input--prot">' +
+            '<span class="input__v">Resolved on the device \u2014 base EAM status authorisation</span>' +
+            '<span class="input__lock">' + ic('lock',16) + '</span>' +
+          '</div>' +
+          '<div class="pop__note">Not authored here, on purpose. The dropdown holds whatever <b>this user ' +
+            'group is authorised to set from the record\'s current status</b>, which base EAM already owns ' +
+            '\u2014 same boundary a UDS definition (\u00a727.4) and a dataspy (\u00a730.14) sit behind. A subset ' +
+            'authored in this portal would be a fifth copy of a status list, and the first one free to ' +
+            'disagree with the other four.</div>' +
+          '<div class="pop__note"><b>Cancel returns, it does not advance.</b> Nothing is set and the ' +
+            'technician is back on the step they were on. That is what keeps an empty authorisation set a ' +
+            '"nothing to pick here" state rather than a dead end the work order cannot be finished ' +
+            'through.</div>'
+        : '<label class="pop__l">Status</label>' +
+          '<select class="tinput" onchange="setStatusValue(\'' + id + '\',this.value)">' +
+            statusListForEntity(nd.entity).map(st => '<option value="' + st.code + '"' +
+              (nd.status===st.code?' selected':'') + '>' + esc(st.desc) + '</option>').join('') +
+          '</select>') +
     '</div>' +
     '<div class="mbox__foot mbox__foot--split">' +
       '<button class="Button Button--error" onclick="closeModal();deleteNode(\'' + id + '\')">' +
         ic('trash',16) + 'Delete action</button>' +
       '<button class="Button Button--contained Button--primary" onclick="closeModal()">Done</button>' +
     '</div>');
+}
+/* Kept as a thin alias: the authored status is preserved across a flip to
+   `user` (nothing to re-base \u2014 the entity has not changed), and the
+   mode itself is written by the one setter every action shares. */
+function setStatusMode(id, val){ setActionMode(id, val); }
+
+/* ── THE TIMER EDITOR ──
+   One setting, so one control and no form. The panel is mostly the
+   consequence of the choice, because that is the part an admin cannot
+   work out from a two-word label. */
+function openTimerEditor(id){
+  const w = wf(); const nd = nodeById(w, id);
+  if(!nd || nd.action !== 'timer') return;
+  state.selNid = id; renderCanvas();
+  openModal('narrow',
+    '<div class="mbox__head"><div class="mbox__head-b">' +
+      '<div class="mbox__title">Start Timer</div>' +
+      '<div class="mbox__sub">Starts the step rail\'s own labour timer (\u00a714.2) when the workflow ' +
+        'reaches this point.</div>' +
+    '</div>' + iconBtn('x', {on:'closeModal()', cls:'IconButton--muted', title:'Close'}) + '</div>' +
+    '<div class="mbox__body mbox__body--plain">' +
+      actionModeField(nd, 'setActionMode', {label:'Who starts it', icon:'clock',
+        system:'The timer starts unattended. The technician sees it already running on the rail.',
+        user:'A <b>pull-up</b> asks before the next step opens. <b>Not now</b> leaves the timer stopped and ' +
+          '<b>still advances</b> \u2014 "I am not on the clock for this one" is a legitimate answer, not an ' +
+          'incomplete one, and nothing on the record depends on it. That is the one way this differs from a ' +
+          'user-selected Status update, whose Cancel holds the flow.'}) +
+
+      '<div class="pop__sep"></div>' +
+      '<div class="pop__note">Pair it with a <b>Stop Timer</b> action to book the time without the technician ' +
+        'visiting Book Labor at all \u2014 which is what lets Book Labor sit in the <b>More</b> group. ' +
+        'Not required: a technician can start and stop the timer from the rail pill on their own.</div>' +
+    '</div>' +
+    '<div class="mbox__foot mbox__foot--split">' +
+      '<button class="Button Button--error" onclick="closeModal();deleteNode(\'' + id + '\')">' +
+        ic('trash',16) + 'Delete action</button>' +
+      '<button class="Button Button--contained Button--primary" onclick="closeModal()">Done</button>' +
+    '</div>');
+}
+/* ── THE STOP TIMER EDITOR ──
+   Most of it is the DERIVED BOOKING, rendered protected. That is the whole
+   argument for the action existing: if every row of §18.4's form can be
+   shown filled in and locked at authoring time, none of it needs asking at
+   runtime, so no second labour form has to exist. An admin who cannot see
+   that list has to take it on trust. ── */
+function openStopTimerEditor(id){
+  const w = wf(); const nd = nodeById(w, id);
+  if(!nd || nd.action !== 'stoptimer') return;
+  state.selNid = id; renderCanvas();
+  openModal('narrow',
+    '<div class="mbox__head"><div class="mbox__head-b">' +
+      '<div class="mbox__title">Stop Timer</div>' +
+      '<div class="mbox__sub">Stops the rail\'s labour timer and <b>books the time</b> \u2014 so Book Labor ' +
+        'does not have to be in the flow at all.</div>' +
+    '</div>' + iconBtn('x', {on:'closeModal()', cls:'IconButton--muted', title:'Close'}) + '</div>' +
+    '<div class="mbox__body mbox__body--plain">' +
+      actionModeField(nd, 'setActionMode', {label:'Who confirms the booking', icon:'timerOff',
+        system:'Stops the timer and writes the booking unattended. The technician sees the row waiting for ' +
+          'them the next time they open Book Labor.',
+        user:'A <b>pull-up</b> shows the booking before it is written. <b>Hours Worked</b> is editable \u2014 ' +
+          'elapsed time is not always worked time \u2014 and everything else is protected, because everything ' +
+          'else is derived. Editing the rest is what <b>Book Labor</b> is for, and there is only one of those.'}) +
+
+      '<div class="pop__sep"></div>' +
+      '<label class="pop__l">What it books</label>' +
+      '<div class="input input--prot">' +
+        '<span class="input__v">Hours Worked \u2014 the elapsed time' +
+          (actionAsks(nd) ? ', editable in the pull-up' : '') + '</span>' +
+        '<span class="input__lock">' + ic(actionAsks(nd) ? 'pencil' : 'lock',16) + '</span>' +
+      '</div>' +
+      STOP_TIMER_BOOKING.map(r =>
+        '<div class="input input--prot">' +
+          '<span class="input__v"><b>' + esc(r.label) + '</b> \u2014 ' + esc(r.derived) + '</span>' +
+          '<span class="input__lock">' + ic('lock',16) + '</span>' +
+        '</div>').join('') +
+      '<div class="pop__note">Every row of \u00a718.4\'s Add Labor form, <b>derived</b> rather than asked. ' +
+        'That is why this can be an action at all: nothing here needs a screen.</div>' +
+      '<div class="pop__note"><b>Type of Hours is not authorable</b>, on purpose. Whether an hour is overtime ' +
+        'depends on the shift worked, not on the workflow the technician happened to run \u2014 a ' +
+        'workflow-level constant would misbook every callout it did not anticipate. It books <b>Normal</b>, ' +
+        'and \u00a718.3\'s correction path is how a misbooking is fixed (booked labour is immutable).</div>' +
+
+      '<div class="pop__sep"></div>' +
+      '<div class="pop__note"><b>No timer running \u2014 nothing happens and the flow continues.</b> Nothing ' +
+        'to book is not an error, the same way an empty field is not a false condition (\u00a730.19).<br>' +
+        '<b>Discard never stops the timer.</b> A technician who declines the booking still has a running ' +
+        'clock on the rail, so no path through this action can silently lose their time.<br>' +
+        '<b>A Book Labor step alongside this is fine.</b> The trigger is "a timer is running", and one can ' +
+        'only run once \u2014 see \u00a718.2.</div>' +
+    '</div>' +
+    '<div class="mbox__foot mbox__foot--split">' +
+      '<button class="Button Button--error" onclick="closeModal();deleteNode(\'' + id + '\')">' +
+        ic('trash',16) + 'Delete action</button>' +
+      '<button class="Button Button--contained Button--primary" onclick="closeModal()">Done</button>' +
+    '</div>');
+}
+/* ONE setter for all three actions, matching the one field. Re-opens through
+   openActionEditor() so it does not need to know which editor it came from. */
+function setActionMode(id, val){
+  const w = wf(); const nd = nodeById(w, id); if(!nd) return;
+  nd.mode = ACTION_MODES.indexOf(val) > -1 ? val : 'system';
+  w.updated = todayStr(); saveWFS(); renderCanvas();
+  openActionEditor(id);
 }
 function setStatusEntity(id, val){
   const w = wf(); const nd = nodeById(w, id); if(!nd) return;
@@ -6525,6 +7040,19 @@ function setStatusEntity(id, val){
 function setStatusValue(id, val){
   const w = wf(); const nd = nodeById(w, id); if(!nd) return;
   nd.status = val; w.updated = todayStr(); saveWFS(); renderCanvas();
+}
+
+/* ── THE NEAREST STEP IN FRONT OF A NODE ──
+   Shared by the condition fork (whose form it READS, §30.19) and by both
+   actions (whose pull-up opens OVER it). One accessor rather than three
+   loops, because all three mean the same thing by "in front of": the
+   screen the technician is actually on when this node fires. */
+function prevStepOf(w, n){
+  const flow = flowNodes(w);
+  const i = flow.indexOf(n);
+  if(i < 0) return null;
+  for(let j = i - 1; j >= 0; j--) if(isStepKind(flow[j])) return flow[j];
+  return null;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -6546,7 +7074,10 @@ function renderDsn(){
   const w = wf(); const panel = $('dsn');
   const n = state.dsnOpen && state.selNid ? nodeById(w, state.selNid) : null;
   if(n && n.kind === 'uds'){ renderDsnUds(w, n); return; }
-  if(!n || n.kind === 'fork'){
+  /* Every layoutless kind, through the accessor — a condition fork, a status
+     update and a timer all have nothing to lay out, and each of the three
+     was added after this line was first written. */
+  if(!n || isForkKind(n) || n.kind === 'action'){
     panel.classList.add('closed');
     $('fldbar').classList.add('closed');
     /* Closing it widens the canvas, so the wires need re-measuring. */
@@ -7374,7 +7905,12 @@ function renderPreview(){
 
   const tabList = (w.freeForm ? w.nodes : flow).map(n => {
     const isNa = na.has(n.nid);
-    const label = isForkKind(n) ? (n.kind === 'cond' ? 'Condition' : 'Fork') : n.name;
+    /* An action has no `name` — it was rendering as a blank tab that threw
+       on click, because emulatorHtml() dereferences a layout it has not
+       got. Both actions name themselves here and get their own emulator
+       below. */
+    const label = isForkKind(n) ? (n.kind === 'cond' ? 'Condition' : 'Fork')
+      : (n.kind === 'action' ? actionKindLabel(n) : n.name);
     const num = (!w.freeForm && n.kind==='step') ? '<span class="prev-tab__n">' + (seq.indexOf(n)+1) + '</span>' : '';
     return '<button class="prev-tab' + (n.nid===cur.nid?' is-active':'') + '" ' +
       (isNa ? 'style="opacity:.45"' : '') + ' onclick="pvSet(\'nid\',\'' + n.nid + '\')">' +
@@ -7421,6 +7957,8 @@ function renderPreview(){
   const condSrc = cur.kind === 'cond' ? condSourceStep(w, cur) : null;
   const phone = cur.kind === 'fork'
     ? forkEmulatorHtml(w, cur)
+    : cur.kind === 'action'
+    ? actionEmulatorHtml(w, cur)
     : emulatorHtml(w, condSrc || cur, pv.answers, false);
   const railHtml = pv.railOpen ? '<div class="emu" style="margin-top:13px">' + stepMapHtml(w, cur, na) + '</div>' : '';
 
@@ -7451,6 +7989,136 @@ function renderPreview(){
       '</span>' +
     '</div>');
 }
+
+/* ── AN ACTION, PREVIEWED ──
+   The two modes are the whole point of both actions, and they are invisible
+   on a card, so the preview draws the actual difference:
+
+     system  — nothing. No screen, no sheet, no tap. Said as an absence
+               rather than drawn as an empty phone, because an empty phone
+               reads as "unfinished".
+     user    — the step the technician is ON, faded, with the pull-up over
+               it. That fade is what distinguishes a sheet from a fork: a
+               fork is a screen of its own and replaces what was there.
+
+   The status sheet shows the CURRENT status protected (the same orange
+   protected bar §5.2 uses on a field) and the new one as a dropdown whose
+   contents are resolved on the device, so the preview says where they come
+   from instead of inventing a plausible list. */
+function actionEmulatorHtml(w, n){
+  const seq = seqNodes(w);
+  const src = prevStepOf(w, n);
+  const asks = actionAsks(n);
+  const pos = src ? seq.indexOf(src) + 1 : 0;
+
+  let segs = '';
+  seq.forEach((x,k)=>{ segs += '<span class="emu-seg ' + (k+1<pos?'done':(k+1===pos?'active':'')) + '"></span>'; });
+  const head = '<div class="emu-nav">' + ic('chevL',15) +
+      '<span class="emu-nav-t">' + esc(src ? src.name : actionKindLabel(n)) + '</span>' +
+      '<span class="emu-nav-c">19257</span></div>' +
+    '<div class="emu-rail"><div class="emu-rail-row">' +
+      (src ? '<span class="emu-rail-pill">' + pos + ' of ' + seq.length + '</span>' : '') +
+      '<span class="emu-rail-n">' + esc(src ? src.name : 'No step in front of this') + '</span>' +
+      '<span class="emu-rail-segs">' + segs + '</span>' + typeIconHtml(w) +
+    '</div></div>';
+
+  const onNext = 'as they tap <b>Next</b>' + (src ? ' on <b>' + esc(src.name) + '</b>' : '');
+  if(!asks){
+    const why = n.action === 'timer'
+      ? 'The timer starts ' + onNext + '. They see it already running on the rail.'
+      : n.action === 'stoptimer'
+      ? 'The timer stops and the hours are booked ' + onNext + '. The row is waiting for them the next ' +
+        'time they open Book Labor \u2014 which is why it can sit in <b>More</b>.'
+      : esc(statusEntityLabel(n.entity)) + ' moves to <b>' + esc(statusDesc(n.entity, n.status)) + '</b> ' +
+        onNext + '. Nothing is shown and nothing is asked.';
+    return '<div class="emu">' + head +
+      '<div class="emu-silent">' +
+        '<div class="emu-silent__i">' + ic(actionIcon(n),22) + '</div>' +
+        '<div class="emu-silent__t">No screen at all</div>' +
+        '<div class="emu-silent__d">' + why + '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  const sheet = n.action === 'timer'
+    ? '<div class="emu-sheet">' +
+        '<div class="emu-sheet__grab"></div>' +
+        '<div class="emu-sheet__t">Start the timer?</div>' +
+        '<div class="emu-sheet__d">Time on this work order will be tracked from now until you stop it.</div>' +
+        '<div class="emu-sheet__note"><b>Not now</b> leaves it stopped and still moves on \u2014 nothing on ' +
+          'the record depends on the timer.</div>' +
+        '<div class="emu-sheet__acts">' +
+          '<div class="emu-sheet__b emu-sheet__b--out">Not now</div>' +
+          '<div class="emu-sheet__b">Start timer</div>' +
+        '</div>' +
+      '</div>'
+    /* THE ONE SHEET WITH AN EDITABLE ROW. Hours first and editable; the
+       derived rows protected beneath it, in \u00a718.4's own order, so an
+       admin can see the whole booking and a technician can see that only one
+       number is theirs to change. */
+    : n.action === 'stoptimer'
+    ? '<div class="emu-sheet">' +
+        '<div class="emu-sheet__grab"></div>' +
+        '<div class="emu-sheet__t">Book 2:15 to this work order?</div>' +
+        '<div class="emu-sheet__d">The timer stopped. Check the hours before they are booked.</div>' +
+        '<div class="emu-sheet__in">' +
+          '<span class="emu-sheet__in-l">Hours Worked</span>' +
+          '<span class="emu-sheet__in-v">2.25</span>' + ic('pencil',15) +
+        '</div>' +
+        STOP_TIMER_BOOKING.slice(0,4).map(r =>
+          '<div class="emu-f"><span class="emu-f-bar prot"></span>' +
+            '<span class="emu-f-l">' + esc(r.label) + '</span>' +
+            '<span class="emu-f-v">' + esc(stopTimerSampleValue(r.label)) + '</span>' +
+            ic('lock',14) + '</div>').join('') +
+        '<div class="emu-sheet__note">Only the hours are yours to change \u2014 elapsed time is not always ' +
+          'worked time. <b>Discard</b> leaves the timer running.</div>' +
+        '<div class="emu-sheet__acts">' +
+          '<div class="emu-sheet__b emu-sheet__b--out">Discard</div>' +
+          '<div class="emu-sheet__b">Book time</div>' +
+        '</div>' +
+      '</div>'
+    : '<div class="emu-sheet">' +
+        '<div class="emu-sheet__grab"></div>' +
+        '<div class="emu-sheet__t">Update ' + esc(statusEntityLabel(n.entity).toLowerCase()) + ' status</div>' +
+        '<div class="emu-sheet__d">Pick the status this ' + esc(statusEntityLabel(n.entity).toLowerCase()) +
+          ' moves to.</div>' +
+        '<div class="emu-f"><span class="emu-f-bar prot"></span>' +
+          '<span class="emu-f-l">Current status</span>' +
+          '<span class="emu-f-v">' + esc(statusDesc(n.entity, (COMPLETION_DEFAULTS[n.entity] ||
+            COMPLETION_DEFAULTS.wo).start)) + '</span>' +
+          ic('lock',14) + '</div>' +
+        '<div class="emu-sheet__sel">New status' + ic('chevD',18) + '</div>' +
+        '<div class="emu-sheet__note">The list holds what <b>this user group is authorised to set</b> from ' +
+          'that current status \u2014 resolved on the device, not authored in the portal.</div>' +
+        '<div class="emu-sheet__acts">' +
+          '<div class="emu-sheet__b emu-sheet__b--out">Cancel</div>' +
+          '<div class="emu-sheet__b">Set status</div>' +
+        '</div>' +
+      '</div>';
+
+  /* The screen behind, faded. Named rather than drawn in full: the point of
+     the fade is that the sheet is over SOMETHING, and re-rendering the whole
+     step's field list here would make the sheet the smaller half of the
+     picture. */
+  const behind = '<div class="emu-behind">' +
+      '<div class="emu-sec"><span class="emu-sec-n">' +
+        esc(src ? src.name + ' \u2014 still underneath' : 'Nothing in front of this action') + '</span></div>' +
+      '<div class="emu-f"><span class="emu-f-bar"></span><span class="emu-f-l">\u2026the step they were on</span>' +
+        '<span class="emu-f-v">\u2014</span></div>' +
+    '</div>';
+
+  return '<div class="emu">' + head + behind + '<div class="emu-scrim"></div>' + sheet + '</div>';
+}
+
+/* Plausible values for the emulated booking. Demo data — every one of these
+   is derived at runtime (STOP_TIMER_BOOKING says from where), so this exists
+   only so the sheet looks like a filled-in form rather than a schema. */
+const STOP_TIMER_SAMPLES = {
+  'Employee':'A. Okafor', 'Trade':'Technician', 'Department':'Maintenance',
+  'Activity':'10 — Repair', 'Date Worked':'09/17/2026', 'Start / End':'08:30 – 10:45',
+  'Type of Hours':'Normal',
+};
+function stopTimerSampleValue(label){ return STOP_TIMER_SAMPLES[label] || '\u2014'; }
 
 function forkEmulatorHtml(w, n){
   const seq = seqNodes(w);
@@ -7552,6 +8220,7 @@ function openMenu(ev, html){
 }
 function closeMenu(){ $('menu').classList.remove('open'); }
 function openPopAt(ev, html){
+  if(ev && ev.clientX != null) lastMenuEv = {clientX:ev.clientX, clientY:ev.clientY};
   closeMenu();
   const p = $('pop');
   p.innerHTML = html;

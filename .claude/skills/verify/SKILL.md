@@ -46,6 +46,16 @@ device and were invisible to every static check:
   not evidence the action works — drive the action.**
 - **`test-editors.js`** — the ✕/✓ keyboard-editing popups: confirm gating,
   required-empty refusal, sheet exclusivity, and the CSS contract.
+- **`test-booking-pullup.js`** — §18.2/§30.21's booking pull-up, the first
+  shared sheet with **two invocation points by construction** (only one wired).
+  Worth reading before touching any self-injecting sheet: it pins three bugs
+  that render perfectly while being traps — a screen-level `closeAllSheets()`
+  that closes sheets **by id** (which a self-injecting sheet can never be in,
+  so it opens and cannot be dismissed), cleanup hung off a control rather than
+  the **close path** (the scrim only ever calls `closeAllSheets()`), and an
+  affirmative action that also fires `onDiscard` because it cleared its state
+  after closing instead of before. The last one is invisible in the UI — the
+  toast still reads correctly — so it is asserted by **counting callbacks**.
 - **`test-step-instances.js`** — Screen Designer's §29 step-instance model.
   The three files below cover the **base screens** track, which is
   self-contained (no `eam-shared.js`), so they drive `runScreen()` with a

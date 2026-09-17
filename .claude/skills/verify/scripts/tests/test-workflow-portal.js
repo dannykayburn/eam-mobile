@@ -65,7 +65,17 @@ const ev = (ctx, expr) => vm.runInContext(expr, ctx);
    one and the run continues. Found while negative-controlling the
    single-store assertion, which crashed the file before three other
    injected bugs could be reached. */
-const evb = (ctx, expr) => { try { return vm.runInContext(expr, ctx); } catch (e) { return 'threw: ' + e.message; } };
+const evb = (ctx, expr) => {
+  try {
+    /* Some callers legitimately return an object and read properties off
+       it, so the value is passed straight through. The ONLY thing corrected
+       here is that a throw used to report PASS. */
+    return vm.runInContext(expr, ctx);
+  } catch (e) {
+    console.log('        (evb threw: ' + e.message + ')');
+    return false;
+  }
+};
 
 function boot(wfId) {
   const ctx = runScreen(FILE, null);
@@ -419,7 +429,7 @@ console.log('\nParity: UDS placement (§27.4 / §29.5)');
   dropUds('uds-permit', 1);
   const u = 'wf().nodes.find(n=>n.kind==="uds")';
   ok('a UDS drops in as its own KIND', ev(ctx, '!!' + u) && ev(ctx, u + '.kind') === 'uds');
-  ok('it takes its label from the definition', ev(ctx, u + '.name') === 'Hot Work Permit');
+  ok('it takes its label from the definition', ev(ctx, u + '.name') === 'UDS Tab 1');
   /* §29.5: a UDS takes an ordinary tier-2 row, so it numbers and gates like a
      delivered tab — no separate placement model. */
   ok('it counts as a real numbered step', ev(ctx, 'seqNodes(wf()).some(n=>n.kind==="uds")'));
@@ -800,10 +810,18 @@ console.log('\nLibrary: Available screens + Actions');
   ok('the Execution / Record-tabs headings are gone',
     lib().indexOf('Execution') === -1 && lib().indexOf('Record tabs') === -1);
   ok('UDS entries sit in the same list, marked by icon not heading',
-    lib().indexOf('User defined screens') === -1 && lib().indexOf('Hot Work Permit') > -1);
+    lib().indexOf('User defined screens') === -1 && lib().indexOf('UDS Tab 1') > -1);
+  /* The labels are numbered rather than named on purpose (2026-09-17): a
+     plausible customer screen name in the demo data reads as a claim that
+     the product ships that screen, and it does not — base EAM owns what a
+     UDS is (§27.4 role 1). */
+  ok('a UDS is not given a plausible product name',
+    !/Hot Work Permit|LOTO Verification|Shift Handover/.test(
+      ev(ctx, 'document.documentElement.innerHTML')));
   ok('an Actions section exists', lib().indexOf('Actions') > -1);
-  ok('it holds the question fork and the status update',
-    lib().indexOf('Question fork') > -1 && lib().indexOf('Status update') > -1);
+  ok('it holds both forks, the status update and the timer',
+    lib().indexOf('Question fork') > -1 && lib().indexOf('Condition fork') > -1 &&
+    lib().indexOf('Status update') > -1 && lib().indexOf('Start Timer') > -1);
   /* Both actions are positional, and Free Form has no positions. */
   const ctx2 = boot('wf-free-insp');
   const lib2 = ev(ctx2, 'document.getElementById("libBody").innerHTML');
@@ -1596,6 +1614,424 @@ console.log('\nNO SUMMARY SURFACES (2026-09-16)');
       'typeof allHomeGaps === "function" && allConflicts().length > 0'));
   ok('and the rule is enforced where the assignment is made',
     evb(ctx, 'typeof wouldClash === "function"'));
+}
+
+
+console.log('\nThe 2026-09-17 pass — action modes, the grouped picker, one assignment popover');
+{
+  const ctx = boot('wf-bk-full');
+  const DROP = id => ev(ctx,
+    "drag={from:'lib',stepId:'" + id + "'}; dropIdx=2; dropZone='flow'; flowDrop(" + DRAG_EV + ");");
+
+  /* ── THE CONDITION FORK'S FIELD PICKER (item 1) ──
+     The container is a GROUPING, so it is an <optgroup> label — natively
+     unselectable, which is what "protected section label" means with no JS
+     holding it up. The failure this pins is the easy regression: putting the
+     container back into the option text, where it is repeated on every row
+     and still leaves the list flat. */
+  ev(ctx, "drag={from:'lib',stepId:'cond'}; dropIdx=1; dropZone='flow'; flowDrop(" + DRAG_EV + ");");
+  const cn = 'wf().nodes.find(n=>n.kind==="cond")';
+  const opts = () => ev(ctx, 'condFieldOptions(condFieldsFor(wf(),' + cn + '), null)');
+  ok('the picker groups fields under their container', opts().indexOf('<optgroup label="') > -1);
+  ok('there is a group per container, not one flat list',
+    (opts().match(/<optgroup/g) || []).length > 1,
+    String((opts().match(/<optgroup/g) || []).length) + ' groups');
+  ok('an option carries the field description and nothing else',
+    !/·|&#183;/.test(opts()) && opts().indexOf('optgroup') > -1);
+  ok('every offered field is still reachable as a value', evb(ctx,
+    '(function(){' +
+    'var fs=condFieldsFor(wf(),' + cn + ');' +
+    'var h=condFieldOptions(fs,null);' +
+    'return fs.length > 0 && fs.every(function(f){return h.indexOf(\'value="\'+f.api+\'"\') > -1;});})()'));
+  /* Grouped on the container INDEX, so two containers sharing a title stay
+     two groups — merging them would claim a field lives somewhere it does
+     not. */
+  ok('two same-titled containers stay two groups', evb(ctx,
+    '(function(){' +
+    'var g=condFieldOptions([{api:"A",name:"a",type:"text",container:"Dup",cIdx:0},' +
+    '{api:"B",name:"b",type:"text",container:"Dup",cIdx:1}], null);' +
+    'return (g.match(/<optgroup/g)||[]).length === 2;})()'));
+
+  /* ── A CONDITION FORK IS A FORK IN ITS OWN MENU (item 3) ──
+     It used to fall through to the STEP menu, which offered it Screen
+     Designer, Rename, Step settings and Move to More. Every one of those is
+     either dead or wrong on a node with no layout, no rail entry and no
+     gates. */
+  const menu = () => ev(ctx, 'document.getElementById("menu").innerHTML');
+  ev(ctx, 'nodeMenu({clientX:10,clientY:10},' + cn + '.nid);');
+  ok('a condition fork is named as one', menu().indexOf('Condition fork') > -1);
+  ok('...and it offers NO Screen Designer', menu().indexOf('Screen Designer') === -1);
+  ok('...no Rename, no Step settings, no Move to More',
+    menu().indexOf('Rename') === -1 && menu().indexOf('Step settings') === -1 &&
+    menu().indexOf('Move to More') === -1);
+  ok('...and it routes to the CONDITION editor, not the question one',
+    menu().indexOf('openCondEditor') > -1 && menu().indexOf('openForkEditor') === -1);
+  /* The question fork still gets its own, unchanged. Dropped rather than
+     found in the seed — this workflow does not ship one. */
+  ev(ctx, "drag={from:'lib',stepId:'fork'}; dropIdx=1; dropZone='flow'; flowDrop(" + DRAG_EV + "); closeModal();");
+  const qf = 'wf().nodes.find(n=>n.kind==="fork")';
+  ev(ctx, 'nodeMenu({clientX:10,clientY:10},' + qf + '.nid);');
+  ok('a question fork still routes to its own editor',
+    menu().indexOf('Question fork') > -1 && menu().indexOf('openForkEditor') > -1);
+}
+
+{
+  const ctx = boot('wf-bk-full');
+  const DROP = id => ev(ctx,
+    "drag={from:'lib',stepId:'" + id + "'}; dropIdx=2; dropZone='flow'; flowDrop(" + DRAG_EV + ");");
+  const body = () => ev(ctx, 'document.getElementById("mbox").innerHTML');
+
+  /* ── STATUS UPDATE: SYSTEM vs USER SELECTED (item 2) ──
+     This replaces the earlier "End of Workflow when Closing is not present"
+     idea: a user-selected status update placed last IS that prompt, and it
+     composes, because it can sit anywhere in the flow rather than only at
+     the end. */
+  DROP('status');
+  const a = 'wf().nodes.find(n=>n.action==="status")';
+  ok('a status update defaults to the SYSTEM mode', ev(ctx, a + '.mode') === 'system');
+  ok('the editor opens on the drop with two controls (entity + status)',
+    (body().match(/<select/g) || []).length === 2);
+  ok('...and offers the mode switch as a segmented control, not a checkbox',
+    body().indexOf('seg__btn') > -1 && body().indexOf('System action') > -1 &&
+      body().indexOf('User selected') > -1);
+
+  ev(ctx, 'setStatusMode(' + a + '.nid,"user");');
+  ok('switching to User selected sticks', ev(ctx, a + '.mode') === 'user');
+  ok('the authored status is KEPT, so flipping back loses nothing',
+    ev(ctx, a + '.status') === 'CLOSE');
+  /* THE LIST IS NOT AUTHORED HERE. Base EAM's user-group status
+     authorisation resolves it on the device — the same boundary §27.4 draws
+     around a UDS definition. An authored subset would be a fifth place a
+     status list lives. */
+  ok('the status dropdown is GONE in user mode — nothing to author',
+    (body().match(/<select/g) || []).length === 1);
+  ok('...and it says so, as a protected value rather than an absence',
+    body().indexOf('input--prot') > -1 && body().indexOf('status authorisation') > -1);
+  ok('the pull-up is described: current status protected, new one picked',
+    /current status/i.test(body()) && body().indexOf('protected') > -1);
+  ok('CANCEL RETURNS AND DOES NOT ADVANCE — stated, because it is what stops ' +
+     'an empty authorisation set being a dead end',
+    body().indexOf('Cancel returns, it does not advance') > -1);
+  ev(ctx, 'setStatusMode(' + a + '.nid,"system");');
+  ok('flipping back restores the authored status control',
+    ev(ctx, a + '.mode') === 'system' && (body().match(/<select/g) || []).length === 2);
+
+  /* The mode is on the CARD, because it is the difference between an action
+     nobody notices and one that stops the technician. */
+  ev(ctx, 'setStatusMode(' + a + '.nid,"user"); closeModal(); renderCanvas();');
+  const cv = () => ev(ctx, 'document.getElementById("cv").innerHTML');
+  ok('the card says the technician picks it', cv().indexOf('Technician selects') > -1);
+  ok('...and marks that it asks', cv().indexOf('Technician picks the status') > -1);
+
+  /* THE PREVIEW DRAWS THE DIFFERENCE. Before this pass an action node in the
+     preview rendered as a BLANK tab that THREW on click, because
+     emulatorHtml() dereferences a layout an action has not got. */
+  ok('a user-selected action previews as a pull-up over the faded step', evb(ctx,
+    'previewWf("wf-bk-full"); pvSet("nid",' + a + '.nid);' +
+    'document.getElementById("mbox").innerHTML.indexOf("emu-sheet") > -1'));
+  ok('...and the sheet shows the current status with the protected bar', evb(ctx,
+    'document.getElementById("mbox").innerHTML.indexOf("emu-f-bar prot") > -1'));
+  ok('...and does not invent a status list the device will resolve', evb(ctx,
+    'document.getElementById("mbox").innerHTML.indexOf("authorised to set") > -1'));
+  ok('a system action previews as NO SCREEN, said rather than drawn blank', evb(ctx,
+    '(function(){ closeModal(); setStatusMode(' + a + '.nid,"system"); closeModal();' +
+    'previewWf("wf-bk-full"); pvSet("nid",' + a + '.nid);' +
+    'var h=document.getElementById("mbox").innerHTML;' +
+    'return h.indexOf("No screen at all") > -1 && h.indexOf("emu-sheet") === -1;})()'));
+  ok('the preview tab strip NAMES an action instead of rendering an empty tab', evb(ctx,
+    'document.getElementById("mbox").innerHTML.indexOf("Status update") > -1'));
+  ev(ctx, 'closeModal();');
+}
+
+{
+  const ctx = boot('wf-bk-full');
+  const DROP = id => ev(ctx,
+    "drag={from:'lib',stepId:'" + id + "'}; dropIdx=2; dropZone='flow'; flowDrop(" + DRAG_EV + ");");
+  const body = () => ev(ctx, 'document.getElementById("mbox").innerHTML');
+
+  /* ── START TIMER (item 6) ── */
+  DROP('timer');
+  const t = 'wf().nodes.find(n=>n.action==="timer")';
+  ok('a Start Timer drops in as an action, not a step', ev(ctx, t + '.kind') === 'action');
+  ok('it has exactly ONE setting', evb(ctx,
+    'Object.keys(' + t + ').filter(function(k){' +
+    'return ["nid","kind","action","zone"].indexOf(k) === -1;}).join(",") === "mode"'));
+  ok('it defaults to unattended, like the status action', ev(ctx, t + '.mode') === 'system');
+  /* ONE FIELD FOR ONE CONCEPT. Start Timer shipped with a boolean `ask` for
+     a few hours; three kinds asking the same question through two field
+     shapes is §30.13's four-parallel-arrays failure at a smaller scale. */
+  ok('every action answers the mode question through the SAME field', evb(ctx,
+    'wf().nodes.filter(function(n){return n.kind==="action";})' +
+    '.every(function(n){return ["system","user"].indexOf(n.mode) > -1 && n.ask === undefined;})'));
+  ok('...read through one accessor, never a per-kind test', evb(ctx,
+    'actionAsks({mode:"user"}) === true && actionAsks({mode:"system"}) === false &&' +
+    'actionAsks({}) === false && actionAsks(null) === false'));
+  ok('a persisted boolean `ask` MIGRATES rather than being read in two shapes', evb(ctx,
+    '(function(){' +
+    'var w = wf();' +
+    'w.nodes.push({nid:"mig1", kind:"action", action:"timer", zone:"flow", ask:true});' +
+    'w.nodes.push({nid:"mig2", kind:"action", action:"timer", zone:"flow", ask:false});' +
+    'normalizeWf(w);' +
+    'var a = nodeById(w,"mig1"), b = nodeById(w,"mig2");' +
+    'return a.mode === "user" && b.mode === "system" &&' +
+    '  a.ask === undefined && b.ask === undefined;})()'));
+  ok('it is NOT a numbered step', ev(ctx, 'seqNodes(wf()).indexOf(' + t + ')') === -1);
+  ok('it takes no rail entry', ev(ctx,
+    'stepMapHtml(wf(), flowNodes(wf())[0], new Set()).indexOf("Start Timer")') === -1);
+  ok('it cannot sit in the More group — it is positional', evb(ctx,
+    '(function(){ moveToRef(' + t + '.nid, true); return ' + t + '.zone !== "ref"; })()'));
+  ok('its editor is the timer one, not the status one', body().indexOf('Start Timer') > -1 &&
+    body().indexOf('Status entity') === -1);
+  ok('...and it offers the same two-mode segmented control',
+    body().indexOf('seg__btn') > -1 && body().indexOf('System action') > -1 &&
+      body().indexOf('User selected') > -1);
+
+  ev(ctx, 'setActionMode(' + t + '.nid,"user");');
+  ok('asking sticks', ev(ctx, t + '.mode') === 'user');
+  /* THE ASYMMETRY IS DELIBERATE and is the one thing about this action that
+     cannot be guessed from its name: declining the timer STILL ADVANCES,
+     while cancelling a user-selected status does not. Nothing on the record
+     depends on the timer. */
+  ok('declining STILL ADVANCES, unlike a status Cancel — and says why',
+    body().indexOf('still advances') > -1);
+  ok('a timer that asks previews as a pull-up', evb(ctx,
+    '(function(){ closeModal(); previewWf("wf-bk-full"); pvSet("nid",' + t + '.nid);' +
+    'var h=document.getElementById("mbox").innerHTML;' +
+    'return h.indexOf("emu-sheet") > -1 && h.indexOf("Start the timer?") > -1;})()'));
+  ok('an unattended timer previews as no screen', evb(ctx,
+    'closeModal(); setActionMode(' + t + '.nid,"system"); closeModal();' +
+    'previewWf("wf-bk-full"); pvSet("nid",' + t + '.nid);' +
+    'document.getElementById("mbox").innerHTML.indexOf("No screen at all") > -1'));
+  ev(ctx, 'closeModal();');
+}
+
+console.log('\nStop Timer — the action that BOOKS (§30.21, reversed 2026-09-17)');
+{
+  /* WHY THIS EXISTS. It was refused earlier the same day on the premise that
+     stopping a timer produces a labour record, a labour record needs a
+     screen, and that screen is Book Labor — so a Stop elsewhere would need a
+     second labour form behind it. The premise was wrong: §18.4's whole field
+     set is derivable from a running timer plus the session, so nothing has
+     to be asked and no form has to exist. The payoff is that Book Labor can
+     sit in the More group and time capture stops depending on a visit. */
+  const ctx = boot('wf-bk-full');
+  const body = () => ev(ctx, 'document.getElementById("mbox").innerHTML');
+  ev(ctx, "drag={from:'lib',stepId:'stoptimer'}; dropIdx=2; dropZone='flow'; flowDrop(" + DRAG_EV + ");");
+  const st = 'wf().nodes.find(n=>n.action==="stoptimer")';
+
+  ok('it drops in as an action, not a step', ev(ctx, st + '.kind') === 'action');
+  ok('it carries the SAME one setting as the other two actions', evb(ctx,
+    'Object.keys(' + st + ').filter(function(k){' +
+    'return ["nid","kind","action","zone"].indexOf(k) === -1;}).join(",") === "mode"'));
+  ok('it defaults to booking unattended', ev(ctx, st + '.mode') === 'system');
+  ok('it is NOT a numbered step', ev(ctx, 'seqNodes(wf()).indexOf(' + st + ')') === -1);
+  ok('it takes no rail entry', ev(ctx,
+    'stepMapHtml(wf(), flowNodes(wf())[0], new Set()).indexOf("Stop Timer")') === -1);
+  ok('it cannot sit in the More group — it is positional', evb(ctx,
+    '(function(){ moveToRef(' + st + '.nid, true); return ' + st + '.zone !== "ref"; })()'));
+  ok('Free Form drops it with the other actions', evb(ctx,
+    '(function(){var w=wf(); applyFreeForm(w);' +
+    'return w.nodes.every(function(n){return n.kind!=="action";});})()'));
+
+  /* THE ARGUMENT FOR ITS EXISTENCE IS ON THE SCREEN. If every row of §18.4's
+     form can be shown filled in and locked at authoring time, none of it
+     needs asking at runtime — so an admin can check the claim rather than
+     taking it on trust. */
+  const ctx2 = boot('wf-bk-full');
+  const body2 = () => ev(ctx2, 'document.getElementById("mbox").innerHTML');
+  ev(ctx2, "drag={from:'lib',stepId:'stoptimer'}; dropIdx=2; dropZone='flow'; flowDrop(" + DRAG_EV + ");");
+  const st2 = 'wf().nodes.find(n=>n.action==="stoptimer")';
+  ok('its editor opens on the drop, and it is the STOP editor',
+    body2().indexOf('Stop Timer') > -1 && body2().indexOf('Status entity') === -1);
+  ok('it names the payoff: Book Labor need not be in the flow',
+    /Book Labor does not have to be in the flow|can sit in the <b>More<\/b> group|sit in the <b>More<\/b>/
+      .test(body2()));
+  ok('every derived field is listed, and every one is PROTECTED', evb(ctx2,
+    '(function(){' +
+    'var h = document.getElementById("mbox").innerHTML;' +
+    'return STOP_TIMER_BOOKING.length >= 7 && STOP_TIMER_BOOKING.every(function(r){' +
+    '  return h.indexOf(r.label) > -1; }) &&' +
+    '  (h.match(/input--prot/g)||[]).length >= STOP_TIMER_BOOKING.length;})()'));
+  ok('Type of Hours is in the list and marked NOT authorable', evb(ctx2,
+    'STOP_TIMER_BOOKING.some(function(r){' +
+    'return r.label === "Type of Hours" && /not authorable/.test(r.derived);})'));
+  ok('...and the editor says why a workflow constant would be wrong',
+    /depends on the shift/.test(body2()));
+  ok('the three runtime edge cases are all stated', evb(ctx2,
+    '(function(){var h=document.getElementById("mbox").innerHTML;' +
+    'return /No timer running/.test(h) && /Discard never stops the timer/.test(h) &&' +
+    '  /A Book Labor step alongside this is fine/.test(h);})()'));
+
+  /* HOURS IS THE ONE EDITABLE FIELD (answered 2026-09-17). Elapsed time is
+     not always worked time, and §18.3 makes booked labour immutable — so
+     getting the number right before writing beats a correction after. */
+  ev(ctx2, 'setActionMode(' + st2 + '.nid,"user");');
+  ok('switching to confirm-first sticks', ev(ctx2, st2 + '.mode') === 'user');
+  ok('the editor marks Hours as the editable one', evb(ctx2,
+    '(function(){var h=document.getElementById("mbox").innerHTML;' +
+    'return /Hours Worked[^<]*editable in the pull-up/.test(h);})()'));
+  ok('Hours is NOT one of the derived rows — it is the one thing asked', evb(ctx2,
+    '!STOP_TIMER_BOOKING.some(function(r){return /^Hours/.test(r.label);})'));
+
+  ok('a confirming stop previews as a pull-up with ONE editable row', evb(ctx2,
+    '(function(){ closeModal(); previewWf("wf-bk-full"); pvSet("nid",' + st2 + '.nid);' +
+    'var h=document.getElementById("mbox").innerHTML;' +
+    'return h.indexOf("emu-sheet") > -1 && (h.match(/emu-sheet__in[^-]/g)||[]).length === 1;})()'));
+  ok('...with the derived rows protected beneath it', evb(ctx2,
+    'document.getElementById("mbox").innerHTML.indexOf("emu-f-bar prot") > -1'));
+  ok('...and it says Discard leaves the timer running', evb(ctx2,
+    'document.getElementById("mbox").innerHTML.indexOf("leaves the timer running") > -1'));
+  ok('an unattended stop previews as no screen, and names the More payoff', evb(ctx2,
+    '(function(){ closeModal(); setActionMode(' + st2 + '.nid,"system"); closeModal();' +
+    'previewWf("wf-bk-full"); pvSet("nid",' + st2 + '.nid);' +
+    'var h=document.getElementById("mbox").innerHTML;' +
+    'return h.indexOf("No screen at all") > -1 && h.indexOf("More") > -1;})()'));
+  ev(ctx2, 'closeModal();');
+
+  /* The card, and the library. */
+  ev(ctx2, 'renderCanvas(); renderLib();');
+  ok('the card says what it does, not just what it is', evb(ctx2,
+    'document.getElementById("cv").innerHTML.indexOf("Books the time automatically") > -1'));
+  ok('the library offers all four actions', evb(ctx2,
+    '(function(){var l=document.getElementById("libBody").innerHTML;' +
+    'return ["Question fork","Condition fork","Status update","Start Timer","Stop Timer"]' +
+    '  .every(function(x){return l.indexOf(x) > -1;});})()'));
+
+  /* THE REVERSED DECISION. The old refusal text must be GONE, not left
+     sitting beside the feature contradicting it — an in-place supersession,
+     which is this repo's own doc rule. */
+  const src = require('fs').readFileSync(
+    path.join(__dirname, '..', '..', '..', '..', '..', 'prototypes', 'standalone',
+      'base screens', 'eam-workflow-portal-v1.html'), 'utf8');
+  ok('the old "there is no Stop Timer" refusal is gone from the file',
+    src.indexOf('There is no Stop Timer action') === -1);
+  ok('...and the reversal records the premise that was wrong',
+    src.indexOf('The premise is wrong') > -1);
+}
+
+{
+  const ctx = boot('wf-bk-full');
+  const ban = () => ev(ctx, 'document.getElementById("banner").innerHTML');
+
+  /* ── THE BANNER ORDER (item 4) ──
+     WO Type sits under the Description it qualifies; the function, which is
+     the widest of the four values, took WO Type's old wide column. */
+  ok('WO Type now comes AFTER the base screen in the source order',
+    ban().indexOf('Base screen') < ban().indexOf('>WO Type<'),
+    'fn@' + ban().indexOf('Base screen') + ' type@' + ban().indexOf('>WO Type<'));
+  ok('the WO Type control carries its §23.3 colour', ban().indexOf('input__wt') > -1 &&
+    ban().indexOf('--wo-type-breakdown') > -1);
+  ok('...and the same glyph the device draws, not a lookalike symbol',
+    ban().indexOf('<svg') > -1);
+  ok('an uncoloured Type gets the neutral slot, never a fifth hue', evb(ctx,
+    'woTypeBadge("CAL",14).indexOf("input__wt--none") > -1 &&' +
+    'woTypeBadge("CAL",14).indexOf("wo-type") === -1'));
+  ok('no WO Type at all still renders a slot, so the row does not jump', evb(ctx,
+    'woTypeBadge(null,14).indexOf("input__wt") > -1'));
+
+  /* ── ONE CLOSE AFFORDANCE (item 5) ── */
+  const bar = () => ev(ctx, 'document.getElementById("cvbar").innerHTML');
+  ev(ctx, 'openDsn(flowNodes(wf())[0].nid);');
+  ok('the designer opens', ev(ctx, 'state.dsnOpen') === true);
+  ok('the canvas bar no longer carries its own Close designer button',
+    bar().indexOf('closeDsn()') === -1 && bar().indexOf('Close designer') === -1);
+  ok('...and the panel keeps the one ✕ that does it',
+    ev(ctx, 'document.getElementById("dsnHead").innerHTML').indexOf('closeDsn()') > -1);
+  ok('the bar says where the close is instead of being a second one',
+    bar().indexOf('close it with its own') > -1);
+}
+
+{
+  /* ── ONE POPOVER, ONE GROUP (item 8) ──
+     The old control opened, took a click, and then opened a SECOND popover,
+     because the click went to toggleAssign() — the gallery-side
+     artifact→groups control, asking about every OTHER group. */
+  const ctx = boot(null);
+  ev(ctx, 'setArea("groups"); pickGroup("MAINT-TECH");');
+  const gal = () => ev(ctx, 'document.getElementById("gallery").innerHTML');
+  const pop = () => ev(ctx, 'document.getElementById("pop").innerHTML');
+
+  ok('the "No insert here" footer pill is gone', gal().indexOf('No insert here') === -1);
+  ok('...but the rule it stated is still on the screen once',
+    (gal().match(/Security ▸ User Groups/g) || []).length === 1);
+
+  /* CARDINALITY DECIDES THE CONTROL SHAPE (§30.13). One-of-many is not a
+     checkbox: a tick box beside each of three per-group artifacts invites a
+     second tick and then reports a collision for taking the invitation. */
+  ev(ctx, 'openGroupAssign({clientX:10,clientY:10},"MAINT-TECH","offline");');
+  ok('a per-group artifact is offered as RADIOS', pop().indexOf('class="rdo') > -1 &&
+    pop().indexOf('class="cbx') === -1);
+  ok('...including a None row, so the control can express every state it enforces',
+    pop().indexOf('>None<') > -1);
+  ok('...and no Done button, because a radio closes itself',
+    pop().indexOf('closePop()') === -1);
+  ev(ctx, 'openGroupAssign({clientX:10,clientY:10},"MAINT-TECH","workflow");');
+  ok('a workflow is offered as CHECKBOXES — a group holds one per WO Type',
+    pop().indexOf('class="cbx') > -1 && pop().indexOf('class="rdo') === -1);
+  ok('...and keeps a Done button, because a multi-select needs a way out',
+    pop().indexOf('closePop()') > -1);
+
+  /* A RADIO PICK REPLACES. That is the difference between the control being
+     honest about "exactly one" and the screen reporting a collision the user
+     was invited to create. */
+  const profOf = g => ev(ctx, 'artifactsForGroup(' + JSON.stringify(g) + ',"offline").length');
+  ok('MAINT-TECH starts with exactly one offline profile', profOf('MAINT-TECH') === 1);
+  ok('picking a different one REPLACES rather than adding a second', evb(ctx,
+    '(function(){' +
+    'var had=artifactsForGroup("MAINT-TECH","offline")[0].artifactId;' +
+    'var other=PROFILES.filter(function(p){return p.id!==had;})[0];' +
+    'if(!other) return false;' +
+    'groupAssignPick("offline", other.id, "MAINT-TECH");' +
+    'var now=artifactsForGroup("MAINT-TECH","offline");' +
+    'return now.length === 1 && now[0].artifactId === other.id;})()'));
+  ok('...so a per-group collision can no longer be created from this side',
+    ev(ctx, 'allConflicts().filter(function(c){' +
+      'return c.type==="offline" && c.group==="MAINT-TECH";}).length') === 0);
+  ok('the None row clears the explicit row', evb(ctx,
+    '(function(){ groupAssignPick("offline","","MAINT-TECH");' +
+    'return artifactsForGroup("MAINT-TECH","offline").length === 0; })()'));
+  ok('...and it CLOSES on the pick, no second popover', evb(ctx,
+    '!document.getElementById("pop").classList.contains("open")'));
+
+  /* The multi-select side still refuses a clash before the click, from this
+     side too (§30.2) — and still never calls the gallery-side control. */
+  ok('a workflow clash is REFUSED at the pick, not reported after it', evb(ctx,
+    '(function(){' +
+    'var bk=WFS.filter(function(w){return !w.freeForm && w.woType==="BK";});' +
+    'if(bk.length<2) return false;' +
+    'var held=bk.filter(function(w){return groupsOf("workflow",w.id).indexOf("CONTRACTOR")>-1;})[0];' +
+    'var free=bk.filter(function(w){return groupsOf("workflow",w.id).indexOf("CONTRACTOR")===-1;})[0];' +
+    'if(!held || !free) return false;' +
+    'groupAssignPick("workflow", free.id, "CONTRACTOR");' +
+    'return !isAssigned("workflow", free.id, "CONTRACTOR");})()'));
+  /* A legal pair is SEARCHED for rather than named: the seed deliberately
+     holds collisions and near-collisions, so hardcoding one group meant the
+     test was measuring the refusal above a second time. */
+  ok('a legal workflow pick lands and the popover STAYS open for the next one', evb(ctx,
+    '(function(){' +
+    'var pair=null;' +
+    'WFS.forEach(function(w){ GROUPS.forEach(function(g){' +
+    '  if(pair) return;' +
+    '  if(isAssigned("workflow", w.id, g)) return;' +
+    '  if(wouldClash("workflow", w.id, g)) return;' +
+    '  pair={id:w.id, g:g}; }); });' +
+    'if(!pair) return false;' +
+    'window.__pair = pair;' +
+    'groupAssignPick("workflow", pair.id, pair.g);' +
+    'return isAssigned("workflow", pair.id, pair.g) &&' +
+    '  document.getElementById("pop").classList.contains("open");})()'));
+  /* THE SECOND POPOVER, pinned as absent at its source. */
+  ok('the group side NEVER calls the gallery-side control', evb(ctx,
+    'groupAssignPick.toString().indexOf("openAssign") === -1'));
+  ok('...and the group popover only ever writes through groupAssignPick', evb(ctx,
+    'openGroupAssign.toString().indexOf("toggleAssign") === -1'));
+  /* Both directions of the ONE table still agree — the load-bearing §30.13
+     assertion, re-checked after a write from the reworked control. */
+  ok('the one membership table still reads the same both ways', evb(ctx,
+    '(function(){' +
+    'var p = window.__pair; if(!p) return false;' +
+    'return groupsOf("workflow", p.id).indexOf(p.g) > -1 &&' +
+    '  artifactsForGroup(p.g,"workflow").some(function(r){return r.artifactId===p.id;});})()'));
 }
 
 console.log(fail ? '\n' + fail + ' FAILED\n' : '\nAll passed\n');
