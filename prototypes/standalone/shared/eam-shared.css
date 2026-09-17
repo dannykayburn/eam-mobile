@@ -860,6 +860,62 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .attr-item.required.req-empty::before,
 .code-cell.required.req-empty::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
 .form-field.protected{background:var(--bg-section);opacity:.75;cursor:default;}
+
+/* ══════════════════════════════════════════════════════════════════════
+   HOLD STEPPER (§18.6) — promoted from eam-book-labor 2026-09-17
+   ══════════════════════════════════════════════════════════════════════
+   Was screen-local to Book Labor's Correction sheet. The booking pull-up
+   below is the second real consumer, which is the repo's own trigger for
+   promotion — and the reason it matters here is bigger than de-duplication:
+   a stepper raises NO KEYBOARD, so a sheet whose only editable value uses
+   one never engages §3.4's accessory-bar collision at all. That is a
+   stronger position than complying with §3.4; there is nothing to comply
+   with. ══════════════════════════════════════════════════════════════════ */
+.step-btn{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--gray-2);background:none;color:var(--octave-black);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+[data-theme="dark"] .step-btn{color:var(--white);border-color:var(--gray-5);}
+.step-btn:hover{background:var(--bg-section);border-color:var(--gray-3);}
+.step-btn:active{transform:scale(.94);}
+.step-btn.red-step{color:var(--red);border-color:rgba(228,75,74,.3);}
+
+/* ══════════════════════════════════════════════════════════════════════
+   BOOKING PULL-UP (§18.2/§30.21) — added 2026-09-17
+   ══════════════════════════════════════════════════════════════════════
+   The sheet a running timer is booked through. ONE sheet, TWO invocation
+   points (§18.2): opening Book Labor while a timer runs, and §30.21's
+   placed Stop Timer action. It lives here rather than on Book Labor
+   precisely because the second caller is not a screen at all.
+
+   ITS SHAPE IS THE RULE: exactly ONE editable value (hours) over derived
+   rows rendered with the ordinary '.form-field.protected' recipe. That
+   ratio is what stops it becoming a second Add Labor sheet (§18.4) — so if
+   a future change adds a second editable row, the thing to check is whether
+   Book Labor should have been opened instead.
+
+   No footer, and the affirmative control is the header's ✓ (§3.4). Even
+   though the stepper means no keyboard ever opens here, the header pattern
+   is what every other full-attention sheet uses, and a confirm at the
+   bottom edge of a '.bottom-sheet' is the mistake that reached a device.
+   ══════════════════════════════════════════════════════════════════════ */
+.bkg-banner{display:flex;align-items:flex-start;gap:8px;padding:11px 14px;background:var(--bg-section);border-bottom:1px solid var(--border);font-size:11.5px;line-height:1.5;color:var(--gray-4);}
+.bkg-banner svg{flex-shrink:0;margin-top:1px;color:var(--gray-4);}
+.bkg-banner strong{color:var(--octave-black);}
+[data-theme="dark"] .bkg-banner strong{color:var(--white);}
+/* The hours block — the one thing on this sheet the technician can change,
+   so it is the only thing that reads as a control. */
+.bkg-hours{padding:14px 16px;border-bottom:1px solid var(--border);}
+.bkg-hours-l{font-size:11px;font-weight:700;letter-spacing:.4px;color:var(--gray-4);margin-bottom:10px;}
+.bkg-hours-row{display:flex;align-items:center;gap:12px;}
+.bkg-hours-mid{flex:1;text-align:center;min-width:0;}
+.bkg-hours-v{font-family:var(--font-mono);font-size:26px;font-weight:700;color:var(--octave-black);line-height:1.1;}
+[data-theme="dark"] .bkg-hours-v{color:var(--white);}
+.bkg-hours-sub{font-size:11px;color:var(--gray-4);margin-top:3px;}
+/* Shown only once the value has moved off the timer's own elapsed reading —
+   an adjusted booking is a claim about worked time, not a reading. */
+.bkg-hours-adj{display:none;margin-top:5px;font-size:10.5px;font-weight:700;color:var(--gray-4);}
+.bkg-hours.is-adjusted .bkg-hours-adj{display:block;}
+.bkg-note{padding:11px 14px 14px;font-size:11px;line-height:1.55;color:var(--gray-4);}
+.bkg-note strong{color:var(--octave-black);}
+[data-theme="dark"] .bkg-note strong{color:var(--white);}
 [data-theme="dark"] .form-field.protected{background:rgba(255,255,255,.03);}
 .field-label{font-size:13px;color:var(--gray-4);width:128px;flex-shrink:0;line-height:1.35;}
 .field-value{flex:1;font-size:14px;font-weight:500;color:var(--octave-black);text-align:right;}

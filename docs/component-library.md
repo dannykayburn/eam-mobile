@@ -605,8 +605,9 @@ differences (a sequence number, whether Req is offered) follow from
 than a migration between two row shapes.
 
 **Note on scope.** This is the first entry here from the **Base Screens
-track**, which is a separate, self-contained visual system (DM Sans/DM Mono,
-teal-purple) and loads none of the shared files. It is named here because "is
+track**, which is a separate, self-contained visual system — **Octave / OUX**
+since 2026-09-16 (§30.7; it was DM Sans / teal-purple before that, and that
+language is now on nothing reachable) — and loads none of the shared files. It is named here because "is
 this the same row as that one" is exactly the question this doc exists to
 answer — not because the two tracks share code. They don't.
 
@@ -622,7 +623,31 @@ answer — not because the two tracks share code. They don't.
 - Record View instance 1 renders with a lock instead of a drag handle: pinned
   as step 1 by §14, though still duplicable.
 
-**Related, on the same track:** the **Offline Policy Pill** on User Group
+**Related, on the same track:** the **Action Node** — the same canvas card
+with an action's payload instead of a step's (§30.11/§30.21). Three kinds so
+far: Status update, Start Timer, Stop Timer. It is deliberately *not* a
+step-instance row: no sequence number, no Req, no gate chips, because the
+technician never visits one. Its one distinguishing chip is the **mode** —
+`System action` or `User selected` — which is the difference between an
+action nobody notices and one that stops them, and is therefore the only thing
+about it worth reading off the canvas.
+
+**And the component it previews:** the **Booking Pull-up** (§30.21/§18.2) — the
+sheet a Stop Timer writes through. One sheet, **two invocation points** (the
+placed action, and opening Book Labor with a timer running), so it must never
+be built twice. Its shape is the rule: **exactly one editable value** (Hours
+Worked, on a stepper) over derived rows rendered protected. That ratio *is* the
+design — it is what keeps the sheet from becoming a second Add Labor form, so a
+second editable row is the signal that Book Labor (§18.4) should have been
+opened instead.
+
+**Built on the device 2026-09-17** in `eam-shared.js` (`openBookingPullup()`),
+self-injecting. The editable value is a **stepper rather than a number input**,
+which is why this is the one confirm surface that raises no keyboard at all —
+§3.4 never engages, rather than being complied with. Its confirm is still the
+header ✓ with no footer, the house pattern for a full-attention sheet.
+
+**Also related, on the same track:** the **Offline Policy Pill** on User Group
 Setup's Offline tab — one pill per §2.7 policy class (`work-set`,
 `reference`, `on-demand`, `server-only`, `external-replica`). Deliberately
 not five hues for their own sake: the only distinction carrying weight is
@@ -638,6 +663,9 @@ not five hues for their own sake: the only distinction carrying weight is
 | Completion Gate | Screen Designer (authoring). **Mobile side unbuilt** | Named 2026-09-08 (§29.3) — attribute on any step, content lands in §7.2 Comments/Documents |
 | Question Prompt Card | Screen Designer (authoring). **Mobile side unbuilt** | Named 2026-09-08 (§29.4) — the only component carrying admin-authored translations; distinct from §14.6's Yes/No prompt bar |
 | Step Instance Row *(Base track)* | Screen Designer, both step lists | Named 2026-09-08 (§29.2) — first Base Screens entry here; separate visual system, no shared code |
+| Action Node *(Base track)* | Workflow Designer Portal ▸ flow canvas | Named 2026-09-17 (§30.11/§30.21) — status update, Start/Stop Timer; same card as the Step Instance Row, deliberately without a number or gates |
+| Booking Pull-up | Book Labor (timer running); portal preview of the Stop Timer action | Named + built 2026-09-17 (§30.21/§18.2) — shared/self-injecting, one editable value (a stepper, so no keyboard) over derived rows |
+| Hold Stepper | Book Labor ▸ Correction, Booking Pull-up | Promoted to shared 2026-09-17 (§18.6) — 1-min tap, 15-min repeat after a 3s hold; raises no keyboard, which is why a confirm sheet can use it |
 | Offline Policy Pill *(Base track)* | User Group Setup ▸ Offline | Named 2026-09-08 (§2.7/§29.6) — five classes, but only writable-vs-not carries weight |
 | Field Grid Container | WO Record View, Equipment Record View, Insert Mode, field-behavior reference | Backfilled 2026-07-28 — always existed as a shape, never had a name entry here (§5.2) |
 | Collapsible Container | Equipment Record View, Custom Fields, Insert Mode, field-behavior reference | Backfilled 2026-07-28 — same gap as Field Grid Container (§5.2) |

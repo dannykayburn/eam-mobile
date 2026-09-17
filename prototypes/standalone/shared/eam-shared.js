@@ -54,6 +54,10 @@ function closeAllSheets() {
   const overlay = document.getElementById('sheetOverlay');
   if (overlay) overlay.classList.remove('open');
   document.documentElement.style.setProperty('--kb-inset', '0px');
+  /* A sheet holding live state has to learn it was dismissed, and the scrim
+     only ever calls THIS — see releaseBookingPullup() (§18.2). Declared
+     later in the file, so guard on it rather than assuming load order. */
+  if (typeof releaseBookingPullup === 'function') releaseBookingPullup();
 }
 function openSheet(id) {
   const overlay = document.getElementById('sheetOverlay');
@@ -4483,3 +4487,232 @@ function initSharedApp(opts) {
   // afterward) must show its container's badge immediately.
   updateRequiredBadges();
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   HOLD STEPPER (§18.6) — promoted from eam-book-labor 2026-09-17
+   ══════════════════════════════════════════════════════════════════════
+   Tap = one small step. Hold HOLD_MS, then repeat a big step every
+   REPEAT_MS. Book Labor's Correction sheet had this inline; the booking
+   pull-up below is the second consumer, so it moved here rather than being
+   copied — and both now share the §18.6 numbers instead of each carrying
+   their own.
+
+   STOP ON pointerup AND pointerleave, both. A pointerdown that ends
+   outside the button never fires pointerup on it, so a leave-only or an
+   up-only binding leaves the interval running — a stepper that will not
+   stop, which is the one way this component can do real damage.
+   ══════════════════════════════════════════════════════════════════════ */
+const HOLD_STEP = { HOLD_MS: 3000, REPEAT_MS: 150, SMALL: 1, BIG: 15 };
+let holdStepTimer = null, holdStepRepeat = null;
+function startHoldStep(onStep, direction, opts) {
+  const o = Object.assign({}, HOLD_STEP, opts || {});
+  stopHoldStep();
+  onStep(direction * o.SMALL);
+  holdStepTimer = setTimeout(() => {
+    holdStepRepeat = setInterval(() => onStep(direction * o.BIG), o.REPEAT_MS);
+  }, o.HOLD_MS);
+}
+function stopHoldStep() {
+  clearTimeout(holdStepTimer); clearInterval(holdStepRepeat);
+  holdStepTimer = null; holdStepRepeat = null;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   THE BOOKING PULL-UP (§18.2 / §30.21) — added 2026-09-17
+   ══════════════════════════════════════════════════════════════════════
+   Books a running timer's time. ONE sheet with TWO invocation points, which
+   is why it is here and not on Book Labor:
+
+     1. Opening Book Labor while a timer is running (§18.2) — always asks,
+        because it is the technician's own navigation.
+     2. §30.21's placed Stop Timer action — asks per the action's own mode.
+        NOT WIRED YET: nothing feeds a workflow definition to the app, so
+        the portal authors this and the app cannot yet be told about it.
+        The entry point takes the values it needs as arguments for exactly
+        that reason — when the hand-off exists, it calls this, unchanged.
+
+   ONE EDITABLE VALUE. Hours, on a stepper; everything else derived and
+   rendered protected (§30.21's own list). Two reasons it is a stepper and
+   not a number input: elapsed time is a duration, so stepping minutes is
+   the natural gesture — and it opens NO KEYBOARD, so §3.4's accessory-bar
+   collision cannot arise on this sheet at all.
+
+   HOURS, NOT START/END. The booking is written as direct hours (§18's own
+   Time Entry Mode already models that). The instant the technician can
+   adjust the number, the timer's start and end stop being able to both
+   survive and stay true — so the span is shown as CONTEXT and the hours
+   are what is booked. Flagged in §20: whether an UNADJUSTED booking should
+   still write start/end is not settled.
+
+   DISCARD LEAVES THE TIMER RUNNING (§30.21). ✕ and a scrim tap are both
+   discards. That is the whole reason a technician can open Book Labor from
+   the More group just to look at the list without it costing them their
+   clock. ══════════════════════════════════════════════════════════════════ */
+const BOOKING_LOCK_SVG = '<svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24">'
+  + '<rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/>'
+  + '<path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+
+/* Live state for the open sheet. Null when closed, which is also how the
+   confirm handler refuses a stale tap. */
+let bookingPullup = null;
+
+function bookingFmtMin(min) {
+  const h = Math.floor(min / 60), m = min % 60;
+  return h > 0 ? (m > 0 ? h + 'h ' + m + 'm' : h + 'h') : m + 'm';
+}
+/* Decimal hours, which is what a labour row actually stores (§18.4's Hours
+   Worked). Shown alongside the h/m reading because the technician thinks in
+   hours and minutes and the record keeps 2.25. */
+function bookingDecHours(min) { return (Math.round(min / 0.6) / 100).toFixed(2); }
+
+/* opts:
+     minutes   elapsed minutes off the timer (required)
+     employee  {code, desc}     trade / dept / activity / date / span  strings
+     mode      'user' (default) shows the sheet; 'system' books with no sheet
+     onBook(minutes, adjusted)  onDiscard()                                  */
+function openBookingPullup(opts) {
+  const o = opts || {};
+  const min = Math.max(1, Math.round(o.minutes || 0));
+
+  /* SYSTEM MODE BOOKS WITHOUT A SHEET (§30.21). Handled here rather than at
+     the call site so that "does the technician see this" is one decision in
+     one place, and a future caller cannot forget to honour it. */
+  if (o.mode === 'system') {
+    if (typeof o.onBook === 'function') o.onBook(min, false);
+    return;
+  }
+
+  bookingPullup = {
+    min: min, elapsed: min,
+    onBook: o.onBook || null, onDiscard: o.onDiscard || null,
+  };
+
+  const row = (label, value, mono) =>
+    '<div class="form-field protected">'
+      + '<span class="field-label">' + label + '</span>'
+      + '<span class="field-value' + (mono ? ' mono' : '') + '">' + value + '</span>'
+      + BOOKING_LOCK_SVG
+    + '</div>';
+
+  ensureSharedSheet('bookingPullupSheet',
+    '<div class="sheet-handle-row"><div class="sheet-handle"></div></div>'
+    + '<div class="sheet-header">'
+      /* ✕ IS THE DISCARD, not merely a close — so it routes through the same
+         handler a scrim tap does, and neither stops the timer. */
+      + '<button class="sheet-close" onclick="discardBookingPullup()" aria-label="Discard">'
+        + '<svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>'
+      + '<div class="sheet-title">Book your time</div>'
+      + '<button class="sheet-confirm-btn" onclick="confirmBookingPullup()" aria-label="Book time">'
+        + '<svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>'
+    + '</div>'
+    + '<div class="bkg-banner" id="bkgBanner"></div>'
+    + '<div class="sheet-body">'
+      + '<div class="bkg-hours" id="bkgHours">'
+        + '<div class="bkg-hours-l">Hours Worked</div>'
+        + '<div class="bkg-hours-row">'
+          + '<button class="step-btn" aria-label="Less"'
+            + ' onpointerdown="startHoldStep(adjustBookingMin,-1)"'
+            + ' onpointerup="stopHoldStep()" onpointerleave="stopHoldStep()">\u2212</button>'
+          + '<div class="bkg-hours-mid">'
+            + '<div class="bkg-hours-v" id="bkgHoursV"></div>'
+            + '<div class="bkg-hours-sub" id="bkgHoursSub"></div>'
+            + '<div class="bkg-hours-adj" id="bkgHoursAdj"></div>'
+          + '</div>'
+          + '<button class="step-btn" aria-label="More"'
+            + ' onpointerdown="startHoldStep(adjustBookingMin,1)"'
+            + ' onpointerup="stopHoldStep()" onpointerleave="stopHoldStep()">+</button>'
+        + '</div>'
+      + '</div>'
+      + '<div id="bkgDerived"></div>'
+      + '<div class="bkg-note" id="bkgNote"></div>'
+    + '</div>');
+
+  document.getElementById('bkgBanner').innerHTML =
+    '<svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>'
+    + '<path d="M12 7v5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+    + '<span>Your timer has run <strong>' + bookingFmtMin(min) + '</strong>. Check the hours before they are booked.</span>';
+
+  document.getElementById('bkgDerived').innerHTML =
+    (o.employee
+      ? '<div class="form-field protected"><span class="field-label">Employee</span>'
+        + '<div class="field-lov-value"><span class="field-lov-code">' + (o.employee.code || '') + '</span>'
+        + '<span class="field-lov-desc">' + (o.employee.desc || '') + '</span></div>'
+        + BOOKING_LOCK_SVG + '</div>'
+      : '')
+    + row('Trade', o.trade || '\u2014')
+    + row('Department', o.dept || '\u2014')
+    + row('Activity', o.activity || '\u2014')
+    + row('Date Worked', o.date || '\u2014', true)
+    + row('Timer ran', o.span || '\u2014', true)
+    + row('Type of Hours', 'Normal');
+
+  document.getElementById('bkgNote').innerHTML =
+    '<strong>Only the hours are yours to change.</strong> Elapsed time is not always worked time \u2014 a break '
+    + 'inside the timer is the usual reason. Everything else comes from your record and this work order.<br><br>'
+    + '<strong>Discard leaves the timer running.</strong> Nothing is booked and your clock keeps going.';
+
+  renderBookingHours();
+  openSheetExclusive('bookingPullupSheet');
+}
+
+function adjustBookingMin(delta) {
+  if (!bookingPullup) return;
+  /* Floor of 1 minute: a zero-hour labour row is not a booking. No ceiling
+     at the elapsed value — a technician correcting UP is claiming time the
+     timer missed, which is a real case (they started it late). */
+  bookingPullup.min = Math.max(1, bookingPullup.min + delta);
+  renderBookingHours();
+}
+function renderBookingHours() {
+  if (!bookingPullup) return;
+  const b = bookingPullup;
+  const v = document.getElementById('bkgHoursV');
+  if (!v) return;
+  v.textContent = bookingFmtMin(b.min);
+  document.getElementById('bkgHoursSub').textContent = 'books as ' + bookingDecHours(b.min) + ' h';
+  const adjusted = b.min !== b.elapsed;
+  document.getElementById('bkgHours').classList.toggle('is-adjusted', adjusted);
+  document.getElementById('bkgHoursAdj').textContent = adjusted
+    ? 'Adjusted from ' + bookingFmtMin(b.elapsed) + ' \u2014 books as hours, not a time span'
+    : '';
+}
+/* CLOSES ITSELF BY ID, and that is not redundant. A screen may shadow
+   closeAllSheets() — Book Labor does, for its nested-sheet handling — and
+   the version it shadows with closed sheets by a HARDCODED ID LIST, which a
+   self-injecting sheet can never be in. So this sheet opened and could not
+   be dismissed at all (found 2026-09-17). The screen was fixed, but a
+   shared component that only closes when the host's own close function
+   happens to reach it is one override away from the same bug. */
+function closeBookingPullupSheet() {
+  const el = document.getElementById('bookingPullupSheet');
+  if (el) el.classList.remove('open');
+}
+function confirmBookingPullup() {
+  if (!bookingPullup) return;
+  const b = bookingPullup;
+  /* Cleared BEFORE the close, so closeAllSheets()'s own release below finds
+     nothing and does not also report a discard. A booking is not a
+     dismissal, and this is the line that keeps the two apart. */
+  bookingPullup = null;
+  stopHoldStep();
+  closeBookingPullupSheet();
+  closeAllSheets();
+  if (typeof b.onBook === 'function') b.onBook(b.min, b.min !== b.elapsed);
+}
+/* Called by closeAllSheets(), so EVERY dismissal route runs it: the ✕, a
+   scrim tap, and any sheet opened over the top of this one. No-op once the
+   state is gone, which is what makes it safe to call on every close.
+   Does NOT call closeAllSheets back — it is already inside it. */
+function releaseBookingPullup() {
+  const b = bookingPullup;
+  if (!b) return;
+  bookingPullup = null;
+  stopHoldStep();
+  closeBookingPullupSheet();
+  if (typeof b.onDiscard === 'function') b.onDiscard();
+}
+/* The ✕'s own handler. Deliberately just the close: routing it through the
+   same path a scrim tap takes is the whole point — two dismissals that look
+   identical to the technician must not behave differently. */
+function discardBookingPullup() { closeAllSheets(); }

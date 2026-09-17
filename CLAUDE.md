@@ -40,8 +40,8 @@ control needs a state or copy for an online-only user (§4.4.1/§2.10). **Don't
 re-open either, and don't re-run the options analysis** — four options were
 weighed once, and the brief was rolled up and retired (§21). Separately, the
 spec now runs **§1–§30**; §30 (the Workflow Designer Portal — four configuration
-areas over one membership table) is the newest, and §29 (step instances, gates,
-forks) sits under it.
+areas over one membership table) is the newest and runs to **§30.23**, and §29
+(step instances, gates, forks) sits under it.
 
 ## Locked rules — don't re-derive these
 **Conclusions only. The rationale, rejected alternatives and revert recipes live
@@ -126,6 +126,28 @@ existed.
 - **Retirement convention:** when a screen is rebuilt, move the old version
   to `prototypes/standalone/old versions/` — never keep two live versions
   of the same screen.
+- **The booking pull-up** (`openBookingPullup()`, §18.2/§30.21) is shared and
+  **self-injecting** — one sheet, two invocation points by construction (Book
+  Labor's timer-running trigger, and the portal's Stop Timer action once the
+  app is fed workflow definitions; only the first is wired). Every derived
+  value is an **argument**, never read off Book Labor, and it honours
+  `mode:'system'` by booking with no sheet at all. Four traps it taught, all
+  still live:
+  - **Hours is a STEPPER, not a number input** — so the sheet raises no
+    keyboard and §3.4 never engages. §18.6's stepper was promoted to
+    `eam-shared.css`/`.js` (`startHoldStep()`) as its 2nd consumer;
+    don't re-add a local copy.
+  - **A screen that shadows `closeAllSheets()` may close sheets BY ID** —
+    Book Labor did, so a self-injecting sheet could not be dismissed at all.
+    It now closes every `.bottom-sheet`; **never reintroduce an id list**,
+    and note the component also closes itself by id as a backstop.
+  - **The scrim bypasses per-control handlers** (`.sheet-overlay` always calls
+    `closeAllSheets()`), so live sheet state must be released on the **close
+    path** (`releaseBookingPullup()`), not on the ✕. Both the shared copy and
+    Book Labor's override call it.
+  - **Clear state BEFORE closing on the affirmative path**, or a booking also
+    fires `onDiscard`. The toast still looks right when this is broken —
+    only a callback count catches it (`test-booking-pullup.js`).
 - **Shared hooks a screen can override** (all optional, all no-op without
   the screen's own object/markup): `TAB_PLUS_HANDLERS` (a tab's Plus),
   `ROW_TAP_HANDLERS` (a List/Detail row tap), `LOV_ON_SELECT`/`LOV_ON_CLEAR`,
@@ -485,6 +507,57 @@ node (real 390px emulator, not scaled).
   the action is; don't add a roll-up back.** `capabilityBannerHtml` and
   `profileIssueBanner` are deliberate no-ops so the call sites read as absence,
   not oversight.
+- **THREE ACTIONS, ONE MODE FIELD** (§30.21, 2026-09-17). `System action` vs
+  `User selected` on all three, through **one `mode` field and one
+  `actionAsks()` accessor** — never a per-kind test, and a legacy boolean
+  `ask` migrates in `normalizeWf()`. Status update / Start Timer / **Stop
+  Timer**. The user-selected status **replaces the old "End of Workflow when
+  Closing isn't present" design** — it composes, so it can sit anywhere and
+  more than once.
+  - **The technician's status list is NOT authored here** — it resolves on the
+    device from base's user-group status authorisation. An authored subset was
+    weighed and rejected as a fifth place a status list would live. Same
+    boundary as a UDS definition (§27.4) and a dataspy (§30.14).
+  - **STOP TIMER BOOKS THE TIME** — §18.4's whole Add Labor field set is
+    *derived* (employee, trade, department, activity, date, start/end, hours),
+    so nothing needs asking and no second labour form has to exist. Listed
+    protected in the editor as `STOP_TIMER_BOOKING`, which is the argument for
+    the action existing, on screen. **The payoff is that Book Labor can sit in
+    More.** `User selected` makes **Hours the one editable field** — elapsed
+    time is not worked time — and everything else stays protected, because
+    there is one labour form in this app and this is not it.
+    **Type of Hours is deliberately not authorable** (overtime depends on the
+    shift, not the workflow); it books Normal, and §18.3's correction path
+    fixes a misbooking. **An earlier same-day refusal of Stop Timer is
+    retired — §21. Don't re-derive it.**
+  - Three runtime rules, each stated in the editor: **no timer running → no-op
+    and continue** (§30.19's "empty is not false"); **Discard never stops the
+    timer**, so no path can silently cost a technician their clock; and **a
+    Book Labor step alongside a Stop Timer is fine** — see the §18.2 rule
+    below, which is the same one condition.
+  - **Cancel returns and does NOT advance** on the status prompt, which is what
+    keeps an empty authorisation set a "nothing to pick" state rather than a
+    dead end. **The timer declines DO advance** — the asymmetry is the
+    decision, not an oversight (nothing on the record depends on a timer).
+  - An action is still not a step (§30.11): no rail entry, no number, no gate,
+    refused by More and by Free Form. One door to the editors
+    (`openActionEditor()`), one mode control (`actionModeField()`), one
+    setter (`setActionMode()`). The **preview draws every mode** —
+    `actionEmulatorHtml()` renders the pull-up over the faded previous step,
+    or says "no screen at all". Before this it rendered a blank tab that
+    **threw** on click.
+- **§18.2 CHANGED 2026-09-17 — the Book Labor booking pull-up, and it is
+  BUILT.** Opening Book Labor **while a timer is running** invokes the pull-up
+  with hours calculated; opening it with **no timer running does nothing**.
+  That one condition is why a Stop Timer action and a Book Labor step can
+  coexist with **no validator and no warning** — a timer runs once, so the
+  second of the two finds nothing to do. Component notes above.
+- **The assignment control's shape is DERIVED from cardinality** (§30.23,
+  2026-09-17). `per-wotype` → checkboxes + Done, clash refused at the click;
+  `per-group` → **radios that replace and close**, plus a **None** row. One
+  writer from the group side (`groupAssignPick()`) — it must never call
+  `toggleAssign()`/`openAssign()`, which is the gallery-side control and is
+  what produced the phantom second popover. Pinned by test.
 - **The out-of-flow zone is "More", not "Reference"** (§14.8 renamed it) — moving a
   node in **clears Required and both gates**. Free Form is the same zone at full
   extent; switching it **on** confirms and dedupes, switching it **off** doesn't.
@@ -581,6 +654,18 @@ node (real 390px emulator, not scaled).
   fork — `forkBranchTargetNid()`, pinned), and an End chip renders only when a
   fork targets it. The renderer guards on **DOM capability, not box size**: a
   headless rect is non-zero, so a size check alone throws on `createElementNS`.
+- **Five smaller calls, 2026-09-17** (§30.22): the condition fork's field
+  picker groups options under an `<optgroup>` **container** label (the option
+  text is the field description alone; grouped on the container *index*, so two
+  same-titled containers stay apart); a condition fork's ⋯ menu is a **fork**
+  menu — it used to fall through to the step menu and offer Screen Designer,
+  Rename, Step settings and Move to More, so **use `isForkKind()`, never a
+  bare `kind==='fork'`**; **WO Type** moved under Description and carries its
+  §23.3 colour/glyph in the control (`woTypeBadge()`), with the function
+  taking its old wide column; the canvas bar's **"Close designer" pill is
+  gone** — the panel's own ✕ is the one affordance; and the UDS demo labels are
+  **`UDS Tab 1/2/3`**, since three plausible names read as three shipped
+  screens.
 - **Designer panel is 40%, drag-resizable, width persisted** (`eamWfpDsnWidth`),
   floored at a real 390px emulator. **More sits under the flow at the same
   width**, not beside it. **No `text-transform:uppercase` anywhere in this file**
