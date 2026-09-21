@@ -48,6 +48,13 @@
   --priority-high:#DB2777;
   --nav-height:52px; --sheet-radius:20px;
   --bar-height:72px;
+  /* Breathing room under the bottom-anchored chrome (§31.6, 2026-09-21).
+     Added after the first standalone install: with no Safari toolbar below it
+     any more, the app's bottom edge IS the device edge, and the bars read as
+     smooshed against it. Carries env(safe-area-inset-bottom) the same way
+     --bar-reserve does, so it is already correct if viewport-fit:cover is ever
+     turned on (§20) rather than needing a second pass. */
+  --shell-pad-bottom:calc(12px + env(safe-area-inset-bottom, 0px));
   /* How much a screen with a bottom bar must hold back at the foot of .content
      so the bar cannot cover its last container. Was written out per-screen as
      calc(var(--bar-height) + 16px) on six screens, none of which allowed for the
@@ -56,7 +63,7 @@
      as one value because six copies is exactly how it stayed wrong everywhere at
      once. env() carries its own 0px fallback, so this resolves fine on hardware
      with no inset and costs those devices nothing. */
-  --bar-reserve:calc(var(--bar-height) + 24px + env(safe-area-inset-bottom, 0px));
+  --bar-reserve:calc(var(--bar-height) + 24px + var(--shell-pad-bottom));
 }
 [data-theme="dark"] {
   --bg-page:#1A1A1F; --bg-card:#26252B; --bg-nav:#111114; --bg-section:#302F33; --border:#3E4047; --border-strong:#4A4C55;
@@ -169,7 +176,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    to the old 58px height (Home's/WO List's .home-body/.wo-list, both
    58+20=78px) were bumped by the same +22px this pass (→100px) so
    scrolled-to-bottom content doesn't hide behind the now-taller bar. */
-.bottom-nav{position:absolute;left:0;right:0;bottom:0;height:80px;background:var(--bg-nav); /* fallback first */ background:color-mix(in srgb, var(--bg-nav) 96%, transparent);backdrop-filter:blur(28px) saturate(220%);-webkit-backdrop-filter:blur(28px) saturate(220%);display:flex;align-items:flex-start;justify-content:center;gap:14px;padding-top:8px;flex-shrink:0;border-top:1px solid rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.15);z-index:50;}
+.bottom-nav{position:absolute;left:0;right:0;bottom:0;height:calc(80px + var(--shell-pad-bottom));background:var(--bg-nav); /* fallback first */ background:color-mix(in srgb, var(--bg-nav) 96%, transparent);backdrop-filter:blur(28px) saturate(220%);-webkit-backdrop-filter:blur(28px) saturate(220%);display:flex;align-items:flex-start;justify-content:center;gap:14px;padding-top:8px;flex-shrink:0;border-top:1px solid rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.15);z-index:50;}
 .bottom-nav.hidden{display:none;}
 .bottom-nav-item{width:84px;display:flex;flex-direction:column;align-items:center;gap:2px;color:rgba(255,255,255,.5);background:none;border:none;border-radius:100px;font-family:var(--font-sans);font-size:0.65625rem;font-weight:600;padding:7px 0;cursor:pointer;}
 .bottom-nav-item svg{width:23px;height:23px;}
@@ -441,7 +448,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 [data-theme="dark"] .tab-map-item.active .tab-map-label{color:var(--white);}
 .tab-map-chevron{color:var(--gray-3);flex-shrink:0;}
 
-.content{flex:1;overflow-y:auto;padding:0 0 30px;}
+.content{flex:1;overflow-y:auto;padding:0 0 calc(30px + var(--shell-pad-bottom));}
 .tab-content{display:none;}
 .tab-content.active{display:block;}
 
@@ -631,7 +638,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .question-btn.cancel:hover{color:var(--octave-black);}
 [data-theme="dark"] .question-btn.cancel:hover{color:var(--white);}
 
-.bottom-bar{position:absolute;bottom:0;left:0;right:0;height:var(--bar-height);background:var(--bg-card);border-top:1px solid var(--border);padding:0 16px;display:flex;align-items:center;gap:10px;z-index:50;flex-shrink:0;}
+.bottom-bar{position:absolute;bottom:0;left:0;right:0;height:calc(var(--bar-height) + var(--shell-pad-bottom));background:var(--bg-card);border-top:1px solid var(--border);padding:0 16px var(--shell-pad-bottom);display:flex;align-items:center;gap:10px;z-index:50;flex-shrink:0;}
 [data-theme="dark"] .bottom-bar{background:var(--octave-black);}
 /* Meta counter, left of the pill (§14.5) — present in the pre-rebuild
    file (old versions/eam-full-prototype-v1_30JUN.html) for every gated

@@ -9974,3 +9974,20 @@ User direction: *"remove the top banner of options for the prototype, and just m
 The manifest was also one directory down in `prototypes/standalone/`, which put the root **outside its `scope`** — so even with the tags present the root could not have launched standalone. Both halves are fixed: **one manifest at the repo root** with `scope:"./"` covering the whole site and `start_url` pointing straight at the login screen, plus the tags on `index.html` and `screens.html` as well as on every screen. **Don't move the manifest back down** — the reason it is at the root is the scope, not tidiness.
 
 **An existing home-screen icon never upgrades itself.** iOS captures the web-app configuration at the moment Add to Home Screen is tapped, from the page then displayed. So any change to these tags requires **deleting and re-adding the icon**, and an icon added before the tags shipped will keep opening in Safari indefinitely. This is worth telling anyone who tests, because the natural assumption is that reloading the page picks it up — it does not. Add from the **root URL**, which is now the reliable entry point.
+
+**BOTTOM BREATHING ROOM — `--shell-pad-bottom` (added 2026-09-21, from device feedback on the first working standalone install).** Reported as *"each screen feels a touch smooshed at the bottom"*, and the cause is a direct consequence of installing succeeding: **in a browser tab Safari's own toolbar sat below the app and supplied visual separation; in standalone mode the app's bottom edge IS the device edge**, so the bottom-anchored chrome reads as jammed against it.
+
+**The obvious fix is the wrong one and would have broken §4.2.** Padding `body` or `.app` does move the bars up — `.app` is a flex child of `body`, so body padding shrinks it and its `bottom:0` children follow. But that lifts the bottom nav off the bottom edge, and §4.2 locks it as *"anchored, not floating — full-width, flush to the bottom edge, no inset margin or capsule shape"*. Note padding on `.app` itself would not have worked either: an absolutely positioned child's containing block is the ancestor's **padding box**, so `bottom:0` sits at the padding edge and the padding is simply ignored.
+
+**So the room goes INSIDE the chrome, which keeps it flush.** Both bars stay `bottom:0; left:0; right:0` and grow downward:
+
+| | Before | After |
+| --- | --- | --- |
+| `.bottom-bar` | `height:72px`, pill centred, 12px below it at the device edge | `height:84px` with `padding-bottom:12px` — pill still centred in the same 72px content box, then 12px clear |
+| `.bottom-nav` | `height:80px`, items top-aligned | `height:92px` — items unmoved, 12px added beneath the labels |
+| `--bar-reserve` | `72 + 24` | `72 + 24 + pad` — **must** track the taller bar or scrolling content clips behind it |
+| `.content` | `padding-bottom:30px` | `30px + pad`, for the screens with no bottom chrome at all |
+
+**The token carries `env(safe-area-inset-bottom, 0px)`**, matching `--bar-reserve`'s existing pattern, so it resolves to a flat 12px today and becomes 12px + the real inset automatically if `viewport-fit:cover` is ever enabled (§20) — no second pass. The `0px` fallback is load-bearing for the same reason it is on `--bar-reserve`: without it the whole `calc` is invalid at computed-value time on hardware with no inset, and an invalid padding computes to 0.
+
+`test-bottom-reserve.js`'s safe-area assertion was **updated to follow the new indirection rather than dropped** — the inset now reaches the reserve through the pad token, so the test checks both links in the chain, and it was verified to fail when `env()` is stripped from the token.
