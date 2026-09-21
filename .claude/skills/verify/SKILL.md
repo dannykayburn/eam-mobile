@@ -18,7 +18,7 @@ when it wasn't.
 ## 0. Run these. All committed — do not re-implement them.
 
 ```bash
-node .claude/skills/verify/scripts/check-scope.js prototypes/standalone/eam-*.html && node .claude/skills/verify/scripts/check-keyboard.js && node .claude/skills/verify/scripts/run-load.js && for t in .claude/skills/verify/scripts/tests/test-*.js; do node "$t" || exit 1; done
+node .claude/skills/verify/scripts/check-scope.js prototypes/standalone/eam-*.html && node .claude/skills/verify/scripts/check-keyboard.js && node .claude/skills/verify/scripts/run-load.js && node .claude/skills/verify/scripts/bump-assets.js --check && for t in .claude/skills/verify/scripts/tests/test-*.js; do node "$t" || exit 1; done
 ```
 
 **`check-keyboard.js`** guards the three keyboard-surface patterns, every one of

@@ -1178,7 +1178,15 @@ function onRecContentScroll(el) {
     const top = el.scrollTop;
     const header = document.getElementById('recHeader');
     if (header) {
-      if (!recHeaderScrolled && top > 40) { recHeaderScrolled = true; header.classList.add('scrolled'); }
+      /* Same reflow-oscillation guard as .scroll-collapse below — #recHeader
+         collapses by reflow too, so on a SHORT record (few fields) collapsing
+         it would destroy the scroll range that triggered it and bounce. Not
+         reported, but identical in shape, so guarded rather than left to be
+         found on a sparse WO. */
+      if (!recHeaderScrolled && top > 40
+          && (el.scrollHeight - el.clientHeight) - header.offsetHeight > 40) {
+        recHeaderScrolled = true; header.classList.add('scrolled');
+      }
       else if (recHeaderScrolled && top < 10) { recHeaderScrolled = false; header.classList.remove('scrolled'); }
     }
     // Generic scroll-collapse chrome (§4.2, generalized for a 2nd consumer
@@ -1188,7 +1196,24 @@ function onRecContentScroll(el) {
     // than a shared boolean, so multiple collapsing elements can coexist.
     document.querySelectorAll('.scroll-collapse').forEach(chrome => {
       const scrolled = chrome.classList.contains('scrolled');
-      if (!scrolled && top > 40) chrome.classList.add('scrolled');
+      if (!scrolled && top > 40) {
+        /* Collapsing REFLOWS — .create-bar animates max-height, deliberately,
+           because a transform would not grow the scrollable area to match. So
+           the collapse shrinks the very scroll range that triggered it, and on
+           a screen that is only marginally scrollable that oscillates: past 40
+           -> collapse -> range gone -> the browser clamps scrollTop toward 0 ->
+           under 10 -> expand -> scrollable again -> repeat. The user sees the
+           screen refuse to stay scrolled and snap back up (reported on Home,
+           2026-09-21). Latent all along; §31.6 bottom padding merely moved Home
+           into the window where it fires.
+           So only collapse when the range SURVIVES it. offsetHeight is the real
+           height here because this branch only runs while expanded. Note the
+           chrome may sit outside the scroll container (Home's does) — then the
+           collapse grows clientHeight instead of shrinking scrollHeight, which
+           costs the range the same amount, so one check covers both. */
+        const range = el.scrollHeight - el.clientHeight;
+        if (range - chrome.offsetHeight > 40) chrome.classList.add('scrolled');
+      }
       else if (scrolled && top < 10) chrome.classList.remove('scrolled');
     });
     recHeaderTicking = false;
