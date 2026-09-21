@@ -40,8 +40,17 @@ console.log('\nshared reserve');
 const shared = fs.readFileSync(SHARED, 'utf8');
 ok('--bar-reserve is defined', /--bar-reserve:/.test(shared));
 ok('it builds on --bar-height', /--bar-reserve:\s*calc\(var\(--bar-height\)/.test(shared));
-ok('it allows for the safe-area inset',
-  /--bar-reserve:[^;]*env\(safe-area-inset-bottom/.test(shared));
+// The inset reached --bar-reserve DIRECTLY until 2026-09-21; it now arrives
+// through --shell-pad-bottom (§31.6), which the reserve references. Follow the
+// indirection rather than dropping the check — this is the assertion that
+// catches the reserve losing the inset entirely.
+const padToken = (shared.match(/--shell-pad-bottom:[^;]*/) || [String()])[0];
+const reserveDecl = (shared.match(/--bar-reserve:[^;]*/) || [String()])[0];
+ok('it allows for the safe-area inset (via --shell-pad-bottom)',
+  (reserveDecl.includes('safe-area-inset-bottom')
+    || reserveDecl.includes('var(--shell-pad-bottom)'))
+  && padToken.includes('safe-area-inset-bottom'),
+  reserveDecl);
 // env() must keep its own fallback, or the whole calc is invalid at
 // computed-value time on hardware without an inset — and an invalid padding
 // computes to 0, which is worse than the bug being fixed.
