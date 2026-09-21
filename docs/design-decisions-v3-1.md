@@ -9991,3 +9991,15 @@ The manifest was also one directory down in `prototypes/standalone/`, which put 
 **The token carries `env(safe-area-inset-bottom, 0px)`**, matching `--bar-reserve`'s existing pattern, so it resolves to a flat 12px today and becomes 12px + the real inset automatically if `viewport-fit:cover` is ever enabled (§20) — no second pass. The `0px` fallback is load-bearing for the same reason it is on `--bar-reserve`: without it the whole `calc` is invalid at computed-value time on hardware with no inset, and an invalid padding computes to 0.
 
 `test-bottom-reserve.js`'s safe-area assertion was **updated to follow the new indirection rather than dropped** — the inset now reaches the reserve through the pad token, so the test checks both links in the chain, and it was verified to fail when `env()` is stripped from the token.
+
+**SCROLL-COLLAPSE CANNOT DESTROY ITS OWN TRIGGER (fixed 2026-09-21, reported on device).** Home was reported as *"jumpy — scrolled down and Create disappears, but it pulls me right back up and won't let it sit at the bottom."*
+
+The §5.3 scroll-collapse mechanism collapses opted-in chrome past `scrollTop > 40` and restores it below `10`. It collapses by **reflow** — `.create-bar` animates `max-height`, deliberately, because a transform would not grow the scrollable area to match. So the collapse shrinks the very scroll range that triggered it, and on a screen that is only **marginally** scrollable that oscillates: past 40 → collapse → the range disappears → the browser clamps `scrollTop` toward 0 → under 10 → expand → scrollable again → repeat. The surface refuses to stay scrolled.
+
+**The guard is that the range must survive the collapse:** only add `.scrolled` when `(scrollHeight - clientHeight) - chrome.offsetHeight > 40`. `offsetHeight` is the true height at that point because the branch only runs while expanded. Note the chrome may sit **outside** the scroll container — Home's Create bar does — in which case collapsing grows `clientHeight` rather than shrinking `scrollHeight`; it costs the range the same amount either way, so one check covers both arrangements.
+
+**The consequence is intended, not a compromise:** on a screen whose content barely scrolls, the chrome simply never collapses — which is right, because collapsing chrome to make room only pays for itself when there is room worth making.
+
+**`#recHeader` was guarded identically at the same time.** It was not reported, but it collapses by reflow through the same listener, so a sparse record view could reproduce it exactly. Two call sites, one rule.
+
+**This was latent, not introduced.** Any marginally-scrollable screen could always have hit it; §31.6's bottom padding merely moved Home into the window where it fires. Worth recording because the symptom points at the padding and the cause is the collapse threshold.

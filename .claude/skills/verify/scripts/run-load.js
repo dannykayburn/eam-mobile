@@ -76,7 +76,12 @@ function runScreen(file, seed) {
   if (seed) Object.assign(store, seed);
 
   const src = fs.readFileSync(path.join(DIR, file), 'utf8');
-  const srcTags = [...src.matchAll(/<script[^>]*\bsrc="([^"]+)"[^>]*>/g)].map(m => m[1]);
+  /* Asset refs carry a ?v= cache-busting stamp (bump-assets.js). Browsers
+     ignore the query when resolving a file: URL, but path.join() does not —
+     it would look for eam-shared.js?v=20260921 and fail. Strip it here, and
+     note anything else resolving these paths by hand needs the same. */
+  const stripQuery = (p) => p.split(String.fromCharCode(63))[0];
+  const srcTags = [...src.matchAll(/<script[^>]*\bsrc="([^"]+)"[^>]*>/g)].map(m => stripQuery(m[1]));
   const inline = [...src.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
 
   /* getElementById returns null for an id the page does not actually contain.
