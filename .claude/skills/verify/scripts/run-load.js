@@ -185,14 +185,6 @@ const cases = [
   ['eam-wo-equipment-tab-prototype-v1.html', null, 'cold'],
   ['eam-activity-checklist-prototype-v2.html', null, 'cold'],
   ['eam-activity-checklist-prototype-v2.html', { eamWoEquipment: JSON.stringify({ '19257': { route: { code:'PUMPS', desc:'Monthly Pump Inspections' }, rows: [ {equip:'P-1042',desc:'Pump A',source:'route',childWo:'20451',parentWo:'19257'}, {equip:'P-1043',desc:'Pump B',source:'route',childWo:'20452',parentWo:'19257'} ] }, __nextChildWo: 20453 }) }, 'checklist fan-out (2 equipment)'],
-  /* Scroll-mode A/B copy (temporary — delete these 3 cases with the file).
-     Both modes get a cold case because the toggle picks the render path at
-     init, so a break in either one is a break at load, not on interaction.
-     The fan-out case is the one that matters: 3-panel rendering against real
-     §16.9 fanned-out items, which is the state the whole experiment is for. */
-  ['eam-activity-checklist-prototype-v2-scrollmode.html', null, 'cold (scroll mode, default)'],
-  ['eam-activity-checklist-prototype-v2-scrollmode.html', { eamChecklistScrollMode: 'off' }, 'cold (paged mode — v2 path)'],
-  ['eam-activity-checklist-prototype-v2-scrollmode.html', { eamWoEquipment: JSON.stringify({ '19257': { route: { code:'PUMPS', desc:'Monthly Pump Inspections' }, rows: [ {equip:'P-1042',desc:'Pump A',source:'route',childWo:'20451',parentWo:'19257'}, {equip:'P-1043',desc:'Pump B',source:'route',childWo:'20452',parentWo:'19257'} ] }, __nextChildWo: 20453 }) }, 'scroll mode + fan-out (2 equipment)'],
   ['eam-book-labor-prototype-v2.html', null, 'cold'],
   ['eam-wo-prototype-issue-parts-v1.html', null, 'cold'],
   ['eam-wo-closing-prototype-v2.html', null, 'cold'],

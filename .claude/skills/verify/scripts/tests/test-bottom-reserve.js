@@ -69,7 +69,11 @@ for (const f of screens) {
       guaranteed ? '' : 'flex:1 child will swallow all overflow — no scroll on device');
   }
 }
-ok('screens reference the shared reserve', reserved >= 6, String(reserved) + ' screens');
+// 5 since 2026-09-21, not 6: the scroll-mode A/B copy of the checklist was
+// one of the six and was deleted when the A/B resolved in favour of scroll
+// (§16.1). The remaining five are the checklist, Book Labor, Issue Parts, WO
+// Closing and WO Record View.
+ok('screens reference the shared reserve', reserved >= 5, String(reserved) + ' screens');
 ok('column-flex .content screens were found and checked', flexCols >= 1, String(flexCols) + ' screens');
 
 console.log(fail ? '\n' + fail + ' FAILED' : '\nbottom-reserve assertions pass');

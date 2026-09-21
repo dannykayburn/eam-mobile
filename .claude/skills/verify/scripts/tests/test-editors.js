@@ -29,10 +29,9 @@ for (const f of files) {
     if (!s.includes('id="editConfirmBtn"')) ok('  ' + f + ' edit ✓', false);
   }
 }
-// 8, not 7, from 2026-08-12: the count includes the temporary scroll-mode A/B
-// copy of the checklist (eam-activity-checklist-prototype-v2-scrollmode.html).
-// Put this back to 7 when that file is deleted — whichever way the A/B lands.
-ok('all 8 text editors migrated', textN === 8, String(textN));
+// 7 since 2026-09-21: the scroll-mode A/B copy was deleted when the A/B
+// resolved in favour of scroll (§16.1), so there is one checklist screen again.
+ok('all 7 text editors migrated', textN === 7, String(textN));
 ok('all 4 edit sheets migrated', editN === 4, String(editN));
 ok('no Save pill left on either editor', pills === 0, String(pills));
 ok('no sheet-footer left in text editor', footers === 0, String(footers));

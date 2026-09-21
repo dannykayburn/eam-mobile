@@ -509,14 +509,6 @@ body{
 
 <!-- Prototype-only theme preview — real app theme lives in User Settings,
      not in-screen chrome. See design-decisions-v3-1.md §20. -->
-<div class="proto-theme-bar">
-  <span class="proto-theme-label">Preview theme</span>
-  <button class="theme-toggle" id="themeToggle">☀ Light</button>
-  <!-- Demo-only connectivity toggle (§4.5) — was missing on this screen
-       entirely (2026-07-23 fix); every WO-workflow screen already has
-       one, driving the same shared DEMO_ONLINE flag (eam-shared.js). -->
-  <button class="theme-toggle" id="onlineToggle" onclick="toggleDemoOnline()">🌐 Offline</button>
-</div>
 
 <div class="app" id="app">
 

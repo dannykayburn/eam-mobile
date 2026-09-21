@@ -54,15 +54,26 @@ function lsRemove(k) {
    'eamTheme' localStorage key and applies data-theme immediately. This
    function just needs to sync the button's own label to whatever that
    inline script already set, and persist future clicks. */
+/* Theme label lives in two possible places now (§31.6): the menu row state
+   chip, and the legacy .proto-theme-bar button on screens that still have a
+   bar. Update whichever exists rather than assuming one. */
+function refreshThemeLabels() {
+  const txt = document.documentElement.hasAttribute('data-theme') ? '◑ Dark' : '☀ Light';
+  ['themeToggle', 'themeState'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = txt;
+  });
+}
+function toggleThemeDemo() {
+  const dark = document.documentElement.hasAttribute('data-theme');
+  if (dark) { document.documentElement.removeAttribute('data-theme'); lsSet('eamTheme', 'light'); }
+  else { document.documentElement.setAttribute('data-theme', 'dark'); lsSet('eamTheme', 'dark'); }
+  refreshThemeLabels();
+}
 function initThemeToggle() {
   const btn = document.getElementById('themeToggle');
-  if (!btn) return;
-  btn.textContent = document.documentElement.hasAttribute('data-theme') ? '◑ Dark' : '☀ Light';
-  btn.addEventListener('click', () => {
-    const dark = document.documentElement.hasAttribute('data-theme');
-    if (dark) { document.documentElement.removeAttribute('data-theme'); lsSet('eamTheme', 'light'); btn.textContent = '☀ Light'; }
-    else { document.documentElement.setAttribute('data-theme', 'dark'); lsSet('eamTheme', 'dark'); btn.textContent = '◑ Dark'; }
-  });
+  if (btn) btn.addEventListener('click', toggleThemeDemo);
+  refreshThemeLabels();
 }
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -222,15 +233,7 @@ const WO_STEP_LABELS = {
 };
 const WO_STEP_FILES = {
   record: 'eam-wo-record-view-prototype-v1.html',
-  /* TEMPORARY (2026-08-12) — pointed at the scroll-mode A/B copy, not v2, so
-     that every navigation path (step rail, Next, Start Work) reaches the
-     experiment instead of only a hand-pasted URL. Safe because the copy is a
-     superset: its "⇄ Paged" toggle state is v2's exact render path, so nothing
-     is lost by routing through it, and both modes are comparable on the same
-     page. PUT THIS BACK to eam-activity-checklist-prototype-v2.html when the
-     A/B resolves — CLAUDE.md's retirement convention means one live version,
-     and this line is the only thing making the copy the live one. */
-  checklist: 'eam-activity-checklist-prototype-v2-scrollmode.html',
+  checklist: 'eam-activity-checklist-prototype-v2.html',
   issueparts: 'eam-wo-prototype-issue-parts-v1.html',
   booklabor: 'eam-book-labor-prototype-v2.html',
   closing: 'eam-wo-closing-prototype-v2.html',
@@ -1714,15 +1717,113 @@ function goToLogin() { location.href = 'eam-login-prototype-v1.html'; }
    the login screen itself since that screen never calls initSharedApp()
    (a fully custom one-off, §4.1) — nothing to restart from there
    anyway. */
-function initRestartDemoButton() {
-  const bar = document.querySelector('.proto-theme-bar');
-  if (!bar || document.getElementById('restartDemoBtn')) return;
-  const btn = document.createElement('button');
-  btn.className = 'theme-toggle';
-  btn.id = 'restartDemoBtn';
-  btn.textContent = '⟲ Reset';
-  btn.onclick = goToLogin;
-  bar.appendChild(btn);
+/* ─── Prototype controls, in a header menu rather than a banner ──────────
+   §31.6 / user direction 2026-09-21: "remove the top banner of options for
+   the prototype, and just move them as link buttons next to Settings".
+
+   A visible dev banner across the top of every screen is the single most
+   obvious "this is not an app" tell, so the three demo controls — Dark/Light,
+   Offline/Online and Reset demo — now live inside a header menu, one tap
+   away and invisible until asked for.
+
+   SELF-INJECTING, by the §8.3 rule: this builds its own markup and appends
+   it, rather than requiring a block of HTML in each of the screens. The
+   ellipsis menu is per-screen markup (11 copies), so per-screen HTML would
+   have meant 11 edits and 11 chances to drift.
+
+   WHERE IT LANDS, and why it is not one place: §4.2 gives the nav bar ONE
+   slot — the avatar while browsing, a back button once a record is open —
+   so there is no single control present on every screen. The group therefore
+   goes into the profile menu where an avatar exists, and into the record
+   header's ellipsis menu otherwise. Screens with neither keep their bar; see
+   §20.
+
+   PROTO_MENU_EXTRA lets a screen add its own rows, which is load-bearing
+   rather than decorative: Book Labor's timer toggle drives §18.2's booking
+   pull-up condition and the WO Equipment tab's tap-mode toggle is a live §20
+   A/B. Deleting the banner without rehoming those would have quietly ended
+   two open experiments. Same optional-global shape as TAB_PLUS_HANDLERS. */
+/* ─── §4.3 profile dropdown, self-injecting ──────────────────────────────
+   Added 2026-09-21 with §31.6. Home and Notifications hand-wrote this menu;
+   WO List had the avatar but wired it to a "coming soon" toast, so it had no
+   menu at all — which only surfaced when the prototype banner was removed and
+   the demo controls needed a home on every browsing-tier screen.
+
+   Injected rather than hand-copied, per the §8.3 rule: a third copy of the
+   same markup is how three screens drift. The two existing inline copies are
+   left alone — this only fires when a .nav-avatar has no menu to open, so it
+   adds the missing one without touching the ones that work. */
+function ensureProfileMenu() {
+  const nav = document.querySelector('.nav');
+  if (!nav) return;
+  const avatar = nav.querySelector('.nav-avatar');
+  if (!avatar || document.getElementById('profileMenu')) return;
+
+  avatar.insertAdjacentHTML('afterend', `
+    <div class="rec-actions-menu anchor-left" id="profileMenu">
+      <div class="profile-menu-identity">
+        <span class="nav-avatar" style="cursor:default;">
+          <img class="nav-avatar-img" src="shared/img/bcampbell.jpg" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+          <span class="nav-avatar-initials" style="display:none;">BC</span>
+        </span>
+        <div>
+          <div class="profile-menu-name">Bruce Campbell</div>
+          <div class="profile-menu-org">Water Utility</div>
+        </div>
+      </div>
+      <div class="rec-actions-divider"></div>
+      <div class="rec-actions-item" onclick="closeProfileMenu();showToast('Settings — coming soon')">Settings</div>
+      <div class="rec-actions-divider"></div>
+      <div class="rec-actions-item danger" onclick="closeProfileMenu();goToLogin()">Log out</div>
+    </div>`);
+  // The avatar's own handler is replaced, not augmented: on WO List it showed
+  // a "coming soon" toast, which would now fire alongside the real menu.
+  avatar.onclick = (e) => { e.stopPropagation(); toggleProfileMenu(); };
+}
+
+function protoMenuRowHtml(label, stateId, stateText, onclick) {
+  return `<div class="rec-actions-item proto-menu-row" onclick="${onclick}">`
+       + `<span>${label}</span>`
+       + `<span class="proto-menu-state" id="${stateId}">${stateText}</span>`
+       + `</div>`;
+}
+function injectProtoMenuGroup() {
+  const menu = document.getElementById('profileMenu')
+            || document.querySelector('.rec-actions-menu');
+  if (!menu || menu.querySelector('.proto-menu-label')) return;
+
+  const dark = document.documentElement.hasAttribute('data-theme');
+  const extra = (typeof PROTO_MENU_EXTRA !== 'undefined' && PROTO_MENU_EXTRA) || [];
+
+  let html = `<div class="rec-actions-divider"></div>`
+           + `<div class="proto-menu-label">Prototype</div>`
+           + protoMenuRowHtml('Appearance', 'themeState', dark ? '◑ Dark' : '☀ Light', 'toggleThemeDemo()')
+           + protoMenuRowHtml('Connectivity', 'onlineState', '🌐 —', 'toggleDemoOnline()');
+  extra.forEach(r => {
+    html += protoMenuRowHtml(r.label, r.stateId, r.stateText, r.onclick);
+  });
+  html += `<div class="rec-actions-item proto-menu-row" onclick="resetDemoAndRestart()">`
+        + `<span>Reset demo</span><span class="proto-menu-state">⟲</span></div>`;
+
+  // Before the Log out item if there is one, so the destructive action stays
+  // last — otherwise at the end.
+  const logout = menu.querySelector('.rec-actions-item.danger');
+  const divider = logout && logout.previousElementSibling;
+  if (logout) {
+    const target = (divider && divider.classList.contains('rec-actions-divider')) ? divider : logout;
+    target.insertAdjacentHTML('beforebegin', html);
+  } else {
+    menu.insertAdjacentHTML('beforeend', html);
+  }
+  refreshThemeLabels();
+  updateOnlineToggleLabel();
+}
+function resetDemoAndRestart() {
+  closeAllHeaderMenus();
+  goToLogin();
+}
+function closeAllHeaderMenus() {
+  document.querySelectorAll('.rec-actions-menu.open').forEach(m => m.classList.remove('open'));
 }
 function syncErrorTierText(item) {
   if (item.errorMessage) return item.errorMessage;
@@ -2012,8 +2113,11 @@ function toggleDemoOnline() {
   renderSyncControl();
 }
 function updateOnlineToggleLabel() {
-  const btn = document.getElementById('onlineToggle');
-  if (btn) btn.textContent = DEMO_SYNCED_OVERRIDE ? '🌐 Synced' : (DEMO_ONLINE ? '🌐 Online' : '🌐 Offline');
+  const txt = DEMO_SYNCED_OVERRIDE ? '🌐 Synced' : (DEMO_ONLINE ? '🌐 Online' : '🌐 Offline');
+  ['onlineToggle', 'onlineState'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = txt;
+  });
 }
 function initDemoOnlineToggle() {
   updateOnlineToggleLabel();
@@ -4494,7 +4598,8 @@ function autosaveIfDirty() {
 function initSharedApp(opts) {
   opts = opts || {};
   initThemeToggle();
-  initRestartDemoButton();
+  ensureProfileMenu();
+  injectProtoMenuGroup();
   initTabRail();
   initStepRail();
   initRecHeaderScroll(opts.contentSelector);
