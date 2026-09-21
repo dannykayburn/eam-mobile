@@ -1,13 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
+<script>/* guarded: localStorage throws in iOS Private Browsing, and this runs before eam-shared.js so lsGet() does not exist yet */try{if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1A1A1F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="EAM">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — Equipment</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-fonts.css">
 <link rel="stylesheet" href="shared/eam-shared.css">
 <style>
   /* Real pull-up sheet motion (2026-07-22, home-nav wiring pass) — this
@@ -53,7 +59,7 @@
   .mode-tog{margin:10px 14px 0;display:flex;background:var(--bg-section);
     border-radius:11px;padding:3px;flex-shrink:0;border:1px solid var(--border);}
   .mode-btn{flex:1;height:36px;border:none;border-radius:9px;
-    font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);
+    font-size:0.8125rem;font-weight:600;cursor:pointer;font-family:var(--font-sans);
     background:transparent;color:var(--text-muted);transition:all 0.18s;}
   .mode-btn.active{background:var(--bg-card);color:var(--text-body);
     box-shadow:0 1px 5px rgba(0,0,0,0.10),0 0 0 1px var(--border);}
@@ -626,7 +632,7 @@ const LS_FAVORITE_EQUIP_DS_KEY = 'eamFavoriteEquipDS';
 // because of visit order. No seeding here either, for the same reason.
 function getFavoriteEquipDS() {
   try {
-    const raw = localStorage.getItem(LS_FAVORITE_EQUIP_DS_KEY);
+    const raw = lsGet(LS_FAVORITE_EQUIP_DS_KEY);
     return raw ? (JSON.parse(raw) || []) : [];
   } catch (e) { return []; }
 }
@@ -638,7 +644,7 @@ function toggleFavEquipDS(id) {
   // same as WO List's own toggleFavDS().
   if (idx > -1) list.splice(idx, 1);
   else { const d = DS.find(x => x.id === id); list.push({ id: d.id, name: d.name }); showToast('Added to your home screen.'); }
-  localStorage.setItem(LS_FAVORITE_EQUIP_DS_KEY, JSON.stringify(list));
+  lsSet(LS_FAVORITE_EQUIP_DS_KEY, JSON.stringify(list));
   openEquipDsSheet();
 }
 
@@ -774,7 +780,7 @@ function equipAllFields(e) {
 }
 
 /* ══ RENDER ══ */
-function emptyMsg() { return `<div style="padding:40px 20px;text-align:center;color:var(--text-faint);font-size:14px;">No equipment found</div>`; }
+function emptyMsg() { return `<div style="padding:40px 20px;text-align:center;color:var(--text-faint);font-size:0.875rem;">No equipment found</div>`; }
 function refS1() {
   const rows = dsFilt();
   const d = mode === 'detailed';

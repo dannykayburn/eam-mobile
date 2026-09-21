@@ -1,13 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
+<script>/* guarded: localStorage throws in iOS Private Browsing, and this runs before eam-shared.js so lsGet() does not exist yet */try{if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1A1A1F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="EAM">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — Work Order › Equipment Tab</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-fonts.css">
 <link rel="stylesheet" href="shared/eam-shared.css">
 <!--
   WORK ORDER › EQUIPMENT TAB (built 2026-08-10) — the destination the
@@ -99,16 +105,16 @@
 
 /* Subtitle line under a .source-option-title in this screen's two local
    action sheets — the base .source-option component has a title only. */
-.eq-opt-sub { font-size: 11.5px; color: var(--gray-4); margin-top: 2px; line-height: 1.35; }
+.eq-opt-sub { font-size: 0.71875rem; color: var(--gray-4); margin-top: 2px; line-height: 1.35; }
 
 /* Empty state. Base EAM's own default for this tab really is "Records: 0
    of 0" — the tab stays empty until equipment is added or a Route is
    imported — so this is the faithful zero state, not just a safety net. */
 .eq-empty { margin: 28px 20px; text-align: center; }
 .eq-empty-icon { color: var(--gray-3); margin-bottom: 10px; }
-.eq-empty-title { font-size: 14px; font-weight: 700; color: var(--octave-black); }
+.eq-empty-title { font-size: 0.875rem; font-weight: 700; color: var(--octave-black); }
 [data-theme="dark"] .eq-empty-title { color: var(--white); }
-.eq-empty-sub { font-size: 12.5px; color: var(--gray-4); margin-top: 5px; line-height: 1.5; }
+.eq-empty-sub { font-size: 0.78125rem; color: var(--gray-4); margin-top: 5px; line-height: 1.5; }
 </style>
 </head>
 <body>

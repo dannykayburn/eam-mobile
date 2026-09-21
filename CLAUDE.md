@@ -63,6 +63,9 @@ doc's Requirements section; neither file holds the reasoning.
 | **Type protects at its commitment point** | §13.5 | WO Type is editable while not started (confirm → immediate commit → re-render) and **Protected from Start Work onward, no exceptions, no permission escape**. Equipment's system type is **Protected in update mode, always** — so Equipment has no re-resolution exposure at all. One paradigm, two triggers. This replaced a four-tier gate ladder and withdrew the §23 required-marker tension — **§23 stands as written.** |
 | **User Defined Screens are scoped, not designed** | §27 | A **UDS** is a customer-authored *screen* — **not** §22's Custom Fields, which are admin-defined *fields*. Don't merge the mechanics; a record can carry both. **In:** UDS-as-a-tab-on-WO. **Deferred:** standalone UDS. **Out:** UDS field authoring. What's needed is **one generic definition-driven tab renderer** (§27.3), never a screen per UDS — and sequence it after a 2nd real child tab exists, since the Equipment tab is a sample size of one. |
 | **Workflow steps are *instances*** | §29 | The tier-2 key gained an `Instance` dimension — `(WO Type, User Group, Tab, Instance)` — because "a tab placed twice" and "a second Record View with a different layout" are the same requirement. Layout key is the bare tab id for instance 1 and `tab#n` after, so **nothing migrates**. An instance is either a Step or a More entry, never both, so **forward gating stays unbypassable**. Adds comment/document gates (§29.3) and a **question fork** that routes forward-only and marks skipped steps **N/A rather than hiding them** (§29.4). Authoring is Screen Designer's alone — **don't put any of it on User Group Setup** (§26.5.1) and don't revive a third surface. |
+| **Responsive: WIDTH CLASSES, never device names** | §31 | Scope is the **mobile app only** — the portal is web and needs no modes (the mirror of §30.7). **Three classes, and `orientation` is never queried anywhere**: Compact `<600px` (bottom bar, one pane), Medium `600–839` (rail, one pane — foldables and small tablets in portrait; **skipping it is how a foldable gets a stretched phone layout**), Expanded `>=840` **and** height `>=600` (rail, two panes). The height floor is what makes it orientation-free — a rotated phone and a tablet in portrait both correctly stay single-pane. Fluid within a class, **320px floor**, measure capped on typographic not device grounds. Expanded is a *width* problem: a tablet in landscape has roughly the same usable height as a phone in portrait. The **band model** (§4.2 already names the three levels) and **rail-in-band-2** are **proposed, not locked** — frames in `mockups/landscape-mode-approach-options.html`. Amending §4.2's browsing-XOR-record-open binary and §30.16's single `HOME_FOLD` is required to land it; both in §20. |
+| **Six cross-device rules — APPLIED 2026-09-21** | §31.5 | All six are done and verified (17/17 screens load, 10/10 tests). **Every one had been invisible on the device it was authored on**, which is the argument for auditing against the rule, not a device. What landed: pinch-zoom unblocked on all 17 screens; **354 `font-size` declarations px→rem** (exact /16, so identical at a 16px root) with **6 deliberate px exceptions** — glyphs inside fixed-size circles, which scale with their control not with reading text; hit areas grown to 48px by transparent `::after`, **painted sizes untouched**; a solid `background` before `.bottom-nav`s `color-mix()`; all storage via **`lsGet()`/`lsSet()`/`lsRemove()`** (never call `localStorage` directly again — it throws in iOS Private Browsing and the symptom is a control *silently doing nothing*); and both fonts self-hosted, so the app now has **zero runtime network dependencies**. Residue in §20: the top-nav cluster cannot reach 48×48 without a §4.2 spacing call, and `mockups/`/`old versions/` still block zoom on purpose. |
+| **Native-app feel — and the ZOOM TRAP** | §31.6 | **Two things are called zoom and conflating them caused a wrong fix once.** **Pinch**-zoom is never blocked (it is an accessibility affordance, the app never *needs* it) — and blocking it buys no native feel anyway, because **iOS has ignored `user-scalable=no` for pinch since iOS 10**, so the old tag only restricted Android. The real jank is **iOS force-zooming the page when a text input under 16px takes focus, and not zooming back**. Fix is to **remove the trigger: every text input is `1rem`** (14 rules raised from 13/14/15px — accepted visible cost; iOS system field text is 17pt, so this is *closer* to native). **Never cap viewport scale to fix a field.** What actually delivers app feel, all now in `eam-shared.css`: tap-highlight transparent (the grey flash was the biggest web tell), `overscroll-behavior:none`, `user-select`/`touch-callout` **scoped to chrome so record values stay copyable**, and `touch-action:manipulation` (**not `none`** — that breaks scrolling). Plus a **PWA manifest** + apple meta + generated 180/192/512 icons: Add to Home Screen launches fullscreen, no browser UI. iOS <16.4 leaves the installed window on cross-file navigation — §20. |
 
 ## Source of truth
 
@@ -689,17 +692,42 @@ twice until 2026-09-16.
 - **Deleting an artifact drops its membership rows** (`dropAssignmentsFor()`) —
   a row pointing at a deleted artifact is a group silently provisioned with
   nothing.
-- **Offline Profiles** authors §2.7's per-entity registry: five policies, each
-  **defined at the point of choice** on the axis that distinguishes them —
-  *who decided this is on the device* (§30.14). Caps are **protected**: they are
+- **Offline Profiles** authors §2.7's per-entity registry: **four** policies
+  (reduced from five 2026-09-18), each **defined at the point of choice**, and
+  labelled on the **capability** axis — Online only / Offline read / Offline
+  read/write / Offline read/write — external. *Who decided this is on the
+  device* is the line beneath each label, not the label. **`reference` and
+  `on-demand` merged into `offline-read`**: a kept record lands in the same
+  store a dataspy-matched one would, so provenance is a **column, not a class**
+  (§2.6 generalised). Two things that bite — read-only is a property of the
+  **entity**, not of how a row arrived; and `POLICY_MIGRATE` is load-bearing,
+  since `normalizeProfile` would otherwise fall a stored retired key back to
+  `server-only` and silently stop shipping it. What `reference` was really
+  carrying was **Tier 0** (layouts, UDS definitions, code domains) — that is
+  where "ships whole, unfiltered" lives, and it is not a per-entity policy.
+  **Whether a dataspy is REQUIRED is arithmetic against the caps, never a
+  description** (2026-09-18): an entity may ship its whole domain when the whole
+  domain fits the per-entity row cap **and** the volume budget; otherwise a
+  dataspy is required and must itself fit. Both dimensions bind on real rows —
+  Parts on rows, Equipment on volume (40,000 rows ≈ 625 MB against 500 MB) — so
+  **a records-only rule passes every check and still overflows the device.** Two
+  description-based versions were tried and removed; don't reintroduce a
+  `bounded` column, and don't derive the rule from whether a dataspy happens to
+  exist. The test that keeps it honest is **cap sensitivity**: move the cap and
+  the verdict must move. Counts are server-supplied, refreshed on demand
+  (§30.16's shape). Caps are **protected**: they are
   platform limits, not profile preferences, so raising one would only move the
   failure from authoring time to the technician's morning. Still shown
-  (200,000 / 50,000 / 15 / 1 — §2.7's own market figures), because a budget you
-  cannot see is not a budget. `server-only` shows as a decided-out state, and
+  (200,000 / 50,000 / **500 MB** / 15 / 1 — §2.7's market figures plus the
+  design doc's SLO-8, added as a cap 2026-09-18), because a budget you cannot
+  see is not a budget — and **two of them are now computed against**, with an
+  over-budget total reported on the cap it breaches rather than in a banner. `server-only` shows as a decided-out state, and
   **"all records" is refused** — a filtered policy with no dataspy is an error, not a default.
   Tier 0 + the outbox render first on every profile, **including `None`**, which
   is valid and informational. **11 of its 31 entities have no policy decision**
-  and say so on the row (§20) — don't quietly default them in. Dataspies are
+  and are listed **out of the grid**, at the bottom of the screen (§30.14) —
+  listed rather than dropped, since a removed row silently keeps its seeded
+  policy. Don't quietly default them in. Dataspies are
   *selected* here and **authored on the record list screen**, same boundary as
   UDS definitions.
 - **Home Layouts is THREE levels** (§30.16, reworked 2026-09-16 against

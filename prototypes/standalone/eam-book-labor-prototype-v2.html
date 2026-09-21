@@ -1,13 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
+<script>/* guarded: localStorage throws in iOS Private Browsing, and this runs before eam-shared.js so lsGet() does not exist yet */try{if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1A1A1F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="EAM">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — Book Labor (Step 4)</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-fonts.css">
 <link rel="stylesheet" href="shared/eam-shared.css">
 <!--
   WO WORKFLOW — STEP 4: BOOK LABOR (rebuilt 2026-07-16 onto shared/eam-
@@ -96,10 +102,10 @@
   border-radius: 10px; padding: 12px 14px;
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
 }
-.timer-banner-head { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: var(--octave-black); flex-shrink: 0; }
+.timer-banner-head { display: flex; align-items: center; gap: 8px; font-size: 0.9375rem; font-weight: 700; color: var(--octave-black); flex-shrink: 0; }
 [data-theme="dark"] .timer-banner-head { color: var(--white); }
 .timer-banner-head svg { flex-shrink: 0; }
-.timer-banner-value { font-family: var(--font-mono); font-size: 18px; font-weight: 700; color: var(--octave-black); flex-shrink: 0; }
+.timer-banner-value { font-family: var(--font-mono); font-size: 1.125rem; font-weight: 700; color: var(--octave-black); flex-shrink: 0; }
 [data-theme="dark"] .timer-banner-value { color: var(--white); }
 
 /* ── LABOR LIST (§18.3) — the row shape itself (.action-row and friends)
@@ -116,11 +122,11 @@
    hand-off) — a fast transition reads fine when the technician just
    caused it, less fine when it happens to them on page load. */
 #addLaborSheet { transition: transform .5s cubic-bezier(.22,.8,.32,1); }
-.labor-hours-badge { font-family: var(--font-mono); font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 100px; white-space: nowrap; flex-shrink: 0; }
+.labor-hours-badge { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 700; padding: 3px 9px; border-radius: 100px; white-space: nowrap; flex-shrink: 0; }
 /* .badge-green/.badge-red tint styling now lives in eam-shared.css's
    shared block (Phase 2b, 2026-07-22) — was byte-for-byte identical to
    Issue Parts' .qty-badge-issued. */
-.correction-note { display: flex; align-items: center; gap: 6px; background: rgba(228,75,74,0.06); border: 1px solid rgba(228,75,74,0.15); border-radius: 6px; padding: 6px 10px; margin-bottom: 8px; font-size: 11px; color: var(--red); font-family: var(--font-mono); }
+.correction-note { display: flex; align-items: center; gap: 6px; background: rgba(228,75,74,0.06); border: 1px solid rgba(228,75,74,0.15); border-radius: 6px; padding: 6px 10px; margin-bottom: 8px; font-size: 0.6875rem; color: var(--red); font-family: var(--font-mono); }
 
 /* ── ADD BUTTON — promoted to the shared .btn-contained, full-width to
    match the labor-list card above it (§18.7, 2026-07-21 — was centered/
@@ -134,9 +140,9 @@
 .field-value.red   { color: var(--red);   font-weight: 600; font-family: var(--font-mono); }
 
 /* ── FORM SECTION LABEL / MINI SECTION LABEL — no shared equivalent. ──── */
-.form-section-label { padding: 14px 16px 6px; font-size: 14px; font-weight: 600; color: var(--octave-black); }
+.form-section-label { padding: 14px 16px 6px; font-size: 0.875rem; font-weight: 600; color: var(--octave-black); }
 [data-theme="dark"] .form-section-label { color: var(--white); }
-.mini-section-label { font-size: 14px; font-weight: 600; color: var(--octave-black); margin-bottom: 6px; }
+.mini-section-label { font-size: 0.875rem; font-weight: 600; color: var(--octave-black); margin-bottom: 6px; }
 [data-theme="dark"] .mini-section-label { color: var(--white); }
 .activity-summary-val { color: var(--octave-black); }
 [data-theme="dark"] .activity-summary-val { color: var(--white); }
@@ -165,7 +171,7 @@
 .hours-type-pill:hover { border-color: var(--gray-3); }
 .hours-type-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--octave-black); flex-shrink: 0; }
 [data-theme="dark"] .hours-type-dot { background: var(--white); }
-.hours-type-desc { font-size: 13px; font-weight: 700; color: var(--octave-black); }
+.hours-type-desc { font-size: 0.8125rem; font-weight: 700; color: var(--octave-black); }
 [data-theme="dark"] .hours-type-desc { color: var(--white); }
 .hours-type-chevron { color: var(--gray-4); flex-shrink: 0; }
 .hours-type-pill.htp-red { border-color: rgba(228,75,74,0.3); background: rgba(228,75,74,0.08); }
@@ -186,7 +192,7 @@
    use for Employee elsewhere on this screen). */
 .attr-item.protected { background: var(--bg-section); opacity: 0.6; cursor: default; }
 [data-theme="dark"] .attr-item.protected { background: rgba(255,255,255,0.03); }
-.attr-text-code { font-family: var(--font-mono); font-size: 10px; color: var(--gray-4); margin-top: 1px; }
+.attr-text-code { font-family: var(--font-mono); font-size: 0.625rem; color: var(--gray-4); margin-top: 1px; }
 
 /* Start/End (2026-07-21, unified with Date Worked/Hours Worked into one
    2x2 Header Fields grid, retiring the old standalone big time-chip +
@@ -196,7 +202,7 @@
    shared class every Time Only field now uses). */
 
 /* ── CORRECTION SHEET ── */
-.correction-sheet-banner { background: rgba(228,75,74,0.06); border-bottom: 1px solid rgba(228,75,74,0.15); padding: 10px 16px; display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--red); flex-shrink: 0; }
+.correction-sheet-banner { background: rgba(228,75,74,0.06); border-bottom: 1px solid rgba(228,75,74,0.15); padding: 10px 16px; display: flex; align-items: flex-start; gap: 8px; font-size: 0.75rem; color: var(--red); flex-shrink: 0; }
 
 /* ── CREW SELECTOR PILL (top of crew sheet, like the store selector on
    Issue Parts, §18.5) — no shared equivalent yet, one consumer so far. ── */
@@ -205,7 +211,7 @@
   display: flex; align-items: center; gap: 10px;
   background: var(--bg-section);
 }
-.crew-selector-label { font-size: 13px; color: var(--gray-4); flex-shrink: 0; }
+.crew-selector-label { font-size: 0.8125rem; color: var(--gray-4); flex-shrink: 0; }
 /* Base pill styling (background/border/font/etc.) now lives in
    eam-shared.css's shared "SELECTOR PILL" block (Phase 2b, 2026-07-22) —
    promoted once Issue Parts' .store-selector was confirmed identical,
@@ -214,9 +220,9 @@
 /* ── CREW MEMBER ROWS ── */
 .crew-member-row { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
 .crew-row-info { flex: 1; min-width: 0; }
-.crew-row-name { font-size: 13px; font-weight: 600; color: var(--octave-black); }
+.crew-row-name { font-size: 0.8125rem; font-weight: 600; color: var(--octave-black); }
 [data-theme="dark"] .crew-row-name { color: var(--white); }
-.crew-row-sub { font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); }
+.crew-row-sub { font-size: 0.6875rem; color: var(--gray-4); font-family: var(--font-mono); }
 .crew-include-toggle { width: 44px; height: 26px; border-radius: 100px; border: none; cursor: pointer; position: relative; transition: background 0.2s; flex-shrink: 0; }
 .crew-include-toggle.on  { background: var(--green); }
 .crew-include-toggle.off { background: var(--gray-2); }
@@ -373,24 +379,24 @@
              are one of the app's 3 real color instruments (status/sync/
              required), just numbers, so none of them get a hue. -->
         <div style="flex:1 1 30%;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;">
-          <div class="activity-summary-val" style="font-family:var(--font-mono);font-size:18px;font-weight:700;" id="totalHoursDisplay">1h 23m</div>
-          <div style="font-size:11px;color:var(--gray-4);margin-top:1px;">Total hours</div>
+          <div class="activity-summary-val" style="font-family:var(--font-mono);font-size:1.125rem;font-weight:700;" id="totalHoursDisplay">1h 23m</div>
+          <div style="font-size:0.6875rem;color:var(--gray-4);margin-top:1px;">Total hours</div>
         </div>
         <div style="flex:1 1 30%;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;">
-          <div class="activity-summary-val" style="font-family:var(--font-mono);font-size:18px;font-weight:700;" id="entriesDisplay">1</div>
-          <div style="font-size:11px;color:var(--gray-4);margin-top:1px;">Entries</div>
+          <div class="activity-summary-val" style="font-family:var(--font-mono);font-size:1.125rem;font-weight:700;" id="entriesDisplay">1</div>
+          <div style="font-size:0.6875rem;color:var(--gray-4);margin-top:1px;">Entries</div>
         </div>
         <div style="flex:1 1 30%;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;">
-          <div class="activity-summary-val" style="font-family:var(--font-mono);font-size:18px;font-weight:700;" id="estHoursDisplay">2h 30m</div>
-          <div style="font-size:11px;color:var(--gray-4);margin-top:1px;">WO Est. hours</div>
+          <div class="activity-summary-val" style="font-family:var(--font-mono);font-size:1.125rem;font-weight:700;" id="estHoursDisplay">2h 30m</div>
+          <div style="font-size:0.6875rem;color:var(--gray-4);margin-top:1px;">WO Est. hours</div>
         </div>
         <div style="flex:1 1 30%;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;">
-          <div class="activity-summary-val" style="font-family:var(--font-mono);font-size:18px;font-weight:700;" id="regularHoursDisplay">1h 23m</div>
-          <div style="font-size:11px;color:var(--gray-4);margin-top:1px;">WO regular hours</div>
+          <div class="activity-summary-val" style="font-family:var(--font-mono);font-size:1.125rem;font-weight:700;" id="regularHoursDisplay">1h 23m</div>
+          <div style="font-size:0.6875rem;color:var(--gray-4);margin-top:1px;">WO regular hours</div>
         </div>
         <div style="flex:1 1 30%;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;">
-          <div class="activity-summary-val" style="font-family:var(--font-mono);font-size:18px;font-weight:700;" id="otHoursDisplay">0m</div>
-          <div style="font-size:11px;color:var(--gray-4);margin-top:1px;">WO OT hours</div>
+          <div class="activity-summary-val" style="font-family:var(--font-mono);font-size:1.125rem;font-weight:700;" id="otHoursDisplay">0m</div>
+          <div style="font-size:0.6875rem;color:var(--gray-4);margin-top:1px;">WO OT hours</div>
         </div>
       </div>
     </div>
@@ -651,15 +657,15 @@
 
       <div class="form-section-label">Correction amount</div>
       <div style="padding:14px 16px;background:rgba(228,75,74,0.04);border-bottom:1px solid var(--border);">
-        <div style="font-size:12px;color:var(--gray-4);margin-bottom:10px;">How many hours to reverse? Tap to adjust by 1 min. Hold for 15 min steps.</div>
+        <div style="font-size:0.75rem;color:var(--gray-4);margin-bottom:10px;">How many hours to reverse? Tap to adjust by 1 min. Hold for 15 min steps.</div>
         <div style="display:flex;align-items:center;gap:12px;">
           <button class="step-btn red-step" id="corrMinusBtn"
             onpointerdown="startHoldStep(adjustCorrByMin,-1)"
             onpointerup="stopHoldStep()"
             onpointerleave="stopHoldStep()">−</button>
           <div style="flex:1;text-align:center;">
-            <div style="font-family:var(--font-mono);font-size:26px;font-weight:700;color:var(--red);" id="corrHoursDisplay">−1h 23m</div>
-            <div style="font-size:11px;color:var(--gray-4);margin-top:2px;">saved as negative entry</div>
+            <div style="font-family:var(--font-mono);font-size:1.625rem;font-weight:700;color:var(--red);" id="corrHoursDisplay">−1h 23m</div>
+            <div style="font-size:0.6875rem;color:var(--gray-4);margin-top:2px;">saved as negative entry</div>
           </div>
           <button class="step-btn red-step" id="corrPlusBtn"
             onpointerdown="startHoldStep(adjustCorrByMin,1)"
@@ -670,7 +676,7 @@
 
       <div class="form-section-label">Reason (optional)</div>
       <div style="padding:10px 16px;border-bottom:1px solid var(--border);">
-        <textarea id="corrReason" placeholder="Describe reason for correction…" style="width:100%;background:var(--bg-section);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:var(--font-sans);font-size:13px;color:var(--octave-black);resize:none;outline:none;min-height:64px;"></textarea>
+        <textarea id="corrReason" placeholder="Describe reason for correction…" style="width:100%;background:var(--bg-section);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:var(--font-sans);font-size:0.8125rem;color:var(--octave-black);resize:none;outline:none;min-height:64px;"></textarea>
       </div>
       <div style="height:8px;"></div>
     </div>
@@ -762,7 +768,7 @@
 
       <!-- Selection summary -->
       <div style="margin:10px 16px;padding:8px 12px;background:var(--bg-section);border:1px solid var(--border);border-radius:8px;">
-        <div class="activity-summary-val" style="font-size:11px;font-family:var(--font-mono);font-weight:600;" id="crewSelectionSummary">2 crew members selected · 2h 46m total</div>
+        <div class="activity-summary-val" style="font-size:0.6875rem;font-family:var(--font-mono);font-weight:600;" id="crewSelectionSummary">2 crew members selected · 2h 46m total</div>
       </div>
       <div style="height:8px;"></div>
     </div>

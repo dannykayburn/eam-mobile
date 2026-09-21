@@ -1,13 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
+<script>/* guarded: localStorage throws in iOS Private Browsing, and this runs before eam-shared.js so lsGet() does not exist yet */try{if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1A1A1F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="EAM">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — Sync Status</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-fonts.css">
 <link rel="stylesheet" href="shared/eam-shared.css">
 <!--
   Sync Status Screen (§4.5, design-decisions-v3-1.md) — drill-down reached
@@ -25,20 +31,20 @@
      (.sync-card-actions/.sync-card-btn) moved to eam-shared.css 2026-07-20
      when the sync error banner became its 2nd real consumer. ── */
   .sync-status-strip{padding:12px 14px;background:var(--bg-card);border-bottom:1px solid var(--border);flex-shrink:0;}
-  .sync-status-strip-row{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--gray-4);margin-bottom:10px;}
+  .sync-status-strip-row{display:flex;justify-content:space-between;align-items:baseline;font-size:0.78125rem;color:var(--gray-4);margin-bottom:10px;}
   .sync-status-strip-row b{color:var(--octave-black);font-weight:700;}
   [data-theme="dark"] .sync-status-strip-row b{color:var(--white);}
-  .sync-section-label{padding:14px 14px 4px;font-size:12px;font-weight:700;color:var(--octave-black);}
+  .sync-section-label{padding:14px 14px 4px;font-size:0.75rem;font-weight:700;color:var(--octave-black);}
   [data-theme="dark"] .sync-section-label{color:var(--white);}
   .sync-error-card{position:relative;}
   .sync-error-card.flash{border-color:var(--red);}
-  .sync-card-error-text{font-size:12.5px;color:var(--gray-4);line-height:1.4;}
-  .sync-card-lock{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--gray-4);margin-top:9px;padding-top:9px;border-top:1px solid var(--border);}
+  .sync-card-error-text{font-size:0.78125rem;color:var(--gray-4);line-height:1.4;}
+  .sync-card-lock{display:flex;align-items:center;gap:6px;font-size:0.71875rem;color:var(--gray-4);margin-top:9px;padding-top:9px;border-top:1px solid var(--border);}
   .sync-card-lock svg{flex-shrink:0;color:var(--gray-4);}
   .sync-empty-state{padding:70px 24px;text-align:center;}
-  .sync-empty-state-title{font-size:15px;font-weight:700;color:var(--octave-black);margin-bottom:6px;}
+  .sync-empty-state-title{font-size:0.9375rem;font-weight:700;color:var(--octave-black);margin-bottom:6px;}
   [data-theme="dark"] .sync-empty-state-title{color:var(--white);}
-  .sync-empty-state-sub{font-size:12.5px;color:var(--gray-4);}
+  .sync-empty-state-sub{font-size:0.78125rem;color:var(--gray-4);}
 </style>
 </head>
 <body>

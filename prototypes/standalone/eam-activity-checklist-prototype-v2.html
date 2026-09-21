@@ -1,13 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
+<script>/* guarded: localStorage throws in iOS Private Browsing, and this runs before eam-shared.js so lsGet() does not exist yet */try{if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1A1A1F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="EAM">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — Activity Checklist (Step 2)</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-fonts.css">
 <link rel="stylesheet" href="shared/eam-shared.css">
 <!--
   WO WORKFLOW — STEP 2: ACTIVITY CHECKLIST — v2, rebuilt 2026-07-21 onto
@@ -110,19 +116,19 @@
    our new palette" — this label sits directly above the progress bar in
    the same sticky header). A group name isn't one of the 3 colour
    instruments any more than Type was elsewhere — plain ink now. */
-.stepper-group-name { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--octave-black); }
+.stepper-group-name { font-size: 0.75rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--octave-black); }
 [data-theme="dark"] .stepper-group-name { color: rgba(255,255,255,.9); }
 /* Plain muted text, not a pill/badge — a second competing pill here
    read as cluttered. Mono — a position/count, same family as every
    other count/number in the app. */
-.stepper-item-count { font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--gray-4); white-space: nowrap; }
+.stepper-item-count { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600; color: var(--gray-4); white-space: nowrap; }
 /* "Buttered up" 2026-07-22 (user direction) — was a flat muted-gray pill
    (gray-4 text, thin --border) that read as barely-there next to
    everything else in this header; ink text + a stronger border/hover/
    active give it real presence as a tappable control, matching the
    weight-not-hue language the rest of the app uses for "this is a real
    button, not decoration." */
-.view-all-btn { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: var(--octave-black); background: var(--bg-section); border: 1.5px solid var(--border-strong); border-radius: 100px; padding: 6px 13px; cursor: pointer; flex-shrink: 0; transition: background .15s, border-color .15s; }
+.view-all-btn { display: flex; align-items: center; gap: 5px; font-size: 0.6875rem; font-weight: 700; color: var(--octave-black); background: var(--bg-section); border: 1.5px solid var(--border-strong); border-radius: 100px; padding: 6px 13px; cursor: pointer; flex-shrink: 0; transition: background .15s, border-color .15s; }
 [data-theme="dark"] .view-all-btn { color: var(--white); }
 .view-all-btn:hover { background: var(--border-strong); }
 .view-all-btn:active { transform: scale(0.96); }
@@ -150,13 +156,13 @@
    this bug — the bar covering more than was held back. */
 .focus-wrap { flex: 1; padding: 14px 0 4px; min-height: calc(100% + 72px); }
 .focus-label-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 0 16px; margin-bottom: 10px; }
-.focus-label { flex: 1; font-size: 19px; font-weight: 700; color: var(--octave-black); line-height: 1.3; }
+.focus-label { flex: 1; font-size: 1.1875rem; font-weight: 700; color: var(--octave-black); line-height: 1.3; }
 [data-theme="dark"] .focus-label { color: var(--white); }
 /* Required — same shape/font as the org corner-badge pill (§8.3's
    .ld-card-org). Orange, beside the item description, not a "*". */
 /* Was orange fill — required is red now (§23), and outlined not filled,
    matching the required-count-badge's own locked treatment. */
-.focus-req-tag { flex-shrink: 0; margin-top: 2px; display: inline-flex; align-items: center; font-family: var(--font-sans); font-size: 11px; font-weight: 600; color: var(--red); background: none; border: 1px solid var(--red); border-radius: 999px; padding: 4px 9px; }
+.focus-req-tag { flex-shrink: 0; margin-top: 2px; display: inline-flex; align-items: center; font-family: var(--font-sans); font-size: 0.6875rem; font-weight: 600; color: var(--red); background: none; border: 1px solid var(--red); border-radius: 999px; padding: 4px 9px; }
 /* Dynamic checklist items — an item's answer can insert new items right
    after it (syncDynamicChildren()). This tag marks a dynamically-added
    item's provenance; the hint marks the trigger item itself. Purple —
@@ -164,9 +170,9 @@
 /* Was purple — this is an informational marker ("this item appeared
    from a previous answer"), not one of the 3 color instruments (§23),
    so ink, not a hue. */
-.focus-dynamic-tag { display: flex; align-items: center; gap: 6px; margin: 0 16px 6px; font-size: 11px; font-weight: 600; color: var(--octave-black); }
+.focus-dynamic-tag { display: flex; align-items: center; gap: 6px; margin: 0 16px 6px; font-size: 0.6875rem; font-weight: 600; color: var(--octave-black); }
 [data-theme="dark"] .focus-dynamic-tag { color: var(--white); }
-.focus-dynamic-hint { display: flex; align-items: center; gap: 6px; margin: 8px 16px 0; font-size: 11.5px; color: var(--gray-4); }
+.focus-dynamic-hint { display: flex; align-items: center; gap: 6px; margin: 8px 16px 0; font-size: 0.71875rem; color: var(--gray-4); }
 .focus-dynamic-tag svg, .focus-dynamic-hint svg { color: var(--gray-4); flex-shrink: 0; }
 
 /* Equipment context chip — replaces the old low-emphasis
@@ -174,14 +180,14 @@
    §16.2 item 7 / §16.8): a muted outlined chip above the item label,
    the first thing rendered on an equipment-scoped item, so which
    equipment a question concerns never requires a tap or a scroll to see. */
-.focus-equip-chip { display: inline-flex; align-items: center; gap: 6px; margin: 0 16px 10px; font-size: 12px; font-weight: 600; color: var(--gray-4); background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: 999px; padding: 6px 12px; }
+.focus-equip-chip { display: inline-flex; align-items: center; gap: 6px; margin: 0 16px 10px; font-size: 0.75rem; font-weight: 600; color: var(--gray-4); background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: 999px; padding: 6px 12px; }
 .focus-equip-chip svg { flex-shrink: 0; }
 .focus-equip-chip .mono { font-family: var(--font-mono); color: var(--octave-black); font-weight: 700; }
 [data-theme="dark"] .focus-equip-chip .mono { color: var(--white); }
 
 .focus-control { padding: 18px 16px; }
 .f-toggle { display: flex; flex-direction: column; gap: 10px; }
-.f-opt { padding: 18px 0; text-align: center; font-size: 16px; font-weight: 700; border-radius: 10px; border: 2px solid var(--gray-2); color: var(--octave-black); background: var(--bg-page); cursor: pointer; transition: all .15s; }
+.f-opt { padding: 18px 0; text-align: center; font-size: 1rem; font-weight: 700; border-radius: 10px; border: 2px solid var(--gray-2); color: var(--octave-black); background: var(--bg-page); cursor: pointer; transition: all .15s; }
 [data-theme="dark"] .f-opt { border-color: var(--gray-5); color: var(--white); background: var(--bg-section); }
 .f-opt.sel-green  { background: var(--green);  border-color: var(--green);  color: #fff; }
 .f-opt.sel-red    { background: var(--red);    border-color: var(--red);    color: #fff; }
@@ -201,22 +207,22 @@
 .f-chk.checked .f-chk-circle { background: var(--green); border-color: var(--green); }
 .f-chk-circle svg { display: none; }
 .f-chk.checked .f-chk-circle svg { display: block; }
-.f-chk-lbl { font-size: 15px; font-weight: 600; color: var(--octave-black); }
+.f-chk-lbl { font-size: 0.9375rem; font-weight: 600; color: var(--octave-black); }
 [data-theme="dark"] .f-chk-lbl { color: var(--white); }
 
 .f-num-row { display: flex; align-items: center; gap: 12px; justify-content: center; }
-.f-num-in { width: 150px; background: var(--bg-page); border: 2px solid var(--gray-2); border-radius: 10px; padding: 16px 14px; font-size: 22px; font-weight: 700; color: var(--octave-black); font-family: var(--font-mono); text-align: center; outline: none; }
+.f-num-in { width: 150px; background: var(--bg-page); border: 2px solid var(--gray-2); border-radius: 10px; padding: 16px 14px; font-size: 1.375rem; font-weight: 700; color: var(--octave-black); font-family: var(--font-mono); text-align: center; outline: none; }
 [data-theme="dark"] .f-num-in { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
 .f-num-in:focus { border-color: var(--octave-black); }
 [data-theme="dark"] .f-num-in:focus { border-color: var(--white); }
-.f-uom { font-size: 14px; color: var(--gray-4); font-weight: 600; }
-.f-range-hint { text-align: center; font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); margin-top: 10px; }
+.f-uom { font-size: 0.875rem; color: var(--gray-4); font-weight: 600; }
+.f-range-hint { text-align: center; font-size: 0.6875rem; color: var(--gray-4); font-family: var(--font-mono); margin-top: 10px; }
 
 /* Slider answer controls — meter/quantitative/OK-adjustment measurement
    types rendering as a slider instead of a number field, admin-
    configured min/max. Added as an exercise 2026-07-31; not yet a locked
    decision (no design-decisions-v3-1.md entry). */
-.f-slider-value { text-align: center; font-family: var(--font-mono); font-size: 26px; font-weight: 700; color: var(--octave-black); margin-bottom: 20px; }
+.f-slider-value { text-align: center; font-family: var(--font-mono); font-size: 1.625rem; font-weight: 700; color: var(--octave-black); margin-bottom: 20px; }
 [data-theme="dark"] .f-slider-value { color: var(--white); }
 .f-slider-track { position: relative; height: 8px; border-radius: 100px; background: var(--gray-1); margin: 0 8px; cursor: pointer; touch-action: none; }
 [data-theme="dark"] .f-slider-track { background: var(--gray-5); }
@@ -226,9 +232,9 @@
 .f-slider-thumb { position: absolute; top: 50%; width: 26px; height: 26px; background: var(--bg-card); border: 3px solid var(--gray-3); border-radius: 50%; transform: translate(-50%,-50%); box-shadow: 0 1px 4px rgba(0,0,0,.2); }
 .f-slider-track.answered .f-slider-thumb { border-color: var(--octave-black); }
 [data-theme="dark"] .f-slider-track.answered .f-slider-thumb { border-color: var(--white); }
-.f-slider-minmax { display: flex; justify-content: space-between; margin: 10px 8px 0; font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); }
+.f-slider-minmax { display: flex; justify-content: space-between; margin: 10px 8px 0; font-size: 0.6875rem; color: var(--gray-4); font-family: var(--font-mono); }
 
-.f-textarea { width: 100%; min-height: 120px; background: var(--bg-page); border: 2px solid var(--gray-2); border-radius: 10px; padding: 12px 13px; font-size: 15px; color: var(--octave-black); font-family: var(--font-sans); resize: none; outline: none; line-height: 1.5; }
+.f-textarea { width: 100%; min-height: 120px; background: var(--bg-page); border: 2px solid var(--gray-2); border-radius: 10px; padding: 12px 13px; font-size: 1rem; color: var(--octave-black); font-family: var(--font-sans); resize: none; outline: none; line-height: 1.5; }
 [data-theme="dark"] .f-textarea { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
 
 /* Follow-up — full-width, deliberately loud, not one of several small
@@ -237,7 +243,7 @@
 /* Was orange — a flagged follow-up is a "needs attention" case, same
    family as required/sync-error (§23: "red covers... both 'needs your
    attention' states" — extended here to a 3rd case, same reasoning). */
-.followup-btn-lg { margin: 12px 12px 0; display: flex; align-items: center; justify-content: center; gap: 8px; width: calc(100% - 24px); padding: 13px 0; border-radius: 10px; border: 1.5px solid var(--red); background: var(--bg-card); color: var(--red); font-size: 14px; font-weight: 700; cursor: pointer; transition: all .15s; font-family: var(--font-sans); }
+.followup-btn-lg { margin: 12px 12px 0; display: flex; align-items: center; justify-content: center; gap: 8px; width: calc(100% - 24px); padding: 13px 0; border-radius: 10px; border: 1.5px solid var(--red); background: var(--bg-card); color: var(--red); font-size: 0.875rem; font-weight: 700; cursor: pointer; transition: all .15s; font-family: var(--font-sans); }
 .followup-btn-lg:hover { background: rgba(228,75,74,.08); }
 .followup-btn-lg.on { background: var(--red); color: #fff; }
 [data-theme="dark"] .followup-btn-lg { background: var(--bg-section); }
@@ -247,7 +253,7 @@
 /* ─── PREV/NEXT NAV — replaces free scrolling; hidden once the prompt
    bar takes over (see updateFooter()). ── */
 .stepper-nav { position: absolute; bottom: 0; left: 0; right: 0; height: var(--bar-height); background: var(--bg-card); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; padding: 0 14px; z-index: 50; }
-.snav-btn { flex: 1; height: 46px; border-radius: 12px; border: none; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.snav-btn { flex: 1; height: 46px; border-radius: 12px; border: none; font-size: 0.875rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
 .snav-btn.prev { background: var(--bg-section); color: var(--octave-black); flex: 0 0 46px; }
 [data-theme="dark"] .snav-btn.prev { color: var(--white); }
 .snav-btn.next { background: var(--octave-black); color: #fff; }
@@ -268,10 +274,10 @@
 .prompt-bar { position: absolute; bottom: 0; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border); padding: 10px 16px 16px; flex-shrink: 0; z-index: 51; display: none; }
 [data-theme="dark"] .prompt-bar { background: var(--octave-black); }
 .prompt-bar.show { display: block; }
-.prompt-question { font-family: var(--font-sans); font-size: 16px; font-weight: 700; color: var(--octave-black); text-align: center; margin-bottom: 10px; }
+.prompt-question { font-family: var(--font-sans); font-size: 1rem; font-weight: 700; color: var(--octave-black); text-align: center; margin-bottom: 10px; }
 [data-theme="dark"] .prompt-question { color: var(--white); }
 .prompt-seg { display: flex; gap: 8px; }
-.prompt-seg-btn { flex: 1; height: 48px; border-radius: 100px; border: 1px solid var(--octave-black); font-size: 15px; font-weight: 700; cursor: pointer; font-family: var(--font-sans); background: var(--octave-black); color: #fff; transition: background .15s; }
+.prompt-seg-btn { flex: 1; height: 48px; border-radius: 100px; border: 1px solid var(--octave-black); font-size: 0.9375rem; font-weight: 700; cursor: pointer; font-family: var(--font-sans); background: var(--octave-black); color: #fff; transition: background .15s; }
 [data-theme="dark"] .prompt-seg-btn { background: var(--white); border-color: var(--white); color: var(--octave-black); }
 .prompt-seg-btn:hover { background: #111114; }
 [data-theme="dark"] .prompt-seg-btn:hover { background: rgba(255,255,255,.85); }
@@ -281,7 +287,7 @@
 .overview-overlay { position: absolute; inset: 0; background: var(--bg-page); z-index: 90; display: none; flex-direction: column; }
 .overview-overlay.open { display: flex; }
 .overview-head { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--bg-card); }
-.overview-title { font-size: 15px; font-weight: 700; color: var(--octave-black); }
+.overview-title { font-size: 0.9375rem; font-weight: 700; color: var(--octave-black); }
 [data-theme="dark"] .overview-title { color: var(--white); }
 .overview-body { flex: 1; overflow-y: auto; }
 /* Unified group header (2026-08-10) — one component for BOTH grouping
@@ -290,13 +296,13 @@
    Equipment). Style is Step's own thin muted-bg strip; the done/total
    badge + collapse chevron are Equipment's own — every group in either
    mode is now collapsible and badged, not just Equipment's. */
-.ov-group-hdr { display: flex; align-items: center; gap: 8px; padding: 7px 16px; font-size: 12px; font-weight: 700; color: var(--gray-4); background: var(--bg-section); cursor: pointer; }
+.ov-group-hdr { display: flex; align-items: center; gap: 8px; padding: 7px 16px; font-size: 0.75rem; font-weight: 700; color: var(--gray-4); background: var(--bg-section); cursor: pointer; }
 .ov-group-hdr-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ov-group-hdr-code { font-family: var(--font-mono); font-weight: 700; color: var(--octave-black); }
 [data-theme="dark"] .ov-group-hdr-code { color: var(--white); }
 /* Counter Badge convention (§23.5) — outlined, transparent, black/white,
    never a gray fill. See eam-shared.css's .section-card-badge comment. */
-.ov-group-badge { font-size: 10.5px; font-weight: 700; font-family: var(--font-mono); color: var(--octave-black); background: transparent; border: 1px solid var(--border-strong); border-radius: 100px; padding: 2px 8px; flex-shrink: 0; }
+.ov-group-badge { font-size: 0.65625rem; font-weight: 700; font-family: var(--font-mono); color: var(--octave-black); background: transparent; border: 1px solid var(--border-strong); border-radius: 100px; padding: 2px 8px; flex-shrink: 0; }
 [data-theme="dark"] .ov-group-badge { color: var(--white); }
 .ov-group-chev { flex-shrink: 0; transition: transform .2s; }
 .ov-group-chev.collapsed { transform: rotate(-90deg); }
@@ -304,7 +310,7 @@
 .ov-row { display: flex; align-items: center; gap: 10px; padding: 11px 16px; border-bottom: 1px solid var(--border); background: var(--bg-card); cursor: pointer; }
 .ov-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-2); flex-shrink: 0; }
 .ov-status-dot.green { background: var(--green); } .ov-status-dot.red { background: var(--red); } .ov-status-dot.orange { background: var(--red); }
-.ov-label { flex: 1; font-size: 13.5px; font-weight: 500; color: var(--octave-black); }
+.ov-label { flex: 1; font-size: 0.84375rem; font-weight: 500; color: var(--octave-black); }
 [data-theme="dark"] .ov-label { color: rgba(255,255,255,0.9); }
 .ov-close-btn { width: 30px; height: 30px; border-radius: 50%; background: var(--bg-section); border: none; display: flex; align-items: center; justify-content: center; color: var(--gray-4); cursor: pointer; }
 /* Dynamic items — indented under their trigger, with a branch icon; the
@@ -323,7 +329,7 @@
    axis to scan/jump by than the workflow step grouping alone. Same
    solid-fill segmented-pill convention as .prompt-seg-btn (§14.6). */
 .ov-seg-wrap { display: flex; gap: 8px; padding: 10px 16px; background: var(--bg-card); border-bottom: 1px solid var(--border); }
-.ov-seg-btn { flex: 1; text-align: center; padding: 8px 0; font-size: 12.5px; font-weight: 700; font-family: var(--font-sans); color: var(--gray-4); background: var(--bg-section); border: 1px solid var(--border-strong); border-radius: 100px; cursor: pointer; }
+.ov-seg-btn { flex: 1; text-align: center; padding: 8px 0; font-size: 0.78125rem; font-weight: 700; font-family: var(--font-sans); color: var(--gray-4); background: var(--bg-section); border: 1px solid var(--border-strong); border-radius: 100px; cursor: pointer; }
 .ov-seg-btn.on { background: var(--octave-black); color: #fff; border-color: var(--octave-black); }
 [data-theme="dark"] .ov-seg-btn.on { background: var(--white); color: var(--octave-black); border-color: var(--white); }
 
@@ -1122,7 +1128,7 @@ function ovItemRowHtml(it, idx) {
     ${it.dynamic ? `<span class="ov-dynamic-icon" title="Added dynamically">${BRANCH_ICON}</span>` : ''}
     <span class="ov-status-dot ${dotClass(it).replace('done-','')}"></span>
     <span class="ov-label">${idx+1} — ${it.label}</span>
-    ${it.required ? '<span style="color:var(--red);font-weight:700;font-size:12px;">*</span>' : ''}
+    ${it.required ? '<span style="color:var(--red);font-weight:700;font-size:0.75rem;">*</span>' : ''}
     ${it.dynamicRules ? `<span class="ov-branch-cue" title="May add follow-up items">${BRANCH_ICON}</span>` : ''}
   </div>`;
   // Ghost placeholder — previews an as-yet-untriggered branch. Only shows

@@ -38,9 +38,10 @@ of records the technician does not hold (§6.13).
   joins, all predicates, exactly as on desktop (this is what makes R4 an
   improvement rather than a compromise).
 - **The local store is the fallback, and it is deliberately scoped.** It holds
-  Tier 0 configuration, the replicated `reference` entities, the work set, and
-  whatever the technician manually cached (§2.7) — never a projection of the
-  whole database.
+  Tier 0 configuration, the `offline-read` entities, the work set, and whatever
+  the technician kept (§2.7 — keeping is a *population source* of
+  `offline-read`, not a policy of its own) — never a projection of the whole
+  database.
 - **Writes always go through a persisted outbox regardless of connectivity** —
   unchanged from the original pattern, and now the *load-bearing* half of this
   section. The outbox is never switchable (§2.10): it serves "did my transaction
@@ -225,10 +226,11 @@ replicated bulk — equipment arrives by reachability, not by entity (below).
 - **My open pinned work orders** (Tier 1, ~20–200 records) — *fully hydrated
   records **+ their children + their declared depth-1 references*** (amended
   2026-09-08): ~5 seconds
-- **Records the technician manually cached** (R5 / §2.7's `on-demand` policy),
-  traversed the same way: on request, non-modal
-- Long-tail lookups / remaining code domains (`reference` policy, §2.8 row 1):
-  ~30 seconds
+- **Records the technician kept** (R5 — a population source of §2.7's
+  `offline-read`, not a policy of its own), traversed the same way: on request,
+  non-modal
+- Long-tail lookups / remaining code domains (Tier 0 and §2.8 row 1 — see
+  §2.7's merge note on why these are not a per-entity policy): ~30 seconds
 - Historical documents: ~90 seconds+
 - User is practically offline-capable **for their own work** within ~30 seconds
 - **No blocking modal on launch** — progressive hydration replaces it; the
@@ -287,16 +289,30 @@ deliberately this large — don't "fix" it by capping the fan-out in the UI.
 **Offline behaviour:** complete. Every screen renders, every write queues. This is
 the tier the whole architecture exists to protect.
 
-#### `reference` — replicated whole, because they are small and bounded.
+> **The next two are POPULATIONS, not policies** (amended 2026-09-18). They were
+> `reference` and `on-demand`, two of §2.7's five classes; §2.7 merged them into
+> one `offline-read` because a kept record lands in the same local store a
+> whole-domain one does. **Provenance is a column, not a class** — the merge
+> argument lives in §2.7 and is not restated here. They keep separate
+> subsections because their *hydration* behaviour genuinely differs, which is
+> what this section is about.
+
+#### `offline-read`, populated whole — small, bounded domains.
 
 Closing codes, trades, departments, UOMs, status codes, WO types, priorities. A
 few hundred rows each, changing monthly at most. **Replicated in full** so a
-picker is never a short list (§2.8 row 1).
+picker is never a short list (§2.8 row 1), which is also why these take no
+dataspy — though note the *reason* they take none is that the whole domain
+measurably fits §2.7's caps, not that they are described as small (§2.7's cap
+rule).
+Note that the *configuration-shaped* members of this list — WO types, status
+codes, page layouts, UDS definitions — are **Tier 0**, not records, and so have
+no per-entity policy at all.
 
 **Offline behaviour:** identical to online. A closing-code picker cannot tell the
 difference, which is the point.
 
-#### `on-demand` — what the technician chose to keep (R5).
+#### `offline-read`, populated by the technician — what she chose to keep (R5).
 
 Equipment `BLDG-A` because she expects to be in that building tomorrow; a
 75-page manual PDF; a WO she is not assigned to but was asked about. Each
@@ -305,7 +321,11 @@ eviction actually operates on.
 
 **Offline behaviour:** present and complete, until evicted. Eviction needs a
 **refcount**: `BLDG-A` may also be present as a depth-1 reference of a Tier 1 WO,
-and dropping the manual cache must not delete a row Tier 1 still needs (§20).
+and dropping what she kept must not delete a row Tier 1 still needs (§20).
+**The merge sharpens this rather than softening it** — one store now holds rows
+from a dataspy, from traversal and from keeping, so "which source put this row
+here" is a column §2.6 already requires for the punch list, and the refcount is
+the same question asked about eviction.
 
 #### `server-only` — everything else, and it is most of the database.
 
@@ -361,10 +381,12 @@ app 800 MB" post-mortem.
 **Where it stops — five termination rules:**
 
 1. **References are depth-1 and terminal**, unless declared otherwise.
-2. **`reference`-policy entities are never traversed** — they are replicated
-   whole (§2.8 row 1). Traversal must not fetch code-domain rows individually;
-   that is both slow and redundant. **Traversal applies only to the `work-set`
-   and `on-demand` policies**, i.e. entity-scale rows.
+2. **Whole-domain entities are never traversed** — they are replicated in full
+   (§2.8 row 1). Traversal must not fetch code-domain rows individually; that
+   is both slow and redundant. **Traversal applies only to `work-set` rows and
+   to the `offline-read` entities that carry a real dataspy**, i.e.
+   entity-scale rows — never to one whose population is an implicit "All
+   records".
 3. **Declared onward hops are the only exception**, each with its own cap. The
    one this app needs is the **equipment ancestor chain** (§7.4's Structure Tree,
    the Equipment Lookup's Structure tab) — **ancestors only, never children**,
@@ -430,7 +452,7 @@ WORK_ORDER  (root: work-set | manual-cache | demand-tap)
     equipment            -> + server-flattened ancestor path
     assigned_to, reported_by  -> employee
     department, problem_code, priority, organization
-                         -> `reference` policy: already replicated
+                         -> whole-domain `offline-read`: already replicated
     wo_type, status      -> replicated, and additionally definition-gated (§2.8 row 3)
   never traverse
     equipment -> work_orders | meter_readings | cost | documents
@@ -686,7 +708,7 @@ reusable asset for the organisation's other mobile apps, and the existing produc
 already works this way without naming it.
 
 **This registry is authored in the portal's Offline Profiles area** (§30.14,
-built 2026-09-16), which is also where the five policies below were checked
+built 2026-09-16), which is also where the policies below were checked
 row-by-row against the shipping product's **User Group ▸ Mobile Settings** tab.
 Two results of that check are load-bearing for this section rather than for the
 prototype: **11 of 31 entities have no policy decision at all**, and the
@@ -694,13 +716,89 @@ prototype: **11 of 31 entities have no policy decision at all**, and the
 (**WO/equipment history** and **meter history**), which makes this table a
 deliberate narrowing of current capability. Both are open in §20.
 
+**Reduced from five classes to four, 2026-09-18** (user direction — see the
+merge note below, which is the load-bearing part of this section now).
+
 | Policy | Read offline | Write offline | Examples here |
 | --- | --- | --- | --- |
 | `server-only` | ✗ | ✗ | POs, WO history, meter history, cost, reports, deep lookups, **standalone UDS record views** (§27.2) |
-| `reference` (replicated; small, slow-changing) | ✓ | ✗ | code domains, employees, crews, trades, stores, page layout + UDS definitions |
-| `on-demand` (user-cached — R5) | ✓ if cached | ✗ | any WO or asset the technician chose to keep |
+| `offline-read` (a bounded record population, however it got there) | ✓ | ✗ | employees, crews, trades, stores, bins, cost codes, suppliers, task plans; equipment and parts the technician kept |
 | `work-set` (auto-replicated + traversed) | ✓ | ✓ | pinned WOs + activities, checklist results, parts lines, labor lines |
 | `external-replica` (foreign engine, own lifecycle) | ✓ | ✓ | **GIS features / geodatabase — Phase 2 only** (§28) |
+
+**`reference` and `on-demand` were never two policies** — merged 2026-09-18
+into `offline-read`. The argument is §2.6's, generalised: a record the
+technician keeps lands in the **same local store** a dataspy-matched row would,
+so the punch list's shape (one store, two population sources, and a **source
+recorded on the row** so a dataspy re-evaluation cannot evict a manual pin) is
+the shape *every* replicated entity has. **Provenance is a column, not a
+class.** Two consequences worth stating because they are easy to get backwards:
+
+- **Read-only is a property of the ENTITY, not of how the row arrived.** The
+  old rationale for `on-demand` being read-only — "it arrived without its write
+  context" — is withdrawn. Equipment is not writable offline because we decided
+  Equipment is not writable offline; pinning an asset gets you the row, not
+  write rights. §14.11's Start Work pin is unaffected: it is a device-provenance
+  row on a `work-set` entity.
+- **The reliability difference survives as a sentence, not as a policy.** An
+  entity populated only by keeping **can be missing at the moment of need** and
+  behaves as `Online only` for any record nobody thought to keep before signal
+  dropped. That is worth telling an author; it is not a fifth class.
+
+**And what `reference` was really carrying was Tier 0.** Its own examples above
+included *page layouts, UDS definitions and code domains* — none of which are
+records, all of which are **Tier 0** (§2.3) and sit in front of the record tiers
+already. "Ships whole, unfiltered" is a Tier 0 property, and §2.8 row 1 is the
+rule that makes it one. What was left behind — Employees, Crews, Stores, Task
+Plans — are **record tables with row counts**, so they take a dataspy and a
+ceiling like every other record. **This is why the merge does not contradict
+§2.8 row 1:** bounded code domains never needed a per-entity policy, because
+they are not per-entity records.
+
+**Every replicated entity resolves through a dataspy or through "all records",
+and which of the two is *required* is decided by the caps** — see the cap rule
+below, which owns that and is the only place it is stated. §2.8 row 1's "a subset
+of a code list reads as a data error" is still true, and is still the reason a
+*fitting* domain ships whole; what it is **not** is the mechanism deciding which
+domains those are.
+
+**The five keys above are the MODEL's names; the portal shows a different set
+of labels** (reworded 2026-09-18, user direction). The keys are what the rest of
+this spec cites and what a stored profile persists, so they are **unchanged**.
+The labels are what an admin reads, and they moved because the original five
+each answered a *different* question: `server-only` named a location,
+`reference` named a kind of data, `on-demand` named a timing, `work-set` named
+a scope, `external-replica` named a mechanism. Five names on five axes are not
+comparable with one another — which is why `reference` and `on-demand` read as
+near-synonyms while being different policies. `on-demand` was worse than
+unclear: it is **inverted** against the industry's dominant usage, where
+OneDrive's *Files On-Demand* means the file is **not** on the device.
+
+| Key (this spec, and the stored value) | Label (the portal) |
+| --- | --- |
+| `server-only` | **Online only** |
+| `offline-read` | **Offline read** |
+| `work-set` | **Offline read/write** |
+| `external-replica` | **Offline read/write — external** |
+
+Every label answers one question — *what can the app do with this offline* —
+and the line beneath it in the portal answers the second one an author needs,
+*who put it there* (§30.14 item 2). The wording pass originally kept five
+labels, with `Offline read — preloaded` and `Offline read — kept` as siblings
+differing only in provenance; **naming them as siblings is what made it obvious
+they were one class**, and they were merged hours later.
+
+**Three of the four keys are the original ones.** `server-only`, `work-set` and
+`external-replica` never moved, so the only migration the merge owes is
+`reference`/`on-demand` → `offline-read`, which `POLICY_MIGRATE` performs on
+read. **That migration is load-bearing rather than tidy:** the portal's
+`normalizeProfile` pulls an *illegal* policy back to the entity's default, so
+without it every stored row holding a retired key would silently fall back —
+to `server-only` for most entities. The screen would render perfectly and would
+have stopped shipping half the registry. Pinned by `test-workflow-portal.js`,
+with the assertion deliberately written against entities whose default differs
+from the migration target, since the obvious choice passes even with the
+migration deleted.
 
 **"The app is offline" stops being a property of the app** and becomes a property
 of each entity. That declaration is what ports to the next app in the portfolio;
@@ -708,10 +806,11 @@ the tier model does not. `external-replica` earns its place by naming GIS as a
 **policy class rather than an exception**, so the next app needing a foreign sync
 engine has a slot to put it in — even while R2 sits in Phase 2.
 
-**How `work-set` and `on-demand` rows acquire their contents is §2.3's
+**How `work-set` and `offline-read` rows acquire their contents is §2.3's
 reachability traversal.** The policy says *whether* an entity can be offline;
-traversal says *which rows*. `reference` rows bypass traversal entirely and
-`server-only` rows are never traversed into.
+traversal says *which rows*. `server-only` rows are never traversed into, and
+an `offline-read` entity shipping its whole domain bypasses traversal entirely —
+which is the case that used to be `reference`.
 
 **Caps are enforced limits, not guidance (adopted from market practice rather
 than derived).** No surveyed product — SAP/Sigga, Salesforce, D365 Field Service,
@@ -721,12 +820,63 @@ in that set:
 
 - a **device-wide record ceiling** (D365 uses ~200,000)
 - a **per-entity row cap** (Salesforce uses 50,000, default 500)
+- a **local store volume budget** — the design doc's **SLO-8** (≤ 500 MB, hard
+  enforced ceiling), added to this list 2026-09-18. It was always a requirement;
+  it was never a number any authoring surface computed against.
 - a **traversal depth/breadth cap** counting transitive relationships (D365
   limits to 15 relationships, at most **one** to-many — see §2.3 rule 5)
 - **filters permitted on indexed columns only**
-- **at least one filter per entity; "all records" is refused**
+- **a filter is required exactly when the whole domain does not fit** — the rule
+  below; this replaces the flat "at least one filter per entity, all records is
+  refused" (amended 2026-09-18)
 - an explicit list of entities that **cannot** be offline, enforced **at
   authoring time** rather than discovered on the device
+
+**Caps are the mechanism, not a readout (2026-09-18, user direction).** Whether
+an entity may replicate its whole domain is **arithmetic against these caps**
+and nothing else:
+
+> An entity may ship its whole domain when the whole domain **fits** — under the
+> per-entity row cap **and** within the volume budget. When it does not fit, a
+> dataspy is **required**, and the dataspy's own population has to fit too.
+
+**This is a correction, and what it corrects is worth naming, because two
+successive attempts got it wrong the same way.** A rule that classifies entities
+as "small, slow-changing domains" is a **description**: it cannot be checked, it
+drifts from the data, and it silently licenses whatever the author believed when
+they wrote it. The second attempt — *"whole-domain iff no dataspy is authored"* —
+looked like data but still rested on an authoring judgement. Both are gone. The
+test that separates a measured rule from a described one is whether **moving the
+cap moves the verdict**, and that is what `test-workflow-portal.js` asserts.
+
+**Why both dimensions, and not just row counts.** Neither is sufficient alone,
+and the registry demonstrates both: **Parts** exceeds the 50,000-row cap
+outright, while **Equipment** *fits* that cap at ~40,000 rows (§2.3's own figure
+for this customer) and breaches the volume budget instead, because equipment rows
+carry nameplate data and custom fields — roughly 625 MB against a 500 MB device.
+**A records-only rule passes every check and still overflows the device.**
+
+**Where the counts come from: the server**, which is the only thing that knows.
+A count is a **measurement refreshed on demand**, not a live subscription — the
+same shape as §30.16's Home tile counts, chosen deliberately so this is an
+existing pattern rather than a new one. An entity therefore carries an estimated
+row count and an average row size, both **inputs** to the rule rather than
+properties an author asserts.
+
+**The consequence for "all records".** It is no longer refused as a category — it
+is the *correct* state for any entity whose whole domain fits, and the portal
+offers it as **"All records — it fits"** with the measured number beside it. What
+§2.7 refuses is an entity that **does not fit** being left unfiltered, which is
+the state that replicates a million rows because a field was blank. A dataspy on
+an entity that already fits is legal and optional: narrowing because the admin
+wants less, rather than because a cap forces it.
+
+**One dead end this rule can reach, and it is honest rather than hidden:** an
+entity that does not fit and has **no dataspy authored for it** cannot be
+offline-enabled at all. The portal reports it on the row; the fix is to author a
+dataspy on the record list screen (§30.14's boundary), not to widen a cap. The
+current registry has no such entity, and a test asserts it stays that way —
+because the failure mode is a red row no author on this screen can clear.
 
 ## 2.8 Lookup resolution offline — a three-way split (accepted 2026-09-03)
 
@@ -5993,6 +6143,14 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **Manual caching (R5) is ~80% specified and 0% built** | Opened 2026-09-08. The mechanics already exist: `pinned` is orthogonal to `hydration` (§6.13) — exactly the hook manual caching needs — "no blocking modal" is locked (§3.4/§4.1), and §2.3's traversal makes a cached record actually usable rather than a pinned shell with blank fields. **Three small UI pieces are owed:** a **"keep offline"** control on the record header ellipsis (§8.4 makes it a header action, not an Action Row); the download surfacing as a **non-modal progress item in the existing Sync Status Screen** (§4.5) rather than a new surface; and a **device-storage view** so a technician can see and reclaim what they have pinned. Note the existing product's `Clear Files` is the blunt version of that third one — all-or-nothing, per user. |
 | **GIS / maps — nine open items, all Phase 2** | Opened 2026-09-08 with §28. **Enumerated in §28.7 rather than repeated here**, per the one-fact-one-home rule: parity scope, the React Native ↔ ArcGIS native module (likely the largest unpriced item in the programme), what "other map services like OpenStreetMap" means, where a map is *placed* in Screen Designer (R3), **GIS identity as a second Tier 0 domain** with its own hard-failure mode, `GISMAPS` resolving per org/dept while everything else resolves per user group, the basemap credit/storage budget, whether §2.10's replication switch gates the replica, and PerReplica version accumulation. **None of these blocks v1** — that is the point of the Phase 2 call — but item 4 has a v1 consequence: keep §27.3's renderer generic enough for a map tab. |
 | **No generic definition-driven screen renderer exists** | Opened 2026-08-25 with §27.3. §22's `applyCustomFields()` and §9.8's Insert Mode both prove the definition-driven pattern at container scale, but nothing renders a *whole* screen body from definition — which is the single build UDS tabs require. Also unresolved: a `Placement = Step` UDS tab is the first child-tab screen needing §14.5–§14.7's per-step bottom bar (the Equipment tab has the rail but no bar), and §14.7's required-field bar-locking would have to evaluate fields the app has never seen. That last point is a second, independent argument for the declared-vs-effective field-state split named as a one-way door in §13.1–§13.4. |
+| **§4.2's browsing-XOR-record-open binary blocks a tablet two-pane — AMENDMENT REQUIRED** | Opened 2026-09-21 with §31. §4.2 says the bottom nav is "visible while browsing; hidden entirely the moment any record is open" — a **binary**. §31.3's list-detail layout shows a record list and an open record *simultaneously*, so both states are true at once and this is a **model** conflict, not something a media query can style around. **Proposed:** the exclusivity is a phone-portrait space compromise, so it gains a form-factor scope — on tablet band 1 persists always and the record nests in bands 2–3 rather than replacing the shell. §4.2's three-item membership (Home, Work, Notifications, with Equipment deliberately excluded as a destination rather than a section) is **unchanged**; only the visibility rule moves. The user has explicitly authorised proposing against locked rules here, so what is owed is the amendment text, not permission. |
+| **§30.16's `HOME_FOLD` is single-valued and a tablet's fold is different — AMENDMENT REQUIRED** | Opened 2026-09-21 with §31. `HOME_FOLD = 3` is arithmetic on a 390px device (390 − 28 padding, 100px tiles, 10px gaps) and protects the rule "line one is what the technician sees without swiping". The same arithmetic over a tablet's ~1102px gives a fold of **9**, and the portal's Home editor draws exactly **one** fold, so it cannot be truthful for both. **Proposed: author to the phone fold and treat the tablet as a superset** — the editor keeps drawing 3 as the *guarantee*, since what fits a phone fits a tablet and never the reverse, and the tablet then merely reveals more of row one without swiping, which can only be a bonus. That keeps one fold, one authored layout and no per-device variants. Note this is the **one** place §31.1's scope boundary is crossed, and it is crossed as a rule rather than a portal layout change. |
+| **The band rule bends on two screens, and both need a device** | Opened 2026-09-21 with §31.3. The rule is at most three bands, with the list pane and the record rail never coexisting. Two screens legitimately want a fourth: **Activity Checklist** (band 2 rail + item list + focused item — which would retire the All-items overlay, a genuine simplification, §16.9's fan-out being ~96/~624 items) and the **WO Equipment tab** (tab rail + equipment list + child detail). Both are legible in the mockup only because the two middle bands are narrow and the content shallow. The alternative in each case is that band 3 takes over entirely and the middle list collapses to a chooser exactly as on the phone. This is the same shape as the existing `chooser`-vs-`split` open item on that screen, so it can reuse that dev toggle rather than needing its own. |
+| **Two-pane introduces a selected-row state that portrait does not have** | Opened 2026-09-21 with §31.3. A list-detail layout requires a *selection*; the phone layout has none, because tapping a row navigates. So rotating **into** the tablet layout has to choose one (first row, or none with an empty detail pane and a prompt) and rotating **out** has to discard one. "Empty detail pane with a prompt" is the conventional answer and the honest one — auto-selecting the first row silently opens a record the technician did not choose, which on this app also means a record that could be started. Not a default; a call. Related: nothing in the prototypes keys off orientation today, so rotation is currently a pure re-layout and safe. |
+| **`safe-area-inset-left/right` are used nowhere, and a full-width layout needs them** | Opened 2026-09-21 with §31. `eam-shared.css` has exactly **one** safe-area usage in the whole file — `safe-area-inset-bottom`, inside `--bar-reserve` (§20's bottom-bar-reserve item). Today `.app{max-width:430px}` centres the app and thereby avoids side insets by accident; §31.3's full-width tablet layout removes that accident. Smaller on a tablet than on a notched phone, but a real gap and a **prerequisite** for the band layout rather than a follow-up — band 1 sits on the leading edge, which is exactly where the inset applies. |
+| **Whether tablet support is an R-level requirement — DECISION REQUIRED** | Opened 2026-09-21 with §31. Tablet/form-factor support appears nowhere in the design doc's requirements, and §31 records the scope boundary and the proposed model without claiming it is required. This decides whether the 16 app screens get touched **once** (a shared `eam-shared.css` band layer plus a per-archetype pass, sequenced as its own milestone) or **sixteen times** (per-screen landscape fixes as each screen is next worked on) — and the first is much cheaper only if it is sequenced deliberately. A requirement and a changed sequence both belong in the design doc rather than here, so what is owed is a call on whether to write one. Note §31.2's phone-landscape row means the answer is *not* urgent for correctness: nothing is broken today on a rotated phone, it is merely a centred column. |
+| **§31.5's residue after the 2026-09-21 cross-device pass** | All six §31.5 requirements were applied on 2026-09-21 and verified (all 17 screens load, 10/10 behavioural tests, keyboard and scope checks clean). Three things are deliberately left. **(a) The top-nav cluster cannot reach a true 48 × 48.** `.nav` packs its controls at `gap:8px` inside a 52px bar, so two adjacent 48px hit areas overlap by 8px and the wrong control wins in the overlap; they currently get 48px vertically and gap-limited width (40 × 48), which clears WCAG 2.5.8's 24px floor but not Android's 48dp. Closing it means rebalancing that bar's spacing, which is **§4.2's call** — a design decision, not a mechanical fix, which is why it was not taken unilaterally. **(b) Zoom is still blocked in the 43 `mockups/` files, the 7 `old versions/` files and the frozen `prototypes/wo-workflow/index.html`** — 51 files, deliberately untouched: mockups are internal design artifacts read on a desktop, and `old versions/` is history by convention. Fix them only if a mockup is ever put in front of a participant. **(c) `safe-area-inset-left/right` is still unused**, and it is tracked in its own row — note that adding `viewport-fit=cover` to make `env()` report real insets was tried during this pass and **reverted**, because it immediately pushed the bottom nav under the home indicator: every bottom-anchored element has to be audited in the same change, so it belongs with the band work rather than here. |
+| **iOS under 16.4 leaves the installed PWA window on cross-file navigation** | Opened 2026-09-21 with §31.6. The manifest makes Add to Home Screen launch fullscreen with no browser UI, which is most of what separates an installed app from a web page. But **in iOS standalone mode, only 16.4+ keeps an in-scope navigation inside the installed window** — older iOS opens Safari on the first link tapped. This app navigates across 17 separate HTML files constantly (§24), so on older iOS the installed experience degrades to an ordinary browser tab immediately. **Nothing in the prototype can fix it** — it is not a defect to chase but a reason to record participants iOS versions before a research session, and one more argument for the §20 compiled-shell item (a single-document shell would navigate within one file and sidestep it entirely). Android and desktop Chrome handle in-scope navigation correctly. |
 
 # 21. Superseded Design Decisions
 
@@ -8822,10 +8980,10 @@ rule already locked elsewhere rather than a preference expressed now:
    bundle assigned to groups. The shipping shape means 40 groups are 40
    hand-maintained copies, and §29.6 already ruled the inverse fault: editing
    shared config from one group's side re-provisions every other member.
-2. **A checkbox cannot express §2.7.** Five policy classes, not a boolean.
-   "Download Employees ✓" resolves to *Employees = `reference`, read-only, no
-   traversal* — which is a sentence the checkbox cannot say. Since five
-   classes are only an improvement if an admin knows what they mean, **each
+2. **A checkbox cannot express §2.7.** Four policy classes, not a boolean.
+   "Download Employees ✓" resolves to *Employees = `offline-read`, read-only,
+   bounded by a dataspy* — which is a sentence the checkbox cannot say. Since
+   four classes are only an improvement if an admin knows what they mean, **each
    policy carries its own definition at the point of choice** (2026-09-16),
    keyed on the axis that actually distinguishes them: **who decided this is
    on the device** — nobody, the admin, the technician, the work itself, or
@@ -8833,14 +8991,44 @@ rule already locked elsewhere rather than a preference expressed now:
    things the surface says out loud because they catch people out:
    **`work-set` is the only class a technician can write to** (the same rule
    §2.9 states from the other side), and **only the two filtered classes take
-   a dataspy** — `reference` ships a whole domain, `server-only` ships
-   nothing, and a **traversed** entity takes no filter even inside the work
-   set because it arrives attached to its parent.
+   a dataspy** — `server-only` ships nothing, `external-replica` brings its own
+   download unit, and a **traversed** entity takes no filter even inside the
+   work set because it arrives attached to its parent. And an `offline-read`
+   entity is exempt whenever its **whole domain fits the caps** — the one
+   exemption that is *computed* rather than declared (§2.7's cap rule), and the
+   reason the control offers "All records — it fits" rather than demanding a
+   filter.
+   **Reworked 2026-09-18 (user direction).** The definitions stayed and the
+   *labels* changed, which separated the two axes that had been sharing one
+   name: a label now states the **capability** (§2.7's label table) and the
+   line beneath it states **who decided**. So read/write is no longer only the
+   consequence — for three of the four it is the name. Both sentences this item
+   says the surface states out loud are unchanged in force and reworded in
+   fact: **"only Offline read/write accepts writes to EAM"** (external is
+   writable too, but through another engine's queue) and **"only the two
+   filtered classes take a dataspy."** A third was added, because it is the one
+   that answers the confusion that prompted the rework: **the label says what
+   the app can do; the line under it says who put the data there.**
+   **Then five became four the same day**, once naming the two `Offline read`
+   classes as siblings made it plain they were one class split on provenance
+   (§2.7's merge note). The surface gained two things from it: one predicate —
+   `rowNeedsDataspy()` — is now called by both the control that renders the
+   requirement and the validator that reports it, where previously two
+   expressions agreed by luck; and the requirement itself became **measured**
+   (§2.7's cap rule), so a row that fits offers **"All records — it fits"** with
+   the number it was measured against, rather than a protected chip asserting
+   that its domain is small.
 3. **Caps are mandatory and enforced at authoring time** (§2.7) — device
-   ceiling, per-entity row cap, traversal depth, to-many count. The shipping
-   screen has none. Defaults are the market figures §2.7 already cites
-   (200,000 / 50,000 / 15 / 1), so the numbers are traceable rather than
-   invented here. **They render PROTECTED** (2026-09-16, user direction),
+   ceiling, per-entity row cap, **local store volume budget**, traversal depth,
+   to-many count. The shipping screen has none. Defaults are the market figures
+   §2.7 already cites plus the design doc's SLO-8
+   (200,000 / 50,000 / **500 MB** / 15 / 1), so the numbers are traceable rather
+   than invented here. **Two of them are now computed against, not merely
+   displayed** (2026-09-18): the card shows what the profile actually spends
+   against the device ceiling and the volume budget, and an over-budget total is
+   reported **on the cap it breaches** — §30.20's rule, not a banner. A cap
+   nothing is measured against is not a cap, the same way a budget you cannot
+   see is not a budget. **They render PROTECTED** (2026-09-16, user direction),
    and the reason is worth stating: they are **platform** limits, not
    preferences of this profile. Raising the device ceiling here would not
    raise what a device can hold — it would only move where the failure
@@ -8859,18 +9047,39 @@ sorted them into four groups, and the fourth is the point of the table:
 
 | Verdict | Count | Entities |
 | --- | --- | --- |
-| **Decided in** | 15 | Work Orders (`work-set`, carrying §2.6's dataspy **and** pins); Checklist Results, WO Parts Lines, WO Labor Lines (`work-set`, reached by **traversal** from the WO rather than filtered in their own right); Employees, Crews, Trades, Stores, Bins, Cost Codes, Suppliers (`reference`); Equipment, Parts (`on-demand`, §2.8 row 2); Standard WOs, Task Plans (`reference`) |
+| **Decided in** | 15 | Work Orders (`work-set`, carrying §2.6's dataspy **and** pins); Checklist Results, WO Parts Lines, WO Labor Lines (`work-set`, reached by **traversal** from the WO rather than filtered in their own right); Employees, Crews, Trades, Stores, Bins, Cost Codes, Suppliers, Standard WOs, Task Plans (`offline-read`, whole domain — each measurably fits the caps, so a dataspy is optional); Equipment, Parts (`offline-read`, and each **needs** a dataspy: Parts breaches the row cap, Equipment the volume budget) |
 | **Decided OUT — `server-only`** | 4 | Equipment / WO History, Meter Readings, Cost, Purchase Orders. §2.7 names all four by name. |
 | **Phase 2** | 1 | Linear Asset Information → `external-replica` (§28) |
 | **NOT DECIDED** | 11 | Inspection Results, WO Nonconformity, Permit to Work, Calibrations, Equipment Structure, Equipment Comments, Equipment Custom Fields, Mobile Notebook, Main Isolation Tables, Physical Inventory, Asset Inventory |
 
-**The undecided eleven are marked in the surface, not hidden from it.** Every
-row carries its status, and enabling an undecided entity produces a warning,
-because shipping one silently is how an open question becomes a decision
-nobody made. Two of the eleven deserve deliberate calls rather than drift:
-**Main Isolation Tables** (safety-critical whichever way it goes) and
-**Inspection Results**, which is `work-set`-shaped and probably belongs with
-the other three traversed children.
+**The undecided eleven left the grid 2026-09-18** (user direction). They had
+been marked in place — every row carrying a status pill, with a warning on
+enabling one — which put a backlog item and a configured policy on the same
+row, at the same weight, behind the same dropdown. A surface that offers a
+control implies the question is the author's to settle, and this one is settled
+in §2.7, not on a profile. So they render as **a list at the bottom of the
+screen**: named, counted, annotated, and not configurable. Deciding one means
+amending §2.7 — at which point it moves up into the grid.
+
+**Listed, not dropped**, which is the failure mode the change invites. An
+entity quietly removed keeps whatever policy it was seeded with and says
+nothing about it — precisely the commitment nobody made. So the list renders
+all eleven, and §30.20's validator still fires for any that actually ship —
+on its own row, rather than a roll-up saying it. Which of them ship is a
+property of the profile, not of the registry: the demo's **Field technician**
+seeds two (Inspection Results as `work-set`, Equipment Custom Fields as
+`offline-read`), **Contractor lite** one, and **Online only** none.
+
+The per-row **status pill went with them** — on a decided row it restated the
+policy control beside it and competed with the
+`traversed` chip, the one chip on that row an author needs. Both halves are
+pinned by `test-workflow-portal.js`, including a negative control that the
+grid filter cannot be dropped silently.
+
+Two of the eleven still deserve deliberate calls rather than drift: **Main
+Isolation Tables** (safety-critical whichever way it goes) and **Inspection
+Results**, which is `work-set`-shaped and probably belongs with the other
+three traversed children.
 
 ### The decided-out four are a NARROWING, and that needs confirming
 
@@ -9587,3 +9796,126 @@ same day and removed rather than marked.)*
   went **out of scope** the same day (§21) — so there is no second visual
   language left on the base track at all, and no open question about one. **Two
   surfaces exist in this programme: the mobile app and this portal.**
+
+# 31. Form Factors — Phone Portrait and Tablet Landscape
+
+Added 2026-09-21. Before this section the spec had **no** coverage of orientation or form factor at all — the word "tablet" appeared exactly once in 9,790 lines, in a reference-screenshot filename. Every rule in §4–§24 was written against a single viewport and remains correct for it; this section adds a second form factor without disturbing the first, and nothing here supersedes anything.
+
+## 31.1 Scope — the mobile app only (locked 2026-09-21, user direction)
+
+Form-factor and landscape adaptation is **unique to the mobile app and the screens under it**. The Workflow Designer Portal (§30) is a **web** surface: a browser window is already arbitrarily sized and the portal already behaves like a desktop web app, so it needs no distinct modes at all.
+
+This is the exact mirror of §30.7's **"OCTAVE SCOPE: base screens only."** That rule keeps the base design system out of the app; this one keeps the app's form-factor work out of the base portal. Neither crosses the seam, and together the pair is the whole of the two-surface boundary.
+
+- **In:** the 17 standalone app screens.
+- **Out:** `eam-workflow-portal-v1.html` and everything under `base screens`.
+
+One exception, and it is a **rule** rather than a layout: §30.16's `HOME_FOLD` is authored in the portal and consumed by the app, so a form-factor change to the fold reaches into the portal's Home Layouts area. Tracked in §20.
+
+## 31.2 Width classes, not devices (locked 2026-09-21)
+
+**No rule in this section names a device, and none should.** An earlier draft of it defined the form factors as "phone portrait" and "tablet landscape" using viewport numbers taken from one handset and one tablet. That is exactly how a layout ends up correct on the author's device and wrong on a 320px Android, a foldable, or a large phone in landscape. The rules below key on **available width, with a height floor** — the only two things a stylesheet can actually observe — and name devices only as *illustrations* of a class, never as its definition.
+
+Three classes, following Material's window size classes, because they are the industry-standard device-neutral vocabulary and they already map onto what CSS can measure:
+
+| Class | Width | Band 1 nav | Panes | Illustrative only — NOT the definition |
+| --- | --- | --- | --- | --- |
+| **Compact** | `< 600px` | bottom bar, §4.2 as written | one | phones in portrait; small phones; most phones rotated |
+| **Medium** | `600–839px` | **rail** | one | small tablets in portrait; foldables unfolded; large phones rotated |
+| **Expanded** | `≥ 840px` **and** height `≥ 600px` | rail | **two — §31.3's bands** | tablets in landscape; large tablets in either orientation |
+
+**Medium is a real class and must not be skipped.** It is where foldables and small tablets in portrait live: wide enough that a bottom bar wastes the width and a rail reads better, not wide enough for a second pane to be anything but cramped. Skipping it is how a foldable ends up with a phone layout stretched to 700px.
+
+**The height floor on Expanded is what makes the model orientation-free.** A short, wide viewport — any phone rotated — fails it and keeps the Compact layout, which is correct: at roughly 350px of height against ~200px of fixed chrome there is no good two-band layout to reach for, and the centred `.app{max-width:430px}` column it falls back to is coherent rather than broken. A tablet in **portrait** fails the width test and also stays single-pane, which is equally correct — a tablet in portrait is a large phone. **So `orientation` is never queried anywhere in the app.** Orientation is a proxy for shape; width and height are the shape itself, and querying the proxy is what produces the tablet-in-portrait-gets-a-landscape-layout class of bug.
+
+**Within a class, layout is fluid, never stepped.** A class decides the *arrangement* — how many panes, where band 1 sits — and never fixes a pixel width. Content measure is capped on **typographic** grounds (around 70 characters for a text column), not device grounds, and panes are `fr`-based, so a 1024px tablet and a 1600px one differ only in how much content is visible, not in layout.
+
+**The floor is 320 CSS px.** Nothing may overflow horizontally at 320px, the practical smallest viewport still in use. The current prototypes already satisfy this and it is worth recording why, because it is load-bearing: the shared stylesheet contains no fixed width at or above 300px, and Home's tile rows are `overflow-x:auto` with `flex-shrink:0` on the tiles, so they degrade by scrolling rather than overflowing at any width. That is also why §30.16's `HOME_FOLD` is purely an *authoring* concern (§20) — the app itself never depends on a particular number of tiles fitting.
+
+One measurement is worth keeping from the device-specific draft, because it is what makes Expanded a *width* problem rather than a height one. Across current phones and tablets, **a tablet in landscape has about the same usable height as a phone in portrait** — both land near 760–780 CSS px once browser chrome is subtracted — while having roughly three times the width. So no chrome has to move in order to save vertical space, and rail placement rather than the vertical chrome budget is the subject. Treat the pair of numbers as an order-of-magnitude fact about the current device population, not as a spec constant.
+
+## 31.3 The band model (proposed 2026-09-21, not locked)
+
+This needs no new model, because §4.2 already states one in its opening sentence: the nav bar is "persistent global chrome, distinct from the per-record tab rail (§7.1) and the WO workflow's step rail (§14.2), which both operate one level down, inside a single record."
+
+| Band | Level | Owner |
+| --- | --- | --- |
+| 1 | app | §4.2 — Home / Work / Notifications, avatar, sync |
+| 2 | record | §14.2 step rail, or §7.1 tab rail |
+| 3 | content | §5.2 |
+
+A Compact-class viewport can show **one level at a time**, which is why the rails collapse into tappable pills and why the bottom nav hides the moment a record opens. Those are compromises forced by Compact width, not preferences. An Expanded-class viewport can show **all three at once** as vertical bands — so the Expanded layout is an *expression* of the existing model rather than a new one, and that is the strongest argument for it.
+
+**The band rule: at most three bands, and the list pane and the record rail never coexist.** Browse = band 1 + list + detail. Execute = band 1 + band 2 + band 3. Four bands is the failure mode, and it is what naive "just add a pane" produces. Two screens legitimately want to bend it — Activity Checklist, and the WO Equipment tab's `split` — tracked in §20.
+
+**Browse vs execute.** A record list's detail pane holds the record and its header actions; **starting a workflow promotes to full width**, dropping the list pane so band 2 can become the step rail. A workflow step is a deliberately focused, one-thing-at-a-time surface (§14), so squeezing it beside a list both crowds it and produces the fourth band.
+
+## 31.4 Rail placement — band 2, and the argument is §29 (proposed 2026-09-21, not locked)
+
+Three placements were weighed at tablet width, for the step rail and the tab rail together since they share one shell (`.tab-rail, .step-rail`, confirmed byte-for-byte):
+
+1. **Stay on top, horizontal, permanently expanded.** Preserves the portrait mental model, keeps the unified shell — it merely stops collapsing — and left-to-right reads as forward, which suits §14.10's gating.
+2. **Left vertical band.** Always visible; the collapsed/expanded state disappears entirely.
+3. **Right vertical band**, sharing a column with the action pills so both sit under the right thumb.
+
+**Recommendation: option 2, on an architectural argument rather than a visual one.** §29 made the rail's contents *configuration-driven and unbounded* — a tab can be placed twice, More's membership is configuration not definition (`WO_MORE_TABS`), and a UDS is a step (`isStepKind()`). A workflow of 8 steps plus 4 More entries is legitimately authorable **today**. A horizontal row cannot hold that; a vertical column holds any number. Option 1 would mean choosing a layout the authoring model is already permitted to overflow — and in the mockup it is already forced to put More back behind a dropdown at 8 items, which is the collapsed-rail compromise returning under a different name. Option 3 puts "where am I in the flow" against reading order and competes for the trailing edge where sheets live.
+
+Two details follow from it. The **timer pill** (§14.2, today in `.step-rail-right`) moves to the foot of the vertical rail, since it belongs to the record and therefore to band 2 rather than migrating to band 1. And the **action bar stays horizontal** at the foot of band 3 rather than standing up into a column, because height is abundant here — so **§8.4 is untouched** and the portrait pattern carries over unchanged. A rotated-phone analysis would have stood it up; a tablet does not need that.
+
+A further consequence worth stating because it is a reduction rather than an addition: on tablet the rail is **always expanded**, so the collapsed pill and its tap target stop existing, along with the expand/collapse state itself.
+
+Low-fidelity frames for Home, the record list, the workflow step and the child tab, plus the option comparison: `prototypes/standalone/mockups/landscape-mode-approach-options.html`.
+
+## 31.5 Cross-device requirements (locked 2026-09-21)
+
+Device-agnostic, and they apply to **every** app screen at every width — they are not part of the Expanded-class work and must not wait for it. Each was a measured finding from auditing the 17 standalone screens on 2026-09-21, and **all six were applied the same day** — so the table states the rule, what failed it, and what closed it. Two residual limits are named in the rows and tracked in §20; everything else is compliant and verified.
+
+| # | Requirement | Found | Why it matters |
+| --- | --- | --- | --- |
+| 1 | **Pinch-zoom must never be blocked.** No `user-scalable=no` and no `maximum-scale` in any viewport meta tag. **See §31.6 before changing this** — blocking pinch does not buy native feel (iOS ignores it) and the jank it appeared to prevent is input auto-zoom, fixed by sizing inputs at `1rem`. | was **17 of 17**; now **0** — every screen carries `width=device-width, initial-scale=1.0` and nothing else | A WCAG 1.4.4 failure, and not a theoretical one: **Android Chrome honours the attribute**, so on Android the technician genuinely cannot zoom. iOS has ignored it in Safari since iOS 10, which is exactly why it survived — it is invisible on the device it was authored on. |
+| 2 | **Text must scale with the OS text-size setting.** Type sizes in `rem` against a root size, never `px`. | was **354 `px` declarations** across `eam-shared.css` and all 17 screens (an earlier figure of 131 undercounted — it missed the `font-size: Npx` whitespace form); now **350 `rem` plus 6 documented px exceptions** | A technician who has set large text gets no change at all. Worth stating plainly because the field population here skews toward outdoor work, gloves and bright light, so accessibility settings are likelier to be in use than average — and because in a research session it produces a "text is too small" finding that is an artifact of the prototype, not of the design. |
+| 3 | **Interactive targets are at least 48 × 48 CSS px**, including the hit area where that is larger than the painted control. | was 12 controls at **22–34px**; now expanded by a transparent centred `::after` with painted sizes untouched. **`.field-checkbox` and `.lov-check` proved exempt** — both are indicators located from their own row (`row.querySelector()`, and `.lov-check` is a div with no handler), so the row was always the target. **Residual limit:** `.nav` packs controls at `gap:8px`, so two adjacent 48px areas would overlap and the wrong one would win; those get 48px vertically and gap-limited width (40 × 48). §20 | 48 is chosen deliberately as **one** number that satisfies all three authorities at once — Apple's 44pt, Android's 48dp and WCAG 2.5.5 AAA's 44px — so there is nothing to look up per platform. **The painted size may stay as designed**; what must grow is the hit area, via padding or a pseudo-element. Distinguish genuine controls from decorative badges (`.step-rail-type-circle`, `.step-map-icon`, `.required-count-badge`, `.attr-badge` are not targets and are exempt). |
+| 4 | **No CSS feature without a fallback declaration**, unless it is Baseline Widely Available. | was **1 gap** — `.bottom-nav`'s `color-mix()`; now preceded by a solid `background:var(--bg-nav)`, the same fallback-first shape as `vh`-then-`dvh` | `color-mix()` needs Chrome 111 / Safari 16.2. On anything older the declaration is invalid, so the background never applies and the nav is **transparent** — and `backdrop-filter` is unsupported on those same browsers, so nothing covers for it. The result is content scrolling visibly behind the bottom nav. The existing `vh`-then-`dvh` pairing (§3.4, 2026-08-11) is the pattern to copy: fallback first, enhancement second. Audited clean otherwise — `:has()` and `clamp()` are unused, `backdrop-filter` and `aspect-ratio` both degrade gracefully. |
+| 5 | **Storage access must never throw.** Every `localStorage` read and write goes through a guarded accessor. | was **20 raw calls in `eam-shared.js` and 25 across the screens**; now every one routes through `lsGet()` / `lsSet()` / `lsRemove()`, which swallow the throw and degrade to in-memory state. The `<head>` theme bootstrap keeps a raw call inside its own `try/catch` **by necessity** — it runs before `eam-shared.js` loads, so the accessors do not exist yet | `setItem` throws in iOS Safari Private Browsing and under storage pressure. An uncaught throw aborts the rest of the handler, so the visible symptom is not an error — it is **a control that silently does nothing**, which is the hardest possible thing to diagnose from a session recording. Also the reason demo state must be resettable between participants on a shared device (`resetDemoState()` already exists; §20). |
+| 6 | **No runtime network dependency for anything load-bearing.** | was **34 references to `fonts.googleapis.com`**; now **zero runtime network dependencies of any kind**. Both families are self-hosted under `shared/fonts/` via `shared/eam-fonts.css` (latin + latin-ext, `unicode-range`-gated so English content fetches only ~328 KB, `font-display:swap` preserved). Both are SIL OFL 1.1, so redistribution is permitted | This is the good news and worth recording as a property to protect: nothing else in the app reaches the network. Data files are plain JS globals by design (`<script src>`, since `file://` blocks `fetch`/XHR), so the prototype runs with no connectivity at all. Fonts are the single exception, and a blocked or slow CDN silently substitutes system sans-serif — which changes the visual read without failing. Self-hosting the two families removes the last one. |
+
+**The through-line in all six: every one of them is invisible on the device it was authored on.** Blocked zoom is a no-op on iOS; `px` type looks correct until someone changes a system setting; a 32px button is comfortable for the author who knows where it is; `color-mix` is supported in every current browser; `localStorage` never throws outside private mode; the font CDN is always reachable on an office network. That is the argument for auditing against the rule rather than against a device, and for **§31.2's refusal to name devices** applying to this section too.
+
+## 31.6 Native-app feel (locked 2026-09-21)
+
+The goal stated directly (user direction, 2026-09-21): the app should *look and feel like an app from the app store*. This section is what actually delivers that, and it exists because a wrong answer was applied first and has to be prevented from returning.
+
+### Two different behaviours are both called "zoom", and conflating them caused the wrong fix
+
+| | What it is | Right treatment |
+| --- | --- | --- |
+| **Pinch-zoom** | The user deliberately pinching to enlarge. | **Never blocked.** The app does not *require* it, and it is not there for ordinary use — it is there for a technician with low vision, in bright light, in gloves. WCAG 1.4.4. |
+| **Input auto-zoom** | iOS Safari **force-zooms the whole page** when a text input with a computed font-size **under 16px** receives focus — and does not zoom back out. | **Remove the trigger: every text input is `1rem`.** |
+
+**The second one is the actual jank**, and it is what "doesn't feel like an app" was describing: tap a field, the page lurches in, and it stays there. It was previously suppressed as a side effect of `maximum-scale=1.0` in every screen's viewport tag.
+
+**Two things make blocking pinch the wrong way to buy app feel.** First, it does not work: **iOS has ignored `user-scalable=no` for pinch since iOS 10**, so iPhones were always pinch-zoomable while Android — which honours it — was not. The tag bought inconsistency, not consistency. Second, it treats a symptom: capping the viewport hides the auto-zoom without removing its cause, whereas a 16px input cannot trigger it on any platform, now or later.
+
+**So the rule is: every `<input>`, `<textarea>` and `<select>` carrying text is `font-size:1rem` minimum, and no viewport tag caps scale.** 14 text-entry rules were raised to `1rem` on 2026-09-21 (from 13/14/15px). The cost is real and was accepted deliberately — field text got visibly larger — and it is worth noting **iOS system field text is 17pt**, so 16px is *closer* to native than what it replaced, not further. Elements merely styled to look like fields are exempt because they never receive focus: `.tree-select-btn`, `.md-selectall`, `.store-selector`, `.crew-selector-pill` are buttons and divs.
+
+### What actually makes a web app stop reading as a web page
+
+None of this was present before 2026-09-21. All of it lives in `eam-shared.css`, so it applies to every screen at once:
+
+| Property | Removes |
+| --- | --- |
+| `-webkit-tap-highlight-color: transparent` on `html` | The grey flash on every tap. **The single biggest "this is a web page" tell**, and it was firing on every control in the app. |
+| `overscroll-behavior: none` on `html, body` | Rubber-band overscroll and pull-to-refresh. A native screen does not bounce to reveal the page behind it. |
+| `user-select: none`, **scoped to chrome** | Text selection on nav, rails, bars, sheets and chips. **Deliberately not `*`** — record values, comments and descriptions stay selectable, because a technician legitimately needs to copy an asset number. |
+| `-webkit-touch-callout: none`, scoped to controls | The long-press context menu on buttons, tiles and photos. Again not global, for the same reason. |
+| `touch-action: manipulation` on controls | The ~300ms double-tap-to-zoom wait before every tap registers. `manipulation` keeps pan and pinch and drops only double-tap zoom — **`none` would break scrolling**, so do not "simplify" it to that. |
+
+### Installability is the biggest lever, and it may answer the delivery question
+
+A web app manifest (`prototypes/standalone/manifest.webmanifest`) plus `apple-mobile-web-app-capable`, `apple-mobile-web-app-title`, `apple-mobile-web-app-status-bar-style:black`, `theme-color` and an `apple-touch-icon`. **Add to Home Screen then launches from an icon, fullscreen, with no browser UI and a dark status bar** — which is most of what distinguishes an installed app from a web page, and it needs no app store, no signing and no review. For a user-research panel that is likely the delivery answer as well as the fidelity answer.
+
+Three deliberate choices in the manifest. **`display:standalone`**, not `fullscreen` — the status bar should stay visible, because a technician needs the clock and their signal. **No `orientation` key at all**, since locking it would contradict §31.2 and Apple's own guidance. **`start_url` is the login screen**, so a panel participant lands where the demo begins.
+
+Icons are generated, committed PNGs at 180/192/512 (`shared/img/icon-*.png`) — the step-rail/checklist motif in `--bg-nav` black with `--green`. They are **placeholders for real branding**, not a brand asset; `512` doubles as the `maskable` icon, so Android's safe zone is respected.
+
+**One known limit, tracked in §20:** in iOS standalone mode, navigating between separate HTML files only stays inside the installed window on **iOS 16.4+**; older iOS kicks the user out to Safari on the first link. This app navigates across 17 files constantly (§24), so on older iOS the installed experience degrades to a normal browser tab after the first tap. Android and desktop Chrome handle in-scope navigation correctly. Nothing in the prototype can fix this; it is a reason to check participants' iOS versions rather than a defect to chase.
