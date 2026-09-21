@@ -246,16 +246,6 @@
 
 <!-- Prototype-only theme preview — real app theme lives in User Settings,
      not in-screen chrome. See design-decisions-v3-1.md §20. -->
-<div class="proto-theme-bar">
-  <span class="proto-theme-label">Preview theme</span>
-  <button class="theme-toggle" id="themeToggle">☀ Light</button>
-  <!-- Dev only. Drives the SAME sessionStorage key the real screens set
-       (eamTimerRunning), so it exercises §18.2's actual condition rather
-       than a parallel demo switch. Needed because nothing feeds a workflow
-       definition to the app yet, so §30.21's Stop Timer action cannot
-       reach in. -->
-  <button class="theme-toggle" id="timerDemoToggle" onclick="toggleTimerDemo()">⏱ Timer: stopped</button>
-</div>
 
 <div class="app" id="app">
 
@@ -862,6 +852,15 @@
 <script src="../../data/wotype.js"></script>
 <script src="../../data/wo-workflow.js"></script>
 <script src="../../data/wo-workflow-steps.js"></script>
+<script>
+/* §31.6 — the timer dev toggle moved out of the removed .proto-theme-bar and
+   into the header menu. It is NOT decoration: it drives the real
+   eamTimerRunning key, which is the §18.2 condition deciding whether the
+   booking pull-up opens, so without it that whole path is unreachable. */
+const PROTO_MENU_EXTRA = [
+  { label: 'Timer', stateId: 'timerDemoToggle', stateText: '⏱ —', onclick: 'toggleTimerDemo()' }
+];
+</script>
 <script src="shared/eam-shared.js"></script>
 <script>
 /* ── screen-specific config/behavior — chrome (nav, header, step rail,

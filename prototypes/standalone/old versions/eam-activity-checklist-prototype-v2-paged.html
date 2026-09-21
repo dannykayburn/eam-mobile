@@ -12,31 +12,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
-<title>HxGN EAM Mobile — Activity Checklist (Step 2) — Scroll Mode A/B</title>
+<title>HxGN EAM Mobile — Activity Checklist (Step 2)</title>
 <link rel="stylesheet" href="shared/eam-fonts.css">
 <link rel="stylesheet" href="shared/eam-shared.css">
 <!--
-  ╔═══════════════════════════════════════════════════════════════════════╗
-  ║  A/B COPY — NOT A REPLACEMENT FOR v2.                                 ║
-  ║                                                                       ║
-  ║  This is `eam-activity-checklist-prototype-v2.html` plus one added,    ║
-  ║  toggleable navigation model: SCROLL MODE (a vertical snap pager —     ║
-  ║  "option 2" of the forever-scroll options, chosen 2026-08-12). The     ║
-  ║  toggle is OFF-able live from the theme bar, and its OFF state is      ║
-  ║  byte-for-byte v2's behaviour, so this one file is the whole A/B.      ║
-  ║                                                                       ║
-  ║  v2 itself is UNTOUCHED and remains the live Step 2 in WO_STEP_FILES.  ║
-  ║  Nothing links here — open it directly. To A/B in-flow instead, point  ║
-  ║  WO_STEP_FILES.checklist (eam-shared.js) at this filename temporarily. ║
-  ║                                                                       ║
-  ║  If scroll mode wins: fold it into v2 and delete this file. If it      ║
-  ║  loses: delete this file. Don't let it become a third live version —   ║
-  ║  see CLAUDE.md's retirement convention.                                ║
-  ║                                                                       ║
-  ║  Everything scroll-mode-specific is marked `SCROLL MODE` in the CSS    ║
-  ║  and JS below; the classic path is untouched code.                     ║
-  ╚═══════════════════════════════════════════════════════════════════════╝
-
   WO WORKFLOW — STEP 2: ACTIVITY CHECKLIST — v2, rebuilt 2026-07-21 onto
   the "Focused Stepper" model. Supersedes v1's grouped-scroll-list design
   (retired to `old versions/eam-activity-checklist-prototype-v1.html`) —
@@ -117,30 +96,6 @@
   mid-browse, is what triggers it now.
 -->
 <style>
-/* ── Bottom reserve (fixed 2026-08-12, device: paged mode could not scroll at
-   all and its last container sat under the bar; the dev readout said
-   scrollTop/scrollHeight/clientHeight = 0/645/645).
-
-   TWO causes, one symptom each, and the readout is what separated them:
-
-   1. NO SCROLL RANGE. `.focus-wrap` is `flex:1` in a column flex container, so
-      it GROWS to consume exactly whatever space is left. Whenever an item is
-      shorter than the container, children sum to precisely the content box and
-      scrollHeight can never exceed clientHeight — hence 645/645. Paged mode
-      wasn't failing to scroll, it was structurally incapable of it. `min-height`
-      below forces a guaranteed overflow, so the gesture always has somewhere to
-      go and the tail is always reachable.
-
-   2. SHORT RESERVE. 72px bar + 16px was all that was held back, with no
-      allowance for the home-indicator inset — so on a notched device the bar
-      covers more than is reserved and eats the last rows. env() is added here
-      and resolves to 0 where there is no inset, so it costs nothing elsewhere.
-
-   NOTE this file is the A/B copy. The same two lines are wrong in v2 and in
-   Book Labor / Issue Parts / WO Closing / WO Record View — all six reserve bar
-   space the same way and NO screen in the app uses safe-area-inset. Not fixed
-   here on purpose: that's an app-wide change and this one needs to be confirmed
-   on a device first. Tracked in §20. */
 .content { padding: 0 0 var(--bar-reserve); display: flex; flex-direction: column; }
 
 /* ─── CHECKLIST-WIDE RAIL ─────────────────────────────────────────────
@@ -182,14 +137,23 @@
 .stepper-progress-fill { height: 100%; background: var(--green); transition: width .3s; }
 
 /* ─── FOCUSED ITEM ───────────────────────────────────────────────── */
-/* min-height is what gives paged mode any scroll range at all — see the long
-   note on .content above. `flex:1` makes this box grow to exactly fill the
-   container, so without a minimum LARGER than the container it can never
-   overflow, and a scroll container with no overflow ignores the gesture
-   completely. 100% resolves against .content's own content box (a definite
-   height, since .content is a flex item with a resolved size), so this reads as
-   "always one container tall, plus a tail". The tail doubles as breathing room
-   above the bottom bar, which the screen wanted anyway. */
+/* min-height is what gives this screen any scroll range at all (fixed
+   2026-08-12, §20 — device report: "scrolling up or down gets NO response",
+   with a dev readout of scrollTop/scrollHeight/clientHeight = 0/645/645).
+
+   `flex:1` in a column flex container makes this box grow to consume exactly
+   whatever space is left over, so whenever the focused item is shorter than
+   .content, the children sum to precisely the content box and scrollHeight can
+   never exceed clientHeight. A scroll container with no overflow ignores the
+   gesture entirely — the screen wasn't failing to scroll, it was structurally
+   incapable of it. It scrolled in a desktop browser only because a short window
+   makes the item genuinely overflow.
+
+   100% resolves against .content's own content box, which is a definite height
+   (.content is a flex item with a resolved size), so this reads as "always one
+   container tall, plus a tail". The tail doubles as breathing room above the
+   bottom bar. .content's own --bar-reserve padding handles the other half of
+   this bug — the bar covering more than was held back. */
 .focus-wrap { flex: 1; padding: 14px 0 4px; min-height: calc(100% + 72px); }
 .focus-label-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 0 16px; margin-bottom: 10px; }
 .focus-label { flex: 1; font-size: 1.1875rem; font-weight: 700; color: var(--octave-black); line-height: 1.3; }
@@ -222,132 +186,6 @@
 [data-theme="dark"] .focus-equip-chip .mono { color: var(--white); }
 
 .focus-control { padding: 18px 16px; }
-
-/* ═══ SCROLL MODE (vertical snap pager) ══════════════════════════════════
-   All of it gated behind `.content.snap-mode`, so classic mode renders with
-   none of this in play — that's what keeps the A/B honest.
-
-   NO scroll-snap-* PROPERTIES HERE, deliberately (changed 2026-08-12 after
-   the first device round). `proximity` didn't fire reliably on iOS and left
-   items resting half-placed; `mandatory` would fight the two cases that must
-   stay free — reading a long item's Comments/Documents, and iOS scrolling a
-   focused input into view. JS does the landing instead, where the rule can be
-   conditional. See the SNAP MODE header comment in the script.
-
-   --snap-panel-h / --snap-stub-h / --snap-head are measured at runtime (see
-   measureSnap()) rather than written as vh/dvh expressions: the usable height
-   is .content's own clientHeight MINUS the sticky rail MINUS the bottom bar
-   that .content only reserves via padding, and none of that is expressible in
-   CSS here. Also sidesteps the §3.4 vh-vs-dvh trap entirely — there's no
-   viewport unit in this block to get wrong. */
-.content.snap-mode { --snap-land-pad: 26px; }
-
-/* The panel itself has NO top padding: its first child is the banner, which must
-   land flush against the rail — that flushness is the whole arrival cue. The
-   landing air moved inside, to .snap-body, where it sits between the banner and
-   the item's own first element. */
-.snap-body { padding-top: var(--snap-land-pad, 26px); }
-
-/* ── ITEM BANNER — "Anchor + equipment", chosen on device 2026-08-12 ─────────
-   Replaces the small mono caption. Fixed height, so it reads as a constant
-   anchor rather than as more content, and it is what the snap lands on:
-   scrolling forward you watch the next banner drawn up and set down, scrolling
-   back you pull the previous one into place. The number takes the mono weight
-   identifiers carry elsewhere in the app, sized to register peripherally while
-   it's still moving — you don't read it, you watch it.
-
-   It carries the EQUIPMENT because that's the identifier that actually matters
-   once §16.9's fan-out is in play: on a 156-asset route "item 237 of 624"
-   locates you in the data, not on the job. The flat index stays alongside it for
-   continuity with the rail's own counter. */
-.snap-banner { height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 16px; background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-.snap-banner-num { font-family: var(--font-mono); font-size: 1.4375rem; font-weight: 700; letter-spacing: -.02em; line-height: 1; color: var(--octave-black); }
-[data-theme="dark"] .snap-banner-num { color: var(--white); }
-.snap-banner-of { font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 600; color: var(--gray-3); align-self: flex-end; padding-bottom: 2px; }
-.snap-banner-sp { flex: 1; }
-.snap-banner-eq { min-width: 0; text-align: right; }
-.snap-banner-eq-code { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 700; color: var(--octave-black); }
-[data-theme="dark"] .snap-banner-eq-code { color: var(--white); }
-.snap-banner-eq-desc { font-size: 0.65625rem; color: var(--gray-4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.snap-banner-none { flex-shrink: 0; font-family: var(--font-mono); font-size: 0.625rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--gray-4); border: 1px solid var(--border-strong); border-radius: 999px; padding: 4px 9px; }
-/* The arrival cue. Now the DEFAULT rather than scoped to .is-current, because
-   the banner is locked design and paged mode carries it too — where there are no
-   panels at all, so an .is-current selector would have silently dropped the
-   shadow there. Stubs opt out instead: they haven't arrived anywhere. */
-.snap-banner { box-shadow: 0 6px 18px -8px rgba(26,26,31,.45); border-bottom-color: var(--border-strong); }
-.snap-panel.is-stub .snap-banner { box-shadow: none; border-bottom-color: var(--border); }
-
-/* Completion tick. Reuses the existing green rather than introducing a second
-   one (§23: "green is reused, never re-invented"), and it is rendered on every
-   banner but hidden until .is-done — so a value typed into a numeric field can
-   reveal it by toggling one class, without re-rendering the panel and destroying
-   the input being typed into. That's why it isn't conditional markup. */
-.snap-banner-done { display: none; align-items: center; color: var(--green); flex-shrink: 0; }
-.snap-banner.is-done .snap-banner-done { display: flex; }
-/* Rail auto-collapse-on-scroll was tried here on 2026-08-12 and REVERTED the
-   same day on device: "way too problematic." .step-rail is in flow, so hiding it
-   reflows .content and shifts the whole surface by the rail's height mid-gesture
-   — animating it and re-measuring the snap band afterwards was not enough to
-   make that feel like anything other than the screen lurching. Don't retry it
-   without making the rail float first, which is a much larger change (§14.2). */
-
-/* The banner carries the equipment now, so the in-body chip would say it twice.
-   Hidden in CSS rather than removed from itemFullHtml(), which is shared with
-   classic mode and has to stay byte-identical to v2 for the A/B to mean
-   anything. Scoped to .snap-mode, so paged mode still shows its own chip. */
-/* No longer scoped to .snap-mode: the banner is locked design in BOTH modes now,
-   so the in-body chip would duplicate the equipment on either. This supersedes
-   §16.8's `.focus-equip-chip` as the item's equipment identity — the banner does
-   that job, at the top of the item, where it also survives being scrolled past.
-   Hidden rather than deleted from itemFullHtml() so the revert is one line. */
-.focus-equip-chip { display: none; }
-/* The current panel is one screenful LESS the peek, so the next item's top
-   always shows below it when the item is short. That peek is the whole
-   "there's more below, keep going" affordance — it is not decoration. */
-.snap-panel.is-current { min-height: var(--snap-panel-h, 60vh); }
-/* Neighbours are label + answer control only — no Notes/Comments/Documents.
-   Three reasons, all load-bearing: the shared Comments/Documents renderers
-   bind to module-level COMMENTS_DATA/DOCUMENTS_DATA and to fixed element ids
-   (#fv-itemNotes, #itemCommentsMount, …), so exactly one item on screen may
-   own them; rendering a neighbour's chrome costs work you may never scroll
-   to; and a stub reads as a genuine "next up" preview. */
-/* A stub is short content in a FULL-BAND-HEIGHT box, and the height is not
-   cosmetic — it's what makes the next item reachable at all. A scroll
-   container can only scroll until its last child's bottom meets the viewport
-   bottom, so if the trailing stub is shorter than the visible band, its top
-   can never reach the anchor line, the commit never fires, and both the flick
-   and the Next button silently do nothing. Sizing every stub to the full band
-   guarantees the panel after the current one can always be scrolled to the
-   top. (The current panel is deliberately one PEEK shorter — different job:
-   that's what leaves the next item's head visible below it.) */
-/* Stubs are their NATURAL height as of 2026-08-12. They used to be forced to a
-   full band height, which is where the ~500px of nothing between items came
-   from — a mechanical constraint (the last panel has to be scrollable to the top,
-   and a scroller stops when its last child's bottom meets the viewport bottom)
-   leaking into the layout. .snap-tail below now supplies that room instead, once,
-   below everything, where it is never between two items. The payoff is that the
-   banner you left and the banner you're arriving at can be on screen together. */
-.snap-panel.is-stub { opacity: .5; border-top: 1px solid var(--border); cursor: pointer; }
-/* The room that makes the last panel reachable. One band's worth, after every
-   panel — not a per-stub minimum. Not a .snap-panel, so it can never win
-   panelMostVisible() and be mistaken for an item. */
-.snap-tail { min-height: var(--snap-tail-h, 60vh); }
-/* Controls in a stub must never be tappable — every control's handler acts
-   on ITEMS[cursor], so a tap here would silently answer the WRONG item.
-   The stub as a whole stays tappable (jumps to it); only the control is
-   inert, and clicks land on the stub root instead. */
-.snap-panel.is-stub .focus-control,
-.snap-panel.is-stub .followup-btn-lg { pointer-events: none; }
-/* The persistent sequence identifier used to be a small mono caption here
-   (.snap-item-tag). It became the banner below — same job, done at a size you
-   watch rather than read. Its two design conclusions still hold and carried over:
-   the identifier appears on EVERY panel, current and stubs alike, as the panel's
-   first element so it lands in the same place every time; and direction words
-   ("Next up" / "Previous") stay gone, because they moved with context — the same
-   item read "Next up" approaching it and "Previous" leaving it — so they
-   described the scroll rather than the item, which is backwards for an
-   orientation cue. */
-
 .f-toggle { display: flex; flex-direction: column; gap: 10px; }
 .f-opt { padding: 18px 0; text-align: center; font-size: 1rem; font-weight: 700; border-radius: 10px; border: 2px solid var(--gray-2); color: var(--octave-black); background: var(--bg-page); cursor: pointer; transition: all .15s; }
 [data-theme="dark"] .f-opt { border-color: var(--gray-5); color: var(--white); background: var(--bg-section); }
@@ -480,11 +318,6 @@
    where branching can happen before it's happened. A ghost row (locked
    icon, italic, non-interactive) previews an as-yet-untriggered branch,
    and disappears once real items replace it. */
-/* Same identifier, same format, in the list — was `4 — label` inline, which put
-   the number in the label's own voice and left it un-scannable down a column of
-   624 rows. Mono, zero-padded and fixed-width so the numbers line up and the
-   list agrees with the panel tag on what an item is called. */
-.ov-row-num { flex-shrink: 0; min-width: 20px; font-family: var(--font-mono); font-size: 0.71875rem; font-weight: 600; color: var(--gray-4); }
 .ov-row-indent { padding-left: 40px; background: var(--bg-page); }
 .ov-dynamic-icon, .ov-branch-cue, .ov-ghost-icon { display: flex; flex-shrink: 0; color: var(--gray-4); }
 .ov-ghost-icon { color: var(--gray-4); }
@@ -511,13 +344,10 @@
    behind an icon" pattern to copy elsewhere. */
 .ov-filter-bar { display: flex; align-items: center; gap: 8px; padding: 10px 16px; }
 .ov-filter-bar .ds-bar { flex: 1; margin: 0; height: 44px; padding: 0 14px; }
-/* Selector extended rather than a second copy of the same declarations — the
-   collapse-all control is the same affordance as search (a square icon button
-   in the filter bar) and must not drift from it. */
-.ov-search-icon-btn, .ov-collapse-icon-btn { width: 44px; height: 44px; flex-shrink: 0; border-radius: 14px; border: 1.5px solid var(--border); background: var(--bg-card); color: var(--gray-4); display: flex; align-items: center; justify-content: center; cursor: pointer; }
-.ov-search-icon-btn:hover, .ov-collapse-icon-btn:hover { border-color: var(--gray-3); }
-.ov-search-icon-btn.on, .ov-collapse-icon-btn.on { color: var(--octave-black); border-color: var(--octave-black); }
-[data-theme="dark"] .ov-search-icon-btn.on, [data-theme="dark"] .ov-collapse-icon-btn.on { color: var(--white); border-color: var(--white); }
+.ov-search-icon-btn { width: 44px; height: 44px; flex-shrink: 0; border-radius: 14px; border: 1.5px solid var(--border); background: var(--bg-card); color: var(--gray-4); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.ov-search-icon-btn:hover { border-color: var(--gray-3); }
+.ov-search-icon-btn.on { color: var(--octave-black); border-color: var(--octave-black); }
+[data-theme="dark"] .ov-search-icon-btn.on { color: var(--white); border-color: var(--white); }
 .ov-search-row { margin: 10px 16px 0; }
 
 .toast { bottom: calc(var(--bar-height) + 10px); }
@@ -546,18 +376,11 @@
 <div class="proto-theme-bar">
   <span class="proto-theme-label">Preview theme</span>
   <button class="theme-toggle" id="themeToggle">☀ Light</button>
-  <!-- Dev-only, this file only: the A/B switch. "Scroll" = snap pager,
-       "Paged" = v2's exact Prev/Next behaviour. Held in sessionStorage so it
-       survives navigating out to Book Labor and back (a real comparison
-       involves leaving and returning), but not a fresh browser session — and
-       deliberately NOT localStorage, so resetDemoState() has nothing to do
-       with it. -->
-  <button class="theme-toggle" id="scrollModeToggle" onclick="toggleScrollMode()">↕ Scroll</button>
 </div>
 
 <div class="app" id="app">
 
-  <header class="nav" onclick="chScrollTop()">
+  <header class="nav" onclick="scrollFormToTop()">
     <div class="nav-left">
       <button class="nav-back" aria-label="Back" onclick="event.stopPropagation(); navBack()">
         <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
@@ -576,7 +399,7 @@
        no pin, no Plus. Screen-specific ellipsis slot carries Print Work
        Order + Comments/Documents (§14.8 — WO-level, unrelated to this
        file's own per-item Comments/Documents below). Unchanged from v1. ── -->
-  <div class="rec-header" id="recHeader" onclick="chScrollTop()">
+  <div class="rec-header" id="recHeader" onclick="scrollFormToTop()">
     <div class="rec-id-row">
       <div class="rec-id-text">
         <span class="rec-num" id="recNum">19257</span>
@@ -833,7 +656,7 @@ const ITEMS = [
     documents:[], comments:[], note:'', followup:false, value:false },
   { id:2, group:'safety', label:'PPE check — gloves, goggles, steel-cap boots', required:false, type:'check',
     documents:[], comments:[], note:'', followup:false, value:false },
-  { id:3, group:'main', label:'Bearing housing — visual condition', equipId:'00067333', equipDesc:'Pump, Centrifugal', required:false, type:'toggle3',
+  { id:3, group:'main', label:'Bearing housing — visual condition', equipId:'A-00067333', equipDesc:'Pump, Centrifugal', required:false, type:'toggle3',
     options:[['Pass','sel-green'],['Fail','sel-red'],['N/A','sel-gray']],
     documents:[
       { icon:'pdf', name:'Bearing_Housing_Drawing_Rev4.pdf', meta:'PDF · 2.1 MB' },
@@ -853,17 +676,17 @@ const ITEMS = [
         { label:'Corrective action taken on-site?', type:'toggle2', options:[['Yes','sel-green'],['No','sel-red']], required:false, value:null },
       ] },
     ] },
-  { id:4, group:'main', label:'Shaft alignment', equipId:'00067333', equipDesc:'Pump, Centrifugal', required:false, type:'toggle2',
+  { id:4, group:'main', label:'Shaft alignment', equipId:'A-00067333', equipDesc:'Pump, Centrifugal', required:false, type:'toggle2',
     options:[['OK','sel-green'],['Adjusted','sel-orange']],
     documents:[], comments:[], note:'', followup:false, value:null },
-  { id:5, group:'main', label:'Bearing temperature — post run', equipId:'00067333', equipDesc:'Pump, Centrifugal', required:false, type:'num', uom:'°F', range:'60 – 180 °F',
+  { id:5, group:'main', label:'Bearing temperature — post run', equipId:'A-00067333', equipDesc:'Pump, Centrifugal', required:false, type:'num', uom:'°F', range:'60 – 180 °F',
     documents:[], comments:[], note:'', followup:false, value:'' },
   // Slider answer-control exercise (2026-07-31) — Option A (linear fill)
   // from the earlier mockup, now live as a real checklist item. Option C
   // (vertical tank fill) was removed from consideration 2026-07-31. No
   // acceptable-range concept here — the product has no way to configure
   // one within a slider's min/max yet.
-  { id:8, group:'main', label:'Coolant reservoir level', equipId:'00067333', equipDesc:'Pump, Centrifugal', required:false,
+  { id:8, group:'main', label:'Coolant reservoir level', equipId:'A-00067333', equipDesc:'Pump, Centrifugal', required:false,
     type:'slider', min:0, max:100, uom:'%', value:null,
     documents:[], comments:[], note:'', followup:false },
   { id:6, group:'close', label:'Area restored and barricades removed?', required:false, type:'toggle2',
@@ -974,9 +797,6 @@ function applySliderValue(it, pct) {
   valEl.innerHTML = it.value + '<span class="f-uom">' + it.uom + '</span>';
   renderStepperHead();
   updateFooter();
-  // Third in-place answer path, alongside setNum/setText — a slider drag mutates
-  // its own DOM rather than re-rendering, so the banner tick needs telling too.
-  syncBannerDone();
 }
 function sliderDragStart(e, itemId) {
   e.preventDefault();
@@ -1053,505 +873,31 @@ function controlHtml(it) {
   return '';
 }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   SCROLL MODE — vertical snap pager (A/B, added 2026-08-12)
-
-   The problem it answers: after §16.9's equipment fan-out a Route checklist
-   is ~96 or ~624 items, and paging through that with a button reads as an
-   endless run of discrete screens. Scroll mode keeps the focused-item model
-   exactly as-is (one item owns the screen) and replaces the *transition*
-   with a scroll — so the surface feels continuous while the DOM stays at 3
-   panels regardless of item count. Nothing here virtualises a long list;
-   that direction was considered and rejected (it reintroduces both the perf
-   and the dynamic-update problems the Focused Stepper was chosen to avoid).
-
-   THREE PANELS, ONE OF THEM REAL. The window is [cursor-1, cursor, cursor+1].
-   The middle panel is the full item; the neighbours are label + answer
-   control only. That split isn't an optimisation, it's a constraint: the
-   shared Comments/Documents renderers bind to module-level COMMENTS_DATA /
-   DOCUMENTS_DATA and to fixed element ids (#fv-itemNotes, #itemCommentsMount,
-   #rv-comments…), so only one item on screen can own that chrome. The happy
-   accident is that a stub is also exactly the "next up" peek we wanted.
-
-   ONE SOURCE OF TRUTH FOR "WHICH ITEM AM I ON". Thumb scrolling and the
-   Prev/Next buttons both end at onSnapSettle() — the buttons scroll, they
-   don't set the cursor. Two inputs, one commit path, so they can't disagree.
-
-   SNAPPING IS OWNED BY JS, NOT CSS (changed 2026-08-12 after the first device
-   round). `scroll-snap-type: proximity` was doing the landing, and on iOS it
-   simply didn't fire reliably — the cursor committed to the next item and the
-   scroll stayed exactly where the flick ended, resting with the outgoing
-   stub's empty tail on screen and the incoming item's equipment pill halfway
-   down. Reported as "this screenshot should never occur", and rightly.
-
-   CSS snap is gone entirely rather than turned up to `mandatory`: mandatory
-   fights the one case that must stay free (reading a long item's Comments and
-   Documents) and fights iOS scrolling a focused input into view. Doing it in
-   JS means the rule can be conditional, which is exactly what's needed —
-
-   ON SETTLE, EXACTLY ONE OF THREE THINGS IS TRUE:
-     1. a neighbour is now the most-visible panel  → commit to it, then
-        animate its top to the landing position;
-     2. the current item still owns the band and its top is above the band top
-        → the technician is reading inside the item. LEAVE IT ALONE. This is
-        the Comments/Documents case and the whole reason snapping is
-        conditional;
-     3. the current item still owns the band but its top has fallen below the
-        band top → this is the limbo state from the report, dead space above a
-        half-placed item. Animate it home.
-   The invariant that follows: the scroll never comes to rest with an item's
-   top below the band top. Either it's flush, or you're deliberately inside it.
-
-   §16.1 NOTE: the locked rule is "one item at a time, not a scrolling list,"
-   and its stated reason is that a list made every item carry idle chrome.
-   Scroll mode keeps that reason satisfied — only the focused item has chrome
-   — but it does amend the letter of the rule. Don't fold this into v2 without
-   updating §16.1.
-   ══════════════════════════════════════════════════════════════════════════ */
-let SCROLL_MODE  = sessionStorage.getItem('eamChecklistScrollMode') !== 'off';
-let typingLock   = false;  // a Notes field currently holds focus
-let pendingSettle= false;  // a commit deferred because of typingLock
-let suppressScroll = false;// our own programmatic scrolling, not the user's
-let settleTimer  = null;
-let snapAnimTimer = null;
-let snapRaf = null;
-let touching  = false;   // finger currently down on the scroller
-let scrollVel = 0;       // px/ms, low-passed
-let lastScrollTop = 0, lastScrollT = 0;
-/* Velocity below which a momentum glide counts as over. From the device:
-   "there is a bit of delay that feels unnatural on the snap where we could
-   invoke it earlier on scroll... if it's slowing down, just snap." A flick
-   leaves the finger at roughly 3–8 px/ms; 0.3 px/ms (~18px per frame) is still
-   visibly moving, which is the point — the snap takes over the tail of the
-   glide instead of waiting for dead stillness and then starting a new motion.
-   That waiting is exactly what read as lazy. */
-const SNAP_VEL = 0.3;
-/* How much of the band a neighbour must fill before it takes over. Half, per
-   the device call: "once the next (or previous) is over half in view after a
-   scroll, ensure it snaps consistently." Because the panels are contiguous,
-   >50% of the band is also automatically more than the outgoing item has, so
-   this and most-visible agree — the explicit floor is what stops a 2px
-   overlap at the end of the scroll range from counting as a takeover. */
-const SNAP_TAKEOVER = 0.5;
-
-function contentEl() { return document.querySelector('.content'); }
-
-/* The numbers CSS can't work out for itself. .content's clientHeight covers
-   the area *under* the sticky rail, and its bottom padding stands in for the
-   absolutely-positioned nav bar — so both come off the top to get the height
-   actually visible to a technician. Measuring also sidesteps §3.4's vh-vs-dvh
-   trap: there is no viewport unit in the snap CSS to get wrong. */
-function measureSnap() {
-  const c = contentEl();
-  if (!c) return;
-  const headH = document.querySelector('.stepper-head').offsetHeight;
-  const barH  = document.getElementById('stepperNav').offsetHeight
-             || document.getElementById('promptBar').offsetHeight || 64;
-  const PEEK  = 76;  // how much of the next item shows below a short one
-  // The band actually visible to a technician: the scroller's own height, less
-  // the sticky rail on top and the floating bottom bar that .content only
-  // reserves space for via padding.
-  const band  = Math.max(240, c.clientHeight - headH - barH);
-  c.style.setProperty('--snap-head', headH + 'px');
-  c.style.setProperty('--snap-panel-h', (band - PEEK) + 'px');
-  c.style.setProperty('--snap-tail-h', band + 'px');
-}
-function snapHeadPx() {
-  return parseFloat(getComputedStyle(contentEl()).getPropertyValue('--snap-head')) || 0;
-}
-
-/* Run a scroll mutation without our own settle handler mistaking it for a user
-   gesture. Two rAFs: the first lets layout settle, the second swallows the
-   scroll event our own change fired. */
-function withSnapSuppressed(fn) {
-  suppressScroll = true;
-  fn();
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => { suppressScroll = false; });
-  });
-}
-
-/* The visible band, in client coords: the scroller's box less the sticky rail.
-   Everything in here reasons in this frame rather than in scrollTop, because
-   panel heights change on every commit and offsets don't survive that. */
-function bandGeom() {
-  const cr = contentEl().getBoundingClientRect();
-  const top = cr.top + snapHeadPx();
-  return { top, bottom: cr.bottom, height: Math.max(1, cr.bottom - top) };
-}
-
-/* Which item is on screen: the panel filling the most of the band. Two other
-   rules were tried and are wrong, both worth keeping on record:
-
-   "Nearest panel top" — halfway down a tall item the nearest top is the NEXT
-   item's, so the cursor runs ahead of the technician who is still reading.
-
-   "The panel straddling the band's top edge" — correct for a tall item, but it
-   breaks at the end of the scroll range. The last panel's top can sit below
-   that edge and be unreachable, in which case the outgoing panel keeps
-   straddling and the cursor never advances at all. */
-function panelMostVisible() {
-  const b = bandGeom();
-  let best = null, bestSeen = 0, bestH = 0;
-  for (const p of contentEl().querySelectorAll('.snap-panel')) {
-    const r = p.getBoundingClientRect();
-    const seen = Math.min(r.bottom, b.bottom) - Math.max(r.top, b.top);
-    if (seen > bestSeen) { bestSeen = seen; best = p; bestH = r.height; }
-  }
-  /* `reach` is the most of itself this panel could possibly show, and the
-     takeover threshold is measured against THAT, not against the band. It has to
-     be: since stubs went to their natural height (~220px) they can never fill
-     half a 530px band, so a band-relative threshold would never be met and the
-     takeover would silently stop firing — the "Next does nothing" bug returning
-     by a different route. A tall item is still judged against the band, because
-     that's all of it you can see at once. */
-  return { panel: best, seen: bestSeen, reach: Math.min(bestH || b.height, b.height) };
-}
-
-/* Animate the scroller to `top` on our own rAF clock rather than with
-   scrollTo({behavior:'smooth'}), for two reasons that both showed up on device:
-
-   1. Duration control. Native smooth has none, and its pacing is what made the
-      landing feel like a separate, late motion. 220ms with an ease-out departs
-      immediately and arrives soft — it reads as the snap absorbing the flick.
-   2. It beats momentum. The early-snap trigger now fires while an iOS momentum
-      glide is still running, and a native smooth scroll can be ignored or
-      fought in that state. Writing scrollTop every frame cancels the fling
-      outright, so the landing is ours and is not negotiable.
-
-   Aborts the moment a finger comes down — a snap in progress must never fight
-   the technician for the scroller. */
-function animateTo(top, smooth) {
-  const c = contentEl();
-  cancelAnimationFrame(snapRaf);
-  clearTimeout(snapAnimTimer);
-  const from = c.scrollTop;
-  const dist = top - from;
-  suppressScroll = true;
-  if (smooth === false || Math.abs(dist) < 2) { c.scrollTop = top; releaseSnap(); return; }
-  const dur = Math.min(320, Math.max(160, Math.abs(dist) * 0.45));
-  const t0 = performance.now();
-  const step = now => {
-    if (touching) { releaseSnap(); return; }
-    const p = Math.min(1, (now - t0) / dur);
-    c.scrollTop = from + dist * (1 - Math.pow(1 - p, 3));  // easeOutCubic
-    if (p < 1) snapRaf = requestAnimationFrame(step);
-    else releaseSnap();
-  };
-  snapRaf = requestAnimationFrame(step);
-}
-function releaseSnap() {
-  cancelAnimationFrame(snapRaf);
-  snapRaf = null;
-  // One frame of grace so the scroll events our own writes fired don't come
-  // back in as a fresh gesture and re-trigger the settle logic.
-  requestAnimationFrame(() => {
-    suppressScroll = false;
-    scrollVel = 0;
-    lastScrollT = 0;
-  });
-}
-
-/* Park a panel's top flush against the band top. The panel's own padding-top
-   (--snap-land-pad) is what puts air above the equipment pill once it lands —
-   the landing target is the panel box, the breathing room is inside it. */
-function snapToPanel(idx, smooth) {
-  const c = contentEl();
-  const p = c.querySelector('.snap-panel[data-idx="' + idx + '"]');
-  if (!p) return false;
-  animateTo(c.scrollTop + (p.getBoundingClientRect().top - bandGeom().top), smooth);
-  return true;
-}
-function snapToCurrent(smooth) { return snapToPanel(cursor, smooth); }
-
-/* The three-branch rule — see the SNAP MODE header comment for why each branch
-   exists. Order matters: takeover is checked before the reading exemption, or
-   a tall outgoing item would hold the cursor while more than half the screen
-   already belongs to the next one. */
-function onSnapSettle() {
-  if (!SCROLL_MODE || showingInstructions) return;
-  // Never rebuild the window while Notes holds focus — the textarea being
-  // typed into is inside the panel we'd destroy. Deferred to blur instead.
-  if (typingLock) { pendingSettle = true; return; }
-  const { panel, seen, reach } = panelMostVisible();
-  if (!panel) return;
-  const idx = +panel.dataset.idx;
-
-  // 1. A neighbour is showing more than half of as much of itself as it can.
-  if (idx !== cursor && seen >= reach * SNAP_TAKEOVER) { commitCursor(idx); return; }
-
-  // 2/3. Still on the current item. Snap it home only if it has drifted DOWN
-  // past the band top, leaving dead space above it. If its top is above the
-  // band top, the technician has scrolled into the item's own body (Comments,
-  // Documents, a long note) and moving them is the one thing not to do.
-  const cur = contentEl().querySelector('.snap-panel.is-current');
-  if (!cur) return;
-  const drift = cur.getBoundingClientRect().top - bandGeom().top;
-  if (drift > 2) snapToCurrent(true);
-}
-
-/* Rebuild the window invisibly, THEN snap with intent. The two steps are
-   separate on purpose: the panel being scrolled into changes height as it goes
-   stub→current (it gains Notes/Comments/Documents) and so does the one being
-   left, so the rebuild has to hold the picture still to avoid a lurch — and
-   only then is it safe to animate to the landing position. Doing just the
-   first half is what produced the limbo screenshot. */
-function commitCursor(idx) {
-  const c = contentEl();
-  const target = c.querySelector('.snap-panel[data-idx="' + idx + '"]');
-  const before = target ? target.getBoundingClientRect().top - c.getBoundingClientRect().top : null;
-  cursor = idx;
-  renderFocus({ keep: before });
-  snapToCurrent(true);
-}
-
-/* Buttons COMMIT, they don't scroll-and-hope (fixed 2026-08-12, round 2 device
-   report: "brings attention to the next item, but remains greyed out and a
-   second tap is required to bring it in focus").
-
-   They used to scroll to the neighbouring panel and leave onSnapSettle() to
-   notice — which cannot work, because a landing animation mutes that very
-   handler for its own duration. So the panel arrived and stayed a stub, and the
-   only reason a second tap fixed it was a stray post-release scroll event.
-
-   A button press is explicit intent; there is nothing to infer from geometry.
-   Both inputs still converge on commitCursor(), so there's one place where the
-   cursor moves — the difference is that the thumb's intent is *derived* and the
-   button's is *stated*. */
-function scrollToIdx(idx) { return snapToPanel(idx, true); }
-
-/* A focused textarea and any scroll of ours don't mix: iOS scrolls the caret
-   into view and a snap would drag it straight back off screen. Wraps the
-   shared handlers rather than replacing them. Same family of trap as the
-   --kb-inset bugs in §3.4. */
-function chNotesFocus() {
-  typingLock = true;
-  clearTimeout(snapAnimTimer);
-  clearTimeout(settleTimer);
-  onInlineFocus();
-}
-function chNotesBlur(el) {
-  typingLock = false;
-  onInlineBlur(el);
-  if (pendingSettle) { pendingSettle = false; onSnapSettle(); }
-}
-
-/* Header tap means "back to the top of what I'm doing", which in scroll mode
-   is the current panel — not scroll position 0, which is the *previous* item,
-   and settling there would quietly walk the cursor backwards. */
-function chScrollTop() {
-  if (SCROLL_MODE && !showingInstructions) { scrollToIdx(cursor); return; }
-  scrollFormToTop();
-}
-
-function toggleScrollMode() {
-  SCROLL_MODE = !SCROLL_MODE;
-  sessionStorage.setItem('eamChecklistScrollMode', SCROLL_MODE ? 'on' : 'off');
-  syncScrollModeLabel();
-  clearTimeout(snapAnimTimer);
-  suppressScroll = false;
-  contentEl().scrollTop = 0;
-  renderFocus({ anchor: 'top' });
-  showToast(SCROLL_MODE ? 'Scroll mode — flick between items' : 'Paged mode — v2 behaviour');
-}
-function syncScrollModeLabel() {
-  document.getElementById('scrollModeToggle').textContent = SCROLL_MODE ? '↕ Scroll' : '⇄ Paged';
-}
-
-/* ─── Render dispatch ────────────────────────────────────────────────────
-   opts.keep   — px offset from .content's top to hold the current panel at
-                 (commitCursor's no-lurch rebuild).
-   opts.anchor — 'top': park the current panel under the rail (jumpTo, mode
-                 switch, leaving the instructions screen).
-   Neither: hold scrollTop exactly where it is. That's the right answer for an
-   in-place re-render after an answer — the panels above the current one can't
-   change height when the current item's own answer changes, so the position
-   stays valid. Classic mode ignores all of it. */
-function renderFocus(opts) {
-  opts = opts || {};
-  const c = contentEl();
-  if (showingInstructions) { c.classList.remove('snap-mode'); renderInstructionsScreen(); return; }
-  if (!SCROLL_MODE)        { c.classList.remove('snap-mode'); renderClassicFocus();      return; }
-  c.classList.add('snap-mode');
-  renderSnapPanels(opts);
-}
-
-function renderInstructionsScreen() {
-  document.getElementById('focusWrap').innerHTML = `
-    <div class="section-card">
-      <div class="comment-item" style="border-bottom:none;">
-        <div class="comment-header">
-          <span class="comment-author instr-title"><span class="instr-icon">${INSTR_ICON}</span>Task Instructions</span>
-          <div class="comment-time-actions">
-            <span class="comment-time instr-lock-tag">${LOCK_ICON} Not editable</span>
+function renderFocus() {
+  if (showingInstructions) {
+    document.getElementById('focusWrap').innerHTML = `
+      <div class="section-card">
+        <div class="comment-item" style="border-bottom:none;">
+          <div class="comment-header">
+            <span class="comment-author instr-title"><span class="instr-icon">${INSTR_ICON}</span>Task Instructions</span>
+            <div class="comment-time-actions">
+              <span class="comment-time instr-lock-tag">${LOCK_ICON} Not editable</span>
+            </div>
           </div>
+          <div class="comment-text instr-body">${TASK_PLAN_INSTRUCTIONS}</div>
         </div>
-        <div class="comment-text instr-body">${TASK_PLAN_INSTRUCTIONS}</div>
       </div>
-    </div>
-    <div style="height:16px;"></div>`;
-  document.getElementById('prevBtn').disabled = true;
-  document.getElementById('nextBtn').innerHTML = 'Start Checklist <svg width="16" height="16" fill="none" viewBox="0 0 24 24" style="margin-left:4px"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  renderStepperHead();
-  updateFooter();
-}
-
-/* Paged mode. No panels and no snapping — but it DOES carry the banner, as of
-   2026-08-12: the banner is locked design, and the A/B is now purely about
-   navigation (scroll vs. paged), not about how an item identifies itself. This is
-   the point at which paged mode stops being byte-identical to v2. */
-function renderClassicFocus() {
+      <div style="height:16px;"></div>`;
+    document.getElementById('prevBtn').disabled = true;
+    document.getElementById('nextBtn').innerHTML = 'Start Checklist <svg width="16" height="16" fill="none" viewBox="0 0 24 24" style="margin-left:4px"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    renderStepperHead();
+    updateFooter();
+    return;
+  }
   const it = ITEMS[cursor];
-  document.getElementById('focusWrap').innerHTML =
-    itemBannerHtml(cursor) + `<div class="snap-body">${itemFullHtml(it)}</div>`;
-  wireCurrentItem(it);
-  syncNavButtons();
-  renderStepperHead();
-  updateFooter();
-}
-
-function renderSnapPanels(opts) {
-  const c = contentEl(), wrap = document.getElementById('focusWrap');
-  const keepTop    = (opts.keep != null) ? opts.keep : null;
-  const keepScroll = (keepTop == null && opts.anchor !== 'top') ? c.scrollTop : null;
-
-  const it = ITEMS[cursor];
-  let html = '';
-  if (cursor > 0) html += stubPanelHtml(cursor - 1);
-  html += `<div class="snap-panel is-current" data-idx="${cursor}">${itemBannerHtml(cursor)}<div class="snap-body">${itemFullHtml(it)}</div></div>`;
-  if (cursor < ITEMS.length - 1) html += stubPanelHtml(cursor + 1);
-  // One band of room after every panel, so the last one can always be scrolled
-  // to the top. This is what lets stubs be their natural height instead of each
-  // padding itself out to a full band — see .snap-tail in the CSS.
-  html += '<div class="snap-tail"></div>';
-  wrap.innerHTML = html;
-
-  wireCurrentItem(it);
-  syncNavButtons();
-  renderStepperHead();
-  updateFooter();
-  measureSnap();
-
-  const cur = wrap.querySelector('.snap-panel.is-current');
-  withSnapSuppressed(() => {
-    const delta = cur.getBoundingClientRect().top - c.getBoundingClientRect().top;
-    if (keepTop != null)         c.scrollTop += (delta - keepTop);
-    else if (keepScroll != null) c.scrollTop  = keepScroll;
-    else                         c.scrollTop += delta - snapHeadPx();
-  });
-}
-
-function stubPanelHtml(idx) {
-  return `<div class="snap-panel is-stub" data-idx="${idx}" onclick="jumpTo(${idx})">
-    ${itemBannerHtml(idx)}
-    <div class="snap-body">${itemStubHtml(ITEMS[idx])}</div>
-  </div>`;
-}
-
-/* The WO's own header equipment, used as the banner's fallback so every item
-   names an asset (device request: "make all the checklist items direct to the
-   pump as the header equipment").
-
-   DELIBERATELY a display-time fallback rather than writing equipId onto the
-   items. `equipId` is precisely what §16.9's fan-out reads as "this item is
-   scoped to equipment", so setting it on the safety and close-out items would
-   fan THOSE out too — 156 separate LOTO confirmations on the FIREEXT route, one
-   per extinguisher. The fallback gives every banner an asset while leaving
-   §16.9's "non-scoped items stay single" rule exactly as it is.
-
-   A MEC child WO reports the single asset it was minted for, not the parent's. */
-function headerEquip() {
-  const ov = (typeof woIdentity === 'function') ? woIdentity() : null;
-  if (ov && ov.equipment) return { code: ov.equipment, desc: ov.equipmentDesc || '' };
-  return { code: '00067333', desc: 'Pump, Centrifugal' };
-}
-
-/* Emitted by the panel wrapper, NOT by itemFullHtml() — that function is shared
-   with classic mode, which has to stay byte-identical to v2 for the A/B to mean
-   anything. Denominator is live ITEMS.length for the same reason §16.1 gives
-   for the rail's counter: dynamic items (§16.5) make any predicted total a lie.
-
-   An item with no equipment (safety, close-out) says so rather than rendering an
-   empty right half — the band is fixed-height and always full-width, so silence
-   there would read as a rendering fault rather than as an absence. */
-function itemBannerHtml(idx) {
-  const it = ITEMS[idx];
-  const eq = it.equipId ? { code: it.equipId, desc: it.equipDesc || '' } : headerEquip();
-  const right = eq.code
-    ? `<span class="snap-banner-eq">
-         <div class="snap-banner-eq-code">${eq.code}</div>
-         <div class="snap-banner-eq-desc">${eq.desc}</div>
-       </span>`
-    : `<span class="snap-banner-none">No equipment</span>`;
-  /* The tick is always in the markup and revealed by .is-done, never rendered
-     conditionally — see the CSS note. A numeric or free-text answer can then
-     light it up through syncBannerDone() by toggling one class, instead of
-     re-rendering the panel and destroying the field being typed into.
-     Only the current banner gets the id; a stub's tick is set at render time and
-     never needs updating, since you can't answer a stub. */
-  const cur = idx === cursor;
-  return `<div class="snap-banner ${isDone(ITEMS[idx]) ? 'is-done' : ''}"${cur ? ' id="curBanner"' : ''}>
-    <span class="snap-banner-num">${String(idx + 1).padStart(2, '0')}</span>
-    <span class="snap-banner-of">/${String(ITEMS.length).padStart(2, '0')}</span>
-    <span class="snap-banner-done"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
-    <span class="snap-banner-sp"></span>${right}
-  </div>`;
-}
-
-/* Reflect the current item's completion in its banner without a re-render.
-   Needed because setNum()/setText() deliberately do NOT call renderFocus() — a
-   rebuild mid-keystroke would blow away the input's own focus and caret. */
-function syncBannerDone() {
-  const b = document.getElementById('curBanner');
-  if (b) b.classList.toggle('is-done', isDone(ITEMS[cursor]));
-}
-
-/* A stub carries identity + answer control and nothing else: enough to
-   recognise what's coming, and (scrolling back) to see what you answered.
-   controlHtml() is reused verbatim, which is why .is-stub .focus-control is
-   pointer-events:none in the CSS — every control handler writes to
-   ITEMS[cursor], so a live control here would answer the wrong item. */
-function itemStubHtml(it) {
-  return `
-    ${equipChipHtml(it)}
-    <div class="focus-label-row">
-      <p class="focus-label">${it.label}</p>
-      ${it.required ? '<span class="focus-req-tag">Required</span>' : ''}
-    </div>
-    <div class="section-card"><div class="focus-control">${controlHtml(it)}</div></div>`;
-}
-
-function equipChipHtml(it) {
-  return it.equipId ? `<div class="focus-equip-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span class="mono">${it.equipId}</span> — ${it.equipDesc || ''}</div>` : '';
-}
-
-function syncNavButtons() {
-  document.getElementById('prevBtn').disabled = cursor === 0 && !TASK_PLAN_INSTRUCTIONS.trim();
-  const isLast = cursor === ITEMS.length - 1;
-  document.getElementById('nextBtn').innerHTML = isLast
-    ? 'Finish'
-    : 'Next <svg width="16" height="16" fill="none" viewBox="0 0 24 24" style="margin-left:4px"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-}
-
-/* Rebinds the shared record-level Comments/Documents data to the focused
-   item, and sizes Notes. Only ever called for the current panel — see the
-   module-level-globals note in the SCROLL MODE header comment. */
-function wireCurrentItem(it) {
-  // Notes is always the tall/stacked shape now (§3.4) — pre-existing
-  // multi-line notes need their height set once on render, not just after
-  // the next keystroke, or a long note would render clipped until typed in.
-  const notesEl = document.getElementById('fv-itemNotes');
-  if (notesEl) autoGrow(notesEl);
-  COMMENTS_DATA = it.comments;
-  DOCUMENTS_DATA = it.documents;
-  renderCommentsExcerptMount();
-  renderDocumentsExcerptMount();
-}
-
-function itemFullHtml(it) {
   const dynamicParent = it.dynamic ? ITEMS.find(x => x.id === it.dynamicParentId) : null;
-  return `
-    ${equipChipHtml(it)}
+  let html = `
+    ${it.equipId ? `<div class="focus-equip-chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg><span class="mono">${it.equipId}</span> — ${it.equipDesc || ''}</div>` : ''}
     ${dynamicParent ? `<div class="focus-dynamic-tag">${BRANCH_ICON}<span>Added based on your "${dynamicParent.label}" response</span></div>` : ''}
     <div class="focus-label-row">
       <p class="focus-label">${it.label}</p>
@@ -1564,7 +910,7 @@ function itemFullHtml(it) {
     <div class="section-card">
       <div class="form-field stacked" data-field="itemNotes" onclick="focusInlineField(this)">
         <span class="field-label">Notes</span>
-        <textarea class="field-inline-input" id="fv-itemNotes" rows="1" maxlength="255" placeholder="Add a note…" oninput="updateInlineFieldLayout(this); setNote(this)" onfocus="chNotesFocus()" onblur="chNotesBlur(this)">${it.note}</textarea>
+        <textarea class="field-inline-input" id="fv-itemNotes" rows="1" maxlength="255" placeholder="Add a note…" oninput="updateInlineFieldLayout(this); setNote(this)" onfocus="onInlineFocus()" onblur="onInlineBlur(this)">${it.note}</textarea>
       </div>
     </div>
 
@@ -1606,6 +952,27 @@ function itemFullHtml(it) {
       <div class="rv-collapse" id="rv-documents"><div id="itemDocumentsMount"></div></div>
     </div>
     <div style="height:16px;"></div>`;
+
+  document.getElementById('focusWrap').innerHTML = html;
+  // Notes is always the tall/stacked shape now (§3.4) — pre-existing
+  // multi-line notes need their height set once on render, not just after
+  // the next keystroke, or a long note would render clipped until typed in.
+  const notesEl = document.getElementById('fv-itemNotes');
+  if (notesEl) autoGrow(notesEl);
+
+  // Rebind the shared record-level Comments/Documents data to this item.
+  COMMENTS_DATA = it.comments;
+  DOCUMENTS_DATA = it.documents;
+  renderCommentsExcerptMount();
+  renderDocumentsExcerptMount();
+
+  document.getElementById('prevBtn').disabled = cursor === 0 && !TASK_PLAN_INSTRUCTIONS.trim();
+  const isLast = cursor === ITEMS.length - 1;
+  document.getElementById('nextBtn').innerHTML = isLast
+    ? 'Finish'
+    : 'Next <svg width="16" height="16" fill="none" viewBox="0 0 24 24" style="margin-left:4px"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  renderStepperHead();
+  updateFooter();
 }
 
 // Prompt bar replaces the Prev/Next nav once every required item is
@@ -1640,16 +1007,12 @@ function renderPromptBar() {
        </div>`;
 }
 
-function jumpTo(idx) { closeAllSheets(); showingInstructions = false; cursor = idx; renderFocus({ anchor: 'top' }); }
+function jumpTo(idx) { closeAllSheets(); showingInstructions = false; cursor = idx; renderFocus(); }
 function jumpToInstructions() { closeAllSheets(); showingInstructions = true; renderFocus(); }
 function goPrev() {
   if (showingInstructions) return;
   if (cursor === 0 && TASK_PLAN_INSTRUCTIONS.trim()) { jumpToInstructions(); return; }
-  if (cursor > 0) {
-    closeAllSheets();
-    if (SCROLL_MODE) { commitCursor(cursor - 1); return; }
-    cursor--; renderFocus();
-  }
+  if (cursor > 0) { closeAllSheets(); cursor--; renderFocus(); }
 }
 // Bug fix 2026-07-30 (reported: Finish silently refuses to proceed) — the
 // generic "Complete all required items first" toast was a dead end: it
@@ -1660,23 +1023,20 @@ function goPrev() {
 // jumps straight to the first incomplete required item and names it.
 function goNext() {
   closeAllSheets();
-  if (showingInstructions) { showingInstructions = false; renderFocus({ anchor: 'top' }); return; }
-  if (cursor < ITEMS.length - 1) {
-    if (SCROLL_MODE) { commitCursor(cursor + 1); return; }
-    cursor++; renderFocus(); return;
-  }
+  if (showingInstructions) { showingInstructions = false; renderFocus(); return; }
+  if (cursor < ITEMS.length - 1) { cursor++; renderFocus(); return; }
   const req = ITEMS.filter(i => i.required);
   const incomplete = req.find(i => !isDone(i));
   if (incomplete) {
     cursor = ITEMS.indexOf(incomplete);
-    renderFocus({ anchor: 'top' });
+    renderFocus();
     showToast(`Required: ${incomplete.label}`);
   }
 }
 function setCheck() { const it = ITEMS[cursor]; it.value = !it.value; if (it.dynamicRules) syncDynamicChildren(it); renderFocus(); }
 function setToggle(label, cls) { const it = ITEMS[cursor]; it.value = label; if (it.dynamicRules) syncDynamicChildren(it); renderFocus(); }
-function setNum(el) { const it = ITEMS[cursor]; it.value = el.value; if (it.dynamicRules) syncDynamicChildren(it); renderStepperHead(); updateFooter(); syncBannerDone(); }
-function setText(el) { const it = ITEMS[cursor]; it.value = el.value; if (it.dynamicRules) syncDynamicChildren(it); renderStepperHead(); updateFooter(); syncBannerDone(); }
+function setNum(el) { const it = ITEMS[cursor]; it.value = el.value; if (it.dynamicRules) syncDynamicChildren(it); renderStepperHead(); updateFooter(); }
+function setText(el) { const it = ITEMS[cursor]; it.value = el.value; if (it.dynamicRules) syncDynamicChildren(it); renderStepperHead(); updateFooter(); }
 function setNote(el) { ITEMS[cursor].note = el.value; }
 function toggleFollowup() { ITEMS[cursor].followup = !ITEMS[cursor].followup; renderFocus(); }
 function createFollowupWO() { showToast('Creating follow-up work order — coming soon'); }
@@ -1690,7 +1050,7 @@ function createFollowupWO() { showToast('Creating follow-up work order — comin
 // gotchas this raised. ──────────────────────────────────────────────
 let overviewGroupMode = 'step';
 // Collapse state is one Set shared by both modes, keyed mode-prefixed
-// ('step:main' / 'equip:00067333') so switching modes can never collide
+// ('step:main' / 'equip:A-00067333') so switching modes can never collide
 // two different groups that happen to share a raw key. Persists across
 // mode switches and search/filter changes made WHILE the sheet is open —
 // but openOverview() (below) recomputes it fresh every time the sheet is
@@ -1767,8 +1127,7 @@ function ovItemRowHtml(it, idx) {
   let html = `<div class="ov-row ${it.dynamic ? 'ov-row-indent' : ''}" onclick="jumpTo(${idx}); closeOverview();">
     ${it.dynamic ? `<span class="ov-dynamic-icon" title="Added dynamically">${BRANCH_ICON}</span>` : ''}
     <span class="ov-status-dot ${dotClass(it).replace('done-','')}"></span>
-    <span class="ov-row-num">${String(idx + 1).padStart(2, '0')}</span>
-    <span class="ov-label">${it.label}</span>
+    <span class="ov-label">${idx+1} — ${it.label}</span>
     ${it.required ? '<span style="color:var(--red);font-weight:700;font-size:0.75rem;">*</span>' : ''}
     ${it.dynamicRules ? `<span class="ov-branch-cue" title="May add follow-up items">${BRANCH_ICON}</span>` : ''}
   </div>`;
@@ -1854,55 +1213,6 @@ function toggleOverviewGroup(key) {
 }
 function setOverviewGroupMode(mode) { overviewGroupMode = mode; renderOverviewBody(); }
 
-/* ─── COLLAPSE / EXPAND ALL (added 2026-08-12, device request) ─────────────
-   Needed most in the case the default collapse state can't help with: after
-   §16.9's fan-out, Equipment mode on the FIREEXT route is 156 groups, and
-   computeDefaultOverviewCollapse() opens exactly one of them. Reaching group
-   140 to open it meant scrolling past 139 headers; getting back to an
-   all-closed overview afterwards meant closing them one at a time.
-
-   Only the keys for the mode CURRENTLY ON SCREEN are touched. The collapsed Set
-   deliberately holds step: and equip: keys simultaneously (see
-   computeDefaultOverviewCollapse), so a blanket operation would silently
-   rearrange the mode you can't see and the toggle would look broken when you
-   switched to it. */
-function overviewGroupKeys() {
-  const keys = new Set();
-  ITEMS.forEach(it => keys.add(overviewGroupMode === 'equipment'
-    ? 'equip:' + (it.equipId || '__general__')
-    : 'step:' + it.group));
-  return [...keys];
-}
-function overviewAllCollapsed() {
-  const keys = overviewGroupKeys();
-  return keys.length > 0 && keys.every(k => overviewCollapsedGroups.has(k));
-}
-function toggleOverviewCollapseAll() {
-  const collapse = !overviewAllCollapsed();
-  overviewGroupKeys().forEach(k => {
-    if (collapse) overviewCollapsedGroups.add(k); else overviewCollapsedGroups.delete(k);
-  });
-  // Full rebuild, same as toggleOverviewGroup() — the button's own icon is
-  // derived from state, so it re-renders correct without a second sync path.
-  renderOverviewBody();
-  showToast(collapse ? 'All groups collapsed' : 'All groups expanded');
-}
-/* Fold/unfold, drawn as chevrons moving toward or away from a centre line —
-   the same metaphor as the per-group chevron, scaled up to "all of them", so
-   the pairing is legible without a text label. `on` when everything is
-   collapsed, matching how the search button marks its own active state. */
-function ovCollapseAllBtnHtml() {
-  const allCollapsed = overviewAllCollapsed();
-  const icon = allCollapsed
-    ? `<path d="M8 9l4-4 4 4"/><path d="M8 15l4 4 4-4"/><path d="M4 12h16"/>`
-    : `<path d="M8 5l4 4 4-4"/><path d="M8 19l4-4 4 4"/><path d="M4 12h16"/>`;
-  return `<button class="ov-collapse-icon-btn ${allCollapsed ? 'on' : ''}" id="ovCollapseBtn"
-      onclick="toggleOverviewCollapseAll()"
-      aria-label="${allCollapsed ? 'Expand all groups' : 'Collapse all groups'}">
-      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
-    </button>`;
-}
-
 // Dataspy sheet — reuses the shared .lov-option row shape (same as any
 // other LOV picker) rather than the full real dataspy-picker sheet
 // (favorite stars, per-dataspy descriptions) — there's no "favorite" or
@@ -1967,7 +1277,6 @@ function renderOverviewBody() {
       <button class="ov-search-icon-btn ${overviewSearchOpen ? 'on' : ''}" id="ovSearchBtn" onclick="toggleOverviewSearch()" aria-label="Search checklist items">
         <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       </button>
-      ${ovCollapseAllBtnHtml()}
     </div>
     <div class="ld-search-bar ov-search-row" id="ovSearchRow" style="display:${overviewSearchOpen ? 'flex' : 'none'};">
       <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -2077,81 +1386,9 @@ function fanOutEquipmentItems() {
 fanOutEquipmentItems();
 
 /* ── init ── */
-syncScrollModeLabel();
-renderFocus({ anchor: 'top' });
+renderFocus();
 onDemoWoChanged();
 initSharedApp({ contentSelector: '.content' });
-
-/* ── SCROLL MODE wiring ────────────────────────────────────────────────
-   Snap on DECELERATION, not on a fixed idle timeout. The timeout is still there
-   as a floor, but it's the fallback now, not the mechanism: waiting for the
-   scroller to go completely still and only then starting the landing is what
-   read as lazy on device, because the pause and the motion were sequential
-   instead of continuous.
-
-   Two conditions, both necessary:
-     - the finger is UP. While it's down the technician is positioning the
-       surface deliberately and nothing may move under them, however slowly
-       they're dragging (a slow drag has low velocity too — this is the guard
-       that stops the whole mechanism firing mid-gesture).
-     - velocity has decayed below SNAP_VEL, low-passed so one stray sample from
-       a scroll-event gap can't trigger an early landing.
-
-   `scrollend` would be the tidy answer to the fallback and is still avoided:
-   Safari only shipped it recently, and this has to work on whatever handset is
-   actually in a technician's hand. */
-contentEl().addEventListener('scroll', () => {
-  if (!SCROLL_MODE || suppressScroll) return;
-  const c = contentEl();
-  const now = performance.now();
-  const st = c.scrollTop;
-  if (lastScrollT) {
-    const dt = now - lastScrollT;
-    if (dt > 0) scrollVel = scrollVel * 0.6 + (Math.abs(st - lastScrollTop) / dt) * 0.4;
-  }
-  lastScrollTop = st;
-  lastScrollT = now;
-
-  clearTimeout(settleTimer);
-  if (!touching && scrollVel > 0 && scrollVel < SNAP_VEL) { onSnapSettle(); return; }
-  settleTimer = setTimeout(onSnapSettle, 110);
-}, { passive: true });
-
-/* Finger down: abort any landing in flight and reset velocity so the new
-   gesture isn't judged on the old one's tail. Finger up: let the momentum run
-   and let the scroll handler above decide when it has slowed enough. */
-contentEl().addEventListener('touchstart', () => {
-  touching = true;
-  cancelAnimationFrame(snapRaf);
-  clearTimeout(snapAnimTimer);
-  suppressScroll = false;
-  scrollVel = 0;
-  lastScrollT = 0;
-}, { passive: true });
-['touchend', 'touchcancel'].forEach(ev =>
-  contentEl().addEventListener(ev, () => {
-    touching = false;
-    // A deliberate slow drag released with no momentum produces no further
-    // scroll events at all, so there's nothing left to decelerate — settle off
-    // the release itself or the surface would sit wherever it was let go.
-    clearTimeout(settleTimer);
-    settleTimer = setTimeout(onSnapSettle, 110);
-  }, { passive: true }));
-
-/* Re-measure whenever the usable height can have changed. The load listener
-   matters more than it looks: the rail's height depends on Inter arriving
-   from the CDN, and measuring before that lands leaves every panel sized
-   against a slightly wrong header. */
-window.addEventListener('resize', () => { if (SCROLL_MODE) measureSnap(); });
-window.addEventListener('orientationchange', () => { if (SCROLL_MODE) measureSnap(); });
-window.addEventListener('load', () => {
-  if (!SCROLL_MODE || showingInstructions) return;
-  measureSnap();
-  // Only re-anchor if the technician hasn't started scrolling yet — re-running
-  // the anchor unconditionally would yank them back to the top of item 1
-  // mid-flick, for the sake of a few pixels of header measurement.
-  if (contentEl().scrollTop === 0) renderFocus({ anchor: 'top' });
-});
 </script>
 </body>
 </html>

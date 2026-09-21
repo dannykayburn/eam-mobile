@@ -2312,3 +2312,12 @@ button, .bar-pill, .bottom-nav-item, .home-tile, .fav-chip, .ld-card,
 .nav-avatar, .nav-back, .nav-icon-btn, .ds-bar, .chip {
   touch-action: manipulation;
 }
+
+/* Prototype controls inside a header menu (§31.6) — replaces the
+   .proto-theme-bar banner. The state chip carries the current value so the
+   row reads as "Appearance — Dark" rather than needing a separate label. */
+.proto-menu-label{font-size:0.625rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  color:var(--gray-4);font-family:var(--font-mono);padding:8px 14px 4px;}
+.proto-menu-row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.proto-menu-state{font-family:var(--font-mono);font-size:0.6875rem;font-weight:600;color:var(--gray-4);
+  flex-shrink:0;}

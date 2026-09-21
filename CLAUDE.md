@@ -249,7 +249,13 @@ facts and traps only.**
   compact variant (`openDescEditor()`), not an inline edit — same as Equipment
   RV's header, both via `eam-shared.js`. Closing a WO returns *here*, not to
   WO List (§15.2/§19.7).
-- **Activity Checklist** ("Focused Stepper", v2, §16): one item at a time.
+- **Activity Checklist** ("Focused Stepper", v2, §16): one item at a time,
+  and **navigation is a snap-SCROLL between items — the A/B closed 2026-09-21
+  in favour of scroll (§16.1)**. The paged path, its `SCROLL_MODE` flag and the
+  copy that carried both were **deleted, not pinned**, so there is one render
+  path and no dead branch; the old paged v2 is in `old versions/`. Prev/Next is
+  retained and commits the cursor directly. Snapping is JS-owned on
+  deceleration — CSS `scroll-snap` was rejected on device.
   No separate "Instructions" field on an item — the description *is* the
   instructional text (`feedback_checklist_field_model` memory); a task plan's
   own instructions are a different concept (§16.7). **Equipment-scoped items
@@ -808,14 +814,29 @@ rail signal of its own (§3.2.2/§15.4) — a different axis from the rail's WO 
 cue, which distinguishes configured vs. the §11 fallback.
 
 ### Dev/demo tooling
-No design-doc entries — dev convenience, same as any other. Every screen's
-`.proto-theme-bar` carries a theme toggle, an online/offline toggle and
-"Restart Demo" (which navigates to login; the actual reset, `resetDemoState()`
-in `eam-shared.js`, clears all demo `localStorage` keys and runs on Log In).
-The online/offline toggle is a 3-way cycle (Offline → Online → **Synced**,
-`toggleDemoOnline()`) — Synced forces the nav-bar sync control green regardless
-of `SYNC_DEMO_ITEMS`' own seeded error rows, so a live demo doesn't sit on
-"Error". **Defaults to Synced**; flip it by hand to see the real outbox state.
+No design-doc entries — dev convenience, same as any other. **The top
+`.proto-theme-bar` banner is GONE from the app screens (§31.6, 2026-09-21)** —
+a visible dev banner was the most obvious "this is not an app" tell. The three
+controls (**Dark/Light, Offline/Online, Reset demo**) are now rows in a header
+menu under a `Prototype` label, **self-injecting** via
+`injectProtoMenuGroup()`. They land in the **profile menu** where an avatar
+exists and the **record ellipsis menu** otherwise — two homes because §4.2
+gives the nav bar one slot, so no control is on every screen. A screen adds its
+own row with `PROTO_MENU_EXTRA` (same optional-global shape as
+`TAB_PLUS_HANDLERS`); **Book Labor's timer toggle and the WO Equipment tab's
+row-tap toggle both use it, and both are load-bearing** — the first drives
+§18.2's booking-pull-up condition, the second is the open `chooser`/`split`
+experiment. `ensureProfileMenu()` injects the §4.3 dropdown beside any
+`.nav-avatar` that lacks one (this is how WO List got a real menu instead of a
+"coming soon" toast). **Four screens keep the banner** because they have no
+header menu at all — Login, the two component-reference pages, Equipment List
+and Sync Status; the last two are a §20 item. The actual reset,
+`resetDemoState()` in `eam-shared.js`, clears all demo `localStorage` keys and
+runs on Log In. The online/offline control is a 3-way cycle (Offline → Online →
+**Synced**, `toggleDemoOnline()`) — Synced forces the nav-bar sync control green
+regardless of `SYNC_DEMO_ITEMS`' own seeded error rows, so a live demo doesn't
+sit on "Error". **Defaults to Synced**; flip it by hand to see the real outbox
+state.
 
 ## Open / deferred work
 **Don't re-audit — everything open is already tracked.** `design-decisions-v3-1.md`

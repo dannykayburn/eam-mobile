@@ -119,14 +119,6 @@
 </head>
 <body>
 
-<div class="proto-theme-bar">
-  <span class="proto-theme-label">Preview theme</span>
-  <button class="theme-toggle" id="themeToggle">☀ Light</button>
-  <button class="theme-toggle" id="onlineToggle" onclick="toggleDemoOnline()">🌐 Offline</button>
-  <!-- Dev-only, this screen only: flips the two candidate row-tap flows so
-       both can be felt on a real device before either gets locked. -->
-  <button class="theme-toggle" id="tapModeToggle" onclick="toggleRowTapMode()">Tap: Split</button>
-</div>
 
 <div class="app" id="app">
 
@@ -348,6 +340,14 @@
 <script src="../../data/wotype.js"></script>
 <script src="../../data/wo-workflow.js"></script>
 <script src="../../data/wo-workflow-steps.js"></script>
+<script>
+/* §31.6 — the row-tap A/B toggle moved out of the removed .proto-theme-bar
+   into the header menu. Still a live §20 experiment (chooser vs split), so
+   removing the bar must not remove the ability to flip it on a device. */
+const PROTO_MENU_EXTRA = [
+  { label: 'Row tap', stateId: 'tapModeToggle', stateText: '—', onclick: 'toggleRowTapMode()' }
+];
+</script>
 <script src="shared/eam-shared.js"></script>
 <script>
 /* ══ PARENT WO IDENTITY ══════════════════════════════════════════════
@@ -405,7 +405,7 @@ function guardChildWo() {
 let ROW_TAP_MODE = 'chooser';
 function toggleRowTapMode() {
   ROW_TAP_MODE = ROW_TAP_MODE === 'split' ? 'chooser' : 'split';
-  document.getElementById('tapModeToggle').textContent = ROW_TAP_MODE === 'split' ? 'Tap: Split' : 'Tap: Chooser';
+  const tm = document.getElementById('tapModeToggle'); if (tm) tm.textContent = ROW_TAP_MODE === 'split' ? 'Tap: Split' : 'Tap: Chooser';
   rebuildRows();
   showToast(ROW_TAP_MODE === 'split'
     ? 'Card opens the work order; equipment code opens the asset'
