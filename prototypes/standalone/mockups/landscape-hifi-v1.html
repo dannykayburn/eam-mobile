@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Landscape / Expanded width — high-fidelity mockups</title>
+<link rel="stylesheet" href="../shared/eam-fonts.css">
+<link rel="stylesheet" href="../shared/eam-shared.css">
+<!--
+  LANDSCAPE / EXPANDED WIDTH — HIGH-FIDELITY MOCKUPS (2026-09-21)
+
+  DELIBERATE DEPARTURE FROM THE mockups/ CONVENTION: every other file in this
+  folder is self-contained. This one LINKS THE REAL eam-shared.css, because
+  the whole point is that what you tune here is liftable into it tomorrow
+  rather than re-derived. Every component below uses its real class names —
+  .nav, .rec-header, .equip-attrs/.attr-item, .step-map-item, .ld-card,
+  .home-tile, .bar-pill — so the type, spacing, borders and palette are the
+  app's own, not an approximation.
+
+  eam-shared.JS is deliberately NOT loaded. It would initialise against
+  markup that isn't here and throw; these frames are static by design.
+
+  HOW THE STYLE BLOCK IS ORGANISED — this matters for tomorrow:
+    PART 1  MOCKUP CHROME ONLY — page scaffolding, the frames, the switcher.
+            DO NOT LIFT ANY OF IT.
+    PART 2  THE LANDSCAPE BAND LAYOUT — this is the deliverable. Tune it here,
+            then move it into eam-shared.css behind the §31.2 media query.
+
+  WHAT IS BEING PROPOSED, and what is already settled:
+    - §31.2 is LOCKED: three width classes, and `orientation` is never
+      queried. Expanded = min-width 840px AND min-height 600px. These frames
+      are drawn at 1180x820, which is an Expanded viewport, but nothing here
+      depends on that exact size — the layout is fluid within the class.
+    - §31.3/§31.4 (the band model, and the record rail living in band 2) are
+      PROPOSED, NOT LOCKED. That is the main thing to judge here.
+
+  THE BAND MODEL, in one line each — §4.2 already names all three levels:
+    band 1  app     Home / Work / Notifications, avatar, sync     (§4.2)
+    band 2  record  the step rail, or a tab rail                  (§14.2/§7.1)
+    band 3  content the screen itself                             (§5.2)
+  A Compact viewport can only show one at a time, which is why the rails
+  collapse into pills and the bottom nav hides on a record. Expanded shows all
+  three. THE RULE: at most three bands, and the list pane and the record rail
+  never coexist — four bands is the failure mode.
+
+  TWO LOCKED RULES STILL NEED AMENDING before any of this can ship, both
+  tracked in §20 and both already flagged to you:
+    - §4.2's nav is a BINARY (browsing XOR record-open). Frame 2 shows a list
+      and an open record at once, so both are true — a model change.
+    - §30.16's HOME_FOLD is single-valued; frame 1's wider rows mean the
+      authored fold and the rendered fold differ.
+
+  THE OPEN QUESTION I MOST WANT A VERDICT ON is frame 3's rail placement.
+  Use the "Rail placement" toggle. R2 (left band) is my recommendation and the
+  argument is §29, not taste: a tab can be placed twice, More's membership is
+  configuration, and a UDS is a step — so the rail's length is unbounded. A
+  horizontal row cannot hold that; note R1 already has to put More behind a
+  dropdown at 8 entries, which is the collapsed-rail compromise returning
+  under a different name.
+-->
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   PART 1 — MOCKUP CHROME ONLY.  DO NOT LIFT ANY OF THIS.
+   Overrides eam-shared.css's own body rules so this page can be a long
+   scrolling gallery instead of a single fixed-height app.
+   ═══════════════════════════════════════════════════════════════════════ */
+body.mk {
+  height: auto; min-height: 100vh; overflow: auto;
+  display: block; padding: 26px 26px 90px;
+}
+.mk-h1 { font-size: 22px; font-weight: 700; letter-spacing: -.3px; margin-bottom: 4px; }
+.mk-sub { font-size: 13.5px; color: var(--gray-4); max-width: 80ch; line-height: 1.55; }
+.mk-bar {
+  position: sticky; top: 0; z-index: 90; display: flex; gap: 10px; flex-wrap: wrap;
+  align-items: center; padding: 12px 0 14px; margin-bottom: 4px;
+  background: var(--bg-page); border-bottom: 1px solid var(--border);
+}
+.mk-group { display: flex; align-items: center; gap: 6px; }
+.mk-label {
+  font-family: var(--font-mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: .6px; color: var(--gray-4); margin-right: 2px;
+}
+.mk-btn {
+  font-family: var(--font-sans); font-size: 12px; font-weight: 600;
+  padding: 7px 13px; border-radius: 100px; cursor: pointer;
+  background: var(--bg-card); color: var(--gray-4);
+  border: 1.5px solid var(--border-strong);
+}
+.mk-btn.on { background: var(--octave-black); color: var(--white); border-color: var(--octave-black); }
+[data-theme="dark"] .mk-btn.on { background: var(--white); color: var(--octave-black); border-color: var(--white); }
+
+.mk-frame-wrap { margin-top: 30px; }
+.mk-cap { display: flex; align-items: baseline; gap: 10px; margin-bottom: 9px; flex-wrap: wrap; }
+.mk-cap .n { font-family: var(--font-mono); font-size: 11px; color: var(--gray-4); }
+.mk-cap .t { font-size: 15px; font-weight: 700; }
+.mk-cap .d { font-size: 12.5px; color: var(--gray-4); }
+.mk-tag {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 4px;
+}
+.mk-tag.rec { background: rgba(22,193,48,.14); color: var(--green); border: 1px solid rgba(22,193,48,.4); }
+.mk-tag.open { background: rgba(255,149,0,.14); color: #b26a00; border: 1px solid rgba(255,149,0,.4); }
+
+/* The device frame. 1180x820 is a real Expanded viewport; the layout inside
+   is fluid, so the number is illustrative, not a dependency. */
+.mk-frame {
+  width: 1180px; height: 820px; flex-shrink: 0;
+  border-radius: 16px; overflow: hidden; position: relative;
+  box-shadow: 0 10px 40px rgba(0,0,0,.22);
+  border: 1px solid var(--border-strong);
+}
+.mk-scroll { overflow-x: auto; padding-bottom: 8px; }
+.mk-note {
+  margin-top: 11px; font-size: 12.5px; line-height: 1.6; color: var(--gray-4);
+  border-left: 3px solid var(--border-strong); padding: 2px 0 2px 12px; max-width: 92ch;
+}
+.mk-note b { color: var(--octave-black); font-weight: 600; }
+.mk-note.warn { border-left-color: var(--red); }
+.mk-note.warn b { color: var(--red); }
+
+
+/* ── Home's tile CSS, copied VERBATIM from eam-home-screen-prototype-v1.html
+   ─────────────────────────────────────────────────────────────────────────
+   These five rules are SCREEN-LOCAL, not in eam-shared.css, so without them
+   the tiles in frame 1 render unstyled. Copied rather than approximated so
+   the fidelity is real.
+
+   Worth noting for tomorrow: the fact that Home's tile styling lives on the
+   screen rather than in the shared file means a landscape Home has to either
+   duplicate it or promote it. Promoting is the right call under CLAUDE.md's
+   "new generic component -> eam-shared.css by default", and it is a
+   prerequisite for frame 1 rather than a tidy-up. DO NOT lift this block
+   itself — lift it from Home's file, which is the source of truth. */
+.home-greeting{font-size:0.9375rem;font-weight:700;color:var(--octave-black);margin:2px 2px 4px;}
+.home-section-label{display:flex;align-items:center;gap:6px;font-size:0.9375rem;font-weight:800;letter-spacing:.1px;color:var(--octave-black);margin:22px 2px 10px;}
+.home-tile-sq{width:100%;aspect-ratio:1;max-width:100px;border-radius:20px;display:flex;align-items:center;justify-content:center;position:relative;}
+.home-tile-sq svg{width:38px;height:38px;}
+.home-tile-badge{position:absolute;top:-7px;right:-7px;background:var(--octave-black);color:var(--white);font-size:0.6875rem;font-weight:700;font-family:var(--font-sans);border-radius:100px;padding:2px 6px;min-width:19px;text-align:center;line-height:1.3;border:2px solid var(--bg-page);}
+.home-tile-label{font-size:0.75rem;font-weight:500;color:var(--octave-black);text-align:center;margin-top:7px;line-height:1.3;}
+
+/* Frame 3 shows one rail placement at a time. */
+body:not(.rail-top) .lx-r1 { display: none; }
+body.rail-top .lx-band2 { display: none; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PART 2 — THE LANDSCAPE BAND LAYOUT.  THIS IS THE DELIVERABLE.
+
+   Tune here, then lift into eam-shared.css wrapped in §31.2's Expanded
+   query. In the real file this whole block goes inside:
+
+       @media (min-width: 840px) and (min-height: 600px) { ... }
+
+   and the `.lx` class disappears — it exists here only so the frames render
+   the Expanded layout regardless of how wide this gallery page happens to
+   be. Everything else transfers as-is.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* The shell turns into a row of bands. `max-width` is the one line in
+   eam-shared.css that decides today's landscape behaviour (a centred 430px
+   column), so lifting it is the whole structural change. */
+.app.lx {
+  max-width: none; flex-direction: row; height: 100%;
+  box-shadow: none; border-radius: 0;
+}
+.lx-main { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
+
+/* ── BAND 1 — app level (§4.2) ──────────────────────────────────────────
+   Replaces the 80px bottom nav. Membership is UNCHANGED: Home, Work,
+   Notifications — Equipment is deliberately not a section (§4.2), it is a
+   destination reached in context. Avatar top, sync bottom, matching the
+   portrait nav bar's own left/right split. */
+.lx-rail {
+  width: 78px; flex-shrink: 0; background: var(--bg-nav);
+  display: flex; flex-direction: column; align-items: center;
+  gap: 4px; padding: 12px 0 calc(12px + var(--shell-pad-bottom, 12px));
+  z-index: 60;
+}
+.lx-rail-avatar {
+  width: 38px; height: 38px; border-radius: 50%; overflow: hidden;
+  background: var(--gray-5); margin-bottom: 12px; flex-shrink: 0;
+  border: none; padding: 0; cursor: pointer;
+}
+.lx-rail-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lx-rail-item {
+  width: 62px; padding: 9px 0 7px; border-radius: 10px; border: none;
+  background: none; color: rgba(255,255,255,.55); cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  font-family: var(--font-sans); font-size: 10px; font-weight: 600;
+  position: relative;
+}
+.lx-rail-item svg { width: 21px; height: 21px; }
+.lx-rail-item.active { background: rgba(255,255,255,.13); color: var(--white); }
+.lx-rail-badge {
+  position: absolute; top: 4px; right: 12px; min-width: 15px; height: 15px;
+  background: var(--red); color: #fff; font-size: 9px; font-weight: 700;
+  border-radius: 100px; display: flex; align-items: center; justify-content: center;
+  padding: 0 3px;
+}
+.lx-rail-spacer { flex: 1; }
+
+/* ── BAND 2 — record level (§14.2 step rail / §7.1 tab rail) ────────────
+   The rail stops being a collapsible pill and becomes a permanent column.
+   That removes a whole state: on Expanded there is no collapsed/expanded
+   rail, so no tap is needed to see where you are or what is gated. The
+   step-map rows are the SAME component the portrait rail expands into. */
+.lx-band2 {
+  width: 208px; flex-shrink: 0; background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow-y: auto;
+  padding: 12px 0 calc(6px + var(--shell-pad-bottom, 12px));
+}
+.lx-band2-head {
+  padding: 0 14px 11px; display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border); margin-bottom: 8px;
+}
+.lx-band2-id { font-family: var(--font-mono); font-size: 14px; font-weight: 600; }
+.lx-band2 .step-map-item { margin: 0 6px; }
+.lx-band2-group {
+  font-size: 11px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+  color: var(--gray-4); padding: 14px 20px 6px; margin-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.lx-band2-foot { margin: 10px 14px 0; }
+
+/* ── BAND 3 — content ───────────────────────────────────────────────────
+   `.nav` becomes the RECORD's header here, not the app's: identity and
+   actions only, since band 1 now owns app-level identity and sync. */
+.lx-main > .nav { flex-shrink: 0; }
+.lx-main > .content { flex: 1; min-height: 0; }
+
+/* ── LIST-DETAIL (§31.3) ────────────────────────────────────────────────
+   The master pane is capped near portrait width on purpose: the cards were
+   authored for that measure, and stretching them to 700px reads worse, not
+   better. Width buys a SECOND PANE, never wider rows. */
+.lx-list {
+  width: 372px; flex-shrink: 0; display: flex; flex-direction: column;
+  border-right: 1px solid var(--border); background: var(--bg-page); min-width: 0;
+}
+.lx-list .ld-list { flex: 1; overflow-y: auto; padding-bottom: 14px; }
+.lx-detail { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg-page); }
+.lx-detail-body { flex: 1; overflow-y: auto; }
+/* The selected row needs a real affordance, because in portrait a tap
+   navigates and there is no such thing as a selection (§20). */
+.lx-list .ld-card.is-selected {
+  border-color: var(--octave-black); border-width: 2px;
+  background: var(--bg-card);
+}
+[data-theme="dark"] .lx-list .ld-card.is-selected { border-color: var(--white); }
+
+/* ── HOME at Expanded width ─────────────────────────────────────────────
+   Tiles keep their 100px size — that is a touch target and an authored
+   unit, not a scale factor — so the width buys MORE TILES PER ROW, not
+   bigger ones. The rows stay horizontal scrollers, which is why the app
+   itself never depended on a particular fold (§30.16 is an authoring
+   concern). */
+.lx-home-body { flex: 1; overflow-y: auto; padding: 0 22px 22px; }
+.lx-home-body .home-tilegrid { margin: 6px 0 0; padding: 10px 0 4px; }
+
+/* ── R1 — the alternative: rail stays horizontal on top ────────────────
+   Kept so the comparison is real rather than described. Note it is already
+   at its limit here: "More" has had to become a dropdown to fit, which is
+   the collapsed-rail compromise under another name. */
+.lx-r1 {
+  flex-shrink: 0; background: var(--bg-card); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 4px; padding: 11px 16px; overflow-x: auto;
+}
+.lx-r1-step {
+  display: flex; align-items: center; gap: 7px; padding: 7px 11px;
+  border-radius: 100px; flex-shrink: 0; cursor: pointer;
+  font-size: 12.5px; color: var(--gray-4);
+}
+.lx-r1-step.done .step-map-icon { background: var(--green); color: #fff; }
+.lx-r1-step.current { background: var(--bg-section); color: var(--octave-black); font-weight: 700; }
+.lx-r1-step.locked { color: var(--gray-5); }
+.lx-r1-conn { width: 14px; height: 1.5px; background: var(--border-strong); flex-shrink: 0; }
+
+/* Shared small pieces used by the frames */
+.lx-timer {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  height: 34px; border-radius: 100px; background: rgba(22,193,48,.14);
+  color: var(--green); font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+}
+.lx-sync-pill {
+  width: 62px; height: 30px; border-radius: 100px; background: rgba(22,193,48,.22);
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  gap: 5px; font-family: var(--font-mono); font-size: 9.5px; flex-shrink: 0;
+}
+.lx-pane-head {
+  flex-shrink: 0; display: flex; align-items: center; gap: 10px;
+  padding: 0 16px; height: var(--nav-height); background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+}
+.lx-pane-title { font-size: 16px; font-weight: 700; flex: 1; min-width: 0; }
+</style>
+</head>
+<body class="mk">
+
+<div class="mk-h1">Landscape / Expanded width — high-fidelity mockups</div>
+<p class="mk-sub">
+  Built against the <b>real <code>eam-shared.css</code></b>, with real component
+  classes throughout — so the type, spacing and palette are the app's own, and the
+  band CSS in Part&nbsp;2 of the style block lifts straight into the shared file.
+  Frames are drawn at 1180&times;820, an Expanded viewport; the layout inside is
+  fluid, so that size is illustrative rather than a dependency.
+</p>
+
+<div class="mk-bar">
+  <div class="mk-group">
+    <span class="mk-label">View</span>
+    <button class="mk-btn on" id="v1" onclick="showView(1)">Home</button>
+    <button class="mk-btn" id="v2" onclick="showView(2)">Work orders</button>
+    <button class="mk-btn" id="v3" onclick="showView(3)">Record view</button>
+    <button class="mk-btn" id="v0" onclick="showView(0)">All three</button>
+  </div>
+  <div class="mk-group" style="margin-left:6px">
+    <span class="mk-label">Rail placement</span>
+    <button class="mk-btn on" id="rR2" onclick="setRail('r2')">R2 · left band</button>
+    <button class="mk-btn" id="rR1" onclick="setRail('r1')">R1 · horizontal</button>
+  </div>
+  <div class="mk-group" style="margin-left:auto">
+    <button class="mk-btn" onclick="mkTheme()" id="mkThemeBtn">◑ Dark</button>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     FRAME 1 — HOME
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="mk-frame-wrap" id="frame1">
+  <div class="mk-cap">
+    <span class="n">01</span>
+    <span class="t">Home</span>
+    <span class="mk-tag rec">BAND 1 + 3</span>
+    <span class="d">No record is open, so there is no band 2. Tiles keep their 100px size; the width buys more per row.</span>
+  </div>
+  <div class="mk-scroll">
+  <div class="mk-frame">
+    <div class="app lx">
+
+      <!-- BAND 1 -->
+      <aside class="lx-rail">
+        <button class="lx-rail-avatar"><img src="../shared/img/bcampbell.jpg" alt=""></button>
+        <button class="lx-rail-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/></svg>
+          Home
+        </button>
+        <button class="lx-rail-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 01-5.66 5.66l-5.1 5.1a2 2 0 102.83 2.83l5.1-5.1a4 4 0 015.66-5.66l-2.4 2.4-2.83-2.83 2.4-2.4z"/></svg>
+          Work
+        </button>
+        <button class="lx-rail-item">
+          <span class="lx-rail-badge">3</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 106 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+          Notifications
+        </button>
+        <div class="lx-rail-spacer"></div>
+        <div class="lx-sync-pill">&#8635; Synced</div>
+      </aside>
+
+      <!-- BAND 3 -->
+      <div class="lx-main">
+        <header class="nav">
+          <div class="nav-left"><span class="prototype-label">PROTOTYPE</span></div>
+          <div class="nav-title">Home</div>
+          <div class="nav-actions">
+            <button class="nav-icon-btn" aria-label="Create">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            </button>
+            <button class="nav-icon-btn" aria-label="Search">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            </button>
+          </div>
+        </header>
+
+        <div class="lx-home-body">
+          <div class="home-greeting" style="padding:18px 0 4px">
+            <div style="font-size:22px;font-weight:700">Good morning, Bruce</div>
+            <div style="font-size:13.5px;color:var(--gray-4);margin-top:3px">Monday 21 September &middot; Water Utility</div>
+          </div>
+
+          <div class="home-section-label" style="margin-top:20px">My Work</div>
+          <div class="home-tilegrid">
+            <div class="home-tile">
+              <div class="home-tile-sq" style="background:#E8F5E9">
+                <span class="home-tile-badge">12</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#1B7F2E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h9"/></svg>
+              </div>
+              <div class="home-tile-label">My open<br>work orders</div>
+            </div>
+            <div class="home-tile">
+              <div class="home-tile-sq" style="background:#FFF3E0">
+                <span class="home-tile-badge">4</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#B26A00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+              </div>
+              <div class="home-tile-label">Due today</div>
+            </div>
+            <div class="home-tile">
+              <div class="home-tile-sq" style="background:#FFEBEE">
+                <span class="home-tile-badge">2</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#C62828" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+              </div>
+              <div class="home-tile-label">Overdue</div>
+            </div>
+            <div class="home-tile">
+              <div class="home-tile-sq" style="background:#E3F2FD">
+                <span class="home-tile-badge">9</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#1565C0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+              </div>
+              <div class="home-tile-label">Assigned<br>to me</div>
+            </div>
+            <div class="home-tile">
+              <div class="home-tile-sq" style="background:#F3E5F5">
+                <span class="home-tile-badge">31</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#6A1B9A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M21 20v-2a4 4 0 00-3-3.9"/></svg>
+              </div>
+              <div class="home-tile-label">My crew</div>
+            </div>
+            <div class="home-tile">
+              <div class="home-tile-sq" style="background:#FFF8E1">
+                <span class="home-tile-badge">6</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#A67C00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+              </div>
+              <div class="home-tile-label">Awaiting<br>parts</div>
+            </div>
+            <div class="home-tile">
+              <div class="home-tile-sq" style="background:#E0F7FA">
+                <span class="home-tile-badge">18</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#00707C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-6.2-8.6"/><path d="M21 3v6h-6"/></svg>
+              </div>
+              <div class="home-tile-label">PM due</div>
+            </div>
+            <div class="home-tile">
+              <div class="home-tile-sq" style="background:#ECEFF1">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#455A64" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+              </div>
+              <div class="home-tile-label">Search all<br>work orders</div>
+            </div>
+          </div>
+
+          <div class="home-section-label" style="margin-top:22px">My Equipment</div>
+          <div class="home-tilegrid">
+            <div class="home-tile">
+              <div class="home-tile-sq" style="background:#E8EAF6">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#283593" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+              </div>
+              <div class="home-tile-label">Routes</div>
+            </div>
+            <div class="home-tile">
+              <div class="home-tile-sq" style="background:#E0F2F1">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#00695C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="12" rx="2"/><path d="M7 7V5h10v2"/></svg>
+              </div>
+              <div class="home-tile-label">Assets</div>
+            </div>
+            <div class="home-tile">
+              <div class="home-tile-sq" style="background:#FBE9E7">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#BF360C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 12l4-2"/></svg>
+              </div>
+              <div class="home-tile-label">Meter<br>readings</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  </div>
+  <p class="mk-note warn"><b>Breaks §30.16.</b> <code>HOME_FOLD = 3</code> is arithmetic on a 390px
+  device, and the rule it protects is &ldquo;line one is what the technician sees without
+  swiping&rdquo;. Eight tiles are visible here without scrolling, so the authored fold and
+  the rendered fold no longer agree. <b>Proposed:</b> author to the phone fold and treat
+  Expanded as a superset &mdash; the editor keeps drawing 3 as the <i>guarantee</i>, since
+  what fits a phone fits a tablet and never the reverse. One fold, one layout, no
+  per-device variants.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     FRAME 2 — WORK ORDERS, list-detail
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="mk-frame-wrap" id="frame2">
+  <div class="mk-cap">
+    <span class="n">02</span>
+    <span class="t">Work orders &mdash; list &#9656; record</span>
+    <span class="mk-tag rec">BAND 1 + LIST + DETAIL</span>
+    <span class="d">The list keeps its place while you read a record. Master pane stays near portrait width on purpose.</span>
+  </div>
+  <div class="mk-scroll">
+  <div class="mk-frame">
+    <div class="app lx">
+
+      <aside class="lx-rail">
+        <button class="lx-rail-avatar"><img src="../shared/img/bcampbell.jpg" alt=""></button>
+        <button class="lx-rail-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/></svg>
+          Home
+        </button>
+        <button class="lx-rail-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 01-5.66 5.66l-5.1 5.1a2 2 0 102.83 2.83l5.1-5.1a4 4 0 015.66-5.66l-2.4 2.4-2.83-2.83 2.4-2.4z"/></svg>
+          Work
+        </button>
+        <button class="lx-rail-item">
+          <span class="lx-rail-badge">3</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 106 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+          Notifications
+        </button>
+        <div class="lx-rail-spacer"></div>
+        <div class="lx-sync-pill">&#8635; Synced</div>
+      </aside>
+
+      <!-- MASTER PANE -->
+      <div class="lx-list">
+        <div class="lx-pane-head">
+          <div class="lx-pane-title">Work orders</div>
+          <button class="nav-icon-btn" style="color:var(--octave-black)" aria-label="Create">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+
+        <div class="ds-bar" style="margin:12px 12px 0">
+          <div class="ds-icon-w">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/></svg>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:15px;font-weight:700">My Assigned WOs</div>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--gray-4)"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+
+        <div style="display:flex;gap:7px;padding:11px 12px 0;overflow-x:auto">
+          <span class="chip">Status</span>
+          <span class="chip">Type</span>
+          <span class="chip">Dept</span>
+          <span class="chip">Due date</span>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px 6px">
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--gray-4)">3 work orders</span>
+          <span style="font-size:12.5px;font-weight:600;color:var(--gray-4)">Due date</span>
+        </div>
+
+        <div class="ld-list">
+          <div class="ld-card is-selected">
+            <div class="ld-card-top">
+              <span class="ld-card-headline pill pill-green">Released</span>
+              <span class="ld-card-org">FBPP</span>
+            </div>
+            <div class="ld-card-subline">Pump Cavitating; lost head</div>
+            <div class="ld-card-attrs">
+              <div class="ld-card-attr-row"><span class="field-label">WO number</span><span class="field-value">19257</span></div>
+              <div class="ld-card-attr-row"><span class="field-label">Type</span><span class="field-value"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--wo-type-breakdown);margin-right:6px"></span>Breakdown</span></div>
+              <div class="ld-card-attr-row"><span class="field-label">Due date</span><span class="field-value">07/20/2026</span></div>
+            </div>
+          </div>
+          <div class="ld-card">
+            <div class="ld-card-top">
+              <span class="ld-card-headline pill pill-green">Released</span>
+              <span class="ld-card-org">FBPP</span>
+            </div>
+            <div class="ld-card-subline">General inspection request</div>
+            <div class="ld-card-attrs">
+              <div class="ld-card-attr-row"><span class="field-label">WO number</span><span class="field-value">19831</span></div>
+              <div class="ld-card-attr-row"><span class="field-label">Type</span><span class="field-value"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--wo-type-ppm);margin-right:6px"></span>Preventive maint</span></div>
+              <div class="ld-card-attr-row"><span class="field-label">Due date</span><span class="field-value">07/22/2026</span></div>
+            </div>
+          </div>
+          <div class="ld-card">
+            <div class="ld-card-top">
+              <span class="ld-card-headline pill pill-green">Released</span>
+              <span class="ld-card-org">FBPP</span>
+            </div>
+            <div class="ld-card-subline">Replace batteries in lobby TV remote</div>
+            <div class="ld-card-attrs">
+              <div class="ld-card-attr-row"><span class="field-label">WO number</span><span class="field-value">20450</span></div>
+              <div class="ld-card-attr-row"><span class="field-label">Type</span><span class="field-value"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--wo-type-routine);margin-right:6px"></span>Routine maint</span></div>
+              <div class="ld-card-attr-row"><span class="field-label">Due date</span><span class="field-value">07/25/2026</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DETAIL PANE -->
+      <div class="lx-detail">
+        <div class="lx-pane-head">
+          <span class="rec-num" style="font-size:19px">19257</span>
+          <span class="pill pill-green" style="font-size:11px">Released</span>
+          <div style="flex:1"></div>
+          <button class="rec-pin-btn" aria-label="Pin">
+            <svg class="pin-outline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:19px;height:19px"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.8a2 2 0 00-1.1-1.8l-1.8-.9A2 2 0 0115 10.7V4H9v6.7a2 2 0 01-1.1 1.8l-1.8.9A2 2 0 005 15.2z"/></svg>
+          </button>
+          <button class="rec-ellipsis-btn" aria-label="More">
+            <svg viewBox="0 0 24 24" fill="currentColor" style="width:19px;height:19px"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+          </button>
+        </div>
+
+        <div class="lx-detail-body">
+          <div class="rec-header active" style="position:static;background:var(--bg-nav)">
+            <div class="rec-id-row">
+              <div class="rec-id-text">
+                <span class="rec-desc" style="font-size:16px">Pump Cavitating; lost head</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-card" style="margin:14px 16px 0">
+            <div class="equip-attrs">
+              <div class="attr-item full-width">
+                <span class="attr-label">Equipment</span>
+                <div class="attr-value"><span class="attr-text">Pump, Centrifugal</span></div>
+              </div>
+              <div class="attr-item">
+                <span class="attr-label">Type</span>
+                <div class="attr-value"><span class="attr-text">Breakdown</span></div>
+              </div>
+              <div class="attr-item">
+                <span class="attr-label">Priority</span>
+                <div class="attr-value"><span class="attr-text">High</span></div>
+              </div>
+              <div class="attr-item">
+                <span class="attr-label">Department</span>
+                <div class="attr-value"><span class="attr-text">Water Utility</span></div>
+              </div>
+              <div class="attr-item">
+                <span class="attr-label">Due date</span>
+                <div class="attr-value"><span class="attr-text">07/20/2026</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-card" style="margin:12px 16px 0">
+            <div class="section-card-header"><span style="font-size:13px;font-weight:700">Work order details</span></div>
+            <div class="equip-attrs">
+              <div class="attr-item"><span class="attr-label">Problem code</span><div class="attr-value"><span class="attr-text">Cavitation</span></div></div>
+              <div class="attr-item"><span class="attr-label">Reported by</span><div class="attr-value"><span class="attr-text">B. Campbell</span></div></div>
+              <div class="attr-item"><span class="attr-label">Route</span><div class="attr-value"><span class="attr-text" style="color:var(--gray-5)">&mdash;</span></div></div>
+              <div class="attr-item"><span class="attr-label">Cost code</span><div class="attr-value"><span class="attr-text">WU-4420</span></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bottom-bar" style="position:static">
+          <button class="bar-pill" style="background:var(--bg-section);color:var(--octave-black);flex:0 0 132px">Pin</button>
+          <button class="bar-pill" style="background:var(--green);color:#fff">Start Work</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  </div>
+  <p class="mk-note warn"><b>Breaks §4.2, and it cannot be styled around.</b> §4.2 says the bottom
+  nav is &ldquo;visible while browsing; hidden entirely the moment any record is open&rdquo; &mdash;
+  a <b>binary</b>. This frame has a list <i>and</i> an open record at once, so both are true.
+  <b>Proposed:</b> the exclusivity is a Compact-width space compromise; at Expanded, band&nbsp;1
+  persists always and the record nests in bands&nbsp;2&ndash;3 rather than replacing the shell.
+  §4.2's three-item membership is <b>unchanged</b>.</p>
+  <p class="mk-note"><b>Browse vs execute &mdash; where this pane stops.</b> The detail pane shows the
+  record and its header actions. <b>Start Work promotes to full width</b> (frame 3), dropping the
+  list so band 2 can become the step rail. A workflow step is a deliberately focused surface
+  (§14); squeezing it beside a list would both crowd it and produce the forbidden fourth band.
+  Also note the <b>selected row</b> is a state portrait does not have &mdash; rotating in has to
+  choose one and rotating out has to discard it (§20).</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     FRAME 3 — RECORD VIEW / workflow step
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="mk-frame-wrap" id="frame3">
+  <div class="mk-cap">
+    <span class="n">03</span>
+    <span class="t">Record view &mdash; workflow step</span>
+    <span class="mk-tag open">DECISION NEEDED</span>
+    <span class="d">Use the Rail placement toggle. R2 is recommended; the argument is §29, not taste.</span>
+  </div>
+  <div class="mk-scroll">
+  <div class="mk-frame">
+    <div class="app lx">
+
+      <aside class="lx-rail">
+        <button class="lx-rail-avatar"><img src="../shared/img/bcampbell.jpg" alt=""></button>
+        <button class="lx-rail-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/></svg>
+          Home
+        </button>
+        <button class="lx-rail-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 01-5.66 5.66l-5.1 5.1a2 2 0 102.83 2.83l5.1-5.1a4 4 0 015.66-5.66l-2.4 2.4-2.83-2.83 2.4-2.4z"/></svg>
+          Work
+        </button>
+        <button class="lx-rail-item">
+          <span class="lx-rail-badge">3</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 106 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+          Notifications
+        </button>
+        <div class="lx-rail-spacer"></div>
+        <div class="lx-sync-pill">&#8635; Synced</div>
+      </aside>
+
+      <!-- BAND 2 — R2, the recommendation -->
+      <div class="lx-band2">
+        <div class="lx-band2-head">
+          <span class="lx-band2-id">19257</span>
+          <span style="width:9px;height:9px;border-radius:50%;background:var(--wo-type-breakdown)"></span>
+        </div>
+        <div class="step-map-item"><div class="step-map-icon smi-done">&#10003;</div><span class="step-map-label">WO Record View</span></div>
+        <div class="step-map-item"><div class="step-map-icon smi-done">&#10003;</div><span class="step-map-label">Activity Checklist</span></div>
+        <div class="step-map-item" style="background:var(--bg-section);border-radius:8px"><div class="step-map-icon" style="background:var(--octave-black);color:#fff">3</div><span class="step-map-label" style="font-weight:700;color:var(--octave-black)">Issue Parts</span></div>
+        <div class="step-map-item"><div class="step-map-icon" style="background:var(--border-strong);color:#fff">4</div><span class="step-map-label" style="color:var(--gray-5)">Book Labor</span></div>
+        <div class="step-map-item"><div class="step-map-icon" style="background:var(--border-strong);color:#fff">5</div><span class="step-map-label" style="color:var(--gray-5)">WO Closing</span></div>
+        <div class="lx-band2-group">More</div>
+        <div class="step-map-item"><span class="step-map-dot"></span><span class="step-map-label">Comments</span></div>
+        <div class="step-map-item"><span class="step-map-dot"></span><span class="step-map-label">Documents</span></div>
+        <div class="step-map-item"><span class="step-map-dot"></span><span class="step-map-label">Equipment</span></div>
+        <div class="lx-rail-spacer"></div>
+        <div class="lx-band2-foot"><div class="lx-timer">&#9201; 01:42</div></div>
+      </div>
+
+      <div class="lx-main">
+
+        <!-- BAND 2 — R1 alternative, horizontal -->
+        <div class="lx-r1">
+          <div class="lx-r1-step done"><div class="step-map-icon smi-done">&#10003;</div>Record View</div>
+          <div class="lx-r1-conn"></div>
+          <div class="lx-r1-step done"><div class="step-map-icon smi-done">&#10003;</div>Checklist</div>
+          <div class="lx-r1-conn"></div>
+          <div class="lx-r1-step current"><div class="step-map-icon" style="background:var(--octave-black);color:#fff">3</div>Issue Parts</div>
+          <div class="lx-r1-conn"></div>
+          <div class="lx-r1-step locked"><div class="step-map-icon" style="background:var(--border-strong);color:#fff">4</div>Book Labor</div>
+          <div class="lx-r1-conn"></div>
+          <div class="lx-r1-step locked"><div class="step-map-icon" style="background:var(--border-strong);color:#fff">5</div>WO Closing</div>
+          <div style="flex:1"></div>
+          <div class="lx-r1-step" style="border:1.5px solid var(--border-strong)">More &#9662;</div>
+          <div class="lx-timer" style="width:96px;margin-left:10px">&#9201; 01:42</div>
+        </div>
+
+        <header class="nav">
+          <div class="nav-left">
+            <button class="nav-back" aria-label="Back">
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <div class="nav-title">Issue Parts</div>
+          <div class="nav-actions">
+            <button class="nav-icon-btn" aria-label="More">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+            </button>
+          </div>
+        </header>
+
+        <div class="content" style="padding:0 0 12px">
+          <div class="section-card" style="margin:16px 20px 0">
+            <div class="section-card-header">
+              <span style="font-size:13px;font-weight:700">Planned parts</span>
+              <span class="section-card-badge">3</span>
+            </div>
+            <div class="equip-attrs">
+              <div class="attr-item"><span class="attr-label">Store</span><div class="attr-value"><span class="attr-text">MAIN</span></div></div>
+              <div class="attr-item"><span class="attr-label">Bin</span><div class="attr-value"><span class="attr-text">A-14-2</span></div></div>
+            </div>
+          </div>
+
+          <div class="section-card" style="margin:12px 20px 0;padding:0">
+            <div class="ld-card" style="margin:10px 12px;border-radius:10px">
+              <div class="ld-card-top">
+                <div class="ld-card-headline">Bearing, roller 6208-2RS</div>
+                <span class="ld-card-org">2 EA</span>
+              </div>
+              <div class="ld-card-attrs">
+                <div class="ld-card-attr-row"><span class="field-label">Part</span><span class="field-value">P-100482</span></div>
+                <div class="ld-card-attr-row"><span class="field-label">On hand</span><span class="field-value">14</span></div>
+              </div>
+            </div>
+            <div class="ld-card" style="margin:0 12px 10px;border-radius:10px">
+              <div class="ld-card-top">
+                <div class="ld-card-headline">Seal, mechanical 45mm</div>
+                <span class="ld-card-org">1 EA</span>
+              </div>
+              <div class="ld-card-attrs">
+                <div class="ld-card-attr-row"><span class="field-label">Part</span><span class="field-value">P-100913</span></div>
+                <div class="ld-card-attr-row"><span class="field-label">On hand</span><span class="field-value">3</span></div>
+              </div>
+            </div>
+            <div class="ld-card" style="margin:0 12px 12px;border-radius:10px">
+              <div class="ld-card-top">
+                <div class="ld-card-headline">Gasket set, casing</div>
+                <span class="ld-card-org">1 SET</span>
+              </div>
+              <div class="ld-card-attrs">
+                <div class="ld-card-attr-row"><span class="field-label">Part</span><span class="field-value">P-100277</span></div>
+                <div class="ld-card-attr-row"><span class="field-label">On hand</span><span class="field-value">8</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bottom-bar" style="position:static">
+          <button class="bar-pill" style="background:var(--bg-section);color:var(--octave-black);flex:0 0 168px">&#65291; Add part</button>
+          <button class="bar-pill" style="background:var(--green);color:#fff">Next &rarr;</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  </div>
+  <p class="mk-note"><b>Why R2, and the argument is architectural.</b> §29 made the rail's contents
+  <i>configuration-driven and unbounded</i> &mdash; a tab can be placed twice, More's membership is
+  configuration not definition (<code>WO_MORE_TABS</code>), and a UDS is a step
+  (<code>isStepKind()</code>). A workflow of 8 steps plus 4 More entries is legitimately
+  authorable <b>today</b>. A vertical column holds any number; flip to R1 and note it has already
+  had to put More behind a dropdown to fit &mdash; the collapsed-rail compromise returning under
+  another name, at only 8 entries.</p>
+  <p class="mk-note"><b>Two details these frames settle.</b> The <b>timer pill</b> (§14.2, today in
+  <code>.step-rail-right</code>) sits at the foot of band 2, because it belongs to the record
+  rather than to the app. And the <b>action bar stays horizontal</b> at the foot of band 3 rather
+  than standing up into a column &mdash; height is abundant at Expanded width, so §8.4 is
+  untouched and the portrait pattern carries over unchanged. A rotated-phone analysis would have
+  stood it up; a tablet does not need that.</p>
+  <p class="mk-note"><b>One reduction worth noticing:</b> on Expanded the rail is always expanded,
+  so the collapsed pill, its chevron and the expand/collapse state stop existing entirely.</p>
+</div>
+
+<script>
+/* Mockup chrome only — none of this ships. */
+function showView(n) {
+  [1,2,3].forEach(i => {
+    document.getElementById('frame' + i).style.display = (n === 0 || n === i) ? '' : 'none';
+  });
+  [0,1,2,3].forEach(i => document.getElementById('v' + i).classList.toggle('on', i === n));
+}
+function setRail(which) {
+  document.body.classList.toggle('rail-top', which === 'r1');
+  document.getElementById('rR1').classList.toggle('on', which === 'r1');
+  document.getElementById('rR2').classList.toggle('on', which === 'r2');
+}
+function mkTheme() {
+  const dark = document.documentElement.hasAttribute('data-theme');
+  if (dark) document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', 'dark');
+  document.getElementById('mkThemeBtn').textContent = dark ? '◑ Dark' : '☀ Light';
+}
+showView(1);
+</script>
+</body>
+</html>
