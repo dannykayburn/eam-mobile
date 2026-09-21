@@ -19,6 +19,31 @@
   tabs and already matches how the List/Detail shell re-renders on every
   interaction anyway.
 */
+/* ---------------------------------------------------------------------------
+   GUARDED STORAGE (§31.5 requirement 5, added 2026-09-21)
+
+   Every localStorage access goes through these three. Do not call
+   localStorage directly again — `setItem` THROWS in iOS Safari Private
+   Browsing and under storage pressure, and an uncaught throw aborts the
+   rest of the handler. The visible symptom is therefore not an error but
+   *a control that silently does nothing*, which is close to undiagnosable
+   from a user-research session recording.
+
+   Failure is deliberately silent and non-fatal: the demo degrades to
+   in-memory state for the session rather than breaking. `lsGet` returns
+   null exactly as a missing key would, so every existing call site keeps
+   its own default handling.
+   ------------------------------------------------------------------------ */
+function lsGet(k) {
+  try { return localStorage.getItem(k); } catch (e) { return null; }
+}
+function lsSet(k, v) {
+  try { localStorage.setItem(k, v); return true; } catch (e) { return false; }
+}
+function lsRemove(k) {
+  try { localStorage.removeItem(k); } catch (e) { /* nothing to do */ }
+}
+
 
 /* ══════════════════════════════════════════════════════════════════════
    THEME TOGGLE + TOAST + SHEET PRIMITIVES
@@ -35,8 +60,8 @@ function initThemeToggle() {
   btn.textContent = document.documentElement.hasAttribute('data-theme') ? '◑ Dark' : '☀ Light';
   btn.addEventListener('click', () => {
     const dark = document.documentElement.hasAttribute('data-theme');
-    if (dark) { document.documentElement.removeAttribute('data-theme'); localStorage.setItem('eamTheme', 'light'); btn.textContent = '☀ Light'; }
-    else { document.documentElement.setAttribute('data-theme', 'dark'); localStorage.setItem('eamTheme', 'dark'); btn.textContent = '◑ Dark'; }
+    if (dark) { document.documentElement.removeAttribute('data-theme'); lsSet('eamTheme', 'light'); btn.textContent = '☀ Light'; }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); lsSet('eamTheme', 'dark'); btn.textContent = '◑ Dark'; }
   });
 }
 function showToast(msg) {
@@ -639,9 +664,9 @@ function routeEquipmentRows(routeCode) {
   return rows;
 }
 function woEquipStore() {
-  try { return JSON.parse(localStorage.getItem(WO_EQUIP_STORE_KEY)) || {}; } catch (e) { return {}; }
+  try { return JSON.parse(lsGet(WO_EQUIP_STORE_KEY)) || {}; } catch (e) { return {}; }
 }
-function woEquipSaveStore(s) { localStorage.setItem(WO_EQUIP_STORE_KEY, JSON.stringify(s)); }
+function woEquipSaveStore(s) { lsSet(WO_EQUIP_STORE_KEY, JSON.stringify(s)); }
 function woEquipState(wo) { return woEquipStore()[wo] || { route: null, rows: [] }; }
 function woEquipRows(wo) { return woEquipState(wo).rows; }
 function woEquipRoute(wo) { return woEquipState(wo).route; }
@@ -1524,7 +1549,7 @@ const CREATED_RECORDS_KEY = 'eamCreatedRecords';
 const CREATED_KEY_FIELD = { WO: 'number', EQUIP: 'asset' };
 function createdRecords() {
   try {
-    const s = JSON.parse(localStorage.getItem(CREATED_RECORDS_KEY)) || {};
+    const s = JSON.parse(lsGet(CREATED_RECORDS_KEY)) || {};
     return { WO: s.WO || [], EQUIP: s.EQUIP || [] };
   } catch (e) { return { WO: [], EQUIP: [] }; }
 }
@@ -1533,7 +1558,7 @@ function createdRecordAdd(entity, rec) {
   const idField = CREATED_KEY_FIELD[entity];
   s[entity] = s[entity].filter(r => r[idField] !== rec[idField]);
   s[entity].unshift(rec);
-  localStorage.setItem(CREATED_RECORDS_KEY, JSON.stringify(s));
+  lsSet(CREATED_RECORDS_KEY, JSON.stringify(s));
 }
 function createdRecordFind(entity, id) {
   return createdRecords()[entity].find(r => r[CREATED_KEY_FIELD[entity]] === id) || null;
@@ -1621,10 +1646,10 @@ let SYNC_DEMO_ITEMS = [
    startLogin()), matching how a real app would re-sync on a fresh
    session rather than adding demo-only UI chrome. */
 (function () {
-  const saved = localStorage.getItem('eamSyncItems');
+  const saved = lsGet('eamSyncItems');
   if (saved) { try { SYNC_DEMO_ITEMS = JSON.parse(saved); } catch (e) {} }
 })();
-function persistSyncItems() { localStorage.setItem('eamSyncItems', JSON.stringify(SYNC_DEMO_ITEMS)); }
+function persistSyncItems() { lsSet('eamSyncItems', JSON.stringify(SYNC_DEMO_ITEMS)); }
 /* Reset affordance — renamed from resetSyncDemoState() 2026-07-23 (was
    sync-only; broadened same day to cover every other localStorage key
    this prototype accumulates demo progress in, not just the outbox —
@@ -1662,7 +1687,7 @@ function resetDemoState() {
    // eamCreatedRecords (2026-08-11) — WOs/Equipment created through Insert
    // Mode. A fresh demo must start with only the seeded demo records.
    CREATED_RECORDS_KEY]
-    .forEach(k => localStorage.removeItem(k));
+    .forEach(k => lsRemove(k));
   // Session-scoped, so not in the list above — but a held MEC child identity
   // would otherwise survive a Reset and repaint the next WO's header, and a
   // held list state would restore someone else's filters onto a fresh demo.
@@ -1963,9 +1988,9 @@ let DEMO_SYNCED_OVERRIDE = true;
 // DEMO_ONLINE isn't declared yet at that point in the file — let's TDZ
 // would throw if this ran any earlier).
 (function () {
-  const saved = localStorage.getItem('eamSyncOnline');
+  const saved = lsGet('eamSyncOnline');
   if (saved !== null) DEMO_ONLINE = saved === 'true';
-  const savedSynced = localStorage.getItem('eamSyncForceSynced');
+  const savedSynced = lsGet('eamSyncForceSynced');
   if (savedSynced !== null) DEMO_SYNCED_OVERRIDE = savedSynced === 'true';
 })();
 // 3-way cycle: Offline -> Online -> Synced -> Offline. Synced implies
@@ -1981,8 +2006,8 @@ function toggleDemoOnline() {
   } else {
     DEMO_SYNCED_OVERRIDE = true;
   }
-  localStorage.setItem('eamSyncOnline', String(DEMO_ONLINE));
-  localStorage.setItem('eamSyncForceSynced', String(DEMO_SYNCED_OVERRIDE));
+  lsSet('eamSyncOnline', String(DEMO_ONLINE));
+  lsSet('eamSyncForceSynced', String(DEMO_SYNCED_OVERRIDE));
   updateOnlineToggleLabel();
   renderSyncControl();
 }
@@ -2530,8 +2555,8 @@ function saveInsertRecord() {
   }));
   closeInsertMode();
   if (currentEntity === 'WO') {
-    const woNumber = String(parseInt(localStorage.getItem('eamNextWoNumber') || '19258', 10));
-    localStorage.setItem('eamNextWoNumber', String(parseInt(woNumber, 10) + 1));
+    const woNumber = String(parseInt(lsGet('eamNextWoNumber') || '19258', 10));
+    lsSet('eamNextWoNumber', String(parseInt(woNumber, 10) + 1));
     const rec = {
       number: woNumber, desc,
       department: opt('insertDepartment'), assignedTo: opt('insertAssignedTo'), reportedBy: opt('insertReportedBy'),
@@ -2546,8 +2571,8 @@ function saveInsertRecord() {
     createdRecordAdd('WO', rec);
     navigateToNewRecord('eam-wo-record-view-prototype-v1.html', 'eamNewWoRecord', rec);
   } else {
-    const equipNumber = String(parseInt(localStorage.getItem('eamNextEquipNumber') || '67400', 10)).padStart(8, '0');
-    localStorage.setItem('eamNextEquipNumber', String(parseInt(equipNumber, 10) + 1));
+    const equipNumber = String(parseInt(lsGet('eamNextEquipNumber') || '67400', 10)).padStart(8, '0');
+    lsSet('eamNextEquipNumber', String(parseInt(equipNumber, 10) + 1));
     const rec = {
       asset: equipNumber, desc,
       department: opt('insertDepartment'), criticality: opt('insertCriticality'),

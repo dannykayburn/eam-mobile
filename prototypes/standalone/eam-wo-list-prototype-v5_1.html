@@ -1,13 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
+<script>/* guarded: localStorage throws in iOS Private Browsing, and this runs before eam-shared.js so lsGet() does not exist yet */try{if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1A1A1F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="EAM">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — WO List v5</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-fonts.css">
 <link rel="stylesheet" href="shared/eam-shared.css">
 <style>
 /* ══════════════════════════════════════════════════════════
@@ -102,7 +108,7 @@ body{
    theme lives in User Settings (design-decisions-v3-1.md §20), not here. ── */
 .proto-theme-bar{flex-shrink:0;display:flex;align-items:center;justify-content:center;
   gap:8px;padding:6px 0;}
-.proto-theme-label{font-size:10px;font-weight:600;letter-spacing:0.3px;color:var(--text-muted);
+.proto-theme-label{font-size:0.625rem;font-weight:600;letter-spacing:0.3px;color:var(--text-muted);
   font-family:var(--font-mono);text-transform:uppercase;}
 
 /* ── SVG ICON HELPER ──────────────────────────────────── */
@@ -125,7 +131,7 @@ body{
    contained until its own dedicated rebuild, same reasoning as
    design-decisions-v3-1.md's note on why this file's nav wasn't touched
    during the earlier conformance-audit pass. */
-.nav-avatar{width:30px;height:30px;border-radius:50%;overflow:hidden;background:var(--gray-5);color:var(--white);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;flex-shrink:0;font-family:var(--font-sans);padding:0;}
+.nav-avatar{width:30px;height:30px;border-radius:50%;overflow:hidden;background:var(--gray-5);color:var(--white);font-size:0.6875rem;font-weight:700;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;flex-shrink:0;font-family:var(--font-sans);padding:0;}
 .nav-avatar-img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
 .nav-avatar-initials{width:100%;height:100%;align-items:center;justify-content:center;}
 /* Was flex:1 + font-mono — two bugs, fixed 2026-07-16: flex:1 only
@@ -141,7 +147,7 @@ body{
 /* 14px→15px, 2026-07-24 — matches the same bump to eam-shared.css's
    canonical .nav-title (this file hand-copies it, doesn't link the
    shared file, per this file's own header note). */
-.nav-title{position:absolute;left:0;right:0;text-align:center;font-family:var(--font-sans);font-size:15px;font-weight:700;
+.nav-title{position:absolute;left:0;right:0;text-align:center;font-family:var(--font-sans);font-size:0.9375rem;font-weight:700;
   color:var(--white);pointer-events:none;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 /* .nav-back/.nav-icon-btn now come from eam-shared.css only (Phase 2b,
@@ -164,7 +170,7 @@ body{
    theme-aware tokens the canonical .theme-toggle in eam-shared.css
    already uses (var(--gray-4)/var(--bg-section)/var(--border-strong)),
    which stay legible in both themes. */
-.theme-toggle{font-size:11px;font-family:var(--font-sans);font-weight:600;
+.theme-toggle{font-size:0.6875rem;font-family:var(--font-sans);font-weight:600;
   color:var(--gray-4);background:var(--bg-section);
   border:1px solid var(--border-strong);border-radius:100px;padding:3px 10px;
   cursor:pointer;transition:all 0.15s;white-space:nowrap;flex-shrink:0;}
@@ -191,14 +197,14 @@ body{
   display:flex;align-items:center;justify-content:center;flex-shrink:0;
   border:1px solid var(--border);}
 .ds-body{flex:1;min-width:0;}
-.ds-name{font-size:14px;font-weight:700;color:var(--text-body);letter-spacing:-0.2px;
+.ds-name{font-size:0.875rem;font-weight:700;color:var(--text-body);letter-spacing:-0.2px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
 /* ── MODE TOGGLE ──────────────────────────────────────── */
 .mode-tog{margin:10px 14px 0;display:flex;background:var(--bg-section);
   border-radius:11px;padding:3px;flex-shrink:0;border:1px solid var(--border);}
 .mode-btn{flex:1;height:36px;border:none;border-radius:9px;
-  font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);
+  font-size:0.8125rem;font-weight:600;cursor:pointer;font-family:var(--font-sans);
   background:transparent;color:var(--text-muted);transition:all 0.18s;}
 .mode-btn.active{background:var(--bg-card);color:var(--text-body);
   box-shadow:0 1px 5px rgba(0,0,0,0.10),0 0 0 1px var(--border);}
@@ -208,8 +214,8 @@ body{
 /* ── RESULTS ROW ──────────────────────────────────────── */
 .res-row{padding:9px 16px 4px;display:flex;align-items:center;
   justify-content:space-between;flex-shrink:0;}
-.res-count{font-size:12px;color:var(--text-muted);font-family:var(--font-mono);}
-.sort-btn{display:flex;align-items:center;gap:5px;font-size:12px;
+.res-count{font-size:0.75rem;color:var(--text-muted);font-family:var(--font-mono);}
+.sort-btn{display:flex;align-items:center;gap:5px;font-size:0.75rem;
   font-weight:600;color:var(--text-muted);background:none;border:none;cursor:pointer;
   padding:4px 8px;border-radius:8px;font-family:var(--font-sans);transition:all 0.15s;}
 .sort-btn:hover{color:var(--octave-black);background:var(--bg-section);}
@@ -233,8 +239,8 @@ body{
 .ld-card:hover{border-color:var(--gray-3);}
 .ld-card:active{transform:scale(0.985);}
 .ld-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
-.ld-card-headline{font-size:15px;font-weight:700;color:var(--text-body);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.ld-card-headline.pill{display:inline-block;font-size:12px;font-weight:700;padding:4px 10px;border-radius:100px;-webkit-line-clamp:unset;}
+.ld-card-headline{font-size:0.9375rem;font-weight:700;color:var(--text-body);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.ld-card-headline.pill{display:inline-block;font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:100px;-webkit-line-clamp:unset;}
 /* Status pill fill/outline tiers (§23) — green=operational/completed,
    red=down (unused by this file's demo data yet, kept for real statuses
    that need it), outline=standby/waiting. Shared by the card headline
@@ -269,9 +275,9 @@ body{
    cell, .field-value on any other card) — only the Detailed card's
    slot-2 subline was left gray. Bold ink now, matching the rest of the
    palette (user report, 2026-07-22). */
-.ld-card-subline{font-size:13px;font-weight:700;color:var(--text-body);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ld-card-subline{font-size:0.8125rem;font-weight:700;color:var(--text-body);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 /* No separate font-weight for .tinted — slot 2 is bold either way now (2026-07-20, matches eam-shared.css). */
-.ld-card-org{display:inline-flex;align-items:center;padding:5px 11px;border-radius:999px;font-family:var(--font-sans);font-size:12px;font-weight:600;flex-shrink:0;white-space:nowrap;margin-top:1px;background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);}
+.ld-card-org{display:inline-flex;align-items:center;padding:5px 11px;border-radius:999px;font-family:var(--font-sans);font-size:0.75rem;font-weight:600;flex-shrink:0;white-space:nowrap;margin-top:1px;background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);}
 .ld-card-attrs{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
 .ld-card-attr-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:2px 0;}
 .ld-card-attr-row .field-label{width:auto;}
@@ -282,8 +288,8 @@ body{
    "exactly," so they're ported here verbatim rather than redefined with
    different sizes inside .ld-card-attr-row (that was the actual drift —
    a locally "enhanced" 12.5px/13px pair instead of the real 13px/14px). */
-.field-label{font-size:13px;color:var(--text-muted);width:128px;flex-shrink:0;line-height:1.35;}
-.field-value{flex:1;font-size:14px;font-weight:500;color:var(--text-body);text-align:right;}
+.field-label{font-size:0.8125rem;color:var(--text-muted);width:128px;flex-shrink:0;line-height:1.35;}
+.field-value{flex:1;font-size:0.875rem;font-weight:500;color:var(--text-body);text-align:right;}
 
 /* .wo-list/.ld-card sit inside the screen's own flex column, so
    .ld-table-wrap needs the same flex:1/overflow-y:auto role .wo-list has
@@ -293,14 +299,14 @@ body{
    exact canonical treatment, not the sticky/uppercase/mono/bordered-grid
    version this used to carry. */
 .ld-table-wrap{flex:1;overflow-y:auto;overflow-x:auto;margin:4px 14px 78px;border:1px solid var(--border);border-radius:10px;}
-.ld-table{width:max-content;min-width:100%;background:var(--bg-card);border-collapse:collapse;font-size:12.5px;}
+.ld-table{width:max-content;min-width:100%;background:var(--bg-card);border-collapse:collapse;font-size:0.78125rem;}
 .ld-table th{text-align:left;font-weight:600;color:var(--text-muted);padding:9px 14px;background:var(--bg-section);white-space:nowrap;border-bottom:1px solid var(--border);}
 .ld-table td{padding:9px 14px;color:var(--text-body);white-space:nowrap;border-bottom:1px solid var(--border);}
 .ld-table tbody tr{cursor:pointer;}
 .ld-table tbody tr:last-child td{border-bottom:none;}
 .ld-table tbody tr.child-row{background:rgba(0,0,0,0.035);}
 [data-theme="dark"] .ld-table tbody tr.child-row{background:rgba(255,255,255,0.06);}
-.ld-table-pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:100px;}
+.ld-table-pill{display:inline-block;font-size:0.6875rem;font-weight:700;padding:3px 9px;border-radius:100px;}
 /* Chevron + child-row tint (§6.9) — legitimately WO-only, no other
    current List Search Screen consumer has a parent/child concept. */
 .ld-chev{width:20px;height:20px;border-radius:6px;background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;vertical-align:-4px;margin-right:4px;transition:transform 0.18s,background 0.15s;color:var(--text-muted);}
@@ -346,7 +352,7 @@ body{
 }
 .ld-child-caption{
   display:block;
-  font-size:10.5px;
+  font-size:0.65625rem;
   font-weight:700;
   letter-spacing:.3px;
   text-transform:uppercase;
@@ -369,8 +375,8 @@ body{
 .empty-icon{width:60px;height:60px;border-radius:18px;background:var(--bg-section);
   border:1px solid var(--border);display:flex;align-items:center;
   justify-content:center;}
-.empty-title{font-size:16px;font-weight:700;color:var(--text-body);}
-.empty-sub{font-size:13px;color:var(--text-muted);text-align:center;line-height:1.55;}
+.empty-title{font-size:1rem;font-weight:700;color:var(--text-body);}
+.empty-sub{font-size:0.8125rem;color:var(--text-muted);text-align:center;line-height:1.55;}
 
 </style>
 </head>
@@ -1187,7 +1193,7 @@ const DSF={
 const LS_FAVORITE_DS_KEY='eamFavoriteDataspies';
 function getFavoriteDS(){
   try{
-    const raw=localStorage.getItem(LS_FAVORITE_DS_KEY);
+    const raw=lsGet(LS_FAVORITE_DS_KEY);
     return raw ? (JSON.parse(raw)||[]) : [];
   }catch(e){ return []; }
 }
@@ -1200,7 +1206,7 @@ function toggleFavDS(id){
   // just starred isn't a state worth announcing the same way).
   if(idx>-1) list.splice(idx,1);
   else { const d=DS.find(x=>x.id===id); list.push({id:d.id,name:d.name}); showToast('Added to your home screen.'); }
-  localStorage.setItem(LS_FAVORITE_DS_KEY,JSON.stringify(list));
+  lsSet(LS_FAVORITE_DS_KEY,JSON.stringify(list));
   openDS();
 }
 

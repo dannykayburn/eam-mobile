@@ -1,13 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
+<script>/* guarded: localStorage throws in iOS Private Browsing, and this runs before eam-shared.js so lsGet() does not exist yet */try{if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1A1A1F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="EAM">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — Notifications</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-fonts.css">
 <link rel="stylesheet" href="shared/eam-shared.css">
 <!--
   NOTIFICATIONS SCREEN (v1, 2026-07-22) — the "quick and dirty" build
@@ -46,7 +52,7 @@
   markup, behavior comes entirely from eam-shared.js.
 -->
 <style>
-  .notif-section-label{padding:14px 14px 6px;font-size:12px;font-weight:700;color:var(--octave-black);}
+  .notif-section-label{padding:14px 14px 6px;font-size:0.75rem;font-weight:700;color:var(--octave-black);}
   [data-theme="dark"] .notif-section-label{color:var(--white);}
   .notif-card{display:flex;gap:11px;padding:13px 14px;margin:0 12px 8px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:border-color .15s;}
   .notif-card:hover{border-color:var(--gray-3);}
@@ -57,15 +63,15 @@
   .notif-subject-wrap{display:flex;align-items:flex-start;gap:6px;min-width:0;}
   .notif-dot{width:7px;height:7px;border-radius:50%;background:var(--octave-black);flex-shrink:0;margin-top:5px;}
   [data-theme="dark"] .notif-dot{background:var(--white);}
-  .notif-subject{font-size:13.5px;font-weight:500;color:var(--text-body);line-height:1.35;}
+  .notif-subject{font-size:0.84375rem;font-weight:500;color:var(--text-body);line-height:1.35;}
   .notif-card.unread .notif-subject{font-weight:700;color:var(--octave-black);}
   [data-theme="dark"] .notif-card.unread .notif-subject{color:var(--white);}
-  .notif-text{font-size:12.5px;color:var(--gray-4);line-height:1.4;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-  .notif-meta{display:flex;align-items:center;gap:9px;margin-top:7px;font-size:11px;color:var(--text-faint);}
+  .notif-text{font-size:0.78125rem;color:var(--gray-4);line-height:1.4;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .notif-meta{display:flex;align-items:center;gap:9px;margin-top:7px;font-size:0.6875rem;color:var(--text-faint);}
   .notif-wo-link{font-family:var(--font-mono);font-weight:600;color:var(--gray-4);}
   .notif-card.unread .notif-wo-link{color:var(--octave-black);}
   [data-theme="dark"] .notif-card.unread .notif-wo-link{color:var(--white);}
-  .notif-dismiss{width:24px;height:24px;border-radius:50%;border:none;background:none;color:var(--text-faint);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:13px;}
+  .notif-dismiss{width:24px;height:24px;border-radius:50%;border:none;background:none;color:var(--text-faint);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:0.8125rem;}
   .notif-dismiss:hover{background:var(--bg-section);color:var(--gray-4);}
   /* 2nd pass, 2026-07-22 (user direction) — moved out of the header
      entirely (the icon button there was a fix for the text label
@@ -75,15 +81,15 @@
      is shared (WO List/Equipment List also use it for plain chip lists
      with no trailing item), so the push lives on this button alone, not
      on the shared row class. */
-  .notif-mark-all-chip{margin-left:auto;flex-shrink:0;display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--octave-black);background:var(--bg-card);border:1px solid var(--border);border-radius:100px;padding:6px 13px;cursor:pointer;font-family:var(--font-sans);white-space:nowrap;}
+  .notif-mark-all-chip{margin-left:auto;flex-shrink:0;display:inline-flex;align-items:center;gap:5px;font-size:0.75rem;font-weight:600;color:var(--octave-black);background:var(--bg-card);border:1px solid var(--border);border-radius:100px;padding:6px 13px;cursor:pointer;font-family:var(--font-sans);white-space:nowrap;}
   [data-theme="dark"] .notif-mark-all-chip{color:var(--white);}
   .notif-mark-all-chip:hover{border-color:var(--gray-3);}
   .notif-mark-all-chip:disabled{opacity:.4;cursor:default;}
   .notif-mark-all-chip:disabled:hover{border-color:var(--border);}
   .notif-empty{padding:70px 24px;text-align:center;}
-  .notif-empty-title{font-size:15px;font-weight:700;color:var(--octave-black);margin-bottom:6px;}
+  .notif-empty-title{font-size:0.9375rem;font-weight:700;color:var(--octave-black);margin-bottom:6px;}
   [data-theme="dark"] .notif-empty-title{color:var(--white);}
-  .notif-empty-sub{font-size:12.5px;color:var(--gray-4);}
+  .notif-empty-sub{font-size:0.78125rem;color:var(--gray-4);}
 </style>
 </head>
 <body>

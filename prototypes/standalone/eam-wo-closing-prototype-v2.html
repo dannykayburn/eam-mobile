@@ -1,13 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
+<script>/* guarded: localStorage throws in iOS Private Browsing, and this runs before eam-shared.js so lsGet() does not exist yet */try{if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1A1A1F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="EAM">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — WO Closing (Step 5)</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-fonts.css">
 <link rel="stylesheet" href="shared/eam-shared.css">
 <!--
   WO WORKFLOW — STEP 5: WO CLOSING (rebuilt 2026-07-16 onto shared/eam-
@@ -116,12 +122,12 @@
    duplicated here. */
 /* Matches .field-label exactly (§3.4) — sentence case, not the ALL CAPS
    mini-eyebrow style this cell briefly had. */
-.code-cell-label { font-size: 13px; color: var(--gray-4); }
+.code-cell-label { font-size: 0.8125rem; color: var(--gray-4); }
 .code-cell-body { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
-.code-cell-desc { font-size: 13px; font-weight: 500; color: var(--gray-3); line-height: 1.35; }
+.code-cell-desc { font-size: 0.8125rem; font-weight: 500; color: var(--gray-3); line-height: 1.35; }
 .code-cell-desc.set { color: var(--octave-black); }
 [data-theme="dark"] .code-cell-desc.set { color: rgba(255,255,255,0.9); }
-.code-cell-code { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--gray-4); }
+.code-cell-code { font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 600; color: var(--gray-4); }
 .code-cell-footer { display: flex; align-items: center; justify-content: flex-end; color: var(--gray-3); margin-top: 2px; }
 .seq-lock-icon-sm {
   width: 16px; height: 16px; border-radius: 50%;
@@ -139,13 +145,13 @@
 .comments-textarea {
   width: 100%; min-height: 96px;
   background: var(--bg-section); border: 1px solid var(--border); border-radius: 8px;
-  padding: 10px 12px; font-family: var(--font-sans); font-size: 14px; color: var(--octave-black);
+  padding: 10px 12px; font-family: var(--font-sans); font-size: 1rem; color: var(--octave-black);
   resize: none; outline: none; line-height: 1.5; transition: border-color 0.15s;
 }
 [data-theme="dark"] .comments-textarea { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
 .comments-textarea:focus { border-color: var(--border-strong); }
 .comments-meta { display: flex; align-items: center; justify-content: space-between; padding: 5px 0 0; }
-.char-count { font-family: var(--font-mono); font-size: 11px; color: var(--gray-4); }
+.char-count { font-family: var(--font-mono); font-size: 0.6875rem; color: var(--gray-4); }
 .char-count.warn { color: var(--red); }
 
 /* ── ATTACHMENTS (§19.6). No shared equivalent. ──
@@ -154,22 +160,22 @@
    same resolution as the shared .doc-icon system. */
 .attach-empty { padding: 20px 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
 .attach-empty-icon { width: 44px; height: 44px; border-radius: 10px; background: var(--bg-section); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
-.attach-empty-text { font-size: 13px; color: var(--gray-4); line-height: 1.45; }
-.attach-empty-hint { font-size: 11px; color: var(--gray-3); font-family: var(--font-mono); }
+.attach-empty-text { font-size: 0.8125rem; color: var(--gray-4); line-height: 1.45; }
+.attach-empty-hint { font-size: 0.6875rem; color: var(--gray-3); font-family: var(--font-mono); }
 .attach-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
 .attach-row:last-child { border-bottom: none; }
 .attach-row:hover { background: var(--bg-section); }
 .attach-type-icon { width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-section); color: var(--gray-4); border: 1.5px solid var(--border-strong); }
 .attach-row-info { flex: 1; min-width: 0; }
-.attach-row-name { font-size: 14px; font-weight: 600; color: var(--octave-black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.attach-row-name { font-size: 0.875rem; font-weight: 600; color: var(--octave-black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 [data-theme="dark"] .attach-row-name { color: rgba(255,255,255,0.9); }
-.attach-row-meta { font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); margin-top: 1px; }
+.attach-row-meta { font-size: 0.6875rem; color: var(--gray-4); font-family: var(--font-mono); margin-top: 1px; }
 .attach-row-remove { width: 28px; height: 28px; border-radius: 50%; background: none; border: 1.5px solid var(--gray-2); color: var(--gray-4); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
 [data-theme="dark"] .attach-row-remove { border-color: var(--gray-5); }
 .attach-row-remove:hover { border-color: var(--red); color: var(--red); background: rgba(228,75,74,0.06); }
 .attach-add-row { display: flex; align-items: center; justify-content: center; padding: 10px 14px; gap: 6px; border-top: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
 .attach-add-row:hover { background: var(--bg-section); }
-.attach-add-btn-label { font-size: 13px; font-weight: 600; color: var(--octave-black); font-family: var(--font-sans); }
+.attach-add-btn-label { font-size: 0.8125rem; font-weight: 600; color: var(--octave-black); font-family: var(--font-sans); }
 [data-theme="dark"] .attach-add-btn-label { color: rgba(255,255,255,0.9); }
 
 /* .source-option* promoted to eam-shared.css 2026-07-29 — Home's new
@@ -181,13 +187,13 @@
 .viewer-top-bar { padding: 12px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .viewer-file-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-section); color: var(--gray-4); border: 1.5px solid var(--border-strong); }
 .viewer-info { flex: 1; min-width: 0; }
-.viewer-name { font-size: 14px; font-weight: 600; color: var(--octave-black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.viewer-name { font-size: 0.875rem; font-weight: 600; color: var(--octave-black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 [data-theme="dark"] .viewer-name { color: rgba(255,255,255,0.9); }
-.viewer-meta { font-size: 11px; color: var(--gray-4); font-family: var(--font-mono); margin-top: 1px; }
+.viewer-meta { font-size: 0.6875rem; color: var(--gray-4); font-family: var(--font-mono); margin-top: 1px; }
 .viewer-body { flex: 1; display: flex; align-items: center; justify-content: center; background: var(--bg-section); flex-direction: column; gap: 12px; padding: 24px 16px; }
 [data-theme="dark"] .viewer-body { background: rgba(255,255,255,0.03); }
 .viewer-file-placeholder { width: 72px; height: 72px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: var(--bg-section); color: var(--gray-4); border: 1.5px solid var(--border-strong); }
-.viewer-file-label { font-size: 13px; color: var(--gray-4); text-align: center; }
+.viewer-file-label { font-size: 0.8125rem; color: var(--gray-4); text-align: center; }
 .viewer-footer { padding: 12px 16px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; }
 /* Was a local .viewer-action-btn — converged onto the shared
    .row-action-btn 2026-07-21 (UI inventory pass), unifying with Issue
@@ -979,15 +985,15 @@ function openViewer(idx) {
     body.innerHTML = `
       <div style="width:100%;max-width:320px;aspect-ratio:4/3;border-radius:10px;background:${att.bgColor};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border:1px solid var(--border);">
         ${typeIconSvg('image', 36, 'rgba(255,255,255,0.4)')}
-        <span style="font-family:var(--font-mono);font-size:11px;color:rgba(255,255,255,0.4);">${att.name}</span>
+        <span style="font-family:var(--font-mono);font-size:0.6875rem;color:rgba(255,255,255,0.4);">${att.name}</span>
       </div>
       <div class="viewer-file-label">Prototype — photo preview simulated</div>`;
   } else {
     body.innerHTML = `
       <div class="viewer-file-placeholder ${att.iconClass}">${typeIconSvg(att.mime, 32, 'currentColor')}</div>
       <div style="text-align:center;">
-        <div style="font-size:14px;font-weight:600;color:var(--octave-black);">${att.name}</div>
-        <div style="font-size:12px;color:var(--gray-4);margin-top:4px;font-family:var(--font-mono);">${att.size} · ${att.label}</div>
+        <div style="font-size:0.875rem;font-weight:600;color:var(--octave-black);">${att.name}</div>
+        <div style="font-size:0.75rem;color:var(--gray-4);margin-top:4px;font-family:var(--font-mono);">${att.size} · ${att.label}</div>
       </div>
       <div class="viewer-file-label">Tap Open to view in a document reader</div>`;
   }

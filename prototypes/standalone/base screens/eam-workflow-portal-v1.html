@@ -1194,6 +1194,12 @@ svg{display:block;}
 /* The per-entity registry. A table would fight the dropdowns and the long
    rationale lines, so it is a row list with three columns that collapse. */
 .reg{padding:0 0 var(--s-2);}
+/* The measurement caption under a dataspy control. Muted by default because it
+   is a budget readout, and coloured only when a cap is actually breached — the
+   number is always worth seeing, the alarm is not always warranted. */
+.reg__meas{font-size:var(--uxt-theme-typography-caption-font-size);color:var(--fg-muted);
+  line-height:1.4;margin-top:2px;}
+.reg__meas.is-breach{color:var(--uxt-theme-palette-status-red-900);font-weight:600;}
 .reg__grp{padding:var(--s-3) var(--s-4) var(--s-1);background:var(--bg-panel);
   border-top:1px solid var(--border-subtle);border-bottom:1px solid var(--border-subtle);
   font-size:var(--uxt-theme-typography-caption-font-size);font-weight:600;letter-spacing:.06em;color:var(--fg-muted);}
@@ -2789,8 +2795,8 @@ function saveAssign(){ try{ localStorage.setItem(LS_ASSIGN, JSON.stringify(ASSIG
         already ruled that editing shared config from one group's side
         re-provisions every other member.
      2. A CHECKBOX CANNOT EXPRESS §2.7. We locked FIVE policy classes, not a
-        boolean. "Download Employees ✓" really means "Employees = reference,
-        read-only, no traversal".
+        boolean. "Download Employees ✓" really means "Employees =
+        offline-read, read-only, bounded by a dataspy".
      3. CAPS ARE MANDATORY (§2.7) — a device ceiling, a per-entity row cap
         and a traversal depth/breadth cap, enforced at authoring time. The
         current screen has none.
@@ -2806,50 +2812,164 @@ function saveAssign(){ try{ localStorage.setItem(LS_ASSIGN, JSON.stringify(ASSIG
                    otherwise is how an undecided entity becomes a commitment
                    nobody made.
    ═══════════════════════════════════════════════════════════════════════ */
-/* The five §2.7 classes. Each carries its own definition rather than the
-   registry explaining them in prose somewhere else, because the dropdown
-   is where the choice is actually made.
+/* ── THE FOUR §2.7 CLASSES, NAMED FOR WHAT THE APP CAN DO ──
+   Reworded 2026-09-18, then MERGED FROM FIVE TO FOUR the same day (user
+   direction, twice). Two separate changes worth keeping separate:
 
-   THE AXIS THAT MAKES THEM MEMORABLE IS "WHO DECIDED THIS IS ON THE
-   DEVICE" — nobody, the admin, the technician, the work itself, or another
-   system. Read/write is the consequence, not the definition. */
+   THE WORDING. The old labels each answered a DIFFERENT question:
+   "Server only" named a location, "Reference" named a kind of data, "On
+   demand" named a timing, "Work set" named a scope, "External replica" named
+   a mechanism. Five names on five axes are not comparable with one another,
+   and "On demand" was worse than unclear — it is inverted against the
+   industry's dominant usage, where OneDrive's Files On-Demand means the file
+   is NOT on the device. Every label now answers one question — WHAT CAN THE
+   APP DO WITH THIS OFFLINE — and the line under it answers the second one an
+   author needs: WHO PUT IT THERE.
+
+   THE MERGE. `reference` and `on-demand` were never two policies. A record
+   the technician keeps lands in the same local schema a dataspy-matched row
+   would, which is §2.6's punch-list mechanism generalised: ONE STORE, TWO
+   POPULATION SOURCES, and a SOURCE RECORDED ON THE ROW so a dataspy
+   re-evaluation cannot evict a manual pin. Provenance is a column, not a
+   class. What made them look different was a reliability difference, and
+   that survives as a sentence rather than as a policy.
+
+   AND WHAT `reference` WAS REALLY CARRYING WAS TIER 0. Its own §2.7 examples
+   were page layouts, UDS definitions and code domains — none of which are
+   records, all of which are Tier 0 (§2.3) and already render above this
+   editor as never-switchable. "Ships whole, unfiltered" is a Tier 0 property.
+   What was left behind (Employees, Crews, Stores, Task Plans) are record
+   tables with row counts, so they take a dataspy and a ceiling like every
+   other record — and whether that dataspy is REQUIRED or merely available is
+   arithmetic against the caps, never a description (see wholeDomainFits).
+
+   THE THREE SURVIVING KEYS ARE UNCHANGED (server-only / work-set /
+   external-replica); the merged one is `offline-read`, and POLICY_MIGRATE
+   maps both retired keys onto it so no stored profile is lost. */
 const OFFLINE_POLICIES = [
-  {k:'server-only', label:'Server only', read:false, write:false,
+  {k:'server-only', label:'Online only', read:false, write:false,
    who:'Nobody — it is never replicated',
-   def:'Not on the device at all. Opening it offline renders the screen and says why, rather than showing an empty one.',
+   def:'Nothing local. Opening it without a connection renders the screen and says why, rather than showing an empty one.',
    why:'The cost of holding it beats the value: history and cost are unbounded and grow forever, and a technician executing work does not read them.'},
 
-  {k:'reference', label:'Reference', read:true, write:false,
-   who:'The admin, once, for everyone',
-   def:'A whole small, slow-changing domain shipped down and held. Employees, crews, trades, stores, cost codes.',
-   why:'Read-only because it is not this technician\'s data to change. Ships WHOLE rather than filtered — a subset of a code list reads as a data error, not as an offline limit (§2.8 row 1).'},
+  {k:'offline-read', label:'Offline read', read:true, write:false,
+   who:'The admin by dataspy, the technician by keeping — one store either way',
+   def:'A bounded population of records held on the device and readable without a connection. Its rows arrive from a dataspy, from the technician keeping individual records, or from both at once.',
+   why:'Read-only is a property of the ENTITY, not of how a row arrived — which is why this is one class and not two. Its real job is often not reading at all but being the PICK LIST BEHIND AN OFFLINE WRITE: Book Labor choosing an employee, Issue Parts choosing a store. The reliability caveat that used to be its own policy still holds — rows the technician kept can be MISSING AT THE MOMENT OF NEED, so an entity populated only by keeping behaves as Online only for anything nobody thought to keep before signal dropped.'},
 
-  {k:'on-demand', label:'On demand', read:true, write:false,
-   who:'The technician, record by record',
-   def:'Only what was deliberately kept — R5\'s "keep offline" on a specific work order or asset.',
-   why:'Read-only offline because it arrived without its write context. Needs a filter to bound WHAT IS KEEPABLE, and the keep action itself needs connectivity, so it is the one control most tempting to reach for at exactly the wrong moment (§2.9).'},
-
-  {k:'work-set', label:'Work set', read:true, write:true,
+  {k:'work-set', label:'Offline read/write', read:true, write:true,
    who:'The work — pinned WOs and everything hanging off them',
    def:'The live job. Auto-replicated from the punch list and TRAVERSED to its children: checklist results, parts lines, labor lines.',
-   why:'THE ONLY CLASS THAT ACCEPTS WRITES, which is the sharpest line in this table — everything a technician changes offline is in the work set, and everything else is read-only. Writes go to the outbox and sync in order (§2.4).'},
+   why:'THE ONLY EAM-WRITABLE CLASS, which is the sharpest line in this table — everything a technician changes offline is in the work set, and everything else is readable at best. Writes go to the outbox and sync in order (§2.4).'},
 
-  {k:'external-replica', label:'External replica', read:true, write:true,
+  {k:'external-replica', label:'Offline read/write — external', read:true, write:true,
    who:'Another system, on its own schedule',
    def:'A foreign sync engine holding its own copy with its own lifecycle. GIS features today (§28), Phase 2.',
-   why:'Writes NEVER ride the EAM outbox — a geometry edit syncs through ESRI. It is a policy class rather than an exception so the next foreign engine has a slot to go in.'},
+   why:'Writable, but through a DIFFERENT QUEUE — a geometry edit syncs through ESRI and never rides the EAM outbox. Different queue, different download unit (per map area), different schedule. It is a policy class rather than an exception so the next foreign engine has a slot to go in.'},
 ];
+/* The two retired keys. Kept as a MIGRATION rather than deleted, because a
+   stored profile in localStorage still holds them and normalizeProfile's
+   illegal-policy guard would otherwise pull every one of those rows back to
+   its default — silently un-shipping an entity the admin had switched on. */
+const POLICY_MIGRATE = {reference:'offline-read', 'on-demand':'offline-read'};
 function policyMeta(k){ return OFFLINE_POLICIES.find(p => p.k === k) || OFFLINE_POLICIES[0]; }
 /* A dataspy is required on the two policies whose contents are a FILTERED
-   population. reference ships a whole (small) domain and server-only ships
-   nothing, so neither takes one. */
-const POLICY_NEEDS_FILTER = ['on-demand','work-set'];
+   population of records. Online only ships nothing, and external-replica
+   brings its own download unit (per map area), so neither takes one. */
+const POLICY_NEEDS_FILTER = ['offline-read','work-set'];
 function policyNeedsFilter(k){ return POLICY_NEEDS_FILTER.indexOf(k) > -1; }
+
+/* ── MEASURED, NOT DESCRIBED (2026-09-18, user direction) ──
+   "Whether this entity can ship whole" is ARITHMETIC AGAINST THE CAPS, and
+   nothing else. It is not a per-entity flag, it is not derived from whether
+   somebody happened to author a dataspy, and it is not read off prose calling
+   a domain "small and slow-changing". Two earlier attempts at this rule were
+   both description-reliant and both are gone:
+
+     · a hand-maintained `bounded` column — a description, and free to
+       disagree with the data;
+     · `entityBounded(e) = no dataspy is authored` — subtler, but it still
+       rested on an authoring judgement rather than a measurement, and it
+       inherited its justification from §2.8 row 1's prose.
+
+   THE RULE: an entity may replicate its whole domain when the whole domain
+   FITS — under the per-entity row cap AND within the volume budget. When it
+   does not fit, a dataspy is REQUIRED, and the dataspy's own count has to fit
+   too. §2.7's caps stop being a number an author looks at and become the thing
+   the rule is computed from.
+
+   WHY BOTH DIMENSIONS (§2.7 — "# of records and/or data size"). Neither alone
+   is sufficient, and this registry demonstrates both: Parts exceeds the 50,000
+   row cap outright, while Equipment FITS it at ~40,000 rows (§2.3's own figure
+   for this customer) and blows the volume budget instead, because equipment
+   rows carry nameplate data and custom fields. A records-only rule ships 625 MB
+   onto a device with a 500 MB ceiling and calls it compliant.
+
+   WHERE THE COUNTS COME FROM. The server, which is the only thing that knows.
+   They are a measurement refreshed on demand, not a live subscription — the
+   same shape as §30.16's tile counts, deliberately, so this is an established
+   pattern rather than a new one. The numbers below are demo values standing in
+   for that round-trip; the MECHANISM is what is being prototyped. */
+
+/* Rows a dataspy resolves to. Demo values for the server-supplied count. */
+const DATASPY_ROWS = {
+  'My Open WOs':120, 'All Open WOs':8400, 'Breakdowns Only':2100,
+  'This Week':3200, 'DC-OPS Open':1450,
+  'My Route Assets':180, 'Critical Assets':2400, 'DC Rack Units':6800,
+  'Stocked Parts':12000, 'Van Stock':340,
+  'My Crew':12, 'All Technicians':260,
+  'Main Store':1, 'Van Stores':18,
+  'Active Bins':640,
+  'Open Inspections':95, 'Active Permits':40,
+};
+function dataspyRows(name){ return DATASPY_ROWS[name] != null ? DATASPY_ROWS[name] : null; }
+
+/* The rows this entity would actually replicate under its current policy and
+   filter. A traversed entity has no count of its own — its rows arrive with
+   the parent and are budgeted against the work set, not against this entity. */
+function entityRows(e, row){
+  if(e.traversed) return null;
+  if(row && row.dataspy){
+    const r = dataspyRows(row.dataspy);
+    if(r != null) return r;
+  }
+  return e.rows != null ? e.rows : null;
+}
+/* Volume in MB. `kb` is the average row size — the second cap dimension, and
+   the one that catches an entity whose row count looks harmless. */
+function entityMb(e, row){
+  const r = entityRows(e, row);
+  if(r == null || e.kb == null) return null;
+  return (r * e.kb) / 1024;
+}
+/* WHICH CAP a count violates, or '' when it fits. Returned as a reason rather
+   than a boolean so the row can say WHY, which is the whole point of making
+   the rule measured — "does not fit" is another description. */
+function capBreach(e, row, p){
+  const r = entityRows(e, row), mb = entityMb(e, row);
+  if(r == null) return '';
+  if(r > p.caps.rowCap) return 'rows';
+  if(mb != null && mb > p.caps.volumeMb) return 'volume';
+  return '';
+}
+/* Would the UNFILTERED domain fit? This is the question that decides whether a
+   dataspy is required or merely available. */
+function wholeDomainFits(e, p){
+  return !capBreach(e, {policy:'offline-read', dataspy:''}, p);
+}
+
+/* ONE predicate for "this row must name a dataspy", called by the control that
+   renders it AND by the validator that reports it. They used to be two
+   expressions in two functions that agreed by luck. */
+function rowNeedsDataspy(e, row, p){
+  if(!policyNeedsFilter(row.policy) || e.traversed) return false;
+  return !wholeDomainFits(e, p);
+}
 
 const OFFLINE_ENTITIES = [
   /* ── WORK ── */
-  {id:'wo', label:'Work Orders', grp:'Work', status:'in', dflt:'work-set',
-   allow:['work-set','on-demand','server-only'],
+  {id:'wo', rows:1200000, kb:3, label:'Work Orders', grp:'Work', status:'in', dflt:'work-set',
+   allow:['work-set','offline-read','server-only'],
    note:'§2.7 names pinned WOs + activities as the work-set. §2.6 locks the punch list as a dataspy AND pins — both layers, not one.'},
   {id:'checklist', label:'Checklist Results', grp:'Work', status:'in', dflt:'work-set',
    allow:['work-set','server-only'], traversed:true,
@@ -2858,81 +2978,81 @@ const OFFLINE_ENTITIES = [
    allow:['work-set','server-only'], traversed:true, note:'§2.7 work-set, traversed from the WO.'},
   {id:'laborlines', label:'WO Labor Lines', grp:'Work', status:'in', dflt:'work-set',
    allow:['work-set','server-only'], traversed:true, note:'§2.7 work-set, traversed from the WO.'},
-  {id:'employees', label:'Employees', grp:'Work', status:'in', dflt:'reference',
-   allow:['reference','server-only'],
-   note:'§2.7 reference. At scale §2.8 row 2 makes the LOV reachable-only rather than replicated — the same entity, two mechanics.'},
-  {id:'crews', label:'Crews', grp:'Work', status:'in', dflt:'reference', allow:['reference','server-only'],
-   note:'§2.7 reference.'},
-  {id:'trades', label:'Trades', grp:'Work', status:'in', dflt:'reference', allow:['reference','server-only'],
+  {id:'employees', rows:900, kb:2, label:'Employees', grp:'Work', status:'in', dflt:'offline-read',
+   allow:['offline-read','server-only'],
+   note:'§2.7 offline-read. At scale §2.8 row 2 makes the LOV reachable-only rather than replicated — the same entity, two mechanics.'},
+  {id:'crews', rows:25, kb:1, label:'Crews', grp:'Work', status:'in', dflt:'offline-read', allow:['offline-read','server-only'],
+   note:'§2.7 offline-read.'},
+  {id:'trades', rows:40, kb:1, label:'Trades', grp:'Work', status:'in', dflt:'offline-read', allow:['offline-read','server-only'],
    note:'§2.8 row 1 — a bounded code domain. Ship the whole thing; subsetting costs correctness.'},
-  {id:'stdwo', label:'Standard WOs', grp:'Work', status:'in', dflt:'reference',
-   allow:['reference','on-demand','server-only'], note:'Configuration-shaped, so reference.'},
-  {id:'taskplans', label:'Task Plans', grp:'Work', status:'in', dflt:'reference',
-   allow:['reference','on-demand','server-only'], note:'Configuration-shaped, so reference.'},
-  {id:'inspection', label:'Inspection Results', grp:'Work', status:'open', dflt:'server-only',
-   allow:['work-set','on-demand','server-only'],
+  {id:'stdwo', rows:3000, kb:4, label:'Standard WOs', grp:'Work', status:'in', dflt:'offline-read',
+   allow:['offline-read','server-only'], note:'Configuration-shaped; ships whole, so no dataspy.'},
+  {id:'taskplans', rows:2500, kb:6, label:'Task Plans', grp:'Work', status:'in', dflt:'offline-read',
+   allow:['offline-read','server-only'], note:'Configuration-shaped; ships whole, so no dataspy.'},
+  {id:'inspection', rows:14000, kb:3, label:'Inspection Results', grp:'Work', status:'open', dflt:'server-only',
+   allow:['work-set','offline-read','server-only'],
    note:'NOT DECIDED. Shipped offline by the current product; §2.7 never classified it.'},
-  {id:'wononconf', label:'WO Nonconformity', grp:'Work', status:'open', dflt:'server-only',
-   allow:['work-set','on-demand','server-only'], note:'NOT DECIDED.'},
-  {id:'permit', label:'Permit to Work', grp:'Work', status:'open', dflt:'server-only',
-   allow:['work-set','on-demand','server-only'],
+  {id:'wononconf', rows:6500, kb:2, label:'WO Nonconformity', grp:'Work', status:'open', dflt:'server-only',
+   allow:['work-set','offline-read','server-only'], note:'NOT DECIDED.'},
+  {id:'permit', rows:1800, kb:4, label:'Permit to Work', grp:'Work', status:'open', dflt:'server-only',
+   allow:['work-set','offline-read','server-only'],
    note:'NOT DECIDED. Note §27 — a permit is the archetypal UDS, and a standalone UDS record view is server-only.'},
-  {id:'calibration', label:'Calibrations', grp:'Work', status:'open', dflt:'server-only',
-   allow:['work-set','on-demand','server-only'], note:'NOT DECIDED.'},
+  {id:'calibration', rows:9200, kb:3, label:'Calibrations', grp:'Work', status:'open', dflt:'server-only',
+   allow:['work-set','offline-read','server-only'], note:'NOT DECIDED.'},
 
   /* ── EQUIPMENT ── */
-  {id:'equipment', label:'Equipment', grp:'Equipment', status:'in', dflt:'on-demand',
-   allow:['on-demand','work-set','server-only'],
+  {id:'equipment', rows:40000, kb:16, label:'Equipment', grp:'Equipment', status:'in', dflt:'offline-read',
+   allow:['offline-read','work-set','server-only'],
    note:'§2.8 row 2 — the million-row case, and the ONLY place it lives. The LOV derives from what traversed, and row 2 obliges the app to ANNOUNCE the scope: never a silent short list.'},
-  {id:'eqstructure', label:'Equipment Structure', grp:'Equipment', status:'open', dflt:'server-only',
-   allow:['on-demand','server-only'], note:'NOT DECIDED. Traversal depth makes this a caps question (§2.3 rule 5).'},
-  {id:'eqcomments', label:'Equipment Comments', grp:'Equipment', status:'open', dflt:'server-only',
-   allow:['on-demand','work-set','server-only'], note:'NOT DECIDED. §7.2 builds comments; their offline policy was never set.'},
-  {id:'eqcustom', label:'Equipment Custom Fields', grp:'Equipment', status:'open', dflt:'reference',
-   allow:['reference','on-demand','server-only'],
+  {id:'eqstructure', rows:40000, kb:1, label:'Equipment Structure', grp:'Equipment', status:'open', dflt:'server-only',
+   allow:['offline-read','server-only'], note:'NOT DECIDED. Traversal depth makes this a caps question (§2.3 rule 5).'},
+  {id:'eqcomments', rows:220000, kb:1, label:'Equipment Comments', grp:'Equipment', status:'open', dflt:'server-only',
+   allow:['offline-read','work-set','server-only'], note:'NOT DECIDED. §7.2 builds comments; their offline policy was never set.'},
+  {id:'eqcustom', rows:2400, kb:1, label:'Equipment Custom Fields', grp:'Equipment', status:'open', dflt:'offline-read',
+   allow:['offline-read','server-only'],
    note:'NOT DECIDED for VALUES. The §22 definitions are Tier 0 config (0c) and always ship; §2.8 row 3 warns these fail two different ways.'},
-  {id:'eqhistory', label:'Equipment / WO History', grp:'Equipment', status:'server', dflt:'server-only',
+  {id:'eqhistory', rows:1800000, kb:2, label:'Equipment / WO History', grp:'Equipment', status:'server', dflt:'server-only',
    allow:['server-only'],
    note:'DECIDED OUT — §2.7 lists WO history as server-only. The current product ships it offline, so this is a deliberate narrowing, not an oversight. Re-opening it means amending §2.7.'},
-  {id:'meter', label:'Meter Readings', grp:'Equipment', status:'server', dflt:'server-only',
+  {id:'meter', rows:4500000, kb:1, label:'Meter Readings', grp:'Equipment', status:'server', dflt:'server-only',
    allow:['server-only'],
    note:'DECIDED OUT — §2.7 lists meter history as server-only. Same deliberate narrowing as history.'},
-  {id:'cost', label:'Cost', grp:'Equipment', status:'server', dflt:'server-only', allow:['server-only'],
+  {id:'cost', rows:2200000, kb:1, label:'Cost', grp:'Equipment', status:'server', dflt:'server-only', allow:['server-only'],
    note:'DECIDED OUT — §2.7. Cost CODES are a reference domain; cost DATA is not.'},
-  {id:'linear', label:'Linear Asset Information', grp:'Equipment', status:'phase2', dflt:'server-only',
+  {id:'linear', rows:65000, kb:8, label:'Linear Asset Information', grp:'Equipment', status:'phase2', dflt:'server-only',
    allow:['external-replica','server-only'],
    note:'PHASE 2 — §28. GIS is a second sync engine with its own lifecycle, and its edits never ride the EAM outbox. external-replica exists as a policy class so it has a slot.'},
-  {id:'notebook', label:'Mobile Notebook', grp:'Equipment', status:'open', dflt:'server-only',
-   allow:['on-demand','work-set','server-only'], note:'NOT DECIDED.'},
-  {id:'isolation', label:'Main Isolation Tables', grp:'Equipment', status:'open', dflt:'server-only',
-   allow:['reference','on-demand','server-only'], note:'NOT DECIDED. Safety-critical, so worth deciding before it ships either way.'},
+  {id:'notebook', rows:15000, kb:2, label:'Mobile Notebook', grp:'Equipment', status:'open', dflt:'server-only',
+   allow:['offline-read','work-set','server-only'], note:'NOT DECIDED.'},
+  {id:'isolation', rows:3200, kb:2, label:'Main Isolation Tables', grp:'Equipment', status:'open', dflt:'server-only',
+   allow:['offline-read','server-only'], note:'NOT DECIDED. Safety-critical, so worth deciding before it ships either way.'},
 
   /* ── MATERIALS ── */
-  {id:'stores', label:'Stores', grp:'Materials', status:'in', dflt:'reference',
-   allow:['reference','server-only'], note:'§2.7 reference; §2.8 row 2 for the LOV at scale.'},
-  {id:'parts', label:'Parts', grp:'Materials', status:'in', dflt:'on-demand',
-   allow:['on-demand','reference','server-only'],
+  {id:'stores', rows:40, kb:1, label:'Stores', grp:'Materials', status:'in', dflt:'offline-read',
+   allow:['offline-read','server-only'], note:'§2.7 offline-read; §2.8 row 2 for the LOV at scale.'},
+  {id:'parts', rows:85000, kb:2, label:'Parts', grp:'Materials', status:'in', dflt:'offline-read',
+   allow:['offline-read','server-only'],
    note:'§2.8 row 2 — reachable from the parts lines already on the WO.'},
-  {id:'bins', label:'Bins', grp:'Materials', status:'in', dflt:'reference',
-   allow:['reference','on-demand','server-only'], note:'§2.8 row 2 names Stores/Bins/Lots.'},
-  {id:'costcodes', label:'Cost Codes', grp:'Materials', status:'in', dflt:'reference',
-   allow:['reference','server-only'], note:'§2.8 row 1 — a bounded code domain.'},
-  {id:'suppliers', label:'Suppliers', grp:'Materials', status:'in', dflt:'reference',
-   allow:['reference','server-only'], note:'Reference-shaped.'},
-  {id:'physinv', label:'Physical Inventory', grp:'Materials', status:'open', dflt:'server-only',
-   allow:['work-set','on-demand','server-only'], note:'NOT DECIDED.'},
-  {id:'assetinv', label:'Asset Inventory', grp:'Materials', status:'open', dflt:'server-only',
-   allow:['on-demand','server-only'], note:'NOT DECIDED.'},
-  {id:'po', label:'Purchase Orders', grp:'Materials', status:'server', dflt:'server-only',
+  {id:'bins', rows:2000, kb:1, label:'Bins', grp:'Materials', status:'in', dflt:'offline-read',
+   allow:['offline-read','server-only'], note:'§2.8 row 2 names Stores/Bins/Lots.'},
+  {id:'costcodes', rows:600, kb:1, label:'Cost Codes', grp:'Materials', status:'in', dflt:'offline-read',
+   allow:['offline-read','server-only'], note:'§2.8 row 1 — a bounded code domain.'},
+  {id:'suppliers', rows:1200, kb:2, label:'Suppliers', grp:'Materials', status:'in', dflt:'offline-read',
+   allow:['offline-read','server-only'], note:'Reference-shaped.'},
+  {id:'physinv', rows:45000, kb:1, label:'Physical Inventory', grp:'Materials', status:'open', dflt:'server-only',
+   allow:['work-set','offline-read','server-only'], note:'NOT DECIDED.'},
+  {id:'assetinv', rows:30000, kb:1, label:'Asset Inventory', grp:'Materials', status:'open', dflt:'server-only',
+   allow:['offline-read','server-only'], note:'NOT DECIDED.'},
+  {id:'po', rows:260000, kb:2, label:'Purchase Orders', grp:'Materials', status:'server', dflt:'server-only',
    allow:['server-only'], note:'DECIDED OUT — §2.7 names POs as server-only.'},
 ];
 function offlineEntity(id){ return OFFLINE_ENTITIES.find(e => e.id === id) || null; }
-const OFFLINE_STATUS_META = {
-  in:     {label:'Decided',    sev:'info'},
-  server: {label:'Server only', sev:'neutral'},
-  phase2: {label:'Phase 2',    sev:'neutral'},
-  open:   {label:'Not decided', sev:'warning'},
-};
+/* OFFLINE_STATUS_META is gone (2026-09-18), and with it the per-row status
+   pill it fed. An undecided entity is no longer in the grid at all (see
+   undecidedHtml), and for everything that remains the pill restated what the
+   policy control already showed — a locked "Online only" chip whose title is
+   the §2.7 note. Don't reintroduce it: a decided row saying "Decided" is
+   chrome, and it competed with the one chip on that row worth reading. */
 
 /* Dataspies are the ONE artifact authored outside this portal — on the
    record list screen, which is where EAM dataspies have always been made.
@@ -2952,7 +3072,11 @@ function dataspiesFor(entityId){ return DATASPIES[entityId] || []; }
 
 /* Profile-level caps. Defaults are the market figures §2.7 cites, so the
    numbers are traceable rather than invented. */
-const OFFLINE_CAP_DEFAULTS = {deviceCeiling:200000, rowCap:50000, depth:15, toMany:1};
+/* volumeMb is the design doc's SLO-8 (≤ 500 MB local store, hard enforced
+   ceiling) expressed as a §2.7 cap. It was always a requirement; it was never
+   a number any authoring surface computed against, which is how a registry
+   passes a records-only check and still overflows the device. */
+const OFFLINE_CAP_DEFAULTS = {deviceCeiling:200000, rowCap:50000, volumeMb:500, depth:15, toMany:1};
 
 function mkOfflineProfile(name, desc){
   const p = {
@@ -2973,6 +3097,11 @@ function normalizeProfile(p){
   OFFLINE_ENTITIES.forEach(e => {
     if(!p.entities[e.id]) p.entities[e.id] = {policy:e.dflt, dataspy:'', rowCap:''};
     const row = p.entities[e.id];
+    /* Migrate the two keys the five-to-four merge retired, BEFORE the guard
+       below — otherwise a stored `reference` reads as illegal and resets to
+       the default, which for most entities means server-only. That failure
+       renders perfectly: the screen just quietly stops shipping things. */
+    if(POLICY_MIGRATE[row.policy]) row.policy = POLICY_MIGRATE[row.policy];
     /* A policy the entity does not allow is not a preference to preserve —
        §2.7's non-offline list is enforced AT AUTHORING TIME, so a stored
        illegal policy gets pulled back to the default rather than shipped. */
@@ -2991,9 +3120,26 @@ function profileIssues(p){
   const out = [];
   OFFLINE_ENTITIES.forEach(e => {
     const row = p.entities[e.id]; if(!row) return;
-    if(policyNeedsFilter(row.policy) && !e.traversed && !row.dataspy){
+    if(rowNeedsDataspy(e, row, p) && !row.dataspy){
+      const why = capBreach(e, {policy:row.policy, dataspy:''}, p);
       out.push({sev:'error', entity:e,
-        msg:'needs a dataspy — "all records" is refused (§2.7). Without a filter this replicates the whole entity.'});
+        msg:'needs a dataspy — the whole domain does not fit: ' + (why === 'volume'
+          ? Math.round(entityMb(e, {policy:row.policy, dataspy:''})).toLocaleString() +
+            ' MB against a ' + p.caps.volumeMb + ' MB budget (§2.7).'
+          : (entityRows(e, {policy:row.policy, dataspy:''}) || 0).toLocaleString() +
+            ' rows against a ' + p.caps.rowCap.toLocaleString() + ' row cap (§2.7).')});
+    }
+    /* A dataspy that is itself over cap is the failure the first check invites
+       somebody to fix by picking the nearest filter. Measured the same way. */
+    if(policyNeedsFilter(row.policy) && row.dataspy){
+      const why2 = capBreach(e, row, p);
+      if(why2){
+        out.push({sev:'error', entity:e,
+          msg:'its dataspy is still over cap — ' + (why2 === 'volume'
+            ? Math.round(entityMb(e, row)).toLocaleString() + ' MB against ' + p.caps.volumeMb + ' MB'
+            : (entityRows(e, row) || 0).toLocaleString() + ' rows against ' + p.caps.rowCap.toLocaleString()) +
+            ' (§2.7).'});
+      }
     }
     if(e.status === 'open' && row.policy !== 'server-only'){
       out.push({sev:'warn', entity:e,
@@ -3439,16 +3585,25 @@ function seedPortalDemo(){
     full.entities.wo.dataspy = 'My Open WOs';
     full.entities.equipment.dataspy = 'My Route Assets';
     full.entities.parts.dataspy = 'Van Stock';
+    /* Left on "All records" DELIBERATELY, and this is the measured rule paying
+       off: Employees (900), Stores (40) and Bins (2,000) all fit the row cap and
+       the volume budget, so no dataspy is required and none is seeded. Under the
+       previous description-based rule these three needed a hand-seeded filter to
+       stop the demo opening on red rows. Arithmetic replaced the workaround. */
     /* An undecided entity switched on, so the warning path is live on load. */
     full.entities.inspection.policy = 'work-set';
     full.entities.inspection.dataspy = 'Open Inspections';
     lite.entities.wo.dataspy = 'My Open WOs';
+    /* A contractor sees their own crew and nothing wider. Employees FITS whole,
+       so this filter is not required — it is the demo's one example of a dataspy
+       chosen because the admin wants less, rather than because a cap forces it. */
+    lite.entities.employees.dataspy = 'My Crew';
     ['parts','bins','stores','suppliers','physinv','assetinv'].forEach(id => {
       if(lite.entities[id]) lite.entities[id].policy = 'server-only';
     });
     /* Left WITHOUT a dataspy on purpose — this is §2.7's refused
        "all records" state, and the editor must report it. */
-    lite.entities.equipment.policy = 'on-demand';
+    lite.entities.equipment.policy = 'offline-read';
     PROFILES = [full, lite, mkOfflineProfile('Online only', 'No record replication. Tier 0 and the outbox still apply.')];
     PROFILES[2].entities && OFFLINE_ENTITIES.forEach(e => { PROFILES[2].entities[e.id].policy = 'server-only'; });
   }
@@ -4100,7 +4255,7 @@ function renderProfileEditor(){
 
   const rows = grps.map(g =>
     '<div class="reg__grp">' + esc(g) + '</div>' +
-    OFFLINE_ENTITIES.filter(e => e.grp === g).map(e => entityRow(p, e)).join('')
+    OFFLINE_ENTITIES.filter(e => e.grp === g && e.status !== 'open').map(e => entityRow(p, e)).join('')
   ).join('');
 
   $('gallery').innerHTML =
@@ -4125,8 +4280,12 @@ function renderProfileEditor(){
           '<span class="card__title">Always on — not part of any profile</span></div>' +
         '<div class="card__body" style="display:grid;grid-template-columns:1.3fr 1fr;gap:var(--s-4)">' +
           '<div><div class="menu__row-t">' + ic('layers',16) + ' Tier 0 configuration</div>' +
-            '<div class="menu__row-d">Layouts, workflow rows, code domains, status authorizations. Always persisted — ' +
-            'without it there is no renderable screen (§2.3). Records degrade; configuration does not.</div></div>' +
+            '<div class="menu__row-d">Layouts, workflow rows, code domains, status authorizations, UDS definitions. ' +
+            'Always persisted — without it there is no renderable screen (§2.3). Records degrade; configuration does ' +
+            'not.<br><b>This is where "ships whole, unfiltered" actually lives</b>, which is why none of it appears ' +
+            'in the per-entity table below: a bounded code domain is not a record table, and §2.8 row 1 already ' +
+            'refuses to subset one. Anything with a row count — Employees, Stores, Task Plans — is a record table, ' +
+            'and takes a dataspy and a ceiling like every other record.</div></div>' +
           '<div><div class="menu__row-t">' + ic('save',16) + ' The outbox</div>' +
             '<div class="menu__row-d">Always on. It serves transaction confidence, which is independent of offline — ' +
             'a save dropped mid-request happens at full connectivity too (§2.10).</div></div>' +
@@ -4138,8 +4297,11 @@ function renderProfileEditor(){
         '<div class="card__head">' + ic('sliders',16) + '<span class="card__title">Caps</span>' +
           '<span class="eyebrow" style="margin-left:auto">Enforced at authoring time, not discovered on the device (§2.7)</span></div>' +
         '<div class="card__body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:var(--s-4)">' +
-          capField(p, 'deviceCeiling', 'Device record ceiling', 'Across every entity. D365 uses ~200,000.') +
+          capField(p, 'deviceCeiling', 'Device record ceiling', 'Across every entity. D365 uses ~200,000.',
+            profileTotals(p).rows, profileTotals(p).rows > p.caps.deviceCeiling) +
           capField(p, 'rowCap', 'Per-entity row cap', 'Salesforce uses 50,000.') +
+          capField(p, 'volumeMb', 'Local store budget (MB)', 'The design doc\'s SLO-8: 500 MB, hard ceiling.',
+            profileTotals(p).mb, profileTotals(p).mb > p.caps.volumeMb) +
           capField(p, 'depth', 'Traversal relationships', 'D365 limits to 15.') +
           capField(p, 'toMany', 'Of which to-many', '§2.3 rule 5 allows at most one.') +
         '</div>' +
@@ -4151,7 +4313,7 @@ function renderProfileEditor(){
 
       '<div class="card">' +
         '<div class="card__head">' + ic('cloudoff',16) + '<span class="card__title">Per-entity policy</span>' +
-          '<span class="eyebrow" style="margin-left:auto">§2.7 — five classes, not a checkbox</span></div>' +
+          '<span class="eyebrow" style="margin-left:auto">§2.7 — four classes, not a checkbox</span></div>' +
         '<div class="reg">' + rows + '</div>' +
       '</div>' +
 
@@ -4172,7 +4334,51 @@ function renderProfileEditor(){
             'they re-resolve is present. Distinct from not-hydrated: this means the value should not render at all.</div></div></div>' +
         '</div>' +
       '</div>' +
+
+      undecidedHtml(p) +
     '</div>';
+}
+/* ── THE UNDECIDED ENTITIES, OUT OF THE GRID (2026-09-18, user direction) ──
+   11 of the 31 entities have no §2.7 policy decision. They used to sit in the
+   grid behind a "Not decided" pill, which put a backlog item and a configured
+   policy on the same row, at the same weight, reachable through the same
+   dropdown — so the screen invited an author to settle, on one profile, a
+   question that is settled in the spec.
+
+   They are listed here instead: still visible, still counted, no longer
+   offered. §30.20 still holds, so the one row that CAN be violated reports
+   where it is — Equipment Custom Fields carries a non-server default, so it
+   says so on its own row rather than in a roll-up. */
+function undecidedHtml(p){
+  const open = OFFLINE_ENTITIES.filter(e => e.status === 'open');
+  if(!open.length) return '';
+  return '<div class="card" style="margin-top:var(--s-4)">' +
+    '<div class="card__head">' + ic('flag',16) +
+      '<span class="card__title">No policy decided — ' + open.length + ' of ' + OFFLINE_ENTITIES.length +
+        ' entities</span>' +
+      '<span class="eyebrow" style="margin-left:auto">Open in §20 — not offered above until §2.7 classifies them</span>' +
+    '</div>' +
+    '<div class="card__body">' +
+      '<div class="menu__row"><div class="menu__row-b"><div class="menu__row-d">' +
+        'Real EAM entities that §2.7 never classified. They are not configurable on a profile, because choosing one ' +
+        'here would turn an open question into a commitment nobody made. Deciding one means amending §2.7 — at which ' +
+        'point it moves up into the grid.</div></div></div>' +
+      open.map(e => {
+        const row = p.entities[e.id] || {};
+        const live = row.policy && row.policy !== 'server-only';
+        return '<div class="menu__row"><div class="menu__row-b">' +
+          '<div class="menu__row-t">' + esc(e.label) +
+            ' <span class="eyebrow">' + esc(e.grp) + '</span>' +
+            (live
+              ? ' <span class="chip chip--fill chip--dense chip--lead sev-warning"><span class="chip__dot"></span>' +
+                'ships as ' + esc(policyMeta(row.policy).label) + ', undecided</span>'
+              : '') +
+          '</div>' +
+          '<div class="menu__row-d">' + esc(e.note) + '</div>' +
+        '</div></div>';
+      }).join('') +
+    '</div>' +
+  '</div>';
 }
 /* ── CAPS ARE PROTECTED (2026-09-16, user direction) ──
    And the reason is the interesting part: these are not preferences of
@@ -4200,10 +4406,10 @@ function policyDefsHtml(){
 
   return '<div class="card" style="margin-bottom:var(--s-4)">' +
     '<div class="card__head">' + ic('info',16) + '<span class="card__title">What each policy means</span>' +
-      '<span class="eyebrow" style="margin-left:auto">§2.7 — the five classes, least to most present on the device</span></div>' +
+      '<span class="eyebrow" style="margin-left:auto">The label says what the app can do; the line under it says who put it there</span></div>' +
     '<div class="pdef">' +
       '<div class="pdef__r pdef__h">' +
-        '<div class="pdef__n">Policy</div>' +
+        '<div class="pdef__n">Policy, and who decided</div>' +
         '<div class="pdef__rw">Offline</div>' +
         '<div class="pdef__d">What it means, and why it is that way</div>' +
       '</div>' +
@@ -4227,24 +4433,62 @@ function policyDefsHtml(){
     '</div>' +
     '<div class="card__body">' +
       '<div class="menu__row"><div class="menu__row-b">' +
-        '<div class="menu__row-t">Two things that catch people out</div>' +
-        '<div class="menu__row-d"><b>Only Work set accepts writes.</b> Everything a technician changes offline is in ' +
-          'the work set; every other class is readable at best. That is the same rule §2.9 states from the other ' +
-          'side — actions may narrow offline, field state never does.<br>' +
-          '<b>Only the two filtered classes take a dataspy.</b> Reference ships a whole domain and Server only ships ' +
-          'nothing, so neither has anything to filter. And a <b>traversed</b> entity takes no filter even inside the ' +
-          'work set, because it arrives attached to its parent rather than being selected in its own right.</div>' +
+        '<div class="menu__row-t">Three things that catch people out</div>' +
+        '<div class="menu__row-d"><b>How to read a label.</b> The name states what the app can do offline; the line ' +
+          'beneath it states who put the data there. Those are two different questions, and mixing them is why this ' +
+          'table used to have five rows — <b>Offline read</b> was two, split on provenance, which is a column on the ' +
+          'row and not a policy (§2.6).<br>' +
+          '<b>Only Offline read/write accepts writes to EAM.</b> Everything a technician changes offline is in the ' +
+          'work set; every other class is readable at best. External is writable too, but through another engine\'s ' +
+          'queue, never the EAM outbox. That is the same rule §2.9 states from the other side — actions may narrow ' +
+          'offline, field state never does.<br>' +
+          '<b>Whether a dataspy is REQUIRED is arithmetic, not a judgement.</b> An entity may ship its whole ' +
+          'domain when the whole domain <b>fits</b> — under the per-entity row cap <i>and</i> within the local ' +
+          'store budget. When it does not fit, a filter is required, and the filter has to fit too. Both ' +
+          'dimensions do real work here: <b>Parts</b> exceeds the 50,000-row cap outright, while <b>Equipment</b> ' +
+          'fits that cap at 40,000 rows and exceeds the 500 MB budget instead. Every row shows the number it was ' +
+          'measured against, because a rule you cannot check is a description.<br>' +
+          'Two things are outside the arithmetic: <b>Online only</b> replicates nothing, and a <b>traversed</b> ' +
+          'entity is budgeted with its parent rather than on its own.</div>' +
       '</div></div>' +
     '</div>' +
   '</div>';
 }
 
-function capField(p, key, label, note){
+/* WHAT THIS PROFILE ACTUALLY SPENDS. Two of the four caps are now computed
+   against, not merely displayed — a cap nothing is measured against is not a
+   cap, the same way §30.14 argues a budget you cannot see is not a budget.
+   Traversed entities are excluded: their rows arrive with the parent and are
+   already counted in the work set. */
+function profileTotals(p){
+  let rows = 0, mb = 0;
+  OFFLINE_ENTITIES.forEach(e => {
+    const row = p.entities[e.id];
+    if(!row || !policyNeedsFilter(row.policy) || e.traversed) return;
+    const r = entityRows(e, row), m = entityMb(e, row);
+    if(r != null) rows += r;
+    if(m != null) mb += m;
+  });
+  return {rows, mb:Math.round(mb)};
+}
+/* `spent` and `over` are optional: a cap with no measurement renders exactly as
+   it did before, so the two that cannot yet be computed against (traversal
+   depth and to-many) are unchanged rather than faked. §30.20 holds — an
+   over-budget total is reported on the cap it breaches, which is the control
+   that expresses it, not in a banner above the screen. */
+function capField(p, key, label, note, spent, over){
+  const has = spent !== undefined && spent !== null;
+  const bad = has && over === true;
   return '<div class="field">' +
     '<div class="field__label">' + esc(label) + '</div>' +
-    '<div class="input input--prot" title="Platform limit — not editable per profile">' +
+    '<div class="input input--prot' + (bad ? ' is-error' : '') + '" ' +
+      'title="Platform limit — not editable per profile">' +
       '<span class="input__v mono">' + esc(Number(p.caps[key]).toLocaleString()) + '</span>' +
       '<span class="ms ms-16 input__lock">lock</span></div>' +
+    (has
+      ? '<div class="reg__meas' + (bad ? ' is-breach' : '') + '">this profile spends ' +
+        esc(Number(spent).toLocaleString()) + (bad ? ' — over budget' : '') + '</div>'
+      : '') +
     '<div class="menu__row-d">' + esc(note) + '</div>' +
   '</div>';
 }
@@ -4259,14 +4503,23 @@ function setCap(key, v){
 function entityRow(p, e){
   const row = p.entities[e.id];
   const locked = e.allow.length === 1;
-  const sm = OFFLINE_STATUS_META[e.status];
-  const needs = policyNeedsFilter(row.policy) && !e.traversed;
+  const needs = rowNeedsDataspy(e, row, p);
   const spies = dataspiesFor(e.id);
+  /* Measured once per row and used by both the control and its caption, so a
+     row can never show one number and be validated against another. */
+  const breach = policyNeedsFilter(row.policy) ? capBreach(e, row, p) : '';
+  const mRows = entityRows(e, row), mMb = entityMb(e, row);
+  const measTxt = (!policyNeedsFilter(row.policy) || mRows == null) ? ''
+    /* &lt; ESCAPED, not a literal '<'. A bare '<1 MB' opens what a parser
+       reads as a tag and silently swallows the rest of the caption — it looked
+       fine in the four rows big enough to avoid it. */
+    : mRows.toLocaleString() + ' rows' + (mMb != null ? ' · ' + (mMb < 1
+        ? '&lt;1 MB' : Math.round(mMb).toLocaleString() + ' MB') : '') +
+      (breach === 'rows' ? ' — over the ' + p.caps.rowCap.toLocaleString() + ' row cap'
+        : breach === 'volume' ? ' — over the ' + p.caps.volumeMb + ' MB budget' : '');
   return '<div class="reg__row' + (row.policy === 'server-only' ? ' reg__row--off' : '') + '">' +
     '<div class="reg__name">' +
       '<span class="reg__label">' + esc(e.label) + '</span>' +
-      '<span class="chip chip--fill chip--dense chip--lead sev-' + sm.sev + '">' +
-        '<span class="chip__dot"></span>' + sm.label + '</span>' +
       (e.traversed ? '<span class="chip chip--dense chip--static">' + ic('route',14) + 'traversed</span>' : '') +
       '<div class="reg__note">' + esc(e.note) + '</div>' +
     '</div>' +
@@ -4289,7 +4542,24 @@ function entityRow(p, e){
               spies.map(d => '<option value="' + esc(d) + '"' + (row.dataspy===d?' selected':'') + '>' + esc(d) + '</option>').join('') +
             '</select>' + ic('chevD',18) +
           '</div>'
-        : '<span class="reg__dash">' + (e.traversed ? 'from the work order' : '—') + '</span>') +
+        /* Three non-selectable states, each saying WHY rather than showing a
+           dash: reached by traversal, a whole domain that MEASURABLY fits, or
+           not on the device at all. A bare dash for all three read as "nothing
+           to configure here" for two cases where something real is happening. */
+        : e.traversed
+          ? '<span class="reg__dash">from the work order</span>'
+          : (policyNeedsFilter(row.policy)
+            ? '<div class="input"><select onchange="setEntityDataspy(\'' + e.id + '\',this.value)">' +
+                '<option value=""' + (row.dataspy?'':' selected') + '>All records — it fits</option>' +
+                spies.map(d => '<option value="' + esc(d) + '"' + (row.dataspy===d?' selected':'') + '>' +
+                  esc(d) + '</option>').join('') +
+              '</select>' + ic('chevD',18) + '</div>'
+            : '<span class="reg__dash">—</span>')) +
+      /* THE MEASUREMENT, ON THE ROW. This is what stops the rule being a
+         description: the number the cap is compared against is the number an
+         author reads. Absent for a traversed entity, which has no count of
+         its own, and for one that is not on the device at all. */
+      (measTxt ? '<div class="reg__meas' + (breach ? ' is-breach' : '') + '">' + measTxt + '</div>' : '') +
     '</div>' +
   '</div>';
 }

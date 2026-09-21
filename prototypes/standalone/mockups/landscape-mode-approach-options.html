@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Form Factors — Phone Portrait vs Tablet Landscape (low-fidelity approaches)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!--
+  FORM FACTORS — phone portrait vs tablet landscape (2026-09-21, rev 2,
+  scratchpad, self-contained, deliberately NOT wired to eam-shared.css/.js
+  per the mockups/ convention).
+
+  SCOPE — READ THIS FIRST (user direction, 2026-09-21)
+  Landscape / form-factor adaptation is UNIQUE TO THE MOBILE APP and the
+  screens under it. The Workflow Designer Portal is a WEB surface and needs
+  no distinct modes at all — a browser window is already arbitrarily sized
+  and the portal already behaves like a desktop web app. This is the exact
+  mirror of §30.7's "OCTAVE SCOPE: base screens only": that rule keeps the
+  base design system out of the app, this one keeps the app's form-factor
+  work out of the base portal. Neither crosses the seam.
+    IN:  the 16 standalone app screens.
+    OUT: eam-workflow-portal-v1.html, and anything under "base screens".
+
+  REV 2 REFRAME — THE TARGET IS A TABLET, NOT A ROTATED PHONE
+  Rev 1 analysed a landscape PHONE (852x393) and concluded "landscape is a
+  height crisis". That is true but it was the wrong target. Per user
+  direction the pairing is PORTRAIT = PHONE, LANDSCAPE = TABLET, so the
+  numbers move completely:
+
+      phone portrait    393 x 760 usable
+      tablet landscape 1180 x 770 usable
+
+  THE HEIGHT IS THE SAME. The width triples. So there is no height crisis
+  on a tablet, and the whole rev-1 argument (stand the chrome up to reclaim
+  vertical space) loses its justification even though one of its moves
+  survives for a different reason. The tablet question is only ever:
+  what do you do with ~790px of surplus width without stretching anything?
+
+  Phone landscape still exists as a real state (someone will rotate a
+  phone) and is handled in section 03 as the degenerate case, so it is not
+  a hole. But it is not the design target.
+
+  THE ORGANISING IDEA — §4.2 ALREADY DESCRIBES THREE LEVELS
+  §4.2 opens by calling the nav bar "persistent global chrome, distinct
+  from the per-record tab rail (§7.1) and the WO workflow's step rail
+  (§14.2), which both operate one level down, inside a single record".
+  That is a three-level hierarchy the spec already owns:
+
+      level 1  app        nav (Home / Work / Notifications)
+      level 2  record     step rail or tab rail
+      level 3  content    the screen
+
+  A phone in portrait can only ever show ONE of those at a time, which is
+  why the rails collapse into tappable pills and why the bottom nav hides
+  the moment a record opens. A tablet in landscape can show ALL THREE
+  simultaneously, as vertical bands. That is the entire design, and it is
+  an expression of the existing model rather than a new one.
+
+  THE BAND RULE: at most THREE bands, and the list pane and the record
+  rail never coexist. Browse = nav rail + list + detail. Execute = nav
+  rail + record rail + content. Four bands is the failure mode.
+
+  TWO LOCKED RULES NEED AMENDING, AND THE USER HAS EXPLICITLY AUTHORISED
+  PROPOSING AGAINST THEM ("even if against existing design decisions"):
+    1. §4.2 - the nav bar is driven by a BINARY, browsing XOR record-open.
+       Two-pane list-detail makes both true at once. Not stylable around.
+    2. §30.16 - HOME_FOLD is arithmetic on a 390px device. A tablet's fold
+       is ~9 tiles, not 3, and the Home editor draws exactly one fold.
+  Both are written up in section 08. Nothing has been written to the spec
+  except the scope boundary above, which is the only thing actually decided.
+
+  LOW FIDELITY on purpose: grey boxes, real pixel labels, no real data and
+  no real components. Frames are drawn at 860x600, an honest 1.43 aspect
+  against the true 1180x820 (1.44).
+-->
+<style>
+:root{
+  --paper:#fff; --page:#f4f4f5;
+  --ink:#18181b; --ink-2:#52525b; --ink-3:#a1a1aa; --ink-4:#d4d4d8;
+  --line:#e4e4e7;
+  --chrome:#d4d4d8;
+  --content:#fafafa;
+  --gain:#16a34a;
+  --loss:#dc2626;
+  --note:#2563eb;
+  --b1:#3f3f46;   /* band 1 — app level */
+  --b2:#fff;      /* band 2 — record level */
+  --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Inter,sans-serif;background:var(--page);color:var(--ink);
+  -webkit-font-smoothing:antialiased;padding:32px 28px 90px;line-height:1.5;}
+.wrap{max-width:960px;margin:0 auto;}
+
+h1{font-size:25px;font-weight:700;letter-spacing:-.4px;}
+.sub{color:var(--ink-2);font-size:14px;margin-top:6px;max-width:76ch;}
+h2{font-size:12px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;
+  color:var(--ink-2);margin:46px 0 4px;padding-bottom:7px;border-bottom:2px solid var(--ink);}
+h2 .n{font-family:var(--mono);color:var(--ink-3);margin-right:8px;}
+p.lede{font-size:13.5px;color:var(--ink-2);max-width:84ch;margin:6px 0 14px;}
+p.lede b{color:var(--ink);font-weight:600;}
+code{font-family:var(--mono);font-size:12px;background:#ececef;padding:1px 4px;border-radius:3px;}
+
+/* scope banner */
+.scope{background:#fff;border:2px solid var(--ink);border-radius:10px;
+  padding:14px 17px;margin-top:18px;}
+.scope .st{font-size:11px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;
+  color:var(--ink);margin-bottom:6px;}
+.scope p{font-size:13px;color:var(--ink-2);max-width:84ch;}
+.scope p b{color:var(--ink);}
+.scope .io{display:flex;gap:26px;margin-top:11px;padding-top:11px;border-top:1px solid var(--line);
+  font-size:12px;font-family:var(--mono);}
+.scope .io b{color:var(--gain);} .scope .io i{font-style:normal;color:var(--loss);}
+
+/* form-factor comparison */
+.ffgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px;}
+.ff{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:13px;}
+.ff.target{border:2px solid var(--ink);}
+.ff h4{font-size:13px;font-weight:700;}
+.ff .dims{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:1px;}
+.ff .shape{margin:10px 0;height:96px;display:flex;align-items:flex-end;justify-content:center;}
+.ff .shape div{border:1.5px solid var(--ink-3);border-radius:4px;background:var(--content);
+  display:flex;align-items:center;justify-content:center;font-family:var(--mono);
+  font-size:8px;color:var(--ink-3);}
+.ff p{font-size:11.5px;color:var(--ink-2);}
+.ff .verdict{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);
+  font-size:11px;font-weight:700;}
+
+/* band legend */
+.bands{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+.bandkey{display:flex;align-items:center;gap:7px;background:var(--paper);
+  border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:11.5px;}
+.bandkey b{width:16px;height:16px;border-radius:4px;flex-shrink:0;}
+.bandkey span{color:var(--ink-2);}
+.bandkey em{font-style:normal;font-family:var(--mono);font-size:10px;color:var(--ink-3);}
+
+/* frames */
+.frameblock{margin-top:18px;}
+.fmeta{display:flex;align-items:baseline;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+.fmeta .t{font-size:13px;font-weight:700;}
+.fmeta .d{font-size:11.5px;color:var(--ink-2);}
+.rec{background:#dcfce7;color:#15803d;font-size:10px;font-weight:700;font-family:var(--mono);
+  border:1px solid #86efac;border-radius:4px;padding:1px 6px;}
+.alt{background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;font-family:var(--mono);
+  border:1px solid #fcd34d;border-radius:4px;padding:1px 6px;}
+.today{background:#fee2e2;color:#b91c1c;font-size:10px;font-weight:700;font-family:var(--mono);
+  border:1px solid #fca5a5;border-radius:4px;padding:1px 6px;}
+
+.frame{width:860px;max-width:100%;height:600px;border:2px solid var(--ink-2);border-radius:12px;
+  overflow:hidden;display:flex;background:var(--content);position:relative;}
+.frame.sm{height:420px;}
+.frame::after{content:attr(data-dim);position:absolute;right:7px;bottom:5px;
+  font-family:var(--mono);font-size:9px;color:var(--ink-3);}
+
+.b{display:flex;align-items:center;justify-content:center;font-family:var(--mono);
+  font-size:10px;color:var(--ink-2);text-align:center;line-height:1.25;padding:4px;}
+.b.ch{background:var(--chrome);color:#3f3f46;font-weight:600;}
+.b.gut{background:#e4e4e7;color:var(--ink-3);
+  background-image:repeating-linear-gradient(45deg,#e4e4e7,#e4e4e7 5px,#eeeef0 5px,#eeeef0 10px);}
+.b.pane{background:var(--paper);border-right:1px solid var(--line);flex-direction:column;
+  align-items:stretch;justify-content:flex-start;padding:0;}
+.b.pane:last-child{border-right:none;}
+.col{display:flex;flex-direction:column;min-width:0;}
+
+/* band 1 — app nav rail */
+.navrail{width:78px;flex-shrink:0;background:var(--b1);color:#fff;display:flex;
+  flex-direction:column;align-items:center;gap:6px;padding:10px 0;}
+.navrail .av{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.22);
+  margin-bottom:6px;flex-shrink:0;}
+.navrail .ri{width:60px;height:44px;border-radius:9px;background:rgba(255,255,255,.12);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font-family:var(--mono);font-size:8px;color:rgba(255,255,255,.8);}
+.navrail .ri.on{background:rgba(255,255,255,.42);color:#fff;font-weight:700;}
+.navrail .sp{flex:1;}
+.navrail .sync{width:60px;height:26px;border-radius:100px;background:rgba(34,197,94,.34);
+  display:flex;align-items:center;justify-content:center;font-family:var(--mono);
+  font-size:8px;color:#fff;}
+
+/* band 2 — record rail */
+.recrail{width:190px;flex-shrink:0;background:var(--b2);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;padding:10px 0;overflow:hidden;}
+.recrail .rt{font-family:var(--mono);font-size:8.5px;color:var(--ink-3);letter-spacing:.6px;
+  padding:0 13px 7px;}
+.recrail .sr{display:flex;align-items:center;gap:9px;padding:7px 13px;font-size:10.5px;
+  color:var(--ink-2);font-family:var(--mono);}
+.recrail .sr b{width:19px;height:19px;border-radius:50%;background:var(--ink-4);color:#fff;
+  font-size:8.5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;}
+.recrail .sr.on{background:#f4f4f5;color:var(--ink);font-weight:700;
+  box-shadow:inset 3px 0 0 var(--ink);}
+.recrail .sr.on b{background:var(--ink);}
+.recrail .sr.done b{background:var(--gain);}
+.recrail .sr.lock{color:var(--ink-3);}
+.recrail .grp{font-size:8.5px;font-family:var(--mono);color:var(--ink-3);padding:11px 13px 4px;
+  margin-top:5px;border-top:1px solid var(--line);letter-spacing:.5px;}
+.recrail .sp{flex:1;}
+.recrail .timer{margin:0 13px;height:30px;border-radius:100px;background:#dcfce7;color:#15803d;
+  display:flex;align-items:center;justify-content:center;gap:5px;font-family:var(--mono);
+  font-size:10px;font-weight:700;}
+
+/* top nav inside frame */
+.topnav{height:52px;flex-shrink:0;background:var(--b1);color:#fff;display:flex;align-items:center;
+  gap:9px;padding:0 14px;font-family:var(--mono);font-size:11px;}
+.topnav .sp{flex:1;}
+.topnav .dot{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.22);}
+
+/* horizontal stepper (option 1) */
+.hstep{height:66px;flex-shrink:0;background:#fff;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:6px;padding:0 14px;overflow:hidden;}
+.hstep .hs{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px;
+  color:var(--ink-2);padding:6px 9px;border-radius:100px;flex-shrink:0;}
+.hstep .hs b{width:17px;height:17px;border-radius:50%;background:var(--ink-4);color:#fff;
+  font-size:8px;display:flex;align-items:center;justify-content:center;font-weight:700;}
+.hstep .hs.on{background:#f4f4f5;color:var(--ink);font-weight:700;}
+.hstep .hs.on b{background:var(--ink);}
+.hstep .hs.done b{background:var(--gain);}
+.hstep .hs.lock{color:var(--ink-3);}
+.hstep .cn{width:12px;height:1.5px;background:var(--ink-4);flex-shrink:0;}
+
+.actcol{width:128px;flex-shrink:0;background:var(--paper);border-left:1px solid var(--line);
+  display:flex;flex-direction:column;justify-content:flex-end;gap:9px;padding:12px;}
+.actcol .pill{height:44px;border-radius:100px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:10px;font-weight:700;}
+.actcol .pill.pri{background:var(--ink);color:#fff;}
+.actcol .pill.sec{background:var(--paper);border:1.5px solid var(--ink-4);color:var(--ink-2);}
+.actbar{height:76px;flex-shrink:0;background:#fff;border-top:1px solid var(--line);
+  display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:0 16px;}
+.actbar .pill{height:46px;padding:0 30px;border-radius:100px;display:flex;align-items:center;
+  justify-content:center;font-family:var(--mono);font-size:10.5px;font-weight:700;}
+.actbar .pill.pri{background:var(--ink);color:#fff;}
+.actbar .pill.sec{background:#fff;border:1.5px solid var(--ink-4);color:var(--ink-2);}
+
+.scroll{flex:1;overflow:hidden;padding:12px;display:flex;flex-direction:column;gap:9px;}
+.ph{height:13px;border-radius:3px;background:var(--line);}
+.ph.w70{width:70%;} .ph.w45{width:45%;} .ph.w85{width:85%;} .ph.w30{width:30%;}
+.card{border:1px solid var(--line);border-radius:8px;background:var(--paper);padding:9px;
+  display:flex;flex-direction:column;gap:6px;flex-shrink:0;}
+.card.sel{border-color:var(--ink);border-width:2px;background:#fafafa;}
+.fld{border:1px solid var(--line);border-radius:6px;background:var(--paper);padding:7px 9px;
+  display:flex;flex-direction:column;gap:4px;}
+.fld .k{height:7px;width:44%;background:var(--ink-4);border-radius:2px;}
+.fld .v{height:10px;width:72%;background:var(--line);border-radius:2px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.secthead{font-family:var(--mono);font-size:9px;color:var(--ink-3);letter-spacing:.6px;padding:2px 1px;}
+.chips{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;}
+.chips i{font-style:normal;height:24px;padding:0 11px;border-radius:100px;border:1px solid var(--ink-4);
+  background:var(--paper);font-family:var(--mono);font-size:9.5px;color:var(--ink-2);
+  display:flex;align-items:center;}
+.tiles{display:flex;gap:10px;flex-wrap:wrap;}
+.tile{width:100px;height:100px;border-radius:12px;border:1px solid var(--line);background:#fff;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  font-family:var(--mono);font-size:8.5px;color:var(--ink-2);flex-shrink:0;}
+.tile .ic{width:30px;height:30px;border-radius:8px;background:var(--line);}
+.tile.fold{border-style:dashed;border-color:var(--loss);}
+.foldline{width:0;border-left:2px dashed var(--loss);align-self:stretch;margin:0 3px;position:relative;}
+.foldline::after{content:"phone fold";position:absolute;top:-2px;left:5px;font-family:var(--mono);
+  font-size:8px;color:var(--loss);white-space:nowrap;}
+
+.callout{border-left:3px solid var(--note);background:#eff6ff;padding:10px 14px;font-size:12.5px;
+  color:#1e3a8a;border-radius:0 6px 6px 0;margin-top:12px;max-width:84ch;}
+.callout b{font-weight:700;}
+.callout.warn{border-left-color:var(--loss);background:#fef2f2;color:#7f1d1d;}
+
+/* option comparison strip */
+.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px;}
+.opt{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px;}
+.opt.win{border:2px solid var(--gain);}
+.opt h4{font-size:12.5px;font-weight:700;}
+.opt h4 em{font-style:normal;font-family:var(--mono);font-size:10px;color:var(--note);margin-right:5px;}
+.opt .mini{height:150px;border:1.5px solid var(--ink-3);border-radius:5px;display:flex;margin:9px 0;
+  overflow:hidden;background:var(--content);}
+.opt .mini .m{display:flex;align-items:center;justify-content:center;font-size:8px;
+  font-family:var(--mono);color:var(--ink-2);text-align:center;line-height:1.2;}
+.opt .mini .m1{background:var(--b1);color:#fff;}
+.opt .mini .m2{background:#fff;border-right:1px solid var(--line);}
+.opt ul{list-style:none;margin-top:7px;}
+.opt li{font-size:11px;color:var(--ink-2);padding:2.5px 0 2.5px 15px;position:relative;}
+.opt li::before{position:absolute;left:0;font-weight:700;}
+.opt li.y::before{content:"+";color:var(--gain);}
+.opt li.n::before{content:"\2212";color:var(--loss);}
+
+.flags{margin-top:14px;display:flex;flex-direction:column;gap:11px;}
+.flag{background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--loss);
+  border-radius:0 8px 8px 0;padding:12px 15px;}
+.flag.q{border-left-color:var(--note);}
+.flag.ok{border-left-color:var(--gain);}
+.flag .ft{font-size:13px;font-weight:700;}
+.flag .ft em{font-style:normal;font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-left:7px;}
+.flag p{font-size:12.5px;color:var(--ink-2);margin-top:5px;max-width:84ch;}
+.flag p b{color:var(--ink);}
+
+table{width:100%;border-collapse:collapse;margin-top:14px;background:var(--paper);
+  border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:12px;}
+th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink-2);
+  padding:9px 11px;background:#fafafa;border-bottom:1px solid var(--line);}
+td{padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-2);}
+td:first-child{color:var(--ink);font-weight:600;white-space:nowrap;}
+tr:last-child td{border-bottom:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Form factors — phone portrait vs tablet landscape</h1>
+  <p class="sub">Low-fidelity. Grey boxes and real pixel numbers, so the argument is about layout
+  and not styling. Rev 2 — retargeted from "rotated phone" to <b>tablet</b>, which changes the
+  problem completely.</p>
+
+  <div class="scope">
+    <div class="st">Scope — mobile app only</div>
+    <p>Form-factor and landscape adaptation is <b>unique to the mobile app and the screens under
+    it</b>. The Workflow Designer Portal is a <b>web</b> surface: a browser window is already
+    arbitrarily sized and the portal already behaves like a desktop web app, so it needs no
+    distinct modes. This is the exact mirror of <b>§30.7's "OCTAVE SCOPE: base screens only"</b> —
+    that rule keeps the base design system out of the app; this one keeps the app's form-factor
+    work out of the base portal. Neither crosses the seam.</p>
+    <div class="io">
+      <span><b>IN</b> &nbsp;the 16 standalone app screens</span>
+      <span><i>OUT</i> &nbsp;eam-workflow-portal-v1.html · all base screens</span>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2><span class="n">01</span>The reframe — the height was never the problem</h2>
+  <p class="lede">Rev 1 measured a rotated <i>phone</i> and found a height crisis. With
+  <b>portrait = phone, landscape = tablet</b> the numbers move completely — and the crisis
+  disappears.</p>
+
+  <div class="ffgrid">
+    <div class="ff">
+      <h4>Phone portrait</h4>
+      <div class="dims">393 &times; 760 usable</div>
+      <div class="shape"><div style="width:42px;height:92px">393<br>&times;<br>760</div></div>
+      <p>The built, locked baseline. Every rule in §4–§24 assumes it.</p>
+      <div class="verdict" style="color:var(--ink-2)">Baseline — unchanged</div>
+    </div>
+    <div class="ff">
+      <h4>Phone landscape</h4>
+      <div class="dims">852 &times; 349 usable</div>
+      <div class="shape"><div style="width:96px;height:40px">852 &times; 349</div></div>
+      <p>Compact height. Chrome is fixed at ~200px, so content collapses to <b>32–43%</b>.
+      The degenerate case — section 03.</p>
+      <div class="verdict" style="color:var(--loss)">Degenerate — contain it</div>
+    </div>
+    <div class="ff target">
+      <h4>Tablet landscape</h4>
+      <div class="dims">1180 &times; 770 usable</div>
+      <div class="shape"><div style="width:132px;height:88px">1180 &times; 770</div></div>
+      <p><b>Same height as phone portrait.</b> Triple the width. No height crisis at all.</p>
+      <div class="verdict" style="color:var(--gain)">The design target</div>
+    </div>
+  </div>
+
+  <div class="callout"><b>Phone portrait 760px tall; tablet landscape 770px tall.</b> The vertical
+  axis is effectively identical, so none of the chrome needs to move to <i>save space</i> — the
+  56px rail and the 72px action bar are as affordable on a tablet as they are on a phone. The
+  only question a tablet asks is: <b>what do you do with ~790px of surplus width without
+  stretching anything?</b> Which makes rail placement the real subject, exactly as you framed
+  it.</div>
+
+  <!-- ============================================================ -->
+  <h2><span class="n">02</span>The organising idea — §4.2's own three levels</h2>
+  <p class="lede">This does not need a new model. <b>§4.2 already states one</b>, in its opening
+  sentence: the nav bar is "persistent global chrome, <i>distinct from the per-record tab rail
+  (§7.1) and the WO workflow's step rail (§14.2), which both operate one level down, inside a
+  single record</i>."</p>
+
+  <div class="bands">
+    <div class="bandkey"><b style="background:#3f3f46"></b>
+      <span><strong>Band 1 · app</strong> — Home / Work / Notifications, avatar, sync</span><em>§4.2</em></div>
+    <div class="bandkey"><b style="background:#fff;border:1px solid var(--ink-4)"></b>
+      <span><strong>Band 2 · record</strong> — step rail or tab rail</span><em>§14.2 / §7.1</em></div>
+    <div class="bandkey"><b style="background:#fafafa;border:1px solid var(--ink-4)"></b>
+      <span><strong>Band 3 · content</strong> — the screen itself</span><em>§5.2</em></div>
+  </div>
+
+  <p class="lede" style="margin-top:14px">A phone in portrait can only show <b>one level at a
+  time</b> — which is precisely why the rails collapse into tappable pills and why the bottom nav
+  hides the moment a record opens. Those are compromises forced by 393px, not preferences. A
+  tablet can show <b>all three at once</b>, as vertical bands. The tablet layout is therefore an
+  <i>expression</i> of the existing model rather than a new one.</p>
+
+  <div class="callout"><b>The band rule:</b> at most <b>three</b> bands, and the list pane and the
+  record rail <b>never coexist</b>. Browse = nav rail + list + detail. Execute = nav rail + record
+  rail + content. Four bands — nav rail, list, record rail, content — is the failure mode, and it
+  is what naive "just add a pane" produces.</div>
+
+  <!-- ============================================================ -->
+  <h2><span class="n">03</span>Phone landscape — the degenerate case, contained</h2>
+  <p class="lede">Dealt with briefly so it is not a hole. At 349px of height with ~200px of fixed
+  chrome there is no good layout, and a tablet-style two-pane makes it worse by adding a band.</p>
+  <table>
+    <tr><th>Option</th><th>Verdict</th></tr>
+    <tr><td>Keep the centred 430px column</td>
+      <td><b style="color:var(--gain)">Recommended.</b> What happens today, by accident, via
+        <code>.app{max-width:430px}</code>. It is coherent, nothing is broken, and it costs nothing
+        to keep. A rotated phone is an incidental state, not a work posture.</td></tr>
+    <tr><td>Full tablet treatment</td>
+      <td><b style="color:var(--loss)">No.</b> Adds a band to the axis that has none to give.</td></tr>
+    <tr><td>Lock to portrait</td>
+      <td><b style="color:var(--loss)">No.</b> Ruled out by Apple's HIG, and it would also block the
+        tablet, which is the actual target.</td></tr>
+  </table>
+  <p class="lede" style="margin-top:12px">So the breakpoint keys on <b>width</b>, not orientation:
+  <code>@media (min-width:840px) and (min-height:600px)</code> — Material's <i>expanded</i> width
+  class plus a real height floor. A rotated phone (349px tall) fails the height test and keeps the
+  phone layout. A tablet in <i>portrait</i> (820&times;1180) fails the width test and also keeps the
+  phone layout, correctly — tablet portrait is a big phone, and that is fine.</p>
+
+  <!-- ============================================================ -->
+  <h2><span class="n">04</span>Home — tablet landscape</h2>
+  <p class="lede">Band 1 + band 3. No record is open, so there is no band 2. The tiles keep their
+  <b>100px size</b> — that is a touch target and an authored unit, not a scaling factor — so the
+  width buys <i>more tiles per row</i>, not bigger ones.</p>
+
+  <div class="frameblock">
+    <div class="fmeta"><span class="rec">RECOMMENDED</span><span class="t">Nav rail + full-width tile sections</span>
+      <span class="d">The phone fold is drawn, because it is the guarantee the admin authors against.</span></div>
+    <div class="frame" data-dim="1180 &times; 820">
+      <div class="navrail">
+        <div class="av"></div>
+        <div class="ri on">&#973;<br>Home</div>
+        <div class="ri">&#9776;<br>Work</div>
+        <div class="ri">&#9737;<br>Notif</div>
+        <div class="sp"></div>
+        <div class="sync">&#8635; Synced</div>
+      </div>
+      <div class="col" style="flex:1">
+        <div class="topnav"><span>Home</span><span class="sp"></span><span>&#65291; Create</span></div>
+        <div class="scroll" style="gap:14px">
+          <div class="secthead">MY WORK</div>
+          <div class="tiles">
+            <div class="tile"><div class="ic"></div>Pinned<br>WOs · 12</div>
+            <div class="tile"><div class="ic"></div>Due<br>today · 4</div>
+            <div class="tile"><div class="ic"></div>Overdue<br>· 2</div>
+            <div class="foldline"></div>
+            <div class="tile fold"><div class="ic"></div>Assigned<br>· 9</div>
+            <div class="tile fold"><div class="ic"></div>My crew<br>· 31</div>
+            <div class="tile fold"><div class="ic"></div>Awaiting<br>parts · 6</div>
+            <div class="tile fold"><div class="ic"></div>PM due<br>· 18</div>
+          </div>
+          <div class="secthead">FAVORITES &mdash; the technician's own starred dataspies</div>
+          <div class="tiles">
+            <div class="tile"><div class="ic"></div>&#9733;</div>
+            <div class="tile"><div class="ic"></div>&#9733;</div>
+            <div class="tile"><div class="ic"></div>&#9733;</div>
+          </div>
+          <div class="secthead">EQUIPMENT</div>
+          <div class="tiles">
+            <div class="tile"><div class="ic"></div>Routes</div>
+            <div class="tile"><div class="ic"></div>Assets</div>
+            <div class="tile"><div class="ic"></div>Meters</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout warn"><b>This breaks §30.16, and it is the one place the tablet forces a real
+  authoring change.</b> <code>HOME_FOLD = 3</code> is arithmetic on a 390px device (390 − 28 padding,
+  100px tiles, 10px gaps), and the rule it protects is "line one is what the technician sees without
+  swiping". On a tablet the same arithmetic over 1102px gives a fold of <b>9</b>. The Home editor
+  draws exactly <i>one</i> fold, so it cannot currently be truthful for both.
+  <br><br><b>Proposed resolution: author to the phone fold; the tablet is a superset.</b> The editor
+  keeps drawing the 3-tile fold as the <i>guarantee</i>, because what fits a phone fits a tablet —
+  never the reverse. The tablet then simply reveals more of row one without swiping, which can only
+  ever be a bonus. That keeps one fold in the editor, one authored layout, and no per-device
+  variants — see flag 2 in section 08.</div>
+
+  <!-- ============================================================ -->
+  <h2><span class="n">05</span>Search / record list — tablet landscape</h2>
+  <p class="lede">The canonical list-detail case, and the clearest win. Band 1 + list + detail. With
+  a 78px rail and a 400px list pane, the detail pane gets <b>~700px</b> — enough for a real record,
+  not a preview.</p>
+
+  <div class="frameblock">
+    <div class="fmeta"><span class="rec">RECOMMENDED</span><span class="t">Nav rail + list pane + record detail</span>
+      <span class="d">~9 cards visible against 1.2 on a rotated phone. The list keeps its place while you read a record.</span></div>
+    <div class="frame" data-dim="1180 &times; 820">
+      <div class="navrail">
+        <div class="av"></div>
+        <div class="ri">&#973;<br>Home</div>
+        <div class="ri on">&#9776;<br>Work</div>
+        <div class="ri">&#9737;<br>Notif</div>
+        <div class="sp"></div>
+        <div class="sync">&#8635; Synced</div>
+      </div>
+      <div class="b pane" style="width:330px">
+        <div class="topnav" style="background:#fff;color:var(--ink);border-bottom:1px solid var(--line)">
+          <span style="font-weight:700">Work Orders</span><span class="sp"></span><span style="color:var(--ink-3)">&#9662;</span></div>
+        <div style="padding:10px 11px 0"><div class="b ch" style="height:38px;border-radius:10px;background:#fff;border:1.5px solid var(--ink-4);color:var(--ink-2)">dataspy bar</div></div>
+        <div class="chips" style="padding:9px 11px 0"><i>Status</i><i>Type</i><i>Dept</i><i>Sort</i></div>
+        <div class="scroll" style="gap:7px;padding:10px 11px">
+          <div class="card sel" style="height:62px"><div class="ph w70"></div><div class="ph w45"></div></div>
+          <div class="card" style="height:62px"><div class="ph w70"></div><div class="ph w45"></div></div>
+          <div class="card" style="height:62px"><div class="ph w70"></div><div class="ph w45"></div></div>
+          <div class="card" style="height:62px"><div class="ph w70"></div><div class="ph w45"></div></div>
+          <div class="card" style="height:62px"><div class="ph w70"></div><div class="ph w45"></div></div>
+          <div class="card" style="height:62px;opacity:.4"><div class="ph w70"></div></div>
+        </div>
+      </div>
+      <div class="col" style="flex:1;background:#fff">
+        <div class="topnav" style="background:#fff;color:var(--ink);border-bottom:1px solid var(--line)">
+          <span style="font-weight:700">19257</span>
+          <span style="background:#fee2e2;color:#b91c1c;border-radius:4px;padding:2px 7px;font-size:9px">BREAKDOWN</span>
+          <span class="sp"></span><span style="color:var(--ink-3)">&#8943;</span></div>
+        <div class="scroll">
+          <div class="secthead">HEADER FIELDS</div>
+          <div class="g2">
+            <div class="fld"><div class="k"></div><div class="v"></div></div>
+            <div class="fld"><div class="k"></div><div class="v"></div></div>
+          </div>
+          <div class="secthead">WORK ORDER DETAILS</div>
+          <div class="g2">
+            <div class="fld"><div class="k"></div><div class="v"></div></div>
+            <div class="fld"><div class="k"></div><div class="v"></div></div>
+            <div class="fld"><div class="k"></div><div class="v"></div></div>
+            <div class="fld"><div class="k"></div><div class="v"></div></div>
+          </div>
+          <div class="secthead">SCHEDULING</div>
+          <div class="g2">
+            <div class="fld"><div class="k"></div><div class="v"></div></div>
+            <div class="fld"><div class="k"></div><div class="v"></div></div>
+          </div>
+        </div>
+        <div class="actbar">
+          <div class="pill sec">&#9733; Pin</div>
+          <div class="pill pri">Start Work &rarr;</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout warn"><b>This breaks §4.2, and it cannot be styled around.</b> §4.2 says the
+  bottom nav is "visible while browsing; hidden entirely the moment any record is open" — a
+  <b>binary</b>, browsing XOR record-open. The frame above has a list <i>and</i> an open record
+  showing at the same time, so both are true. <b>Proposed resolution: on tablet the two stop being
+  exclusive.</b> Band 1 is app-level and persists always; the record occupies bands 2–3 and nests
+  inside it rather than replacing it. The hide-on-record-open rule stays exactly as written for
+  phone portrait, where it is a space compromise. See flag 1.</div>
+
+  <div class="callout"><b>Browse vs execute — where the detail pane stops.</b> The detail pane shows
+  the record and its header actions. <b>Starting a workflow promotes to full width</b> (section 06),
+  dropping the list pane so band 2 can be the step rail. A workflow step is a deliberately focused,
+  one-thing-at-a-time surface (§14) and squeezing it beside a list would both crowd it and produce
+  the forbidden fourth band. So: <b>browse = two-pane, execute = full-width.</b></div>
+
+  <!-- ============================================================ -->
+  <h2><span class="n">06</span>Record view — where the rail goes</h2>
+  <p class="lede">The question you called out. Three genuine options at tablet width. The deciding
+  argument turns out to be <b>§29</b>, not aesthetics.</p>
+
+  <div class="opts">
+    <div class="opt">
+      <h4><em>R1</em>Stay on top, horizontal</h4>
+      <div class="mini">
+        <div class="m m1" style="width:14%">nav</div>
+        <div class="col" style="flex:1">
+          <div class="m" style="height:22%;background:#fff;border-bottom:1px solid var(--line)">step rail — expanded</div>
+          <div class="m" style="flex:1">content</div>
+        </div>
+      </div>
+      <ul>
+        <li class="y">Preserves the portrait mental model exactly</li>
+        <li class="y">Keeps the unified <code>.tab-rail, .step-rail</code> shell — it just stops collapsing</li>
+        <li class="y">Left-to-right reads as "forward", suits §14.10 gating</li>
+        <li class="n">Does not scale — ~6 items fit, and §29 makes the count unbounded</li>
+      </ul>
+    </div>
+    <div class="opt win">
+      <h4><em>R2</em>Left vertical band</h4>
+      <div class="mini">
+        <div class="m m1" style="width:14%">nav</div>
+        <div class="m m2" style="width:30%">step<br>rail</div>
+        <div class="m" style="flex:1">content</div>
+      </div>
+      <ul>
+        <li class="y"><b>Scales to any item count</b> — the §29 argument</li>
+        <li class="y">Always visible; the collapsed/expanded state disappears entirely</li>
+        <li class="y">Makes §4.2's three levels visible at once, as written</li>
+        <li class="n">Two left-edge bands need clear visual distinction</li>
+      </ul>
+    </div>
+    <div class="opt">
+      <h4><em>R3</em>Right vertical band</h4>
+      <div class="mini">
+        <div class="m m1" style="width:14%">nav</div>
+        <div class="m" style="flex:1">content</div>
+        <div class="m" style="width:30%;background:#fff;border-left:1px solid var(--line)">step rail<br>+ actions</div>
+      </div>
+      <ul>
+        <li class="y">Rail and Next share one column — both under the right thumb</li>
+        <li class="y">Leaves the left edge as a single app-level band</li>
+        <li class="n">"Where am I in the flow" on the right fights reading order</li>
+        <li class="n">Competes with band 3 for the trailing edge where sheets live</li>
+      </ul>
+    </div>
+  </div>
+
+  <p class="lede" style="margin-top:16px"><b>Recommendation: R2, and the argument is architectural
+  rather than visual.</b> §29 made the rail's contents <i>configuration-driven and unbounded</i> — a
+  tab can be placed twice, More's membership is configuration not definition
+  (<code>WO_MORE_TABS</code>), and a UDS is a step (<code>isStepKind()</code>). A workflow with 8
+  steps plus 4 More entries is legitimately authorable today. <b>A horizontal row cannot hold that;
+  a vertical column can hold any number.</b> R1 would be choosing a layout that the authoring model
+  is already allowed to overflow. R2 also collapses a whole state — on tablet the rail is simply
+  always expanded, so the collapsed pill and its tap target stop existing.</p>
+
+  <div class="frameblock">
+    <div class="fmeta"><span class="rec">R2 — RECOMMENDED</span><span class="t">Workflow step: nav rail + step rail + content</span>
+      <span class="d">Three bands. All steps, gating and the More group visible with no tap.</span></div>
+    <div class="frame" data-dim="1180 &times; 820">
+      <div class="navrail">
+        <div class="av"></div>
+        <div class="ri">&#973;<br>Home</div>
+        <div class="ri on">&#9776;<br>Work</div>
+        <div class="ri">&#9737;<br>Notif</div>
+        <div class="sp"></div>
+        <div class="sync">&#8635; Synced</div>
+      </div>
+      <div class="recrail">
+        <div class="rt">19257 &middot; BREAKDOWN</div>
+        <div class="sr done"><b>&#10003;</b>Record View</div>
+        <div class="sr done"><b>&#10003;</b>Checklist</div>
+        <div class="sr on"><b>3</b>Issue Parts</div>
+        <div class="sr lock"><b>4</b>Book Labor</div>
+        <div class="sr lock"><b>5</b>WO Closing</div>
+        <div class="grp">MORE</div>
+        <div class="sr">Comments</div>
+        <div class="sr">Documents</div>
+        <div class="sr">Equipment</div>
+        <div class="sp"></div>
+        <div class="timer">&#9201; 01:42</div>
+      </div>
+      <div class="col" style="flex:1;background:#fff">
+        <div class="topnav" style="background:#fff;color:var(--ink);border-bottom:1px solid var(--line)">
+          <span>&lsaquo;</span><span style="font-weight:700">Issue Parts</span><span class="sp"></span>
+          <span style="color:var(--ink-3)">&#8943;</span></div>
+        <div class="scroll">
+          <div class="secthead">ISSUE PARTS &mdash; 3 lines</div>
+          <div class="g2">
+            <div class="fld"><div class="k"></div><div class="v"></div></div>
+            <div class="fld"><div class="k"></div><div class="v"></div></div>
+          </div>
+          <div class="card" style="height:54px"><div class="ph w70"></div><div class="ph w30"></div></div>
+          <div class="card" style="height:54px"><div class="ph w70"></div><div class="ph w30"></div></div>
+          <div class="card" style="height:54px"><div class="ph w70"></div><div class="ph w30"></div></div>
+        </div>
+        <div class="actbar">
+          <div class="pill sec">&#65291; Add part</div>
+          <div class="pill pri">Next &rarr;</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout"><b>Two details the frame settles.</b> The <b>timer pill</b> (§14.2, today in
+  <code>.step-rail-right</code>) moves to the foot of the vertical rail — it belongs to the record,
+  so it stays in band 2 rather than migrating to band 1. And the <b>action bar stays horizontal at
+  the bottom of band 3</b>, not stood up into a column: height is abundant here, so rev 1's
+  trailing-action-column move loses its justification and the portrait pattern simply carries over.
+  Fewer changes, same result.</div>
+
+  <div class="frameblock">
+    <div class="fmeta"><span class="alt">R1 — FALLBACK</span><span class="t">If two left bands test badly on device</span>
+      <span class="d">Same screen, rail expanded horizontally. Note it is already near its item limit at 8.</span></div>
+    <div class="frame sm" data-dim="1180 &times; 820">
+      <div class="navrail">
+        <div class="av"></div>
+        <div class="ri">&#973;<br>Home</div>
+        <div class="ri on">&#9776;<br>Work</div>
+        <div class="ri">&#9737;<br>Notif</div>
+      </div>
+      <div class="col" style="flex:1;background:#fff">
+        <div class="topnav" style="background:#fff;color:var(--ink);border-bottom:1px solid var(--line)">
+          <span>&lsaquo;</span><span style="font-weight:700">19257 &middot; Issue Parts</span>
+          <span class="sp"></span><span>&#9201; 01:42</span></div>
+        <div class="hstep">
+          <div class="hs done"><b>&#10003;</b>Record</div><div class="cn"></div>
+          <div class="hs done"><b>&#10003;</b>Checklist</div><div class="cn"></div>
+          <div class="hs on"><b>3</b>Issue Parts</div><div class="cn"></div>
+          <div class="hs lock"><b>4</b>Labor</div><div class="cn"></div>
+          <div class="hs lock"><b>5</b>Closing</div>
+          <div class="cn" style="width:20px"></div>
+          <div class="hs">More &#9662;</div>
+        </div>
+        <div class="scroll">
+          <div class="g2">
+            <div class="fld"><div class="k"></div><div class="v"></div></div>
+            <div class="fld"><div class="k"></div><div class="v"></div></div>
+          </div>
+          <div class="card" style="height:46px"><div class="ph w70"></div></div>
+        </div>
+        <div class="actbar" style="height:66px"><div class="pill pri">Next &rarr;</div></div>
+      </div>
+    </div>
+    <p class="lede" style="margin-top:9px">Legible, and cheap to build — but "More" has had to become
+    a dropdown again to fit, which is the collapsed-rail compromise returning under a different name.
+    That is the scaling ceiling showing up at only 8 items.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2><span class="n">07</span>Child tab screen — the same band 2, different contents</h2>
+  <p class="lede">The payoff of R2: a tab rail and a step rail are the <i>same band</i>, so the WO
+  Equipment tab needs no separate landscape design. It also answers the open
+  <code>chooser</code>-vs-<code>split</code> question for this form factor — at 1180px,
+  <code>split</code> is simply available.</p>
+
+  <div class="frameblock">
+    <div class="fmeta"><span class="rec">RECOMMENDED</span><span class="t">Tab rail in band 2, split row-tap in band 3</span>
+      <span class="d">Same rail component, tab contents instead of step contents.</span></div>
+    <div class="frame sm" data-dim="1180 &times; 820">
+      <div class="navrail">
+        <div class="av"></div>
+        <div class="ri">&#973;<br>Home</div>
+        <div class="ri on">&#9776;<br>Work</div>
+        <div class="ri">&#9737;<br>Notif</div>
+      </div>
+      <div class="recrail" style="width:172px">
+        <div class="rt">19257 &middot; BREAKDOWN</div>
+        <div class="sr">Record View</div>
+        <div class="sr on">Equipment &middot; 24</div>
+        <div class="sr">Comments</div>
+        <div class="sr">Documents</div>
+      </div>
+      <div class="b pane" style="width:230px">
+        <div class="topnav" style="height:44px;background:#fff;color:var(--ink);border-bottom:1px solid var(--line)">
+          <span style="font-weight:700">PUMPS route</span></div>
+        <div class="scroll" style="gap:6px;padding:9px">
+          <div class="card sel" style="height:44px;padding:7px"><div class="ph w85" style="height:9px"></div></div>
+          <div class="card" style="height:44px;padding:7px"><div class="ph w85" style="height:9px"></div></div>
+          <div class="card" style="height:44px;padding:7px"><div class="ph w70" style="height:9px"></div></div>
+          <div class="card" style="height:44px;padding:7px;opacity:.4"><div class="ph w70" style="height:9px"></div></div>
+        </div>
+      </div>
+      <div class="col" style="flex:1;background:#fff">
+        <div class="topnav" style="height:44px;background:#fff;color:var(--ink);border-bottom:1px solid var(--line)">
+          <span style="font-weight:700">MEC child WO</span><span class="sp"></span><span style="color:var(--ink-3)">&#8943;</span></div>
+        <div class="scroll">
+          <div class="secthead">CHILD RECORD &mdash; opens as itself via the identity override</div>
+          <div class="g2">
+            <div class="fld"><div class="k"></div><div class="v"></div></div>
+            <div class="fld"><div class="k"></div><div class="v"></div></div>
+          </div>
+          <div class="fld"><div class="k"></div><div class="v"></div></div>
+        </div>
+      </div>
+    </div>
+    <p class="lede" style="margin-top:9px"><b>Note this is the forbidden fourth band</b> — nav rail,
+    tab rail, equipment list, child detail. It is legible only because the two middle bands are
+    narrow and the content is shallow. <b>It is the one place the band rule should be allowed to
+    bend, and it needs device confirmation before being accepted</b>; the alternative is that the
+    child record takes over band 3 entirely and the equipment list collapses to a chooser, exactly
+    as on the phone.</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2><span class="n">08</span>What this costs — the decisions you need to make</h2>
+  <p class="lede">Two locked rules genuinely have to change, and you have already authorised
+  proposing against them. Both are narrow, and both keep phone portrait exactly as written.</p>
+
+  <div class="flags">
+    <div class="flag">
+      <div class="ft">1. §4.2's browsing XOR record-open binary<em>amendment required</em></div>
+      <p>"Visible while browsing; hidden entirely the moment any record is open." Two-pane
+      list-detail makes both states true simultaneously, so this is a <b>model</b> change, not a
+      styling one. <b>Proposed:</b> the exclusivity is a phone-portrait space compromise; on tablet
+      band 1 persists always and the record nests in bands 2–3. §4.2's three-item membership (Home,
+      Work, Notifications — Equipment deliberately excluded) is <b>unchanged</b>; only the
+      visibility rule gains a form-factor scope.</p>
+    </div>
+    <div class="flag">
+      <div class="ft">2. §30.16's HOME_FOLD is single-valued<em>amendment required</em></div>
+      <p><code>HOME_FOLD = 3</code> is arithmetic on 390px; the tablet's is ~9, and the Home editor
+      draws one fold. <b>Proposed:</b> author to the phone fold and treat the tablet as a superset —
+      the editor keeps drawing 3 as the <i>guarantee</i>, since what fits a phone fits a tablet and
+      never the reverse. One fold, one authored layout, no per-device variants. This touches the
+      portal's Home Layouts area, which is otherwise out of scope — it is a <i>rule</i> change, not
+      a portal layout change.</p>
+    </div>
+    <div class="flag ok">
+      <div class="ft">3. §8.4's button placement survives untouched<em>no change</em></div>
+      <p>§8.4 is semantic — row-scoped &rarr; Action Row, everything else &rarr; header ellipsis. The
+      tablet keeps the horizontal action bar at the foot of band 3, so nothing moves at all. Worth
+      stating because rev 1 proposed standing it up and that <i>would</i> have needed checking.</p>
+    </div>
+    <div class="flag ok">
+      <div class="ft">4. §5.2 containers survive untouched<em>no change</em></div>
+      <p>Band 3 at ~700–900px is wide enough that authored 2-up Grid containers read correctly
+      without re-columning. <b>The rule stands: form factor never changes an authored container's
+      column count</b>, since §5.2 makes shape a per-container authoring property. It should be
+      enforced at the setter the way "a Grid cannot be Collapsed" already is.</p>
+    </div>
+    <div class="flag q">
+      <div class="ft">5. The fourth band on child tabs<em>needs a device</em></div>
+      <p>Section 07 bends the band rule. Flip it on a real tablet and choose: keep the four narrow
+      bands, or collapse the equipment list to a chooser as on the phone. This is the same shape as
+      the existing <code>chooser</code>/<code>split</code> open item, so it can reuse that dev toggle.</p>
+    </div>
+    <div class="flag q">
+      <div class="ft">6. Rotation and pane state<em>needs a decision</em></div>
+      <p>Two-pane introduces a <b>selected row</b>, which does not exist in portrait. Rotating into
+      landscape has to choose a selection (first row? none, with an empty detail pane?) and rotating
+      out has to discard one. "Empty detail pane with a prompt" is the conventional answer and the
+      honest one. Not a default — a call.</p>
+    </div>
+    <div class="flag q">
+      <div class="ft">7. Safe-area insets<em>prerequisite</em></div>
+      <p>Only <code>safe-area-inset-bottom</code> is used anywhere in <code>eam-shared.css</code>.
+      A full-width layout needs left/right. Smaller on a tablet than a notched phone, but still a
+      real gap and a prerequisite rather than a follow-up.</p>
+    </div>
+    <div class="flag q">
+      <div class="ft">8. Is this an R-level requirement?<em>scope</em></div>
+      <p>Tablet support is not in the design doc's requirements. If it is real it belongs there as a
+      requirement, with the band model as a locked spec rule — not as a per-prototype fix. That
+      sequencing question is worth settling before any code, because it decides whether the 16
+      screens get touched once or sixteen times.</p>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <h2><span class="n">09</span>Mapping — every app screen</h2>
+  <table>
+    <tr><th>Screen</th><th>Tablet landscape</th><th>Bands</th></tr>
+    <tr><td>Home</td><td>Nav rail + full-width tile sections</td><td>1 + 3</td></tr>
+    <tr><td>WO List / Equipment List</td><td>List-detail; detail is the real record</td><td>1 + list + detail</td></tr>
+    <tr><td>Notifications</td><td>List-detail; detail is the source WO</td><td>1 + list + detail</td></tr>
+    <tr><td>Sync Status</td><td>List-detail; detail is the trouble record</td><td>1 + list + detail</td></tr>
+    <tr><td>WO Record View</td><td>Step rail in band 2 (R2)</td><td>1 + 2 + 3</td></tr>
+    <tr><td>Equipment Record View</td><td>Tab rail in band 2 — same component</td><td>1 + 2 + 3</td></tr>
+    <tr><td>The 5 WO steps</td><td>Step rail in band 2; action bar stays horizontal</td><td>1 + 2 + 3</td></tr>
+    <tr><td>Activity Checklist</td><td>Band 2 rail + item list + focused item — retires the All-items overlay</td><td>bends to 4</td></tr>
+    <tr><td>WO Equipment / Reference tab</td><td>Tab rail + split row-tap — flag 5</td><td>bends to 4</td></tr>
+    <tr><td>Insert Mode, LOV / date / text pickers</td><td>Centred modal rather than a bottom sheet — height is no longer scarce and the ~300px tablet keyboard fits underneath</td><td>overlay</td></tr>
+    <tr><td>Login</td><td>Centre the card. Nothing else.</td><td>—</td></tr>
+    <tr><td><b>Workflow Designer Portal</b></td><td><b>Out of scope — web surface</b></td><td>—</td></tr>
+  </table>
+
+</div>
+</body>
+</html>

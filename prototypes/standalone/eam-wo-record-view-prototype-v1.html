@@ -1,13 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');</script>
+<script>/* guarded: localStorage throws in iOS Private Browsing, and this runs before eam-shared.js so lsGet() does not exist yet */try{if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1A1A1F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="EAM">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — WO Record View</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared/eam-fonts.css">
 <link rel="stylesheet" href="shared/eam-shared.css">
 <!--
   WO WORKFLOW — STEP 1: WO RECORD VIEW (rebuilt 2026-07-16 onto shared/
@@ -139,10 +145,10 @@
 .act-radio svg { display: none; color: white; }
 .act-item.selected .act-radio svg { display: block; }
 [data-theme="dark"] .act-item.selected .act-radio svg { color: var(--octave-black); }
-.act-num-big { font-size: 22px; font-weight: 700; font-family: var(--font-mono); color: var(--octave-black); flex-shrink: 0; width: 32px; text-align: center; }
+.act-num-big { font-size: 1.375rem; font-weight: 700; font-family: var(--font-mono); color: var(--octave-black); flex-shrink: 0; width: 32px; text-align: center; }
 [data-theme="dark"] .act-num-big { color: rgba(255,255,255,.9); }
 .act-info { flex: 1; min-width: 0; }
-.act-name { font-size: 13px; font-weight: 600; color: var(--octave-black); line-height: 1.35; }
+.act-name { font-size: 0.8125rem; font-weight: 600; color: var(--octave-black); line-height: 1.35; }
 [data-theme="dark"] .act-name { color: rgba(255,255,255,.9); }
 .act-item.selected .act-name { font-weight: 700; }
 .act-meta-block { margin-top: 0; }
@@ -162,7 +168,7 @@
    for browsers/pointer input that don't honor inputmode. Same treatment
    should apply to Currency once a grid cell needs one; screen-local for
    now (only 1 real consumer), promote to eam-shared.css on a 2nd. */
-.attr-text-input { font-size: 14px; font-weight: 600; color: var(--octave-black); font-family: var(--font-sans); border: none; background: none; outline: none; padding: 0; width: 100%; text-align: left; }
+.attr-text-input { font-size: 1rem; font-weight: 600; color: var(--octave-black); font-family: var(--font-sans); border: none; background: none; outline: none; padding: 0; width: 100%; text-align: left; }
 [data-theme="dark"] .attr-text-input { color: rgba(255,255,255,.9); }
 .attr-text-input::placeholder { color: var(--gray-3); font-weight: 500; }
 /* Same-day follow-up (2026-07-23): the grid cell's own onclick now
@@ -173,17 +179,17 @@
    this. Activity's own number field converts to the same inline-input
    pattern here too (was still the old openEdit()-popup shape) — its
    trailing chevron is gone since there's no popup left for it to imply. */
-.act-num-big-input { font-size: 22px; font-weight: 700; font-family: var(--font-mono); color: var(--octave-black); flex: 1; width: auto; text-align: right; border: none; background: none; outline: none; padding: 0; }
+.act-num-big-input { font-size: 1.375rem; font-weight: 700; font-family: var(--font-mono); color: var(--octave-black); flex: 1; width: auto; text-align: right; border: none; background: none; outline: none; padding: 0; }
 [data-theme="dark"] .act-num-big-input { color: rgba(255,255,255,.9); }
 .meta-grid-a { display: flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
 .meta-cell-a { flex: 1 1 50%; padding: 7px 10px; border-left: 1px solid var(--border); border-top: 1px solid var(--border); }
 .meta-cell-a:nth-child(odd) { border-left: none; }
 .meta-cell-a:nth-child(-n+2) { border-top: none; }
-.meta-cell-label { font-size: 10px; color: var(--gray-4); display: block; margin-bottom: 3px; }
-.trade-code { font-size: 10px; color: var(--gray-4); font-family: var(--font-mono); display: block; }
-.trade-desc { font-size: 12px; font-weight: 600; color: var(--octave-black); }
+.meta-cell-label { font-size: 0.625rem; color: var(--gray-4); display: block; margin-bottom: 3px; }
+.trade-code { font-size: 0.625rem; color: var(--gray-4); font-family: var(--font-mono); display: block; }
+.trade-desc { font-size: 0.75rem; font-weight: 600; color: var(--octave-black); }
 [data-theme="dark"] .trade-desc { color: rgba(255,255,255,.9); }
-.date-val { font-size: 12px; font-weight: 600; color: var(--octave-black); font-family: var(--font-mono); }
+.date-val { font-size: 0.75rem; font-weight: 600; color: var(--octave-black); font-family: var(--font-mono); }
 [data-theme="dark"] .date-val { color: rgba(255,255,255,.9); }
 
 /* Completed-activity state (2026-07-23, corrected same day — 2nd live
@@ -239,7 +245,7 @@
    but solid), the Route code in mono per §3.4, and a count badge for how
    many equipment records sit behind it. Still strictly monochrome — this is
    navigation, not one of §23's colour instruments. */
-.equip-route-pill { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 5px 8px 5px 5px; background: var(--bg-card); border: 1.5px solid var(--border-strong); border-radius: 100px; font-size: 12.5px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.06); transition: border-color .15s, box-shadow .15s, transform .1s; }
+.equip-route-pill { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 5px 8px 5px 5px; background: var(--bg-card); border: 1.5px solid var(--border-strong); border-radius: 100px; font-size: 0.78125rem; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.06); transition: border-color .15s, box-shadow .15s, transform .1s; }
 .equip-route-pill:hover { border-color: var(--octave-black); box-shadow: 0 2px 9px rgba(0,0,0,.11); }
 [data-theme="dark"] .equip-route-pill:hover { border-color: var(--white); }
 .equip-route-pill:active { transform: scale(0.985); }
@@ -251,13 +257,13 @@
    baselines (the tiny uppercase kicker was the worst offender). line-height:1
    plus the row's align-items:center is what actually gets mono and sans
    glyphs optically centred against each other. */
-.erp-kicker { font-size: 12.5px; font-weight: 600; line-height: 1; color: var(--gray-4); flex-shrink: 0; }
-.erp-code { font-family: var(--font-mono); font-size: 12.5px; font-weight: 600; line-height: 1; color: var(--octave-black); flex-shrink: 0; }
+.erp-kicker { font-size: 0.78125rem; font-weight: 600; line-height: 1; color: var(--gray-4); flex-shrink: 0; }
+.erp-code { font-family: var(--font-mono); font-size: 0.78125rem; font-weight: 600; line-height: 1; color: var(--octave-black); flex-shrink: 0; }
 [data-theme="dark"] .erp-code { color: var(--white); }
-.erp-desc { font-size: 12.5px; font-weight: 700; line-height: 1; color: var(--octave-black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.erp-desc { font-size: 0.78125rem; font-weight: 700; line-height: 1; color: var(--octave-black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 [data-theme="dark"] .erp-desc { color: rgba(255,255,255,.92); }
 /* Counter Badge convention (§23.5) — org-pill recipe, no gray fill. */
-.erp-count { margin-left: auto; flex-shrink: 0; background: transparent; border: 1px solid var(--border-strong); border-radius: 100px; padding: 3px 9px; font-family: var(--font-mono); font-size: 11px; font-weight: 700; line-height: 1; color: var(--octave-black); }
+.erp-count { margin-left: auto; flex-shrink: 0; background: transparent; border: 1px solid var(--border-strong); border-radius: 100px; padding: 3px 9px; font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 700; line-height: 1; color: var(--octave-black); }
 [data-theme="dark"] .erp-count { color: var(--white); }
 .equip-route-pill > svg:last-child { flex-shrink: 0; color: var(--gray-4); margin-right: 1px; }
 </style>
@@ -644,7 +650,7 @@
             <div class="attr-value">
               <div style="display:flex;flex-direction:column;align-items:flex-start;">
                 <span class="attr-text" id="fv-activityTrade-desc"></span>
-                <span id="fv-activityTrade-code" style="display:none;font-family:var(--font-mono);font-size:10px;color:var(--gray-4);margin-top:1px;"></span>
+                <span id="fv-activityTrade-code" style="display:none;font-family:var(--font-mono);font-size:0.625rem;color:var(--gray-4);margin-top:1px;"></span>
               </div>
             </div>
           </div>
@@ -669,7 +675,7 @@
             <div class="attr-value">
               <div style="display:flex;flex-direction:column;align-items:flex-start;">
                 <span class="attr-text" id="fv-activityTaskPlan-desc"></span>
-                <span id="fv-activityTaskPlan-code" style="display:none;font-family:var(--font-mono);font-size:10px;color:var(--gray-4);margin-top:1px;"></span>
+                <span id="fv-activityTaskPlan-code" style="display:none;font-family:var(--font-mono);font-size:0.625rem;color:var(--gray-4);margin-top:1px;"></span>
               </div>
             </div>
           </div>
@@ -678,7 +684,7 @@
             <div class="attr-value">
               <div style="display:flex;flex-direction:column;align-items:flex-start;">
                 <span class="attr-text" id="fv-activityMaterialList-desc"></span>
-                <span id="fv-activityMaterialList-code" style="display:none;font-family:var(--font-mono);font-size:10px;color:var(--gray-4);margin-top:1px;"></span>
+                <span id="fv-activityMaterialList-code" style="display:none;font-family:var(--font-mono);font-size:0.625rem;color:var(--gray-4);margin-top:1px;"></span>
               </div>
             </div>
           </div>

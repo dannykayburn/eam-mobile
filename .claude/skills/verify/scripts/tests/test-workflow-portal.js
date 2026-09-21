@@ -1389,8 +1389,8 @@ console.log('\nOffline profile — every policy value is DEFINED where it is cho
 {
   const ctx = boot('wf-bk-full');
   ev(ctx, 'resetPortal(); setArea("offline"); openProfile(PROFILES[0].id);');
-  ok('all five policies carry who / def / why',
-    evb(ctx, 'OFFLINE_POLICIES.length === 5 && OFFLINE_POLICIES.every(function(p){ return !!p.who && !!p.def && !!p.why; })'));
+  ok('all four policies carry who / def / why',
+    evb(ctx, 'OFFLINE_POLICIES.length === 4 && OFFLINE_POLICIES.every(function(p){ return !!p.who && !!p.def && !!p.why; })'));
   ok('the definitions card renders every one of them',
     evb(ctx, '(function(){' +
       'var h = document.getElementById("gallery").innerHTML;' +
@@ -1401,15 +1401,309 @@ console.log('\nOffline profile — every policy value is DEFINED where it is cho
       'var h = document.getElementById("gallery").innerHTML;' +
       'return (h.match(/needs a filter/g) || []).length === 2 &&' +
       '  POLICY_NEEDS_FILTER.length === 2 &&' +
-      '  POLICY_NEEDS_FILTER.indexOf("work-set") > -1 && POLICY_NEEDS_FILTER.indexOf("on-demand") > -1; })()'));
+      '  POLICY_NEEDS_FILTER.indexOf("work-set") > -1 && POLICY_NEEDS_FILTER.indexOf("offline-read") > -1; })()'));
   ok('work-set and external-replica are the ONLY writable classes',
     evb(ctx, 'OFFLINE_POLICIES.filter(function(p){ return p.write; }).map(function(p){ return p.k; }).sort().join(",") === "external-replica,work-set"'));
   ok('server-only is the only class that reads nothing',
     evb(ctx, 'OFFLINE_POLICIES.filter(function(p){ return !p.read; }).map(function(p){ return p.k; }).join(",") === "server-only"'));
-  ok('the card states the two things that catch people out',
+  ok('the card states the three things that catch people out',
     evb(ctx, '(function(){' +
       'var h = document.getElementById("gallery").innerHTML;' +
-      'return h.indexOf("Only Work set accepts writes") > -1 && h.indexOf("traversed") > -1; })()'));
+      'return h.indexOf("Only Offline read/write accepts writes to EAM") > -1 && h.indexOf("traversed") > -1; })()'));
+}
+
+
+/* ── THE UNDECIDED ENTITIES LEFT THE GRID (2026-09-18, user direction) ──
+   11 of the 31 offline entities have no §2.7 policy decision. They used to
+   render as grid rows behind a "Not decided" pill — which meant the screen
+   offered a dropdown for a question that is settled in the spec, not on a
+   profile. They are listed at the bottom instead.
+
+   The failure mode this pins is the tempting one: "remove them" implemented
+   as DROP them. The entity then silently keeps whatever policy it was seeded
+   with, with nothing on screen saying so — which is precisely the commitment
+   nobody made that §20 tracks. So the list has to render every one of them,
+   and the §30.20 validator has to keep firing for any that actually ship. */
+console.log('\nOffline profile — the undecided entities are OUT of the grid, not dropped');
+{
+  const ctx = boot('wf-bk-full');
+  ev(ctx, 'resetPortal(); setArea("offline"); openProfile(PROFILES[0].id);');
+  ok('11 of the 31 entities carry no §2.7 decision',
+    evb(ctx, 'OFFLINE_ENTITIES.filter(function(e){ return e.status === "open"; }).length === 11 &&' +
+      ' OFFLINE_ENTITIES.length === 31'));
+  /* THE GRID IS ISOLATED BY SLICING, not by querySelector. The harness's DOM
+     returns a node for ".reg" whose innerHTML is always "" — so an assertion
+     written against it compares to the empty string and passes for the wrong
+     reason, which is exactly how "absent from the grid" would silently also
+     mean "absent from the screen". GRID() is the substring between the
+     registry card and the card after it.
+
+     Asserted on the RENDERED rows, not on the filter expression, because the
+     filter is one clause somebody can drop while every other test stays green.
+     The ">label<" delimiters matter: bare indexOf would let "Equipment"
+     satisfy a search for "Equipment Structure". */
+  const GRID = '(function(){' +
+    'var g = document.getElementById("gallery").innerHTML;' +
+    'var a = g.indexOf(\'<div class="reg">\'), b = g.indexOf("Lookup resolution");' +
+    'return (a > -1 && b > a) ? g.slice(a, b) : null; })()';
+  ok('the grid slice is locatable at all — the assertions below depend on it',
+    evb(ctx, GRID + ' !== null'));
+  ok('no undecided entity renders a configurable grid row',
+    evb(ctx, '(function(){ var h = ' + GRID + '; if(h === null) return false;' +
+      'return OFFLINE_ENTITIES.filter(function(e){ return e.status === "open"; })' +
+      '  .every(function(e){ return h.indexOf(">" + e.label + "<") === -1; }); })()'));
+  ok('...while every decided entity still does',
+    evb(ctx, '(function(){ var h = ' + GRID + '; if(h === null) return false;' +
+      'return OFFLINE_ENTITIES.filter(function(e){ return e.status !== "open"; })' +
+      '  .every(function(e){ return h.indexOf(">" + e.label + "<") > -1; }); })()'));
+  ok('all 11 are listed at the bottom — removed from the grid, not from the screen',
+    evb(ctx, '(function(){' +
+      'var h = document.getElementById("gallery").innerHTML;' +
+      'return h.indexOf("No policy decided") > -1 &&' +
+      '  OFFLINE_ENTITIES.filter(function(e){ return e.status === "open"; })' +
+      '   .every(function(e){ return h.indexOf(e.label) > -1; }); })()'));
+  /* §30.20 — the validator is kept, and reported by the control that can
+     violate it. An undecided entity seeded with a non-server policy is the
+     only one of the 11 that actually reaches a device, so it has to say so on
+     its own row rather than in a roll-up banner. */
+  ok('any undecided entity that actually SHIPS says so on its own row',
+    evb(ctx, '(function(){' +
+      'var p = normalizeProfile(artifactOf("offline", PROFILES[0].id));' +
+      'var live = OFFLINE_ENTITIES.filter(function(e){ return e.status === "open" &&' +
+      '  p.entities[e.id] && p.entities[e.id].policy !== "server-only"; });' +
+      'var h = document.getElementById("gallery").innerHTML;' +
+      'return live.length > 0 && (h.match(/ships as /g) || []).length === live.length; })()'));
+  ok('...and profileIssues still raises it, so the list is not a substitute for the check',
+    evb(ctx, '(function(){' +
+      'var p = normalizeProfile(artifactOf("offline", PROFILES[0].id));' +
+      'var live = OFFLINE_ENTITIES.filter(function(e){ return e.status === "open" &&' +
+      '  p.entities[e.id] && p.entities[e.id].policy !== "server-only"; });' +
+      'var iss = profileIssues(p).filter(function(i){ return i.sev === "warn"; });' +
+      'return live.every(function(e){ return iss.some(function(i){ return i.entity.id === e.id; }); }); })()'));
+  /* The pill is gone, not restyled. On a decided row it restated the policy
+     control beside it, and competed with the "traversed" chip — the one chip
+     on that row an author actually needs. */
+  ok('the per-row status pill is gone from the grid',
+    evb(ctx, '(function(){ var h = ' + GRID + '; if(h === null) return false;' +
+      'return h.indexOf("Decided") === -1 && h.indexOf("Not decided") === -1 &&' +
+      '  h.indexOf("Phase 2") === -1; })()'));
+  ok('...and the constant that fed it went with it, so it cannot be half-revived',
+    evb(ctx, 'typeof OFFLINE_STATUS_META === "undefined"'));
+}
+
+/* ── THE LABELS NAME A CAPABILITY, NOT FIVE DIFFERENT THINGS (2026-09-18) ──
+   The rework's whole claim is that every label answers the same question, so
+   the set is comparable. "Online only" is the one that cannot say "Offline",
+   and the other four must — that is the claim, stated as an assertion rather
+   than as a comment nobody runs. */
+console.log('\nOffline profile — every policy label answers the same question');
+{
+  const ctx = boot('wf-bk-full');
+  ev(ctx, 'resetPortal(); setArea("offline"); openProfile(PROFILES[0].id);');
+  ok('the three replicating classes all say "Offline" in the label',
+    evb(ctx, 'OFFLINE_POLICIES.filter(function(p){ return p.read; })' +
+      '.every(function(p){ return p.label.indexOf("Offline") === 0; })'));
+  ok('...and the one that replicates nothing says "Online only"',
+    evb(ctx, 'policyMeta("server-only").label === "Online only"'));
+  ok('the five-to-four merge left exactly these four keys',
+    evb(ctx, 'OFFLINE_POLICIES.map(function(p){ return p.k; }).join(",") ===' +
+      ' "server-only,offline-read,work-set,external-replica"'));
+}
+
+/* ── THE FIVE-TO-FOUR MERGE (2026-09-18, user direction) ──
+   `reference` and `on-demand` became one `offline-read`, on the grounds that a
+   kept record lands in the same local store a dataspy-matched one would —
+   §2.6's punch-list mechanism generalised, with provenance as a column rather
+   than a class.
+
+   TWO WAYS THIS BREAKS WHILE RENDERING PERFECTLY, both pinned below:
+
+     1. A STORED PROFILE SILENTLY RESETS. normalizeProfile pulls an illegal
+        policy back to the entity default, so without POLICY_MIGRATE every
+        localStorage row holding `reference` would drop to its default —
+        server-only for most entities. The screen would look right and would
+        have stopped shipping half the registry.
+
+     2. THE REGISTRY BECOMES A WALL OF RED. The merged class needs a dataspy,
+        and seven entities that were `reference` never had one. entityBounded()
+        is the escape — derived from DATASPIES so the screen can never demand
+        a selection it cannot offer. A hand-maintained flag is what would make
+        that unreachable state reachable again. */
+console.log('\nOffline profile — five policies merged into four');
+{
+  const ctx = boot('wf-bk-full');
+  ev(ctx, 'resetPortal(); setArea("offline"); openProfile(PROFILES[0].id);');
+  ok('the retired keys are gone from the policy set',
+    evb(ctx, 'OFFLINE_POLICIES.every(function(p){ return p.k !== "reference" && p.k !== "on-demand"; })'));
+  ok('...and no entity still offers one',
+    evb(ctx, 'OFFLINE_ENTITIES.every(function(e){' +
+      ' return e.allow.indexOf("reference") === -1 && e.allow.indexOf("on-demand") === -1 &&' +
+      '   e.dflt !== "reference" && e.dflt !== "on-demand"; })'));
+  ok('every entity default is a policy that entity actually allows',
+    evb(ctx, 'OFFLINE_ENTITIES.every(function(e){ return e.allow.indexOf(e.dflt) > -1; })'));
+  ok('...and no allow list carries a duplicate after the merge collapsed two into one',
+    evb(ctx, 'OFFLINE_ENTITIES.every(function(e){' +
+      ' return e.allow.length === e.allow.filter(function(k,i){ return e.allow.indexOf(k) === i; }).length; })'));
+
+  /* Failure mode 1. Asserted by writing a retired key straight into a stored
+     profile, which is exactly what an upgrade finds in localStorage.
+
+     THE ENTITIES HERE ARE CHOSEN, NOT ARBITRARY. The obvious pick — Employees,
+     whose default IS offline-read — passes with the migration deleted, because
+     the illegal-policy guard below it resets to a default that happens to be
+     the same value. A negative control caught that. These two have defaults
+     that DIFFER from the migration target, so only the migration can produce
+     the expected result: 'wo' would fall back to work-set (wrong policy) and
+     'eqstructure' to server-only (stops shipping entirely, silently). */
+  ok('a stored retired key MIGRATES rather than falling back to the default',
+    evb(ctx, '(function(){' +
+      'var p = artifactOf("offline", PROFILES[0].id);' +
+      'p.entities.wo.policy = "reference";' +
+      'p.entities.eqstructure.policy = "on-demand";' +
+      'normalizeProfile(p);' +
+      'return p.entities.wo.policy === "offline-read" &&' +
+      '  p.entities.eqstructure.policy === "offline-read"; })()'));
+
+  /* Failure mode 2. The invariant is what matters, not which entities are
+     currently bounded: a row may never REQUIRE a dataspy it cannot offer. */
+  ok('no entity can ever require a dataspy it has none to offer',
+    evb(ctx, '(function(){' +
+      'var p = normalizeProfile(artifactOf("offline", PROFILES[0].id));' +
+      'return OFFLINE_ENTITIES.every(function(e){' +
+      '  return !rowNeedsDataspy(e, p.entities[e.id], p) || dataspiesFor(e.id).length > 0; }); })()'));
+  ok('an entity whose whole domain FITS offers All records rather than demanding a filter',
+    evb(ctx, '(function(){' +
+      'var p = normalizeProfile(artifactOf("offline", PROFILES[0].id));' +
+      'var fits = OFFLINE_ENTITIES.filter(function(e){ return e.status !== "open" && !e.traversed &&' +
+      '  p.entities[e.id].policy === "offline-read" && wholeDomainFits(e, p); });' +
+      'var g = document.getElementById("gallery").innerHTML;' +
+      'var a = g.indexOf(\'<div class="reg">\'), z = g.indexOf("Lookup resolution");' +
+      'var h = g.slice(a, z);' +
+      'return fits.length > 0 && (h.match(/All records — it fits/g) || []).length === fits.length; })()'));
+  ok('the control and the validator agree, because both call rowNeedsDataspy',
+    evb(ctx, '(function(){' +
+      'var p = normalizeProfile(artifactOf("offline", PROFILES[1].id));' +
+      'var need = OFFLINE_ENTITIES.filter(function(e){ return rowNeedsDataspy(e, p.entities[e.id], p) &&' +
+      '  !p.entities[e.id].dataspy; });' +
+      'var errs = profileIssues(p).filter(function(i){ return i.sev === "error" &&' +
+      '  i.msg.indexOf("needs a dataspy") === 0; });' +
+      'return need.length === errs.length; })()'));
+  /* §2.7's refused "all records" state has to STILL be reachable — the merge
+     must not have turned a real authoring error into an implicit default. */
+  ok('the genuinely-refused state survives the merge on Contractor lite',
+    evb(ctx, '(function(){' +
+      'var p = normalizeProfile(artifactOf("offline", PROFILES[1].id));' +
+      'return p.entities.equipment.policy === "offline-read" && !p.entities.equipment.dataspy &&' +
+      '  profileIssues(p).some(function(i){ return i.entity.id === "equipment" && i.sev === "error"; }); })()'));
+  /* And the demo's main profile must NOT open on migration-artefact errors. */
+  ok('...while Field technician opens with no dataspy errors of its own',
+    evb(ctx, '(function(){' +
+      'var p = normalizeProfile(artifactOf("offline", PROFILES[0].id));' +
+      'return profileIssues(p).filter(function(i){ return i.sev === "error"; }).length === 0; })()'));
+}
+
+/* ── THE RULE IS MEASURED, NOT DESCRIBED (2026-09-18, user direction) ──
+   "Can this entity ship whole" is arithmetic against §2.7's caps. Two earlier
+   implementations were description-reliant — a hand-kept `bounded` column, then
+   `no dataspy is authored` — and both are gone.
+
+   THE LOAD-BEARING ASSERTION IS CAP SENSITIVITY. A description dressed up as a
+   function still returns the right answers for the shipped registry; what it
+   cannot do is CHANGE its answer when the cap changes. So the test moves the
+   cap and requires the verdict to move with it. Everything else here could pass
+   with the old rule hardcoded.
+
+   The second one worth keeping is that BOTH dimensions bind on real rows.
+   A records-only rule passes every other assertion in this file and still
+   ships 625 MB onto a 500 MB device. */
+console.log('\nOffline profile — "can it ship whole" is arithmetic, not a description');
+{
+  const ctx = boot('wf-bk-full');
+  ev(ctx, 'resetPortal(); setArea("offline"); openProfile(PROFILES[0].id);');
+
+  ok('the description-based predicates are gone',
+    evb(ctx, 'typeof entityBounded === "undefined" &&' +
+      ' OFFLINE_ENTITIES.every(function(e){ return e.bounded === undefined; })'));
+  ok('every non-traversed entity carries a row count and a row size to measure',
+    evb(ctx, 'OFFLINE_ENTITIES.filter(function(e){ return !e.traversed; })' +
+      '.every(function(e){ return typeof e.rows === "number" && typeof e.kb === "number"; })'));
+  ok('volumeMb joined the caps, sourced from SLO-8',
+    evb(ctx, 'OFFLINE_CAP_DEFAULTS.volumeMb === 500'));
+  ok('...and it is protected like every other cap',
+    evb(ctx, 'setCap("volumeMb", 99999) === false &&' +
+      ' artifactOf("offline", PROFILES[0].id).caps.volumeMb === 500'));
+
+  /* THE ONE THAT PROVES IT IS MEASURED. */
+  ok('LOWERING the row cap turns a fitting entity into one that needs a filter',
+    evb(ctx, '(function(){' +
+      'var p = normalizeProfile(artifactOf("offline", PROFILES[0].id));' +
+      'var e = offlineEntity("taskplans");' +
+      'var before = rowNeedsDataspy(e, p.entities[e.id], p);' +
+      'p.caps.rowCap = 100;' +
+      'var after = rowNeedsDataspy(e, p.entities[e.id], p);' +
+      'p.caps.rowCap = 50000;' +
+      'return before === false && after === true; })()'));
+  ok('...and LOWERING the volume budget does the same, independently of rows',
+    evb(ctx, '(function(){' +
+      'var p = normalizeProfile(artifactOf("offline", PROFILES[0].id));' +
+      'var e = offlineEntity("taskplans");' +
+      'var before = rowNeedsDataspy(e, p.entities[e.id], p);' +
+      'p.caps.volumeMb = 1;' +
+      'var after = rowNeedsDataspy(e, p.entities[e.id], p);' +
+      'p.caps.volumeMb = 500;' +
+      'return before === false && after === true; })()'));
+
+  /* BOTH DIMENSIONS BIND ON REAL ROWS — a records-only rule would ship 625 MB. */
+  ok('at least one entity is caught by the ROW cap',
+    evb(ctx, '(function(){' +
+      'var p = normalizeProfile(artifactOf("offline", PROFILES[0].id));' +
+      'return OFFLINE_ENTITIES.some(function(e){ return !e.traversed && e.rows != null &&' +
+      '  capBreach(e, {policy:"offline-read", dataspy:""}, p) === "rows"; }); })()'));
+  ok('...and at least one by the VOLUME budget while FITTING the row cap',
+    evb(ctx, '(function(){' +
+      'var p = normalizeProfile(artifactOf("offline", PROFILES[0].id));' +
+      'return OFFLINE_ENTITIES.some(function(e){ return !e.traversed && e.rows != null &&' +
+      '  e.rows <= p.caps.rowCap &&' +
+      '  capBreach(e, {policy:"offline-read", dataspy:""}, p) === "volume"; }); })()'));
+  ok('the error names WHICH cap it breached, never just "does not fit"',
+    evb(ctx, '(function(){' +
+      'var p = normalizeProfile(artifactOf("offline", PROFILES[1].id));' +
+      'var e = profileIssues(p).filter(function(i){ return i.msg.indexOf("needs a dataspy") === 0; });' +
+      'return e.length > 0 && e.every(function(i){' +
+      '  return i.msg.indexOf("MB budget") > -1 || i.msg.indexOf("row cap") > -1; }); })()'));
+
+  /* A filter that is itself over cap is the fix somebody reaches for first. */
+  ok('a dataspy that is ITSELF over cap is reported too',
+    evb(ctx, '(function(){' +
+      'var p = normalizeProfile(artifactOf("offline", PROFILES[0].id));' +
+      'p.caps.rowCap = 50;' +
+      'var bad = profileIssues(p).some(function(i){ return i.msg.indexOf("its dataspy is still over cap") === 0; });' +
+      'p.caps.rowCap = 50000;' +
+      'return bad; })()'));
+
+  /* The caps card computes against two of the caps rather than only showing
+     them, and reports over-budget ON the cap — §30.20, not a banner. */
+  ok('profileTotals excludes traversed entities, which are budgeted with the parent',
+    evb(ctx, '(function(){' +
+      'var p = normalizeProfile(artifactOf("offline", PROFILES[0].id));' +
+      'var t = profileTotals(p);' +
+      'var trav = OFFLINE_ENTITIES.filter(function(e){ return e.traversed; });' +
+      'return trav.length > 0 && t.rows > 0 && trav.every(function(e){' +
+      '  return entityRows(e, p.entities[e.id]) === null; }); })()'));
+  ok('an over-budget profile says so ON the cap it breaches, not in a banner',
+    evb(ctx, '(function(){' +
+      'openProfile(PROFILES[1].id);' +
+      'var g = document.getElementById("gallery").innerHTML;' +
+      'var i = g.indexOf("Local store budget");' +
+      'return i > -1 && g.slice(i, i + 400).indexOf("over budget") > -1; })()'));
+
+  /* The measurement is rendered as text, so a bare "<" opens a tag and the
+     browser swallows the rest of the caption. Four rows shipped that way. */
+  ok('a sub-1 MB measurement is HTML-escaped, not a raw "<"',
+    evb(ctx, '(function(){' +
+      'openProfile(PROFILES[1].id);' +
+      'var g = document.getElementById("gallery").innerHTML;' +
+      'return g.indexOf("&lt;1 MB") > -1 && g.indexOf("· <1") === -1; })()'));
 }
 
 
