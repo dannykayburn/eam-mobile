@@ -26,7 +26,7 @@ against them." It does not mean the open issues are closed.
 | **Product Management** | Objective, Background, Goals, Non-goals, Scenarios | *unassigned* | |
 | **UX** | Scenarios, Interfaces, Glossary | *unassigned* | |
 | **Dev lead (mobile)** | Diagrams, Constraints, SLOs, Monitoring, Dependencies, Security, Privacy, Logging | *unassigned* | |
-| **Dev lead (base EAM)** | Interfaces (server), Dependencies, Open issues 1–4 | *unassigned* | |
+| **Dev lead (base EAM)** | Interfaces (server), Dependencies, Open issues 0–4 | *unassigned* | |
 | **TPM** | Timeline, Open issues, Resolved issues, this table | D. Kilburn | 2026-09-11 |
 | **Security / Legal** | Security, Privacy, Legal | *unassigned* | |
 
@@ -62,7 +62,7 @@ never has to think about, and in which no completed work is ever lost.
 ## Background
 
 **The customer problem, in the customer's words.** SWG advisory feedback converges
-on five themes, four of them High:
+on four themes, all of them High:
 
 1. **Two separate mobile apps** — Digital Work and EAM Offline behave differently,
    navigate differently, and confuse configuration, capability and licensing.
@@ -73,19 +73,16 @@ on five themes, four of them High:
    aging, less-technical workforce does not have.
 4. **Hybrid connectivity** — customers want one continuum, not a mode choice and
    not an app choice.
-5. **Contractor / BYOD access** (Medium) — organizations cannot force installs on
-   contractor-owned devices; browser-native is preferred. *This one is answered
-   outside this app entirely* — the base EAM product in a mobile browser. See NG3.
-
 **The prior attempt, and why it failed.** The existing fully-offline app downloads
 so much data that it causes performance problems and crashes. That single fact is
 why v1 is online-first rather than offline-first, and it is the test any
 offline-scope proposal has to pass.
 
 **Where the project actually is.** A UX/UI design phase has produced **15 navigable
-mobile prototype screens plus three base-EAM admin prototypes**, all on one shared
-component system, with decisions locked and rationale recorded in a 7,460-line
-spec. Two standards-reference files act as the build contract. What does *not*
+mobile prototype screens plus the Workflow Designer Portal**, all on one shared
+component system, with decisions locked and rationale recorded in a 10,000-line
+spec. *(Three separate base-EAM admin prototypes preceded the portal; all three
+were retired into it on 2026-09-16.)* Two standards-reference files act as the build contract. What does *not*
 exist: a data layer, an API contract, tests, an accessibility pass, i18n, or any
 device-verified visual review beyond the Activity Checklist.
 
@@ -101,12 +98,13 @@ for a design doc rather than another spec section.
 
 ## Related documents
 
-Four files, and that is deliberate — the doc set was cut back on 2026-09-11 to
-keep the reading surface small.
+The doc set was cut back on 2026-09-11 to keep the reading surface small: four
+maintained documents plus `CLAUDE.md`, and two reference folders that are
+consulted rather than read.
 
 | Document | What it owns | Read it when |
 | --- | --- | --- |
-| `docs/design-decisions-v3-1.md` | **Every locked design rule, and its rationale.** §1–§29. Open items §20, superseded decisions §21. | "What is the rule for X?" **Grep for the section.** |
+| `docs/design-decisions-v3-1.md` | **Every locked design rule, and its rationale.** §1–§31. Open items §20, superseded decisions §21. | "What is the rule for X?" **Grep for the section.** |
 | `docs/component-library.md` | What a UI pattern is **called**, and its rules. | Before naming or inventing a component. |
 | `docs/ui-component-inventory.md` | Raw CSS-level component audit. | Porting a component. |
 | `docs/handoffs/EAM-HANDOFF-UX-User-Testing-Brief.md` §4 | Catalogue of known prototype stubs. | Before device testing — do not rediscover the list. |
@@ -148,57 +146,43 @@ Stated so each can be *checked* rather than agreed with in principle.
 Conclusions only, each with its `§`. These are obligations, not design choices —
 a change here is a change to what we promised, not a preference.
 
+**Trimmed 2026-09-23, from ~50 bullets to 18.** What came out was every bullet
+whose fact has a better home elsewhere in this doc — a Goal, a Non-goal, a
+Constraint, a diagram caption or a Screens row. What stayed is the set of
+obligations that are stated **only** here. The rule going forward: if a rule you
+want to add is already a G, an NG, a Constraint or a diagram caption, add it
+there and leave this list alone.
+
 **Offline & connectivity**
 
-- **One app, one continuum.** Online/offline is not a mode, not a mode chooser,
-  and not two applications. No screen asks the technician which one they are in.
-  *(VoC "Hybrid connectivity", High.)*
 - **Online-first reads, with the local store as a scoped fallback** — never a
   replica of the whole database. *(R1; spec §2.1.)*
-- **Database-wide record search does not work offline.** Offline search covers
-  the work set plus what the technician cached, and **says so**. *(Spec
-  §2.1/§6.13; NG2.)*
-- **Dataspies run server-side at full fidelity** — all fields, all joins, all
-  predicates, identical to desktop. **R4 is satisfied rather than compromised**,
-  and this is the one place the online-first decision makes the product better
-  rather than cheaper. *(Spec §6.13.)*
 - **Offline transaction capability is declared and enumerable**: ~7 write shapes
   (WO status / step state, checklist results, labor bookings, part issues, meter
   readings, comments, attachments). A per-entity conflict UI is buildable for
   seven and not for sixty — **R6 is only tractable because of this.** *(Spec
   §2.4/§2.7.)*
-- **Both "what downloads" and "what still works" are enumerated, not described.**
-  Every entity carries a policy; every work-execution action carries one of five
-  capability states. Entity policy is **customer-configured scope**; action
-  capability is a **product-declared architectural fact**, versioned with the app
-  and not admin-editable. *(Spec §2.7/§2.9.)*
+- **"What downloads" and "what still works" are different axes with different
+  owners.** Entity policy is **customer-configured scope**; every
+  work-execution action carries one of five capability states, which are a
+  **product-declared architectural fact**, versioned with the app and not
+  admin-editable. *(Spec §2.7/§2.9.)*
 - **Caps are limits, not guidance**, plus **reachability traversal** — a root
   pulls its children and its declared depth-1 references, references terminal by
   default. A device ceiling, a per-entity row cap, per-collection traversal caps,
-  filters on indexed columns only, ≥1 filter per entity with "all records"
-  refused, and an offline-incapable entity list enforced at authoring time.
+  filters on indexed columns only, and an offline-incapable entity list enforced
+  at authoring time. **Whether an entity needs a dataspy at all is arithmetic,
+  not a blanket rule** *(revised 2026-09-18)*: an entity may ship its whole
+  domain when that domain fits both the row cap and the volume budget — otherwise
+  a dataspy is required and must itself fit. Both dimensions bind on real rows,
+  so **a records-only rule passes every check and still overflows the device.**
+  What is unconditional is that a *filtered* policy with no dataspy is refused.
   *(Spec §2.3/§2.7.)*
 - **"Offline" is provisioned, not chosen.** Three layers — Tier 0 always
   persisted, the outbox always on, **record replication as the only switchable
-  layer** — assigned as a named profile on User Group Setup, with "none" as the
-  off state. Admin-provisioned, invisible to the technician, fixed for the
-  session: that is provisioning, not a mode. *(Spec §2.10.)*
-- **One write path, byte-identical online and offline.** No "offline mode" branch
-  — one path plus a sync engine. *(P1.)*
-- **An unsent edit can never be lost.** Every write lands in a persisted outbox
-  in the same transaction that sets the dirty flag, and survives app kill. *(P1;
-  a hard driver of the native platform target — see Constraint 1.)*
-- **No write is ever silently discarded.** Conflicts resolve **per write shape**.
-  *(R6; spec §2.5; NG8.)*
-- **Every failed write is inspectable and actionable on the device**, not only
-  from a back office. *(R6.)*
-- **Sync state is always visible and honest.** The technician can tell whether a
-  transaction actually landed. *(VoC "Offline sync reliability", High.)*
-- **Downloads are non-modal, and manual caching exists.** No blocking modal
-  anywhere; a per-record "keep this offline" action, with progress surfaced in an
-  existing screen rather than a new one. *(R5.)*
-- **Bootstrap configuration is a prerequisite, not a tier.** Records degrade
-  gracefully; configuration does not. *(Spec §2.3 / Tier 0; diagram D1.)*
+  layer** — assigned as a named profile in the portal's User Groups area, with
+  "none" as the off state. Admin-provisioned, invisible to the technician, fixed
+  for the session: that is provisioning, not a mode. *(Spec §2.10.)*
 - **The write path stays disabled until status authorizations are present.**
   *(Spec §2.3; see Security.)*
 - **Lookups resolve three ways offline** — bounded code domains replicate whole;
@@ -206,9 +190,6 @@ a change here is a change to what we promised, not a preference.
   announced**; values whose selection re-resolves configuration are pickable only
   if that configuration is present. **Never a silent short list** — a short list
   looks like correct data. *(Spec §2.8; scenario S4.)*
-- **Native app, and that is a consequence rather than a preference** — the outbox
-  and storage durability are not promises a browser tab can make on iOS. *(Spec
-  §2.2; Constraint 1.)*
 
 **UI / UX**
 
@@ -216,8 +197,7 @@ a change here is a change to what we promised, not a preference.
   is tapped in place and edits through a bottom sheet. *(Spec §5.1 / P3 — the
   core interaction decision, and the biggest departure from both legacy apps.)*
 - **No required-field markers outside Insert Mode**, because required fields
-  simply cannot be cleared. Insert Mode is the one documented exception — a blank
-  form has nothing to clear yet. *(Spec §9.8/§23.)*
+  simply cannot be cleared. *(Spec §9.8/§23.)*
 - **The app never blocks on bulk record download, and never gates itself on
   connectivity state** — clarified 2026-09-11, because "no blocking modals
   anywhere" was being over-read. A **discrete, user-initiated server round-trip
@@ -227,27 +207,7 @@ a change here is a change to what we promised, not a preference.
   triggered by connectivity rather than by the user, a modal over a write (writes
   return from the outbox immediately), and a modal over manual caching. *(Spec
   §2.3; P1/P8.)*
-- **Guided execution over record navigation.** The technician's primary object is
-  a workflow, not a record. *(P4; VoC "Training dependency", High.)*
-- **Standard Model plus deltas, never per-screen design.** Two canonical
-  reference files define every field type in both containers and the full record
-  view; every other screen is a delta. A new screen is a config exercise.
-  *(P7/§5.2/§5.3.)*
-- **One shared component system**, named and browsable. Generic component →
-  shared by default; screen-local only until a real second consumer. *(P6.)*
-- **Placement is deterministic, so nothing needs a design review.** *(Spec §8.4.)*
 - **Colour is a closed instrument set**, not a palette. *(Spec §23.)*
-- **The device is a real constraint, not a viewport size.** *(Spec §3.4;
-  Constraint 4.)*
-- **One create path.** Insert Mode, always locked to an entity before it opens.
-  *(Spec §9.6/§9.7.)*
-- **One search standard per list screen** — dataspy bar, filter chips, sort,
-  Search screen — reused rather than redesigned. *(Spec §8.3.)*
-- **Search must tolerate how people actually type:** partial values and keywords
-  across several fields, not exact syntax and formatting. *(VoC "Search
-  flexibility", High; Intelligent Search MVP.)*
-- **Personalized Home and a notification inbox are in scope** as first-class
-  surfaces, not settings screens. *(Roadmap MVPs; spec §9.4/§25.)*
 - **Being offline never changes field behaviour.** Nothing becomes Protected
   because the device lost signal — field state resolves from page layout, which
   is identical online and offline. What may narrow is an *action*, and only when
@@ -256,36 +216,21 @@ a change here is a change to what we promised, not a preference.
 
 **Workflow & base configuration**
 
-- **Layout is data, not code** — which fields appear, in what order, required or
-  not, *and which workflow steps exist*. *(P5/§11–§13.)*
 - **Function resolution is per user group**, never one blessed function — any
   function with `FUN_RENTITY = EVNT` may be workflow-enabled, opted in per group.
-  **Still locked.** *(Spec §26.2/§26.7.)*
-- **Whether mobile reuses `WSJOBS`/its clones or gets a new standalone function is
-  an OPEN DECISION** — reopened 2026-09-11, having read as locked ("no new
-  `FUN_CODE`s") since July 2026. Required before the base track starts. *(Spec
-  §11; Open issue 1.)*
-- **A new Equipment screen function that renders by equipment type is required.**
-  Base models Equipment as four screens; mobile collapses them into one surface
-  that re-renders by system type, and nothing existing does that. *(Spec §26.8;
-  Open issue 1.)*
-- **Workflow is opted in per user group**, so the same function can present as a
-  five-step gated flow to one group and a looser three-step one to another, with
-  no code difference. *(Spec §26.)*
-- **WO resolves on `PLO_PAGENAME × PLO_USERGROUP × PLO_WOTYPE`** — a new
-  `PLO_WOTYPE` column plus two WO Workflow tables. *(Spec §11–§13.)*
-- **Equipment resolves the same way off system type, and costs less** — its four
-  system types already *are* four `PLO_PAGENAME` values. *(Spec §26.8; diagram
-  D3.)*
-- **A tab is either a numbered step or a More entry, never both**, or forward
-  gating is bypassable in two taps. *(Spec §12/§14.8.)*
-- **Configuration decides step membership, including for customer-authored
-  screens.** A UDS tab can be a numbered, gated, Required step. A **standalone**
-  UDS is permanently online-only. *(Spec §27; NG4.)*
+  So the same function can present as a five-step gated flow to one group and a
+  looser three-step one to another, with no code difference. **Still locked**, and
+  it holds whichever way Open issue 1 goes. *(Spec §26.2/§26.7.)*
+- **Which function the app resolves is an OPEN DECISION** — reuse
+  `WSJOBS`/its clones, or a new standalone mobile function. Required before the
+  base track starts. *(Open issue 1; spec §11.)*
+- **WO resolves on `PLO_PAGENAME × PLO_USERGROUP × PLO_WOTYPE × instance
+  variant`** — a new `PLO_WOTYPE` column, two WO Workflow tables, and a
+  page-variant dimension that is blank for instance 1 so nothing migrates.
+  *(Spec §11–§13/§29.2.)*
 - **Placement governs what downloads, not just what displays.** A UDS child tab
   replicates to the device **iff it is placed** in the resolved layout. *(Spec
   §27.5.)*
-- **Layout decides what is *displayed*, never what *exists*.** *(Spec §13.5.)*
 - **Type is protected at its commitment point, not at insert.** WO Type is
   editable while not started and **Protected from Start Work onward, no
   exceptions and no permission escape**; Equipment's system type is Protected in
@@ -293,22 +238,9 @@ a change here is a change to what we promised, not a preference.
 - **Configuration is versioned, and a WO in flight finishes on the shape it
   started with** — pin the resolved config version at Start Work. *(Proposal, not
   locked; Open issue 5.)*
-- **One authoring surface: Screen Designer.** *(Spec §10; NG6.)*
-- **User Group Setup binds, it does not configure.** Assignment only — never
-  steps, gating or layout — and assign is not copy. *(Spec §26.5.1.)*
 - **UDS authoring is three-way and stays split:** base UDS setup defines the
-  fields, Screen Designer places the tab, User Group Setup assigns it. *(Spec
-  §27.)*
-- **A real JSON API in front of `R5PAGELAYOUT` and the workflow tables is
-  required**, serving both the app and Screen Designer. *(Constraint 2;
-  Interfaces.)*
-- **A map has to be placeable by Screen Designer**, not hardcoded into a screen —
-  Phase 2, with one v1 consequence: keep the definition-driven tab renderer
-  generic. *(R3 extension; spec §28.)*
-- **Four authoring controls are missing**, each blocking something downstream: no
-  `Placement` control, no authoring surface for Equipment's four system-type
-  layouts, no way to compose an offline profile, and no admin screen for Home's
-  quick actions. *(Spec §20; Open issues 4 and 6.)*
+  fields, the portal's workflow canvas places the tab, and its User Groups area
+  assigns it. *(Spec §27.)*
 
 ### The problem statement behind all of it
 
@@ -333,7 +265,7 @@ Impact, not implementation. Each goal is stated so it can be **checked**.
 | **G4** | A technician can execute a work order without knowing EAM. | The primary object is a workflow, not a record: numbered steps, forward-only gating that explains itself, a timer, one action per step. *(P4; spec §14.)* |
 | **G5** | Search works the way desktop search works. | A dataspy returns the same rows on mobile as on desktop, at full fidelity — **or the app says why not**. *(R4; spec §6.13.)* |
 | **G6** | A new screen is a configuration exercise, not a design project. | Which fields appear, in what order, required or not, **and which workflow steps exist** all come from base-EAM configuration, resolved per user group. *(P5/R3; spec §11–§13, §26.)* |
-| **G7** | What reaches the device is declared, enumerable and capped. | Every entity carries one of five policies; caps are enforced at authoring time, not discovered on a device. An undeclared entity is simply not offline. *(R1; spec §2.7.)* |
+| **G7** | What reaches the device is declared, enumerable and capped. | Every entity carries one of four policies; caps are enforced at authoring time, not discovered on a device. An undeclared entity is simply not offline. *(R1; spec §2.7.)* |
 | **G8** | The component system ports; it is not redrawn. | Production screens are ported from the canonical reference files, not rebuilt from comps. *(P6/P7; spec §5.2/§5.3.)* |
 
 ---
@@ -346,13 +278,12 @@ Explicit, so the squad can say no with a citation.
 | --- | --- | --- |
 | **NG1** | **GIS / maps.** | A real requirement (R2), held as an option, deliberately out of v1 — likely the programme's largest unpriced item. **Phase 2.** Three things already decided so they are not re-litigated: it is an **editor, not a viewer**; it is a **second sync engine** whose edits never ride the EAM outbox; its offline unit is a **per-map-area download**, not an app mode. One v1 consequence only: keep the definition-driven tab renderer generic enough for a map tab. *(Spec §28.)* |
 | **NG2** | **Database-wide offline search.** | There is no on-device index of records the technician does not hold. Offline search covers the work set plus what was manually cached, **and says so**. This is the single question the offline model turns on, and it is answered. *(Spec §2.1/§6.13.)* |
-| **NG3** | **Contractor / BYOD access, in any form.** Not "offline for contractors" — the whole theme. | **The path forward is the base EAM product in a mobile browser, not this app** (locked 2026-09-11, user direction). The theme asks that **no install be required**; a native app cannot satisfy that, and an online-only *mode* of a native app does not either, because the install is the objection. We are consciously not building a second UI target for the only **Medium**-priority theme of the five. **What this app does not owe:** a browser build, a thin online-only surface, or a reduced contractor experience. **The timing is a dependency, not a gap:** base EAM is being migrated off Sencha/Java onto **Angular** as a separate programme — today the base UI does not format to a mobile device, under the new one it will. So the contractor answer is real but **arrives on another programme's schedule**. *(Spec §2.2; Open issue 16.)* |
-| **NG4** | **Standalone User Defined Screen destinations.** | UDS-as-a-tab-on-WO is **in**. A standalone UDS needs a nav slot plus a full List Search Screen per customer screen, and is permanently `server-only`. Deferred. **UDS field authoring is out entirely** — base's own UDS setup owns it. *(Spec §27.)* |
-| **NG5** | **Conditional field rules** ("if X is Y, make Z required"). | Phase 4+, deliberately deprioritised. **Do not spend design time picking a tier.** The only thing owed up front is naming the one-way doors — two qualify, both in Open issues. *(Spec §13.1–§13.4.)* |
-| **NG6** | **A second workflow-authoring surface.** | The **Workflow Designer Portal** is the only one *(updated 2026-09-16 — it was Screen Designer, which now has no standalone destination and is invoked per step node from the portal)*. A separate Workflow Designer was built and retired for contradicting this. Don't rebuild it. *(Spec §10/§21/§30.9.)* |
-| **NG7** | **Personas beyond the field technician.** | Supervisor, planner and storeroom personas are out of v1. The Standard Model is built so each additional entity is a field-set exercise, not a new app. |
-| **NG9** | **The base product's desktop UI, in any form.** | **Out of scope entirely** (user direction 2026-09-16: *"It is just the Mobile App and this portal now. Total."*). A prototype existed and was retired to `old versions/` — a scope call, not a quality one. **This programme has exactly two surfaces: the mobile app, and the Workflow Designer Portal that configures it.** The consequence worth citing: any request to restyle, extend or reference "the Base/Desktop UI components" no longer has a destination, and the base track's whole scope is now the portal. *(Spec §21.)* |
-| **NG8** | **Last-write-wins conflict resolution.** | Withdrawn 2026-09-08: it is silently lossy and directly contradicts R6. Conflicts resolve **per write shape** instead. *(Spec §2.5.)* |
+| **NG3** | **Standalone User Defined Screen destinations.** | UDS-as-a-tab-on-WO is **in**. A standalone UDS needs a nav slot plus a full List Search Screen per customer screen, and is permanently `server-only`. Deferred. **UDS field authoring is out entirely** — base's own UDS setup owns it. *(Spec §27.)* |
+| **NG4** | **Conditional field rules** ("if X is Y, make Z required"). | Phase 4+, deliberately deprioritised. **Do not spend design time picking a tier.** The only thing owed up front is naming the one-way doors — two qualify, both in Open issues. *(Spec §13.1–§13.4.)* |
+| **NG5** | **A second workflow-authoring surface.** | The **Workflow Designer Portal** is the only one *(updated 2026-09-16 — it was Screen Designer, which now has no standalone destination and is invoked per step node from the portal)*. A separate Workflow Designer was built and retired for contradicting this. Don't rebuild it. *(Spec §10/§21/§30.9.)* |
+| **NG6** | **Personas beyond the field technician.** | Supervisor, planner and storeroom personas are out of v1. The Standard Model is built so each additional entity is a field-set exercise, not a new app. |
+| **NG7** | **Last-write-wins conflict resolution.** | Withdrawn 2026-09-08: it is silently lossy and directly contradicts R6. Conflicts resolve **per write shape** instead. *(Spec §2.5.)* |
+| **NG8** | **The base product's desktop UI, in any form.** | **Out of scope entirely** (user direction 2026-09-16: *"It is just the Mobile App and this portal now. Total."*). A prototype existed and was retired to `old versions/` — a scope call, not a quality one. **This programme has exactly two surfaces: the mobile app, and the Workflow Designer Portal that configures it.** The consequence worth citing: any request to restyle, extend or reference "the Base/Desktop UI components" no longer has a destination, and the base track's whole scope is now the portal. *(Spec §21.)* |
 
 ---
 
@@ -406,7 +337,7 @@ same shared component the Sync Status Screen uses. Nothing was dropped, and she 
 see exactly what happened. *(R6; spec §2.5/§4.4/§4.5.)*
 
 **S6 — A customer wants Permit to Work to be step 3, and files a config change, not a ticket.**
-An admin opens Screen Designer, picks the function and user group, and inserts the
+An admin opens the portal's Workflows area, picks the function and user group, and inserts the
 customer's **User Defined Screen** as a numbered, gated, **Required** step with a
 document gate on it. No code ships. The same function still presents as a looser
 three-step flow to a different user group. Because **placement governs what
@@ -421,15 +352,20 @@ writing through the same outbox, with no customer record data at rest. The sync
 control shows a state that is honest about this rather than reading as an error.
 *(Spec §2.10; and see Open issue 7 — that state does not exist yet.)*
 
-**This is what profile `None` is for.** It was briefly described as the
-Contractor/BYOD answer; that framing was withdrawn on 2026-09-11 (NG3). The
-mechanic is unchanged — only the justification was wrong.
+**This is what profile `None` is for** — an internal online-only user group: a
+storeroom or planner group that is always in network.
 
 ## Screens
 
 **What this section is:** every surface the product has, what each one is *for*,
 and the high-level requirement it has to meet. It is the map a new squad member
 reads to understand the shape of the app.
+
+**It is in two halves, and the split is the programme's own** (NG8: *"It is just
+the Mobile App and this portal now. Total."*). **Section 1** is the configuration
+portal the administrator uses; **Section 2** is the app the technician holds.
+Two personas, two design systems, one membership table between them. Anything
+that is not in one of these two halves is not in scope.
 
 **What it is not:** implementation state. Which screen lives in which file, and
 the traps in each, is `CLAUDE.md`'s job — check there before touching a
@@ -442,23 +378,60 @@ nothing authors or renders it yet.
 
 ---
 
-### App shell — wraps everything
+### Section 1 — the Mobile Configuration Portal
+
+**Persona: administrator.** One web app, on the Octave / OUX design system, and
+**the only base-side surface this programme has** (NG8). It is what makes the
+mobile app configuration-driven instead of hardcoded. Four areas over **one
+membership table** — three that author metadata, one that binds it. Cardinality
+is not a per-area choice: it follows what the runtime resolves on. *(§30.)*
+
+| Area | What it must do | State |
+| --- | --- | --- |
+| **Workflows** | The guided flow, authored as an artifact rather than as the residue of saving a layout. Gallery of workflow cards → a drag-and-drop single-column canvas of **step instances** (§29.2), with **Screen Designer opening as a panel alongside the selected node** — not a separate screen. Non-step nodes drop between steps: two **forks** (question, condition) and three **actions** (status update, start timer, stop timer). One workflow per **(WO Type, group)**, plus one Free Form. *(§30.1–§30.4/§30.9/§30.19/§30.21.)* | `proto` |
+| **— Screen Designer, as a panel** | Places fields and containers for the selected step instance, in a real 390px emulator. Each instance **deep-copies its own layout**, which is the one way to break the whole feature while everything still renders. Authors nothing about sequencing — that is the canvas's job. *(§10–§13/§29/§30.10.)* | `proto` |
+| **Home Layouts** | Three levels — layout ▸ section ▸ placement — plus the pinned Create control's contents, over a **global tile catalogue holding tile ids, never copies**. The section lives on the *layout*, never on the tile, or reuse dies. Insert Mode is a **flag** on a tile, not a kind. **Also authors the app's bottom navigation bar** (up to five slots; label, screen and icon, never colour). *(§30.16/§30.24.)* | `proto` |
+| **Offline Profiles** | Authors §2.7's per-entity registry: four policies on the **capability** axis, Tier 0 and the outbox rendered first as never-switchable, and caps shown because a budget you cannot see is not a budget. Whether a dataspy is **required** is arithmetic against the caps, never a description. Dataspies are *selected* here and authored on the record list screen. **Its Work Orders row is also where the punch-list dataspy lives** — the automatic half of §2.6 — settled 2026-09-23, **and it renders on every profile including `None`**, since a work list is a membership question rather than a consequence of replication. *(§30.14/§2.7/§2.10/§2.6.)* | `proto` |
+| **User Groups** *(under Security)* | The inverse view, and a **binding surface only** — assignment, never steps, gating or layout, and assign is not copy. **Create refuses here:** a user group is made in Security ▸ User Groups. Carries the consistency checks, including "a Required UDS step for a group without that tab permission is an **error**." *(§26.5.1/§30.13/§27.4.)* | `proto` |
+| **Equipment system-type layout authoring** | The four Location / Asset / Position / System layouts, plus the new function that renders by type. The one authoring gap that **blocks a whole track**. *(Open issue 1b.)* | `no surface` |
+
+**Two rules about this portal that are easy to get wrong.** There are **zero
+links out of it** — a rail row is an *area*, never a link to another file, and a
+test asserts it, because the dead User Group Setup link is how this erodes. And
+**no summary panels anywhere** (§30.20, user direction): every validator is kept
+and still called, but by the control that can violate it — a clash is refused in
+the assignment popover, a missing dataspy is an error on its own select. Raise
+the error where the action is; do not add a roll-up back.
+
+> **Retired 2026-09-16, and nothing should point at them again:** standalone
+> **Screen Designer** and **User Group Setup** were separate screens until the
+> portal became the single base entry point. Both are in `old versions/`, and
+> their `eamDesignerEntry` hand-off contract retired with them.
+> *(§30.6/§30.9/§21.)*
+
+### Section 2 — the Mobile Application
+
+**Persona: technician, the executor of work.** Everything below is the app the
+technician holds. It is a different design system from the portal by deliberate
+decision — §30.8 catalogues where the two diverge, and **no component crosses the
+seam unchanged**.
+#### App shell — wraps everything
 
 | Surface | What it must do | State |
 | --- | --- | --- |
-| **Bottom nav** | Slot-bound from base configuration, not hardcoded — which destinations appear is resolved per user group. Reachable on every screen. *(§4.2/§26.)* | `proto` |
+| **Bottom nav** | Slot-bound from base configuration, not hardcoded — which destinations appear is resolved per user group. Reachable on every screen. Authored on the **Home layout** in the portal, up to five slots. *(§4.2/§26.3/§30.24.)* | `proto` device-side; authoring built |
 | **Avatar / profile menu** | Identity, org, sign-out, and the route into Profile. *(§4.3.)* | `proto` |
 | **Sync control** | Always visible, always honest: 4 states (Synced / Offline / Syncing / Error) as an adaptive icon-or-pill. Opens the sync panel from anywhere. *(§4.4.1.)* | `proto` |
 | **Profile screen contents** | Identity plus the technician's own avatar photo. Today's nav-bar icon "adds no real value on mobile," and Equipment's photo mechanic did not generalise into it. | `design owed` |
 
-### Login & first run
+#### Login & first run
 
 | Surface | What it must do | State |
 | --- | --- | --- |
 | **Server configuration / first-run** | QR scan of org / tenant / server URL / OIDC endpoints, or manual entry, plus a connection test. Assumed at parity with the current apps and **never designed**. Inherently modal — there is no app behind it yet. | `design owed` |
 | **Login** | Authenticate, and **carry the Tier 0 bootstrap bundle on the same round-trip** — this is the one place the app legitimately blocks (§2.3). Must report Tier 0 partial failure honestly: a missing layout is fatal, missing long-tail codes are degraded-but-usable. Also runs demo reset in the prototype. | `proto` is a placeholder only; real design owed |
 
-### Home
+#### Home
 
 | Surface | What it must do | State |
 | --- | --- | --- |
@@ -466,7 +439,7 @@ nothing authors or renders it yet.
 | **Create entity menu** | Home's `+` opens an entity choice, then shared Insert Mode locked to it. Covers WO and Equipment; the legacy system actions (Meter Reading, Work Request, Operator Checklist) are candidates, each needing a call on full Insert Mode vs. a lighter action sheet. *(§9.4.1.)* | `proto` (WO/Equipment only) |
 | **Home quick-action admin** | Whichever set Home exposes has to be admin-configurable rather than hardcoded. No such base screen is located or named. | `no surface` |
 
-### Search — a cross-cutting standard, not a screen
+#### Search — a cross-cutting standard, not a screen
 
 Search is the surface most affected by the online-first decision, so it gets its
 own entry rather than being folded into each list.
@@ -480,17 +453,20 @@ own entry rather than being folded into each list.
 | **Tolerate how people type** | Partial values and keywords across several fields, not exact syntax or formatting. *(VoC "Search flexibility", High.)* |
 | **Sort is missing on each Search sub-screen** | Markup gap only — the shared sort sheet already re-renders both. | 
 
-### Work Orders
+#### Work Orders
 
 The guided flow is the product. Steps are **instances** resolved from
 configuration (§29), so the numbering below is the default shape, not a fixed
-set.
+set. The `Instance` dimension is what makes the flow authorable at all: it is
+what lets one screen be placed more than once with its own layout each time,
+and what gives a **non-step node** — an action or a fork — an identity of its
+own, so a status update or a timer can also be placed more than once.
 
 | Surface | What it must do | State |
 | --- | --- | --- |
 | **WO List / WO Search** | The template for every top-level record list. Dataspy bar, Detailed/List modes, 6 filter chips + sort, merges locally created records and MEC child WOs. Routes each row to the right workflow by WO Type. *(§6/§8.3.)* | `proto` |
-| **Step 1 — WO Record View** | The record, under a layout resolved from `PLO_PAGENAME × PLO_USERGROUP × PLO_WOTYPE`. Header fields grid, activity selector, equipment lookup + photo, custom fields, inline Comments/Documents excerpts, conditional Route/MEC pill. **Start Work lives here** — the commitment boundary (§14.11). *(§15.)* | `proto` |
-| **Step 2 — Activity Checklist** | One item at a time ("focused stepper"). 17 item types, dynamic follow-on items, per-item notes/comments/documents. **Equipment-scoped items fan out per equipment** — a 156-equipment Route produces ~624 items, and that scale is deliberate. The description *is* the instruction; there is no separate instructions field. *(§16.)* | `proto`, with a live A/B |
+| **Step 1 — WO Record View** | The record, under a layout resolved from `PLO_PAGENAME × PLO_USERGROUP × PLO_WOTYPE × instance variant`. Header fields grid, activity selector, equipment lookup + photo, custom fields, inline Comments/Documents excerpts, conditional Route/MEC pill. **Start Work lives here** — the commitment boundary (§14.11). *(§15.)* | `proto` |
+| **Step 2 — Activity Checklist** | One item at a time ("focused stepper"). 17 item types, dynamic follow-on items, per-item notes/comments/documents. **Equipment-scoped items fan out per equipment** — a 156-equipment Route produces ~624 items, and that scale is deliberate. The description *is* the instruction; there is no separate instructions field. *(§16.)* | `proto` |
 | **Step 3 — Issue Parts** | Planned lines plus ad-hoc add, store/bin/lot picking, quick-issue-all. Row-scoped buttons are Action Rows. *(§17.)* | `proto`; still on hardcoded parts data |
 | **Step 4 — Book Labor** | Employee, crew, trade, hours. Booking a crew expands to one row per current member. Owns the Time Only field type. *(§18.)* | `proto` |
 | **Step 5 — WO Closing** | Status change, closing codes with sequential unlock, downtime, attachments. Closing returns to the Record View, not the list. *(§19.)* | `proto` |
@@ -499,7 +475,7 @@ set.
 | **Child tab — a UDS** | A customer-authored screen placed as a WO tab. Enters the candidate set by construction, and **can be a numbered, gated, Required step**. Needs **one generic definition-driven renderer**, never a screen per UDS. *(§27.)* | `no surface` |
 | **Activity Screen** | Timer, task-plan reference, assignment status. Could double as the closing surface for Activity-driven WO Types. | `design owed` |
 
-### Equipment
+#### Equipment
 
 | Surface | What it must do | State |
 | --- | --- | --- |
@@ -508,7 +484,7 @@ set.
 | **The four system-type layouts** | Base already models these as four `PLO_PAGENAME` values, so no new column and no new table. But **the function and the authoring surface are both missing**, and that **blocks the Equipment track**: build the record view against one layout and all eight child tabs inherit the assumption. *(Open issue 1b.)* | `no surface` |
 | **Child tabs (8)** | Each is its own endeavour, priced individually. Priority order: **Events, Structure Details, Parts Associated**, then the rest. No hidden design dependency — Events and Parts Associated bind to the shared List/Detail container; Structure Details binds to the shared **Structure Tree**, which needs its mount, data source and row action parameterized out of the Equipment LOV plus an additive per-node status dot. | `delta` |
 
-### Notifications
+#### Notifications
 
 | Surface | What it must do | State |
 | --- | --- | --- |
@@ -516,7 +492,7 @@ set.
 | **Read/unread state** | **`R5MAILEVENTS` has no read/unread column**, and the All/Unread filter depends on one. Base change or a filter redesign. *(Open issue 10.)* | blocked |
 | **`comment_mention` type** | A forward reference — **@mention tagging in Comments is not built anywhere**. | not built |
 
-### Sync & transaction confidence
+#### Sync & transaction confidence
 
 This cluster exists because of one VoC theme: *users cannot tell whether a
 transaction actually landed.*
@@ -529,7 +505,7 @@ transaction actually landed.*
 | **Per-row hydration / freshness affordance** | What a WO List row can honestly claim about its freshness depends on how the real sync layer behaves — deliberately unbuilt, because designing it in isolation is guesswork. | `design owed` (needs dev input) |
 | **Settings / Sync Config / Transaction Log** | Three screens in the requirement set with requirement docs inherited from DUX and **no design started**. The Transaction Log is the on-device surface that keeps R6 honest without a back-office round-trip. | `design owed` |
 
-### Insert Mode — one create path, not a screen
+#### Insert Mode — one create path, not a screen
 
 | Requirement | Detail |
 | --- | --- |
@@ -538,21 +514,6 @@ transaction actually landed.*
 | **Renders the record's own screen design** | Layout comes from configuration and varies by **Type** as well as entity — a `default` variant plus one shared `alt`, cheap differences only, never a bespoke layout per Type code. *(§9.8.)* |
 | **The one documented exception to the required-marker rule** | Required markers render here and nowhere else, because a blank form has nothing to clear yet. *(§9.8/§23.)* |
 | **Equipment's system type is set here or never** | It is Protected in update mode for life, which makes the pill's missing `Location` option a real defect rather than a cosmetic one. *(Open issues.)* |
-
-### Base / admin screens
-
-Not the technician's app. These are the surfaces that make the mobile app
-configuration-driven instead of hardcoded, and **three of the five do not exist.**
-
-| Surface | What it must do | State |
-| --- | --- | --- |
-| **Screen Designer** | **The only workflow-authoring surface.** Places fields and tabs, and authors **step instances** — kind (`tab`/`uds`/`prompt`), placement (`step`/`more`), visible, required, and the comment/document gates. Placement governs **what downloads**, not just what displays. A second authoring screen was built and retired for contradicting this. *(§10–§13, §29.)* | `proto`, on the old visual language |
-| **User Group Setup** | A **binding** surface, not a config form: assignment only — never steps, gating or layout — and assign is not copy. No insert, so no Create button at all. Carries the consistency checks, including "a Required UDS step for a group without that tab permission is an **error**." *(§26.)* | `proto` |
-| **— its Offline tab** | Assigns one named **offline profile** per group, shows that profile's per-entity policy read-only, renders the two never-switchable layers first (Tier 0, outbox), and treats profile `None` as valid and informational. *(§2.10/§29.6.)* | `proto` |
-| **— its dataspy selector** | **New, and missing.** The automatic half of the punch list is a dataspy named per user group. Its output must stay distinguishable from a manual pin downstream. *(Open issue 1c.)* | `no surface` |
-| **Offline profile authoring** | Nothing authors profiles — assignment works, composition does not. **Do not improvise it into User Group Setup**: one profile is shared by N groups, so editing it there re-provisions every other member. Whoever builds it owns the device axis (`min(group, device)`) and per-user-as-override-only. Also a **privacy control**. *(Open issue 6.)* | `no surface` |
-| **Equipment system-type layout authoring** | The four layouts, plus the new function that renders by type. *(Open issue 1b.)* | `no surface` |
-| **Home quick-action admin** | See Home. | `no surface` |
 
 ### Two cross-cutting rules that decide screen questions without a review
 
@@ -626,13 +587,13 @@ land?" at full connectivity too. *(Spec §2.4/§2.5/§2.10.)*
 flowchart TD
   subgraph Base configuration
     FN[Function with FUN_RENTITY = EVNT] --> UG[User Group opt-in]
-    UG --> L1[PLO_PAGENAME x PLO_USERGROUP x PLO_WOTYPE]
+    UG --> L1[PLO_PAGENAME x PLO_USERGROUP x PLO_WOTYPE x instance variant]
     UG --> L2[WO Workflow tables: step instances]
   end
   L1 --> RES[Resolved layout]
   L2 --> RES
   EQ[Equipment system type = 4 PLO_PAGENAME values] --> RES
-  RES --> ST[Ordered step instances: kind tab/uds/prompt, placement step/more]
+  RES --> ST[Ordered instances: step kinds tab/uds, non-step kinds action/fork, placement step/more]
   ST --> RAIL[Step rail: numbered, forward-gated]
   ST --> MORE[More group: non-sequenced]
   RES --> FLD[Field state: visible / required / protected]
@@ -659,12 +620,12 @@ Terms a squad member will hit in the first week and cannot infer.
 | **Outbox** | The persisted write queue. Always on, never switchable, byte-identical online and offline. |
 | **Offline profile** | A named bundle (entity registry + caps + lookup classes + Sync Config) **assigned** per user group. "None" = online-only, and that is a valid configuration. |
 | **Reachability traversal** | How the work set is assembled: a root pulls its children and its declared depth-1 references; **references are terminal by default**. Closure is assembled server-side; the client never walks the graph. |
-| **Entity policy** | One of five: `server-only` / `reference` / `on-demand` / `work-set` / `external-replica`. Customer-configured scope. |
+| **Entity policy** | One of four, labelled on the **capability** axis: online only / offline read / offline read-write / offline read-write-external. Customer-configured scope. **Reduced from five on 2026-09-18** — `reference` and `on-demand` merged into offline read, because a kept record lands in the same store a dataspy-matched one would, making provenance a column rather than a class. *(§30.14.)* |
 | **Action capability** | One of five: `allowed` / `queued` / `substituted` / `blocked-visible` / `blocked-hidden`. **Product-declared**, versioned with the app, not admin-editable. |
 | **UDS (User Defined Screen)** | A customer-authored *screen*. Data lives in its own `U5` table with an authored PK→FK mapping. **Not** the same thing as Custom Fields. |
 | **Custom Fields** | Admin-defined *fields* added to a screen the product ships. Written via an EAV envelope. A record can carry both UDS and Custom Fields. |
-| **Step instance** | One row of a workflow. Key is `(WO Type, User Group, Tab, Instance)` — so a tab can be placed twice, and Record View can appear twice with different layouts. Layout key is the bare tab id for instance 1 and `tab#n` after. |
-| **Question fork** | A step kind with no record data and no layout. Asks a question, routes **forward only**, and marks skipped steps **N/A rather than hiding them**. |
+| **Step instance** | One row of a workflow. Key is `(WO Type, User Group, Node, Instance)` — so a node can be placed twice, and Record View can appear twice with different layouts. Layout key is the bare tab id for instance 1 and `tab#n` after. A **step kind** (`tab`/`uds`) numbers, gates and carries a layout; a **non-step kind** (an action or a fork) is positional and carries none, but still takes its own instance row — that is what lets it be placed more than once. |
+| **Question fork** | A **non-step** node with no record data and no layout — no rail number, no gate. Asks a question, routes **forward only**, and marks skipped steps **N/A rather than hiding them**. A **condition fork** is the same node reading a field instead of asking. |
 | **More group** | Non-sequenced tabs pinned after the last numbered step, reachable from any step. Membership is **configuration, not definition**. |
 | **Action Row** | The surface for a **row-scoped** button. The test: if the base-EAM link button errors "Record must be selected before performing this action," it is row-scoped. Everything else is a header action in the ellipsis, **even on a tab**. |
 | **Insert Mode** | The one create path. Always locked to an entity before it opens; entity shown as a protected badge. The one documented place required-field markers still render. |
@@ -843,10 +804,10 @@ Named here so each has a row someone can own. **None of these exist.**
 | **Tier 0 bootstrap bundle** | Contents per domain; a **per-domain version stamp** (so reconnect costs bytes, not a refetch); **partial-failure reporting that distinguishes fatal from degraded**. Recommend server-side code-domain scoping — one round trip inside the login wait instead of two. | Mobile app |
 | **Delta-pull cursor** | Whether the contract exists today or must be built — unconfirmed. | Mobile app |
 | **Server-side closure assembly** | Reachability traversal computed server-side; the client must not walk the graph. Includes the **server-flattened equipment ancestor path**, which removes the recursive self-reference edge and with it configurable depth N. | Mobile app |
-| **Outbox / write API** | Idempotency-UUID scheme; enough fidelity to **reject a status transition** and to **surface both values on a field edit** (per-shape conflicts, NG8). Two generic write shapes for customer data: a **row-shaped envelope** for UDS, a separate **EAV form** for Custom Fields. | Mobile app |
+| **Outbox / write API** | Idempotency-UUID scheme; enough fidelity to **reject a status transition** and to **surface both values on a field edit** (per-shape conflicts, NG7). Two generic write shapes for customer data: a **row-shaped envelope** for UDS, a separate **EAV form** for Custom Fields. | Mobile app |
 | **Dataspy search API** | Confirm the existing dataspy SQL search API can serve the now-primary mobile search path **as-is**. Pre-evaluated membership is needed for **the punch list only**, and only if Option A wins. | Mobile app |
 | **Local record schema** | Lifecycle columns (hydration, pinned, source, dirty — **counter vs. boolean undecided**); two clock domains (`last_synced_at` vs. `fetched_at`); the `full_payload` JSON blob approach; a **refcount** for eviction, since a row can be present only as another root's reference. | Mobile app |
-| **Screen Designer session hand-off** | Launched from the legacy menu into a new window. This is the one contract the strangler-fig shape has to get right. | Screen Designer |
+| **Portal session hand-off** | Launched from the legacy menu into a new window. This is the one contract the strangler-fig shape has to get right. **The portal is what launches, not Screen Designer** — the designer is a panel inside it (§30.9), so there is exactly one hand-off to secure rather than one per surface. | Workflow Designer Portal |
 
 ### File formats
 
@@ -862,13 +823,13 @@ size that never depends on whether an image loaded. *(Spec §7.2.)*
 
 | Area | Decision | State |
 | --- | --- | --- |
-| **Platform** | React Native, iOS + Android, **native app** | **Decided** (Constraint 1). Confirm the consequences: storage headroom and background-sync behaviour. App-store distribution for contractor devices is **no longer a question here** — see NG3. |
+| **Platform** | React Native, iOS + Android, **native app** | **Decided** (Constraint 1). Confirm the consequences: storage headroom and background-sync behaviour. |
 | **Local data engine** | WatermelonDB vs. SQLite (`op-sqlite`) | **Recommendation only, not a decision.** M2. |
 | **Auth** | OIDC endpoints, per the first-run server configuration | Assumed at parity with the current apps; **never designed**. |
 | **Documents** | S3 + presigned URLs | See File formats. |
 | **Basemap / GIS** | ArcGIS Runtime (native), OSM and others | **Phase 2** (NG1). A React Native ↔ ArcGIS native module is likely the largest unpriced item in the programme. |
 | **Typeface** | Aptos vs. Inter | **Unresolved licensing** (Constraint 7). |
-| **Base EAM** | `PLO_WOTYPE` column + two WO Workflow tables, authored through Screen Designer | Layout design settled. **The function question is open** — reuse `WSJOBS`/clones vs. a new standalone mobile function, plus a **required** new Equipment function that renders by equipment type. Open issue 1. |
+| **Base EAM** | `PLO_WOTYPE` column + two WO Workflow tables, authored through the Workflow Designer Portal | Layout design settled. **The function question is open** — reuse `WSJOBS`/clones vs. a new standalone mobile function, plus a **required** new Equipment function that renders by equipment type. Open issue 1. |
 | **Punch-list mechanism** | **Both** — a dataspy per user group (automatic) plus pinning (manual) | **Locked 2026-09-11.** Not a synthesis for free: **both backend asks are now in scope** — server-side dataspy pre-evaluation for the punch list, and the `R5PINS` projection with provenance. The membership row must record *which* source pinned it, or a dataspy re-evaluation evicts a manual pin. Must also carry the scheduler's **Dispatch Sequence**. |
 
 ---
@@ -902,12 +863,12 @@ Threat surface, trust boundaries, and the places this design is unusual.
 - **Dataspy permissions are the existing security model and must not be bypassed.**
   Running dataspies server-side at full fidelity preserves that for free — a
   client-side index over pre-shipped rows would not have.
-- **Screen Designer session hand-off** crosses an authentication boundary from the
+- **The portal session hand-off** crosses an authentication boundary from the
   legacy framework into a separately-deployed web app. That hand-off is a real
   attack surface and needs a review, not just an implementation.
 - **An admin misconfiguration is a security event here, not just a bug.** A
   Required UDS step for a group without that tab permission is a **dead end the WO
-  cannot be finished through**; User Group Setup already reports it as an error
+  cannot be finished through**; the portal's User Groups area already reports it as an error
   rather than substituting something. Keep that behaviour: **anything that cannot
   be honoured is reported, never substituted.**
 - **Not assessed:** jailbreak/root detection, certificate pinning, screenshot
@@ -961,11 +922,6 @@ Threat surface, trust boundaries, and the places this design is unusual.
   had **no accessibility pass**. Public-sector and EU customers make WCAG / EN 301
   549 contractual. The closed monochrome instrument set and the removal of
   colour-only signalling help here — but "helps" is not "conforms."
-- **Contractor BYOD is no longer a question for this app** (NG3), which also
-  removes a legal problem rather than solving one: no app on an unmanaged device
-  means no customer data at rest on it, and no MDM or acceptable-use agreement to
-  negotiate with a third party. If the base-browser path is taken up, its
-  data-handling review belongs to the base product.
 
 ---
 
@@ -1001,12 +957,13 @@ re-listing of §20.
 
 | # | Issue | Proposed next step | Blocks |
 | --- | --- | --- | --- |
+| **0** | **Portal UI — Octave Experience vs. a new base UI. DECISION REQUIRED, and it precedes every other item here.** Raised 2026-09-23 (TPM). The portal is prototyped on OUX (§30.7) and that is where the diagram-authored workflow canvas and the mobile emulator come from; the alternative is building it as new base UI. **For OUX:** it sidesteps the mobile config screens already littered through base for the two apps; it gives the admin one screen for all configuration; drag-and-drop plus an emulator preview are affordances the base toolkit does not have; and it is a shell that could be applied to any operational mobile app in the portfolio. **Against:** on-premise deployment, other-team dependencies, and long-term longevity — **is it a two-way door?** Note this reaches two locked positions rather than sitting beside them: §30.7 locks OUX *for base screens*, and NG8 put desktop UI out of scope entirely, which is what removed "restyle onto the base components" as an option. Re-opening the platform question re-opens both. | Answer the two-way-door question first, since it is the only one of the three cons that cannot be mitigated later — specifically, what a migration off OUX would cost once the portal is authoring real customer configuration. | The whole base track, and it is entangled with issue 16 (the Angular migration). |
 | **1** | **`WSJOBS` reuse vs. a new standalone mobile function — DECISION REQUIRED.** Reopened 2026-09-11, having read as locked since July 2026. Every layout row, dataspy and permission set is keyed to whatever function the app resolves, so this cannot be deferred past the start of base work. The reuse case is dataspy-set fragmentation across functions; the new-function case gained a real input — **a new Equipment screen function that renders by equipment type is required regardless**, so the two tracks are asymmetric unless WO also gets one. **Do not re-derive §26.7 with it** — per-user-group resolution is still locked and holds either way. | Decide before M9, and before any layout authoring. Record in §21. | **M7, M9** |
 | **1b** | **The required new Equipment function is unspecified.** Owed: the function itself, its `PLO_PAGENAME` mapping across Location / Asset / Position / System and their clones, and the Screen Designer surface that authors the four layouts. This is the *function* half of what was previously logged only as a missing authoring surface. | Same decision forum as issue 1. **Blocks the Equipment track** (see issue 4). | **M7** |
-| **1c** | **The punch-list dataspy selector has no home** — the automatic half of the now-locked punch list. **Re-homed 2026-09-16**: User Group Setup is retired, so it belongs in the portal's User Groups area, which *is* built now (§30.13) but is a pure *binding* surface — so this is still the first control on it that configures rather than binds, and that needs saying before it is built. §30.14 also confirms it must stay **separate from the offline profile's per-entity dataspy**: the shipping product conflates them in one field, and merging them means an online-only group cannot have a punch list. Unchanged: its output must be distinguishable downstream from a manual pin, or re-evaluating the dataspy evicts the technician's own additions. | UX + base track. Small screen change, real contract implication. | M9 |
+| **1c** | **The punch list's remaining cost is a backend ask, not a screen.** *(Authoring closed and built 2026-09-23.)* The selector is the `For Dataspy` control on the **Work Orders** row of the portal's Offline Profiles area, and it renders on every profile including the one that replicates nothing. Both prototype defects are fixed and pinned. What is left: a pinned row must record **which source** pinned it, or re-evaluating the dataspy silently evicts the technician's own additions — server-side, no UI. | Backend owner at M1, with the `R5PINS` projection. Also state in the assignment control that a group needing an automatic list is assigned the Online only *profile*, not left unassigned. | M4 |
 | **1d** | ~~The portal's User Groups area is not built~~ — **RESOLVED 2026-09-16** (§30.13). Built as an area of the portal, over a **single membership table** read from both directions: the artifact side assigns one artifact to many groups, the group side answers *"what does this group get?"* — the question §26.5 noted nothing in the product answers. Cardinality is derived from what the runtime resolves on, so one rule covers all four artifact types: a workflow resolves on `(WO Type, group)` and is one-per-WO-Type-plus-Free-Form; everything else resolves on the group alone and is exactly one. §21's six surviving mechanics carried over. **Still open and now in §30.18**, because neither is a prototype gap: the `*` default group as an assignment target, and what happens to in-flight work when an assignment is removed. | No action. | — |
 | **1e** | ~~Two surfaces can now express a workflow sequence~~ — **RESOLVED 2026-09-16** (§30.9). Screen Designer standalone is not a thing: it is invoked per step node from the Workflow Designer Portal and opens in that screen's own panel. One surface expresses a sequence, so §26.5.1's duplication concern is closed at the level it was raised, and the portal now has zero links out (pinned by test). The **fidelity** gap closed the same day — the panel was built to parity and the old file archived — so nothing is outstanding. | No action. Kept visible here for one cycle because it was raised as an M7/M9 blocker the same day. | — |
-| **2** | **Conflict rules per write shape** — required regardless of NG8, and the reason ~7 shapes matters. State machines reject and surface; field edits surface both values; appends cannot conflict; inserts ride the idempotency UUID. | Write it down as a table, one row per shape, as part of the outbox API contract. | M4 |
+| **2** | **Conflict rules per write shape** — required regardless of NG7, and the reason ~7 shapes matters. State machines reject and surface; field edits surface both values; appends cannot conflict; inserts ride the idempotency UUID. | Write it down as a table, one row per shape, as part of the outbox API contract. | M4 |
 | **3** | **Tier 0 contract** — contents per domain, per-domain version stamp, partial-failure reporting. The *ordering* is settled; the contract is not. | Owner at M1. Recommend **server-side** code-domain scoping. | M4, SLO-9 |
 | **4** | **Equipment's four system-type layouts have no authoring surface.** A blocker, not a parallel task (Constraint 6). | Pull the Equipment screen-design capability **forward, ahead of M7**. | M7 |
 | **5** | **Workflow config revisioning at runtime.** Authoring is handled (dangling and backward fork targets are cleared). **Runtime is not**: a fork's target is a pointer to another step, so reordering or deleting steps invalidates routing a technician may be mid-way through. | Ratify §14.11's config-version stamp as the answer, or reject it and propose another. Either way, stop carrying it as "recommended." | M6 |
@@ -1016,12 +973,11 @@ re-listing of §20.
 | **8** | **UDS: two answers left** — cardinality (1:1 or 1:N per `(WO, UDS)`), needed **before** the write envelope is built; and whether UDS fields are governed by status authorizations at all, which is a hole in the write gate. Plus two now-required guards: a per-UDS row cap, and authoring-time FK-mapping validation. | Both to the base team at M1. | M4 |
 | **9** | **Where user-defined text translations live.** The question fork is the first place an admin types prose a technician reads; the language-keyed map on the prompt row is a **stand-in, not a schema proposal** (no confirmed EAM table). One rule must survive any answer: a missing translation **falls back to the base language and never blanks**, because an empty question on a gated step is unanswerable. | Base team, at M1. | M6 |
 | **10** | **`R5MAILEVENTS` has no read/unread column**, and Notifications' All/Unread filter depends on one. | Base team: add a column, or redesign the filter. | M8 |
-| **11** | **Activity Checklist A/B** — paged Prev/Next vs. flick-and-snap. The largest open *design* question. **Needs a device, not a session.** | UX, on a device, before M6. | M6 |
 | **12** | **WO Equipment tab row tap** — `chooser` vs. `split`, both built, live-switchable from that screen's dev toggle. Both destinations are real navigation, so it is a fair comparison. | Same device session as issue 11. | M6 |
-| **13** | **Conditional field rules: name the one-way doors** (NG5). Two prerequisites qualify, because retrofitting either later touches every field on every screen: a single `resolveFieldState(field, context)` seam, and a **declared-vs-effective field-state split**. | Build both seams at M4/M6. **Do not pick a tier.** | M6 |
-| **14** | ~~Screen Designer is on a second visual language~~ — **CLOSED 2026-09-16** (§30.7/§30.18/§21). The portal and its embedded designer panel are both on Octave / OUX; Screen Designer has no standalone destination, so DM Sans / teal-purple is on nothing reachable; and the last file on the app's own Inter/JetBrains language went **out of scope** the same day (NG9). No second visual language remains on the base track, and nothing is owed. | No action. | — |
+| **13** | **Conditional field rules: name the one-way doors** (NG4). Two prerequisites qualify, because retrofitting either later touches every field on every screen: a single `resolveFieldState(field, context)` seam, and a **declared-vs-effective field-state split**. | Build both seams at M4/M6. **Do not pick a tier.** | M6 |
+| **14** | ~~Screen Designer is on a second visual language~~ — **CLOSED 2026-09-16** (§30.7/§30.18/§21). The portal and its embedded designer panel are both on Octave / OUX; Screen Designer has no standalone destination, so DM Sans / teal-purple is on nothing reachable; and the last file on the app's own Inter/JetBrains language went **out of scope** the same day (NG8). No second visual language remains on the base track, and nothing is owed. | No action. | — |
 | **15** | **No test plan exists.** Not tracked anywhere else, which is why it is here. | TPM to commission one at M1. The scenarios above are the natural acceptance spine. | all |
-| **16** | **The base Sencha→Angular migration is an unowned dependency, and three things now point at it.** Base EAM is being moved off the Sencha/Java UI library onto Angular as a separate programme: today the base UI does not format to a mobile device, under the new one it will. **(a)** It is the entire Contractor/BYOD answer (NG3), so its timeline decides when that theme actually closes — and there is a window before it lands with **no contractor answer at all**. **(b)** Phone-width responsive needs confirming as an *explicit goal* of that programme, for the screens a contractor needs; "Angular" does not by itself mean usable on a phone. **(c)** An Angular front end implies a real API behind it — **which is exactly what Constraint 2 and Open issue 3 need** in front of `R5PAGELAYOUT` and the workflow tables. | TPM: get a named contact on that programme and ask (c) first — it is worth more than (a) and (b) combined. Then its timeline, then the responsive scope. | **not M-blocking, but (c) could unblock M1/M4** |
+| **16** | **The base Sencha→Angular migration is an unowned dependency, and two things point at it.** Base EAM is being moved off the Sencha/Java UI library onto Angular as a separate programme. **(a)** An Angular front end implies a real API behind it — **which is exactly what Constraint 2 and Open issue 3 need** in front of `R5PAGELAYOUT` and the workflow tables. That is the valuable connection, and the reason to care about this programme at all. **(b)** Phone-width responsive needs confirming as an *explicit goal* of it; "Angular" does not by itself mean usable on a phone. | TPM: get a named contact on that programme and ask (a) first — it is worth more than (b). Then the responsive scope. | **not M-blocking, but (a) could unblock M1/M4** |
 
 **Smaller tracked debt, not repeated here:** shared-component consolidation in the
 WO List file; Issue Parts still on hardcoded parts data; Equipment Record View's
@@ -1044,15 +1000,17 @@ Recorded so they are not re-opened. **Full "old → new, why" for each lives in
 | **The offline model** — the largest open architecture question | **Online-first reads, declared per-entity offline scope.** Four options weighed once; the brief was rolled up and retired. Closed six §20 items. **Do not re-run the options analysis.** | 2026-09-08 |
 | Configuration artifacts — how they are created, and how they reach a user group | **One paradigm for all four** (workflow, offline profile, Home layout, Home tile). Assignment runs **both directions over one membership table**; **cardinality follows what the runtime resolves on**; **Create follows size** (a modal for what fits one form, a blank canvas for an arrangement); Home tiles are **global and reused by reference**, so only the layout is assignable. Four options were weighed per question before any of it was built. | 2026-09-16 |
 | GIS scope | **R2 is Phase 2** (NG1). | 2026-09-08 |
-| Conflict resolution | **LWW withdrawn**; per-shape rules instead (NG8). | 2026-09-08 |
+| Conflict resolution | **LWW withdrawn**; per-shape rules instead (NG7). | 2026-09-08 |
 | Database-wide offline search | **Not supported** (NG2). Retired the Tier 2 index, and with it the ~35 MB storage line and the FTS5 exit criterion. | 2026-09-08 |
 | Workflow steps | Steps are **instances**; the key gained an `Instance` dimension, because "a tab placed twice" and "a second Record View with a different layout" are the same requirement. Nothing migrates — instance 1 keeps the bare tab id. | 2026-09-08 |
 | Function resolution | **Per user group, never one blessed function.** This customer already runs four `WSJOBS` clones as distinct business processes. | 2026-08-24 |
 | WO Type protection | **Protects at Start Work**, not at insert. Replaced a proposed four-tier gate ladder and closed required-field drift. Equipment's system type is Protected in update mode, always. One paradigm, two trigger points. | 2026-08-25 |
 | Start Work | **The commitment boundary** — five things happen at once and only make sense together (S2). | 2026-08-25 |
+| Activity Checklist navigation — the largest open *design* question | **Snap-scroll between items**, resolved on a device against paged Prev/Next. Snapping is **JS-owned on deceleration**; CSS `scroll-snap` was rejected on device. The paged path and its flag were **deleted, not pinned**, so there is one render path and no dead branch. Prev/Next is retained and commits the cursor directly. | 2026-09-21 |
+| The punch-list dataspy selector's home | **The offline profile's Work Orders row** — it was already built there, so the doc was trailing the prototype. Reverses the 2026-09-11 "on the user group" answer, whose objection assumed a *group-scoped* dataspy; the punch-list one is **user-relative** (`My Open WOs`), so a shared profile still yields a per-technician list. **Profile `None` gets one too**: the Work Orders row renders on every profile, policy fixed at online-only, because the punch list is a membership question and was never a consequence of replication — the same argument that already puts Tier 0 and the outbox on every profile. What remains is implementation only (Open issue 1c). | 2026-09-23 |
 | Gating direction | **Forward-only.** A completed step is always reopenable; a later step stays locked and explains itself. | 2026-08-11 |
 | Platform target | **Native React Native**, not a responsive PWA. The spec's own header cell contradicted this for weeks while naming a React-Native-only library. | 2026-08-25 |
-| Workflow authoring surface | **Screen Designer only.** A second authoring screen was built and retired (NG6). It modelled several features that later landed in §29, so its retirement is not evidence against them. | 2026-08-25 |
+| Workflow authoring surface | **The Workflow Designer Portal only** *(revised 2026-09-16, §30.9 — the answer was "Screen Designer only" from 2026-08-25, and Screen Designer no longer has a standalone destination: it is invoked per step node as a panel inside the portal)*. Two authoring screens were built and retired against this rule. Both modelled features that later landed in §29, so their retirement is not evidence against them. | 2026-09-16 |
 | Equipment layout resolution | Resolves off **system type**, which base already models as four `PLO_PAGENAME` values — so no new column and no new table. Four base screens collapse into one mobile surface. | 2026-08-25 |
 | Required-field markers | **Removed app-wide** (required fields cannot be cleared), with Insert Mode as the one documented exception. | — |
 
@@ -1068,8 +1026,6 @@ Brief by design. Each rejection has a fuller record in §21.
 | **A Tier 2 on-device index** (~8–12 fields, later 6, over ~35 MB) | Retired with NG2. Bought database-wide offline search — the only thing it bought — at the cost of the storage line, an FTS5 requirement that narrowed the engine field, and a server-side dataspy pre-evaluation capability that set the floor under everything offline. **Re-adding it stays additive**, which is why instrumenting the question beats guessing. |
 | **Last-write-wins** | Silently lossy, and directly contradicts R6. Per-shape rules are only tractable because the write-enabled set is ~7 shapes — a real conflict UI is buildable for seven and not for sixty. |
 | **Responsive PWA** | Background Sync is absent on Safari, and iOS can evict script-writable storage for a non-installed site. Both are write-side, so both break G3. |
-| **A thin online-only browser surface, inside this programme, for contractors** | A second UI target, cutting directly against "one unified app," for the only Medium-priority VoC theme. Rejected 2026-09-11: the base product in a mobile browser already is that surface, and it is somebody else's build. *(NG3.)* |
-| **Profile `None` as the Contractor/BYOD answer** | Held for three days and withdrawn. The theme asks that no install be required; an online-only mode of a native app still requires the install. The mechanic survives — the justification did not. *(Spec §21.)* |
 | **New `FUN_CODE`s for mobile** | Would fork the customer's existing business processes. Resolution switches on `FUN_RENTITY = EVNT` and is opted in per user group instead. |
 | **One blessed function (`WSJOBS`, always)** | Reversed 2026-08-24 — this customer already runs four `WSJOBS` clones as distinct processes, so "always `WSJOBS`" describes nobody's installation. |
 | **A separate Workflow Designer** | Built, then retired for contradicting the one-authoring-surface rule. A third surface is not the answer either. |

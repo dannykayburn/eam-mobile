@@ -78,9 +78,16 @@
                             reused rather than re-hued.
     · Gate marker         — --wo-type-breakdown, exactly as .sgate already
                             does on User Group Setup's step chips.
-    · Fork node           — --wo-type-routine, exactly as .sstep.sstep--fork
-                            already does there. Same two borrowings, same
-                            two meanings, in both files.
+    · Forks and actions    — BADGE_COLORS (§30.25): six Octave status hues,
+                            one per kind. These used to borrow
+                            --wo-type-routine and --wo-type-corrective, which
+                            made both fork kinds one purple and all three
+                            actions one yellow — so "asked vs. evaluated" and
+                            "start vs. stop" were not drawn at all. Nothing
+                            is invented: the set is Octave's own ramp.
+    · Home tile icon       — the same six. It borrowed the four WO Type
+                            tokens, which made a tile read as a Type it has
+                            nothing to do with.
 
   ── NAMING COLLISION, FLAGGED NOT PAPERED OVER ────────────────────────
   The zone for steps taken out of the flow is called "More" in the app:
@@ -676,7 +683,7 @@ svg{display:block;}
 .sstep{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;
   border:1px solid var(--border-subtle);border-radius:var(--radius-full);
   font-size:var(--uxt-theme-typography-caption-font-size);color:var(--fg-default);white-space:nowrap;}
-.sstep--fork{border-color:var(--wo-type-routine);color:var(--wo-type-routine);}
+.sstep--fork{border-color:var(--node-accent,var(--border-default));color:var(--node-accent,var(--fg-muted));}
 .sstep--more{border-style:dashed;color:var(--fg-muted);}
 .sarr{color:var(--fg-faint);display:inline-flex;}
 .sgate{color:var(--warning);display:inline-flex;}
@@ -720,10 +727,15 @@ svg{display:block;}
 .lib__item.dragging{opacity:.4;}
 .lib__ico{width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
   border-radius:var(--radius-sm);background:var(--bg-hover);color:var(--fg-muted);}
+.lib__ico .ms,.tilechip .ms{font-size:inherit;}
 .lib__item-t{flex:1;min-width:0;font-size:var(--uxt-theme-typography-body-2-font-size);font-weight:500;line-height:1.3;}
-.lib__item--fork .lib__ico{background:transparent;box-shadow:inset 0 0 0 1px var(--wo-type-routine);color:var(--wo-type-routine);}
+.lib__item--fork .lib__ico,.lib__item--act .lib__ico{background:transparent;
+  box-shadow:inset 0 0 0 1px var(--node-accent,var(--border-default));color:var(--node-accent,var(--fg-muted));}
+/* A Home CREATE tile is not a workflow action — it had been sharing
+   .lib__item--act, so it inherited the action accent and then fought the
+   tile's own inline colour (§30.25). */
+.lib__item--create .lib__ico{box-shadow:inset 0 0 0 1px var(--border-default);}
 .lib__item--uds .lib__ico{background:transparent;box-shadow:inset 0 0 0 1px var(--wo-type-ppm);color:var(--wo-type-ppm);}
-.lib__item--act .lib__ico{background:transparent;box-shadow:inset 0 0 0 1px var(--wo-type-corrective);color:var(--wo-type-corrective);}
 .lib__used{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;
   padding:0 5px;border-radius:var(--radius-full);background:var(--bg-hover);color:var(--fg-muted);
   font-family:var(--font-mono);font-size:var(--uxt-theme-typography-caption-font-size);font-weight:500;}
@@ -770,18 +782,20 @@ svg{display:block;}
    canvas and not only by reading the banner. */
 .node--nocap{box-shadow:var(--elev-2),inset 0 0 0 2px var(--critical);}
 .node--nocap:hover{box-shadow:var(--elev-3),inset 0 0 0 2px var(--critical);}
-/* A STATUS UPDATE is an action, not a screen — so it reads as a different
-   KIND again, borrowing --wo-type-corrective the way the fork borrows
-   --wo-type-routine and a UDS borrows --wo-type-ppm. Three kinds, three
-   borrowings, no new hues (§23). */
-.node--act{box-shadow:var(--elev-2),inset 0 0 0 1px var(--wo-type-corrective);}
-.node--act:hover{box-shadow:var(--elev-3),inset 0 0 0 1px var(--wo-type-corrective);}
-.node__seq--act{background:var(--wo-type-corrective);color:var(--octave-black,#1a1a1f);}
-.node--fork{box-shadow:var(--elev-2),inset 0 0 0 1px var(--wo-type-routine);}
-.node--fork:hover{box-shadow:var(--elev-3),inset 0 0 0 1px var(--wo-type-routine);}
-.node--fork .node__seq{background:var(--wo-type-routine);color:#fff;}
+/* AN ACTION AND A FORK CARRY --node-accent, set inline per node from
+   nodeAccentStyle() (§30.25). They used to borrow WO Type hues, which made
+   all three actions one yellow and both fork kinds one purple — so the two
+   distinctions that matter (start vs stop, asked vs evaluated) were not
+   drawn at all. The fallback keeps a node visible if a new kind ever lands
+   without an accent, rather than rendering borderless. */
+.node--act{box-shadow:var(--elev-2),inset 0 0 0 1px var(--node-accent,var(--border-default));}
+.node--act:hover{box-shadow:var(--elev-3),inset 0 0 0 1px var(--node-accent,var(--border-default));}
+.node__seq--act{background:var(--node-accent,var(--fg-muted));color:#fff;}
+.node--fork{box-shadow:var(--elev-2),inset 0 0 0 1px var(--node-accent,var(--border-default));}
+.node--fork:hover{box-shadow:var(--elev-3),inset 0 0 0 1px var(--node-accent,var(--border-default));}
+.node--fork .node__seq{background:var(--node-accent,var(--fg-muted));color:#fff;}
 .fork__q{display:block;width:100%;padding:7px var(--s-3);border-radius:var(--radius-full);
-  background:var(--bg-hover);box-shadow:inset 0 0 0 1px var(--wo-type-routine);
+  background:var(--bg-hover);box-shadow:inset 0 0 0 1px var(--node-accent,var(--border-default));
   font-size:var(--uxt-theme-typography-body-2-font-size);font-weight:500;line-height:1.35;text-align:center;
   color:var(--fg-default);}
 .fork__q--empty{color:var(--fg-faint);font-style:italic;font-weight:400;box-shadow:inset 0 0 0 1px var(--border-default);}
@@ -791,7 +805,7 @@ svg{display:block;}
   color:var(--fg-default);font-family:var(--font-sans);font-size:var(--uxt-theme-typography-caption-font-size);
   font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;
   transition:box-shadow .13s,color .13s;}
-.fork__ans:hover{box-shadow:inset 0 0 0 1px var(--wo-type-routine);color:var(--wo-type-routine);}
+.fork__ans:hover{box-shadow:inset 0 0 0 1px var(--node-accent,var(--fg-muted));color:var(--node-accent,inherit);}
 
 /* CONNECTOR + the wire layer */
 .conn{position:relative;flex-shrink:0;height:36px;display:flex;align-items:center;justify-content:center;}
@@ -1224,8 +1238,10 @@ svg{display:block;}
    same routing object with a different answerer — but takes the PPM hue
    rather than Routine's, so the two are distinguishable at a glance
    without inventing a fifth colour (§23). */
-.node--cond{box-shadow:inset 0 0 0 1px var(--wo-type-ppm),var(--elev-1);}
-.node--cond .node__seq{color:var(--wo-type-ppm);}
+/* The condition fork's own ring — the accent comes from the node, so this
+   rule only owns the elevation difference (a condition is quieter than a
+   question: nobody has to answer it). */
+.node--cond{box-shadow:inset 0 0 0 1px var(--node-accent,var(--border-default)),var(--elev-1);}
 /* A rule inside a modal body, where two groups of fields need separating
    without a heading for each. */
 .pop__sep{height:1px;background:var(--border-subtle);margin:var(--s-4) 0 var(--s-2);}
@@ -1320,7 +1336,11 @@ svg{display:block;}
 .emu-sec__t{flex:1;min-width:0;font-size:15px;font-weight:800;letter-spacing:.1px;color:var(--d-ink);}
 .emu-sec__t--none{color:var(--d-red);font-weight:600;font-style:italic;}
 .emu-sec__c{flex-shrink:0;font-family:var(--font-mono);font-size:10px;color:var(--d-gray-4);}
-.emu-sec__row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding-top:10px;position:relative;}
+/* FIXED 100px COLUMNS, NOT 3 x 1fr. The device tile is 100px with a 10px
+   gap (which is where HOME_FOLD's own arithmetic comes from), so 1fr made
+   every square 114px — a preview at the wrong scale, and the 42px of
+   leftover room is exactly the sliver the device shows of tile 4. */
+.emu-sec__row{display:grid;grid-template-columns:repeat(3,100px);gap:10px;padding-top:10px;position:relative;}
 .emu-sec__row.is-over{outline:2px dashed var(--d-ink);outline-offset:3px;border-radius:8px;}
 .emu-sec__row.is-bad{outline:2px dashed var(--d-red);outline-offset:3px;border-radius:8px;}
 /* The fold: everything after this line needs a horizontal swipe on the
@@ -1331,13 +1351,22 @@ svg{display:block;}
 
 .hometile{display:flex;flex-direction:column;align-items:center;cursor:grab;user-select:none;position:relative;}
 .hometile.dragging{opacity:.35;}
-.hometile__sq{width:100%;aspect-ratio:1;border-radius:18px;display:flex;align-items:center;justify-content:center;
-  background:var(--d-bg-card);box-shadow:0 1px 3px rgba(0,0,0,.1);position:relative;}
-.hometile__ico{color:var(--d-gray-4);}
+/* ONE FACE, THREE PLACES. The square's own colour is set inline by
+   tileSquareStyle() — the device's rule exactly: background is the chosen
+   colour at 13%, the glyph is the colour at full strength. The glyph
+   INHERITS, so neither can be set without the other. */
+.hometile__sq{width:100%;max-width:100px;aspect-ratio:1;border-radius:20px;display:flex;align-items:center;
+  justify-content:center;background:var(--d-bg-card);box-shadow:0 1px 3px rgba(0,0,0,.1);
+  position:relative;color:var(--d-gray-4);}
+.hometile__sq[style*="background:color-mix"]{box-shadow:none;}
+.hometile__ico{color:inherit;display:flex;}
+/* 36px, because the device draws 38px in the same 100px square and a 24px
+   glyph read as a different component rather than a smaller one. */
+.hometile__sq .hometile__ico .ms{font-size:36px;}
 .hometile__b{position:absolute;top:-6px;right:-6px;background:var(--d-ink);color:var(--d-white);font-size:10px;
   font-weight:700;font-family:var(--font-mono);border-radius:100px;padding:1px 5px;min-width:17px;text-align:center;
   border:2px solid var(--d-bg-page);}
-.hometile__l{font-size:11.5px;font-weight:500;color:var(--d-ink);text-align:center;margin-top:6px;line-height:1.3;}
+.hometile__l{font-size:12px;font-weight:500;color:var(--d-ink);text-align:center;margin-top:7px;line-height:1.3;}
 .hometile--past .hometile__sq{opacity:.55;}
 .hometile--gap .hometile__sq{box-shadow:inset 0 0 0 2px var(--d-red);}
 
@@ -1346,6 +1375,61 @@ svg{display:block;}
 .emu-secbtn{flex-shrink:0;width:22px;height:22px;border-radius:6px;display:flex;align-items:center;
   justify-content:center;color:var(--d-gray-4);cursor:pointer;}
 .emu-secbtn:hover{background:var(--d-bg-section);color:var(--d-ink);}
+/* The icon picker in the nav-item modal. A grid rather than a <select>,
+   because the thing being chosen IS the glyph — a list of names makes an
+   admin guess what "route" looks like. */
+.icopick{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 4px;}
+.icopick__b{width:38px;height:38px;border-radius:var(--radius-md);border:1px solid var(--border-default);
+  background:transparent;color:var(--fg-muted);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.icopick__b:hover{border-color:var(--uxt-theme-palette-text-link);color:var(--fg-default);}
+.icopick__b.is-on{border-color:var(--uxt-theme-palette-action-focus);border-width:2px;color:var(--fg-default);
+  background:var(--uxt-theme-palette-action-selected);}
+
+/* THE COLOUR BADGES (§30.25). One set, six values, used wherever anything
+   in this portal is given a colour — see BADGE_COLORS. A swatch grid rather
+   than a <select> for the same reason the icon picker is one: the thing being
+   chosen is the colour. */
+.swatch{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 4px;}
+.swatch__b{width:38px;height:38px;border-radius:var(--radius-md);border:1px solid var(--border-default);
+  background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.swatch__b:hover{border-color:var(--uxt-theme-palette-text-link);}
+.swatch__b.is-on{border-color:var(--uxt-theme-palette-action-focus);border-width:2px;}
+.swatch__d{width:18px;height:18px;border-radius:var(--radius-full);}
+.swatch__d--none{box-shadow:inset 0 0 0 2px var(--border-default);}
+
+/* ── THE APP NAVIGATION BAR (§30.24) ──
+   Drawn with the DEVICE palette like the rest of .emu, and deliberately
+   the real thing: dark bar, glass-pill active slot, fixed equal slots.
+   It is the one surface in this editor that is NOT part of Home — see the
+   note the editor prints under it. */
+.emu-navwrap{margin-top:14px;}
+.emu-navbar{display:flex;align-items:flex-start;justify-content:center;gap:14px;
+  background:var(--d-bg-nav);padding:9px 6px 11px;border-top:1px solid rgba(255,255,255,.22);}
+.emu-navitem{width:84px;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:6px 2px;border-radius:100px;cursor:grab;user-select:none;position:relative;
+  color:rgba(255,255,255,.55);}
+.emu-navitem:hover{color:rgba(255,255,255,.85);}
+.emu-navitem--on{color:#fff;background:rgba(255,255,255,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.25);}
+.emu-navitem--pinned{cursor:default;}
+.emu-navitem__l{font-size:10.5px;font-weight:600;text-align:center;line-height:1.25;max-width:100%;}
+.emu-navitem__p{position:absolute;top:1px;right:6px;color:rgba(255,255,255,.4);display:flex;}
+.emu-navitem--gap{box-shadow:inset 0 0 0 2px var(--d-red);}
+.emu-navitem--long .emu-navitem__l{text-decoration:underline dotted rgba(255,255,255,.5);text-underline-offset:2px;}
+.emu-navitem.dragging{opacity:.35;}
+.emu-navitem.over-l{box-shadow:inset 2px 0 0 #fff;}
+.emu-navitem.over-r{box-shadow:inset -2px 0 0 #fff;}
+.emu-navadd{width:84px;padding:8px 2px;border-radius:12px;border:1px dashed rgba(255,255,255,.35);
+  background:none;color:rgba(255,255,255,.55);font-family:inherit;font-size:9.5px;font-weight:600;
+  display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;}
+.emu-navadd:hover{border-color:#fff;color:#fff;}
+.emu-navbar.is-over{outline:2px dashed #fff;outline-offset:-3px;}
+.emu-navnote{padding:9px 14px 12px;background:var(--d-bg-section);border-top:1px solid var(--d-border);
+  font-size:10px;line-height:1.55;color:var(--d-gray-4);}
+.emu-navnote b{color:var(--d-ink);}
+.emu-navnote__m{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;}
+.emu-navnote__c{font-family:var(--font-mono);font-size:9.5px;color:var(--d-gray-4);
+  background:var(--d-bg-card);border:1px solid var(--d-border);border-radius:5px;padding:2px 6px;}
 .emu-addsec{margin:14px 14px 0;padding:11px;border-radius:10px;border:1px dashed var(--d-border-strong);
   display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;
   font-size:12px;font-weight:600;color:var(--d-gray-4);background:transparent;width:calc(100% - 28px);
@@ -1581,10 +1665,18 @@ const ICONS = {
   users:'group', save:'save', down:'arrow_downward', flag:'flag', arrowR:'arrow_forward',
   stop:'cancel', na:'remove', undo:'undo', layers:'layers', open:'open_in_new',
   timerOff:'timer_off',
+  /* Nav-bar glyphs (§30.24). The bar's icon is authorable, so the set an
+     admin can pick from lives here — see NAV_ICONS for which are offered. */
+  home:'home', bell:'notifications', sync:'sync', search:'search',
   /* A UDS is a customer-authored screen, so the glyph is a board split rather
      than a document — it is a layout, not a record. The block glyph is the
      capability gap: the function cannot render this tab at all. */
   uds:'space_dashboard', block:'block', translate:'translate',
+  /* §30.25: the two fork kinds get different glyphs, and they were the
+     wrong way round — 'fork' is a question mark and was on the CONDITION,
+     while 'split' (a routing arrow) was on the question. A condition is a
+     RULE the system reads; a question is asked. */
+  rule:'rule', timer:'timer',
 };
 /* Sizes snap to the four ms-* steps rather than emitting a bare font-size, so
    an icon can never land between the type scale's own steps. */
@@ -2511,9 +2603,38 @@ function stopTimerNodeLabel(nd){
 }
 
 const ACTION_KIND_LABELS = {timer:'Start Timer', stoptimer:'Stop Timer', status:'Status update'};
+/* ═════ ONE ACCENT PER KIND (§30.25) ═════
+   Five non-step kinds, five colours out of the ONE badge set (BADGE_COLORS),
+   replacing three borrowed §23.3 WO Type hues. The mapping is meaning-led
+   and that is the whole point of the change:
+
+     Start Timer   green   — something starts running
+     Stop Timer    red     — something stops, and it BOOKS (§30.21)
+     Status update orange  — the record changes state
+     Question fork purple  — a HUMAN answers (keeps the old fork hue)
+     Condition     blue    — the SYSTEM answers, off a field (§30.19)
+
+   Timer green / timer red is the one pair a technician's own mental model
+   already has, which is why it was worth spending two of six colours on. */
+const NODE_ACCENTS = {timer:'green', stoptimer:'red', status:'orange', fork:'purple', cond:'blue'};
+function nodeAccentKey(n){
+  if(!n) return '';
+  if(n.kind === 'action') return NODE_ACCENTS[n.action] || 'orange';
+  return NODE_ACCENTS[n.kind] || '';
+}
+/* The inline custom property every accented surface reads. One declaration
+   site means adding a kind cannot half-land. */
+function nodeAccentStyle(n){
+  const c = badgeColor(nodeAccentKey(n));
+  return c ? '--node-accent:' + c + ';' : '';
+}
+function accentStyleFor(key){
+  const c = badgeColor(key);
+  return c ? '--node-accent:' + c + ';' : '';
+}
 function actionKindLabel(nd){ return ACTION_KIND_LABELS[nd && nd.action] || 'Action'; }
 function actionIcon(nd){
-  return nd && nd.action === 'timer' ? 'clock'
+  return nd && nd.action === 'timer' ? 'timer'
     : nd && nd.action === 'stoptimer' ? 'timerOff' : 'flag';
 }
 /* The label a node's main line carries — the thing that DIFFERS between two
@@ -2879,6 +3000,22 @@ function policyMeta(k){ return OFFLINE_POLICIES.find(p => p.k === k) || OFFLINE_
 const POLICY_NEEDS_FILTER = ['offline-read','work-set'];
 function policyNeedsFilter(k){ return POLICY_NEEDS_FILTER.indexOf(k) > -1; }
 
+/* ── THE MEMBERSHIP EXCEPTION (§2.6, locked 2026-09-23) ──
+   One entity's dataspy answers a second, different question. On Work Orders
+   the dataspy is BOTH the replication bound AND the punch list — and the punch
+   list is a MEMBERSHIP question, answered server-side, which is true of an
+   online-only group too. So this row's dataspy is NOT a property of its
+   policy, and it is the only row where that holds.
+
+   Two things followed from getting this wrong, both of which rendered
+   perfectly and said nothing: normalizeProfile() wiped the dataspy whenever
+   the policy stopped needing a filter, so an online-only Work Orders row lost
+   its punch list on the next reload; and the control collapsed to a dash, so
+   there was nowhere to set one in the first place. A flag on the entity rather
+   than an `id === 'wo'` test at each site, so a second membership entity (if
+   one is ever found) cannot half-work. */
+function isMembershipEntity(e){ return !!(e && e.membership); }
+
 /* ── MEASURED, NOT DESCRIBED (2026-09-18, user direction) ──
    "Whether this entity can ship whole" is ARITHMETIC AGAINST THE CAPS, and
    nothing else. It is not a per-entity flag, it is not derived from whether
@@ -2969,7 +3106,7 @@ function rowNeedsDataspy(e, row, p){
 const OFFLINE_ENTITIES = [
   /* ── WORK ── */
   {id:'wo', rows:1200000, kb:3, label:'Work Orders', grp:'Work', status:'in', dflt:'work-set',
-   allow:['work-set','offline-read','server-only'],
+   allow:['work-set','offline-read','server-only'], membership:true,
    note:'§2.7 names pinned WOs + activities as the work-set. §2.6 locks the punch list as a dataspy AND pins — both layers, not one.'},
   {id:'checklist', label:'Checklist Results', grp:'Work', status:'in', dflt:'work-set',
    allow:['work-set','server-only'], traversed:true,
@@ -3106,7 +3243,11 @@ function normalizeProfile(p){
        §2.7's non-offline list is enforced AT AUTHORING TIME, so a stored
        illegal policy gets pulled back to the default rather than shipped. */
     if(e.allow.indexOf(row.policy) === -1) row.policy = e.dflt;
-    if(!policyNeedsFilter(row.policy)) row.dataspy = '';
+    /* A membership dataspy survives a policy that replicates nothing — see
+       isMembershipEntity(). Every other row's dataspy is meaningless without
+       a filtered policy, so it is still cleared rather than left to resurface
+       if the policy is switched back. */
+    if(!policyNeedsFilter(row.policy) && !isMembershipEntity(e)) row.dataspy = '';
   });
   return p;
 }
@@ -3198,6 +3339,9 @@ function profileEnabledCount(p){
    reads as "nothing to do"; no badge reads as "no counter here", and the
    product deliberately picked the second. */
 const TILE_CAP = {countHigh:1000};
+/* The glyphs a tile can carry. Curated, like NAV_ICONS — the whole icon set
+   is how a Home screen ends up with a shopping trolley on it. */
+const TILE_ICONS = ['list','route','wrench','box','clipboard','grid','bell','message','clock','alert','flag','checkc','file','sliders'];
 
 /* Derived label — kind is a READING of the record, never stored, so the
    two can never disagree. */
@@ -3218,15 +3362,19 @@ function tileCountBadge(t, raw){
    exist, so a tile cannot be authored against a destination the app has no
    route to. */
 const TILE_TARGETS = [
-  {id:'wolist',    label:'Work Order list',   screen:'wolist'},
-  {id:'equiplist', label:'Equipment list',    screen:'equiplist'},
+  /* `entity` is what DRIVES THE DATASPY LIST (§30.25). A dataspy belongs to a
+     record list, so offering all of them pooled let a Work Order tile be
+     filtered by "Van Stock". Notifications and Sync carry none at all, which
+     is a real answer and not an empty dropdown. */
+  {id:'wolist',    label:'Work Order list',   screen:'wolist',    entity:'wo'},
+  {id:'equiplist', label:'Equipment list',    screen:'equiplist', entity:'equipment'},
   {id:'notif',     label:'Notifications',     screen:'notif'},
   {id:'sync',      label:'Sync status',       screen:'sync'},
   /* A create target is an INSERT MODE OF a screen, not a screen of its
      own — so it resolves to the same menu entry as the list it inserts
      into. Getting this wrong makes every create tile report as hidden. */
-  {id:'createwo',  label:'Create Work Order', screen:'wolist'},
-  {id:'createeq',  label:'Create Equipment',  screen:'equiplist'},
+  {id:'createwo',  label:'Create Work Order', screen:'wolist',    entity:'wo'},
+  {id:'createeq',  label:'Create Equipment',  screen:'equiplist', entity:'equipment'},
 ];
 /* The menu entry a target needs. Falls back to the target id so a target
    added without a screen is caught by the gate rather than exempted. */
@@ -3236,18 +3384,54 @@ function targetScreen(id){
 }
 function tileTarget(id){ return TILE_TARGETS.find(t => t.id === id) || null; }
 
-const TILE_COLORS = [
-  {k:'none',       label:'Monochrome'},
-  {k:'breakdown',  label:'Breakdown'},
-  {k:'ppm',        label:'Preventive'},
-  {k:'routine',    label:'Routine'},
-  {k:'corrective', label:'Corrective'},
+/* ═════ THE COLOUR BADGES — ONE SET, USED EVERYWHERE (§30.25) ═════
+   Six values, and they are **Octave's own status hues** rather than a
+   hand-picked palette: neutral plus blue / green / orange / red / purple, at
+   the 700 step so a glyph on a 13% tint of itself stays legible. Yellow is
+   deliberately left out — status-yellow-500 is #ffdd00 and fails as a glyph
+   colour on a light tint, which is the one job this set has.
+
+   WHY ONE SET RATHER THAN A PALETTE PER FEATURE. It previously offered the
+   four §23.3 WO Type tokens, on the argument that "an exception is not a
+   licence to invent hues" — which was right about not inventing, and wrong
+   about the source: a Home tile is not a WO Type, so borrowing that badge's
+   four hues made the tile read as a Type it has nothing to do with. Octave's
+   status ramp is the portal's own palette, so taking the set from there
+   invents nothing AND says nothing false.
+
+   The value is a TOKEN, not a hex, so it resolves identically in portal
+   chrome and inside the .emu device frame. That is legitimate rather than a
+   §30.8 seam violation: the colour here is the artifact's DATA, not this
+   screen's styling, and the device renders the value the admin picked. */
+const BADGE_COLORS = [
+  {k:'none',   label:'Neutral', v:''},
+  {k:'blue',   label:'Blue',    v:'var(--uxt-theme-palette-status-blue-700)'},
+  {k:'green',  label:'Green',   v:'var(--uxt-theme-palette-status-green-700)'},
+  {k:'orange', label:'Orange',  v:'var(--uxt-theme-palette-status-orange-700)'},
+  {k:'red',    label:'Red',     v:'var(--uxt-theme-palette-status-red-700)'},
+  {k:'purple', label:'Purple',  v:'var(--uxt-theme-palette-status-purple-700)'},
 ];
-/* Home is §23's ONE named exception to the monochrome rule — tile icons keep
-   real colour. So the palette offered here is the four WO Type tokens and
-   nothing new: an exception is not a licence to invent hues. */
-function tileColorVar(k){
-  return k && k !== 'none' ? 'var(--wo-type-' + k + ')' : '';
+function badgeColor(k){
+  const c = BADGE_COLORS.filter(x => x.k === k)[0];
+  return (c && c.v) || '';
+}
+/* Stored colours from before 2026-09-23 were WO Type keys. Mapped by hue so
+   a seeded or stored tile keeps the colour it had rather than falling back to
+   neutral — same load-bearing job as POLICY_MIGRATE (§30.14). */
+const COLOR_MIGRATE = {breakdown:'orange', ppm:'blue', routine:'purple', corrective:'orange'};
+
+/* THE DEVICE'S OWN RULE, in one place: background is the colour at 13%, the
+   glyph is the colour at full strength (eam-home-screen-prototype-v1.html
+   draws background:<color>22 with the glyph in <color>). Every face that
+   shows a tile calls one of these two, so the catalogue chip, the library
+   row and the editor square cannot drift apart. */
+function tileSquareStyle(t){
+  const c = badgeColor(t && t.color);
+  return c ? 'background:color-mix(in srgb, ' + c + ' 13%, transparent);color:' + c : '';
+}
+function tileGlyphStyle(t){
+  const c = badgeColor(t && t.color);
+  return c ? 'color:' + c : '';
 }
 
 function mkTile(o){
@@ -3277,6 +3461,9 @@ function normalizeTile(t){
   }
   if(t.insertMode === undefined) t.insertMode = false;
   if(t.countSql === undefined) t.countSql = '';
+  /* §30.25: WO Type colour keys migrate to the badge set by hue. */
+  if(COLOR_MIGRATE[t.color]) t.color = COLOR_MIGRATE[t.color];
+  if(!BADGE_COLORS.some(c => c.k === t.color)) t.color = 'none';
   /* A Create opens a screen in insert mode; it can carry no counter. */
   if(t.insertMode) t.countSql = '';
   return t;
@@ -3328,6 +3515,8 @@ function mkHome(name, desc){
     creates:[],
     /* Favorites is TECHNICIAN-OWNED (see normalizeHome). Toggle only. */
     showFavorites:true,
+    /* The app's navigation bar (§30.24) — §4.2's three by default. */
+    nav:defaultNav(),
   };
 }
 function normalizeHome(h){
@@ -3349,6 +3538,9 @@ function normalizeHome(h){
   if(!Array.isArray(h.sections)) h.sections = [];
   if(!Array.isArray(h.creates)) h.creates = [];
   if(h.showFavorites === undefined) h.showFavorites = true;
+  /* The app's navigation bar (§30.24) — defaulted, deduped and clamped on
+     read, so a stored layout from before 2026-09-23 gets §4.2's three. */
+  normalizeNav(h);
 
   /* A reference to a deleted tile is a hole in a layout nobody can see the
      cause of, so prune on read — now per section and on the tray. */
@@ -3423,6 +3615,121 @@ function homeTileGaps(h, group){
     .filter(t => menu.indexOf(targetScreen(t.target)) === -1);
 }
 
+/* ═════ THE APP'S NAVIGATION BAR — A PROPERTY OF THE LAYOUT ═════
+   §30.24, added 2026-09-23 (user direction). The mobile app's bottom
+   navigation bar (§4.2) is configured HERE, on the Home layout, and each
+   item carries exactly three authorable things: its LABEL, the SCREEN it
+   opens, and its ICON. Colour is not one of them — the bar is white-on-dark
+   glass chrome and §23 keeps it monochrome (Home's colour exception is for
+   TILES, and the bar is not a tile).
+
+   WHY IT BELONGS ON THE LAYOUT rather than being a fifth artifact type:
+   §30.13 says cardinality follows what the runtime resolves on, and the bar
+   resolves on the user group alone — exactly like a Home layout. Putting it
+   on the layout therefore gets assignment, cardinality and the "one per
+   group" rule for free, with no new membership type and no second thing to
+   assign. It is also the literal bottom edge of the same picture: this
+   editor already draws everything the technician sees on Home except this.
+
+   THE ONE HONEST CAVEAT, printed in the editor: the bar is NOT part of Home.
+   It persists across every browsing screen and hides the moment a record
+   opens (§4.2). A group with no layout assigned falls back to the standard
+   menu (§30.16) and, with it, to §4.2's default three items. */
+const NAV_MAX = 5;                 /* user direction: "max of 5 icons" */
+const NAV_FLOOR_PX = 320;          /* §31's narrowest supported width */
+const NAV_GAP_PX  = 14;            /* .bottom-nav's own gap */
+const NAV_SLOT_PX = 84;            /* .bottom-nav-item's locked slot width */
+const NAV_CHAR_PX = 5.8;           /* avg advance at 10.5px/600 Inter */
+
+/* WHAT A NAV ITEM CAN OPEN. Screens only — there is no create target here,
+   and that is structural rather than a guarded rule: a nav item is a
+   destination you return to, while a create is an action, and §9.4.1 put
+   creates behind the Create control. So the refusal is that the option does
+   not exist, which is the cheapest guard there is. `shell` marks a
+   destination that is the app's own chrome rather than a menu screen, so the
+   capability gate below cannot report it as missing. */
+const NAV_TARGETS = [
+  {id:'home',      label:'Home',            screen:'home', shell:true},
+  {id:'wolist',    label:'Work Order list', screen:'wolist'},
+  {id:'equiplist', label:'Equipment list',  screen:'equiplist'},
+  {id:'notif',     label:'Notifications',   screen:'notif'},
+  {id:'sync',      label:'Sync status',     screen:'sync'},
+];
+function navTarget(id){ return NAV_TARGETS.find(t => t.id === id) || null; }
+/* The glyphs offered. A curated list, not the whole icon set: an authorable
+   icon is still app chrome, and 40 choices is how a nav bar ends up with a
+   shopping-trolley on it. */
+const NAV_ICONS = ['home','list','route','wrench','box','clipboard','grid','bell','message','sync','sliders','clock','alert','flag'];
+
+/* ── THE SLOT ARITHMETIC, AND WHY 5 COSTS SOMETHING ──
+   .bottom-nav is `justify-content:center; gap:14px` over fixed 84px items,
+   so n items measure 98n − 14:
+       3 → 280   fits the 320px floor
+       4 → 378   overflows the floor (fits a 390px device, just)
+       5 → 476   overflows every phone, 390 and 430 alike
+   So past three the locked 84px slot HAS TO YIELD, and what it yields to is
+   an equal share of the floor: (320 − 14(n−1))/n — 69.5px at four, 52.8px at
+   five. 52.8 still clears §31.5's 48px hit target, so five is feasible; what
+   pays for it is the LABEL, and that is the part an admin cannot see without
+   being told. Same shape as HOME_FOLD: arithmetic, drawn in the editor. */
+function navSlotPx(n){
+  n = Math.max(1, n || 1);
+  return Math.min(NAV_SLOT_PX, (NAV_FLOOR_PX - NAV_GAP_PX * (n - 1)) / n);
+}
+function navLabelBudget(n){ return Math.max(1, Math.floor(navSlotPx(n) / NAV_CHAR_PX)); }
+
+function mkNavItem(o){
+  o = o || {};
+  return {target:o.target || 'wolist', label:o.label || '', icon:o.icon || 'list'};
+}
+/* §4.2's locked three, now as the DEFAULT rather than the rule — including
+   its "Work Orders" → "Work" shortening, which was the first thing the label
+   budget above ever bought. */
+function defaultNav(){
+  return [
+    mkNavItem({target:'home',   label:'Home',          icon:'home'}),
+    mkNavItem({target:'wolist', label:'Work',          icon:'list'}),
+    mkNavItem({target:'notif',  label:'Notifications', icon:'bell'}),
+  ];
+}
+/* Three rules, all enforced on read as well as at the mutation, so stored
+   data cannot carry a violation either (the §30.16 discipline):
+     · HOME IS SLOT 1 and cannot be removed or moved. It is the only route
+       back to Home while browsing, so a bar without it is a dead end — the
+       same pinning as Record View instance 1 being step 1 (§29.2).
+     · ONE ITEM PER SCREEN. A nav item carries no dataspy, so two items on
+       one screen would be two identical destinations.
+     · NEVER MORE THAN NAV_MAX. */
+function normalizeNav(h){
+  if(!h) return h;
+  if(!Array.isArray(h.nav) || !h.nav.length){ h.nav = defaultNav(); return h; }
+  const seen = {};
+  h.nav = h.nav.filter(it => {
+    if(!it || !navTarget(it.target)) return false;
+    if(seen[it.target]) return false;
+    seen[it.target] = 1;
+    return true;
+  }).map(it => mkNavItem(it));
+  /* Re-seat Home at the front, or put it back if a stored bar lost it. */
+  const hi = h.nav.findIndex(it => it.target === 'home');
+  if(hi === -1) h.nav.unshift(mkNavItem({target:'home', label:'Home', icon:'home'}));
+  else if(hi > 0) h.nav.unshift(h.nav.splice(hi, 1)[0]);
+  if(h.nav.length > NAV_MAX) h.nav = h.nav.slice(0, NAV_MAX);
+  return h;
+}
+/* THE SAME CAPABILITY GATE AS A TILE (§30.17), and it bites harder here: a
+   tile that gets dropped leaves a gap in a scrolling row, while a nav item
+   that gets dropped leaves a hole in three-to-five slots of permanent
+   chrome. Keyed on the target's SCREEN, never the raw id — and the shell
+   target is exempt because the app's own Home is not a menu entry. */
+function navGaps(h, group){
+  const menu = groupMenu(group);
+  return (h && h.nav || []).filter(it => {
+    const t = navTarget(it.target);
+    return !!t && !t.shell && menu.indexOf(t.screen) === -1;
+  });
+}
+
 /* Every (layout, group, tile) the product would silently drop. Flat, so
    the area banner can count them without re-walking the model. */
 function allHomeGaps(){
@@ -3460,9 +3767,37 @@ function homeIssues(h){
       out.push({sev:'warn', msg:'"' + (sec.title || 'section ' + (i+1)) + '" is empty — a title with no tiles under it.'});
     }
   });
+  /* ── THE NAVIGATION BAR (§30.24) ──
+     An unlabelled slot is an error rather than a warning: the bar is
+     icon-and-label, and a slot carrying only an icon is unreadable at 23px.
+     An over-budget label is a WARNING, because the device does not truncate
+     — .bottom-nav-item has no nowrap rule, so it wraps to a second line,
+     which is ugly rather than broken. */
+  const navBudget = navLabelBudget(h.nav.length);
+  h.nav.forEach((it, i) => {
+    const nt = navTarget(it.target);
+    if(!(it.label || '').trim()){
+      out.push({sev:'error', msg:'navigation slot ' + (i+1) + ' (' +
+        ((nt||{}).label || it.target) + ') has no label — the bar would show an icon with nothing naming it.'});
+    } else if(it.label.trim().length > navBudget){
+      out.push({sev:'warn', msg:'navigation label "' + it.label + '" is ' + it.label.trim().length +
+        ' characters against a ' + navBudget + '-character slot at ' + h.nav.length +
+        ' items — it wraps to a second line at 320px.'});
+    }
+  });
+  if(h.nav.length < 2){
+    out.push({sev:'warn', msg:'the navigation bar carries only Home — permanent chrome that navigates nowhere the technician is not already.'});
+  }
+
   /* The gate, per assigned group. Only computable once assignment exists,
      which is exactly why it lives in this portal. */
   groupsOf('home', h.id).forEach(g => {
+    /* Same gate one level up, and it bites harder: a dropped tile leaves a
+       gap in a scrolling row, a dropped nav item leaves a hole in permanent
+       chrome. */
+    navGaps(h, g).forEach(it => out.push({sev:'error',
+      msg:'navigation item "' + it.label + '" opens ' + ((navTarget(it.target)||{}).label || it.target) +
+        ', which is not in ' + g + "'s menu — that slot is dead for that group."}));
     homeTileGaps(h, g).forEach(t => out.push({sev:'error',
       msg:'"' + t.label + '" needs the ' + ((tileTarget(targetScreen(t.target))||{label:targetScreen(t.target)}).label) +
         ' screen, which is not in ' + g + "'s menu — the product SILENTLY HIDES that tile for that group."}));
@@ -3524,20 +3859,20 @@ function seedPortalDemo(){
   if(!TILES.length){
     TILES = [
       mkTile({label:'My Open Work', icon:'route', target:'wolist', dataspy:'My Open WOs',
-        countSql:'SELECT COUNT(*) FROM r5events WHERE assigned = :user', demoCount:7, color:'breakdown'}),
+        countSql:'SELECT COUNT(*) FROM r5events WHERE assigned = :user', demoCount:7, color:'blue'}),
       mkTile({label:'Breakdowns', icon:'alert', target:'wolist', dataspy:'Breakdowns Only',
-        countSql:'SELECT COUNT(*) FROM r5events WHERE type = BR', demoCount:2, color:'breakdown'}),
+        countSql:'SELECT COUNT(*) FROM r5events WHERE type = BR', demoCount:2, color:'red'}),
       mkTile({label:'Due This Week', icon:'clock', target:'wolist', dataspy:'This Week',
-        countSql:'SELECT COUNT(*) FROM r5events WHERE sched BETWEEN :mon AND :sun', demoCount:1240, color:'ppm'}),
+        countSql:'SELECT COUNT(*) FROM r5events WHERE sched BETWEEN :mon AND :sun', demoCount:1240, color:'orange'}),
       mkTile({label:'My Route Assets', icon:'wrench', target:'equiplist', dataspy:'My Route Assets',
-        countSql:'SELECT COUNT(*) FROM r5equipment WHERE route = :route', demoCount:24, color:'routine'}),
+        countSql:'SELECT COUNT(*) FROM r5equipment WHERE route = :route', demoCount:24, color:'green'}),
       /* A plain screen link: no counter at all, which the old model could
          not express alongside a dataspy. */
       mkTile({label:'Sync Status', icon:'sliders', target:'sync'}),
       /* demoCount 0 — the requirement says a statement returning 0 shows NO
          BADGE. Seeded so that rule is visible on load rather than trusted. */
-      mkTile({label:'Nonconformities', icon:'flag', target:'wolist', dataspy:'All Open WOs',
-        countSql:'SELECT COUNT(*) FROM r5nonconf WHERE open = Y', demoCount:0}),
+      mkTile({label:'Work Requests', icon:'clipboard', target:'wolist', dataspy:'All Open WOs',
+        countSql:'SELECT COUNT(*) FROM r5events WHERE type = WR AND status = R', demoCount:0, color:'purple'}),
       /* Creates: insertMode, so these can only reach the Create control. */
       mkTile({label:'Work Order', icon:'plus', target:'createwo', insertMode:true}),
       mkTile({label:'Equipment', icon:'plus', target:'createeq', insertMode:true}),
@@ -3566,6 +3901,17 @@ function seedPortalDemo(){
           sec('Reference', [t[4].id]),
         ],
         creates:[t[6].id],
+        /* FOUR nav items, and Equipment is one — §4.2 deliberately excluded
+           it from the bar, which is now a DEFAULT rather than a rule
+           (§30.24). This layout is assigned to TRANSPORT, whose menu has no
+           Equipment screen, so the capability gate fires on load: that slot
+           is dead for that group. */
+        nav:[
+          mkNavItem({target:'home',      label:'Home',   icon:'home'}),
+          mkNavItem({target:'wolist',    label:'Work',   icon:'list'}),
+          mkNavItem({target:'equiplist', label:'Assets', icon:'wrench'}),
+          mkNavItem({target:'notif',     label:'Alerts', icon:'bell'}),
+        ],
       }),
       /* Read-heavy: no creates at all, so the Create control renders empty
          rather than hidden — the admin should see the tray they have not
@@ -3574,6 +3920,18 @@ function seedPortalDemo(){
       Object.assign(mkHome('Supervisor home', 'Read-heavy; no create actions.'), {
         sections:[ sec('Oversight', [t[1].id, t[2].id, t[8].id]) ],
         creates:[],
+        /* THE FULL FIVE, which is the case worth looking at twice: at five
+           items each slot is 52.8px at §31's 320px floor, so "Notifications"
+           no longer fits and the label warning is live on load. Kept
+           deliberately unshortened — fixing it in the seed would hide the
+           one cost of using every slot. */
+        nav:[
+          mkNavItem({target:'home',      label:'Home',          icon:'home'}),
+          mkNavItem({target:'wolist',    label:'Work',          icon:'list'}),
+          mkNavItem({target:'equiplist', label:'Assets',        icon:'wrench'}),
+          mkNavItem({target:'notif',     label:'Notifications', icon:'bell'}),
+          mkNavItem({target:'sync',      label:'Sync',          icon:'sync'}),
+        ],
       }),
     ];
   }
@@ -3606,6 +3964,12 @@ function seedPortalDemo(){
     lite.entities.equipment.policy = 'offline-read';
     PROFILES = [full, lite, mkOfflineProfile('Online only', 'No record replication. Tier 0 and the outbox still apply.')];
     PROFILES[2].entities && OFFLINE_ENTITIES.forEach(e => { PROFILES[2].entities[e.id].policy = 'server-only'; });
+    /* THE MEMBERSHIP DATASPY, SEEDED ON THE PROFILE THAT REPLICATES NOTHING
+       (§2.6, 2026-09-23). This is the whole point of the exception on load: a
+       group with no replication still has a punch list, because the list is a
+       membership question answered server-side. Seeded rather than left blank
+       so the state is visible without anyone setting it up. */
+    PROFILES[2].entities.wo.dataspy = 'My Open WOs';
   }
   savePortal();
 }
@@ -4550,7 +4914,17 @@ function entityRow(p, e){
           ? '<span class="reg__dash">from the work order</span>'
           : (policyNeedsFilter(row.policy)
             ? '<div class="input"><select onchange="setEntityDataspy(\'' + e.id + '\',this.value)">' +
-                '<option value=""' + (row.dataspy?'':' selected') + '>All records — it fits</option>' +
+                '<option value=""' + (row.dataspy?'':' selected') + '>All records</option>' +
+                spies.map(d => '<option value="' + esc(d) + '"' + (row.dataspy===d?' selected':'') + '>' +
+                  esc(d) + '</option>').join('') +
+              '</select>' + ic('chevD',18) + '</div>'
+            /* NOTHING REPLICATES, AND THERE IS STILL A LIST TO NAME (§2.6).
+               The empty option says what empty MEANS here — pins only — rather
+               than "All records", which would be a lie about a row that ships
+               no records at all. */
+            : isMembershipEntity(e)
+            ? '<div class="input"><select onchange="setEntityDataspy(\'' + e.id + '\',this.value)">' +
+                '<option value=""' + (row.dataspy?'':' selected') + '>No automatic list — pins only</option>' +
                 spies.map(d => '<option value="' + esc(d) + '"' + (row.dataspy===d?' selected':'') + '>' +
                   esc(d) + '</option>').join('') +
               '</select>' + ic('chevD',18) + '</div>'
@@ -4608,6 +4982,8 @@ function renderHomeArea(){
           h.sections.length + ' section' + (h.sections.length===1?'':'s') + '</span>' +
         (h.creates.length ? '<span class="chip chip--dense chip--lead chip--static">' + ic('plus',16) +
           h.creates.length + ' create' + (h.creates.length===1?'':'s') + '</span>' : '') +
+        '<span class="chip chip--dense chip--lead chip--static" title="The app navigation bar (§30.24)">' +
+          ic('home',16) + h.nav.length + '/' + NAV_MAX + ' nav</span>' +
       '</div>' +
       '<div class="wfc__body">' +
         '<div class="eyebrow">' + esc(h.desc || '—') + '</div>' +
@@ -4663,8 +5039,7 @@ function tileCatalogueHtml(){
         normalizeTile(t);
         const where = t.insertMode ? 'the Create control' : 'a section';
         return '<div class="menu__row">' +
-          '<span class="tilechip" style="' + (tileColorVar(t.color) ? 'color:' + tileColorVar(t.color) : '') + '">' +
-            ic(t.icon,20) + '</span>' +
+          '<span class="tilechip" style="' + tileSquareStyle(t) + '">' + ic(t.icon,20) + '</span>' +
           '<div class="menu__row-b">' +
             '<div class="menu__row-t">' + esc(t.label || 'Untitled tile') +
               (t.insertMode ? ' <span class="chip chip--fill chip--dense chip--lead sev-info"><span class="chip__dot"></span>insert mode</span>' : '') +
@@ -4693,8 +5068,11 @@ function editTile(id){ tileModal(id); }
 function tileModal(id){
   const t = id ? tileById(id) : null;
   const use = id ? tileUsage(id) : [];
+  /* A NEW TILE HAS NO TARGET. It used to default to the Work Order list,
+     which is what made the dataspy list look authoritative before a screen
+     had been chosen at all. */
   const v = t ? normalizeTile(t)
-    : {label:'', icon:'list', target:'wolist', dataspy:'', countSql:'', insertMode:false, color:'none'};
+    : {label:'', icon:'list', target:'', dataspy:'', countSql:'', insertMode:false, color:'none'};
   openModal('narrow',
     '<div class="mbox__head"><div class="mbox__head-b">' +
       '<div class="mbox__title">' + (t ? 'Edit tile' : 'New tile') + '</div>' +
@@ -4705,41 +5083,37 @@ function tileModal(id){
     '</div></div>' +
     '<div class="mbox__body mbox__body--plain">' +
       '<label class="pop__l">Label</label>' +
-      '<input class="tinput" id="tlLabel" value="' + esc(v.label) + '" placeholder="e.g. My Open Work">' +
-      '<label class="pop__l">Insert mode</label>' +
-      '<label class="cbx"><input type="checkbox" id="tlInsert"' + (v.insertMode?' checked':'') +
-        ' onchange="tileModalKind()"><span>Opens the screen ready to create a record</span></label>' +
-      '<div class="pop__note">The product\'s own <b>Insert Mode</b> checkbox, drawn on the device as a <b>+</b> badge. ' +
-        'It is what makes this tile a <b>Create</b>, and a Create drops <b>only into the Create control</b> — never ' +
-        'into a section, because Home\'s tiles mean "go look at a list", not "start a new record" (§9.4.1).</div>' +
-      '<div id="tlSpyWrap" style="' + (v.insertMode ? 'display:none' : '') + '">' +
-        '<label class="pop__l">Dataspy <span class="pop__opt">optional</span></label>' +
-        '<select class="tinput" id="tlSpy">' +
-          '<option value="">None — open the screen unfiltered</option>' +
-          Object.keys(DATASPIES).reduce((a,k)=>a.concat(DATASPIES[k]),[])
-            .filter((d,i,arr)=>arr.indexOf(d)===i)
-            .map(d => '<option value="' + esc(d) + '"' + (v.dataspy===d?' selected':'') + '>' + esc(d) + '</option>').join('') +
-        '</select>' +
-        '<div class="pop__note">Where the tile <b>goes</b>. Dataspies are authored on the record list screen, never ' +
-          'here — this selects one (same boundary as UDS definitions).</div>' +
-        '<label class="pop__l">Count statement <span class="pop__opt">optional</span></label>' +
-        '<input class="tinput" id="tlCount" value="' + esc(v.countSql || '') + '" placeholder="SELECT COUNT(*) FROM …">' +
-        '<div class="pop__note"><b>Separate from the dataspy</b>, which is the part worth knowing: the dataspy is ' +
-          'where the tile goes, this is what the badge says. Leave it empty for a plain link. ' +
-          'Returns 0 → <b>no badge at all</b> (not a zero); 1000 or more → <b>999+</b>. Refreshed by the header ' +
-          'refresh, not live.</div>' +
-      '</div>' +
+      '<input class="tinput" id="tlLabel" maxlength="28" value="' + esc(v.label) + '" placeholder="e.g. My Open Work">' +
+
+      /* OPENS COMES SECOND, because everything below it is scoped by it. */
       '<label class="pop__l">Opens</label>' +
-      '<select class="tinput" id="tlTarget">' +
+      '<select class="tinput" id="tlTarget" onchange="tileModalSync()">' +
+        '<option value=""' + (v.target ? '' : ' selected') + '>Choose a screen\u2026</option>' +
         TILE_TARGETS.map(x => '<option value="' + x.id + '"' + (v.target===x.id?' selected':'') + '>' + esc(x.label) + '</option>').join('') +
       '</select>' +
+
+      '<label class="pop__l">Insert mode</label>' +
+      '<div class="menu__item" id="tlInsertRow" onclick="tileToggleInsert()">' +
+        '<span class="cbx' + (v.insertMode ? ' is-on' : '') + '" id="tlInsertBox">' + ic('check',14) + '</span>' +
+        '<span class="menu__row-b"><span class="menu__row-t">Opens the screen ready to create a record</span>' +
+        '<span class="menu__row-d">The product\'s own <b>Insert Mode</b> checkbox, drawn on the device as a ' +
+          '<b>+</b> badge. It is what makes this tile a <b>Create</b>, and a Create drops <b>only into the ' +
+          'Create control</b> \u2014 never into a section (\u00a79.4.1).</span></span>' +
+      '</div>' +
+
+      '<div id="tlSpyWrap">' + tileSpyHtml(v.target, v.dataspy, v.countSql, v.insertMode) + '</div>' +
+
+      '<label class="pop__l">Icon</label>' +
+      iconPickerHtml('tlIcons', TILE_ICONS, v.icon || 'list') +
+
       '<label class="pop__l">Icon colour</label>' +
-      '<select class="tinput" id="tlColor">' +
-        TILE_COLORS.map(c => '<option value="' + c.k + '"' + (v.color===c.k?' selected':'') + '>' + esc(c.label) + '</option>').join('') +
-      '</select>' +
-      '<div class="pop__note">Home is §23\'s one named exception to the monochrome rule — tile icons keep real colour. ' +
-        'The palette is the four WO Type tokens, because an exception is not a licence to invent hues.</div>' +
+      swatchPickerHtml('tlColors', v.color || 'none') +
+      '<div class="pop__note">Home is §23\'s one named exception to the monochrome rule — a tile icon keeps real ' +
+        'colour. The set is the portal\'s own <b>six colour badges</b> (§30.25), used identically wherever anything ' +
+        'here is given a colour; the device draws the square as that colour at 13% with the glyph in it at full ' +
+        'strength, which is what the preview shows.</div>' +
     '</div>' +
+
     '<div class="mbox__foot mbox__foot--split">' +
       (t ? btn('Delete', {cls:'Button--error', icon:'trash', on:'closeModal();deleteTile(\'' + id + '\')'}) : '<span></span>') +
       '<span style="display:flex;gap:var(--s-2)">' +
@@ -4749,22 +5123,83 @@ function tileModal(id){
     '</div>');
   const el = $('tlLabel'); if(el) el.focus();
 }
-/* An insert-mode tile has no dataspy and no counter, so the fields that
-   cannot apply are hidden rather than left to be filled and ignored. */
-function tileModalKind(){
-  const ins = !!($('tlInsert') && $('tlInsert').checked);
-  const w = $('tlSpyWrap'); if(w) w.style.display = ins ? 'none' : '';
+/* ── DATASPY IS SCOPED BY THE SCREEN, AND PROTECTED UNTIL THERE IS ONE ──
+   Three states, each stated at the point of choice rather than left as an
+   empty or wrong dropdown: no screen yet (protected), a screen that carries
+   no dataspies (Notifications, Sync — a real answer), or the screen's own
+   list. An insert-mode tile has neither, so the block collapses entirely
+   rather than offering fields that are then ignored. */
+function tileSpyHtml(target, spy, countSql, insertMode){
+  if(insertMode){
+    return '<div class="pop__note">A <b>Create</b> carries no dataspy and no counter — it opens the screen in ' +
+      'insert mode, so there is nothing to filter and nothing to count.</div>';
+  }
+  const t = tileTarget(target);
+  const list = t && t.entity ? dataspiesFor(t.entity) : [];
+  let spyField;
+  if(!t){
+    spyField = '<div class="pop__note">' + ic('lock',14) + ' <b>Pick a screen first.</b> A dataspy belongs to a ' +
+      'record list, so there is nothing to choose from until <b>Opens</b> is set.</div>';
+  } else if(!list.length){
+    spyField = '<div class="pop__note">' + ic('lock',14) + ' <b>' + esc(t.label) + '</b> carries no dataspies — ' +
+      'it is not a record list. The tile opens it whole.</div>';
+  } else {
+    spyField = '<select class="tinput" id="tlSpy">' +
+        '<option value="">None — open the screen unfiltered</option>' +
+        list.map(d => '<option value="' + esc(d) + '"' + (spy===d?' selected':'') + '>' + esc(d) + '</option>').join('') +
+      '</select>' +
+      '<div class="pop__note">Where the tile <b>goes</b>, and the list is <b>' + esc(t.label) + '</b>\'s own. ' +
+        'Dataspies are authored on the record list screen, never here — this selects one (same boundary as UDS ' +
+        'definitions).</div>';
+  }
+  return '<label class="pop__l">Dataspy <span class="pop__opt">optional</span></label>' + spyField +
+    (t
+      ? '<label class="pop__l">Count statement <span class="pop__opt">optional</span></label>' +
+        '<input class="tinput" id="tlCount" value="' + esc(countSql || '') + '" placeholder="SELECT COUNT(*) FROM \u2026">' +
+        '<div class="pop__note"><b>Separate from the dataspy</b>, which is the part worth knowing: the dataspy is ' +
+          'where the tile goes, this is what the badge says. Leave it empty for a plain link. ' +
+          'Returns 0 → <b>no badge at all</b> (not a zero); 1000 or more → <b>999+</b>. Refreshed by the header ' +
+          'refresh, not live.</div>'
+      : '');
+}
+/* Both handlers rebuild the same block from the same function, reading the
+   live values out first — so switching screen keeps a typed count statement
+   and only drops a dataspy the new screen does not have. */
+function tileModalSync(){
+  const w = $('tlSpyWrap'); if(!w) return;
+  const target = ($('tlTarget') && $('tlTarget').value) || '';
+  const spy = ($('tlSpy') && $('tlSpy').value) || '';
+  const count = ($('tlCount') && $('tlCount').value) || '';
+  const t = tileTarget(target);
+  const keep = t && t.entity && dataspiesFor(t.entity).indexOf(spy) > -1 ? spy : '';
+  w.innerHTML = tileSpyHtml(target, keep, count, tileInsertOn());
+}
+function tileInsertOn(){
+  const b = $('tlInsertBox');
+  return !!(b && b.classList.contains('is-on'));
+}
+/* A real row, not a 16px .cbx used as a <label>. That is what made this
+   control render as a box with text spilling out of it: .cbx IS the box. */
+function tileToggleInsert(){
+  const b = $('tlInsertBox'); if(!b) return;
+  b.classList.toggle('is-on');
+  tileModalSync();
 }
 function commitTile(id){
   const label = ($('tlLabel') && $('tlLabel').value || '').trim();
   if(!label){ toast('A tile needs a label'); return; }
-  const insertMode = !!($('tlInsert') && $('tlInsert').checked);
+  const target = ($('tlTarget') && $('tlTarget').value) || '';
+  if(!target){ toast('Pick what the tile opens'); return; }
+  const insertMode = tileInsertOn();
+  /* THE ICON IS AUTHORED, NOT DERIVED. It used to be overwritten here from
+     the target on every save — so a seeded tile lost its glyph the first
+     time anybody opened it, and the icon field was unreachable. */
   const data = {label:label, insertMode:insertMode,
-    icon:insertMode ? 'plus' : (($('tlTarget').value.indexOf('equip') > -1) ? 'box' : 'list'),
-    target:$('tlTarget').value,
+    icon:pickerRead('tlIcons', 'list'),
+    target:target,
     dataspy:(!insertMode && $('tlSpy')) ? $('tlSpy').value : '',
     countSql:(!insertMode && $('tlCount')) ? $('tlCount').value.trim() : '',
-    color:$('tlColor').value};
+    color:pickerRead('tlColors', 'none')};
   if(id){
     const t = tileById(id); if(!t) return;
     Object.assign(t, data); t.updated = todayStr();
@@ -4863,9 +5298,9 @@ function renderHomeEditor(){
   const creates = avail.filter(t => t.insertMode);
 
   const libItem = t =>
-    '<div class="lib__item' + (t.insertMode ? ' lib__item--act' : '') + '" draggable="true" ' +
+    '<div class="lib__item' + (t.insertMode ? ' lib__item--create' : '') + '" draggable="true" ' +
       'ondragstart="tileDragStart(event,\'' + t.id + '\')" ondragend="tileDragEnd()">' +
-      '<span class="lib__ico" style="' + (tileColorVar(t.color)?'color:'+tileColorVar(t.color):'') + '">' +
+      '<span class="lib__ico" style="' + tileSquareStyle(t) + '">' +
         ic(t.insertMode ? 'plus' : t.icon, 16) + '</span>' +
       '<span class="lib__item-t">' + esc(t.label) + '</span>' +
       '<span class="lib__used" title="Layouts using it">' + tileUsage(t.id).length + '</span>' +
@@ -4943,7 +5378,7 @@ function emuHomeHtml(h){
               return '<div class="emu-crow" draggable="true" ondragstart="createMoveStart(event,' + ci + ')" ' +
                 'ondragend="tileDragEnd()" oncontextmenu="createOnLayoutMenu(event,\'' + h.id + '\',' + ci + ')" ' +
                 'title="Right-click to remove">' +
-                '<span class="hometile__ico">' + ic('plus',16) + '</span>' +
+                '<span class="hometile__ico" style="' + tileGlyphStyle(t) + '">' + ic('plus',16) + '</span>' +
                 '<span class="emu-crow__l">' + esc(t.label) +
                   (bad ? ' \u00b7 hidden for ' + esc(gapIds[t.id].join(', ')) : '') + '</span>' +
                 '<span class="emu-crow__x">' + ic('chevR',14) + '</span>' +
@@ -5003,7 +5438,7 @@ function emuHomeHtml(h){
                       'ondragover="secDragOver(event,' + si + ')" ondrop="tileDrop(event,' + si + ',' + ti + ')" ' +
                       'oncontextmenu="tileOnLayoutMenu(event,\'' + h.id + '\',' + si + ',' + ti + ')" ' +
                       'title="' + (gap ? 'Hidden for ' + esc(gap.join(', ')) + ' \u2014 not in that menu' : 'Right-click for options') + '">' +
-                      '<span class="hometile__sq" style="' + (tileColorVar(t.color)?'color:'+tileColorVar(t.color):'') + '">' +
+                      '<span class="hometile__sq" style="' + tileSquareStyle(t) + '">' +
                         '<span class="hometile__ico">' + ic(t.icon,24) + '</span>' +
                         (badge ? '<span class="hometile__b">' + esc(badge) + '</span>' : '') +
                       '</span>' +
@@ -5018,6 +5453,73 @@ function emuHomeHtml(h){
       '<button class="emu-addsec" onclick="addSection()">' + ic('plus',16) + 'Add a section</button>' +
       (h.showFavorites ? '' :
         '<button class="emu-addsec" onclick="toggleHomeFavorites()">' + ic('eye',16) + 'Show the Favorites row</button>') +
+    '</div>' +
+
+    /* THE APP NAVIGATION BAR — the literal bottom edge of the same picture,
+       which is the argument for it living here (§30.24). */
+    navBarHtml(h) +
+  '</div>';
+}
+
+/* ── THE NAVIGATION BAR, DRAWN AS THE DEVICE DRAWS IT ──
+   Two different widths are in play and conflating them would be a lie in
+   either direction: the bar is DRAWN at what a 390px device gives each slot,
+   and the note REPORTS what the 320px floor gives it. The second is the one
+   that constrains the label, so it is the one printed. */
+function navDrawPx(n){
+  n = Math.max(1, n || 1);
+  return Math.min(NAV_SLOT_PX, (378 - NAV_GAP_PX * (n - 1)) / n);   /* 390 − 6px padding each side */
+}
+function navBarHtml(h){
+  const n = h.nav.length;
+  const draw = navDrawPx(n);
+  const budget = navLabelBudget(n);
+  /* Which slots a group would never reach — the §30.17 gate, per item. */
+  const gapG = {};
+  groupsOf('home', h.id).forEach(g => navGaps(h, g).forEach(it => {
+    gapG[it.target] = (gapG[it.target] || []).concat(g);
+  }));
+
+  return '<div class="emu-navwrap">' +
+    '<div class="emu-navbar" id="navbar" ondragover="navDragOver(event,-1)" ondrop="navDrop(event,-1)">' +
+      h.nav.map((it, i) => {
+        const t = navTarget(it.target) || {};
+        const bad = gapG[it.target];
+        const label = (it.label || '').trim();
+        const long = label.length > budget;
+        const pinned = it.target === 'home';
+        return '<div class="emu-navitem' + (i === 0 ? ' emu-navitem--on' : '') +
+            (pinned ? ' emu-navitem--pinned' : '') + (bad ? ' emu-navitem--gap' : '') +
+            (long ? ' emu-navitem--long' : '') + '" style="width:' + draw.toFixed(1) + 'px" ' +
+          'draggable="' + (pinned ? 'false' : 'true') + '" ' +
+          (pinned ? '' : 'ondragstart="navDragStart(event,' + i + ')" ondragend="navDragEnd()" ' +
+                         'ondragover="navDragOver(event,' + i + ')" ondrop="navDrop(event,' + i + ')" ') +
+          'onclick="navItemModal(' + i + ')" oncontextmenu="navMenu(event,' + i + ')" ' +
+          'title="' + esc(pinned
+            ? 'Home is slot 1 and cannot be moved or removed — it is the only way back to Home while browsing. Its label and icon are yours.'
+            : (bad ? 'Dead for ' + bad.join(', ') + ' — ' + (t.label || it.target) + ' is not in that menu. '
+                   : '') + 'Click to edit · drag to reorder · right-click for options') + '">' +
+          (pinned ? '<span class="emu-navitem__p">' + ic('pin',14) + '</span>' : '') +
+          ic(it.icon, 20) +
+          '<span class="emu-navitem__l">' + (label ? esc(label) : '—') + '</span>' +
+        '</div>';
+      }).join('') +
+      (n < NAV_MAX
+        ? '<button class="emu-navadd" onclick="addNavItem()" style="width:' + draw.toFixed(1) + 'px" ' +
+            'title="Add a navigation item">' + ic('plus',16) + 'ADD</button>'
+        : '') +
+    '</div>' +
+    '<div class="emu-navnote">' +
+      '<b>This bar is not part of Home.</b> It is app-level chrome (§4.2): it shows on every browsing ' +
+      'screen and hides the moment a record opens. It is authored here because a group gets exactly one ' +
+      'Home layout and exactly one bar — same cardinality, so one artifact rather than two. ' +
+      'Label, screen and icon are yours; <b>colour is not</b> — the bar is monochrome glass (§23). ' +
+      'Notifications draws its own unread badge; a nav item carries no count statement.' +
+      '<div class="emu-navnote__m">' +
+        '<span class="emu-navnote__c">' + n + ' of ' + NAV_MAX + ' slots</span>' +
+        '<span class="emu-navnote__c">' + navSlotPx(n).toFixed(1) + 'px per slot at the 320px floor</span>' +
+        '<span class="emu-navnote__c">~' + budget + ' characters before a label wraps</span>' +
+      '</div>' +
     '</div>' +
   '</div>';
 }
@@ -5256,7 +5758,7 @@ function tileOnLayoutMenu(ev, homeId, si, ti){
   const h = artifactOf('home', homeId); if(!h) return;
   const sec = h.sections[si]; if(!sec) return;
   const t = normalizeTile(tileById(sec.tiles[ti]));
-  const gaps = groupsOf('home', h.id).filter(g => t && groupMenu(g).indexOf(t.target) === -1);
+  const gaps = groupsOf('home', h.id).filter(g => t && groupMenu(g).indexOf(targetScreen(t.target)) === -1);
   openMenu(ev,
     '<div class="menu__label">' + esc(t ? t.label : 'Tile') + '</div>' +
     (gaps.length
@@ -5293,6 +5795,248 @@ function removeCreateFromHome(homeId, ci){
   const h = artifactOf('home', homeId); if(!h) return;
   h.creates.splice(ci, 1); h.updated = todayStr(); savePortal(); render();
   toast('Removed from the Create control \u2014 the tile itself is untouched');
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   THE NAVIGATION BAR — CRUD (§30.24)
+   One item, three authorable things: label, screen, icon. Every rule is
+   enforced at the MUTATION and again in normalizeNav on read, which is the
+   §30.16 discipline — a gesture guard alone is bypassed by anything that
+   calls the mutation directly.
+   ══════════════════════════════════════════════════════════════════════ */
+/* Which screens are still free. A nav item carries no dataspy, so two items
+   on one screen would be two identical destinations — the option is removed
+   rather than offered and then refused. */
+function navFreeTargets(h, exceptIdx){
+  const taken = {};
+  (h.nav || []).forEach((it, i) => { if(i !== exceptIdx) taken[it.target] = 1; });
+  return NAV_TARGETS.filter(t => !t.shell && !taken[t.id]);
+}
+function addNavItem(){
+  const h = artifactOf('home', state.openHome); if(!h) return;
+  if(h.nav.length >= NAV_MAX){
+    toast('The bar holds ' + NAV_MAX + ' items — remove one first');
+    return;
+  }
+  const free = navFreeTargets(h, -1);
+  if(!free.length){ toast('Every screen the bar can open is already on it'); return; }
+  const t = free[0];
+  h.nav.push(mkNavItem({target:t.id, label:t.label, icon:navDefaultIcon(t.id)}));
+  h.updated = todayStr(); savePortal(); render();
+  navItemModal(h.nav.length - 1);
+}
+/* A sensible starting glyph per screen, so a new slot is never a blank
+   square the admin has to decode. */
+function navDefaultIcon(target){
+  return {home:'home', wolist:'list', equiplist:'wrench', notif:'bell', sync:'sync'}[target] || 'list';
+}
+function removeNavItem(i){
+  const h = artifactOf('home', state.openHome); if(!h) return;
+  const it = h.nav[i]; if(!it) return;
+  /* Home is slot 1 and is the only route back to Home while browsing —
+     clamped here, not merely left out of the menu. */
+  if(it.target === 'home'){ toast('Home cannot be removed — it is the only way back to Home while browsing'); return; }
+  h.nav.splice(i, 1);
+  h.updated = todayStr(); savePortal(); render();
+  toast('Removed from the navigation bar');
+}
+function moveNavItem(i, d){
+  const h = artifactOf('home', state.openHome); if(!h) return;
+  const to = i + d;
+  /* Slot 1 is Home's, from both sides: it cannot move, and nothing can move
+     into it. */
+  if(i === 0 || to < 1 || to >= h.nav.length) return;
+  const m = h.nav.splice(i, 1)[0];
+  h.nav.splice(to, 0, m);
+  h.updated = todayStr(); savePortal(); render();
+}
+function navMenu(ev, i){
+  ev.preventDefault(); ev.stopPropagation();
+  const h = artifactOf('home', state.openHome); if(!h) return;
+  const it = h.nav[i]; if(!it) return;
+  const t = navTarget(it.target) || {};
+  const pinned = it.target === 'home';
+  const gaps = groupsOf('home', h.id).filter(g => !t.shell && groupMenu(g).indexOf(t.screen) === -1);
+  openMenu(ev,
+    '<div class="menu__label">' + esc(it.label || 'Navigation item') + '</div>' +
+    (gaps.length
+      ? '<div class="menu__row is-warn"><div class="menu__row-b"><div class="menu__row-t">' +
+          'Dead for ' + esc(gaps.join(', ')) + '</div><div class="menu__row-d">' +
+          esc(t.label || it.target) + ' is not in that menu, so the slot goes nowhere for those groups. ' +
+          'Reported, not auto-fixed — removing it would be wrong for the groups that can reach it.' +
+          '</div></div></div><div class="menu__sep"></div>'
+      : '') +
+    (pinned
+      ? '<div class="menu__row"><div class="menu__row-b"><div class="menu__row-t">Slot 1, pinned</div>' +
+          '<div class="menu__row-d">Home is the only route back to Home while browsing, so its position and ' +
+          'screen are protected. Its label and icon are still yours.</div></div></div><div class="menu__sep"></div>'
+      : '') +
+    '<div class="menu__item" onclick="closeMenu();navItemModal(' + i + ')">' + ic('pencil',16) + 'Edit item</div>' +
+    (pinned ? '' :
+      '<div class="menu__item' + (i <= 1 ? ' menu__item--off' : '') + '" onclick="closeMenu();moveNavItem(' + i + ',-1)">' +
+        ic('chevU',16) + 'Move left</div>' +
+      '<div class="menu__item' + (i === h.nav.length-1 ? ' menu__item--off' : '') + '" onclick="closeMenu();moveNavItem(' + i + ',1)">' +
+        ic('chevD',16) + 'Move right</div>' +
+      '<div class="menu__sep"></div>' +
+      '<div class="menu__item menu__item--danger" onclick="closeMenu();removeNavItem(' + i + ')">' +
+        ic('trash',16) + 'Remove from the bar</div>'));
+}
+
+/* ═════ GRID PICKERS — ONE MECHANIC, TWO USES (§30.25) ═════
+   An icon picker and a colour picker are the same control with a different
+   cell, and a modal reads its value back by element id rather than through a
+   named global per picker — which is what let the nav bar's own picker be
+   reused for tiles with no second copy of the toggle logic. */
+let PICKED = {};
+function pickerRead(id, fallback){
+  return PICKED[id] === undefined ? fallback : PICKED[id];
+}
+function pickerSet(id, v){
+  PICKED[id] = v;
+  const w = $(id); if(!w) return;
+  const btns = w.querySelectorAll('[data-pick]');
+  Array.prototype.forEach.call(btns, b => b.classList.toggle('is-on', b.getAttribute('data-pick') === v));
+}
+function iconPickerHtml(id, list, sel){
+  PICKED[id] = sel;
+  return '<div class="icopick" id="' + id + '">' +
+    list.map(k => '<button class="icopick__b' + (sel === k ? ' is-on' : '') + '" data-pick="' + k + '" ' +
+      'onclick="pickerSet(\'' + id + '\',\'' + k + '\')" title="' + esc(k) + '">' + ic(k,20) + '</button>').join('') +
+  '</div>';
+}
+function swatchPickerHtml(id, sel){
+  PICKED[id] = sel;
+  return '<div class="swatch" id="' + id + '">' +
+    BADGE_COLORS.map(c => '<button class="swatch__b' + (sel === c.k ? ' is-on' : '') + '" data-pick="' + c.k + '" ' +
+      'onclick="pickerSet(\'' + id + '\',\'' + c.k + '\')" title="' + esc(c.label) + '">' +
+      '<span class="swatch__d' + (c.v ? '' : ' swatch__d--none') + '"' +
+        (c.v ? ' style="background:' + c.v + '"' : '') + '></span>' +
+    '</button>').join('') +
+  '</div>';
+}
+
+/* ── THE ITEM EDITOR ──
+   A modal, per §30.13's "Create follows size": three fields fit one form. */
+function navItemModal(i){
+  const h = artifactOf('home', state.openHome); if(!h) return;
+  const it = h.nav[i]; if(!it) return;
+  const pinned = it.target === 'home';
+  const free = navFreeTargets(h, i);
+  openModal('narrow',
+    '<div class="mbox__head"><div class="mbox__head-b">' +
+      '<div class="mbox__title">Navigation slot ' + (i+1) + ' of ' + h.nav.length + '</div>' +
+      '<div class="mbox__sub">The app&#39;s bottom bar (§4.2) — app-level chrome, not a Home tile. ' +
+        'Three things are authorable: the label, the screen it opens and the icon.</div>' +
+    '</div></div>' +
+    '<div class="mbox__body mbox__body--plain">' +
+      '<label class="pop__l">Label</label>' +
+      '<input class="tinput" id="nvLabel" value="' + esc(it.label) + '" maxlength="24" ' +
+        'placeholder="e.g. Work" oninput="navLabelHint()">' +
+      '<div class="pop__note" id="nvHint"></div>' +
+      '<label class="pop__l">Opens</label>' +
+      (pinned
+        ? '<div class="pop__note"><b>' + ic('lock',14) + ' Protected — Home.</b> Slot 1 is the only route back ' +
+            'to Home while browsing, so the screen and the position are both fixed. The label and icon are yours.</div>'
+        : '<select class="tinput" id="nvTarget">' +
+            free.map(t => '<option value="' + t.id + '"' + (it.target === t.id ? ' selected' : '') + '>' +
+              esc(t.label) + '</option>').join('') +
+          '</select>' +
+          '<div class="pop__note">Screens only. <b>There is no create target</b>, and that is structural rather ' +
+            'than a rule being enforced: a nav item is a destination you come back to, a create is an action, and ' +
+            '§9.4.1 put creates behind the Create control. A screen already on the bar is not offered — a nav ' +
+            'item carries no dataspy, so two items on one screen would be two identical destinations.</div>') +
+      '<label class="pop__l">Icon</label>' +
+      iconPickerHtml('nvIcons', NAV_ICONS, it.icon || 'list') +
+      '<div class="pop__note"><b>Colour is not authorable.</b> The bar is monochrome white-on-dark glass ' +
+        '(§23); Home&#39;s colour exception is for tiles, and this is not a tile. Notifications draws its own ' +
+        'unread badge — a nav item has no count statement.</div>' +
+    '</div>' +
+    '<div class="mbox__foot mbox__foot--split">' +
+      (pinned ? '<span></span>' : btn('Remove', {cls:'Button--error', icon:'trash', on:'closeModal();removeNavItem(' + i + ')'})) +
+      '<span style="display:flex;gap:var(--s-2)">' +
+        btn('Cancel', {on:'closeModal()'}) +
+        btn('Save', {cls:'Button--contained Button--primary', on:'commitNavItem(' + i + ')'}) +
+      '</span>' +
+    '</div>');
+  navLabelHint();
+  const el = $('nvLabel'); if(el){ el.focus(); el.select(); }
+}
+/* THE BUDGET, LIVE. The device does not truncate — .bottom-nav-item has no
+   nowrap rule — so an over-long label wraps to a second line at 320px. That
+   is worth saying while it is being typed rather than reporting afterwards. */
+function navLabelHint(){
+  const h = artifactOf('home', state.openHome); if(!h) return;
+  const el = $('nvLabel'), hint = $('nvHint'); if(!el || !hint) return;
+  const n = h.nav.length, budget = navLabelBudget(n), len = el.value.trim().length;
+  hint.innerHTML = 'At <b>' + n + '</b> item' + (n===1?'':'s') + ' each slot is <b>' +
+    navSlotPx(n).toFixed(1) + 'px</b> at §31&#39;s 320px floor — about <b>' + budget +
+    '</b> characters. ' +
+    (len > budget
+      ? '<b>' + len + ' characters wraps to a second line.</b> §4.2 shortened "Work Orders" to "Work" for ' +
+        'exactly this reason.'
+      : len + ' fits.');
+}
+function commitNavItem(i){
+  const h = artifactOf('home', state.openHome); if(!h) return;
+  const it = h.nav[i]; if(!it) return;
+  const label = ($('nvLabel') && $('nvLabel').value || '').trim();
+  if(!label){ toast('A navigation item needs a label — the bar is icon AND label'); return; }
+  if(it.target !== 'home' && $('nvTarget')){
+    const target = $('nvTarget').value;
+    if(h.nav.some((o, oi) => oi !== i && o.target === target)){
+      toast('Another slot already opens that screen'); return;
+    }
+    it.target = target;
+  }
+  it.label = label;
+  it.icon = pickerRead('nvIcons', it.icon);
+  h.updated = todayStr(); savePortal(); closeModal(); render();
+  toast('Navigation bar updated');
+}
+
+/* ── REORDER BY DRAG ──
+   Its own drag state, deliberately not tileDrag's: a nav item is not a tile,
+   and pooling the two would let a catalogue tile be dropped onto the bar.
+   NOTHING RE-RENDERS DURING dragover (§30.12). */
+let navDrag = null;
+function navDragStart(ev, i){
+  navDrag = i;
+  ev.dataTransfer.effectAllowed = 'move';
+  try{ ev.dataTransfer.setData('text/plain','n'); }catch(e){}
+  if(ev.currentTarget.classList) ev.currentTarget.classList.add('dragging');
+  ev.stopPropagation();
+}
+function navDragOver(ev, i){
+  if(navDrag === null) return;
+  ev.preventDefault(); ev.stopPropagation();
+  const el = ev.currentTarget;
+  if(!el || !el.classList) return;
+  if(i < 0){ el.classList.add('is-over'); return; }
+  el.classList.remove('over-l'); el.classList.remove('over-r');
+  el.classList.add(i <= navDrag ? 'over-l' : 'over-r');
+}
+function navDragEnd(){
+  navDrag = null;
+  document.querySelectorAll('.emu-navitem.dragging,.emu-navitem.over-l,.emu-navitem.over-r')
+    .forEach(e => { e.classList.remove('dragging'); e.classList.remove('over-l'); e.classList.remove('over-r'); });
+  const bar = $('navbar'); if(bar) bar.classList.remove('is-over');
+}
+function navDrop(ev, i){
+  if(navDrag === null) return false;
+  ev.preventDefault(); ev.stopPropagation();
+  const h = artifactOf('home', state.openHome); if(!h){ navDragEnd(); return false; }
+  const from = navDrag; navDragEnd();
+  /* Dropping on the bar itself (i < 0) means "the end". Slot 1 stays Home's
+     from both sides — clamped at the mutation rather than in the drag
+     geometry, which is where the step-1 pin was got round once (§29.2). */
+  let to = i < 0 ? h.nav.length - 1 : i;
+  to = Math.max(1, Math.min(h.nav.length - 1, to));
+  if(from === 0 || from === to) return false;
+  const m = h.nav.splice(from, 1)[0];
+  h.nav.splice(to, 0, m);
+  h.updated = todayStr(); savePortal(); render();
+  return true;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -5436,7 +6180,7 @@ function groupArtRow(g, type, a, effState){
 function artSummary(type, a){
   if(type === 'workflow') return (a.freeForm ? 'Free Form · ' : seqNodes(a).length + ' steps · ') + (a.fn || '');
   if(type === 'offline') return profileEnabledCount(a) + ' entities offline · cap ' + a.caps.rowCap + '/entity';
-  if(type === 'home') return (a.tiles || []).length + ' tiles';
+  if(type === 'home') return homeTileIds(a).length + ' tiles · ' + a.nav.length + ' nav slots';
   return '';
 }
 /* ── ONE POPOVER, ONE GROUP (reworked 2026-09-17) ──
@@ -5477,9 +6221,15 @@ function openGroupAssign(ev, g, type){
       (multi
         ? '<span class="cbx' + (on?' is-on':'') + '">' + ic('check',14) + '</span>'
         : '<span class="rdo' + (on?' is-on':'') + '"><span class="rdo__dot"></span></span>') +
+      /* NO SUMMARY LINE UNDER THE OPTION (2026-09-23, user direction). A
+         picker's job is to name the choices; describing each one turned a
+         six-row radio list into six paragraphs, and the description was the
+         first thing to go stale (the home branch counted h.tiles, which
+         stopped existing when sections landed — every layout read "0
+         tiles"). A CLASH still shows, because that is a consequence, not a
+         description. */
       '<span class="menu__row-b"><span class="menu__row-t">' + esc(artifactName(type, a)) + '</span>' +
-      (clash ? '<span class="menu__row-d" style="color:var(--critical)">' + esc(clash) + '</span>'
-             : '<span class="menu__row-d">' + esc(artSummary(type, a)) + '</span>') +
+      (clash ? '<span class="menu__row-d" style="color:var(--critical)">' + esc(clash) + '</span>' : '') +
       '</span></div>';
   };
 
@@ -5640,8 +6390,9 @@ function galCard(w){
   const flow = flowNodes(w), ref = refNodes(w);
   const steps = w.freeForm ? w.nodes : flow;
   const chips = steps.slice(0,6).map((n,i) => {
-    if(n.kind === 'fork') return (i?'<span class="sarr">'+ic('chevR',10)+'</span>':'') +
-      '<span class="sstep sstep--fork">' + ic('split',11) + 'Fork</span>';
+    if(isForkKind(n)) return (i?'<span class="sarr">'+ic('chevR',10)+'</span>':'') +
+      '<span class="sstep sstep--fork" style="' + nodeAccentStyle(n) + '">' +
+        ic(n.kind === 'cond' ? 'rule' : 'fork',11) + (n.kind === 'cond' ? 'Condition' : 'Fork') + '</span>';
     const gates = (n.reqComment?'<span class="sgate">'+ic('message',11)+'</span>':'') +
                   (n.reqDoc?'<span class="sgate">'+ic('clip',11)+'</span>':'');
     return (i && !w.freeForm ? '<span class="sarr">'+ic('chevR',10)+'</span>' : (i?' ':'')) +
@@ -6031,16 +6782,20 @@ function renderLib(){
       '<div class="lib__item lib__item--fork" draggable="true" ondragstart="libDragStart(event,\'fork\')" ondragend="dragEnd()">' +
         '<span class="lib__ico">' + ic('split',16) + '</span>' +
         '<span class="lib__item-t">Question fork</span></div>' +
-      '<div class="lib__item lib__item--fork" draggable="true" ondragstart="libDragStart(event,\'cond\')" ondragend="dragEnd()">' +
-        '<span class="lib__ico">' + ic('fork',16) + '</span>' +
+      '<div class="lib__item lib__item--fork" style="' + accentStyleFor('blue') + '" draggable="true" ' +
+        'ondragstart="libDragStart(event,\'cond\')" ondragend="dragEnd()">' +
+        '<span class="lib__ico">' + ic('rule',16) + '</span>' +
         '<span class="lib__item-t">Condition fork</span></div>' +
-      '<div class="lib__item lib__item--act" draggable="true" ondragstart="libDragStart(event,\'status\')" ondragend="dragEnd()">' +
+      '<div class="lib__item lib__item--act" style="' + accentStyleFor('orange') + '" draggable="true" ' +
+        'ondragstart="libDragStart(event,\'status\')" ondragend="dragEnd()">' +
         '<span class="lib__ico">' + ic('flag',16) + '</span>' +
         '<span class="lib__item-t">Status update</span></div>' +
-      '<div class="lib__item lib__item--act" draggable="true" ondragstart="libDragStart(event,\'timer\')" ondragend="dragEnd()">' +
-        '<span class="lib__ico">' + ic('clock',16) + '</span>' +
+      '<div class="lib__item lib__item--act" style="' + accentStyleFor('green') + '" draggable="true" ' +
+        'ondragstart="libDragStart(event,\'timer\')" ondragend="dragEnd()">' +
+        '<span class="lib__ico">' + ic('timer',16) + '</span>' +
         '<span class="lib__item-t">Start Timer</span></div>' +
-      '<div class="lib__item lib__item--act" draggable="true" ondragstart="libDragStart(event,\'stoptimer\')" ondragend="dragEnd()">' +
+      '<div class="lib__item lib__item--act" style="' + accentStyleFor('red') + '" draggable="true" ' +
+        'ondragstart="libDragStart(event,\'stoptimer\')" ondragend="dragEnd()">' +
         '<span class="lib__ico">' + ic('timerOff',16) + '</span>' +
         '<span class="lib__item-t">Stop Timer</span></div>';
   }
@@ -6194,7 +6949,7 @@ function nodeHtml(w, n, inZone){
        that DIFFERS between two of the same kind. It read "Start Timer ·
        Start Timer · Ask the technician" before this. */
     const line = actionNodeLine(n);
-    return '<div class="node node--act' + sel + '" draggable="true" data-nid="' + n.nid + '" ' +
+    return '<div class="node node--act' + sel + '" style="' + nodeAccentStyle(n) + '" draggable="true" data-nid="' + n.nid + '" ' +
         'ondragstart="nodeDragStart(event,\'' + n.nid + '\')" ondragend="dragEnd()" ' +
         'onclick="selectNode(\'' + n.nid + '\')">' +
       '<span class="node__seq node__seq--act">' + ic(glyph,14) + '</span>' +
@@ -6220,10 +6975,10 @@ function nodeHtml(w, n, inZone){
     const out = (br, label) =>
       '<button class="fork__ans" data-fork="' + n.nid + '" data-branch="' + br + '" ' +
         'onclick="event.stopPropagation();openCondEditor(\'' + n.nid + '\')">' + label + '</button>';
-    return '<div class="node node--fork node--cond' + sel + '" draggable="true" data-nid="' + n.nid + '" ' +
+    return '<div class="node node--fork node--cond' + sel + '" style="' + nodeAccentStyle(n) + '" draggable="true" data-nid="' + n.nid + '" ' +
         'ondragstart="nodeDragStart(event,\'' + n.nid + '\')" ondragend="dragEnd()" ' +
         'onclick="selectNode(\'' + n.nid + '\')">' +
-      '<span class="node__seq">' + ic('fork',13) + '</span>' +
+      '<span class="node__seq">' + ic('rule',13) + '</span>' +
       '<div class="node__b">' +
         '<div class="fork__q' + (unset || broken ? ' fork__q--empty' : '') + '">' +
           esc(condSummary(w, n)) + '</div>' +
@@ -6248,10 +7003,10 @@ function nodeHtml(w, n, inZone){
       '<button class="fork__ans" data-fork="' + n.nid + '" data-branch="' + br + '" ' +
         'onclick="event.stopPropagation();openForkEditor(\'' + n.nid + '\')">' +
         esc(label || (br === 'yes' ? 'Yes' : 'No')) + '</button>';
-    return '<div class="node node--fork' + sel + '" draggable="true" data-nid="' + n.nid + '" ' +
+    return '<div class="node node--fork' + sel + '" style="' + nodeAccentStyle(n) + '" draggable="true" data-nid="' + n.nid + '" ' +
         'ondragstart="nodeDragStart(event,\'' + n.nid + '\')" ondragend="dragEnd()" ' +
         'onclick="selectNode(\'' + n.nid + '\')">' +
-      '<span class="node__seq">' + ic('split',13) + '</span>' +
+      '<span class="node__seq">' + ic('fork',13) + '</span>' +
       '<div class="node__b">' +
         '<div class="fork__q' + (tx(n.question,BASE_LANG)?'':' fork__q--empty') + '">' +
           (tx(n.question,BASE_LANG) ? esc(tx(n.question,BASE_LANG)) : 'No question yet') + '</div>' +

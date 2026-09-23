@@ -106,63 +106,14 @@ the table**, Background Sync still does not exist on Safari, and the
 durability guarantee stays weaker. So it is a different architecture
 decision with real capability loss, not a delivery-target toggle.
 
-**Consequence for the "Contractor / BYOD" requirement — out of this app's scope,
-and owned by the base product (locked 2026-09-11, user direction).** The SWG asked
-for browser-native access. This architecture does not deliver it, will not, and
-**should stop trying to**: the path forward for contractors is **the base EAM
-product in a mobile browser**, not this app.
-
-This reverses how the theme was reported. From 2026-09-08 until now this section
-claimed §2.10's replication switch answered it — a contractor assigned **no
-offline profile** running as an online-only user of the one unified app. That is
-still a *mechanically* true description of profile `None`, and profile `None`
-survives unchanged. What is withdrawn is the **claim that it is the Contractor/BYOD
-answer**. Three reasons it never really was:
-
-1. **It did not answer what was asked.** The theme is "organizations cannot force
-   app installs on contractor-owned devices; browser-native access is preferred."
-   An online-only mode of a native app still requires the install. The objection
-   was the install, and profile `None` does not remove it.
-2. **It made the residue look small when it was not.** "Answered for reads and
-   writes, unanswered only for the install" reads like a distribution detail. It
-   is the whole requirement.
-3. **The alternatives all cost more than the theme is worth.** It is the only
-   **Medium**-priority theme of the five. A separate thin online-only browser
-   surface is a second UI target, cutting directly against "one unified app";
-   a browser-based offline engine is a different architecture with real
-   capability loss (above).
-
-**What this buys.** Contractor/BYOD stops being an open item against the mobile
-app, profile `None` stops carrying a justification it cannot support, and §2.2's
-native conclusion stops being under pressure from a requirement it was never
-going to satisfy. Profile `None` remains the off state for **internal online-only
-user groups** — a storeroom or planner group that is always in network — which is
-what it actually models.
-
-**What this rests on, and it is a dependency rather than an open question**
-(user, 2026-09-11). Base EAM is being migrated off the **Sencha/Java** UI library
-onto **Angular**, as a separate programme. So the honest statement of the
-contractor path is two-part: **today the base UI does not format to a mobile
-device; under the new Angular UI it will.** That is what makes the base browser a
-real answer rather than a deflection — but it is *someone else's* delivery, on
-someone else's schedule.
-
-Three consequences, none of which change this section's decision:
-
-1. **There is a window with no contractor answer at all** — between this app
-   shipping and the Angular UI landing. Expect the VoC theme to keep coming up in
-   that window; the answer is "it is coming, from the base product," not "we will
-   add a surface here."
-2. **"Angular" does not automatically mean "usable at phone width."** Whether
-   phone-width responsive is an explicit goal of that programme — and whether it
-   covers the screens a contractor actually needs — is worth confirming rather
-   than assuming. §20.
-3. **It may also solve §10's API problem**, which is the more valuable
-   connection. An Angular front end implies a real API behind it; this app and
-   Screen Designer need exactly that in front of `R5PAGELAYOUT` and the workflow
-   tables (§12). Whether the two can share one API layer is a question for that
-   programme, and the upside is larger than the contractor theme that surfaced
-   it. §20.
+**One adjacent dependency, recorded here because it is where the platform
+decision lives** (user, 2026-09-11). Base EAM is being migrated off the
+**Sencha/Java** UI library onto **Angular**, as a separate programme. Nothing in
+this section blocks on it, and it changes none of the above — but an Angular
+front end **implies a real API behind it**, and this app and the portal need
+exactly that in front of `R5PAGELAYOUT` and the workflow tables (§10/§12).
+Whether one API layer can serve both is a question worth asking that programme,
+and it is the most valuable thing this project wants from it. §20.
 
 ## 2.3 Hydration sequence
 
@@ -636,7 +587,7 @@ the automatic layer and the manual layer of one list.**
 
 | Layer | Mechanism | Who acts | What it is for |
 | --- | --- | --- | --- |
-| **Automatic** | A **dataspy selector on User Group Setup** names the dataspy that defines the group's download scope. | An admin, once, per user group. | "Everything this role normally works on arrives without anyone asking." |
+| **Automatic** | The **dataspy on the Work Orders row of the offline profile** (§30.14) names the dataspy that defines the group's work list. | An admin, once, per offline profile. | "Everything this role normally works on arrives without anyone asking." |
 | **Manual** | **Pinning** a specific work order (`R5PINS`). | A technician or supervisor, per record, ad hoc. | "This one too, even though the dataspy does not return it." |
 
 **Why both, in one line:** a dataspy cannot express "this particular WO, because
@@ -663,13 +614,60 @@ exactly what the other is for.
 4. **§14.11 is now the first-class manual path, not an edge case.** Starting a WO
    found by search *is* a manual pin. That makes search → start → work a designed
    flow rather than a promotion mechanism that happens to exist.
-5. **The dataspy selector is a new authoring control that does not exist**, on a
-   screen (User Group Setup) that is otherwise a pure binding surface. §20.
+5. **The dataspy selector exists** — it is the `For Dataspy` control on the
+   **Work Orders** row of the portal's Offline Profiles area (§30.14), which
+   already offers `My Open WOs` and already carries §2.6 in its own row note.
+   No new authoring surface is owed. *(Closed 2026-09-23; see the placement
+   paragraph below for what this cost.)*
 
 **Whether the selector belongs on the user group or on the offline profile is
-decided: the user group.** A profile is one artifact shared by N groups (§26.5.1
-Fault 1), and download *scope* is role-specific — putting the dataspy on the
-profile would force every group sharing it to download the same rows.
+decided: the OFFLINE PROFILE** — its **Work Orders** row (user direction
+2026-09-23, reversing the 2026-09-11 answer; the superseded reasoning is in
+§21). The portal already implements it, and that row's own note already cited
+§2.6, so the doc was behind the build rather than the other way round.
+
+**Why the original objection does not bite.** It was that a profile is one
+artifact shared by N groups (§26.5.1 Fault 1), so a dataspy on the profile
+forces every group sharing it to download the same rows. That holds only for a
+**group-scoped** dataspy. The punch-list dataspy is **user-relative** — the
+demo set names it `My Open WOs`, and it resolves per logged-in user — so one
+profile shared by N groups still gives every technician their own list. The
+objection was real for `DC-OPS Open` and never applied to `My Open WOs`.
+
+**`None` gets its own punch-list dataspy (locked 2026-09-23, user direction).**
+A group assigned profile `None` has no replication, and it still has a work
+list — because the punch list is a **membership** question, answered
+server-side, and it was never a consequence of replication. So the **Work
+Orders row renders on every profile including `None`**, with its policy fixed
+at online-only and its `For Dataspy` control still live. The alternative —
+an online-only group with no automatic layer, working by search plus manual
+pin — was rejected: §14.11 makes search-then-start a designed path, but making
+it the *only* path for a whole class of user group hands the storeroom and
+planner groups a worse Home screen than a technician's for no reason the
+technician's own model requires.
+
+**This follows an argument §30.14 already makes.** Tier 0 configuration and
+the outbox already render on every profile *including* `None`, precisely
+because they are not replication decisions. The punch-list dataspy is the
+third thing of that shape. What differs is that Tier 0 and the outbox are
+read-only there and this one is **editable**, since it is a real choice
+rather than a fact.
+
+**One dataspy, two jobs, and they separate exactly here.** On a replicating
+profile the Work Orders dataspy is *both* the replication bound and the work
+list. On `None` the replication bound is empty and the same dataspy still
+names the work list. So the field is **not a property of the policy** — which
+is exactly what an implementation gets wrong, and did: the portal cleared it
+on every load and drew a dash where the control belonged, both without a
+symptom. Work Orders now carries `membership:true` and every site reads
+`isMembershipEntity()` rather than testing the id, so a second membership
+entity cannot half-work. Pinned by `test-workflow-portal.js`.
+
+**A consequence for the assignment side.** "No profile assigned" and "a profile
+that replicates nothing" used to be interchangeable; they are not any more,
+because the dataspy has to live on something. A group that needs an automatic
+work list must be assigned the **Online only profile** rather than left
+unassigned. §20.
 
 For the record, the two mechanisms as they were originally posed:
 
@@ -1261,6 +1259,19 @@ Standard Model's header spec, not chrome-specific).
   hidden entirely the moment any record is open. Equipment has no item
   here — it's a destination, not a persistent top-level section, reached
   in context (e.g. from Home) rather than from this bar.
+  - **AMENDED 2026-09-23 (§30.24): this membership is now the DEFAULT, not
+    the rule.** The bar is authored per user group on the **Home layout** in
+    the Workflow Designer Portal — label, screen and icon per slot, **up to
+    five** — and these three (with the "Work" shortening) are what every new
+    layout is seeded with. **Equipment is now allowed**, and the argument for
+    allowing it is the capability gate rather than taste: a group whose menu
+    carries no Work Order list (`STORES`) or no Notifications (`CONTRACTOR`)
+    is handed permanent chrome with dead slots by a fixed three. **Home stays
+    pinned to slot 1** — it is the only route back to Home while browsing.
+    Everything else in this section is unchanged, including the visual
+    treatment below — but note the **84px fixed slot only fits three at
+    §31's 320px floor**, so four and five need a flexible slot rule that is
+    not written yet: the arithmetic is §30.24's, the debt is §20's.
 - **Bottom nav visual treatment, locked 2026-07-16** (built and reviewed
   in `eam-home-screen-prototype-v1.html`, the first real consumer):
   - **Anchored, not floating** — full-width, flush to the bottom edge, no
@@ -3561,9 +3572,11 @@ tiers, narrowest to broadest:
    numbered step (§27.1).
 
    **The key gained an `Instance` dimension 2026-09-08 — see §29.2.** The
-   key is `(WO Type, User Group, Tab, Instance)`, so the same tab can be
+   key is `(WO Type, User Group, Node, Instance)`, so the same node can be
    placed more than once and a second Record View can carry its own layout.
    Everything below still holds one grain finer: read "instance" for "tab".
+   **`Node`, not `Tab`, since 2026-09-23** — the row set also holds actions
+   and forks, which are not tabs and not steps (§29.2, final passage).
 
    **One row per instance is the point, not an implementation detail.** It
    makes
@@ -6106,6 +6119,9 @@ into a locked-decision row in the section that governs it, or is deleted.
 
 | Item | Detail |
 | --- | --- |
+| **Portal UI — Octave Experience vs. a new base UI — DECISION REQUIRED** | Raised 2026-09-23 (user). §30.7 locked the portal onto the Octave / OUX design system and §30.8 catalogued where it differs from the app's own; what was **not** weighed at the time was OUX as a **delivery platform** rather than a visual language. The case for it: it sidesteps the mobile configuration screens already scattered through base for the two apps; it collapses admin configuration into one screen; the diagram-authored canvas and the 390px emulator preview (§30.9/§30.10) are affordances the base toolkit does not offer; and the shell would transfer to any other operational mobile app in the portfolio. Against it: **on-premise deployment**, **other-team dependencies**, and **longevity — whether it is a two-way door**. **This reaches two locked positions rather than sitting beside them**, and re-opening it re-opens both: §30.7 (OUX for base screens) and NG8/§21 (desktop UI out of scope, which is what retired "restyle onto the base components" as an available answer). Entangled with the Sencha→Angular item below, since "new base UI" means the Angular one. Framed here rather than decided; the design doc carries it as **Open issue 0**, ahead of the `WSJOBS` call. |
+| **Can an authored workflow eventually be EXECUTED from base?** | Raised 2026-09-23 (user), alongside the `WSJOBS` decision below and genuinely new — nothing in §10–§13 or §29–§30 designs for it. Everything to date assumes the workflow is **authored** in the portal and **executed** on the device. If the same definition could also drive a base session, two things follow: the resolved artifact has to be a **transport**, not a device-shaped structure, which reaches §10's API and the row-shape item above; and it would count as a point in favour of the portal platform decision above, since one authoring surface would then feed two runtimes. If it could not, that is worth stating explicitly rather than leaving as an assumption nobody has tested. **Ask before the `WSJOBS` call**, because reuse of the customer's `EVNT` functions is the option that makes base execution plausible at all. |
+| **A non-step node's row shape on the base side is unspecified** | Opened 2026-09-23 with §29.2's final passage, which widened the tier-2 key from `Tab` to `Node` so that an action or a fork takes an instance row like a tab. That settles **identity**; it does not settle **payload**. A step's parameters are its layout rows, and a non-step node has none — so a Status update action's entity and status (§30.11) and an action's `mode` (§30.21) have nowhere declared to live. Two shapes are defensible: a column per parameter on the tier-2 row, which keys naturally like everything else in §12 but grows a column per action kind; or one typed payload column, which absorbs future kinds and gives up legibility. Deliberately not picked here, because §10's API in front of the workflow tables lands first and is what makes either affordable — and the prototype does not force the question, since it persists whole nodes as objects. **Pick it before any base-side table work, not during.** |
 | **The booking pull-up's SECOND caller is not wired** | Narrowed 2026-09-17 from "the pull-up is not built" — it is now built and wired to §18.2's tab trigger (see §18.2). What remains is that **nothing feeds a workflow definition to the app**, so §30.21's placed Stop Timer action cannot reach in and its `system` mode (book with no sheet) has no runtime caller. The component takes every derived value as an argument and honours `mode` itself, so the hand-off calls it unchanged — what is owed is the hand-off, not the sheet. A dev toggle on Book Labor's own theme bar drives the real `eamTimerRunning` key so the §18.2 condition is exercisable meanwhile. This is the first concrete instance of the general gap: **the portal authors workflows and the app cannot yet be told about them.** |
 | **A labour row's write shape when the hours are untouched** | Opened 2026-09-17. §18.2's pull-up books **direct hours** once the technician adjusts the figure, because an adjusted value cannot keep the timer's start and end true — and keeps the real span when it is untouched. That is two write shapes off one sheet. It is the honest rendering of what is known in each case, and §18's Time Entry Mode already models both, but whether the real outbox envelope should carry a span at all for a timer-derived booking is not settled. Low stakes while there is no backend; decide it before the envelope is built. |
 | **No mobile screen demonstrates §5.2's revised container model** | Opened 2026-09-16 with §5.2's "Container shape is per-container" revision. The base-side designer can now author a Grid container anywhere in a form and a form with several Grids, but **every mobile prototype still shows the old arrangement** — one leading grid, collapsible List sections beneath. So the canonical references (`screen-layout-field-behavior-prototype-v1.html`, `eam-equipment-record-view-prototype-v1.html`) no longer demonstrate the full model they are canonical for, and a layout the designer can now produce has never been rendered. **Deliberately not fixed by rebuilding seven screens unasked** — the rule changed on the authoring side, which is where it was asked for. What is owed before the model is real end to end: one mobile screen showing a non-leading Grid, and a check that `.attr-item` / `.fg-section` CSS actually copes with a Grid that is not first (the `--bar-reserve` and `.full-width` interactions are the likely friction). Until then, treat the revised rule as authored-but-unproven on the device. |
@@ -6136,7 +6152,7 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **WO List's Search sub-screen still shows a back button instead of the avatar** | Per §4.2's browsing-tier rule, it should show the avatar like WO List's own main screen. |
 | **`WSJOBS` reuse vs. a new standalone mobile function — DECISION REQUIRED** | **Reopened 2026-09-11 (user direction)**, having read as locked ("no new `FUN_CODE`s") since July 2026. Needed **before the base track starts**, because every layout row, dataspy and permission set is keyed to whatever function the app resolves. Two candidates: ride the customer's existing `EVNT` functions (`WSJOBS` + the CCJOBS/TRJOBS/ZJ1000/WSJODC clones), or mint a standalone mobile function. The reuse case is dataspy-set fragmentation across functions (§6.3/§8.3); the new-function case gained a real input — **a new Equipment screen function that renders by equipment type is required regardless** (below), so the two tracks are asymmetric unless WO also gets one. **Do not re-derive §26.7 with it:** per-user-group function resolution is still locked and holds either way. Full framing in §11. |
 | **A new Equipment screen function that renders by equipment type — required, and unspecified** | Stated as a requirement 2026-09-11 (user direction). Base models Equipment as four screens (Location / Asset / Position / System) and mobile collapses them into one surface that re-renders by system type (§26.8); nothing existing does that, so the function is new. **This supersedes the older framing of this gap** — it was previously logged only as "Equipment's four system-type layouts have no authoring surface," which is the *layout* half. The *function* half is now explicit and is an input to the decision above. Still owed: the function itself, its `PLO_PAGENAME` mapping across the four types and their clones, and the Screen Designer surface that authors them. **Blocks the Equipment mobile track** — don't build Equipment RV against one hardcoded layout, or every child tab inherits the assumption. |
-| **The punch-list dataspy selector has no home, and it is the first non-binding control wherever it lands** *(re-homed 2026-09-16)* | Opened 2026-09-11 with the punch-list lock (§2.6). The automatic half of the punch list is a dataspy named **per user group** — §2.6 placed it there deliberately, and §30.14 re-confirms it against the shipping product's conflated `Download Work Orders / For Dataspy` field: a profile's per-entity dataspy is a *replication bound* shared by N groups, while the punch list is a *membership* question those N groups legitimately do not share. **What changed is only the address:** User Group Setup is retired (§21), so the selector now belongs in the portal's User Groups area — which is a **binding** surface (§26.5.1), assignment only, so this is still the first control on it that configures rather than binds. State which it is before building. Unchanged and still the sharper half: the membership row merges two sources, so the selector's output has to stay distinguishable from a manual pin downstream, or a dataspy re-evaluation evicts the technician's own additions (§2.6 consequence 3).
+| **The punch list's remaining cost is a BACKEND ask, not a screen** *(authoring closed and built 2026-09-23)* | Opened 2026-09-11 with the punch-list lock (§2.6). **Both halves of the authoring side are now done:** the selector is the `For Dataspy` control on the **Work Orders** row of the portal's Offline Profiles area, and it renders on every profile *including* the one that replicates nothing (§2.6/§30.14/§21). The two prototype defects that contradicted it are fixed and pinned by `test-workflow-portal.js` — both had **failed silently**, which is the argument for the tests: `normalizeProfile()` wiped the dataspy whenever the policy stopped needing a filter, and the control collapsed to a dash so there was nowhere to set one. Work Orders now declares `membership:true` and `isMembershipEntity()` is the single seam. **What is left is the sharper half, and it was always the sharper half:** the membership row merges two upstream sources, so a pinned row has to record **which source** pinned it, or a dataspy re-evaluation silently evicts the technician's own additions (§2.6 consequence 3). That is server-side work with no UI to build. **One small design residue:** "no profile assigned" and "a profile that replicates nothing" are no longer interchangeable — a group that needs an automatic work list has to be assigned the **Online only profile**, not left unassigned, because the dataspy has to live on something. Worth stating in the assignment control.
 | **Tiered record model review** | On approval: merge tier-model architecture into §2. |
 | **WO timer placement + pause/resume** | Two open questions: (1) keep the timer in the step rail or move it to the nav bar so it stays visible while the rail is scrolled/collapsed; (2) whether pause/resume should exist, and if so whether it's a per-WO-type config flag alongside Free Form (§15.4). Not designed, not prototyped. |
 | **Activity Checklist's Checkbox-type control vs. the generic checkbox pattern** | §3.4's generic checkbox rule makes the whole row a compact tap target; the Checkbox-type item's control (§16.3) is a large, centered, full-width tap target instead, since the focused one-item-at-a-time screen has the room. Open call: is this divergence justified by context, or should it converge? |
@@ -6149,13 +6165,14 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **Conditional field rules — deferred to Phase 4+, one-way doors only** | §13.1–§13.4 records the evaluation model, a 4-tier option ladder, and 5 prerequisites for field-level conditions ("if field X is Y, make Z required / surface another step"). **Deprioritised 2026-08-11 (direct instruction): this is Phase 4+ consideration, not near-term work.** Don't spend design time picking a tier now. The only thing owed up front is identifying **one-way doors** — decisions that would be expensive to reverse once other work builds on them. Two such prerequisites are worth doing regardless of whether any tier ever ships, because retrofitting either later touches every field on every screen: the single `resolveFieldState(field, context)` seam (§13.3 item 1) and the declared-vs-effective field-state split (item 2). **A third one-way door, added 2026-09-08: `resolveFieldState(field, context)` must be evaluable *entirely on-device*.** If any condition is server-evaluated it **silently does not apply offline** — which lands in §2.3 consequence 3's failure mode through a different door (the technician sees a field the server would have required, fills the form, and the write is rejected hours later). Cheap to state now, expensive to retrofit, and it does **not** require picking a tier — so it does not violate this row's own "don't spend design time picking a tier" instruction. Also still owed whenever this resumes: the `docs/Data_refs/Page Layouts perms/` check in §13.4. |
 | **Mobile screens hardcode their own field labels and boilerplate** | §26.7 guard rail 3: allowing the workflow on any `EVNT` function only pays off if the mobile screens read labels, boilerplate and help text from the **bound function's** layout rows. Today every label in the prototypes is a hardcoded English string, so a technician on a clone an admin renamed "Customer Quote" would still read "Work Order." This is the consequence of §26.7's decision that reaches furthest into the prototypes, and it is a real dev-side question (where the label catalogue comes from offline) rather than a design one. Opened 2026-08-24. |
 | **Workflow-eligibility validation in Screen Designer** | §26.7's honest replacement for what a single blessed `WFJOBS` would have guaranteed: enabling the WO workflow on a function must check that the tabs §12's step set requires are present and permitted for the target group(s), and refuse or warn when they are not. Shape undecided — hard block vs. warn-and-save, and whether the check runs at enable time, at save time, or both. It is the one piece of genuinely new work Option B creates. Opened 2026-08-24. |
-| **Nav-slot binding storage — shape not signed off** | §26.3 locks the paradigm (access control supplies the candidate functions, config supplies the choice and the order) and the four slot-row fields, but the storage itself — a small new table keyed `(user group, sequence)` — is a proposal, not a confirmed base-EAM object. Needs a call with whoever owns the base schema, together with the smaller question of whether §26.3's curated icon set is authored anywhere or hardcoded. `PRM_MOBILESTARTCARDS` was considered and rejected as the home for it (§26.6). Opened 2026-08-24. |
+| **Nav-slot binding storage — shape not signed off** *(narrowed 2026-09-23 — the surface now exists)* | §26.3 locks the paradigm (access control supplies the candidate functions, config supplies the choice and the order) and the four slot-row fields, but the storage itself — a small new table keyed `(user group, sequence)` — is a proposal, not a confirmed base-EAM object. Needs a call with whoever owns the base schema, together with the smaller question of whether §26.3's curated icon set is authored anywhere or hardcoded. `PRM_MOBILESTARTCARDS` was considered and rejected as the home for it (§26.6). Opened 2026-08-24. **What closed 2026-09-23 (§30.24): WHERE it is authored.** The bar is a property of the **Home layout** in the portal, so the row set rides an artifact that is already per-group and already assignable — which means the base-side question is now only whether those rows hang off the Digital Work Home record set or a table of their own, not where an admin edits them. The curated icon set is hardcoded in the prototype (`NAV_ICONS`), so that half of the question is untouched. |
+| **The bar is authorable, and the device cannot render it yet** | Opened 2026-09-23 with §30.24, and it is three things that have to land together. **(a) No shared renderer** — §26.4's prerequisite, now blocking: the markup is hand-copied into each browsing-tier screen (Home, Notifications, WO List) and nothing in `eam-shared.js` draws it, so no amount of configuration can reach it. **(b) The slot rule only fits three** — `.bottom-nav-item` is a fixed 84px at `gap:14px`, which overflows §31's 320px floor at four; §30.24 specifies the replacement (an equal share of the floor, 69.5px at four and 52.8px at five, hit target still cleared) but it is deliberately **not written**, because with nothing feeding the app configuration it would be a dead branch verified by nothing. **(c) Nothing feeds the app any portal artifact** — the same boundary §30.21 notes for workflow definitions, and the bar is now the second thing waiting on it. Proposed order: (a) then (b) in one change, since a shared renderer with a three-only layout rule would have to be edited twice. |
 | **Dataspy sets become function-resolved once `WSJOBS` clones are in play** | §6.3/§8.3 assume one fixed dataspy set behind WO List. Dataspies are per-function, so two user groups bound to different clones (§26.1) see different dataspy sets — different options, different defaults, different favourites — in the same "Work" nav slot. Nothing in the list-screen design accounts for that, and it is the one knock-on of §26.2/§26.7 that reaches a locked mobile-side rule rather than just implementation. Note §11's original one-function decision cited dataspy fragmentation as its own justification; §26.7 accepts that cost deliberately rather than denying it. Opened 2026-08-24. |
 | **`renderBottomNav()` doesn't exist** | Bottom-nav markup is hand-copied into every screen (e.g. `eam-home-screen-prototype-v1.html`); nothing in `eam-shared.js` renders it. §26.4's config-driven nav needs it extracted first, and that extraction is what makes a 4th slot a data row rather than an edit to every screen file. Same consolidation debt as the plan doc's §7.3 (WO List's hand-copied `.bottom-nav`/`.nav-avatar` CSS) — worth doing in one pass. Opened 2026-08-24. |
 | **Screen Designer has no Placement control for the "More" group** | Opened 2026-08-25 with §14.8's reframe. The group's membership is now defined as admin-configured — each of the function's tabs carrying `Placement = Step \| More` (§12 tier 2) — but nothing authors it. `eam-screen-designer-v1.html`'s left pane manages numbered steps only; there is no way to place a tab outside the sequence, and no candidate list drawn from the function's permitted tabs. `WO_MORE_TABS` in `eam-shared.js` is the runtime stand-in (data-driven, so it is ready to be fed) with today's three members hardcoded as the default. Needs: the Placement control itself, the permitted-tab candidate list (same source as §26.7's eligibility check), admin-set ordering, and a decision on the icon question this shares with §26.3. Base-track scope, not mobile. |
 | **The "More" group's destination screen is still named `eam-wo-reference-tab-prototype-v1.html`** | Cosmetic but misleading after §14.8's rename (2026-08-25). The file is the WO's Comments + Documents child-tab screen; its name, `goToWoReferenceTab()`, `WO_REFERENCE_TAB_FILE` and the `eamReferenceTab` sessionStorage key all still say "reference," which now reads as a group name that no longer exists rather than as a description of the screen. Renaming touches the file, `screens.html`, and three identifiers in `eam-shared.js` — cheap, but it is churn with no user-visible effect, so it is deliberately deferred rather than bundled into the rename that surfaced it. Note the screen itself is correctly named for what it *does* in §7.2 terms; only the "reference" word is stale. |
 | **`jumpToRvSection()`/`consumeJumpToSection()` are dead machinery** | Pre-existing, confirmed 2026-08-25. `goToWoReferenceTab()` superseded `jumpToRvSection()` when Comments/Documents became a real child-tab screen (§7.2), leaving nothing that sets the `eamJumpToSection` flag — so `consumeJumpToSection()` still runs on every WO Record View load and always returns early. Both functions plus the flag can go. Not removed alongside §14.8's rename because it touches WO Record View as well as the shared file, and it is unrelated debt rather than that change's residue. (`jumpToEquipmentStub()` *was* that change's residue and is already removed.) |
-| **The base Sencha→Angular migration is an unowned dependency for three separate things** | Opened 2026-09-11 (user). Base EAM is being moved off the Sencha/Java UI library onto **Angular**, as a separate programme — today the base UI does not format to a mobile device, under the new one it will. Nothing in this app blocks on it, but three items now point at it and **nobody in this programme owns the relationship**: **(1)** it is the whole Contractor/BYOD answer (§2.2/NG3), so its timeline sets when that theme is genuinely closed, and there is a window before it lands with no contractor answer at all; **(2)** phone-width responsive needs *confirming as an explicit goal* of that programme, for the screens a contractor actually needs — "Angular" does not by itself mean usable at phone width; **(3)** an Angular front end implies **a real API behind it**, which is exactly what §10/§12 need in front of `R5PAGELAYOUT` and the workflow tables — and that is the larger prize. Whether one API layer can serve both is the question to ask. Also worth re-checking: §10's recommended "strangler-fig, not an embed" shape for Screen Designer assumed a *legacy* base UI to launch out of. |
+| **The base Sencha→Angular migration is an unowned dependency** | Opened 2026-09-11 (user). Base EAM is being moved off the Sencha/Java UI library onto **Angular**, as a separate programme — today the base UI does not format to a mobile device, under the new one it will. Nothing in this app blocks on it, but two items point at it and **nobody in this programme owns the relationship**: **(1)** an Angular front end implies **a real API behind it**, which is exactly what §10/§12 need in front of `R5PAGELAYOUT` and the workflow tables — and that is the prize. Whether one API layer can serve both is the question to ask. **(2)** phone-width responsive needs *confirming as an explicit goal* of that programme; "Angular" does not by itself mean usable at phone width. Also worth re-checking: §10's recommended "strangler-fig, not an embed" shape for Screen Designer assumed a *legacy* base UI to launch out of. |
 | **Tier 0 bootstrap-config contract — shape not defined** | Opened 2026-08-25 with §2.3's resequencing. The *ordering* and the "carried on the authentication response" recommendation are settled; the **contract is not**. Owed: what the bundle actually contains per domain (0a–0f), the per-domain **version-stamp** scheme that makes a reconnect delta-check cheap, and how a partial failure is reported — 0c missing is fatal, 0f missing is degraded-but-usable, and the response needs to say which happened rather than returning one opaque error. Also unresolved: whether 0f is scoped server-side (the server resolves layout, then returns only the code domains it references — smaller payload, more server logic) or client-side (the client resolves layout, then asks for domains by name — chattier, dumber server). Recommend server-side scoping: it is one round-trip inside the login wait instead of two. Needs the API team. |
 | **Write path must be gated on status authorizations, and nothing enforces that yet** | Opened 2026-08-25 (§2.3 consequence 3). If Tier 0's `0d` is absent or stale the app must **not** accept writes — permitting them queues outbox entries the server will reject, and under §2.4's optimistic UI the technician sees success and walks away, with the failure surfacing hours later in §4.4's trouble-field banner. That is exactly the "did my transaction actually land?" trust failure this app exists to fix, so a systematically wrong authorization set is worse than a blocked one. Owed: where the gate lives (a `resolveFieldState`-style seam would be the natural home — see the conditional-field-rules row), what the UI says while gated, and whether a stale-but-present authorization set is treated as usable. No prototype equivalent exists; there is no write path to gate yet. |
 | **Workflow config revisioning — a live config edited mid-execution** | Opened 2026-08-25, surfaced by retiring the Workflow Designer prototype (§21), which is the only artifact that had modelled it (Draft / Current Rev / Create Rev). Nothing in §11–§13 or §26 says what happens to a technician who is part-way through a gated workflow when an admin changes that `(function, WO Type)` configuration — steps reordered, a step removed, a field's required-ness flipped. The offline model makes it sharper than it would be online: the device holds a hydrated work set and a configuration that arrived at sync time, so "the config changed" and "the technician is mid-WO" can be separated by hours or days, and the WO's own step state was recorded against the *old* shape. **Recommendation added 2026-08-25 (§2.3 consequence 4): pin the resolved config version to the WO at start-of-work**, so a WO in flight finishes on the shape it started with and the new configuration applies to the next one started. Cheapest of the three candidates and the only one needing no migration of already-recorded step state; the alternatives were versioning the config and migrating step state on delta pull, or forbidding destructive edits while WOs are in flight. Note this is the same problem as the Tier 0 config-delta case, approached from the authoring side rather than the sync side — resolve them together, once. Still needs a call before workflow config is editable in production, not after. |
@@ -6196,9 +6213,10 @@ its original section with a note attached.
 | Former decision | Superseded by |
 | --- | --- |
 | **"There is no Stop Timer action, and that is a decision"** (§30.21, 2026-09-17, held for a matter of hours). The argument: stopping a timer produces a labour record, a labour record needs a screen, that screen is Book Labor — so a Stop placed anywhere else needs a second labour form invented behind it, diverging from §18.4 the first time it changes. **The premise was wrong**, and §30.11's own paradigm is why: §18.4's whole field set is derivable from a running timer plus the session, so nothing has to be asked and no form has to exist. Recorded because the reasoning is seductive and reads as sound — it is worth knowing it was tried and where it broke, rather than re-deriving it the next time an action looks like it needs a screen. | §30.21's **Stop Timer** (2026-09-17, user direction). The action books the time itself; `User selected` mode confirms with **Hours editable and every derived field protected**, which is the narrow version of the form the refusal feared. One consequence survived unchanged: the rail's timer pill keeps its own manual stop. |
+| **The punch-list dataspy selector belongs on the USER GROUP, not the offline profile** (§2.6/§30.14, 2026-09-11 – 2026-09-23). The reasoning: a profile is one artifact shared by N groups (§26.5.1 Fault 1) while download scope is role-specific, so a dataspy on the profile would force every group sharing it to download the same rows. §30.14 re-confirmed it against the shipping product's conflated `Download Work Orders / For Dataspy` field and concluded "two selectors, two homes, by design." | **The OFFLINE PROFILE's Work Orders row** (user direction 2026-09-23). It was already built there, so the doc was trailing the prototype. **Why the objection failed:** it assumed a *group-scoped* dataspy. The punch-list dataspy is **user-relative** — `My Open WOs` resolves per logged-in user — so one profile shared by N groups still yields a per-technician list, and the "same rows" problem never arises. §30.14 had itself conceded "they may name the same dataspy in practice." **What the reversal costs, and it is real:** collapsing the two means a punch list cannot exist without replication, so a group on profile `None` has nowhere to name one. That is now the item's only open question (§20) — narrowed from "the selector has no home," not eliminated. To revert: move the control to the User Groups area and accept that it becomes that area's first configuring control. |
 | **§12 tier 2 keyed one row per `(WO Type, User Group, Tab)`** — "one row per tab is the point, not an implementation detail," on the reasoning that it made *"a tab is either a step or a More entry, never both"* a **key** constraint rather than a validation rule, which is what stopped forward gating from being bypassable. Rejected at the time: a separate list of More tabs, and overloading `Sequence = null`. | §29.2 (2026-09-08, on five workflow-authoring requirements) — the key gains an **`Instance`** dimension: `(WO Type, User Group, Tab, Instance)`. Two requirements broke the old key and turned out to be the **same** requirement: a tab placed more than once, and a second Record View carrying a *different* layout. **What survived intact:** the constraint that made one-row-per-tab worth having, one grain finer — an *instance* is either a Step or a More entry, never both, because `Placement` sits on the instance row, so a More entry pointing at the same tab is a different row and forward gating stays unbypassable. **What it cost:** `R5PAGELAYOUT` gains a page-variant dimension (§13), blank for instance 1. To revert: collapse instances back to one per tab, and the second-Record-View requirement goes with it — they are not separable. |
 | **§26.5's sync row: "one per group, edited *here*, field-shaped"** — `record type × filter scope × horizon × row cap`, with the explicit reasoning that "sync config is the only one of the four that is genuinely field-shaped, which is why the *select a UG, edit a handful of fields* instinct kept surfacing — it was right for one domain out of four." Its Scope list offered **"All records."** | §29.6 (2026-09-08), on two decisions taken after §26.5 was written. §2.1 reversed the polarity to **online-first**, so "what a device downloads at login" stopped being the question — "what is guaranteed *executable offline*" is narrower and different. §2.10 then named the unit: an **offline profile**, a named bundle of §2.7's registry, its caps and §2.8's lookup classes, **assigned** per user group — grain one artifact → many groups, which §26.5.1 had already ruled on. So the instinct was right for **zero** domains out of four, and User Group Setup is simpler than §26.5 described, not more complex. **"All records" is now refused outright by §2.7** ("at least one filter per entity"), which is independently fatal to the old row set. To revert you would first have to re-open §2.1. |
-| **Platform: "iOS and Android — responsive PWA"** (§1 header table, since v1). Carried unexamined from the earliest version of this doc, and it quietly shaped how the Contractor/BYOD requirement was reported — as satisfied by a browser-native delivery target. | §2.2 (2026-08-25, user direction) — **a native React Native app.** The doc had been asserting both a PWA *and* `op-sqlite`, which is React Native-only with no browser build, so the two statements could not both be true. Three further reasons in §2.2: WatermelonDB's web adapter cannot serve Tier 2's FTS5 requirement, Background Sync is absent from Safari so the outbox could not drain while the app is closed, and iOS storage durability cannot support "an unsent edit can never be lost." The knock-on at the time was that **Contractor/BYOD became an open item rather than an answered one** *(and it stayed open until 2026-09-11, when it was scoped out of this app entirely — see the row below and §2.2)* — the SWG asked for browser-native access and this architecture does not provide it. To revert would mean re-opening the engine choice toward `wa-sqlite`/OPFS and accepting weaker sync and durability guarantees; it is not a delivery-target toggle. |
+| **Platform: "iOS and Android — responsive PWA"** (§1 header table, since v1). Carried unexamined from the earliest version of this doc. | §2.2 (2026-08-25, user direction) — **a native React Native app.** The doc had been asserting both a PWA *and* `op-sqlite`, which is React Native-only with no browser build, so the two statements could not both be true. Three further reasons in §2.2: WatermelonDB's web adapter cannot serve Tier 2's FTS5 requirement, Background Sync is absent from Safari so the outbox could not drain while the app is closed, and iOS storage durability cannot support "an unsent edit can never be lost." To revert would mean re-opening the engine choice toward `wa-sqlite`/OPFS and accepting weaker sync and durability guarantees; it is not a delivery-target toggle. |
 | **The step rail's "Reference" group, defined as Comments & Documents** (§14.8, added 2026-07-22). Named "Reference," and framed as a specific affordance for two pieces of "persistent record-level content owned by WO Record View alone," with Equipment later bolted on as "a 3rd row." Membership *was* the definition: three fixed rows, hardcoded in `WO_REFERENCE_LABELS` and `stepMapReferenceGroupHtml()`. | §14.8 (2026-08-25, direct clarification of intent) — the group is **"More"**, and it holds **whichever of the function's tabs the admin placed outside the sequence**. Comments and Documents are the obvious defaults, not the definition. Two reasons the old name had to go with the old framing: everything in the group is **editable** (add a comment, attach a document, insert/delete equipment rows), so "Reference" claimed a read-only-ness that was never true; and the claim gets worse exactly as membership widens — a configurable group could hold a Permits or Safety tab, filing something you sign under "Reference." The *mechanism* is unchanged and was never in question: pinned after the last numbered step, plain icon rather than a numbered badge, ungated by construction. To revert the name only: `stepMapMoreGroupHtml()`'s group label in `eam-shared.js`, the `.step-map-group-label` comment in `eam-shared.css`, and this section's heading — the data-driven `WO_MORE_TABS` shape is independent of what the group is called and should not be reverted with it. |
 | **Tier 2 projection = the *union* of the screen's dataspy projections** (§6.13, locked and revised the same day, 2026-08-25). The index would hold the union of every indexed field across the screen's dataspies, **defaulted to the union of each dataspy's first 6 columns, overridable per field by an `Indexed` flag, and capped**. Costed on the assumption of a handful of concentric dataspies — WO's All / All Open / My Open — giving ~8–12 distinct columns and ~450 bytes/row. | §6.13 "**The Tier 2 projection is *declared*, never derived from the dataspies**" (2026-08-25, same day, on the correction that **dataspies are unbounded** — admin-published plus user-authored, on any screen with records, with users normally permitted to create them). The union default does not survive that: with thousands of dataspies the union exceeds any cap immediately and permanently, so "which columns survive the cap" becomes an arbitrary truncation rather than a default; and worse, a user saving a personal query would reshape the index on every device. **What survived the reversal:** the `Indexed` flag itself, and every argument about *where* it is authored (Screen Designer, riding Tier 0's `0c`) — the flag was promoted from *override* to *primary source*. **What it took with it:** the "cost is small because dataspies overlap" reasoning, which was only true of the concentric three-dataspy example. To revert you would first need dataspies to be a bounded, admin-only set. |
 | **A standalone offline-search summary doc** — `EAM-Mobile-Offline-Search-Architecture-Summary.md` (created July 2026). A satellite doc restating the tiered record model, the `wo_index` schema, the lifecycle columns and the dataspy handling, alongside §2.3/§2.6/§6.13 which specify the same things. | **Retired to `docs/old versions/` on 2026-08-25** in the doc-hygiene pass, because it was a **proven** drift source, not a hypothetical one: it still described Tier 2 as "~8–12 projected fields" and the grid as showing "5 summary fields" more than a month after §6.13 (2026-07-20) redefined both to 6, and 4 of its own 5 cited source files no longer existed. Every offline change had to be made twice, and the second copy silently lost. Its two genuinely unique pieces were **migrated before retirement**: the row-lifecycle state machine into §6.13, and the SWG "Search & Knowledge" sub-themes into the leadership review's §2.1. **The rule this establishes: a locked rule gets exactly one home — this doc — and other artifacts point at it rather than restating it.** To revert, restore the file, but re-derive its content from §6.13 rather than trusting what is in it. |
@@ -6241,7 +6259,6 @@ its original section with a note attached.
 | **A standalone offline-architecture decision brief** — `EAM-DECISION-Offline-Architecture-Options-2026-09-03.md` (created 2026-09-03). A 2,200-line options analysis holding the four options, the market research, the GIS product facts, and its own roll-up instructions. | Rolled into this doc 2026-09-08 on the decision being taken, per its own §13 and CLAUDE.md's *one fact, one home* rule: the accepted rules into §2.1/§2.3/§2.5/§2.7–§2.10, GIS into §28, the open items into §20, and the reversals into this section. **Retired to `docs/old versions/`** rather than deleted, since its market-practice sources and scoring are not reproduced anywhere else. Don't cite it as current. |
 | **Equipment List's top-level List/Search screens had no Detailed/List mode toggle at all** — the row directly above explicitly left WO List's own toggle (`.mode-tog`/`setMode()`/`woAllFields()`/`tHdr()`/`tRow()`) untouched as "WO-specific," and it was never separately copied into `eam-equipment-list-prototype-v1.html` either, despite that file already being documented (§8.3's "Applied to," CLAUDE.md) as implementing this standard in full. Found 2026-08-03 via user cross-check ("the equipment search screen... still looks like this — the detail and list toggles aren't present"). | §8.3 "Mode toggle" (2026-08-03) — ported WO List's own screen-local `.mode-tog` markup + CSS override and `setMode()`/`refS1()`/`refS2()` shape verbatim into `eam-equipment-list-prototype-v1.html`. List mode's all-fields table renders via the already-shared `renderStdTable()` helper instead of a local `tHdr()`/`tRow()` pair — Equipment has no parent/child hierarchy, so it doesn't need the chevron/indent logic that kept WO's own table local. |
 | **The term "fleet-wide"** (July 2026 – 2026-09-11) — the name this doc used for "spanning every record in the tenant database," as the contrast to the work set. It appeared in §2.1's locked rule, §6.13, §21, the requirements one-pager, the leadership review, and User Group Setup's own explanatory copy. | **"database-wide"**, renamed 2026-09-11 on user direction — "fleet" read as asset-management jargon and was genuinely ambiguous: it sounded like a scope narrower than the whole database, and unrelated *real* EAM vocabulary uses the word (a `Fleet` menu item, `employees.csv`'s `Fleet Customer` column, a `Fleet & Transportation` user group — none of which changed). **No decision changed; this is vocabulary only.** The definition now lives in `EAM-Mobile-Design-Doc-v1.md`'s glossary. Note the leadership **deck** (`.pptx`) may still carry the old term. |
-| **"Profile `None` is the Contractor/BYOD answer"** (§2.2/§2.10, 2026-09-08 – 2026-09-11). For three days this doc reported the Contractor/BYOD theme as **answered for reads and writes, unanswered only for the install** — on the grounds that a contractor assigned no offline profile runs as an online-only user of the one unified app, with no customer data at rest on an unmanaged device. | **Contractor / BYOD is out of this app's scope; the base product in a mobile browser is the path** (user direction 2026-09-11). The mechanic is untouched — **profile `None` still exists and still behaves identically**; only its *justification* changed, to an internal online-only user group. What was wrong with the old framing: the theme's actual ask is that **no install be required**, and an online-only mode of a native app still requires the install, so "unanswered only for the install" was in fact unanswered, full stop. Full reasoning in §2.2. The residue is one base-team verification, in §20. **Don't re-derive this as "add a thin browser surface to the mobile app"** — that is a second UI target against the only Medium-priority VoC theme. |
 | **The punch list as an A-or-B choice** (§2.6, July 2026 – 2026-09-11). A static sync dataspy (Option A) *or* an `R5PINS` projection (Option B), to be picked at development kickoff. Every version of this doc presented them as mutually exclusive, and §20 carried the choice as an open item for two months. | **Both, with different jobs** (user direction 2026-09-11): the dataspy is the **automatic** layer, named per user group on User Group Setup; pinning is the **manual** layer on top. Neither mechanism can do the other's job — a dataspy cannot express "this one WO because I was asked in the corridor," and a pin list cannot express "everything assigned to my crew" without re-implementing a query engine. **What this costs, stated plainly:** both backend asks are now in scope rather than one, so this is not a free synthesis. **What it buys:** §14.11's device-originated pin stops being an awkward edge case and becomes the designed manual path. Full decision and its five consequences in §2.6. |
 | **"No new `FUN_CODE`s"** (§11, July 2026 – 2026-09-11) — locked, and cited in its own defence on the grounds that a function fork fragments the WO List dataspy mechanism across multiple functions' dataspy sets. | **Reopened as a decision required** (user direction 2026-09-11) — see §20 and §11. The fragmentation cost is unchanged and still real; what changed is that it is now weighed rather than decisive, and a new input landed on the other side: **Equipment requires a new screen function that renders by equipment type**, so the tracks are asymmetric unless WO gets one too. **Note carefully what did *not* reopen:** §26.7's per-user-group function resolution is untouched and holds under either answer. The 2026-08-24 amendment to this section — which already split "no new `FUN_CODE`s" from the retired "one function, `WSJOBS`, always" — is what makes this a clean reopening of one claim rather than two. |
 
@@ -6911,6 +6928,24 @@ So **a 4th icon needs no component change; a 5th is a redesign** of
 `.bottom-nav-item` — narrower items, or dropping the labels. That is the
 real cost boundary when the question comes up, rather than an open-ended
 "how many can we have."
+
+**AMENDED 2026-09-23 (§30.24, user direction): five is the supported maximum,
+so that redesign is now owed.** Three things change and one is a correction:
+
+- The **cost boundary this section identified is real, and §30.24 pays it in
+  the narrower-items direction** — labels stay, because an icon-only bar
+  loses the thing §4.2's own "Work Orders" → "Work" shortening was protecting.
+  The slot becomes an equal share of the width instead of a fixed 84px.
+- **The measure is §31's 320px floor, not a 390px device.** §26.4 predates
+  §31, which set the floor at 320px — against which even **four** overflows
+  (378 > 320), not only five. So the yield point is past **three**, one slot
+  earlier than this section concluded.
+- **Correction:** five slots measure `5×84 + 4×14` = **476px**, not 490. The
+  conclusion is unaffected — it overflows a 390px and a 430px device alike.
+- The **prerequisite below still stands and is now blocking**, not advisory:
+  a config-driven bar cannot exist while the markup is hand-copied per screen.
+
+§30.24 owns the replacement arithmetic and the label budget it implies.
 
 **Prerequisite (§20):** nav markup is hand-copied into every screen today
 and nothing in `eam-shared.js` renders it, so a config-driven nav needs a
@@ -7893,6 +7928,48 @@ Consistent with nothing else in §12 (`R5PAGELAYOUT`/`R5FUNCTIONTABS`/
 layout key opaque — the one thing that needed to stay legible, since it is how
 two layouts for one tab are told apart.
 
+### A non-step node takes an instance row too (locked 2026-09-23)
+
+The key above is written over `Tab`, because on 2026-09-08 a tab was the whole
+node vocabulary. §30.11, §30.19 and §30.21 then added five node kinds that are
+**not** tabs and **not** steps — the Status update action, Start Timer, Stop
+Timer, and the question and condition forks — and §30.21 states plainly that a
+placed status action *"can sit anywhere and more than once"*. So read the key
+one grain wider: **`(WO Type, User Group, Node, Instance)`**, where a node is a
+tab, a UDS, an action or a fork.
+
+**This is the same decision, not a new one — which is the point.** `Instance`
+was never about tabs. It was about an **ordered row set needing more than one
+row for the same thing**, and a second Status update is that requirement
+exactly, with no layout attached. Reading the dimension as tab-only is what
+would make it a new decision: actions would need a parallel identity scheme,
+and §30.11/§30.21 would be resting on a mechanism the key cannot express. The
+cheap reading is the general one.
+
+**One thing differs, and only one: a non-step node carries no layout row.** By
+§29.4 and §30.11 a fork and an action take no `R5PAGELAYOUT` rows at all, so
+the `#n` page-variant dimension above is simply unused for them — the instance
+is **ordering identity**, nothing more. Everything else in this section still
+applies unchanged: numbers are reused rather than climbed, removing an instance
+removes whatever hangs off it, and the instance number shows in the displayed
+name. `isStepKind()` is the seam that tells the two apart (§29.5) — never a
+bare `kind` test, and never a second identity scheme.
+
+**This is also the one place the rejected surrogate above is correct**, and the
+asymmetry is deliberate rather than an inconsistency. The rejection was scoped
+to the **layout-bearing** key, on the ground that a surrogate makes the layout
+key opaque. A non-step node has no layout key to make opaque, so the prototype
+mints an opaque node id for every node and an instance number only for the step
+kinds. The natural key survives exactly where it is load-bearing, and nowhere
+it is not.
+
+**Not settled here: what an action's row looks like on the base side.** The
+row set already carries a `Kind`, so a fork or an action is expressible as a
+row; what is unspecified is where an action's own parameters live — a status
+entity and status (§30.11), or a mode (§30.21). A column-per-parameter and a
+typed payload are both defensible and this section deliberately picks neither,
+because §10's API in front of the workflow tables is owed first. §20.
+
 > **SHAPE REVISED 2026-09-16 (§30.11).** §12's Completion Status Entity,
 > Start Work status and Completion status are no longer three declared fields
 > on the workflow — they are a **placed Status update action** (§30.11). The
@@ -8064,9 +8141,7 @@ renders that the old grid could not:
   says so in as many words.
 - **`None` as a real, valid row** — §2.10's off state, for an **internal
   online-only user group** (a storeroom or planner group that is always in
-  network). It is **no longer described as the Contractor/BYOD answer** — that
-  claim was withdrawn 2026-09-11 (§2.2/§21). Reported as **informational, never
-  a warning**:
+  network). Reported as **informational, never a warning**:
   it is a deliberate provisioning choice, and the previous single "no download
   policy" warning conflated it with the genuinely different "no policy
   resolves anywhere." A consistency panel that calls a correct configuration
@@ -8327,9 +8402,13 @@ and their exact glyphs, copied from `eam-shared.js` so the badge means the same
 thing it means on the device; a Type outside that set gets an **outline pill,
 not a fifth hue**. Flow vs. Free Form reads as **shape** — solid versus dashed
 card edge. The More zone reuses the teal wash already carrying "the `*`
-default" on User Group Setup. Gates borrow `--wo-type-breakdown` and forks
-`--wo-type-routine`, which are the same two borrowings that file already makes
-for the same two meanings.
+default" on User Group Setup. Gates borrow `--wo-type-breakdown`, the same borrowing that file already
+makes for the same meaning. **Forks no longer borrow anything — amended
+2026-09-23 (§30.25):** every non-step node (both fork kinds and all three
+actions) now takes its accent from `BADGE_COLORS`, the portal's own six
+Octave status hues, because one borrowed purple could not tell a question
+fork from a condition fork and one borrowed yellow could not tell Start Timer
+from Stop.
 
 ## 30.6 One portal, not a folder of sibling screens (locked)
 
@@ -9133,17 +9212,27 @@ group holding the profile. They may name the same dataspy in practice, but
 collapsing them means a punch list cannot exist without replication, which is
 wrong for an online-only group.
 
-**§2.6 already placed the punch-list selector on the user group, not the
-profile**, on the grounds that download scope is role-specific while a profile
-is one artifact shared by N groups. That reasoning is intact and this section
-does not disturb it: the profile's per-entity dataspy is a **replication
-bound** (N groups legitimately replicating the same Employees rows), and the
-punch-list dataspy is a **membership** question (N groups legitimately *not*
-sharing a work list). Two selectors, two homes, by design — and the
-punch-list one still has nowhere to live, since the portal's User Groups area
-is a binding surface. §20.
+**One selector, not two — settled 2026-09-23 (user direction).** §2.6 placed
+the punch-list selector on the user group until this date; it is now the
+`For Dataspy` control on this area's own **Work Orders** row, which is what
+the portal has always implemented. The two questions above stay conceptually
+distinct, and the distinction still earns its keep on *every other entity* —
+Employees is a replication bound that N groups legitimately share, and nothing
+about it is a membership question. What changed is only that on **Work Orders**
+they resolve to the same control, which the paragraph above already conceded
+("they may name the same dataspy in practice"). The reasoning that was
+withdrawn, and why, is in §21.
 
-### Two layers render first, read-only, on every profile including "None"
+**The online-only conflation is answered rather than inherited (2026-09-23).**
+Collapsing the two questions *would* mean a punch list cannot exist without
+replication, which is wrong for a group on profile `None`. The answer is that
+the **Work Orders row renders on every profile including `None`** — policy
+fixed at online-only, `For Dataspy` still live — so the membership question
+keeps its control even where there is no replication bound to set. That is the
+same argument this section already makes for Tier 0 and the outbox below, one
+element wider. §2.6.
+
+### What renders on every profile, including "None"
 
 Tier 0 configuration and the outbox (§2.10, §29.6) — shown even on the
 online-only profile, because the commonest misreading of an offline profile is
@@ -9794,6 +9883,319 @@ says a group is created in **Security ▸ User Groups**, so this was the same
 sentence twice — and the second copy sat exactly where a Create button would
 be, drawing the eye to an absence. §26.5.1's rule is unchanged: there is still
 no Create here, and still nothing to click for one.
+
+## 30.24 The navigation bar is authored on the Home layout (locked)
+
+Added 2026-09-23, user direction:
+
+> *"We need to add the Navigation Bar configuration somewhere to the portal. I
+> am thinking it would be cleanest to have them defined somewhere within the
+> Home Layouts section. … The boiler text, underlying screen, and icon (not
+> color) can be defined here. There is a max of 5 icons supported in the
+> navigation bar."*
+
+So the app's bottom navigation bar (§4.2) is now **configuration**, and it is
+configured as part of the **Home layout** rather than as a fifth assignable
+artifact.
+
+### Why the layout, and not a fifth artifact
+
+§30.13's cardinality rule answers it without a new argument: **cardinality
+follows what the runtime resolves on**. The bar resolves on the **user group
+alone** — exactly what a Home layout resolves on. Putting it on the layout
+therefore inherits assignment, one-per-group cardinality, the collision rule
+and the whole membership table (`ASSIGN`) for free, with **no fifth row type**
+and nothing extra for an admin to assign. A separate artifact would have paid
+§30.13's full price — a rail row, a gallery, an assignment control, a
+cardinality sentence — to express a list of at most five rows that is always
+consumed alongside the thing it would have sat next to.
+
+It is also the literal bottom edge of the same picture. The Home layout editor
+already draws everything the technician sees on Home — the Create bar,
+Favorites, the sections, the fold — **except** the bar underneath them. A test
+asserts `ARTIFACT_TYPES.nav` does not exist, because a fifth type is how this
+decision gets quietly reversed.
+
+**The one honest caveat, and the editor prints it:** the bar is **not part of
+Home**. It is app-level chrome — visible on every browsing screen, hidden the
+moment a record opens (§4.2). Authoring it on the Home layout is a cardinality
+argument, not a claim that it belongs to Home, and saying so in the editor is
+what stops an admin reading it as a Home-only control.
+
+### What is authorable, and what is not
+
+Three things per slot: the **label**, the **screen it opens**, and the
+**icon**. Not colour — the bar is monochrome white-on-dark glass (§23), and
+Home's named colour exception is for **tiles**; extending it here would be the
+exception spreading by precedent rather than by decision.
+
+Also deliberately absent:
+
+- **No dataspy.** A tile carries one because a tile is a filtered view; a nav
+  item is a top-level destination. This is also why **one slot per screen** is
+  enforced — two items on one screen with nothing to distinguish them would be
+  two identical destinations.
+- **No count statement.** Notifications draws its own unread badge on the
+  device; that is runtime state, not authored configuration.
+- **No create target.** A nav item is a destination you return to, a create is
+  an action, and §9.4.1 put creates behind the Create control. The refusal is
+  **structural** — `NAV_TARGETS` carries no create entry — which is the
+  cheapest guard available.
+
+### §4.2's three become the DEFAULT, and Equipment is now allowed
+
+§4.2 locked exactly three items — Home, Work, Notifications — and excluded
+Equipment explicitly, as *"a destination, not a persistent top-level
+section"*. That membership is now the **default**, seeded on every new layout
+(including the "Work Orders" → "Work" shortening), and an admin may depart
+from it.
+
+**The argument for allowing the departure is not convenience, it is the
+capability gate.** `GROUP_MENUS` already models groups whose menus do not
+carry the screens the default bar points at — `STORES` has no Work Order list
+at all, `CONTRACTOR` has neither Notifications nor Sync. A fixed three-item
+bar hands those groups permanent chrome with dead slots in it. And the same
+reasoning that made Equipment "a destination" for a maintenance technician
+makes it the primary section for a stores clerk. So the bar has to be
+authorable per group for the same reason the Home layout is.
+
+The gate applies to it, one level up from §30.17's tile version, and it bites
+harder: a silently-dropped tile leaves a gap in a scrolling row, a dead nav
+item leaves a hole in three-to-five slots of permanent chrome. Keyed on the
+target's **screen**, never the raw id (§29.7's shape again), and the **shell**
+target is exempt, because the app's own Home is not a menu entry — without
+that exemption every layout would report Home as dead. Reported, never
+auto-fixed (§26.5.1).
+
+### §26.3's slot row is unchanged — this is where it finally lives
+
+§26.3 already locked the model in 2026-08-24 and **none of it is re-derived
+here**: access control supplies the candidate list, config supplies the choice
+and the order, one ordered row set per user group, and each slot carries
+**sequence, label, icon (a fixed curated set, never free-form, so §23 stays
+enforceable) and target**. That is exactly the row this area authors. The
+per-group row set is satisfied transitively: the Home layout is a `per-group`
+artifact (§30.13), so its bar is one row set per group by construction.
+
+What §30.24 adds is only **where** it is authored — §26.3 predates the portal,
+and the surface it would have landed on (User Group Setup) is retired (§30.6).
+
+Two deliberate narrowings against §26.3, both because of what exists today
+rather than because the model changed:
+
+- **The target union is currently only its built-in half.** §26.3 models the
+  target as `(target kind, target)` — a `FUN_CODE` *or* a built-in surface —
+  precisely so a customer can bind "Work" to `CCJOBS` rather than `WSJOBS`.
+  The mobile app has no function-bound screens yet (that is the open `WSJOBS`
+  decision, §11/§20), so `NAV_TARGETS` offers built-in surfaces only. **The
+  union is the reason this is a narrowing and not a contradiction** — adding
+  the function half is a row kind, not a re-shape.
+- **The candidate list is REPORTED, not filtered.** §26.3 says a slot may only
+  be bound to something the group holds `PRM_SELECT` on. An authoring surface
+  cannot filter on that, because a layout is authored **once** and assigned to
+  **many** groups whose permissions differ — the option list would have to be
+  a different list per assignee. So the check runs in the direction that
+  works: the gate above reports, per assigned group, which slots that group
+  could never reach. Same resolution, same reason, as §26.5.1's "gaps are
+  reported, never auto-fixed".
+
+### Home is slot 1, pinned
+
+Home's **position and screen** are protected; its label and icon are not. The
+bar is the only route back to Home while browsing, so a bar without it is a
+dead end — the same pin as Record View instance 1 being step 1 (§29.2), and
+clamped **at the mutation** for the same reason: a guard that lives only in
+the drag geometry is bypassed by the first thing that calls the mutation
+directly. `navDrop()` is tested by being called directly with a slot-0
+target, which is what a future caller would do.
+
+A bar carrying **only** Home is valid and **warns** — permanent chrome that
+navigates nowhere the technician is not already.
+
+### Five slots is arithmetic, and the label pays for it
+
+`.bottom-nav` is `justify-content:center; gap:14px` over fixed **84px**
+items, so n items measure 98n − 14:
+
+```
+3 →  280   fits §31's 320px floor
+4 →  378   overflows the floor (fits a 390px device, just)
+5 →  476   overflows every phone — 390 and 430 alike
+```
+
+So **past three, the locked 84px slot has to yield**, and what it yields to is
+an equal share of the floor: `(320 − 14(n−1))/n` — **69.5px** at four,
+**52.8px** at five. 52.8 still clears §31.5's 48px hit target, so five is
+feasible; what pays for it is the **label**, at roughly 5.8px per character at
+10.5px/600 Inter:
+
+| Items | Slot at the 320px floor | Label budget |
+| --- | --- | --- |
+| 3 | 84.0px (the locked width) | ~14 characters |
+| 4 | 69.5px | ~11 characters |
+| 5 | 52.8px | ~9 characters |
+
+This is the same species of fact as `HOME_FOLD` — arithmetic, not taste — and
+it is handled the same way: **drawn in the editor**, live, as the label is
+typed. §4.2's own "Work Orders" → "Work" shortening is the first thing this
+budget ever bought, and at five items **"Notifications" no longer fits**,
+which is why the demo seed leaves it unshortened rather than quietly fixing
+it.
+
+**The device does not truncate** — `.bottom-nav-item` has no `nowrap` rule —
+so an over-budget label **wraps to a second line**. That makes it a
+**warning**, and an unlabelled slot an **error**: the first is ugly, the
+second is an icon with nothing naming it.
+
+### The device CSS is not there yet — and that is deliberate
+
+Nothing in the mobile app is fed portal configuration yet (the same boundary
+§30.21 notes for workflow definitions), so no app screen renders a four- or
+five-item bar today, and the flexible slot rule the arithmetic above implies
+has **not** been written into `eam-shared.css`. Writing it now would be a dead
+branch verified by nothing. It is tracked in §20 instead, with the arithmetic
+here as its specification — **together with §26.4's older prerequisite**, which
+is the same debt seen from the device end: the bar's markup is hand-copied into
+each browsing-tier screen and nothing in `eam-shared.js` renders it, so a
+config-driven bar needs a shared `renderBottomNav()` extracted first.
+
+## 30.25 One colour set, one tile face, and five accents (locked)
+
+Four small defects reported from the prototype on 2026-09-23, fixed together
+because three of them turned out to be the same defect: **a colour or a
+geometry was being written at the render site instead of resolved from one
+place.**
+
+### The colour set — six Octave status hues, and they replace the borrowings
+
+There is now **one** set, `BADGE_COLORS`: neutral plus **blue, green, orange,
+red, purple**, taken from Octave's own `status-*-700` steps. It is used
+wherever anything in this portal is given a colour — a Home tile's icon and
+every non-step node on the canvas.
+
+**Yellow is deliberately excluded.** `status-yellow-500` is `#ffdd00`, and the
+one job this set has is to stay legible as a glyph on a 13% tint of itself.
+
+What it replaces: tile colour offered the four **§23.3 WO Type tokens**, on
+the argument that *"an exception is not a licence to invent hues"*. That was
+right about not inventing and wrong about the source — **a Home tile is not a
+WO Type**, so borrowing that badge's four hues made a tile read as a Type it
+has nothing to do with. Octave's status ramp is this portal's own palette, so
+taking the set from there invents nothing *and* says nothing false. The same
+correction applies to the canvas accents below, which is why §30.7's
+"gates and forks borrow two WO Type tokens" line is now **half true**: the
+gate marker still borrows `--wo-type-breakdown`, the fork does not borrow
+anything.
+
+Two implementation rules:
+
+- **The stored value is a TOKEN, never a hex.** A raw hex would be a sixth
+  undeclared exception to §30.7 and could not follow `data-uxt-theme`. A test
+  asserts the shape of every entry.
+- **`COLOR_MIGRATE` maps the old WO Type keys by hue** (breakdown→orange,
+  ppm→blue, routine→purple, corrective→orange) and an unrecognised value
+  falls back to neutral. Same load-bearing job as `POLICY_MIGRATE` (§30.14):
+  without it, every stored tile silently loses its colour.
+
+### The tile face is the DEVICE's rule, resolved once
+
+`eam-home-screen-prototype-v1.html` draws a tile as `background:<colour>22`
+with the glyph in `<colour>` at full strength. The portal drew a white card
+with a coloured glyph, and it drew it three times — the catalogue chip, the
+library row and the editor square each built their own style string, which is
+how three faces of one tile drifted apart.
+
+Now `tileSquareStyle()` and `tileGlyphStyle()` are the only two writers:
+**tint and glyph are emitted together or not at all**, so a tinted square with
+a grey glyph is unrepresentable. All three faces call them.
+
+### The editor preview is the geometry §30.16 already specified
+
+The tile grid was `repeat(3,1fr)`, which makes every square **114px**. §30.16's
+own fold arithmetic is *"100px tile + 10px gap … 3 fit, the 4th shows 42px"* —
+so the editor contradicted the arithmetic it exists to draw. It is now
+`repeat(3,100px)` with the device's 20px radius, a 36px glyph (the device
+draws 38px in the same square; 24px read as a different component rather than
+a smaller one) and a 12px label. The 42px of leftover row is exactly the
+sliver the device shows of tile four.
+
+### The tile editor — Label, then Opens, then everything Opens scopes
+
+Field order was Label, Insert mode, Dataspy, Count, Opens, Icon colour. **That
+is backwards**, because Opens scopes three of the fields above it. The order is
+now **Label → Opens → Insert mode → Dataspy → Count → Icon → Icon colour**,
+and three things follow from the move:
+
+- **A new tile has no target.** It used to default to the Work Order list,
+  which is what made a pooled dataspy list look authoritative before a screen
+  had been chosen. Saving with no screen is refused.
+- **The dataspy is protected until Opens is set**, and says why, where the
+  field is. Three states, each a real answer: no screen yet, a screen that
+  carries no dataspies (Notifications, Sync), or **that screen's own list** —
+  keyed on a new `entity` field on `TILE_TARGETS`. Pooling every dataspy in
+  the system let a Work Order tile be filtered by "Van Stock".
+- **The icon is authored, not derived.** `commitTile()` overwrote it from the
+  target on every save (`insertMode ? 'plus' : target has "equip" ? 'box' :
+  'list'`), so the icon field was unreachable and a seeded glyph was lost the
+  first time anybody opened that tile. It is now an **icon grid**, the same
+  control the nav bar got in §30.24, plus a **swatch grid** for the colour —
+  one picker mechanic (`pickerSet`/`pickerRead`, read back by element id) and
+  two uses, rather than a named global per picker.
+
+**Insert mode was rendered as `<label class="cbx">` wrapping an input and a
+sentence — and `.cbx` IS the 16px box**, so the control drew a checkbox with
+its own caption spilling out of it. It is now a `.menu__item` row carrying a
+`.cbx` span, which is the pattern the two assignment popovers already use.
+
+### A picker names the choices; it does not describe them
+
+The User Groups assignment popover printed a summary line under every option
+(`artSummary()`). Removed (user direction): a six-row radio list became six
+paragraphs, and the description was the first thing to go stale — the home
+branch counted `h.tiles`, which **stopped existing when sections landed
+(§30.16)**, so every layout read "0 tiles". A **clash still shows**, because
+that is the consequence of the click rather than a description of the option.
+The group band below still summarises, and its count is fixed.
+
+### Five kinds, five accents, and the two fork glyphs were inverted
+
+Every non-step node now carries its accent as one inline custom property,
+`--node-accent`, resolved by `nodeAccentKey()` from the badge set:
+
+| Node | Accent | Why that one |
+| --- | --- | --- |
+| Start Timer | **green** | something starts running |
+| Stop Timer | **red** | something stops — and it **books** (§30.21) |
+| Status update | orange | the record changes state |
+| Question fork | purple | a **human** answers (the old fork hue) |
+| Condition fork | blue | the **system** answers, off a field (§30.19) |
+
+Before this, all three actions were one borrowed yellow and both fork kinds
+one borrowed purple, so **the two distinctions that matter — start versus
+stop, asked versus evaluated — were not drawn at all.**
+
+**The glyphs were the wrong way round**, which is the more embarrassing half:
+the condition fork carried `help` (a question mark) and the question fork
+carried `alt_route` (a routing arrow). A condition is a **rule** the system
+reads, so it takes `rule`; the question takes the question mark. Start Timer
+also moves `schedule` → `timer`, so start and stop read as one pair.
+
+Two things deliberately unchanged:
+
+- **The fork wires stay one colour.** A wire is the routing language, shared
+  by both kinds; the node's own accent says who answers. Per-fork wire colour
+  would also need a marker per colour, since an SVG `marker` carries its own
+  `fill`.
+- **The gallery chip now uses `isForkKind()`** — it tested `kind === 'fork'`,
+  so a condition fork fell through to the step branch and rendered with no
+  glyph and no name. That is the §30.22 lesson for the third time: **never a
+  bare `kind === 'fork'` test.**
+
+### And one demo-data rename
+
+The `Nonconformities` tile is now **Work Requests** (user direction). It keeps
+`demoCount: 0`, because that seed is what makes §30.16's "a statement
+returning 0 renders no badge at all" visible on load.
 
 ## 30.18 What §30 does not settle
 
