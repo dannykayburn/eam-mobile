@@ -10,10 +10,16 @@
 #   docs/archive/EAM-Dev-Leadership-Deck-2026-08-25.pptx  a meeting artifact,
 #                                               generated from the review doc
 #                                               beside it in docs/archive/
+#   docs/EAM-Mobile-Project-Scope.pptx          the vision/scope deck, rebuilt
+#                                               by docs/scripts/build-scope-deck.js
 #
-# The deck is reproducible from that review doc, which IS tracked — so the
-# source of truth is in git even though the binary isn't. If a .pptx ever needs
-# committing on purpose, use `git add -f`.
+# Each deck is reproducible from something that IS tracked — the review doc for
+# the archived one, and `docs/scripts/build-scope-deck.js` for the scope deck
+# (its content comes from docs/Total Project Scope Summary brief.md, its brand
+# chrome from the template above). So the source of truth is in git even though
+# the binaries are not. That is the whole bargain: if you add a .pptx here,
+# add the thing that regenerates it too, or this rule stops being true.
+# If a .pptx ever needs committing on purpose, use `git add -f`.
 *.pptx
 *.potx
 *.ppt
