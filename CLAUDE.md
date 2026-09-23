@@ -52,7 +52,7 @@ doc's Requirements section; neither file holds the reasoning.
 | Rule | § | The consequence that bites |
 | --- | --- | --- |
 | **Start Work is the commitment boundary** | §14.11 | Five things happen at once and only make sense together: status → Start Work Status, **Type protects**, **the WO pins to the technician**, **children hydrate**, config version stamped. Starting a WO found by search **is** its promotion into Tier 1, and it is the **first device-originated pin** — a local pin must survive a server list that omits it, or the next sync evicts live work. |
-| **The punch list is BOTH a dataspy and pins** | §2.6 | Locked 2026-09-11, replacing a two-month A-or-B open item. A **dataspy named per user group** is the *automatic* layer — **and its selector still has no home**, since User Group Setup is retired and the portal's User Groups area is a binding surface (§20/§30.14, which also keeps it separate from the offline profile's per-entity dataspy); **pinning** (`R5PINS`) is the *manual* layer on top. Costs both backend asks, not one. The membership row must record **which source** pinned it, or a dataspy re-evaluation evicts a manual pin — and a local pin must survive a server list that omits it, which is now architecturally required rather than just advisable. |
+| **The punch list is BOTH a dataspy and pins** | §2.6 | Locked 2026-09-11, replacing a two-month A-or-B open item. A **dataspy** is the *automatic* layer, selected on the **Work Orders row of the offline profile** — which renders on **every** profile including `None`, because a work list is a membership question, not a consequence of replication (settled 2026-09-23, §2.6/§30.14; this reversed "on the user group", whose objection assumed a group-scoped dataspy when `My Open WOs` is user-relative); **pinning** (`R5PINS`) is the *manual* layer on top. Costs both backend asks, not one. The membership row must record **which source** pinned it, or a dataspy re-evaluation evicts a manual pin — and a local pin must survive a server list that omits it, which is now architecturally required rather than just advisable. |
 | **One paradigm for every configuration artifact** | §30.13 | Workflows, offline profiles, Home layouts and Home tiles are all **authored once and applied**, and the four answers are shared, not per-area: assignment runs **both directions over ONE membership table** (`{type, artifactId, group}`, every read through an accessor — four parallel arrays is the failure mode); **cardinality follows what the runtime resolves on** (§11 resolves a workflow on *(WO Type, group)* → one per Type plus Free Form; everything else resolves on the group alone → exactly one); **Create follows size** (modal for what fits one form, blank canvas for an arrangement); **Home tiles are global and reused by reference**, so editing one reaches every layout using it and only the *layout* is assignable. |
 | **Gating is forward-only** | §14.10 | A completed step is **always** reopenable; "Not Free Form" dictates forward order, not backward. Forward gating is untouched — a later step stays locked and explains itself. Completed rows carry a trailing chevron (`.step-map-back`), because `cursor:pointer` says nothing on a touch device. |
 | **Function resolution is per user group, never one blessed function** | §26.7 | Any function with `FUN_RENTITY = EVNT` may be workflow-enabled, opted in per **user group** — this customer already runs four `WSJOBS` clones (CCJOBS/TRJOBS/ZJ1000/WSJODC) as distinct business processes. **This half is still locked and holds either way.** *(What is NOT locked any more: "no new `FUN_CODE`s" — reuse `WSJOBS`/clones vs. a new standalone mobile function was reopened 2026-09-11 and is a **decision required**, §11/§20. A new Equipment function that renders by equipment type is **required** regardless, §26.8. Don't re-derive §26.7 with it.)* |
@@ -771,6 +771,75 @@ twice until 2026-09-16.
     Reported, never auto-fixed. **Key it on `targetScreen()`, not the raw
     target** — a create target is an insert mode *of* a screen, and getting
     that wrong reported every create tile as hidden (the §29.7 shape again).
+  - **THE APP'S NAVIGATION BAR IS A PROPERTY OF THE LAYOUT** (§30.24, added
+    2026-09-23) — not a fifth artifact type, because the bar resolves on the
+    **user group alone**, which is what a Home layout already resolves on, so
+    it inherits assignment and cardinality for free (§30.13). It is also the
+    literal bottom edge of the same picture, drawn under the sections in the
+    editor. **§26.3's slot row is unchanged and is NOT re-derived** — label,
+    icon (curated set, never free-form), target, order — only *where* it is
+    authored moved. Three things bite:
+    - **§4.2's three items are now the DEFAULT, not the rule** (Home/Work/
+      Notifications, seeded on every layout), **Equipment is allowed**, and
+      the argument is the capability gate, not taste: `STORES` has no WO list
+      and `CONTRACTOR` has no Notifications, so a fixed three hands them dead
+      slots. Max **5**. **Home is pinned to slot 1** (the only route back
+      while browsing) with its screen protected, clamped at the mutation.
+      **Label, screen and icon only — never colour** (§23; Home's colour
+      exception is for tiles).
+    - **Five costs the label, and that is the whole cost.** Fixed 84px slots
+      fit **three** at §31's 320px floor, so past three the slot yields to an
+      equal share — 69.5px at four, 52.8px at five (still over 48px). The
+      label budget falls ~14 → ~11 → ~9 characters, drawn live in the editor
+      the way `HOME_FOLD` is. The device **wraps** rather than truncating, so
+      over-budget is a *warning* and an unlabelled slot an *error*.
+    - **The device cannot render it yet, deliberately.** No shared
+      `renderBottomNav()` exists (markup is hand-copied into the 3
+      browsing-tier screens), the 4–5 slot CSS is specified but unwritten,
+      and nothing feeds the app any portal artifact. One §20 row, three parts
+      — don't write the CSS on its own.
+  - **ONE COLOUR SET FOR THE WHOLE PORTAL** (§30.25, 2026-09-23) —
+    `BADGE_COLORS`: neutral + **blue/green/orange/red/purple** from Octave's
+    own `status-*-700` steps, **tokens never hexes** (a hex cannot follow
+    `data-uxt-theme`, and it would be a sixth §30.7 exception). Yellow is
+    excluded on contrast. It replaced **two borrowings**: tile colour offered
+    the four §23.3 WO Type tokens (a tile is not a Type) and the canvas
+    borrowed two more. `COLOR_MIGRATE` maps the old keys by hue — load-bearing
+    like `POLICY_MIGRATE`, or every stored tile loses its colour.
+    - **A tile's face is the DEVICE's rule, written once** —
+      `tileSquareStyle()`/`tileGlyphStyle()`: background is the colour at
+      **13%**, glyph at full strength, emitted together or not at all. All
+      three faces (catalogue chip, library row, editor square) call them;
+      they each built their own style string before, which is how they
+      drifted.
+    - **The editor grid is `repeat(3,100px)`, not `1fr`** — 1fr drew 114px
+      squares, contradicting the very arithmetic §30.16 cites (100px tile +
+      10px gap, 3 fit, the 4th shows a 42px sliver). Glyph 36px (device draws
+      38px), radius 20px, label 12px.
+    - **Tile editor order is Label → Opens → Insert mode → Dataspy → Count →
+      Icon → Colour**, because Opens scopes what follows it. A new tile has
+      **no target** (it defaulted to the WO list), saving without one is
+      refused, and the dataspy is **protected until Opens is set** with its
+      list driven by that screen's `entity` — a pooled list let a WO tile be
+      filtered by "Van Stock". **The icon is authored, not derived:**
+      `commitTile()` used to overwrite it from the target on every save, so
+      the field was unreachable and seeded glyphs were lost on first edit.
+    - **`.cbx` IS the 16px box** — Insert mode wrapped an input and a sentence
+      in it, which is why it rendered with the caption spilling out. Use a
+      `.menu__item` row carrying a `.cbx` span, like the assignment popovers.
+    - **A picker names the choices, it does not describe them** — the group
+      assignment popover's per-option summary is gone (user direction); a
+      clash still shows, because that is a consequence. Its `artSummary`
+      home branch had been counting `h.tiles`, dead since sections landed.
+    - **Five non-step kinds, five accents, one inline `--node-accent`**:
+      Start Timer **green**, Stop Timer **red**, Status update orange,
+      Question fork **purple** (a human answers), Condition fork **blue** (the
+      system does). **The two fork glyphs were inverted** — the condition
+      carried the question mark and the question carried the routing arrow;
+      condition is now `rule`, and Start Timer is `timer` so the pair reads
+      together. Fork **wires stay one colour** (routing is shared; an SVG
+      marker carries its own fill). The gallery chip now uses `isForkKind()`
+      — it tested `kind==='fork'` and rendered a condition fork nameless.
 - **User Groups is the inverse view**, and a **binding surface** — assignment
   only. `effectiveFor()` distinguishes explicit / inherited / unset, and
   `allConflicts()` is what the rail badge counts. **Create refuses here**: a user
@@ -782,7 +851,7 @@ twice until 2026-09-16.
 **THE BASE TRACK IS THIS PORTAL AND NOTHING ELSE** (user direction 2026-09-16:
 *"Desktop UI is completely out of scope for this project. It is just the Mobile
 App and this portal now. Total."*). `eam-base-desktop-ui-prototype-v1.html` is
-retired to `old versions/` — a **scope** call, not a quality one (§21/NG9). Two
+retired to `old versions/` — a **scope** call, not a quality one (§21/NG8). Two
 consequences: **"restyle onto the Base/Desktop UI components" is no longer a fix
 for anything** — it was the standing answer to the two-visual-languages problem,
 which is now closed twice over (§30.9 removed Screen Designer's surface, this
@@ -863,11 +932,12 @@ prototype session trips over, one line each.
   membership table makes removal one click from either side, which raises the
   question harder than §26.5 did. §29.5's config-version stamp is the mechanism;
   nothing joins them up. §30.18.
-- **The punch-list dataspy selector still has no home** — User Group Setup is
-  retired and the portal's User Groups area is a *binding* surface, so this
-  would be its first configuring control. Keep it separate from the offline
-  profile's per-entity dataspy (§30.14), and keep its output distinguishable
-  from a manual pin. §20.
+- **The punch list's authoring side is DONE; the remaining cost is backend** —
+  a pinned row must record **which source** pinned it, or re-evaluating the
+  dataspy silently evicts a technician's own addition. No UI to build. Also
+  owed: say in the assignment control that a group needing an automatic list
+  gets the **Online only profile**, not "no profile" — the dataspy has to live
+  on something. §20.
 - **§2.7 narrows offline capability vs. the SHIPPING product — DECISION
   REQUIRED.** It puts equipment/WO history and meter readings in `server-only`;
   the live product downloads both. Either communicate the regression or give

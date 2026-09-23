@@ -1353,6 +1353,418 @@ console.log('\nHome layout — an empty layout is a FALLBACK, not a fault');
       'return homeIssues(e).some(function(i){ return i.sev === "warn"; }); })()'));
 }
 
+console.log('\nNavigation bar (§30.24) — a property of the layout, max 5 slots');
+{
+  const ctx = boot('wf-bk-full');
+  ev(ctx, 'resetPortal();');
+  const NOEV = '{preventDefault:function(){},stopPropagation:function(){}}';
+
+  /* WHERE IT LIVES. The whole placement decision is that the bar is a
+     property of the Home layout rather than a fifth assignable artifact,
+     because it resolves on the user group alone — exactly what a Home
+     layout already resolves on (§30.13). A 'nav' artifact type appearing
+     here would mean the decision had been quietly reversed, and the membership
+     table would have a fifth kind of row to disagree with. */
+  ok('the bar is NOT a fifth artifact type',
+    evb(ctx, 'ARTIFACT_TYPES.nav === undefined && ASSIGN.every(function(r){ return r.type !== "nav"; })'));
+  ok('...it is a property of the layout, on every one of them',
+    evb(ctx, 'HOMES.length > 0 && HOMES.every(function(h){ return Array.isArray(h.nav) && h.nav.length > 0; })'));
+
+  /* §4.2's locked three are now the DEFAULT, including its "Work Orders" →
+     "Work" shortening. */
+  ok('a new layout carries §4.2\'s three, in order',
+    evb(ctx, '(function(){' +
+      'var n = mkHome("Fresh","").nav;' +
+      'return n.length === 3 && n[0].target === "home" && n[1].target === "wolist" &&' +
+      '  n[2].target === "notif" && n[1].label === "Work"; })()'));
+  ok('NAV_MAX is 5', ev(ctx, 'NAV_MAX') === 5);
+
+  /* THE PIN, from every direction. Home is slot 1 because it is the only
+     route back to Home while browsing, so a bar without it is a dead end.
+     Same lesson as the pinned step: clamp at the MUTATION, because a guard
+     that only lives in the drag geometry is bypassed by any direct call. */
+  ok('Home cannot be REMOVED',
+    evb(ctx, '(function(){' +
+      'var h = HOMES[0]; state.openHome = h.id;' +
+      'removeNavItem(0);' +
+      'return h.nav[0].target === "home"; })()'));
+  ok('Home cannot be MOVED off slot 1',
+    evb(ctx, '(function(){' +
+      'var h = HOMES[0]; state.openHome = h.id;' +
+      'moveNavItem(0, 1);' +
+      'return h.nav[0].target === "home"; })()'));
+  ok('...and nothing can be moved INTO slot 1',
+    evb(ctx, '(function(){' +
+      'var h = HOMES[0]; state.openHome = h.id;' +
+      'moveNavItem(1, -1);' +
+      'return h.nav[0].target === "home"; })()'));
+  /* The clamp called the way a future caller would call it, not the way the
+     browser does — navDragOver always runs first in a real gesture, which is
+     exactly what hid this class of bug once (§29.2). */
+  ok('navDrop() clamps to slot 1 when called DIRECTLY',
+    evb(ctx, '(function(){' +
+      'var h = HOMES[0]; state.openHome = h.id;' +
+      'var before = h.nav[0].target;' +
+      'navDrag = 1;' +
+      'navDrop(' + NOEV + ', 0);' +
+      'return h.nav[0].target === before && before === "home"; })()'));
+  ok('...and a legal reorder still reports true and lands',
+    evb(ctx, '(function(){' +
+      'var h = HOMES.filter(function(x){ return x.nav.length > 2; })[0];' +
+      'if(!h) return false;' +
+      'state.openHome = h.id;' +
+      'var moved = h.nav[1].target;' +
+      'navDrag = 1;' +
+      'var okd = navDrop(' + NOEV + ', 2);' +
+      'return okd === true && h.nav[2].target === moved && h.nav[0].target === "home"; })()'));
+
+  /* THE CAP, at the mutation and again on read. */
+  ok('addNavItem() refuses the 6th slot',
+    evb(ctx, '(function(){' +
+      'var h = HOMES[0]; state.openHome = h.id;' +
+      'while(h.nav.length < NAV_MAX && navFreeTargets(h,-1).length) {' +
+      '  var t = navFreeTargets(h,-1)[0];' +
+      '  h.nav.push(mkNavItem({target:t.id, label:t.label, icon:"list"})); }' +
+      'if(h.nav.length !== NAV_MAX) return false;' +
+      'addNavItem();' +
+      'return h.nav.length === NAV_MAX; })()'));
+  ok('normalizeNav() ALSO clamps, so stored data cannot carry a 6th',
+    evb(ctx, '(function(){' +
+      'var h = mkHome("Over","");' +
+      'h.nav = [mkNavItem({target:"home",label:"Home"}), mkNavItem({target:"wolist",label:"Work"}),' +
+      '  mkNavItem({target:"equiplist",label:"Assets"}), mkNavItem({target:"notif",label:"Alerts"}),' +
+      '  mkNavItem({target:"sync",label:"Sync"}), mkNavItem({target:"wolist",label:"Dup"})];' +
+      'normalizeNav(h);' +
+      'return h.nav.length <= NAV_MAX; })()'));
+  ok('...and dedupes: one slot per screen, because a nav item has no dataspy',
+    evb(ctx, '(function(){' +
+      'var h = mkHome("Dup","");' +
+      'h.nav = [mkNavItem({target:"home",label:"Home"}), mkNavItem({target:"wolist",label:"A"}),' +
+      '  mkNavItem({target:"wolist",label:"B"})];' +
+      'normalizeNav(h);' +
+      'return h.nav.filter(function(i){ return i.target === "wolist"; }).length === 1; })()'));
+  ok('...and puts Home BACK if a stored bar lost it',
+    evb(ctx, '(function(){' +
+      'var h = mkHome("NoHome","");' +
+      'h.nav = [mkNavItem({target:"wolist",label:"Work"}), mkNavItem({target:"notif",label:"Alerts"})];' +
+      'normalizeNav(h);' +
+      'return h.nav[0].target === "home"; })()'));
+  ok('...and re-seats it to slot 1 if it drifted',
+    evb(ctx, '(function(){' +
+      'var h = mkHome("Drift","");' +
+      'h.nav = [mkNavItem({target:"wolist",label:"Work"}), mkNavItem({target:"home",label:"Home"})];' +
+      'normalizeNav(h);' +
+      'return h.nav[0].target === "home" && h.nav.length === 2; })()'));
+
+  /* A NAV ITEM IS A DESTINATION, NEVER A CREATE (§9.4.1). Structural: the
+     option does not exist, which is the cheapest guard there is. */
+  ok('no create target can ever reach the bar',
+    evb(ctx, '(function(){' +
+      'var bad = ["createwo","createeq"];' +
+      'var declared = NAV_TARGETS.every(function(t){ return bad.indexOf(t.id) === -1; });' +
+      'var h = HOMES[0];' +
+      'var offered = navFreeTargets(h, -1).every(function(t){ return bad.indexOf(t.id) === -1; });' +
+      'return declared && offered; })()'));
+
+  /* THE SLOT ARITHMETIC. Five is supported and it costs the label — that is
+     the claim, so both halves are pinned. Budget must MOVE with the item
+     count, the same sensitivity the offline caps are tested for: a budget
+     that is really a constant would pass a single-count check. */
+  ok('three items keep the locked 84px slot',
+    evb(ctx, 'navSlotPx(3) === NAV_SLOT_PX'));
+  ok('...four and five do NOT — the fixed slot yields past three',
+    evb(ctx, 'navSlotPx(4) < NAV_SLOT_PX && navSlotPx(5) < navSlotPx(4)'));
+  ok('...five still clears §31.5\'s 48px hit target',
+    evb(ctx, 'navSlotPx(5) >= 48'));
+  ok('...and the label budget SHRINKS with every added slot',
+    evb(ctx, 'navLabelBudget(3) > navLabelBudget(4) && navLabelBudget(4) > navLabelBudget(5)'));
+  ok('"Notifications" fits at three items and does not at five',
+    evb(ctx, 'navLabelBudget(3) >= 13 && navLabelBudget(5) < 13'));
+
+  /* WHAT GETS REPORTED. An unlabelled slot is broken; an over-long one is
+     ugly — the device wraps rather than truncating, so the severities differ
+     on purpose. */
+  ok('an unlabelled slot is an ERROR',
+    evb(ctx, '(function(){' +
+      'var h = mkHome("NoLabel",""); h.nav[1].label = "";' +
+      'return homeIssues(h).some(function(i){ return i.sev === "error" && i.msg.indexOf("no label") > -1; }); })()'));
+  ok('an over-budget label is a WARNING, not an error',
+    evb(ctx, '(function(){' +
+      'var h = mkHome("Long","");' +
+      'h.nav = [mkNavItem({target:"home",label:"Home"}), mkNavItem({target:"wolist",label:"Work"}),' +
+      '  mkNavItem({target:"equiplist",label:"Assets"}), mkNavItem({target:"notif",label:"Notifications"}),' +
+      '  mkNavItem({target:"sync",label:"Sync"})];' +
+      'var iss = homeIssues(h);' +
+      'return iss.some(function(i){ return i.sev === "warn" && i.msg.indexOf("wraps") > -1; }) &&' +
+      '  !iss.some(function(i){ return i.sev === "error"; }); })()'));
+  ok('a bar carrying only Home warns — chrome that navigates nowhere',
+    evb(ctx, '(function(){' +
+      'var h = mkHome("Solo",""); h.nav = [mkNavItem({target:"home",label:"Home"})];' +
+      'return homeIssues(h).some(function(i){ return i.sev === "warn" && i.msg.indexOf("only Home") > -1; }); })()'));
+
+  /* THE SILENT-HIDE GATE, one level up from a tile (§30.17). A dropped tile
+     leaves a gap in a scrolling row; a dropped nav item leaves a hole in
+     permanent chrome. Keyed on the target's SCREEN, and the shell target is
+     exempt — without that exemption EVERY layout would report Home as dead,
+     since the app's own Home is not a menu entry. */
+  ok('a nav item outside a group\'s menu is an ERROR on the layout',
+    evb(ctx, '(function(){' +
+      'var h = HOMES.filter(function(x){' +
+      '  return groupsOf("home", x.id).some(function(g){ return navGaps(x, g).length; }); })[0];' +
+      'if(!h) return false;' +
+      'return homeIssues(h).some(function(i){' +
+      '  return i.sev === "error" && i.msg.indexOf("that slot is dead") > -1; }); })()'));
+  ok('...and it is LIVE ON LOAD, not only reachable by hand',
+    evb(ctx, '(function(){' +
+      'resetPortal(); setArea("home");' +
+      'return HOMES.some(function(h){' +
+      '  return groupsOf("home", h.id).some(function(g){ return navGaps(h, g).length > 0; }); }); })()'));
+  ok('Home is never reported as dead — the shell is not a menu entry',
+    evb(ctx, 'HOMES.every(function(h){ return GROUPS.every(function(g){' +
+      'return navGaps(h, g).every(function(it){ return it.target !== "home"; }); }); })'));
+
+  /* IT RENDERS, and it says the one thing an admin cannot infer: the bar is
+     not part of Home. */
+  ok('the editor draws the bar at the bottom of the device preview',
+    evb(ctx, '(function(){' +
+      'resetPortal(); setArea("home"); openHome(HOMES[0].id);' +
+      'return document.getElementById("gallery").innerHTML.indexOf("emu-navbar") > -1; })()'));
+  ok('...and states that it is app-level chrome, not part of Home',
+    evb(ctx, 'document.getElementById("gallery").innerHTML.indexOf("not part of Home") > -1'));
+  ok('...and prints the slot arithmetic rather than leaving it implicit',
+    evb(ctx, 'document.getElementById("gallery").innerHTML.indexOf("320px floor") > -1'));
+  /* A screen already on the bar is not offered a second time — asserted on
+     the rendered option list, which is what an admin actually sees. */
+  ok('the item editor does not offer a screen another slot already opens',
+    evb(ctx, '(function(){' +
+      'resetPortal(); setArea("home");' +
+      'var h = HOMES.filter(function(x){ return x.nav.some(function(i){ return i.target === "wolist"; }) &&' +
+      '  x.nav.some(function(i){ return i.target === "notif"; }); })[0];' +
+      'if(!h) return false;' +
+      'openHome(h.id);' +
+      'var idx = -1; h.nav.forEach(function(i,n){ if(i.target === "notif") idx = n; });' +
+      'navItemModal(idx);' +
+      'var html = document.getElementById("mbox").innerHTML;' +
+      'return html.indexOf(\'value="notif"\') > -1 && html.indexOf(\'value="wolist"\') === -1; })()'));
+  /* Colour is not authorable: the bar is monochrome glass (§23), and Home's
+     colour exception is for tiles. A colour control here would be the
+     exception spreading. */
+  ok('the item editor offers label, screen and icon — and no colour',
+    evb(ctx, '(function(){' +
+      'var html = document.getElementById("mbox").innerHTML;' +
+      'return html.indexOf("nvLabel") > -1 && html.indexOf("nvIcons") > -1 &&' +
+      '  html.indexOf("Colour is not authorable") > -1 && html.indexOf("nvColor") === -1; })()'));
+}
+
+console.log('\nOne colour set, one tile face (§30.25)');
+{
+  const ctx = boot('wf-bk-full');
+  ev(ctx, 'resetPortal(); setArea("home");');
+
+  /* SIX VALUES, AND THEY ARE TOKENS. A raw hex here would be a sixth
+     undeclared exception to §30.7, and a hex cannot be themed — the portal
+     switches light/dark on data-uxt-theme. */
+  ok('the badge set is six values', ev(ctx, 'BADGE_COLORS.length') === 6);
+  ok('...every one is an Octave token, never a raw hex',
+    evb(ctx, 'BADGE_COLORS.every(function(c){ return c.v === "" || /^var\\(--uxt-theme-palette-status-[a-z]+-700\\)$/.test(c.v); })'));
+  ok('...and none of them borrows a WO Type hue any more',
+    evb(ctx, 'BADGE_COLORS.every(function(c){ return c.v.indexOf("wo-type") === -1; })'));
+  ok('the old WO Type colour keys MIGRATE by hue rather than falling back to neutral',
+    evb(ctx, '(function(){' +
+      'var t = normalizeTile({color:"breakdown", insertMode:false, countSql:""});' +
+      'var p = normalizeTile({color:"ppm", insertMode:false, countSql:""});' +
+      'var r = normalizeTile({color:"routine", insertMode:false, countSql:""});' +
+      'return t.color === "orange" && p.color === "blue" && r.color === "purple"; })()'));
+  ok('...and an unknown colour falls back to neutral rather than rendering nothing',
+    evb(ctx, 'normalizeTile({color:"chartreuse", insertMode:false, countSql:""}).color === "none"'));
+
+  /* THE DEVICE'S RULE, IN ONE PLACE. Tint + glyph are emitted together or
+     not at all, which is what stops a tinted square with a grey glyph. */
+  ok('a coloured tile gets BOTH the 13% tint and the full-strength glyph',
+    evb(ctx, '(function(){' +
+      'var st = tileSquareStyle({color:"red"});' +
+      'return st.indexOf("color-mix") > -1 && st.indexOf("13%") > -1 &&' +
+      '  st.indexOf("color:var(--uxt-theme-palette-status-red-700)") > -1; })()'));
+  ok('...and a neutral tile gets no inline colour at all',
+    evb(ctx, 'tileSquareStyle({color:"none"}) === "" && tileGlyphStyle({color:"none"}) === ""'));
+  /* THREE FACES, ONE HELPER. The catalogue chip, the library row and the
+     editor square are three render sites; they drifted before because each
+     wrote its own style string. */
+  ok('the catalogue chip and the editor square both render through it',
+    evb(ctx, '(function(){' +
+      'var t = TILES.filter(function(x){ return normalizeTile(x).color !== "none" && !x.insertMode; })[0];' +
+      'if(!t) return false;' +
+      'renderHomeArea();' +
+      'var chip = /tilechip. style=.background:color-mix/.test(document.getElementById("gallery").innerHTML);' +
+      'openHome(HOMES[0].id);' +
+      'var sq = /hometile__sq. style=.background:color-mix/.test(document.getElementById("gallery").innerHTML);' +
+      'return chip && sq; })()'));
+
+  /* THE PREVIEW IS THE DEVICE'S OWN GEOMETRY. 3 x 1fr made every square
+     114px, which is a preview at the wrong scale — and HOME_FOLD's whole
+     argument is arithmetic on a 100px tile. */
+  const portalSrc = require('fs').readFileSync(
+    require('path').join(__dirname, '..', '..', '..', '..', '..', 'prototypes', 'standalone', FILE), 'utf8');
+  ok('the tile grid is fixed 100px columns, not 3 x 1fr',
+    portalSrc.indexOf('repeat(3,100px)') > -1 && portalSrc.indexOf('repeat(3,1fr)') === -1);
+  ok('...and the square glyph is the device\'s 36px, not the old 24px inline size',
+    portalSrc.indexOf('.hometile__sq .hometile__ico .ms{font-size:36px;}') > -1);
+
+  ok('the demo catalogue has Work Requests, and no Nonconformities',
+    evb(ctx, 'TILES.some(function(t){ return t.label === "Work Requests"; }) &&' +
+      '!TILES.some(function(t){ return t.label === "Nonconformities"; })'));
+}
+
+console.log('\nTile editor — Label, Opens, then everything Opens scopes (§30.25)');
+{
+  const ctx = boot('wf-bk-full');
+  ev(ctx, 'resetPortal(); setArea("home");');
+
+  /* FIELD ORDER IS THE FIX. Opens scopes the dataspy, the count and the
+     refusal below, so it cannot sit after them. */
+  ok('Opens comes after Label and before the dataspy',
+    evb(ctx, '(function(){' +
+      'createTile();' +
+      'var h = document.getElementById("mbox").innerHTML;' +
+      'return h.indexOf("tlLabel") < h.indexOf("tlTarget") &&' +
+      '  h.indexOf("tlTarget") < h.indexOf("Dataspy"); })()'));
+  /* A NEW TILE HAS NO TARGET, which is what makes the protected state real
+     rather than theoretical. */
+  ok('a new tile opens with no screen chosen',
+    evb(ctx, 'document.getElementById("mbox").innerHTML.indexOf("Choose a screen") > -1'));
+  ok('...so the dataspy is PROTECTED, with the reason where the field is',
+    evb(ctx, '(function(){' +
+      'var h = document.getElementById("mbox").innerHTML;' +
+      'return h.indexOf("Pick a screen first") > -1 && !/<select[^>]*id=.tlSpy/.test(h); })()'));
+  /* THE LIST IS THE SCREEN'S. Pooling every dataspy let a Work Order tile
+     be filtered by "Van Stock". */
+  ok('the dataspy list is the chosen screen\'s own',
+    evb(ctx, '(function(){' +
+      'document.getElementById("tlTarget").value = "equiplist"; tileModalSync();' +
+      'var h = document.getElementById("tlSpyWrap").innerHTML;' +
+      'return h.indexOf("My Route Assets") > -1 && h.indexOf("My Open WOs") === -1 && h.indexOf("Van Stock") === -1; })()'));
+  ok('...and a screen that is not a record list says so instead of offering an empty list',
+    evb(ctx, '(function(){' +
+      'document.getElementById("tlTarget").value = "notif"; tileModalSync();' +
+      'var h = document.getElementById("tlSpyWrap").innerHTML;' +
+      'return h.indexOf("carries no dataspies") > -1 && !/id=.tlSpy./.test(h); })()'));
+  /* INSERT MODE IS A ROW, NOT A 16px BOX USED AS A LABEL. .cbx IS the box,
+     so wrapping an input and a sentence in it is what made this render with
+     text spilling out. */
+  ok('insert mode is a row carrying the .cbx box, not a .cbx wrapping the row',
+    evb(ctx, '(function(){' +
+      'var h = document.getElementById("mbox").innerHTML;' +
+      'return /id=.tlInsertRow./.test(h) && h.indexOf("tlInsertBox") > -1 &&' +
+      '  !/<label class=.cbx./.test(h); })()'));
+  ok('...and turning it on collapses the dataspy and the counter together',
+    evb(ctx, '(function(){' +
+      'tileToggleInsert();' +
+      'var h = document.getElementById("tlSpyWrap").innerHTML;' +
+      'return tileInsertOn() && h.indexOf("no dataspy and no counter") > -1 &&' +
+      '  h.indexOf("tlCount") === -1; })()'));
+
+  /* THE REGRESSION WORTH A TEST OF ITS OWN: the icon was DERIVED from the
+     target on every save, so the icon field was unreachable and a seeded
+     glyph was lost the first time anybody opened the tile. */
+  ok('a saved tile keeps the AUTHORED icon and colour',
+    evb(ctx, '(function(){' +
+      'createTile();' +
+      'document.getElementById("tlLabel").value = "Authored";' +
+      'document.getElementById("tlTarget").value = "wolist";' +
+      'pickerSet("tlIcons", "flag"); pickerSet("tlColors", "purple");' +
+      'var n = TILES.length;' +
+      'commitTile(null);' +
+      'var t = TILES[TILES.length-1];' +
+      'return TILES.length === n + 1 && t.icon === "flag" && t.color === "purple" && t.target === "wolist"; })()'));
+  ok('...and a tile with no screen chosen is REFUSED',
+    evb(ctx, '(function(){' +
+      'createTile();' +
+      'document.getElementById("tlLabel").value = "No screen";' +
+      'document.getElementById("tlTarget").value = "";' +
+      'var n = TILES.length;' +
+      'commitTile(null);' +
+      'return TILES.length === n; })()'));
+  /* One picker mechanic, two pickers — the nav bar's icon grid and the
+     tile's are the same control, and the tile's colour grid is that control
+     with a different cell. */
+  ok('icon and colour pickers read back by element id, not a global per picker',
+    evb(ctx, '(function(){' +
+      'pickerSet("tlIcons", "box"); pickerSet("tlColors", "green");' +
+      'return pickerRead("tlIcons","x") === "box" && pickerRead("tlColors","x") === "green" &&' +
+      '  typeof navIconPick === "undefined"; })()'));
+}
+
+console.log('\nUser Groups — the picker names the choices, it does not describe them');
+{
+  const ctx = boot('wf-bk-full');
+  ev(ctx, 'resetPortal(); setArea("groups"); pickGroup("MAINT-TECH");');
+  ok('an option row carries no summary line',
+    evb(ctx, 'openGroupAssign.toString().indexOf("artSummary") === -1'));
+  ok('...and nothing in the rendered popover describes an option',
+    evb(ctx, '(function(){' +
+      'openGroupAssign(null, "MAINT-TECH", "offline");' +
+      'var h = document.getElementById("pop").innerHTML;' +
+      'return h.indexOf("entities offline") === -1 && h.indexOf("cap ") === -1; })()'));
+  /* A CLASH IS NOT A DESCRIPTION — it is the consequence of the click, and
+     it stays. */
+  ok('a clash warning still renders in the popover',
+    evb(ctx, 'openGroupAssign.toString().indexOf("wouldClash") > -1'));
+  /* The band below still counts, and that count was BROKEN: it read
+     h.tiles, which stopped existing when sections landed. */
+  ok('the group band\'s own summary counts a layout correctly again',
+    evb(ctx, '(function(){' +
+      'var h = HOMES[0];' +
+      'return artSummary("home", h).indexOf(String(homeTileIds(h).length) + " tiles") === 0; })()'));
+}
+
+console.log('\nWorkflow canvas — five kinds, five accents, two fork glyphs (§30.25)');
+{
+  const ctx = boot('wf-bk-full');
+  ev(ctx, 'resetPortal();');
+
+  /* THE PAIR THAT PAYS FOR ITSELF: green starts, red stops. */
+  ok('Start Timer is green and Stop Timer is red',
+    evb(ctx, 'nodeAccentKey({kind:"action",action:"timer"}) === "green" &&' +
+      'nodeAccentKey({kind:"action",action:"stoptimer"}) === "red"'));
+  ok('a status update is neither of them',
+    evb(ctx, 'nodeAccentKey({kind:"action",action:"status"}) === "orange"'));
+  /* THE TWO FORK KINDS ARE NOW TOLD APART, which is the whole ask: the
+     human-answered one and the system-answered one used to be one purple. */
+  ok('a question fork and a condition fork carry different colours',
+    evb(ctx, '(function(){' +
+      'var q = nodeAccentKey({kind:"fork"}), c = nodeAccentKey({kind:"cond"});' +
+      'return q === "purple" && c === "blue" && q !== c; })()'));
+  ok('...and different glyphs, with the QUESTION mark on the question',
+    evb(ctx, '(function(){' +
+      'var w = WFS.filter(function(x){ return !x.freeForm; })[0];' +
+      'openWf(w.id);' +
+      'addNodeToWf(w, "cond", w.nodes.length, "flow");' +
+      'addNodeToWf(w, "fork", w.nodes.length, "flow");' +
+      'var c = w.nodes.filter(function(n){ return n.kind === "cond"; })[0];' +
+      'var q = w.nodes.filter(function(n){ return n.kind === "fork"; })[0];' +
+      'var ch = nodeHtml(w, c, false), qh = nodeHtml(w, q, false);' +
+      'return ch.indexOf(">rule<") > -1 && ch.indexOf(">help<") === -1 &&' +
+      '  qh.indexOf(">help<") > -1 && qh.indexOf("alt_route") === -1; })()'));
+  /* EVERY ACCENT COMES FROM THE ONE SET. A hand-written hue here is how a
+     sixth colour appears without anybody deciding on it. */
+  ok('every node accent resolves to a badge colour',
+    evb(ctx, 'Object.keys(NODE_ACCENTS).every(function(k){' +
+      'return BADGE_COLORS.some(function(c){ return c.k === NODE_ACCENTS[k] && c.v; }); })'));
+  ok('...and the node carries it as one inline custom property',
+    evb(ctx, '(function(){' +
+      'var w = wf();' +
+      'addNodeToWf(w, "timer", w.nodes.length, "flow");' +
+      'var t = w.nodes.filter(function(n){ return n.action === "timer"; })[0];' +
+      'return nodeHtml(w, t, false).indexOf("--node-accent:var(--uxt-theme-palette-status-green-700)") > -1; })()'));
+  /* The gallery chip tested kind==='fork', so a condition fork fell through
+     to the STEP branch and rendered nameless — the §30.22 lesson again. */
+  ok('the gallery chip tells the two kinds apart instead of dropping one',
+    evb(ctx, '(function(){' +
+      'var w = wf();' +
+      'var html = galCard(w);' +
+      'return html.indexOf("Condition") > -1 && html.indexOf(">rule<") > -1; })()'));
+}
+
 console.log('\nOffline profile — caps are PROTECTED platform limits');
 {
   const ctx = boot('wf-bk-full');
@@ -1579,7 +1991,7 @@ console.log('\nOffline profile — five policies merged into four');
       'var g = document.getElementById("gallery").innerHTML;' +
       'var a = g.indexOf(\'<div class="reg">\'), z = g.indexOf("Lookup resolution");' +
       'var h = g.slice(a, z);' +
-      'return fits.length > 0 && (h.match(/All records — it fits/g) || []).length === fits.length; })()'));
+      'return fits.length > 0 && (h.match(/>All records</g) || []).length === fits.length; })()'));
   ok('the control and the validator agree, because both call rowNeedsDataspy',
     evb(ctx, '(function(){' +
       'var p = normalizeProfile(artifactOf("offline", PROFILES[1].id));' +
@@ -1600,6 +2012,48 @@ console.log('\nOffline profile — five policies merged into four');
     evb(ctx, '(function(){' +
       'var p = normalizeProfile(artifactOf("offline", PROFILES[0].id));' +
       'return profileIssues(p).filter(function(i){ return i.sev === "error"; }).length === 0; })()'));
+
+  /* ── THE MEMBERSHIP EXCEPTION (§2.6, locked 2026-09-23) ──
+     The punch-list dataspy lives on the Work Orders row, and a group that
+     replicates NOTHING still has a punch list, because membership is answered
+     server-side. Both halves of this failed silently before the fix: the
+     dataspy was wiped on load, and the control collapsed to a dash so there
+     was nowhere to set one. Neither showed a symptom, which is the whole
+     argument for pinning them. */
+  ok('Work Orders is the one entity declared as carrying MEMBERSHIP',
+    evb(ctx, '(function(){' +
+      'var m = OFFLINE_ENTITIES.filter(isMembershipEntity);' +
+      'return m.length === 1 && m[0].id === "wo"; })()'));
+  ok('the Online only profile ships no records and still names a work list',
+    evb(ctx, '(function(){' +
+      'var p = normalizeProfile(artifactOf("offline", PROFILES[2].id));' +
+      'return p.entities.wo.policy === "server-only" && p.entities.wo.dataspy === "My Open WOs"; })()'));
+  ok('...and normalizeProfile does NOT wipe it, however many times it runs',
+    evb(ctx, '(function(){' +
+      'var p = artifactOf("offline", PROFILES[2].id);' +
+      'normalizeProfile(p); normalizeProfile(p); normalizeProfile(p);' +
+      'return p.entities.wo.dataspy === "My Open WOs"; })()'));
+  ok('...while a NON-membership row on the same policy is still cleared',
+    evb(ctx, '(function(){' +
+      'var p = artifactOf("offline", PROFILES[2].id);' +
+      'p.entities.equipment.policy = "server-only";' +
+      'p.entities.equipment.dataspy = "Critical Assets";' +
+      'normalizeProfile(p);' +
+      'return p.entities.equipment.dataspy === ""; })()'));
+  ok('the online-only Work Orders row renders a live select, not a dash',
+    evb(ctx, '(function(){' +
+      'openProfile(PROFILES[2].id);' +
+      'var h = document.getElementById("gallery").innerHTML;' +
+      'var k = h.indexOf("Work Orders");' +
+      'var seg = h.slice(k, k + 2400);' +
+      'return seg.indexOf("setEntityDataspy") > -1 && seg.indexOf("<select") > -1; })()'));
+  ok('...and its empty option says PINS ONLY, never "All records"',
+    evb(ctx, '(function(){' +
+      'openProfile(PROFILES[2].id);' +
+      'var h = document.getElementById("gallery").innerHTML;' +
+      'var i = h.indexOf("Work Orders");' +
+      'var seg = h.slice(i, i + 2400);' +
+      'return seg.indexOf("No automatic list") > -1 && seg.indexOf(">All records<") === -1; })()'));
 }
 
 /* ── THE RULE IS MEASURED, NOT DESCRIBED (2026-09-18, user direction) ──
