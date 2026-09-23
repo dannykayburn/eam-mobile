@@ -202,6 +202,13 @@ existed.
   extend. The plan (see "START HERE") is a real compiled shell that
   actually invokes the standalone files rather than duplicating them —
   still being proven out.
+- **A native `<select>`'s POPUP is painted by the UA, so dark mode needs
+  `color-scheme`** (portal, fixed 2026-09-23). Without it the panel stays
+  light while options inherit near-white text: the control reads fine closed
+  and has **no visible values open**. Declared on both themes at the root,
+  plus an **unscoped** `option,optgroup` colour rule — scoping that to
+  `.input>select` missed 14 of 17 selects, `.tinput` being the common shape.
+  The app is unaffected: it has **zero** native selects (bottom-sheet pickers).
 - Known platform limitations, accepted rather than chased further: mobile
   browsers don't reliably honor `lang="en-GB"` (or CSS `text-align`) on
   native `<input type="time">` controls — see §3.4/§20.
@@ -655,8 +662,13 @@ node (real 390px emulator, not scaled).
 - **NEVER re-render a drag's own container during `dragover`.** That was the
   container-DnD bug: `contDragOver()` called `renderDsn()`, destroying the
   drag source mid-gesture. Toggle classes instead — which is the only reason
-  the field drag always worked. Also: a container menu is **right-click
-  only** (binding it to `onclick` too made clicking away reopen it).
+  the field drag always worked. Also **"the menu will not close" has now
+  bitten twice, from opposite directions** — a container menu is **right-click
+  only** (binding it to `onclick` too made clicking away reopen it), and the
+  document `mousedown` dismisser must carry **no per-element exception**: one
+  skipping `.emu-f,.emu-cell` made the field menu undismissable, since
+  clicking away lands on another field, which opens its own. mousedown runs
+  before click, so close-then-open already lands on the right field.
 - Record View instance 1 is **pinned as step 1**, clamped at the array mutation
   rather than only in the drag geometry. Persists to `localStorage.eamWorkflowDefs`.
 - **A fork card is a question pill over two answer pills, and its routing is
