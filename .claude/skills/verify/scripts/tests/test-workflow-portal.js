@@ -2782,5 +2782,58 @@ console.log('\nStop Timer — the action that BOOKS (§30.21, reversed 2026-09-1
     '  artifactsForGroup(p.g,"workflow").some(function(r){return r.artifactId===p.id;});})()'));
 }
 
+/* ── THREE DEVICE-REPORTED FAULTS, 2026-09-23 ──
+   All three looked correct in the markup and only showed on use, so each is
+   pinned against the thing that actually broke rather than a screenshot. */
+{
+  const src = require('fs').readFileSync(
+    path.join(__dirname, '..', '..', '..', '..', '..', 'prototypes', 'standalone',
+      'base screens', 'eam-workflow-portal-v1.html'), 'utf8');
+  const flat = src.replace(/\s+/g, ' ');
+
+  /* 1. A native select's POPUP is painted by the UA, not by our CSS. With no
+        colour scheme declared the panel stayed light while the options
+        inherited our near-white text: the control read fine closed, and had
+        no visible values the moment it was opened. */
+  ok('the dark theme declares color-scheme, so the UA paints its own widgets dark',
+    /\[data-uxt-theme="dark"\]\{[^}]*color-scheme: ?dark/.test(flat));
+  ok('...and the light default declares the other half of the pair',
+    /:root\{[^}]*color-scheme: ?light/.test(flat));
+  /* UNSCOPED ON PURPOSE. A first pass scoped this to `.input>select` and so
+     missed 14 of the file's 17 selects — every `.tinput`, the New tile
+     modal's "Opens" among them. Match on the element, not on a wrapper. */
+  ok('...and option/optgroup carry explicit colours, matched on the ELEMENT',
+    /(?:\}|\*\/) ?option,optgroup\{[^}]*background:[^}]*color:[^}]*\}/.test(flat));
+  ok('...and that rule is not scoped to a wrapper class, so no select misses it',
+    flat.indexOf('.input>select option') === -1);
+  ok('the closed control is still transparent — it was never the broken part',
+    /\.input>input,\.input>select,\.input>textarea\{[^}]*background:0/.test(flat));
+
+  /* 2. The dismiss listener skipped closeMenu() whenever the mousedown landed
+        on a field. Fields are also bound to onclick, so "click away" almost
+        always landed on another field and opened ITS menu — the menu could
+        not be dismissed at all inside the designer, where nearly every pixel
+        is a field. mousedown fires before click, so no exception is needed:
+        the close-then-open order already lands on the right field. */
+  ok('the menu dismiss listener has NO field exception',
+    src.indexOf(".closest('.emu-f,.emu-cell')") === -1);
+  ok('...and a mousedown outside the menu always closes it',
+    /if\(!\$\('menu'\)\.contains\(e\.target\)\) closeMenu\(\);/.test(src));
+  ok('...while a mousedown inside the menu still does not',
+    src.indexOf("$('menu').contains(e.target)") > -1);
+  ok('Escape still closes both surfaces',
+    /if\(e\.key !== 'Escape'\) return;/.test(src) &&
+    /closeMenu\(\); closePop\(\);/.test(src));
+
+  /* 3. §30.9: the portal has ZERO links out, and a rail row is an AREA rather
+        than a pointer at another screen. This one only raised a toast naming
+        a base screen that is out of scope — the exact shape the rule exists
+        to prevent, and how the dead User Group Setup link got there. */
+  ok('the Function Permissions rail row is gone',
+    src.indexOf('rail__row-label">Function Permissions') === -1);
+  ok('...and no rail row raises a toast instead of opening an area',
+    !/class="rail__row"[^>]*onclick="toast\(/.test(src));
+}
+
 console.log(fail ? '\n' + fail + ' FAILED\n' : '\nAll passed\n');
 process.exit(fail ? 1 : 0);

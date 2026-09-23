@@ -165,6 +165,9 @@
    same names, so a rule lifted from a component preview drops in unchanged.
    ══════════════════════════════════════════════════════════════════════ */
 :root{
+  /* The light half of the pair below — <html> ships data-uxt-theme="light",
+     so this is the default the UA paints its widgets with. */
+  color-scheme:light;
   --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:24px; --s-6:32px;
   --radius-xs:4px; --radius-sm:6px; --radius-md:8px; --radius-lg:12px;
   --radius-xl:16px; --radius-xxl:24px; --radius-pill:100px; --radius-full:9999px;
@@ -197,6 +200,9 @@
   --info:var(--uxt-theme-palette-primary-main);
 }
 [data-uxt-theme="dark"]{
+  /* Tells the UA to paint its OWN widgets dark — select popups, scrollbars,
+     date pickers, spinners. See the note above .input>select. */
+  color-scheme:dark;
   --elev-1:inset 0 0 0 1px rgba(255,255,255,.06);
   --elev-2:0 1px 2px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,255,255,.06);
   --elev-3:0 8px 24px -8px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.06);
@@ -476,6 +482,22 @@ svg{display:block;}
 .input>input,.input>select,.input>textarea{flex:1;min-width:0;border:0;background:0;outline:0;padding:0;
   font-size:var(--uxt-theme-typography-body-1-font-size);color:inherit;}
 .input>select{cursor:pointer;appearance:none;}
+/* THE DROP-DOWN PANEL IS THE UA'S, NOT OURS. `color-scheme` on the themed
+   root is what makes it dark; this rule is the belt-and-braces for engines
+   that paint the option list themselves and would otherwise inherit our
+   near-white `color` onto their own light panel. The symptom of losing it is
+   a control that looks correct closed and has no readable values open.
+
+   DELIBERATELY UNSCOPED. This file has two select shapes — a bare `.tinput`
+   and an unclassed `select` inside an `.input` wrapper — and `.tinput` is
+   the large majority. A first pass scoped this to `.input>select` and so
+   missed 14 of 17 selects, the New tile modal's "Opens" among them. There is
+   no version of this rule that should know about a wrapper class: every
+   option list in the document wants the same treatment, so match on the
+   element. */
+option,optgroup{
+  background:var(--uxt-theme-palette-background-card);
+  color:var(--uxt-theme-palette-text-primary);}
 .input>textarea{resize:none;padding:10px 0;line-height:1.5;
   font-size:var(--uxt-theme-typography-body-2-font-size);}
 .input--ta{min-height:64px;align-items:flex-start;}
@@ -1521,10 +1543,6 @@ svg{display:block;}
       <span class="ms ms-18">badge</span>
       <span class="rail__row-label">User Groups</span>
       <span class="rail__row-count" id="railGroupsCount">0</span>
-    </button>
-    <button class="rail__row" onclick="toast('Security ▸ Function Permissions')">
-      <span class="ms ms-18">lock</span>
-      <span class="rail__row-label">Function Permissions</span>
     </button>
 
     <div class="rail__spacer"></div>
@@ -9265,8 +9283,13 @@ function placeFloating(el, x, y){
   el.style.top  = Math.max(10, T) + 'px';
 }
 document.addEventListener('mousedown', function(e){
-  const keep = e.target && e.target.closest && e.target.closest('.emu-f,.emu-cell');
-  if(!$('menu').contains(e.target) && !keep) closeMenu();
+  /* NO FIELD EXCEPTION HERE. A mousedown outside the menu always closes it,
+     including on another field — the click that follows reopens the menu for
+     the field actually under the pointer, so the net effect is correct and
+     clicking empty canvas dismisses. An exception for `.emu-f,.emu-cell` used
+     to sit here and made the menu undismissable inside the designer, where
+     nearly every pixel is a field. */
+  if(!$('menu').contains(e.target)) closeMenu();
   if(!$('pop').contains(e.target)) closePop();
 });
 document.addEventListener('keydown', function(e){
