@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>/* guarded: localStorage throws in iOS Private Browsing, and this runs before eam-shared.js so lsGet() does not exist yet */try{if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
+<script>/* guarded: localStorage throws in iOS Private Browsing, and this runs before eam-shared.js so lsGet() does not exist yet */document.documentElement.setAttribute('data-uxt-density','mobile');document.documentElement.setAttribute('data-uxt-theme','light');try{if(localStorage.getItem('eamTheme')==='dark'){document.documentElement.setAttribute('data-theme','dark');document.documentElement.setAttribute('data-uxt-theme','dark');}}catch(e){}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#1A1A1F">
@@ -13,6 +13,8 @@
 <link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — Notifications</title>
+<!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
+<script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
 <link rel="stylesheet" href="shared/eam-fonts.css?v=202609211648">
 <link rel="stylesheet" href="shared/eam-shared.css?v=202609211648">
 <!--

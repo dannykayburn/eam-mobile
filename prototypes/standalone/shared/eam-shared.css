@@ -9,7 +9,13 @@
   content this file has no component for.
 */
 :root {
-  --font-sans: "Inter", system-ui, sans-serif;
+  /* Octave design kit (loaded on every screen at data-uxt-density="mobile"):
+     type, surfaces, borders and status colours resolve to the kit's
+     --uxt-theme-* tokens, which flip with data-uxt-theme for dark mode.
+     Brand constants (--octave-black, --white) and EAM product colours
+     (WO Type, Priority) stay as they were. */
+  --font-sans: var(--uxt-theme-typography-font-family, "Octave Sans", "Noto Sans", system-ui, sans-serif);
+  --font-display: var(--uxt-theme-typography-h5-font-family, "Octave Display", "Noto Sans", sans-serif);
   --font-mono: "JetBrains Mono", monospace;
   --octave-black: #1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
   --purple:#9933FF; --orange:#F46600; --octave-yellow:#FFF500;
@@ -19,8 +25,11 @@
      smi-done, timer pill, sync states, .pill-green/.pill-red,
      .attr-badge-critical, .required-count-badge before its removal) —
      a deliberate app-wide bolder pass, not a Status-only change. */
-  --green:#16C130; --red:#DC2626; --teal:#007B87;
-  --bg-page:#F5F6F8; --bg-card:#FFFFFF; --bg-nav:#1A1A1F; --bg-section:#F0F2F5; --border:#E7EBF2; --border-strong:#CBD0D8;
+  --green:var(--uxt-theme-palette-success-main, #47be68); --red:var(--uxt-theme-palette-error-main, #f3434a); --teal:#007B87;
+  --bg-page:var(--uxt-theme-palette-background-paper, #f3f5f9); --bg-card:var(--uxt-theme-palette-background-card, #ffffff); --bg-nav:#1A1A1F;
+  --bg-section:var(--uxt-theme-palette-background-alternate-row, #f3f5f9);
+  --border:var(--uxt-theme-palette-border-divider, #e1e6ed); --border-strong:var(--uxt-theme-palette-border-control, #9196a2);
+  --gray-4:var(--uxt-theme-palette-text-secondary, #6F7480);
   /* WO Type colour — curated set, not a raw admin hex/colour wheel
      (design-decisions-v3-1.md's "WO Type Colour + Icon Badge") — the
      same discipline §23 already applies to the other 3 instruments.
@@ -46,7 +55,7 @@
      WO Type vs. Status. Critical keeps its own long-standing --red
      exception (`.attr-badge-critical`), now bolder via the bump above. */
   --priority-high:#DB2777;
-  --nav-height:52px; --sheet-radius:20px;
+  --nav-height:var(--uxt-theme-height-app-bar, 56px); --sheet-radius:var(--uxt-theme-shape-radius-xl, 16px);
   --bar-height:72px;
   /* Breathing room under the bottom-anchored chrome (§31.6, 2026-09-21).
      Added after the first standalone install: with no Safari toolbar below it
@@ -66,8 +75,10 @@
   --bar-reserve:calc(var(--bar-height) + 24px + var(--shell-pad-bottom));
 }
 [data-theme="dark"] {
-  --bg-page:#1A1A1F; --bg-card:#26252B; --bg-nav:#111114; --bg-section:#302F33; --border:#3E4047; --border-strong:#4A4C55;
-  --octave-black:#1A1A1F; --gray-1:#2A2930; --gray-2:#3E4047; --gray-3:#6F7480; --gray-4:#B2B8C4;
+  /* Surfaces, borders, --gray-4 and status colours come from the kit tokens,
+     which data-uxt-theme="dark" flips; only the remaining greys swap here. */
+  --bg-nav:#111114;
+  --octave-black:#1A1A1F; --gray-1:#2A2930; --gray-2:#3E4047; --gray-3:#6F7480;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;}

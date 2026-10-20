@@ -68,6 +68,8 @@ function toggleThemeDemo() {
   const dark = document.documentElement.hasAttribute('data-theme');
   if (dark) { document.documentElement.removeAttribute('data-theme'); lsSet('eamTheme', 'light'); }
   else { document.documentElement.setAttribute('data-theme', 'dark'); lsSet('eamTheme', 'dark'); }
+  /* Octave design kit reads data-uxt-theme; keep it in step with data-theme. */
+  document.documentElement.setAttribute('data-uxt-theme', dark ? 'light' : 'dark');
   refreshThemeLabels();
 }
 function initThemeToggle() {
