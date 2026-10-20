@@ -44,6 +44,55 @@ function lsRemove(k) {
   try { localStorage.removeItem(k); } catch (e) { /* nothing to do */ }
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   OCTAVE DESIGN KIT HELPERS (2026-10-20) — every screen loads
+   design-kit.js at data-uxt-density="mobile", so the shared renderers below
+   emit the kit's real <uxt-*> elements instead of hand-built controls.
+   All kit elements render into light DOM and take their state from
+   ATTRIBUTES: a label is setAttribute('text', …) (never textContent, which
+   would wipe the element's own markup), a toggle group fires `change` with
+   e.detail.value, inputs/search bars keep .value / .focus() and bubble the
+   native `input` event to the host. `kit*` prefix: a classic <script> shares
+   one top-level scope with every screen, so these names must not collide.
+   ══════════════════════════════════════════════════════════════════════ */
+function kitEsc(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+// True once design-kit.js has registered the tag. Behaviour that needs the
+// kit element's JS API (dialogs, snackbars) checks this and falls back to
+// the screen's legacy markup when the kit is absent (the run-load DOM shim).
+function kitReady(tag) {
+  try { return !!(typeof customElements !== 'undefined' && customElements.get && customElements.get(tag)); }
+  catch (e) { return false; }
+}
+// Danny's status tiers (§23) mapped onto the kit status-chip severities where
+// the meaning matches: green = done/operational, red = down/blocked, orange =
+// waiting approval, outline = in progress/neutral.
+const KIT_TIER_SEVERITY = { green: 'success', red: 'critical', orange: 'warning', outline: 'neutral', blue: 'info', gray: 'neutral' };
+function kitStatusChip(text, tier, extra) {
+  return `<uxt-status-chip variant="filled" density="m" severity="${KIT_TIER_SEVERITY[tier] || 'neutral'}" text="${kitEsc(text)}"${extra || ''}></uxt-status-chip>`;
+}
+// Filter chip: an OUTLINE status chip (the kit's filter-row chip) with an
+// optional count. The kit chip toggles its own `active` on click; ours is
+// driven by filter state, so the change handler puts the state back.
+function kitFilterChip(label, count, onclickExpr) {
+  const on = !!count;
+  return `<uxt-status-chip variant="outline" density="m" severity="neutral" text="${kitEsc(label)}"${on ? ` active count="${kitEsc(count)}"` : ''}`
+    + ` onclick="${onclickExpr}" onchange="event.stopPropagation();this.toggleAttribute('active',${on})"></uxt-status-chip>`;
+}
+// Segmented mode switch → <uxt-toggle-button-group>. options = [[value,label],…];
+// callPrefix is the handler call up to its last argument, e.g. "setSortDir(" or
+// "setListDetailMode('wo',", and the selected value is appended.
+function kitToggleGroup(idAttr, options, value, callPrefix) {
+  const opts = JSON.stringify(options.map(([v, l]) => ({ value: v, label: l }))).replace(/'/g, '&#39;');
+  return `<div class="kit-mode-tog"><uxt-toggle-button-group${idAttr ? ` id="${idAttr}"` : ''} density="m" options='${opts}' value="${kitEsc(value)}"`
+    + ` onchange="${callPrefix}event.detail.value)"></uxt-toggle-button-group></div>`;
+}
+// Sheet-header ✕ → kit Icon Button (40px, glyph-default, halo states).
+function kitSheetClose(onclickExpr, label) {
+  return `<uxt-icon-button class="kit-sheet-close" icon="close" label="${kitEsc(label || 'Close')}" density="m" onclick="${onclickExpr}"></uxt-icon-button>`;
+}
+
 
 /* ══════════════════════════════════════════════════════════════════════
    THEME TOGGLE + TOAST + SHEET PRIMITIVES
@@ -81,6 +130,15 @@ function showToast(msg) {
   const t = document.getElementById('toast');
   if (!t) return;
   document.getElementById('toastMsg').textContent = msg;
+  /* Octave kit (2026-10-20): the toast IS the kit Snackbar. #toastMsg still
+     carries the text (tests and screens read it), but the visible surface is
+     <uxt-snackbar>, one at a time, same 2.4s auto-dismiss. The legacy #toast
+     pill only shows when the kit isn't loaded. */
+  if (kitReady('uxt-snackbar') && typeof customElements.get('uxt-snackbar').show === 'function') {
+    document.querySelectorAll('.uxt-snackbar-stack uxt-snackbar').forEach(s => s.remove());
+    customElements.get('uxt-snackbar').show({ text: msg, severity: 'info', duration: 2400 });
+    return;
+  }
   t.classList.add('show');
   clearTimeout(window._toastTimer);
   // 2400ms is §3.4's locked "2.4s auto-dismiss" — this had drifted to 1800ms
@@ -814,20 +872,20 @@ function openTextFilter(opts) {
   ensureSharedSheet('textFilterSheet', `
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">&#10005;</button>
+      ${kitSheetClose('closeAllSheets()')}
       <div class="sheet-title" id="textFilterTitle">Filter</div>
-      <button class="sheet-clear-btn" onclick="clearTextFilter()">Clear</button>
+      <uxt-button class="kit-sheet-text-btn" variant="text" tone="neutral" text="Clear" onclick="clearTextFilter()"></uxt-button>
     </div>
-    <div class="lov-search-row">${SHEET_SEARCH_ICO}
-      <input class="lov-search-input" id="textFilterInput" placeholder="Contains…"
-             onkeydown="if(event.key==='Enter')applyTextFilter()">
+    <div class="kit-sheet-search">
+      <uxt-search-bar id="textFilterInput" density="m" placeholder="Contains…"
+             onkeydown="if(event.key==='Enter')applyTextFilter()"></uxt-search-bar>
     </div>
-    <div class="sheet-footer"><button class="btn-contained" onclick="applyTextFilter()">Apply</button></div>`);
+    <div class="sheet-footer"><uxt-button class="kit-btn-block" variant="contained" text="Apply" onclick="applyTextFilter()"></uxt-button></div>`);
   textFilterOnApply = opts.onApply || null;
   document.getElementById('textFilterTitle').textContent = opts.title || 'Filter';
   const input = document.getElementById('textFilterInput');
   input.value = opts.value || '';
-  input.placeholder = opts.placeholder || 'Contains…';
+  input.setAttribute('placeholder', opts.placeholder || 'Contains…');
   openSheetExclusive('textFilterSheet');
   // Focus after the slide-up settles, or mobile Safari drops the keyboard.
   setTimeout(() => input.focus(), 250);
@@ -849,20 +907,18 @@ function openDateRangeFilter(opts) {
   ensureSharedSheet('dateRangeSheet', `
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">&#10005;</button>
+      ${kitSheetClose('closeAllSheets()')}
       <div class="sheet-title" id="dateRangeTitle">Filter</div>
-      <button class="sheet-clear-btn" onclick="clearDateRange()">Clear</button>
+      <uxt-button class="kit-sheet-text-btn" variant="text" tone="neutral" text="Clear" onclick="clearDateRange()"></uxt-button>
     </div>
     <div class="sheet-body">
       <div class="range-row">
-        <label class="range-field"><span class="range-label">From</span>
-          <input type="date" class="range-input" id="dateRangeFrom"></label>
-        <label class="range-field"><span class="range-label">To</span>
-          <input type="date" class="range-input" id="dateRangeTo"></label>
+        <uxt-input class="range-field" id="dateRangeFrom" type="date" label="From" show-label full-width density="m"></uxt-input>
+        <uxt-input class="range-field" id="dateRangeTo" type="date" label="To" show-label full-width density="m"></uxt-input>
       </div>
       <div class="range-hint" id="dateRangeHint"></div>
     </div>
-    <div class="sheet-footer"><button class="btn-contained" onclick="applyDateRange()">Apply</button></div>`);
+    <div class="sheet-footer"><uxt-button class="kit-btn-block" variant="contained" text="Apply" onclick="applyDateRange()"></uxt-button></div>`);
   dateRangeOnApply = opts.onApply || null;
   document.getElementById('dateRangeTitle').textContent = opts.title || 'Filter by date';
   document.getElementById('dateRangeFrom').value = opts.from || '';
@@ -900,16 +956,13 @@ function openSortSheet(opts) {
   ensureSharedSheet('sortSheet', `
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">&#10005;</button>
+      ${kitSheetClose('closeAllSheets()')}
       <div class="sheet-title">Sort by</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
-    <div class="mode-tog" id="sortDirTog">
-      <button class="mode-btn" id="sortAsc" onclick="setSortDir('asc')">Ascending</button>
-      <button class="mode-btn" id="sortDesc" onclick="setSortDir('desc')">Descending</button>
-    </div>
+    ${kitToggleGroup('sortDirTog', [['asc', 'Ascending'], ['desc', 'Descending']], 'asc', 'setSortDir(')}
     <div class="sheet-body" id="sortList"></div>
-    <div class="sheet-footer"><button class="btn-contained" onclick="applySort()">Apply</button></div>`);
+    <div class="sheet-footer"><uxt-button class="kit-btn-block" variant="contained" text="Apply" onclick="applySort()"></uxt-button></div>`);
   sortSheetOnApply = opts.onApply || null;
   sortSheetFields = opts.fields || [];
   sortSheetKey = opts.key || (sortSheetFields[0] && sortSheetFields[0].key) || '';
@@ -922,13 +975,10 @@ function openSortSheet(opts) {
 function setSortDir(d) { sortSheetDir = d; renderSortSheet(); }
 function pickSortKey(k) { sortSheetKey = k; renderSortSheet(); }
 function renderSortSheet() {
-  document.getElementById('sortAsc').classList.toggle('active', sortSheetDir === 'asc');
-  document.getElementById('sortDesc').classList.toggle('active', sortSheetDir === 'desc');
+  const tog = document.getElementById('sortDirTog');
+  if (tog && tog.getAttribute('value') !== sortSheetDir) tog.setAttribute('value', sortSheetDir);
   document.getElementById('sortList').innerHTML = sortSheetFields.map(f => `
-    <div class="lov-option" onclick="pickSortKey('${f.key}')">
-      <div class="lov-option-texts"><div class="lov-option-desc">${f.label}</div></div>
-      <div class="lov-check${sortSheetKey === f.key ? ' checked' : ''}"></div>
-    </div>`).join('');
+    <uxt-list-item class="lov-option" density="m" text="${kitEsc(f.label)}"${sortSheetKey === f.key ? ' selected' : ''} onclick="pickSortKey('${f.key}')"></uxt-list-item>`).join('');
 }
 function applySort() {
   closeAllSheets();
@@ -978,17 +1028,11 @@ function renderMultiDelete() {
   const allOn = multiDeleteRows.length > 0 && multiDeleteSelected.length === multiDeleteRows.length;
   body.innerHTML = !multiDeleteRows.length
     ? '<div class="ld-table-empty">Nothing to delete</div>'
-    : `<div class="md-selectall" onclick="toggleMultiDeleteAll()">
-         <div class="lov-check ${allOn ? 'checked' : ''}"></div>
-         <span>${allOn ? 'Clear selection' : 'Select all'}</span>
-       </div>` + multiDeleteRows.map(r => `
-        <div class="md-row${isMultiDeleteSelected(r.code) ? ' selected' : ''}" onclick="toggleMultiDelete('${r.code}')">
-          <div class="lov-check ${isMultiDeleteSelected(r.code) ? 'checked' : ''}"></div>
-          <div class="md-texts">
-            <div class="md-title">${r.title}</div>
-            ${r.sub ? `<div class="md-sub">${r.sub}</div>` : ''}
-          </div>
-        </div>`).join('');
+    : `<uxt-list-item class="md-selectall" density="m" checkbox${allOn ? ' checked' : (multiDeleteSelected.length ? ' indeterminate' : '')}
+         text="${allOn ? 'Clear selection' : 'Select all'}" onclick="toggleMultiDeleteAll()"></uxt-list-item>`
+      + multiDeleteRows.map(r => `
+        <uxt-list-item class="md-row" density="m" checkbox${isMultiDeleteSelected(r.code) ? ' checked' : ''}
+          text="${kitEsc(r.title)}"${r.sub ? ` secondary="${kitEsc(r.sub)}"` : ''} onclick="toggleMultiDelete('${r.code}')"></uxt-list-item>`).join('');
   const n = multiDeleteSelected.length;
   const count = document.getElementById('multiDeleteCount');
   const btn = document.getElementById('multiDeleteBtn');
@@ -1305,8 +1349,15 @@ function toggleRecActionsMenu() { toggleActionsMenu('recActionsMenu'); }
 function closeRecActionsMenu() { closeActionsMenu('recActionsMenu'); closeActionsMenu('listDetailMenu'); }
 function toggleListDetailMenu() { toggleActionsMenu('listDetailMenu'); }
 function closeListDetailMenu() { closeActionsMenu('listDetailMenu'); }
-function toggleProfileMenu() { toggleActionsMenu('profileMenu'); }
-function closeProfileMenu() { closeActionsMenu('profileMenu'); }
+// With the kit loaded the profile menu is a <uxt-flyover-menu> anchored to
+// the avatar (kitBuildProfileFlyover below), which toggles itself from the
+// avatar's own click — so these two only drive the legacy menu without it.
+function toggleProfileMenu() { if (document.getElementById('kitProfileFlyover')) return; toggleActionsMenu('profileMenu'); }
+function closeProfileMenu() {
+  const fm = document.getElementById('kitProfileFlyover');
+  if (fm) { fm.removeAttribute('open'); return; }
+  closeActionsMenu('profileMenu');
+}
 // Closes ANY open .rec-actions-menu on an outside click — generalized
 // 2026-07-16 from two hardcoded ids to a class query so a third (or
 // fourth) menu never needs another bespoke branch here again. The
@@ -1317,6 +1368,89 @@ function initHeaderMenuOutsideClick() {
     if (e.target.closest('.rec-header-actions, .nav-avatar')) return;
     document.querySelectorAll('.rec-actions-menu.open').forEach(m => m.classList.remove('open'));
   });
+}
+/* Overflow / profile menus open as a slide-up bottom sheet (Octave mobile
+   kit, 2026-10-20), so they sit on the modal scrim like every other sheet.
+   The scrim's visibility is pure CSS (`.app:has(.rec-actions-menu.open)`),
+   so every existing open/close path — toggle, item tap, outside click,
+   closeAllHeaderMenus — keeps it in step with no extra state. A tap on it is
+   an outside click, which the listener above already turns into a close. */
+/* ── Profile menu → kit <uxt-flyover-menu> (2026-10-20, Minh: popup action
+   menus are the kit flyover, never a hand-built list). The #profileMenu
+   markup — hand-written on Home/Notifications, injected everywhere else by
+   ensureProfileMenu(), plus the prototype rows injectProtoMenuGroup() adds —
+   stays in the DOM, hidden, as the SOURCE of the menu: every row keeps its
+   own onclick, and the flyover's `select` simply clicks the matching source
+   row. So no screen's handler is re-implemented and a screen adding a row to
+   its own markup gets it in the flyover for free. The flyover reads its
+   items once, so it is rebuilt (closed) after every pick and whenever a
+   prototype state label changes. */
+function kitProfileSourceRows(menu) {
+  const rows = [];
+  [...menu.children].forEach(el => {
+    if (el.classList.contains('rec-actions-divider')) { rows.push({ divider: true }); return; }
+    if (el.hasAttribute('hidden') || el.classList.contains('profile-menu-identity')) return;
+    if (el.localName === 'uxt-list-item' && el.hasAttribute('header')) return;
+    if (el.hasAttribute('data-menu-logout')) {
+      const b = el.querySelector('uxt-button');
+      if (b) rows.push({ el: b, text: b.getAttribute('text') || 'Log out', tone: 'danger', icon: 'logout' });
+      return;
+    }
+    if (el.localName === 'uxt-list-item') {
+      rows.push({ el, text: el.getAttribute('text') || '', shortcut: el.getAttribute('shortcut'), icon: el.getAttribute('icon') });
+      return;
+    }
+    if (el.classList.contains('rec-actions-item')) {
+      const danger = el.classList.contains('danger');
+      rows.push({ el, text: el.textContent.trim(), tone: danger ? 'danger' : null, icon: danger ? 'logout' : null });
+    }
+  });
+  // No leading/trailing/double dividers.
+  return rows.filter((r, i, a) => !r.divider || (i > 0 && i < a.length - 1 && !a[i - 1].divider));
+}
+function kitBuildProfileFlyover() {
+  if (!kitReady('uxt-flyover-menu')) return;
+  const menu = document.getElementById('profileMenu');
+  const avatar = document.querySelector('.nav .nav-avatar');
+  if (!menu || !avatar) return;
+  if (!avatar.id) avatar.id = 'kitProfileAnchor';
+  menu.classList.add('kit-source-menu');
+  const old = document.getElementById('kitProfileFlyover');
+  if (old && old.hasAttribute('open')) return;   // never rebuild under the finger
+  if (old) old.remove();
+  const name = menu.querySelector('.profile-menu-name');
+  const org = menu.querySelector('.profile-menu-org');
+  const heading = [name && name.textContent.trim(), org && org.textContent.trim()].filter(Boolean).join(' · ');
+  const rows = kitProfileSourceRows(menu);
+  const fm = document.createElement('uxt-flyover-menu');
+  fm.id = 'kitProfileFlyover';
+  fm.setAttribute('for', avatar.id);
+  fm.setAttribute('placement', 'bottom-start');
+  if (heading) fm.setAttribute('heading', heading);
+  fm.innerHTML = rows.map((r, i) => r.divider ? '<uxt-menu-divider></uxt-menu-divider>'
+    : `<uxt-menu-item value="${i}" text="${kitEsc(r.text)}"${r.icon ? ` icon="${kitEsc(r.icon)}"` : ''}${r.shortcut ? ` shortcut="${kitEsc(r.shortcut)}"` : ''}${r.tone ? ` tone="${r.tone}"` : ''}></uxt-menu-item>`).join('');
+  fm.addEventListener('select', (e) => {
+    const r = rows[+(e.detail && e.detail.value)];
+    fm.removeAttribute('open');
+    if (r && r.el) r.el.click();
+    setTimeout(kitBuildProfileFlyover, 0);
+  });
+  document.body.appendChild(fm);
+  // Prototype state labels (theme / connectivity / screen extras) are
+  // written by textContent into hidden spans; rebuild when one changes.
+  if (typeof MutationObserver !== 'undefined' && !menu._kitFlyObs) {
+    menu._kitFlyObs = new MutationObserver(() => kitBuildProfileFlyover());
+    menu.querySelectorAll('.proto-menu-state').forEach(el =>
+      menu._kitFlyObs.observe(el, { childList: true, characterData: true, subtree: true }));
+  }
+}
+function kitEnsureMenuScrim() {
+  const host = document.querySelector('.app');
+  if (!host || document.getElementById('kitMenuScrim')) return;
+  const el = document.createElement('div');
+  el.id = 'kitMenuScrim';
+  el.className = 'kit-menu-scrim';
+  host.appendChild(el);
 }
 function recCopyLink() { closeRecActionsMenu(); showToast('Link copied'); }
 function recCopyRecord() { closeRecActionsMenu(); showToast('Copy — coming soon'); }
@@ -1361,8 +1495,9 @@ function renderStdCard(fields) {
   let html = '<div class="ld-card">';
   html += '<div class="ld-card-top">';
   if (head) {
+    // Status headline → kit filled status chip (tier mapped by KIT_TIER_SEVERITY).
     html += head.type === 'status'
-      ? `<span class="ld-card-headline pill pill-${head.tier}">${fieldDisplay(head)}</span>`
+      ? `<span class="ld-card-headline ld-card-status">${kitStatusChip(head.value, head.tier)}</span>`
       : `<div class="ld-card-headline">${fieldDisplay(head)}</div>`;
   }
   if (org) html += `<span class="ld-card-org">${fieldDisplay(org)}</span>`;
@@ -1401,7 +1536,7 @@ function renderStdTable(rowsOfFields, rowOnclick) {
   };
   return `<div class="ld-table-wrap"><table class="ld-table"><thead><tr>${labels.map(l => `<th>${l}</th>`).join('')}</tr></thead><tbody>${
     rowsOfFields.map((fields, i) => `<tr data-search="${ldSearchText(fields)}"${onclickAttrFor(i)}>${fields.map(f => f.type === 'status'
-      ? `<td><span class="ld-table-pill pill-${f.tier}">${fieldDisplay(f)}</span></td>`
+      ? `<td>${kitStatusChip(f.value, f.tier)}</td>`
       : `<td>${fieldDisplay(f)}</td>`).join('')}</tr>`).join('')
   }</tbody></table></div>`;
 }
@@ -1414,8 +1549,7 @@ function renderStdTable(rowsOfFields, rowOnclick) {
 function renderStdFilterChips(tabKey, fieldDefs) {
   const state = listDetailState[tabKey] || {};
   const active = state.filters || {};
-  return fieldDefs.map(f => `
-    <button class="filter-chip ${active[f.key] ? 'active' : ''}" onclick="showToast('${f.label} filter — coming soon')">${f.label}${active[f.key] ? ` <span class="chip-count">${active[f.key]}</span>` : ''}</button>`).join('');
+  return fieldDefs.map(f => kitFilterChip(f.label, active[f.key], `showToast('${f.label} filter — coming soon')`)).join('');
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1447,9 +1581,8 @@ function renderListDetailShell(tabKey, extraTopHtml) {
     ${extraTopHtml || ''}
     ${state.searchOpen ? `
     <div class="ld-search-bar">
-      ${LD_ICONS.search}
-      <input class="ld-search-input" type="text" placeholder="Search ${cfg.label}" value="${(state.search||'').replace(/"/g,'&quot;')}" oninput="onListDetailSearchInput('${tabKey}', this.value)" autocomplete="off">
-      <button class="ld-search-close" onclick="toggleListDetailSearch('${tabKey}')" aria-label="Close search">${LD_ICONS.x}</button>
+      <uxt-search-bar class="ld-search-input" density="m" placeholder="Search ${kitEsc(cfg.label)}" value="${kitEsc(state.search || '')}" oninput="onListDetailSearchInput('${tabKey}', this.value)"></uxt-search-bar>
+      <uxt-icon-button icon="close" label="Close search" density="m" onclick="toggleListDetailSearch('${tabKey}')"></uxt-icon-button>
     </div>
     ${cfg.fieldDefs ? `<div class="filter-chip-row">${renderStdFilterChips(tabKey, cfg.fieldDefs)}</div>` : ''}` : ''}
     <div class="ds-bar" onclick="openDataspySheet('${tabKey}')">
@@ -1457,13 +1590,10 @@ function renderListDetailShell(tabKey, extraTopHtml) {
       <div class="ds-body"><div class="ds-name">${ds.name}</div></div>
       <svg class="ds-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-    <div class="mode-tog">
-      <button class="mode-btn ${mode==='detailed'?'active':''}" onclick="setListDetailMode('${tabKey}','detailed')">Detailed</button>
-      <button class="mode-btn ${mode==='list'?'active':''}" onclick="setListDetailMode('${tabKey}','list')">List</button>
-    </div>
+    ${kitToggleGroup('', [['detailed', 'Detailed'], ['list', 'List']], mode, `setListDetailMode('${tabKey}',`)}
     <div class="res-row">
       <span class="res-count">${rows.length} record${rows.length===1?'':'s'}</span>
-      <button class="sort-btn" onclick="showToast('Sort — coming soon')">${LD_ICONS.sort}${cfg.sortLabel}</button>
+      <uxt-button class="kit-sort-btn" variant="text" tone="neutral" text="Sort: ${kitEsc(cfg.sortLabel)}" onclick="showToast('Sort — coming soon')"></uxt-button>
     </div>
     ${mode === 'detailed'
       ? rows.map((r, i) => r.fields ? `<div class="ld-card-wrap" data-search="${ldSearchText(r.fields)}" onclick="onListDetailRowTap('${tabKey}', ${i})">${renderStdCard(r.fields)}</div>` : '').join('')
@@ -1799,20 +1929,37 @@ function ensureProfileMenu() {
         </div>
       </div>
       <div class="rec-actions-divider"></div>
-      <div class="rec-actions-item" onclick="closeProfileMenu();showToast('Settings — coming soon')">Settings</div>
-      <div class="rec-actions-divider"></div>
-      <div class="rec-actions-item danger" onclick="closeProfileMenu();goToLogin()">Log out</div>
+      <uxt-list-item class="kit-menu-row" role="menuitem" density="m" icon="settings" text="Settings" onclick="closeProfileMenu();showToast('Settings — coming soon')"></uxt-list-item>
+      <div class="kit-menu-actions" data-menu-logout>
+        <uxt-button class="kit-btn-block" variant="outlined" text="Log out" onclick="closeProfileMenu();goToLogin()"></uxt-button>
+      </div>
     </div>`);
   // The avatar's own handler is replaced, not augmented: on WO List it showed
   // a "coming soon" toast, which would now fire alongside the real menu.
   avatar.onclick = (e) => { e.stopPropagation(); toggleProfileMenu(); };
 }
 
+/* Each prototype row is a kit List Item whose trailing `shortcut` text shows
+   the current value. Screens (and refreshThemeLabels/updateOnlineToggleLabel)
+   still write that value with `#stateId.textContent = …`, so the id stays on a
+   hidden source span beside the row and an observer mirrors it into the
+   row's `shortcut` attribute — writing textContent on the list item itself
+   would wipe the kit element's markup. */
 function protoMenuRowHtml(label, stateId, stateText, onclick) {
-  return `<div class="rec-actions-item proto-menu-row" onclick="${onclick}">`
-       + `<span>${label}</span>`
-       + `<span class="proto-menu-state" id="${stateId}">${stateText}</span>`
-       + `</div>`;
+  return `<uxt-list-item class="kit-menu-row proto-menu-row" role="menuitem" density="m" text="${kitEsc(label)}" shortcut="${kitEsc(stateText)}" data-state-src="${stateId || ''}" onclick="${onclick}"></uxt-list-item>`
+       + (stateId ? `<span class="proto-menu-state" id="${stateId}" hidden>${stateText}</span>` : '');
+}
+function kitMirrorMenuStates(menu) {
+  const sync = () => menu.querySelectorAll('uxt-list-item[data-state-src]').forEach(row => {
+    const src = row.getAttribute('data-state-src');
+    const el = src && document.getElementById(src);
+    if (el && row.getAttribute('shortcut') !== el.textContent) row.setAttribute('shortcut', el.textContent);
+  });
+  sync();
+  if (typeof MutationObserver === 'undefined' || menu._kitStateObs) return;
+  menu._kitStateObs = new MutationObserver(sync);
+  menu.querySelectorAll('.proto-menu-state').forEach(el =>
+    menu._kitStateObs.observe(el, { childList: true, characterData: true, subtree: true }));
 }
 function injectProtoMenuGroup() {
   const menu = document.getElementById('profileMenu')
@@ -1823,18 +1970,18 @@ function injectProtoMenuGroup() {
   const extra = (typeof PROTO_MENU_EXTRA !== 'undefined' && PROTO_MENU_EXTRA) || [];
 
   let html = `<div class="rec-actions-divider"></div>`
-           + `<div class="proto-menu-label">Prototype</div>`
+           + `<uxt-list-item class="proto-menu-label" header density="m" text="Prototype"></uxt-list-item>`
            + protoMenuRowHtml('Appearance', 'themeState', dark ? '◑ Dark' : '☀ Light', 'toggleThemeDemo()')
            + protoMenuRowHtml('Connectivity', 'onlineState', '🌐 —', 'toggleDemoOnline()');
   extra.forEach(r => {
     html += protoMenuRowHtml(r.label, r.stateId, r.stateText, r.onclick);
   });
-  html += `<div class="rec-actions-item proto-menu-row" onclick="resetDemoAndRestart()">`
-        + `<span>Reset demo</span><span class="proto-menu-state">⟲</span></div>`;
+  html += protoMenuRowHtml('Reset demo', '', '⟲', 'resetDemoAndRestart()');
 
   // Before the Log out item if there is one, so the destructive action stays
-  // last — otherwise at the end.
-  const logout = menu.querySelector('.rec-actions-item.danger');
+  // last — otherwise at the end. Log out is the kit actions bar in the
+  // injected profile menu, or a hand-written .danger row on a screen.
+  const logout = menu.querySelector('[data-menu-logout]') || menu.querySelector('.rec-actions-item.danger');
   const divider = logout && logout.previousElementSibling;
   if (logout) {
     const target = (divider && divider.classList.contains('rec-actions-divider')) ? divider : logout;
@@ -1844,6 +1991,7 @@ function injectProtoMenuGroup() {
   }
   refreshThemeLabels();
   updateOnlineToggleLabel();
+  kitMirrorMenuStates(menu);
 }
 function resetDemoAndRestart() {
   closeAllHeaderMenus();
@@ -1894,11 +2042,18 @@ function renderSyncControl() {
   const el = document.getElementById('syncCtrl');
   if (!el) return;
   const state = syncOverallState(SYNC_DEMO_ITEMS);
+  /* Octave kit (2026-10-20): Synced is the kit's outlined Icon Button (the
+     top bar's one control shape) in the success glyph tone; the three states
+     that need words keep §4.4.1's adaptive pill, now the kit OUTLINE status
+     chip — neutral dot for Offline, pulsing info dot for Syncing, critical
+     dot for Error. The chip toggles `active` on click by itself; this control
+     opens the panel instead, so the change handler puts it back. */
   if (state === 'synced') {
-    el.innerHTML = `<button class="sync-ctrl-dot" title="Sync status: Synced" onclick="event.stopPropagation();openSyncPanel()">${SYNC_ICONS.synced}</button>`;
+    el.innerHTML = `<uxt-icon-button class="sync-ctrl-dot" icon="cloud" tone="success" outlined density="m" label="Sync status: Synced" onclick="event.stopPropagation();openSyncPanel()"></uxt-icon-button>`;
     return;
   }
-  el.innerHTML = `<button class="sync-ctrl-pill state-${state}" title="Sync status: ${SYNC_LABELS[state]}" onclick="event.stopPropagation();openSyncPanel()">${SYNC_ICONS[state]}<span class="sync-ctrl-label">${SYNC_LABELS[state]}</span></button>`;
+  const sev = { syncing: 'info', offline: 'neutral', error: 'critical' }[state] || 'neutral';
+  el.innerHTML = `<uxt-status-chip class="sync-ctrl-pill state-${state}" variant="outline" density="m" severity="${sev}"${state === 'syncing' ? ' pulsate' : ''} text="${SYNC_LABELS[state]}" title="Sync status: ${SYNC_LABELS[state]}" onclick="event.stopPropagation();openSyncPanel()" onchange="event.stopPropagation();this.removeAttribute('active')"></uxt-status-chip>`;
 }
 /* Bottom-nav Notifications badge (§25, 2026-07-22) — shared the moment it
    had its 2nd real consumer (Home + WO List both load data/notifications.js
@@ -2066,11 +2221,11 @@ function openSyncPanel() {
     let html = '';
     if (errorItems.length) {
       html += '<div class="sync-panel-section-label">Needs Attention</div>';
-      html += errorItems.map(i => row(i, 'error', `<button class="sync-item-action" onclick="reviewSyncItem('${i.id}')">Review</button>`)).join('');
+      html += errorItems.map(i => row(i, 'error', `<uxt-button class="sync-item-action" variant="outlined" text="Review" onclick="reviewSyncItem('${i.id}')"></uxt-button>`)).join('');
     }
     if (queuedItems.length) {
       html += '<div class="sync-panel-section-label">Queued</div>';
-      html += queuedItems.map(i => row(i, 'queued', `<button class="sync-item-action" onclick="retrySyncItem('${i.id}')">Retry</button>`)).join('');
+      html += queuedItems.map(i => row(i, 'queued', `<uxt-button class="sync-item-action" variant="outlined" text="Retry" onclick="retrySyncItem('${i.id}')"></uxt-button>`)).join('');
     }
     listEl.innerHTML = html || `<div class="sync-panel-empty">No Transactions</div>`;
   }
@@ -2184,33 +2339,21 @@ function renderSyncBanner() {
   const s = SYNC_ERROR_ACTIVE;
   if (!s) { banner.className = 'sync-error-banner'; banner.innerHTML = ''; return; }
   banner.className = 'sync-error-banner show state-' + s.status;
-  if (s.status === 'synced') {
-    banner.innerHTML = `
-      <div class="sync-error-banner-head">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>
-        <span>Synced</span>
-      </div>`;
-    return;
-  }
-  if (s.status === 'pending') {
-    banner.innerHTML = `
-      <div class="sync-error-banner-head">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0114-5.2M20 12a8 8 0 01-14 5.2" /><path d="M16 7l2-2-2-2M8 17l-2 2 2 2" stroke-linejoin="round"/></svg>
-        <span>Retry queued</span>
-      </div>
-      <div class="sync-error-banner-msg">Will attempt again once you’re back online.</div>`;
-    return;
-  }
-  banner.innerHTML = `
-    <div class="sync-error-banner-head">
-      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M12 9v4M12 16.5h.01M10.3 3.9L2.7 17a1.8 1.8 0 001.5 2.7h15.6a1.8 1.8 0 001.5-2.7L13.7 3.9a1.8 1.8 0 00-3.4 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span>Didn’t sync</span>
-    </div>
-    <div class="sync-error-banner-msg">${s.message}</div>
-    <div class="sync-card-actions">
-      <button class="sync-card-btn ready" onclick="retryFromBanner()">Retry</button>
-      <button class="sync-card-btn danger" onclick="discardFromBanner()">Discard</button>
-    </div>`;
+  /* Octave kit (2026-10-20): the three states render the kit <uxt-banner>
+     (persistent, flat card, severity icon, outlined + contained actions, no
+     close). Error keeps §4.5's Retry/Discard pair: Retry is the contained
+     primary, Discard the outlined secondary; the banner's `action` event
+     routes them to the same two handlers as before. */
+  const kitSev = s.status === 'synced' ? 'success' : s.status === 'pending' ? 'info' : 'error';
+  const kitText = s.status === 'synced' ? 'Synced'
+    : s.status === 'pending' ? 'Retry queued. Will attempt again once you\u2019re back online.'
+    : 'Didn\u2019t sync. ' + (s.message || '');
+  banner.innerHTML = `<uxt-banner density="m" severity="${kitSev}" text="${kitEsc(kitText)}"`
+    + (s.status === 'error' ? ' primary="Retry" secondary="Discard"' : '') + '></uxt-banner>';
+  const kb = banner.querySelector && banner.querySelector('uxt-banner');
+  if (kb && kb.addEventListener) kb.addEventListener('action', (e) => {
+    if (e.detail && e.detail.action === 'primary') retryFromBanner(); else discardFromBanner();
+  });
 }
 /* Retry from the banner itself — the ask this responds to (2026-07-20):
    give the technician a way to re-attempt without leaving the record to
@@ -2553,19 +2696,15 @@ function applyTypePillColor() {
    step. Picking a stub is the same coming-soon toast STUB_ENTITIES always
    was. */
 function openCreateEntityMenu() {
-  const bigIco = k => `<svg width="20" height="20" viewBox="0 0 24 24"><use href="#ico-${k}"/></svg>`;
+  // Kit List Items with kit registry icons (the screen's own #ico-* sprite is
+  // not in the kit registry, so each entity names its nearest kit glyph).
+  const KIT_ENTITY_ICON = { tool: 'build', package: 'inventory-2' };
   const realRows = Object.entries(ENTITY_META).map(([code, m]) => `
-    <div class="source-option" onclick="closeAllSheets(); openCreateSheet('${code}');">
-      <div class="source-option-icon">${bigIco(m.icon)}</div>
-      <div class="source-option-texts"><div class="source-option-title">${m.desc}</div></div>
-    </div>`).join('');
+    <uxt-list-item class="source-option" density="m" icon="${KIT_ENTITY_ICON[m.icon] || 'add'}" text="${kitEsc(m.desc)}" onclick="closeAllSheets(); openCreateSheet('${code}');"></uxt-list-item>`).join('');
   const stubRows = Object.entries(STUB_ENTITIES).map(([code, m]) => `
-    <div class="source-option stub" onclick="closeAllSheets(); showToast('${m.desc} — coming soon');">
-      <div class="source-option-icon"></div>
-      <div class="source-option-texts"><div class="source-option-title">${m.desc}</div></div>
-    </div>`).join('');
+    <uxt-list-item class="source-option stub" density="m" text="${kitEsc(m.desc)}" secondary="Coming soon" onclick="closeAllSheets(); showToast('${m.desc} — coming soon');"></uxt-list-item>`).join('');
   document.getElementById('createEntityMenuBody').innerHTML = realRows
-    + '<div class="source-option-group-label">More</div>' + stubRows;
+    + '<uxt-list-item header density="m" text="More"></uxt-list-item>' + stubRows;
   openSheet('createEntityMenuSheet');
 }
 function openEntityPicker() {
@@ -2573,20 +2712,11 @@ function openEntityPicker() {
   document.getElementById('lovClearBtn').classList.add('hidden');
   document.getElementById('lovSearchRow').classList.add('hidden');
   const realOptions = Object.entries(ENTITY_META).map(([code, m]) => `
-    <div class="lov-option ${code === currentEntity ? 'selected' : ''}" onclick="selectEntity('${code}')">
-      <div class="lov-option-texts"><div class="lov-option-desc">${m.desc}</div></div>
-      <div class="lov-check ${code === currentEntity ? 'checked' : ''}"></div>
-    </div>`).join('');
+    <uxt-list-item class="lov-option" density="m" text="${kitEsc(m.desc)}"${code === currentEntity ? ' selected' : ''} onclick="selectEntity('${code}')"></uxt-list-item>`).join('');
   // Stub "system action" options — always last, never selected/checked
   // (selecting one is a toast, not a real entity switch — see STUB_ENTITIES).
   const stubOptions = Object.entries(STUB_ENTITIES).map(([code, m]) => `
-    <div class="lov-option" onclick="selectEntity('${code}')">
-      <div class="lov-option-texts">
-        <div class="lov-option-desc">${m.desc}</div>
-        <div class="lov-option-code">Coming soon</div>
-      </div>
-      <div class="lov-check"></div>
-    </div>`).join('');
+    <uxt-list-item class="lov-option" density="m" text="${kitEsc(m.desc)}" secondary="Coming soon" onclick="selectEntity('${code}')"></uxt-list-item>`).join('');
   document.getElementById('lovSheetBody').innerHTML = realOptions + stubOptions;
   openSheet('lovSheet');
 }
@@ -2894,14 +3024,10 @@ function openLov(key) {
   // code+description, in the picker list (design-decisions-v3-1.md §3.4).
   // The opposite carve-out from ORG_STYLE_LOVS (code-only, no description).
   const isSystemCode = key === '__status' || (typeof BADGE_LOV_META !== 'undefined' && BADGE_LOV_META[key]);
+  // Rows are kit List Items: selected = the kit's gray action-selected row
+  // (never a blue or ink check), code as the secondary line.
   document.getElementById('lovSheetBody').innerHTML = LOV_DATA[key].map(opt => `
-    <div class="lov-option ${opt.code===current?'selected':''}" data-search="${(opt.desc+' '+opt.code).toLowerCase()}" onclick="selectLov('${opt.code}','${opt.desc.replace(/'/g,"\\'")}')">
-      <div class="lov-option-texts">
-        <div class="lov-option-desc">${opt.desc}</div>
-        ${(opt.code && !isSystemCode) ? `<div class="lov-option-code">${opt.code}</div>` : ''}
-      </div>
-      <div class="lov-check ${opt.code===current?'checked':''}"></div>
-    </div>`).join('');
+    <uxt-list-item class="lov-option" density="m" data-search="${kitEsc((opt.desc+' '+opt.code).toLowerCase())}" text="${kitEsc(opt.desc)}"${(opt.code && !isSystemCode) ? ` secondary="${kitEsc(opt.code)}"` : ''}${opt.code===current ? ' selected' : ''} onclick="selectLov('${opt.code}','${opt.desc.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')"></uxt-list-item>`).join('');
   openSheet('lovSheet');
 }
 function filterLovOptions(query) {
@@ -3147,25 +3273,19 @@ function renderEquipSearchShell() {
       <div class="ds-body"><div class="ds-name">${EQUIP_SEARCH_DATASPY_NAME}</div></div>
       <svg class="ds-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-    <div class="mode-tog">
-      <button class="mode-btn ${mode === 'detailed' ? 'active' : ''}" onclick="setEquipSearchMode('detailed')">Detailed</button>
-      <button class="mode-btn ${mode === 'list' ? 'active' : ''}" onclick="setEquipSearchMode('list')">List</button>
-    </div>
+    ${kitToggleGroup('', [['detailed', 'Detailed'], ['list', 'List']], mode, 'setEquipSearchMode(')}
     <div class="ld-search-bar">
-      ${LD_ICONS.search}
-      <input class="ld-search-input" placeholder="Search Equipment" value="${(equipSearchState.search || '').replace(/"/g, '&quot;')}" oninput="filterEquipSearch(this.value)" autocomplete="off">
-      <button class="equip-search-scan-btn" onclick="openEquipScan()" aria-label="Scan equipment QR code" title="Scan QR code">
-        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
-      </button>
+      <uxt-search-bar class="ld-search-input" density="m" placeholder="Search Equipment" value="${kitEsc(equipSearchState.search || '')}" oninput="filterEquipSearch(this.value)"></uxt-search-bar>
+      <uxt-icon-button class="equip-search-scan-btn" icon="photo-camera" label="Scan equipment QR code" outlined density="m" onclick="openEquipScan()"></uxt-icon-button>
     </div>
     <div class="filter-chip-row">
-      <button class="filter-chip" onclick="showToast('Class filter — coming soon')">Class</button>
-      <button class="filter-chip" onclick="showToast('Category filter — coming soon')">Category</button>
-      <button class="filter-chip" onclick="showToast('Type filter — coming soon')">Type</button>
+      ${kitFilterChip('Class', 0, "showToast('Class filter — coming soon')")}
+      ${kitFilterChip('Category', 0, "showToast('Category filter — coming soon')")}
+      ${kitFilterChip('Type', 0, "showToast('Type filter — coming soon')")}
     </div>
     <div class="res-row">
       <span class="res-count" id="equipResultsCount"></span>
-      <button class="sort-btn" onclick="showToast('Sort — coming soon')">${LD_ICONS.sort}Description</button>
+      <uxt-button class="kit-sort-btn" variant="text" tone="neutral" text="Sort: Description" onclick="showToast('Sort — coming soon')"></uxt-button>
     </div>
     <div id="equipResultsBody"></div>`;
   renderEquipSearchResults();
@@ -3184,7 +3304,7 @@ function renderEquipSearchResults() {
       ? renderStdTable(rows.map(equipTableFields), equipMultiMode ? "toggleEquipMultiSelectByRow(this)" : "selectEquipmentFromSearchByRow(this)")
       : rows.map(o => equipMultiMode
           ? `<div class="equip-multi-row${isEquipMultiSelected(o.code) ? ' selected' : ''}" onclick="toggleEquipMultiSelect('${o.code}')">
-               <div class="lov-check ${isEquipMultiSelected(o.code) ? 'checked' : ''}"></div>
+               <uxt-checkbox class="equip-multi-check" inert aria-label="Select ${kitEsc(o.desc)}" value="${isEquipMultiSelected(o.code) ? 'checked' : 'unchecked'}"></uxt-checkbox>
                <div class="equip-multi-card">${renderStdCard(equipCardFields(o))}</div>
              </div>`
           : `<div class="ld-card-wrap" onclick="selectEquipmentFromSearch('${o.code}')">${renderStdCard(equipCardFields(o))}</div>`).join('');
@@ -3222,9 +3342,9 @@ function renderTreeNode(node, depth) {
       </div>
       ${node.current && !equipMultiMode ? `<span class="tree-here">Selected</span>` : ''}
       ${equipMultiMode
-        ? `<button class="tree-select-btn${isEquipMultiSelected(node.code) ? ' added' : ''}" onclick="event.stopPropagation(); toggleEquipMultiSelect('${node.code}')">${isEquipMultiSelected(node.code) ? 'Added' : 'Add'}</button>`
-        : (focused ? `<button class="tree-select-btn" onclick="event.stopPropagation(); selectTreeNode('${node.id}')">Select</button>` : '')}
-      ${hasChildren ? `<button class="tree-caret${expanded ? ' expanded' : ''}" onclick="event.stopPropagation(); toggleTreeNode('${node.id}')" aria-label="Expand"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>` : ''}
+        ? `<uxt-button class="tree-select-btn" variant="${isEquipMultiSelected(node.code) ? 'contained' : 'outlined'}" text="${isEquipMultiSelected(node.code) ? 'Added' : 'Add'}" onclick="event.stopPropagation(); toggleEquipMultiSelect('${node.code}')"></uxt-button>`
+        : (focused ? `<uxt-button class="tree-select-btn" variant="contained" text="Select" onclick="event.stopPropagation(); selectTreeNode('${node.id}')"></uxt-button>` : '')}
+      ${hasChildren ? `<uxt-icon-button class="tree-caret${expanded ? ' expanded' : ''}" icon="chevron-right" label="${expanded ? 'Collapse' : 'Expand'}" density="m" onclick="event.stopPropagation(); toggleTreeNode('${node.id}')"></uxt-icon-button>` : ''}
     </div>`;
   const childrenHtml = hasChildren && expanded
     ? node.children.map(c => `<div class="tree-node" style="margin-left:${(depth + 1) * 20}px;">${renderTreeNode(c, depth + 1)}</div>`).join('')
@@ -3772,6 +3892,10 @@ function updateInlineFieldLayout(input) {
   autoGrow(input);
 }
 function toggleCheckbox(row) {
+  // Kit checkbox (fieldRowCheckbox): presentational inside the row, which
+  // owns the tap — flip its value; `.checked` mirrors a native checkbox.
+  const kit = row.querySelector && row.querySelector('uxt-checkbox');
+  if (kit) { kit.checked = !kit.checked; return; }
   const box = row.querySelector('.field-checkbox');
   const checked = box.classList.toggle('checked');
   box.innerHTML = checked ? '<svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>' : '';
@@ -3893,7 +4017,7 @@ function addComment(text, listId) {
   div.innerHTML = `<div class="comment-header"><span class="comment-author">${myName} (You)</span>
     <div class="comment-time-actions">
       <span class="comment-time">${now.toLocaleDateString('en-US',{month:'short',day:'numeric'})} · ${now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}</span>
-      <button class="comment-ellipsis" onclick="event.stopPropagation();openCommentActions(this,true)">⋯</button>
+      <uxt-icon-button class="comment-ellipsis" icon="more-horiz" label="Comment actions" density="m" onclick="event.stopPropagation();openCommentActions(this,true)"></uxt-icon-button>
     </div>
   </div><p class="comment-text"></p>`;
   div.querySelector('.comment-text').textContent = text;
@@ -3903,10 +4027,9 @@ let activeCommentItem = null;
 function openCommentActions(btn, isMine) {
   activeCommentItem = btn.closest('.comment-item');
   const actions = isMine ? ['Edit', 'Delete', 'Copy'] : ['Copy'];
+  const KIT_COMMENT_ICON = { Edit: 'edit', Delete: 'delete', Copy: 'content-copy' };
   document.getElementById('commentActionsBody').innerHTML = actions.map(a => `
-    <div class="lov-option" onclick="commentAction('${a}')">
-      <div class="lov-option-texts"><div class="lov-option-desc"${a === 'Delete' ? ' style="color:var(--red);"' : ''}>${a}</div></div>
-    </div>`).join('');
+    <uxt-list-item class="lov-option" density="m" icon="${KIT_COMMENT_ICON[a]}" text="${a}" onclick="commentAction('${a}')"></uxt-list-item>`).join('');
   openSheet('commentActionsSheet');
 }
 function commentAction(action) {
@@ -3977,8 +4100,7 @@ function viewMoreRowHTML(total, limit, tabKey, onclickExpr) {
   if (!limit || total <= limit) return '';
   const onclick = onclickExpr || (tabKey ? `goToTab('${tabKey}')` : '');
   if (!onclick) return '';
-  return `<div class="view-more-row" onclick="${onclick}">View more
-    <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>`;
+  return `<div class="view-more-row"><uxt-button variant="text" tone="primary" text="View more" onclick="${onclick}"></uxt-button></div>`;
 }
 // Initials for the comment avatar. Falls back to the first character if a
 // name is a single word, and to '?' if it's empty — a blank circle reads as
@@ -3991,9 +4113,9 @@ function commentInitials(name) {
 }
 function renderCommentItemHTML(c) {
   return `<div class="comment-item" data-mine="${c.mine}" data-id="${c.id}">
-    <button class="comment-ellipsis" onclick="event.stopPropagation();openCommentActions(this,${c.mine})">⋯</button>
+    <uxt-icon-button class="comment-ellipsis" icon="more-horiz" label="Comment actions" density="m" onclick="event.stopPropagation();openCommentActions(this,${c.mine})"></uxt-icon-button>
     <div class="comment-header">
-      <span class="comment-avatar">${commentInitials(c.author)}</span>
+      <uxt-avatar class="comment-avatar" density="m" initials="${kitEsc(commentInitials(c.author))}" name="${kitEsc(c.author)}"${c.mine ? ' color="blue"' : ''}></uxt-avatar>
       <span class="comment-author">${c.author}</span>
       ${c.mine ? '<span class="comment-you">(You)</span>' : ''}
       <div class="comment-time-actions"><span class="comment-time">${c.time}</span></div>
@@ -4017,7 +4139,7 @@ function renderCommentsExcerptMount() {
   const tabKey = typeof COMMENTS_TAB_KEY !== 'undefined' ? COMMENTS_TAB_KEY : null;
   const all = commentsNewestFirst();
   const shown = limit ? all.slice(0, limit) : all;
-  let html = `<div class="comment-add-row" onclick="openTextEditor('__comment','Add Comment',(t)=>addCommentToData(t))"><span class="comment-add-plus">+</span> Add comment</div>`;
+  let html = `<uxt-list-item class="comment-add-row" density="m" icon="add" text="Add comment" onclick="openTextEditor('__comment','Add Comment',(t)=>addCommentToData(t))"></uxt-list-item>`;
   html += `<div class="comment-card-list">${shown.map(renderCommentItemHTML).join('')}</div>`;
   html += viewMoreRowHTML(all.length, limit, tabKey,
     typeof COMMENTS_VIEW_MORE_ONCLICK !== 'undefined' ? COMMENTS_VIEW_MORE_ONCLICK : null);
@@ -4037,7 +4159,7 @@ function renderCommentsTabContent() {
   // drifting asymmetric (Comments relied on the header Plus alone).
   // Newest first, same order as the excerpt (§7.2, 2026-08-11).
   const all = commentsNewestFirst();
-  return `<div class="section-card"><div class="comment-add-row" onclick="openTextEditor('__comment','Add Comment',(t)=>addCommentToData(t))"><span class="comment-add-plus">+</span> Add comment</div></div>
+  return `<div class="section-card"><uxt-list-item class="comment-add-row" density="m" icon="add" text="Add comment" onclick="openTextEditor('__comment','Add Comment',(t)=>addCommentToData(t))"></uxt-list-item></div>
     <div class="comment-card-list">${all.length ? all.map(renderCommentItemHTML).join('') : '<div class="field-caption" style="text-align:center;padding:20px;">No comments yet.</div>'}</div>`;
 }
 function addCommentToData(text) {
@@ -4157,7 +4279,7 @@ function renderDocumentsExcerptMount() {
   const tabKey = typeof DOCUMENTS_TAB_KEY !== 'undefined' ? DOCUMENTS_TAB_KEY : null;
   const all = documentsNewestFirst(typeof DOCUMENTS_DATA !== 'undefined' ? DOCUMENTS_DATA : []);
   const shown = limit ? all.slice(0, limit) : all;
-  let html = `<div class="comment-add-row" onclick="showToast('Attach document — coming soon')"><span class="comment-add-plus">+</span> Add document</div>`;
+  let html = `<uxt-list-item class="comment-add-row" density="m" icon="attach-file" text="Add document" onclick="showToast('Attach document — coming soon')"></uxt-list-item>`;
   html += shown.map(renderDocItemHTML).join('');
   html += viewMoreRowHTML(all.length, limit, tabKey,
     typeof DOCUMENTS_VIEW_MORE_ONCLICK !== 'undefined' ? DOCUMENTS_VIEW_MORE_ONCLICK : null);
@@ -4175,7 +4297,7 @@ function toggleDocGroup(key) {
 }
 function renderDocumentsTabContent() {
   const groups = docGroups();
-  let html = `<div class="section-card"><div class="comment-add-row" onclick="showToast('Attach document — coming soon')"><span class="comment-add-plus">+</span> Add document</div></div>`;
+  let html = `<div class="section-card"><uxt-list-item class="comment-add-row" density="m" icon="attach-file" text="Add document" onclick="showToast('Attach document — coming soon')"></uxt-list-item></div>`;
   if (!groups.length) {
     return html + `<div class="field-caption" style="text-align:center;padding:22px;">No documents on this record.</div>`;
   }
@@ -4204,7 +4326,42 @@ let confirmCallback = null;
 // primary (black/white, neutral) — for a confirm whose action isn't
 // destructive, just needs a real "are you sure." Omitted opts preserves
 // every existing caller's red-danger button exactly as before.
+/* Octave kit (2026-10-20): with the kit loaded, confirm and question are the
+   kit <uxt-dialog> (3dp, 32% scrim, focus trap, buttons at the end), built
+   once and reused. The screen's own #confirmOverlay/#questionOverlay markup
+   stays as the fallback for the DOM shim. Callback semantics are unchanged:
+   confirm runs onConfirm then clears; Cancel / scrim / Esc just clear. */
+function kitDialog(id) {
+  let d = document.getElementById(id);
+  if (d) return d;
+  d = document.createElement('uxt-dialog');
+  d.id = id;
+  d.setAttribute('size', 's');
+  d.setAttribute('density', 'm');
+  const p = document.createElement('p');
+  p.className = 'kit-dialog-msg';
+  d.appendChild(p);
+  document.body.appendChild(d);
+  return d;
+}
 function openConfirm(message, onConfirm, dangerLabel, opts) {
+  if (kitReady('uxt-dialog')) {
+    const d = kitDialog('kitConfirmDialog');
+    d.querySelector('.kit-dialog-msg').textContent = message;
+    d.setAttribute('primary-text', dangerLabel || 'Delete');
+    d.setAttribute('secondary-text', 'Cancel');
+    // Destructive = the kit's error-tone contained primary (Danny's red
+    // .confirm-danger); opts.primary keeps the neutral/primary variant.
+    d.toggleAttribute('destructive', !(opts && opts.primary));
+    confirmCallback = onConfirm;
+    if (!d._kitWired) {
+      d._kitWired = true;
+      d.addEventListener('primary', () => { const cb = confirmCallback; confirmCallback = null; if (cb) setTimeout(cb, 0); });
+      d.addEventListener('close', () => { confirmCallback = null; });
+    }
+    d.show();
+    return;
+  }
   document.getElementById('confirmMessage').textContent = message;
   const btn = document.getElementById('confirmDangerBtn');
   btn.textContent = dangerLabel || 'Delete';
@@ -4213,7 +4370,10 @@ function openConfirm(message, onConfirm, dangerLabel, opts) {
   document.getElementById('confirmOverlay').classList.add('open');
 }
 function closeConfirm() {
-  document.getElementById('confirmOverlay').classList.remove('open');
+  const d = document.getElementById('kitConfirmDialog');
+  if (d && d.open) d.close('cancel');
+  const o = document.getElementById('confirmOverlay');
+  if (o) o.classList.remove('open');
   confirmCallback = null;
 }
 function confirmDangerAction() {
@@ -4231,12 +4391,33 @@ function confirmDangerAction() {
    differently-shaped modals would show both stacked on open. ══════════ */
 let questionCallbacks = null;
 function openQuestion(message, onYes, onNo) {
+  if (kitReady('uxt-dialog')) {
+    // Yes = contained primary, No = outlined secondary, Cancel = the dialog's
+    // own close (✕ / scrim / Esc) — three outcomes, one row of two buttons.
+    const d = kitDialog('kitQuestionDialog');
+    d.querySelector('.kit-dialog-msg').textContent = message;
+    d.setAttribute('primary-text', 'Yes');
+    d.setAttribute('secondary-text', 'No');
+    d.setAttribute('closable', '');
+    questionCallbacks = { onYes, onNo };
+    if (!d._kitWired) {
+      d._kitWired = true;
+      d.addEventListener('primary', () => { const cb = questionCallbacks; questionCallbacks = null; if (cb && cb.onYes) setTimeout(cb.onYes, 0); });
+      d.addEventListener('secondary', () => { const cb = questionCallbacks; questionCallbacks = null; if (cb && cb.onNo) setTimeout(cb.onNo, 0); });
+      d.addEventListener('close', () => { questionCallbacks = null; });
+    }
+    d.show();
+    return;
+  }
   document.getElementById('questionMessage').textContent = message;
   questionCallbacks = { onYes, onNo };
   document.getElementById('questionOverlay').classList.add('open');
 }
 function closeQuestion() {
-  document.getElementById('questionOverlay').classList.remove('open');
+  const d = document.getElementById('kitQuestionDialog');
+  if (d && d.open) d.close('cancel');
+  const o = document.getElementById('questionOverlay');
+  if (o) o.classList.remove('open');
   questionCallbacks = null;
 }
 function questionAnswerYes() {
@@ -4485,7 +4666,7 @@ function fieldRowCheckbox(key, label, checkIcon) {
   const v = RECORD[key];
   return `<div class="form-field" data-field="${key}" onclick="toggleCheckbox(this)">
     <span class="field-label">${label}</span>
-    <div class="field-checkbox${v ? ' checked' : ''}">${v ? (checkIcon || '<svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>') : ''}</div>
+    <uxt-checkbox class="field-checkbox-kit" inert aria-label="${kitEsc(label)}" value="${v ? 'checked' : 'unchecked'}"></uxt-checkbox>
   </div>`;
 }
 function fieldRowProtected(label, value, lockIcon) {
@@ -4631,6 +4812,10 @@ function initSharedApp(opts) {
   initStepRail();
   initRecHeaderScroll(opts.contentSelector);
   initHeaderMenuOutsideClick();
+  kitEnsureMenuScrim();
+  // design-kit.js is a module script, so it defines its elements AFTER this
+  // classic init has run — build the kit flyover once the tag exists.
+  try { if (typeof customElements !== 'undefined' && customElements.whenDefined) customElements.whenDefined('uxt-flyover-menu').then(kitBuildProfileFlyover); } catch (e) { /* no kit */ }
   initInsertModeDrag();
   initKeyboardInsetSync();
   renderSyncControl();
@@ -4757,8 +4942,7 @@ function openBookingPullup(opts) {
     + '<div class="sheet-header">'
       /* ✕ IS THE DISCARD, not merely a close — so it routes through the same
          handler a scrim tap does, and neither stops the timer. */
-      + '<button class="sheet-close" onclick="discardBookingPullup()" aria-label="Discard">'
-        + '<svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>'
+      + kitSheetClose('discardBookingPullup()', 'Discard')
       + '<div class="sheet-title">Book your time</div>'
       + '<button class="sheet-confirm-btn" onclick="confirmBookingPullup()" aria-label="Book time">'
         + '<svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>'
@@ -4768,17 +4952,17 @@ function openBookingPullup(opts) {
       + '<div class="bkg-hours" id="bkgHours">'
         + '<div class="bkg-hours-l">Hours Worked</div>'
         + '<div class="bkg-hours-row">'
-          + '<button class="step-btn" aria-label="Less"'
+          + '<uxt-icon-button class="kit-step-btn" icon="remove" label="Less" outlined density="m"'
             + ' onpointerdown="startHoldStep(adjustBookingMin,-1)"'
-            + ' onpointerup="stopHoldStep()" onpointerleave="stopHoldStep()">\u2212</button>'
+            + ' onpointerup="stopHoldStep()" onpointerleave="stopHoldStep()"></uxt-icon-button>'
           + '<div class="bkg-hours-mid">'
             + '<div class="bkg-hours-v" id="bkgHoursV"></div>'
             + '<div class="bkg-hours-sub" id="bkgHoursSub"></div>'
             + '<div class="bkg-hours-adj" id="bkgHoursAdj"></div>'
           + '</div>'
-          + '<button class="step-btn" aria-label="More"'
+          + '<uxt-icon-button class="kit-step-btn" icon="add" label="More" outlined density="m"'
             + ' onpointerdown="startHoldStep(adjustBookingMin,1)"'
-            + ' onpointerup="stopHoldStep()" onpointerleave="stopHoldStep()">+</button>'
+            + ' onpointerup="stopHoldStep()" onpointerleave="stopHoldStep()"></uxt-icon-button>'
         + '</div>'
       + '</div>'
       + '<div id="bkgDerived"></div>'
@@ -4786,9 +4970,8 @@ function openBookingPullup(opts) {
     + '</div>');
 
   document.getElementById('bkgBanner').innerHTML =
-    '<svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>'
-    + '<path d="M12 7v5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
-    + '<span>Your timer has run <strong>' + bookingFmtMin(min) + '</strong>. Check the hours before they are booked.</span>';
+    '<uxt-banner density="m" severity="info" icon="timer" text="'
+    + kitEsc('Your timer has run ' + bookingFmtMin(min) + '. Check the hours before they are booked.') + '"></uxt-banner>';
 
   document.getElementById('bkgDerived').innerHTML =
     (o.employee

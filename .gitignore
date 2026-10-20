@@ -27,3 +27,4 @@
 # node_modules should never appear here (no build step by design), but a stray
 # `npm install` while generating a deck would otherwise leave one behind.
 node_modules/
+.gstack/

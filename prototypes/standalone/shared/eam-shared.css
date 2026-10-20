@@ -15,7 +15,7 @@
      Brand constants (--octave-black, --white) and EAM product colours
      (WO Type, Priority) stay as they were. */
   --font-sans: var(--uxt-theme-typography-font-family, "Octave Sans", "Noto Sans", system-ui, sans-serif);
-  --font-display: var(--uxt-theme-typography-h5-font-family, "Octave Display", "Noto Sans", sans-serif);
+  --font-display: var(--uxt-theme-typography-h-5-font-family, "Octave Display", "Noto Sans", sans-serif);
   --font-mono: "JetBrains Mono", monospace;
   --octave-black: #1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
   --purple:#9933FF; --orange:#F46600; --octave-yellow:#FFF500;
@@ -73,12 +73,55 @@
      once. env() carries its own 0px fallback, so this resolves fine on hardware
      with no inset and costs those devices nothing. */
   --bar-reserve:calc(var(--bar-height) + 24px + var(--shell-pad-bottom));
+  /* ── Octave kit aliases (2026-10-20). Short local names for the kit's
+     --uxt-theme-* tokens so the restyle below stays readable; every one
+     resolves to the kit and flips with data-uxt-theme. Never a raw hex
+     where a token exists. ── */
+  --k-primary: var(--uxt-theme-palette-primary-main, #004fec);
+  --k-on-primary: var(--uxt-theme-palette-primary-contrast-text, #ffffff);
+  --k-text: var(--uxt-theme-palette-text-primary, #1a1a1f);
+  --k-text-2: var(--uxt-theme-palette-text-secondary, #5f636d);
+  --k-hint: var(--uxt-theme-palette-text-hint, #6f7480);
+  --k-glyph: var(--uxt-theme-palette-glyph-default, #5f636d);
+  --k-bg: var(--uxt-theme-palette-background-default, #e1e6ed);
+  --k-paper: var(--uxt-theme-palette-background-paper, #f3f5f9);
+  --k-card: var(--uxt-theme-palette-background-card, #ffffff);
+  --k-divider: var(--uxt-theme-palette-border-divider, #dce0e8);
+  --k-control: var(--uxt-theme-palette-border-control, #808591);
+  --k-hover: var(--uxt-theme-palette-action-hover, rgba(26,26,31,.08));
+  --k-selected: var(--uxt-theme-palette-action-selected, #e7ebf2);
+  --k-r: var(--uxt-theme-shape-radius-md, 8px);
+  --k-pill: var(--uxt-theme-shape-radius-full, 9999px);
+  --k-e1: var(--uxt-theme-shadows-1);
+  --k-e2: var(--uxt-theme-shadows-2);
+  --k-e3: var(--uxt-theme-shadows-3);
+  --k-h: var(--uxt-theme-height-button, 40px);
+  --k-row: var(--uxt-theme-height-item, 40px);
+  --k-s1: var(--uxt-theme-spacing-values-xxs, 4px);
+  --k-s2: var(--uxt-theme-spacing-values-xs, 8px);
+  --k-sm: var(--uxt-theme-spacing-values-sm, 12px);
+  --k-s4: var(--uxt-theme-spacing-values-md, 16px);
+  --k-s6: var(--uxt-theme-spacing-values-lg, 24px);
+  --k-body2: var(--uxt-theme-typography-body-2-font-size, 0.875rem);
+  --k-caption: var(--uxt-theme-typography-caption-font-size, 0.75rem);
+  --k-btn-weight: var(--uxt-theme-typography-button-1-font-weight, 500);
+  /* Status containers = the kit status chip / tag colours (status 50 fill +
+     900 text in light). Dark values are the kit's dark status containers
+     (DESIGN.md colorsDark tag-*), which ship as hex in the kit itself. */
+  --k-ok-bg: var(--uxt-theme-palette-status-green-50, #d9ffe3); --k-ok-fg: var(--uxt-theme-palette-status-green-900, #177330);
+  --k-err-bg: var(--uxt-theme-palette-status-red-50, #ffeeee); --k-err-fg: var(--uxt-theme-palette-status-red-900, #c0131a);
+  --k-warn-bg: var(--uxt-theme-palette-status-orange-50, #fff6e6); --k-warn-fg: var(--uxt-theme-palette-status-orange-900, #d75f00);
+  --k-info-bg: var(--uxt-theme-palette-status-blue-50, #e6f9ff); --k-info-fg: var(--uxt-theme-palette-status-blue-900, #0082ca);
+  --k-neutral-bg: var(--uxt-theme-palette-ui-white-300, #edf0f5); --k-neutral-fg: var(--uxt-theme-palette-ui-grey-900, #3e4047);
 }
 [data-theme="dark"] {
   /* Surfaces, borders, --gray-4 and status colours come from the kit tokens,
      which data-uxt-theme="dark" flips; only the remaining greys swap here. */
   --bg-nav:#111114;
   --octave-black:#1A1A1F; --gray-1:#2A2930; --gray-2:#3E4047; --gray-3:#6F7480;
+  --k-ok-bg:#193524; --k-ok-fg:#d9ffe3; --k-err-bg:#4c181e; --k-err-fg:#ffeeee;
+  --k-warn-bg:#532f16; --k-warn-fg:#fff6e6; --k-info-bg:#12244b; --k-info-fg:#e6f9ff;
+  --k-neutral-bg:var(--uxt-theme-palette-action-hover, rgba(255,255,255,.08)); --k-neutral-fg:var(--uxt-theme-palette-text-primary, #e1e6ed);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;}
@@ -90,15 +133,21 @@ html,body{height:100%;}
    rendering properly / not auto-formatting" off the public URL. `100dvh`
    tracks the live visible height instead. The `100vh` line above it is the
    fallback for browsers without dvh, and must stay first. */
-body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-black);-webkit-font-smoothing:antialiased;overflow:hidden;transition:background .2s,color .2s;display:flex;flex-direction:column;height:100vh;height:100dvh;}
-[data-theme="dark"] body{color:var(--white);}
+body{font-family:var(--font-sans);font-size:var(--k-body2);background:var(--bg-page);color:var(--k-text);-webkit-font-smoothing:antialiased;overflow:hidden;transition:background .2s,color .2s;display:flex;flex-direction:column;height:100vh;height:100dvh;}
+[data-theme="dark"] body{color:var(--k-text);}
 .proto-theme-bar{flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 0;}
 .proto-theme-label{font-size:0.625rem;font-weight:600;letter-spacing:.3px;color:var(--gray-4);font-family:var(--font-mono);text-transform:uppercase;}
 .theme-toggle{font-size:0.6875rem;font-family:var(--font-sans);font-weight:600;color:var(--gray-4);background:var(--bg-section);border:1px solid var(--border-strong);border-radius:100px;padding:3px 10px;cursor:pointer;}
 .app{display:flex;flex-direction:column;flex:1;min-height:0;max-width:430px;width:100%;margin:0 auto;position:relative;overflow:clip;background:var(--bg-page);box-shadow:0 0 40px rgba(0,0,0,.18);}
 
 /* ── NAV BAR ── */
-.nav{height:var(--nav-height);background:var(--bg-nav);display:flex;align-items:center;justify-content:space-between;padding:0 12px;gap:8px;flex-shrink:0;position:relative;}
+/* Octave mobile top bar (2026-10-20): a TRANSPARENT actions bar on the page
+   background, 56px, every control an outlined Icon Button on a card fill.
+   Title shows only on drill-in pages (a back button); a top-level page (the
+   avatar slot, §4.2's browsing tier) shows no title. Overrides Danny's dark
+   #1A1A1F bar; all §4.2 slot mechanics are untouched. */
+.nav{height:var(--nav-height);background:transparent;display:flex;align-items:center;justify-content:space-between;padding:0 var(--k-s4);gap:var(--k-s1);flex-shrink:0;position:relative;}
+.nav:has(.nav-avatar) .nav-title{display:none;}
 /* Cursor/radius/hover/transition/flex-shrink added 2026-07-22 (Phase 2b) —
    WO List's own local hand-copy of this class had quietly grown all 5
    (a real, sensible hover affordance every nav-bar icon button should
@@ -106,8 +155,8 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    never promoted them back here, so every other consumer's back button
    had no hover feedback at all. Promoted up rather than deleting WO
    List's copy and losing the improvement. */
-.nav-back{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--white);background:none;border:none;border-radius:6px;cursor:pointer;transition:background .15s;flex-shrink:0;}
-.nav-back:hover{background:rgba(255,255,255,.1);}
+.nav-back{width:var(--k-h);height:var(--k-h);display:flex;align-items:center;justify-content:center;color:var(--k-glyph);background:var(--k-card);border:1px solid var(--k-control);border-radius:var(--k-pill);cursor:pointer;transition:background .15s;flex-shrink:0;}
+.nav-back:hover{background:linear-gradient(var(--k-hover),var(--k-hover)),var(--k-card);}
 /* Top-left slot toggle (§4.2, promoted from eam-home-screen-prototype-v1.html
    2026-07-16) — .nav-back above is what a record-open screen always shows;
    .nav-avatar is what a browsing-tier screen (a tab root — Home, and WO
@@ -115,7 +164,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    slot instead. No screen ever renders both or toggles between them at
    runtime — each screen is statically one tier or the other, so this is
    just the second static option for the slot, not a stateful component. */
-.nav-avatar{width:30px;height:30px;border-radius:50%;overflow:hidden;background:var(--gray-5);color:var(--white);font-size:0.6875rem;font-weight:700;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;flex-shrink:0;font-family:var(--font-sans);padding:0;}
+.nav-avatar{width:var(--k-h);height:var(--k-h);border-radius:50%;overflow:hidden;background:var(--k-card);color:var(--k-text);font-size:var(--k-caption);font-weight:500;display:flex;align-items:center;justify-content:center;border:1px solid var(--k-control);cursor:pointer;flex-shrink:0;font-family:var(--font-sans);padding:0;}
 /* Photo, if one's on file — object-fit:cover + the img's own border-radius
    (redundant with .nav-avatar's own overflow:hidden above, kept as a
    second guarantee) means it stays circular regardless of the source
@@ -134,7 +183,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    (.tab-rail-name/.step-name), bumped the same session, so the two
    "screen name" texts in the same vertical stack (nav title above, rail
    name below) read at one consistent size instead of two adjacent ones. */
-.nav-title{position:absolute;left:0;right:0;text-align:center;font-size:0.9375rem;font-weight:700;color:var(--white);pointer-events:none;}
+.nav-title{position:absolute;left:0;right:0;text-align:center;font-family:var(--font-display);font-size:var(--uxt-theme-typography-h-6-font-size,1.125rem);font-weight:var(--uxt-theme-typography-h-6-font-weight,500);color:var(--k-text);pointer-events:none;}
 /* Moved to the left, next to the back arrow/avatar (§20 punch list,
    resolved 2026-07-21) — was sitting center/right next to the sync
    control, which crowded that corner and read as if it were part of the
@@ -145,7 +194,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    Knocked down a size (10px→9px) too — it's a dev-only watermark, not
    content, so it can go quieter than anything user-facing without
    losing its job of just being glanceable. */
-.nav-left{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.nav-left{display:flex;align-items:center;gap:var(--k-s2);flex-shrink:0;}
 /* Was rgba(255,165,0,.9) — a raw "web orange" never tied to var(--orange)
    or any hex this session's greps ever targeted, so it survived every
    purple/orange sweep undetected (found 2026-07-22, user report: "header
@@ -155,9 +204,9 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    promoted up from WO List's own fuller local copy, which had grown all
    4 without ever being promoted back — same "local copy improved, never
    synced" pattern as .nav-back (Phase 2b, same session). */
-.prototype-label{font-size:0.5625rem;font-weight:700;letter-spacing:.4px;color:var(--gray-4);white-space:nowrap;font-family:var(--font-sans);text-transform:uppercase;display:none;}
+.prototype-label{font-size:0.5625rem;font-weight:500;letter-spacing:.4px;color:var(--k-hint);white-space:nowrap;font-family:var(--font-sans);text-transform:uppercase;display:none;}
 @media(min-width:390px){.prototype-label{display:inline;}}
-.nav-actions{display:flex;align-items:center;gap:4px;flex-shrink:0;}
+.nav-actions{display:flex;align-items:center;gap:var(--k-s1);flex-shrink:0;}
 /* Bottom nav (Home/Work/Notifications, §4.2/§4.3) — promoted here from two
    hand-copies (UI inventory pass, 2026-07-21): Home (1st consumer) and WO
    List (2nd) had already satisfied this file's own "promote on 2nd real
@@ -187,13 +236,21 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    to the old 58px height (Home's/WO List's .home-body/.wo-list, both
    58+20=78px) were bumped by the same +22px this pass (→100px) so
    scrolled-to-bottom content doesn't hide behind the now-taller bar. */
-.bottom-nav{position:absolute;left:0;right:0;bottom:0;height:calc(80px + var(--shell-pad-bottom));background:var(--bg-nav); /* fallback first */ background:color-mix(in srgb, var(--bg-nav) 96%, transparent);backdrop-filter:blur(28px) saturate(220%);-webkit-backdrop-filter:blur(28px) saturate(220%);display:flex;align-items:flex-start;justify-content:center;gap:14px;padding-top:8px;flex-shrink:0;border-top:1px solid rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.15);z-index:50;}
+/* Octave mobile bottom navigation (2026-10-20): a FLOATING full pill —
+   1px border-divider outline, background-card fill, 64dp tall, icon (24px)
+   over a one-word label, active destination on the gray action-selected
+   fill (never blue). It sits just above the system bar (the §31.6
+   --shell-pad-bottom room is now the gap UNDER the pill rather than padding
+   inside a flush bar), so the bar is no longer flush to the bottom edge —
+   a visual override of §4.2's "anchored, not floating". Every destination
+   and handler is the screen's own markup, untouched. Max 4 is the kit rule;
+   no screen has more than 3 today. */
+.bottom-nav{position:absolute;left:var(--k-s4);right:var(--k-s4);bottom:var(--shell-pad-bottom);height:64px;background:var(--k-card);border:1px solid var(--k-divider);border-radius:var(--k-pill);display:flex;align-items:center;justify-content:space-around;gap:var(--k-s1);padding:0 var(--k-s1);flex-shrink:0;z-index:50;}
 .bottom-nav.hidden{display:none;}
-.bottom-nav-item{width:84px;display:flex;flex-direction:column;align-items:center;gap:2px;color:rgba(255,255,255,.5);background:none;border:none;border-radius:100px;font-family:var(--font-sans);font-size:0.65625rem;font-weight:600;padding:7px 0;cursor:pointer;}
-.bottom-nav-item svg{width:23px;height:23px;}
-.bottom-nav-item.active{color:#fff;background:rgba(255,255,255,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.25);}
-[data-theme="dark"] .bottom-nav-item.active{background:rgba(255,255,255,.2);}
-.bottom-nav-badge{position:absolute;top:-5px;right:-7px;min-width:15px;height:15px;background:var(--red);color:white;font-size:9px;font-weight:700;border-radius:100px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
+.bottom-nav-item{flex:1;max-width:96px;height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--k-s1);color:var(--k-text-2);background:none;border:none;border-radius:var(--k-pill);font-family:var(--font-sans);font-size:var(--k-caption);font-weight:500;padding:0;cursor:pointer;transition:background .15s;}
+.bottom-nav-item svg{width:24px;height:24px;}
+.bottom-nav-item.active{color:var(--k-text);background:var(--k-selected);}
+.bottom-nav-badge{position:absolute;top:-4px;right:-8px;min-width:16px;height:16px;background:var(--uxt-theme-palette-error-dark,#e4171f);color:var(--uxt-theme-palette-error-contrast-text,#fff);font-size:10px;font-weight:500;border-radius:var(--k-pill);display:flex;align-items:center;justify-content:center;padding:0 var(--k-s1);}
 /* Promoted from Home/WO List's own local <style> blocks (2026-07-22,
    Notifications badge fix) — .bottom-nav-badge is positioned absolute
    relative to its nearest positioned ancestor, and this wrapper is that
@@ -208,8 +265,8 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    one), so the badge overlaps the icon's own corner instead of drifting
    toward the button's outer edge. */
 .nav-icon-wrap{position:relative;display:flex;}
-.nav-icon-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--white);background:none;border:none;cursor:pointer;border-radius:6px;transition:background .15s;position:relative;}
-.nav-icon-btn:hover{background:rgba(255,255,255,.1);}
+.nav-icon-btn{width:var(--k-h);height:var(--k-h);display:flex;align-items:center;justify-content:center;color:var(--k-glyph);background:var(--k-card);border:1px solid var(--k-control);cursor:pointer;border-radius:var(--k-pill);transition:background .15s;position:relative;}
+.nav-icon-btn:hover{background:linear-gradient(var(--k-hover),var(--k-hover)),var(--k-card);}
 @keyframes syncSpin{to{transform:rotate(360deg);}}
 /* ── Sync control (§4.4.1, adaptive icon/pill — locked 2026-07-21,
    supersedes the old 5-state tinted-circle-only treatment above). Four
@@ -227,24 +284,19 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    eam-shared.js off a screen's empty #syncCtrl container — no screen
    hand-rolls this markup, and initSharedApp() calls it automatically so
    nothing extra is needed per screen beyond the container. ── */
-.sync-ctrl-dot{width:32px;height:32px;border-radius:50%;background:rgba(0,170,20,.18);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--green);}
-.sync-ctrl-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;background:rgba(255,255,255,.03);border:1px solid transparent;cursor:pointer;font-family:var(--font-sans);white-space:nowrap;}
-.sync-ctrl-pill svg{flex-shrink:0;}
-.sync-ctrl-label{font-size:0.6875rem;font-weight:600;white-space:nowrap;}
 /* Was light purple (#B388FF) — corrected 2026-07-22 (§23): syncing is
    "in progress," the same neutral-not-a-hue language the status pill's
    own in-progress state now uses, not a 4th color. */
-.sync-ctrl-pill.state-syncing{border-color:var(--gray-3);color:var(--gray-4);}
-.sync-ctrl-pill.state-syncing svg{animation:syncSpin 1.1s linear infinite;}
-.sync-ctrl-pill.state-offline{border-color:var(--gray-2);color:var(--gray-2);}
-.sync-ctrl-pill.state-error{border-color:#FF8785;color:#FF8785;}
 
 /* ── RECORD IDENTITY HEADER (scroll-collapsing, §5.3) — used for BOTH the
    full Record View header (#recHeader, status+pin+ellipsis) and the
    protected List/Detail header (#listDetailHeader, §8.1) by reusing these
    same .rec-* classes directly — never both visible at once per screen,
    so there's no collision requiring a second namespaced class set. ── */
-.rec-header{background:var(--bg-nav);flex-shrink:0;}
+/* Octave restyle (2026-10-20): the identity header sits on the page
+   background like the top bar above it (was Danny's permanently-dark band),
+   so its text, status and org pill now follow the theme tokens. */
+.rec-header{background:transparent;flex-shrink:0;}
 .rec-header.hidden{display:none;}
 .rec-header#listDetailHeader{display:none;cursor:pointer;}
 .rec-header#listDetailHeader.active{display:block;}
@@ -254,21 +306,21 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    ellipsis buttons against rec-num keeps them from drifting down a long
    wrapped description; margin-left:auto on .rec-header-actions still
    holds them flush right. */
-.rec-id-row{display:flex;align-items:flex-start;gap:10px;padding:12px 16px 8px;}
-.rec-id-text{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1;}
-.rec-num{font-family:var(--font-mono);font-size:1.375rem;font-weight:700;letter-spacing:.3px;color:white;line-height:1.1;}
+.rec-id-row{display:flex;align-items:flex-start;gap:var(--k-s2);padding:var(--k-s2) var(--k-s4) var(--k-s2);}
+.rec-id-text{display:flex;flex-direction:column;gap:var(--k-s1);min-width:0;flex:1;}
+.rec-num{font-family:var(--font-mono);font-size:1.375rem;font-weight:600;letter-spacing:.3px;color:var(--k-text);line-height:1.1;}
 /* Description font bumped 14px→15px (2026-07-16, second bump — was 13px
    originally) — reads cleanly wrapped at full 255-char length without the
    mini-icon block (removed same day) competing for space next to it. */
-.rec-desc{display:block;font-size:0.9375rem;font-weight:600;color:rgba(255,255,255,.65);line-height:1.3;cursor:pointer;}
+.rec-desc{display:block;font-family:var(--font-display);font-size:var(--uxt-theme-typography-sub-title-1-font-size,1rem);font-weight:var(--uxt-theme-typography-sub-title-1-font-weight,400);color:var(--k-text-2);line-height:1.3;cursor:pointer;}
 /* .rec-desc-edit/.rec-desc-edit.editing/.rec-desc.hidden-while-editing
    REMOVED 2026-07-28 — Description now opens openDescEditor()'s compact
    modal (eam-shared.js) instead of swapping to an inline textarea in
    place; nothing renders these classes any more. */
 /* Protected variant (§8.1) — non-editable identity description used by the
    List/Detail header on every tab except Record View. */
-.rec-desc.protected{cursor:default;color:rgba(255,255,255,.5);}
-.rec-status-row{overflow:hidden;transition:height .22s ease,opacity .18s ease;height:58px;opacity:1;}
+.rec-desc.protected{cursor:default;color:var(--k-text-2);}
+.rec-status-row{overflow:hidden;transition:height .22s cubic-bezier(0.4,0,0.2,1),opacity .18s ease;height:56px;opacity:1;}
 .rec-header.scrolled .rec-status-row{height:0;opacity:0;}
 
 /* ── Record-header photo slot (§7.5, locked 2026-08-11 — option A2 from
@@ -284,29 +336,33 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    photo set — 150px of empty card on every asset that hasn't got one yet.
    Only Equipment Record View uses this today; the markup is opt-in, so no
    other header changes by inheriting it. */
-.rec-id-split{display:flex;gap:12px;padding:0 16px;}
+.rec-id-split{display:flex;gap:var(--k-s4);padding:0 var(--k-s4);}
 .rec-id-split .rec-id-row{flex:1;min-width:0;padding-left:0;padding-right:0;}
-.rec-photo-slot{width:74px;min-height:74px;border-radius:10px;align-self:stretch;flex-shrink:0;position:relative;overflow:hidden;background:var(--gray-5);display:flex;align-items:center;justify-content:center;cursor:pointer;
+.rec-photo-slot{width:74px;min-height:74px;border-radius:var(--k-r);align-self:stretch;flex-shrink:0;position:relative;overflow:hidden;background:var(--k-selected);display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid var(--k-divider);
   transition:width .22s ease,min-height .22s ease,opacity .18s ease,margin-left .22s ease;}
 .rec-photo-slot img{width:100%;height:100%;object-fit:cover;display:block;}
-.rec-photo-slot .rec-photo-empty{color:rgba(255,255,255,.4);}
+.rec-photo-slot .rec-photo-empty{color:var(--k-glyph);}
 /* Negative margin collapses the flex gap too, or a 12px ghost gutter would
    survive the animation and leave the identity text visibly inset. */
-.rec-header.scrolled .rec-photo-slot{width:0;min-height:0;opacity:0;margin-left:-12px;}
+.rec-header.scrolled .rec-photo-slot{width:0;min-height:0;opacity:0;margin-left:calc(-1 * var(--k-s4));border:none;}
 .rec-photo-cam{position:absolute;right:3px;bottom:3px;width:17px;height:17px;border-radius:50%;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;color:var(--white);}
 /* Org pill moved into this row (§5.2/§9.3, 2026-07-16) — justified opposite
    the status button so the two read as one balanced row, and so the pill
    collapses on scroll exactly like status does (it's the same .rec-status-
    row this rule already hides — no separate scroll rule needed). */
-.rec-status-row-inner{padding:0 16px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
-.rec-status-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:8px;font-size:0.9375rem;font-weight:700;color:white;cursor:pointer;border:none;font-family:var(--font-sans);}
-.rec-status-btn.st-operational{background:var(--green);}
-.rec-status-btn.st-down{background:var(--red);}
+.rec-status-row-inner{padding:0 var(--k-s4) var(--k-s4);display:flex;align-items:center;justify-content:space-between;gap:var(--k-s2);}
+/* Status button → the kit status-chip colours (filled = status 50 container
+   + 900 text, dark = the kit's dark status containers) at control height,
+   pill-shaped. Still Danny's tappable status changer (§15.4) and still
+   colour-by-tier; only the palette moved onto the kit's. */
+.rec-status-btn{display:inline-flex;align-items:center;gap:var(--k-s2);height:var(--k-h);padding:0 var(--k-s4);border-radius:var(--k-pill);font-family:var(--font-sans);font-size:var(--k-body2);font-weight:var(--k-btn-weight);color:var(--k-neutral-fg);background:var(--k-neutral-bg);cursor:pointer;border:none;}
+.rec-status-btn.st-operational{background:var(--k-ok-bg);color:var(--k-ok-fg);}
+.rec-status-btn.st-down{background:var(--k-err-bg);color:var(--k-err-fg);}
 /* Standby/"in progress" — outlined, not orange-filled (palette pass,
    2026-07-22): this state is neutral/in-motion, not a warning, so it no
    longer borrows a 3rd status hue. Works on the rec-header's fixed dark
    background regardless of the app's own light/dark toggle. */
-.rec-status-btn.st-standby{background:none;border:1.5px solid rgba(255,255,255,.35);}
+.rec-status-btn.st-standby{background:var(--k-neutral-bg);color:var(--k-neutral-fg);}
 /* Waiting/pending fill, added 2026-07-22 (user direction) — a 4th tier,
    distinct from st-standby above: WO Record View's Work Request status
    (WAPPR) specifically, mirroring the same code's "Waiting approval"
@@ -315,7 +371,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    own 2026-07-22 note above — Closed still stays neutral/outlined,
    only WAPPR moves to its own tier. Same #F46600 as the rest of the
    app's Orange instrument. */
-.rec-status-btn.st-waiting{background:#F46600;}
+.rec-status-btn.st-waiting{background:var(--k-warn-bg);color:var(--k-warn-fg);}
 /* Protected status (§15.4 Not Free Form, redesigned 2026-07-22) — the
    status fill colour must always show, protected or not (a status button
    that goes gray tells the technician nothing about the WO's actual
@@ -330,29 +386,38 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 /* Bumped 30px→34px buttons / 16px→18px icons (2026-07-16) — small negative
    margin-top re-centers the bigger circle against rec-num's own line
    height now that it overshoots it by more than before. */
-.rec-header-actions{display:flex;align-items:center;gap:2px;flex-shrink:0;margin-left:auto;margin-top:-3px;position:relative;}
-.rec-pin-btn,.rec-ellipsis-btn{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:rgba(255,255,255,.55);transition:background .15s,color .15s;}
-.rec-pin-btn:hover,.rec-ellipsis-btn:hover{background:rgba(255,255,255,.1);color:white;}
-.rec-pin-btn svg,.rec-ellipsis-btn svg{width:18px;height:18px;}
+.rec-header-actions{display:flex;align-items:center;gap:var(--k-s1);flex-shrink:0;margin-left:auto;position:relative;}
+/* Pin / ellipsis → the kit outlined Icon Button look (40px circle, 1px
+   border-control on a card fill, glyph-default icon at 24px). Markup is the
+   screens' own; a pinned record shows state by colour (text-primary), not a
+   filled glyph swap — the pin's filled/outlined SVG pair is Danny's and
+   stays until the screen markup moves to <uxt-icon-button>. */
+.rec-pin-btn,.rec-ellipsis-btn{width:var(--k-h);height:var(--k-h);border-radius:var(--k-pill);display:flex;align-items:center;justify-content:center;background:var(--k-card);border:1px solid var(--k-control);cursor:pointer;color:var(--k-glyph);transition:background .15s,color .15s;}
+.rec-pin-btn:hover,.rec-ellipsis-btn:hover{background:linear-gradient(var(--k-hover),var(--k-hover)),var(--k-card);}
+.rec-pin-btn svg,.rec-ellipsis-btn svg{width:24px;height:24px;}
 .rec-pin-btn .pin-fill{display:none;}
-.rec-pin-btn.pinned{color:#fff;}
+.rec-pin-btn.pinned{color:var(--k-text);background:var(--k-selected);}
 .rec-pin-btn.pinned .pin-outline{display:none;}
 .rec-pin-btn.pinned .pin-fill{display:block;}
 .rec-ellipsis-btn.hidden{display:none;}
-.rec-ellipsis-btn.active{background:rgba(255,255,255,.14);color:white;}
-.rec-actions-menu{position:absolute;top:40px;right:0;min-width:190px;background:var(--bg-card);border-radius:12px;border:1px solid var(--border);box-shadow:0 8px 28px rgba(0,0,0,.28);padding:6px 0;opacity:0;visibility:hidden;transform:translateY(-6px) scale(.98);transition:opacity .15s,transform .15s,visibility .15s;z-index:150;}
+.rec-ellipsis-btn.active{background:var(--k-selected);color:var(--k-text);}
+/* Overflow (⋮) menus open as a SLIDE-UP BOTTOM SHEET (Octave mobile shell,
+   2026-10-20), not a popover: fixed to the bottom of the app column, sheet
+   radius on top, 2dp, on the shared scrim (#kitMenuScrim, eam-shared.js).
+   The profile menu becomes a kit <uxt-flyover-menu> when the kit loads and
+   this markup is then only its hidden source (.kit-source-menu). */
+.rec-actions-menu{position:fixed;left:50%;bottom:0;width:min(100vw,430px);max-height:80vh;max-height:80dvh;overflow-y:auto;background:var(--k-card);border-radius:var(--sheet-radius) var(--sheet-radius) 0 0;border:none;box-shadow:var(--k-e2);padding:var(--k-s2) 0 calc(var(--k-s4) + env(safe-area-inset-bottom,0px));visibility:hidden;transform:translate(-50%,100%);transition:transform .3s cubic-bezier(0.4,0,0.2,1),visibility .3s;z-index:205;}
 /* Left-anchored variant (§4.3, Profile) — same card, same items, just
    grown from the opposite corner since the avatar sits top-left, not
    top-right like every existing consumer of this component. */
-.rec-actions-menu.anchor-left{left:12px;right:auto;}
-[data-theme="dark"] .rec-actions-menu{background:#26252B;}
-.rec-actions-menu.open{opacity:1;visibility:visible;transform:translateY(0) scale(1);}
+.rec-actions-menu.anchor-left{left:50%;right:auto;}
+.rec-actions-menu.open{visibility:visible;transform:translate(-50%,0);}
+.rec-actions-menu.kit-source-menu{display:none !important;}
 .rec-actions-group:empty{display:none;}
-.rec-actions-divider{height:1px;background:var(--border);margin:4px 0;}
-.rec-actions-item{padding:10px 16px;font-size:0.875rem;font-weight:500;color:var(--octave-black);cursor:pointer;white-space:nowrap;}
-[data-theme="dark"] .rec-actions-item{color:rgba(255,255,255,.9);}
-.rec-actions-item:hover{background:var(--bg-section);}
-.rec-actions-item.danger{color:var(--red);}
+.rec-actions-divider{height:1px;background:var(--k-divider);margin:var(--k-s1) 0;}
+.rec-actions-item{min-height:var(--k-row);display:flex;align-items:center;padding:var(--k-s2) var(--k-s4);font-size:var(--k-body2);font-weight:400;color:var(--k-text);cursor:pointer;white-space:nowrap;}
+.rec-actions-item:hover{background:var(--k-hover);}
+.rec-actions-item.danger{color:var(--uxt-theme-palette-text-error,#e4171f);}
 
 /* ── TAB / STEP RAIL — generalized: no sequence/gating for record tabs,
    segmented progress + timer pill for WO workflow steps (§14.2–§14.3
@@ -409,10 +474,14 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    default. `overflow:hidden` clips the expanded step-map's square
    corners to the pill's own rounding. See design-decisions-v3-1.md §14.2
    for the full writeup. */
-.tab-rail, .step-rail{background:var(--bg-card);border:none;border-radius:28px;margin:10px 12px;overflow:hidden;box-shadow:0 4px 14px var(--rail-glow-color, rgba(0,0,0,.12));padding:0 18px;flex-shrink:0;cursor:pointer;transition:box-shadow .15s;}
-[data-theme="dark"] .tab-rail, [data-theme="dark"] .step-rail{box-shadow:0 4px 16px var(--rail-glow-color, rgba(0,0,0,.4));}
-.tab-rail:hover, .step-rail:hover{box-shadow:0 6px 20px var(--rail-glow-color, rgba(0,0,0,.16));}
-[data-theme="dark"] .tab-rail:hover, [data-theme="dark"] .step-rail:hover{box-shadow:0 6px 22px var(--rail-glow-color, rgba(0,0,0,.46));}
+/* Octave restyle (2026-10-20): a kit card — background-card, 8px radius,
+   1dp elevation — at the kit row rhythm (16px gutters, 56px collapsed row).
+   Kept as markup, not swapped for <uxt-tabs>: it is §7.1/§14's collapsing
+   gated rail (step numbers, timer pill, progress segments, More group,
+   forward-only gating), which no kit component models. The WO Type glow
+   (§23.3, --rail-glow-color) still tints the shadow when set. */
+.tab-rail, .step-rail{background:var(--k-card);border:none;border-radius:var(--k-r);margin:var(--k-s2) var(--k-s4);overflow:hidden;box-shadow:var(--k-e1),0 4px 14px var(--rail-glow-color, transparent);padding:0 var(--k-s4);flex-shrink:0;cursor:pointer;transition:box-shadow .15s;}
+.tab-rail:hover, .step-rail:hover{box-shadow:var(--k-e2),0 6px 20px var(--rail-glow-color, transparent);}
 /* Bug fix 2026-07-16: was padding-bottom:8px alone (no padding-top) — since
    align-items:center centers within the padded content box, the asymmetric
    padding pushed the icon/name/chevron visibly above true vertical center
@@ -421,7 +490,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    row is actually centered, not just centered-within-its-own-padding-box.
    gap unified to 10px 2026-07-24 — .step-rail-collapsed had independently
    drifted to gap:8px with no documented reason; same shell, one value. */
-.tab-rail-collapsed, .step-rail-collapsed{height:56px;display:flex;align-items:center;gap:10px;padding-top:4px;padding-bottom:4px;}
+.tab-rail-collapsed, .step-rail-collapsed{height:56px;display:flex;align-items:center;gap:var(--k-s2);}
 /* .tab-rail-icon removed, 2026-07-22 — a leading glyph naming "the
    current tab" was redundant right next to the tab's own name text;
    dropped rather than recolored. initTabRail()/renderTabRail() (eam-
@@ -436,30 +505,27 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    against the fixed-size type icon/chevron next to it; tightening the
    line box makes the centering visually exact, not just geometrically
    correct. */
-.tab-rail-name{font-size:0.9375rem;font-weight:700;line-height:1;color:var(--octave-black);flex:1;align-self:center;}
-[data-theme="dark"] .tab-rail-name{color:var(--white);}
-.tab-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
-.tab-rail.expanded, .step-rail.expanded{padding-bottom:14px;}
-.tab-map{display:none;background:var(--bg-card);padding:8px 0 12px;border-top:1px solid var(--border);max-height:45vh;max-height:45dvh;overflow-y:auto;}
+.tab-rail-name{font-family:var(--font-display);font-size:var(--uxt-theme-typography-sub-title-1-font-size,1rem);font-weight:500;line-height:1;color:var(--k-text);flex:1;align-self:center;}
+.tab-chevron{color:var(--k-glyph);flex-shrink:0;transition:transform .2s cubic-bezier(0.4,0,0.2,1);}
+.tab-rail.expanded, .step-rail.expanded{padding-bottom:var(--k-s2);}
+.tab-map{display:none;background:var(--k-card);padding:var(--k-s2) 0;border-top:1px solid var(--k-divider);max-height:45vh;max-height:45dvh;overflow-y:auto;margin:0 calc(-1 * var(--k-s4));}
 .tab-map.open{display:block;}
-.tab-map-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-radius:4px;margin:0 6px;transition:background .1s;color:var(--gray-4);}
-.tab-map-item:hover{background:var(--bg-section);}
-[data-theme="dark"] .tab-map-item:hover{background:rgba(255,255,255,.05);}
+.tab-map-item{display:flex;align-items:center;gap:var(--k-s2);min-height:var(--k-row);padding:var(--k-s2) var(--k-s4);cursor:pointer;transition:background .1s;color:var(--k-glyph);}
+.tab-map-item:hover{background:var(--k-hover);}
 /* Was a purple wash + purple bold text — now neutral wash + bold ink
    text, same "weight signals current, not hue" rule as everywhere else. */
-.tab-map-item.active{background:var(--bg-section);color:var(--octave-black);}
-[data-theme="dark"] .tab-map-item.active{color:var(--white);}
-.tab-map-icon{width:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.tab-map-item.active{background:var(--k-selected);color:var(--k-text);}
+.tab-map-icon{width:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
 /* 13px→15px, 2026-07-24, same bump as .tab-rail-name — the active row's
    label is the same "current screen name" text shown collapsed; leaving
    this at the old size would make it visibly shrink on expand. */
-.tab-map-label{flex:1;font-size:0.9375rem;font-weight:500;color:var(--octave-black);}
-[data-theme="dark"] .tab-map-label{color:rgba(255,255,255,.85);}
-.tab-map-item.active .tab-map-label{color:var(--octave-black);font-weight:700;}
-[data-theme="dark"] .tab-map-item.active .tab-map-label{color:var(--white);}
-.tab-map-chevron{color:var(--gray-3);flex-shrink:0;}
+.tab-map-label{flex:1;font-size:var(--k-body2);font-weight:400;color:var(--k-text);}
+.tab-map-item.active .tab-map-label{color:var(--k-text);font-weight:500;}
+.tab-map-chevron{color:var(--k-glyph);flex-shrink:0;}
 
-.content{flex:1;overflow-y:auto;padding:0 0 calc(30px + var(--shell-pad-bottom));}
+/* :not() keeps the app scroll container's generic class out of the kit status
+   chip, whose own inner wrapper is also called .content (kit wins). */
+.content:not(:where(.chip > .content)){flex:1;overflow-y:auto;padding:0 0 calc(var(--k-s6) + var(--shell-pad-bottom));}
 .tab-content{display:none;}
 .tab-content.active{display:block;}
 
@@ -480,9 +546,8 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    back to back (harmless, just redundant; caught while touching it). */
 /* line-height:1 + align-self:center added 2026-07-28 — same fix and same
    reason as .tab-rail-name above. */
-.step-name{flex:1;text-align:left;font-size:0.9375rem;font-weight:600;line-height:1;color:var(--octave-black);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;align-self:center;}
-[data-theme="dark"] .step-name{color:var(--white);}
-.step-rail-right{display:flex;align-items:center;gap:8px;flex-shrink:0;align-self:center;}
+.step-name{flex:1;text-align:left;font-family:var(--font-display);font-size:var(--uxt-theme-typography-sub-title-1-font-size,1rem);font-weight:500;line-height:1;color:var(--k-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;align-self:center;}
+.step-rail-right{display:flex;align-items:center;gap:var(--k-s2);flex-shrink:0;align-self:center;}
 /* Timer pill — moved into .step-rail-right (2026-07-22, was its own
    .step-rail-left slot on the opposite side) and recolored green: this
    is a live-running-time indicator, not a purple wash/section-badge
@@ -491,31 +556,30 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    entirely otherwise (Steps 1, 4, 5) — .step-rail-right's flex layout
    doesn't need a placeholder sibling to stay chevron-right the way the
    old space-between trick did. */
-.timer-pill{display:flex;align-items:center;gap:5px;background:rgba(0,170,20,.1);border:1px solid rgba(0,170,20,.3);border-radius:100px;padding:2px 8px;flex-shrink:0;}
-.timer-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:timerPulse 1.4s ease-in-out infinite;}
+/* Timer pill → kit status-chip geometry (pill, 32px M, success container). */
+.timer-pill{display:flex;align-items:center;gap:var(--k-s1);height:32px;background:var(--k-ok-bg);border:none;border-radius:var(--k-pill);padding:0 var(--k-s2);flex-shrink:0;}
+.timer-dot{width:8px;height:8px;border-radius:50%;background:var(--uxt-theme-palette-success-main,#47be68);animation:timerPulse 1.4s ease-in-out infinite;}
 @keyframes timerPulse{0%,100%{opacity:1;}50%{opacity:.35;}}
-.timer-pill span{font-family:var(--font-mono);font-size:0.6875rem;font-weight:600;color:var(--green);}
+.timer-pill span{font-family:var(--font-mono);font-size:var(--k-caption);font-weight:500;color:var(--k-ok-fg);}
 /* Stopped state (§18.2) — Book Labor is reached after the WO timer stops,
    so its step-rail timer pill reads as gray/static, not green/pulsing. */
-.timer-pill.stopped{background:rgba(110,116,128,.1);border-color:rgba(110,116,128,.2);}
-.timer-dot.stopped{background:var(--gray-4);animation:none;}
-.timer-pill.stopped span{color:var(--gray-4);}
+.timer-pill.stopped{background:var(--k-neutral-bg);}
+.timer-dot.stopped{background:var(--k-glyph);animation:none;}
+.timer-pill.stopped span{color:var(--k-neutral-fg);}
 /* Dedicated progress row (Option A) — full-width continuous segments
    instead of the old fixed-28px dashes squeezed into the collapsed row. */
-.step-segments{display:flex;gap:4px;padding:0 0 10px;}
-.seg{flex:1;height:7px;border-radius:100px;}
-.seg-done{background:var(--green);}
-.seg-active{background:var(--octave-black);}
-[data-theme="dark"] .seg-active{background:var(--white);}
-.seg-future{background:var(--gray-2);}
-[data-theme="dark"] .seg-future{background:var(--gray-5);}
+.step-segments{display:flex;gap:var(--k-s1);padding:0 0 var(--k-s2);}
+.seg{flex:1;height:4px;border-radius:var(--k-pill);}
+.seg-done{background:var(--uxt-theme-palette-success-main,#47be68);}
+.seg-active{background:var(--k-primary);}
+.seg-future{background:var(--k-divider);}
 /* Flat rail's dashed "no sequence" cue REMOVED 2026-07-28 (direct
    instruction) — added 2026-07-23 from step-rail-workflow-vs-freeform-
    options.html's Option 3, now redundant: the WO Type circle badge in
    .step-rail-right (renderStepRailTypeSlot(), §23.3) already signals
    "this is free-form" on its own. renderFlatStepRail() now hides
    .step-segments outright (display:none) instead of rendering a dash. */
-.step-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
+.step-chevron{color:var(--k-glyph);flex-shrink:0;transition:transform .2s cubic-bezier(0.4,0,0.2,1);}
 /* WO Type signal on the step rail (design-decisions-v3-1.md "WO Type
    Colour + Icon Badge") — two distinct shapes, deliberately not one:
    a real configured workflow (renderStepRail()) gets a plain colour-
@@ -549,31 +613,26 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    + given its own right margin 2026-07-28 (was flush against the value
    text, no breathing room). */
 .wotype-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;display:inline-block;margin-right:6px;}
-.step-map{display:none;background:var(--bg-card);padding:10px 0 12px;border-top:1px solid var(--border);}
+.step-map{display:none;background:var(--k-card);padding:var(--k-s2) 0;border-top:1px solid var(--k-divider);margin:0 calc(-1 * var(--k-s4));}
 .step-map.open{display:block;}
-.step-map-item{display:flex;align-items:center;gap:10px;padding:6px 14px;cursor:pointer;transition:background .1s;border-radius:4px;margin:0 6px;}
-.step-map-item:hover{background:var(--bg-section);}
-[data-theme="dark"] .step-map-item:hover{background:rgba(255,255,255,.05);}
-.step-map-item.active{background:var(--bg-section);}
-.step-map-icon{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:700;}
-.smi-done{background:var(--green);color:white;}
-.smi-active{background:var(--octave-black);color:var(--white);}
-[data-theme="dark"] .smi-active{background:var(--white);color:var(--octave-black);}
-.smi-locked{background:none;border:2px solid var(--gray-3);color:var(--gray-3);}
+.step-map-item{display:flex;align-items:center;gap:var(--k-s2);min-height:var(--k-row);padding:var(--k-s2) var(--k-s4);cursor:pointer;transition:background .1s;}
+.step-map-item:hover{background:var(--k-hover);}
+.step-map-item.active{background:var(--k-selected);}
+.step-map-icon{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:500;}
+.smi-done{background:var(--uxt-theme-palette-success-main,#47be68);color:var(--uxt-theme-palette-success-contrast-text,#fff);}
+.smi-active{background:var(--k-primary);color:var(--k-on-primary);}
+.smi-locked{background:none;border:1px solid var(--k-control);color:var(--k-hint);}
 /* Flat rail's own "you are here" marker (§11 fallback, renderFlatStepRail(),
    added 2026-07-22, user direction) — a plain dot, not a number, so it
    doesn't reintroduce the sequence indicator this rail deliberately
    avoids. Outline for every row; the active row's dot fills solid,
    matching the ink-fill "selected" language already used elsewhere in
    the app (§23) rather than a color instrument. */
-.step-map-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;border:1.5px solid var(--border-strong);margin-top:1px;}
-.step-map-item.active .step-map-dot{background:var(--octave-black);border-color:var(--octave-black);}
-[data-theme="dark"] .step-map-item.active .step-map-dot{background:var(--white);border-color:var(--white);}
+.step-map-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;border:1px solid var(--k-control);}
+.step-map-item.active .step-map-dot{background:var(--k-primary);border-color:var(--k-primary);}
 /* 13px→15px, 2026-07-24 — same rationale as .tab-map-label above. */
-.step-map-label{flex:1;font-size:0.9375rem;font-weight:500;color:var(--octave-black);}
-[data-theme="dark"] .step-map-label{color:rgba(255,255,255,.85);}
-.step-map-label.active-label{color:var(--octave-black);font-weight:700;}
-[data-theme="dark"] .step-map-label.active-label{color:var(--white);}
+.step-map-label{flex:1;font-size:var(--k-body2);font-weight:400;color:var(--k-text);}
+.step-map-label.active-label{color:var(--k-text);font-weight:500;}
 /* The "More" group (§14.8, added 2026-07-22 as "Reference", renamed
    2026-08-25 — §21) — always pinned after the last numbered step; holds
    the WO's tabs that the admin placed OUTSIDE the sequence, reachable at
@@ -586,15 +645,15 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    all, by construction). Replaces the old static ".step-map-footer"
    WO-workflow-code line entirely (removed, not replaced — see
    renderStepRail()). */
-.step-map-group-label{font-size:0.6875rem;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--gray-4);padding:14px 20px 6px;margin-top:4px;border-top:1px solid var(--border);}
-.step-map-ref-icon{width:22px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--gray-4);}
+.step-map-group-label{font-size:var(--k-caption);font-weight:500;letter-spacing:.4px;text-transform:uppercase;color:var(--k-text-2);padding:var(--k-s4) var(--k-s4) var(--k-s1);margin-top:var(--k-s1);border-top:1px solid var(--k-divider);}
+.step-map-ref-icon{width:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--k-glyph);}
 /* Trailing chevron on a COMPLETED step (§14.10, 2026-08-11) — a done step is
    always navigable so the technician can go back and change it, and on a
    touch screen `cursor:pointer` communicates nothing. Without a visible
    affordance the capability exists but nobody finds it. Deliberately only on
    completed rows: the current row is the screen you're on, and a locked row
    must NOT look like it leads anywhere. */
-.step-map-back{width:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--gray-4);}
+.step-map-back{width:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--k-glyph);}
 
 /* Not Free Form variant (design-decisions-v3-1.md §15.4/§3.2.2) — used to
    substitute an Octave Yellow wash for .step-rail's own ink touchpoints
@@ -610,76 +669,66 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    Book Labor's stopped state, not WO Record View/WO Closing which have
    no timer pill at all) — same condition as the timer pill itself, just
    extended to its expanded form, §14.2. ── */
-.step-timer-panel{margin:0 0 10px;padding:14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
-.step-timer-value{text-align:center;font-family:var(--font-mono);font-size:1.875rem;font-weight:700;color:var(--octave-black);margin-bottom:10px;}
-[data-theme="dark"] .step-timer-value{color:var(--white);}
-.step-timer-actions{display:flex;gap:8px;}
-.step-timer-btn{flex:1;height:38px;border-radius:100px;border:1.5px solid var(--gray-2);background:none;color:var(--octave-black);font-size:0.8125rem;font-weight:600;font-family:var(--font-sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;}
-[data-theme="dark"] .step-timer-btn{border-color:var(--gray-5);color:var(--white);}
-.step-timer-btn:hover{border-color:var(--octave-black);color:var(--octave-black);}
-[data-theme="dark"] .step-timer-btn:hover{border-color:var(--white);color:var(--white);}
-.step-timer-btn.danger{border-color:rgba(228,75,74,.35);background:rgba(228,75,74,.06);color:var(--red);}
-.step-timer-btn.danger:hover{background:rgba(228,75,74,.12);border-color:var(--red);}
+.step-timer-panel{margin:0 0 var(--k-s2);padding:var(--k-s4);border-top:1px solid var(--k-divider);border-bottom:1px solid var(--k-divider);}
+.step-timer-value{text-align:center;font-family:var(--font-mono);font-size:1.875rem;font-weight:500;color:var(--k-text);margin-bottom:var(--k-s2);}
+.step-timer-actions{display:flex;gap:var(--k-s1);}
+.step-timer-btn{flex:1;height:var(--k-h);border-radius:var(--k-pill);border:1px solid var(--k-control);background:none;color:var(--k-text);font-size:var(--k-body2);font-weight:var(--k-btn-weight);font-family:var(--font-sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:var(--k-s2);transition:background .15s;}
+.step-timer-btn:hover{background:var(--k-hover);}
+.step-timer-btn.danger{border-color:var(--uxt-theme-palette-error-main,#f3434a);background:none;color:var(--uxt-theme-palette-text-error,#e4171f);}
+.step-timer-btn.danger:hover{background:var(--k-err-bg);}
 
 /* ── QUESTION MESSAGE (2026-07-16) — first of its kind: a centered modal
    with 3 stacked outcomes (Yes/No/Cancel), for questions with a real
    3-way answer, not just a destructive-or-not confirm. Reuses .confirm-
    overlay's backdrop/positioning; a wider modal and stacked-button body
    distinguish it from the 2-button .confirm-modal (Cancel/Delete). ── */
-.question-modal{width:300px;background:var(--bg-card);border-radius:14px;padding:20px 18px;text-align:center;transform:scale(.92);opacity:0;transition:all .2s;box-shadow:0 10px 40px rgba(0,0,0,.3);}
+.question-modal{width:300px;background:var(--k-card);border-radius:var(--k-r);padding:var(--k-s4);text-align:left;transform:scale(.92);opacity:0;transition:all .2s;box-shadow:var(--k-e3);}
 .confirm-overlay.open .question-modal{transform:scale(1);opacity:1;}
-.question-message{font-size:0.875rem;font-weight:600;color:var(--octave-black);text-align:center;line-height:1.4;margin-bottom:16px;}
-[data-theme="dark"] .question-message{color:var(--white);}
-.question-actions{display:flex;flex-direction:column;gap:8px;}
-.question-btn{width:100%;height:44px;border-radius:100px;border:none;font-size:0.875rem;font-weight:700;font-family:var(--font-sans);cursor:pointer;}
+.question-message{font-size:var(--k-body2);font-weight:400;color:var(--k-text);line-height:1.43;margin-bottom:var(--k-s4);}
+.question-actions{display:flex;flex-direction:column;gap:var(--k-s1);}
+.question-btn{width:100%;height:var(--k-h);border-radius:var(--k-pill);border:none;font-size:var(--k-body2);font-weight:var(--k-btn-weight);font-family:var(--font-sans);cursor:pointer;}
 /* Both outcomes are neutral black/white pills (fixed 2026-07-29, direct
    feedback) — green on "Yes" read as "this is the pre-selected/correct
    answer," which isn't true for a real 2-way question. Same primary/
    secondary pill pair as .btn-contained/.btn-outlined elsewhere in the
    app, not a bespoke recipe, so neither outcome carries any implied
    default. */
-.question-btn.yes{background:var(--octave-black);color:white;}
-.question-btn.yes:hover{background:#111114;}
-[data-theme="dark"] .question-btn.yes{background:rgba(255,255,255,0.12);}
-[data-theme="dark"] .question-btn.yes:hover{background:rgba(255,255,255,0.18);}
-.question-btn.no{background:var(--bg-section);border:1.5px solid var(--border-strong);color:var(--octave-black);}
-.question-btn.no:hover{background:var(--bg-card);}
-[data-theme="dark"] .question-btn.no{color:var(--white);}
-.question-btn.cancel{background:none;color:var(--gray-4);font-weight:600;height:36px;}
-.question-btn.cancel:hover{color:var(--octave-black);}
-[data-theme="dark"] .question-btn.cancel:hover{color:var(--white);}
+.question-btn.yes{background:var(--k-primary);color:var(--k-on-primary);}
+.question-btn.yes:hover{background:var(--uxt-theme-palette-primary-dark,#0048d9);}
+.question-btn.no{background:none;border:1px solid var(--k-control);color:var(--k-text);}
+.question-btn.no:hover{background:var(--k-hover);}
+.question-btn.cancel{background:none;color:var(--k-text-2);}
+.question-btn.cancel:hover{color:var(--k-text);}
 
-.bottom-bar{position:absolute;bottom:0;left:0;right:0;height:calc(var(--bar-height) + var(--shell-pad-bottom));background:var(--bg-card);border-top:1px solid var(--border);padding:0 16px var(--shell-pad-bottom);display:flex;align-items:center;gap:10px;z-index:50;flex-shrink:0;}
-[data-theme="dark"] .bottom-bar{background:var(--octave-black);}
+.bottom-bar{position:absolute;bottom:0;left:0;right:0;height:calc(var(--bar-height) + var(--shell-pad-bottom));background:var(--k-card);border-top:1px solid var(--k-divider);padding:0 var(--k-s4) var(--shell-pad-bottom);display:flex;align-items:center;gap:var(--k-s1);z-index:50;flex-shrink:0;}
 /* Meta counter, left of the pill (§14.5) — present in the pre-rebuild
    file (old versions/eam-full-prototype-v1_30JUN.html) for every gated
    step but never carried into this shared component during the rebuild;
    restored 2026-07-16 per the conformance audit, same values reused. */
-.bar-pill{flex:1;height:48px;border-radius:100px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:0.9375rem;font-weight:700;font-family:var(--font-sans);cursor:pointer;transition:all .2s;border:none;}
-.bar-pill-locked{background:var(--gray-2);color:var(--gray-4);cursor:not-allowed;}
-[data-theme="dark"] .bar-pill-locked{background:var(--gray-5);color:var(--gray-3);}
-.bar-pill-ready{background:var(--green);color:white;box-shadow:0 4px 16px rgba(0,170,20,.25);}
-.bar-pill-ready:hover{background:#00c418;box-shadow:0 4px 20px rgba(0,170,20,.35);}
+/* Step CTA → kit contained button geometry (pill, 40px M, Button 1). Ready =
+   the Octave primary (was Danny's green); locked = the kit disabled state. */
+.bar-pill{flex:1;height:var(--k-h);border-radius:var(--k-pill);display:flex;align-items:center;justify-content:center;gap:var(--k-s2);font-size:var(--k-body2);font-weight:var(--k-btn-weight);font-family:var(--font-sans);cursor:pointer;transition:background .2s;border:none;}
+.bar-pill-locked{background:var(--uxt-theme-palette-action-disabled-background,rgba(26,26,31,.12));color:var(--uxt-theme-palette-action-disabled,rgba(26,26,31,.5));cursor:not-allowed;}
+.bar-pill-ready{background:var(--k-primary);color:var(--k-on-primary);}
+.bar-pill-ready:hover{background:var(--uxt-theme-palette-primary-dark,#0048d9);}
 
 /* ── Collapsible field-group section (§7.2) — plain title+chevron variant,
    for ordinary field groups (Equipment Details, Tracking Details, etc). ── */
-.fg-section{margin:10px 12px 0;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
-.fg-toggle-row{display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;transition:background .15s;}
-.fg-toggle-row:hover{background:var(--bg-section);}
-.fg-toggle-title{font-size:0.875rem;font-weight:600;color:var(--octave-black);flex:1;}
-[data-theme="dark"] .fg-toggle-title{color:var(--white);}
-.fg-chev{color:var(--gray-4);transition:transform .2s;flex-shrink:0;}
+.fg-section{margin:var(--k-s2) var(--k-s4) 0;background:var(--k-card);border:1px solid var(--k-divider);border-radius:var(--k-r);overflow:hidden;}
+.fg-toggle-row{display:flex;align-items:center;gap:var(--k-s2);min-height:48px;padding:var(--k-s2) var(--k-s4);cursor:pointer;transition:background .15s;}
+.fg-toggle-row:hover{background:var(--k-hover);}
+.fg-toggle-title{font-family:var(--font-display);font-size:var(--uxt-theme-typography-sub-title-2-font-size,0.875rem);font-weight:var(--uxt-theme-typography-sub-title-2-font-weight,500);color:var(--k-text);flex:1;}
+.fg-chev{color:var(--k-glyph);transition:transform .2s cubic-bezier(0.4,0,0.2,1);flex-shrink:0;}
 .fg-chev.open{transform:rotate(180deg);}
-.fg-collapse{display:none;border-top:1px solid var(--border);}
+.fg-collapse{display:none;border-top:1px solid var(--k-divider);}
 .fg-collapse.open{display:block;}
 
 /* ── Custom Fields (§22) — sub-group label inside the "Custom Fields"
    .fg-section, one per admin-defined group (e.g. "Pump Information").
    Not a container of its own — a divider row between clusters of field
    rows within the same collapsible body. ── */
-.cf-group-label{font-family:'Inter',sans-serif;font-size:0.8125rem;font-weight:600;color:var(--octave-black);padding:12px 14px 6px;}
-[data-theme="dark"] .cf-group-label{color:var(--white);}
-.cf-group-label:not(:first-child){border-top:1px solid var(--border);margin-top:2px;padding-top:14px;}
+.cf-group-label{font-family:var(--font-display);font-size:var(--uxt-theme-typography-sub-title-2-font-size,0.875rem);font-weight:500;color:var(--k-text);padding:var(--k-s4) var(--k-s4) var(--k-s1);}
+.cf-group-label:not(:first-child){border-top:1px solid var(--k-divider);}
 
 /* Required-field-count indicator (§5.2, 2026-07-16) — shown in a
    container's own header (.fg-toggle-row or .section-card-header)
@@ -700,18 +749,17 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    square, not filled pill (unchanged from the original palette-pass
    rationale): red is one of this app's real color instruments, but
    shouldn't compete as a filled surface. */
-.required-count-badge{font-family:var(--font-mono);font-size:10px;font-weight:700;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:6px;background:none;color:var(--red);border:1.5px solid var(--red);flex-shrink:0;}
+.required-count-badge{font-family:var(--font-sans);font-size:10px;font-weight:500;min-width:20px;height:20px;padding:0 var(--k-s1);display:flex;align-items:center;justify-content:center;border-radius:var(--k-pill);background:var(--k-err-bg);color:var(--k-err-fg);border:none;flex-shrink:0;}
 
 /* ── Collapsible section with icon + count badge (§7.2) — Comments and
    Documents specifically; every other field group uses .fg-* above. ── */
-.rv-section{margin:10px 12px 0;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
-.rv-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;transition:background .15s;}
-.rv-toggle-row:hover{background:var(--bg-section);}
-.rv-toggle-left{display:flex;align-items:center;gap:9px;}
-.rv-toggle-left svg{color:var(--gray-4);flex-shrink:0;}
-.rv-toggle-title{font-size:0.875rem;font-weight:600;color:var(--octave-black);}
-[data-theme="dark"] .rv-toggle-title{color:var(--white);}
-.rv-toggle-right{display:flex;align-items:center;gap:8px;}
+.rv-section{margin:var(--k-s2) var(--k-s4) 0;background:var(--k-card);border:1px solid var(--k-divider);border-radius:var(--k-r);overflow:hidden;}
+.rv-toggle-row{display:flex;align-items:center;justify-content:space-between;min-height:48px;padding:var(--k-s2) var(--k-s4);cursor:pointer;transition:background .15s;}
+.rv-toggle-row:hover{background:var(--k-hover);}
+.rv-toggle-left{display:flex;align-items:center;gap:var(--k-s2);}
+.rv-toggle-left svg{color:var(--k-glyph);flex-shrink:0;}
+.rv-toggle-title{font-family:var(--font-display);font-size:var(--uxt-theme-typography-sub-title-2-font-size,0.875rem);font-weight:var(--uxt-theme-typography-sub-title-2-font-weight,500);color:var(--k-text);}
+.rv-toggle-right{display:flex;align-items:center;gap:var(--k-s2);}
 /* Collapsible container headers, grayed out (added 2026-07-29, direct
    feedback — WO Record View's Closed/Completed protection sweep,
    applyClosedFieldProtection()) — one whole-record "this is locked"
@@ -721,64 +769,63 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    instrument. Still clickable — collapsing/expanding isn't an edit. */
 .fg-toggle-row.protected,.section-card-header.protected,.rv-toggle-row.protected{opacity:.6;}
 /* Counter Badge convention — see the .section-card-badge comment below. */
-.rv-badge{font-size:0.625rem;font-weight:600;padding:2px 7px;border-radius:100px;font-family:var(--font-mono);background:none;color:var(--octave-black);border:1.5px solid var(--border-strong);}
-[data-theme="dark"] .rv-badge{color:var(--white);}
-.rv-chev{color:var(--gray-4);transition:transform .2s;flex-shrink:0;}
+/* Counter badges: kit count pill (16px, Caption, action-selected fill). Danny's
+   outlined-mono recipe (§23.5) moved onto the kit count look. */
+.rv-badge{font-size:var(--k-caption);font-weight:400;min-width:16px;height:16px;line-height:16px;padding:0 var(--k-s1);text-align:center;border-radius:var(--k-pill);font-family:var(--font-sans);background:var(--k-selected);color:var(--k-text-2);border:none;}
+.rv-chev{color:var(--k-glyph);transition:transform .2s cubic-bezier(0.4,0,0.2,1);flex-shrink:0;}
 .rv-chev.open{transform:rotate(180deg);}
-.rv-collapse{display:none;border-top:1px solid var(--border);}
+.rv-collapse{display:none;border-top:1px solid var(--k-divider);}
 .rv-collapse.open{display:block;}
 
 /* ── List/Detail content shell (§8.2) — dataspy bar, Detailed/List mode
    toggle, plain-text rows, inline live-filter search. Config-driven; swap
    only the data, never re-derive this markup per tab. ── */
-.ds-bar{margin:12px 12px 0;background:var(--bg-card);border:1.5px solid var(--border);border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:11px;cursor:pointer;transition:border-color .15s;}
-.ds-bar:hover{border-color:var(--gray-3);}
-.ds-icon-w{width:30px;height:30px;border-radius:8px;background:none;border:1.5px solid var(--border-strong);color:var(--octave-black);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-[data-theme="dark"] .ds-icon-w{color:rgba(255,255,255,.9);}
+/* Dataspy selector: restyled as the kit Dropdown field (outlined, 8px, 40px
+   M). Kept as markup — it opens the dataspy BOTTOM SHEET with favourites,
+   which <uxt-dropdown>'s own popup list can't host. */
+.ds-bar{margin:var(--k-s2) var(--k-s4) 0;background:var(--k-card);border:1px solid var(--k-control);border-radius:var(--k-r);min-height:var(--k-h);padding:var(--k-s1) var(--k-s2) var(--k-s1) var(--k-s4);display:flex;align-items:center;gap:var(--k-s2);cursor:pointer;transition:border-color .15s;}
+.ds-bar:hover{border-color:var(--k-text);}
+.ds-icon-w{width:24px;height:24px;border:none;background:none;color:var(--k-glyph);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .ds-body{flex:1;min-width:0;}
-.ds-name{font-size:0.8125rem;font-weight:700;color:var(--octave-black);}
-[data-theme="dark"] .ds-name{color:rgba(255,255,255,.9);}
-.ds-chevron{color:var(--gray-4);flex-shrink:0;}
+.ds-name{font-size:var(--k-body2);font-weight:400;color:var(--k-text);}
+.ds-chevron{color:var(--k-glyph);flex-shrink:0;}
 /* Favorite star, dataspy selector sheet (§8.3, dropped the bar's live count the same day). */
-.ds-fav-star{width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--gray-3);padding:0;}
-.ds-fav-star svg{width:16px;height:16px;fill:none;stroke:currentColor;}
-.ds-fav-star.favorited{color:var(--octave-black);}
-.ds-fav-star.favorited svg{fill:var(--octave-black);}
-[data-theme="dark"] .ds-fav-star.favorited{color:var(--white);}
-[data-theme="dark"] .ds-fav-star.favorited svg{fill:var(--white);}
+.ds-fav-star{width:var(--k-h);height:var(--k-h);flex-shrink:0;display:flex;align-items:center;justify-content:center;background:none;border:none;border-radius:var(--k-pill);cursor:pointer;color:var(--k-glyph);padding:0;}
+.ds-fav-star svg{width:20px;height:20px;fill:none;stroke:currentColor;}
+.ds-fav-star.favorited{color:var(--uxt-theme-palette-glyph-warning,#f59300);}
+.ds-fav-star.favorited svg{fill:currentColor;}
 /* Dataspy selector sheet (§8.3, revised 2026-07-20) — description is the
    only text in the row now (no sub-line, no count), so it gets a bigger
    size to actually fill the row instead of reading like a dense generic
    LOV pick. Scoped to this one sheet, not a global `.lov-option-desc`
    change — every other LOV field in the app keeps its normal 14px size. */
-#dataspySheetBody .lov-option-desc{font-size:1.0625rem;font-weight:700;}
+#dataspySheetBody .lov-option-desc{font-size:var(--k-body2);font-weight:400;}
 /* Filter chip row — dataspy-driven, same 6 fields as the card (§8.3), no per-type exclusions. */
-.filter-chip-row{display:flex;gap:8px;padding:10px 12px 0;overflow-x:auto;}
-.filter-chip{flex-shrink:0;font-size:0.75rem;font-weight:600;color:var(--gray-4);background:var(--bg-card);border:1px solid var(--border);border-radius:100px;padding:6px 13px;cursor:pointer;font-family:var(--font-sans);white-space:nowrap;transition:all .15s;}
-.filter-chip:hover{border-color:var(--gray-3);}
-.filter-chip.active{color:var(--octave-black);border-color:var(--octave-black);background:var(--bg-section);font-weight:700;}
-[data-theme="dark"] .filter-chip.active{color:var(--white);border-color:var(--white);}
-.chip-count{display:inline-block;background:var(--octave-black);color:#fff;border-radius:100px;font-size:0.625rem;font-weight:700;padding:1px 6px;margin-left:2px;}
-[data-theme="dark"] .chip-count{background:var(--white);color:var(--octave-black);}
-.mode-tog{margin:10px 12px 0;display:flex;background:var(--bg-section);border-radius:11px;padding:3px;border:1px solid var(--border);}
-.mode-btn{flex:1;text-align:center;padding:7px 0;border-radius:9px;font-size:0.75rem;font-weight:600;color:var(--gray-4);background:none;border:none;cursor:pointer;font-family:var(--font-sans);transition:all .15s;}
-.mode-btn.active{background:var(--bg-card);color:var(--octave-black);box-shadow:0 1px 3px rgba(0,0,0,.1);}
-[data-theme="dark"] .mode-btn.active{color:white;}
-.res-row{padding:10px 16px 4px;display:flex;align-items:center;justify-content:space-between;}
-.res-count{font-size:0.75rem;color:var(--gray-4);}
-.sort-btn{display:flex;align-items:center;gap:5px;font-size:0.75rem;font-weight:600;color:var(--gray-4);background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:8px;font-family:var(--font-sans);transition:all .15s;}
-.sort-btn:hover{color:var(--octave-black);background:var(--bg-section);}
-[data-theme="dark"] .sort-btn:hover{color:var(--white);}
+.filter-chip-row{display:flex;gap:var(--k-s1);padding:var(--k-s2) var(--k-s4) 0;overflow-x:auto;}
+/* Hand-rolled filter chips survive only in screen markup; shared renderers emit
+   <uxt-status-chip variant="outline">. This is the kit outline chip look. */
+.filter-chip{flex-shrink:0;height:32px;font-size:var(--k-body2);font-weight:400;color:var(--k-text);background:none;border:1px solid var(--k-control);border-radius:var(--k-pill);padding:0 var(--k-s2);cursor:pointer;font-family:var(--font-sans);white-space:nowrap;transition:background .15s;display:inline-flex;align-items:center;gap:var(--k-s1);}
+.filter-chip:hover{background:var(--k-hover);}
+.filter-chip.active{color:var(--k-text);border-color:var(--k-control);background:var(--k-selected);font-weight:400;}
+.chip-count{display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;background:var(--k-selected);color:var(--k-text-2);border-radius:var(--k-pill);font-size:var(--k-caption);font-weight:400;padding:0 var(--k-s1);margin-left:var(--k-s1);}
+/* Hand-rolled segmented toggles survive only in screen markup; shared
+   renderers emit <uxt-toggle-button-group>. This mirrors its look. */
+.mode-tog{margin:var(--k-s2) var(--k-s4) 0;display:flex;height:var(--k-h);background:var(--k-card);border-radius:var(--k-pill);padding:var(--k-s1);border:1px solid var(--k-control);}
+.mode-btn{flex:1;text-align:center;padding:0;border-radius:var(--k-pill);font-size:var(--k-body2);font-weight:var(--k-btn-weight);color:var(--k-text-2);background:none;border:none;cursor:pointer;font-family:var(--font-sans);transition:background .15s;}
+.mode-btn.active{background:var(--k-selected);color:var(--k-text);box-shadow:none;}
+.res-row{padding:var(--k-s2) var(--k-s4) var(--k-s1);display:flex;align-items:center;justify-content:space-between;}
+.res-count{font-size:var(--k-caption);color:var(--k-text-2);}
+.sort-btn{display:flex;align-items:center;gap:var(--k-s1);height:var(--k-h);font-size:var(--k-body2);font-weight:var(--k-btn-weight);color:var(--k-text);background:none;border:none;cursor:pointer;padding:0 var(--k-s2);border-radius:var(--k-pill);font-family:var(--font-sans);transition:background .15s;}
+.sort-btn:hover{background:var(--k-hover);}
 .ld-card-wrap.filtered-out{display:none;}
 /* All-fields table — List mode (§8.3): every field the dataspy exposes, not the curated 6. */
-.ld-table-wrap{overflow-x:auto;margin:10px 12px 0;border:1px solid var(--border);border-radius:10px;}
-.ld-table{width:max-content;min-width:100%;border-collapse:collapse;font-size:0.78125rem;}
-.ld-table th{text-align:left;font-weight:600;color:var(--gray-4);padding:9px 14px;background:var(--bg-section);white-space:nowrap;border-bottom:1px solid var(--border);}
-.ld-table td{padding:9px 14px;color:var(--octave-black);white-space:nowrap;border-bottom:1px solid var(--border);}
-[data-theme="dark"] .ld-table td{color:rgba(255,255,255,.9);}
+.ld-table-wrap{overflow-x:auto;margin:var(--k-s2) var(--k-s4) 0;border:1px solid var(--k-divider);border-radius:var(--k-r);background:var(--k-card);}
+.ld-table{width:max-content;min-width:100%;border-collapse:collapse;font-size:var(--k-body2);}
+.ld-table th{text-align:left;font-weight:500;color:var(--k-text-2);height:var(--k-row);padding:0 var(--k-sm,12px);background:var(--k-paper);white-space:nowrap;border-bottom:1px solid var(--k-divider);}
+.ld-table td{height:var(--k-row);padding:0 var(--k-sm,12px);color:var(--k-text);white-space:nowrap;border-bottom:1px solid var(--k-divider);}
 .ld-table tbody tr:last-child td{border-bottom:none;}
 .ld-table tbody tr.filtered-out{display:none;}
-.ld-table-pill{display:inline-block;font-size:0.6875rem;font-weight:700;padding:3px 9px;border-radius:100px;}
+.ld-table-pill{display:inline-flex;align-items:center;height:24px;font-size:var(--k-caption);font-weight:400;padding:0 var(--k-sm,12px);border-radius:var(--k-pill);}
 /* Status pill fill/outline tiers (§23) — green=operational/completed,
    red=down, outline=standby/waiting. Shared by both this table pill (no
    competing color rule on .ld-table-pill itself, so the bare 1-class
@@ -786,38 +833,36 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    slot-1 status treatment, further down) — promoted here from WO List's
    own local copy, 2026-07-22, once the Sample Screen's own demo rows
    became a real 2nd consumer. */
-.pill-green{background:var(--green);color:#fff;}
-.pill-red{background:var(--red);color:#fff;}
-.pill-outline{background:none;border:1.5px solid var(--border-strong);color:var(--octave-black);}
-[data-theme="dark"] .pill-outline{color:var(--white);}
-.ld-table-empty{padding:20px;text-align:center;color:var(--gray-4);font-size:0.8125rem;}
-.plain-list{padding:6px 12px 0;display:flex;flex-direction:column;gap:8px;}
-.plain-row{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:background .15s;}
-.plain-row:hover{background:var(--bg-section);}
+/* Status tier classes (screen-rendered pills only; shared renderers emit
+   <uxt-status-chip>) mapped to the kit status containers. */
+.pill-green{background:var(--k-ok-bg);color:var(--k-ok-fg);}
+.pill-red{background:var(--k-err-bg);color:var(--k-err-fg);}
+.pill-outline{background:var(--k-neutral-bg);border:none;color:var(--k-neutral-fg);}
+.ld-table-empty{padding:var(--k-s6);text-align:center;color:var(--k-text-2);font-size:var(--k-body2);}
+.plain-list{padding:var(--k-s2) var(--k-s4) 0;display:flex;flex-direction:column;gap:var(--k-s2);}
+.plain-row{background:var(--k-card);border:1px solid var(--k-divider);border-radius:var(--k-r);padding:var(--k-s2) var(--k-s4);min-height:var(--k-row);display:flex;align-items:center;gap:var(--k-s2);cursor:pointer;transition:background .15s;}
+.plain-row:hover{background:linear-gradient(var(--k-hover),var(--k-hover)),var(--k-card);}
 .plain-row-body{flex:1;min-width:0;}
-.plain-row-title{font-size:0.8125rem;font-weight:600;color:var(--octave-black);margin-bottom:2px;}
-[data-theme="dark"] .plain-row-title{color:rgba(255,255,255,.9);}
-.plain-row-sub{font-size:0.75rem;color:var(--gray-4);line-height:1.4;}
-.plain-row-trailing{font-family:var(--font-mono);font-size:0.8125rem;font-weight:700;color:var(--octave-black);flex-shrink:0;text-align:right;white-space:nowrap;}
-[data-theme="dark"] .plain-row-trailing{color:rgba(255,255,255,.9);}
+.plain-row-title{font-size:var(--k-body2);font-weight:500;color:var(--k-text);margin-bottom:2px;}
+.plain-row-sub{font-size:var(--k-caption);color:var(--k-text-2);line-height:1.4;}
+.plain-row-trailing{font-family:var(--font-mono);font-size:var(--k-body2);font-weight:500;color:var(--k-text);flex-shrink:0;text-align:right;white-space:nowrap;}
 .plain-row.filtered-out{display:none;}
-.ld-search-bar{margin:12px 12px 0;background:var(--bg-card);border:1.5px solid var(--border-strong);border-radius:14px;padding:9px 12px;display:flex;align-items:center;gap:9px;}
-.ld-search-bar svg{color:var(--gray-4);flex-shrink:0;}
-.ld-search-input{flex:1;border:none;background:none;outline:none;font-family:var(--font-sans);font-size:1rem;color:var(--octave-black);min-width:0;}
-[data-theme="dark"] .ld-search-input{color:white;}
-.ld-search-close{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--bg-section);border:none;cursor:pointer;color:var(--gray-4);flex-shrink:0;}
-.ld-search-close:hover{background:var(--gray-1);color:var(--octave-black);}
-[data-theme="dark"] .ld-search-close:hover{background:var(--gray-5);color:white;}
+/* Search row: a kit <uxt-search-bar> (shared renderers) plus its Icon Button
+   (close / scan), 4px apart. Screens that still hand-write the old bordered
+   input inside it get the kit search-bar pill look below. */
+.ld-search-bar{margin:var(--k-s2) var(--k-s4) 0;display:flex;align-items:center;gap:var(--k-s1);}
+.ld-search-input{flex:1;min-width:0;}
+.ld-search-bar > input.ld-search-input{height:var(--k-h);border:1px solid var(--k-control);border-radius:var(--k-pill);background:var(--k-card);padding:0 var(--k-s4);outline:none;font-family:var(--font-sans);font-size:1rem;color:var(--k-text);}
+.ld-search-close{width:var(--k-h);height:var(--k-h);border-radius:50%;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--k-glyph);flex-shrink:0;}
+.ld-search-close:hover{background:var(--k-hover);}
 /* Optional aggregate-footer variant (e.g. Costs tab) — reuse the shell, add this. */
-.cost-summary{margin:4px 12px 0;background:var(--bg-section);border:1px solid var(--border);border-radius:10px;padding:10px 14px;}
-.cost-summary-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:0.8125rem;color:var(--gray-4);}
-.cost-summary-row.total{border-top:1px solid var(--border-strong);margin-top:4px;padding-top:8px;font-weight:700;color:var(--octave-black);}
-[data-theme="dark"] .cost-summary-row.total{color:var(--white);}
+.cost-summary{margin:var(--k-s1) var(--k-s4) 0;background:var(--k-paper);border:1px solid var(--k-divider);border-radius:var(--k-r);padding:var(--k-s2) var(--k-s4);}
+.cost-summary-row{display:flex;align-items:center;justify-content:space-between;padding:var(--k-s1) 0;font-size:var(--k-body2);color:var(--k-text-2);}
+.cost-summary-row.total{border-top:1px solid var(--k-divider);margin-top:var(--k-s1);padding-top:var(--k-s2);font-weight:500;color:var(--k-text);}
 
-.section-card{margin:12px 12px 0;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
-.section-card-header{padding:10px 14px 8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.section-card-title{font-size:0.875rem;font-weight:600;color:var(--octave-black);}
-[data-theme="dark"] .section-card-title{color:var(--white);}
+.section-card{margin:var(--k-s2) var(--k-s4) 0;background:var(--k-card);border:1px solid var(--k-divider);border-radius:var(--k-r);overflow:hidden;}
+.section-card-header{min-height:48px;padding:var(--k-s2) var(--k-s4);border-bottom:1px solid var(--k-divider);display:flex;align-items:center;justify-content:space-between;}
+.section-card-title{font-family:var(--font-display);font-size:var(--uxt-theme-typography-sub-title-2-font-size,0.875rem);font-weight:var(--uxt-theme-typography-sub-title-2-font-weight,500);color:var(--k-text);}
 /* COUNTER BADGE convention (locked 2026-08-10, direct instruction): every
    "how many of these are there" badge takes the Organization pill's recipe
    (.ld-card-org) — transparent fill, outlined, mono, full radius — with
@@ -828,8 +873,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    .erp-count (the Route/MEC pill) and .qty-badge-planned, which already
    followed it. NOT .chip-count — that's a filled active-state marker riding
    on an already-outlined active filter chip, a different instrument. */
-.section-card-badge{font-size:0.625rem;font-weight:600;padding:2px 7px;border-radius:100px;font-family:var(--font-mono);background:transparent;color:var(--octave-black);border:1px solid var(--border-strong);}
-[data-theme="dark"] .section-card-badge{color:var(--white);}
+.section-card-badge{font-size:var(--k-caption);font-weight:400;min-width:16px;height:16px;line-height:16px;padding:0 var(--k-s1);text-align:center;border-radius:var(--k-pill);font-family:var(--font-sans);background:var(--k-selected);color:var(--k-text-2);border:none;}
 /* ── Every container is collapsible (design-decisions-v3-1.md §3.4) —
    promoted here 2026-07-22 on its 2nd real consumer (WO Record View's
    Activity Insert/Update Mode popup; WO Closing was the first, now
@@ -839,16 +883,16 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    collapsed, body display:none. Works for .attach-card too (WO Closing's
    own attachment container shares the same collapse shape). */
 .section-card-header{cursor:pointer;}
-.section-card-chevron{color:var(--gray-4);flex-shrink:0;transition:transform .2s;}
+.section-card-chevron{color:var(--k-glyph);flex-shrink:0;transition:transform .2s cubic-bezier(0.4,0,0.2,1);}
 .section-card.collapsed .section-card-chevron,
 .attach-card.collapsed .section-card-chevron{transform:rotate(-90deg);}
 .section-card.collapsed .section-card-body,
 .attach-card.collapsed .section-card-body{display:none;}
 
 /* ── Form field row — editable / protected / required, §3.4 ── */
-.form-field{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);position:relative;min-height:48px;cursor:pointer;transition:background .12s;}
+.form-field{display:flex;align-items:center;padding:var(--k-s2) var(--k-s4);border-bottom:1px solid var(--k-divider);position:relative;min-height:48px;cursor:pointer;transition:background .12s;}
 .form-field:last-child{border-bottom:none;}
-.form-field:hover{background:var(--bg-section);}
+.form-field:hover{background:var(--k-hover);}
 /* Red required left-bar REMOVED 2026-07-28, direct instruction — every
    required field's own edit popup already blocks its Clear button
    (shouldHideClear()/isRequiredField(), eam-shared.js), so the bar was
@@ -877,7 +921,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .form-field.required.req-empty::before,
 .attr-item.required.req-empty::before,
 .code-cell.required.req-empty::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 100px 100px 0;background:var(--red);}
-.form-field.protected{background:var(--bg-section);opacity:.75;cursor:default;}
+.form-field.protected{background:var(--k-paper);opacity:.75;cursor:default;}
 
 /* ══════════════════════════════════════════════════════════════════════
    HOLD STEPPER (§18.6) — promoted from eam-book-labor 2026-09-17
@@ -889,11 +933,10 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    one never engages §3.4's accessory-bar collision at all. That is a
    stronger position than complying with §3.4; there is nothing to comply
    with. ══════════════════════════════════════════════════════════════════ */
-.step-btn{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--gray-2);background:none;color:var(--octave-black);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
-[data-theme="dark"] .step-btn{color:var(--white);border-color:var(--gray-5);}
-.step-btn:hover{background:var(--bg-section);border-color:var(--gray-3);}
+.step-btn{width:var(--k-h);height:var(--k-h);border-radius:50%;border:1px solid var(--k-control);background:none;color:var(--k-glyph);font-size:20px;font-weight:400;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0;}
+.step-btn:hover{background:var(--k-hover);}
 .step-btn:active{transform:scale(.94);}
-.step-btn.red-step{color:var(--red);border-color:rgba(228,75,74,.3);}
+.step-btn.red-step{color:var(--uxt-theme-palette-glyph-error,#e4171f);border-color:var(--uxt-theme-palette-error-main,#f3434a);}
 
 /* ══════════════════════════════════════════════════════════════════════
    BOOKING PULL-UP (§18.2/§30.21) — added 2026-09-17
@@ -914,31 +957,26 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    is what every other full-attention sheet uses, and a confirm at the
    bottom edge of a '.bottom-sheet' is the mistake that reached a device.
    ══════════════════════════════════════════════════════════════════════ */
-.bkg-banner{display:flex;align-items:flex-start;gap:8px;padding:11px 14px;background:var(--bg-section);border-bottom:1px solid var(--border);font-size:0.71875rem;line-height:1.5;color:var(--gray-4);}
-.bkg-banner svg{flex-shrink:0;margin-top:1px;color:var(--gray-4);}
-.bkg-banner strong{color:var(--octave-black);}
-[data-theme="dark"] .bkg-banner strong{color:var(--white);}
+/* #bkgBanner now hosts a kit <uxt-banner> (openBookingPullup()). */
+.bkg-banner{padding:var(--k-s2) var(--k-s4);border-bottom:1px solid var(--k-divider);}
 /* The hours block — the one thing on this sheet the technician can change,
    so it is the only thing that reads as a control. */
-.bkg-hours{padding:14px 16px;border-bottom:1px solid var(--border);}
-.bkg-hours-l{font-size:0.6875rem;font-weight:700;letter-spacing:.4px;color:var(--gray-4);margin-bottom:10px;}
-.bkg-hours-row{display:flex;align-items:center;gap:12px;}
+.bkg-hours{padding:var(--k-s4);border-bottom:1px solid var(--k-divider);}
+.bkg-hours-l{font-size:var(--k-caption);font-weight:500;letter-spacing:.4px;color:var(--k-text-2);margin-bottom:var(--k-s2);}
+.bkg-hours-row{display:flex;align-items:center;gap:var(--k-s4);}
 .bkg-hours-mid{flex:1;text-align:center;min-width:0;}
-.bkg-hours-v{font-family:var(--font-mono);font-size:1.625rem;font-weight:700;color:var(--octave-black);line-height:1.1;}
-[data-theme="dark"] .bkg-hours-v{color:var(--white);}
+.bkg-hours-v{font-family:var(--font-mono);font-size:1.625rem;font-weight:500;color:var(--k-text);line-height:1.1;}
 .bkg-hours-sub{font-size:0.6875rem;color:var(--gray-4);margin-top:3px;}
 /* Shown only once the value has moved off the timer's own elapsed reading —
    an adjusted booking is a claim about worked time, not a reading. */
 .bkg-hours-adj{display:none;margin-top:5px;font-size:0.65625rem;font-weight:700;color:var(--gray-4);}
 .bkg-hours.is-adjusted .bkg-hours-adj{display:block;}
-.bkg-note{padding:11px 14px 14px;font-size:0.6875rem;line-height:1.55;color:var(--gray-4);}
-.bkg-note strong{color:var(--octave-black);}
-[data-theme="dark"] .bkg-note strong{color:var(--white);}
-[data-theme="dark"] .form-field.protected{background:rgba(255,255,255,.03);}
-.field-label{font-size:0.8125rem;color:var(--gray-4);width:128px;flex-shrink:0;line-height:1.35;}
-.field-value{flex:1;font-size:0.875rem;font-weight:500;color:var(--octave-black);text-align:right;}
-[data-theme="dark"] .field-value{color:rgba(255,255,255,.9);}
-.field-value.muted{color:var(--gray-3);font-size:0.8125rem;}
+.bkg-note{padding:var(--k-sm,12px) var(--k-s4) var(--k-s4);font-size:var(--k-caption);line-height:1.55;color:var(--k-text-2);}
+.bkg-note strong{color:var(--k-text);}
+[data-theme="dark"] .form-field.protected{background:var(--k-paper);}
+.field-label{font-size:var(--k-body2);color:var(--k-text-2);width:128px;flex-shrink:0;line-height:1.35;}
+.field-value{flex:1;font-size:var(--k-body2);font-weight:400;color:var(--k-text);text-align:right;}
+.field-value.muted{color:var(--k-hint);}
 /* Long-text's collapsed display value, added 2026-07-24 (real bug, found
    on a real device) — Long-text supports carriage returns while editing
    (the full-screen textarea always has, nothing prevents Enter there),
@@ -972,8 +1010,8 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    reason to inherit Grid's fix. */
 .field-value.mono{font-family:var(--font-mono);}
 .attr-text.mono{font-family:var(--font-mono);font-size:1.5rem;line-height:1;}
-.field-chevron{margin-left:6px;color:var(--gray-3);flex-shrink:0;}
-.field-lock{margin-left:6px;color:var(--gray-3);flex-shrink:0;}
+.field-chevron{margin-left:var(--k-s2);color:var(--k-glyph);flex-shrink:0;}
+.field-lock{margin-left:var(--k-s2);color:var(--k-hint);flex-shrink:0;}
 /* Badge / Icon LOV, List version (§5.2 field-behavior consolidation,
    promoted 2026-07-24 from screen-layout-field-behavior-prototype-v1.html)
    — a plain sibling of .field-value, not a wrapper div: a nested flex
@@ -982,12 +1020,11 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    the value. margin-left:auto (the same trick .field-checkbox already
    uses) pushes it to the row's right edge instead, with a fixed gap
    before the value that follows it. */
-.field-badge-inline{margin-left:auto;margin-right:8px;}
+.field-badge-inline{margin-left:auto;margin-right:var(--k-s2);}
 .field-lov-value{display:flex;flex-direction:column;align-items:flex-end;flex:1;gap:1px;}
-.field-lov-code{font-family:var(--font-mono);font-size:0.6875rem;font-weight:600;color:var(--gray-4);line-height:1.2;}
-.field-lov-desc{font-size:0.875rem;font-weight:500;color:var(--octave-black);line-height:1.3;text-align:right;}
-[data-theme="dark"] .field-lov-desc{color:rgba(255,255,255,.9);}
-.field-lov-desc.muted{color:var(--gray-3);font-size:0.8125rem;}
+.field-lov-code{font-family:var(--font-mono);font-size:var(--k-caption);font-weight:400;color:var(--k-text-2);line-height:1.2;}
+.field-lov-desc{font-size:var(--k-body2);font-weight:400;color:var(--k-text);line-height:1.3;text-align:right;}
+.field-lov-desc.muted{color:var(--k-hint);}
 /* Inline text (§3.4, ≤255 chars) — a <textarea rows="1">, not an <input>.
    Bug fix 2026-07-16: a single-line <input> cannot wrap at all — long
    values past the stacked threshold were clipping/losing text instead of
@@ -1008,9 +1045,8 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    container (chevron + toggleSectionCard header) — no real instance of
    that 2nd case exists yet, but if one shows up it should stay the old
    compact single-line-until-long shape, not this one. */
-.field-inline-input{flex:1;border:none;background:none;outline:none;resize:none;overflow:hidden;text-align:right;font-size:1rem;font-weight:500;color:var(--octave-black);font-family:var(--font-sans);padding:0;min-width:0;line-height:1.35;word-break:break-word;}
-[data-theme="dark"] .field-inline-input{color:var(--white);}
-.form-field.stacked{flex-direction:column;align-items:flex-start;gap:4px;}
+.field-inline-input{flex:1;border:none;background:none;outline:none;resize:none;overflow:hidden;text-align:right;font-size:1rem;font-weight:400;color:var(--k-text);font-family:var(--font-sans);padding:0;min-width:0;line-height:1.35;word-break:break-word;}
+.form-field.stacked{flex-direction:column;align-items:flex-start;gap:var(--k-s1);}
 .form-field.stacked .field-label{width:auto;}
 /* flex:none added 2026-07-24 — real bug, found on a real device: the base
    .field-inline-input rule's flex:1 sets flex-basis:0%, which governs the
@@ -1034,7 +1070,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    fix as the List/.stacked rule above, same root cause (.attr-item is
    also a column-direction flex parent). */
 .attr-item .field-inline-input{width:100%;text-align:left;flex:none;}
-.field-inline-input::placeholder{color:var(--gray-3);}
+.field-inline-input::placeholder{color:var(--k-hint);}
 /* .inline-confirm-btn REMOVED 2026-07-24 — user direction, found on a
    real device: this bespoke floating green checkmark FAB duplicated the
    native mobile keyboard's own confirm/arrow affordances instead of
@@ -1042,12 +1078,11 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    app-wide — markup deleted from all 4 real consumers, JS calls that
    showed/hid it are now no-ops (onInlineFocus/onInlineBlur/onDescTap/
    onDescBlur). Rely on the native OS keyboard's own Done/checkmark. */
-.field-checkbox{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--gray-3);background:var(--bg-card);display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;margin-left:auto;}
-[data-theme="dark"] .field-checkbox{border-color:var(--gray-5);background:var(--bg-section);}
-.field-checkbox.checked{background:var(--octave-black);border-color:var(--octave-black);}
-[data-theme="dark"] .field-checkbox.checked{background:var(--white);border-color:var(--white);}
-.field-checkbox svg{display:none;color:#fff;}
-[data-theme="dark"] .field-checkbox svg{color:var(--octave-black);}
+/* Legacy checkbox markup (screens). fieldRowCheckbox() now emits <uxt-checkbox>;
+   this mirrors the kit box: 16px, 2px corners, primary fill when checked. */
+.field-checkbox{width:16px;height:16px;border-radius:2px;border:1px solid var(--k-control);background:none;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;margin-left:auto;}
+.field-checkbox.checked{background:var(--k-primary);border-color:var(--k-primary);}
+.field-checkbox svg{display:none;color:var(--k-on-primary);width:12px;height:12px;}
 .field-checkbox.checked svg{display:block;}
 
 /* ── Organization pill (§9.3) — the one field that isn't a .form-field row.
@@ -1062,13 +1097,13 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    screen) explicitly keep their existing look untouched, per direct
    instruction; LOV-shaped fields (.attr-item, .form-field) are not
    pills and were not touched either. */
-.org-pill{position:relative;display:inline-flex;align-items:center;gap:8px;background:var(--octave-black);border:1px solid var(--octave-black);border-radius:999px;padding:9px 15px;cursor:pointer;font-family:var(--font-sans);color:#fff;transition:border-color .15s,background .15s,opacity .15s;}
-[data-theme="dark"] .org-pill{background:var(--white);border-color:var(--white);color:var(--octave-black);}
-.org-pill .field-value{color:#fff;}
-[data-theme="dark"] .org-pill .field-value{color:var(--octave-black);}
-.org-pill:hover{opacity:.85;}
-.org-pill svg{color:var(--gray-4);flex-shrink:0;}
-.org-pill-chevron{color:var(--gray-4);}
+/* Organization pill → kit outlined pill (1px border-control, 40px, Button 1),
+   was Danny's solid ink fill (Option D). */
+.org-pill{position:relative;display:inline-flex;align-items:center;gap:var(--k-s2);height:var(--k-h);background:var(--k-card);border:1px solid var(--k-control);border-radius:var(--k-pill);padding:0 var(--k-s4);cursor:pointer;font-family:var(--font-sans);color:var(--k-text);transition:background .15s,opacity .15s;}
+.org-pill .field-value{color:var(--k-text);font-weight:var(--k-btn-weight);}
+.org-pill:hover{background:linear-gradient(var(--k-hover),var(--k-hover)),var(--k-card);opacity:1;}
+.org-pill svg{color:var(--k-glyph);flex-shrink:0;}
+.org-pill-chevron{color:var(--k-glyph);}
 /* No required marker on pills, ever (locked 2026-07-16) — a pill is
    required by nature (there's no such thing as an optional org/entity
    pill), so marking one .required the way a .form-field/.attr-item can be
@@ -1080,7 +1115,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    Record View in update mode: not editable, no hover, chevron swapped for
    a lock. The org pill's own "required, editable" state (§9.1/§9.3) is
    Insert-Mode-only, a separate case from this one. */
-.org-pill.protected{cursor:default;opacity:.75;background:var(--bg-section);}
+.org-pill.protected{cursor:default;opacity:.75;background:var(--k-paper);border-color:var(--k-divider);}
 /* Text color, added 2026-07-24 (real bug, found via Insert Mode's
    protected entity pill on a real device — "washed out, not visible").
    This rule never set one, so the base .org-pill .field-value{color:#fff}
@@ -1090,9 +1125,8 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    separate, correct white-on-dark override at the same specificity —
    :not(.in-header) keeps this fix scoped to the standalone case only, so
    it can't tie/collide with that rule by source order. */
-.org-pill.protected:not(.in-header) .field-value{color:var(--gray-4);}
-[data-theme="dark"] .org-pill.protected:not(.in-header) .field-value{color:var(--gray-3);}
-.org-pill.protected:hover{border-color:var(--border);}
+.org-pill.protected:not(.in-header) .field-value{color:var(--k-text-2);}
+.org-pill.protected:hover{border-color:var(--k-divider);background:var(--k-paper);}
 .org-pill.protected .org-pill-chevron{display:none;}
 /* In-header placement — sized down slightly from the standalone pill so
    the row reads as one balanced unit next to the bold status button,
@@ -1104,9 +1138,9 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    light (not the theme-flipping .field-value default) because this row's
    background (.rec-status-row, inside .rec-header) is always dark
    regardless of the app's own light/dark toggle. */
-.org-pill.in-header{padding:8px 12px;gap:6px;background:transparent;border-color:rgba(255,255,255,.85);opacity:1;}
-.org-pill.in-header:hover{border-color:rgba(255,255,255,.85);}
-.org-pill.in-header .field-value{color:rgba(255,255,255,.92);}
+.org-pill.in-header{height:var(--k-h);padding:0 var(--k-s4);gap:var(--k-s1);background:transparent;border-color:var(--k-control);opacity:1;}
+.org-pill.in-header:hover{border-color:var(--k-control);background:transparent;}
+.org-pill.in-header .field-value{color:var(--k-text);}
 
 /* ── INSERT MODE pill row (§9.4/§9.4.1/§9.4.2) — redesigned 2026-07-29,
    2 rounds of direct feedback. Screen/entity moved to a small protected
@@ -1122,7 +1156,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    visual indicator is a small dot (below), not the larger grid-cell
    badge it gets elsewhere, so Type never grows taller than
    Organization's plain text+chevron. ── */
-.im-pill-row{display:flex;align-items:center;gap:8px;padding:14px 16px 6px;flex-wrap:wrap;}
+.im-pill-row{display:flex;align-items:center;gap:var(--k-s1);padding:var(--k-s4) var(--k-s4) var(--k-s2);flex-wrap:wrap;}
 .im-pill-connector{color:var(--gray-3);flex-shrink:0;display:flex;}
 .im-pill-connector svg{width:13px;height:13px;}
 /* Type pill (§9.4.2/§9.4.3/§9.4.4, settled 2026-07-29 after 3 rounds of
@@ -1141,11 +1175,9 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    it) still writes into #fv-insertType-badge same as before so nothing
    else has to special-case Type; this is the one line that keeps its
    output invisible now that the dot replaces it. */
-.org-pill[data-field="insertType"]{background:var(--bg-card);border-color:var(--octave-black);}
-[data-theme="dark"] .org-pill[data-field="insertType"]{background:var(--bg-card);border-color:var(--white);}
-.org-pill[data-field="insertType"] .field-value{color:var(--octave-black);}
-[data-theme="dark"] .org-pill[data-field="insertType"] .field-value{color:var(--white);}
-.org-pill[data-field="insertType"] .org-pill-chevron{color:var(--gray-4);}
+.org-pill[data-field="insertType"]{background:var(--k-card);border-color:var(--k-control);}
+.org-pill[data-field="insertType"] .field-value{color:var(--k-text);}
+.org-pill[data-field="insertType"] .org-pill-chevron{color:var(--k-glyph);}
 .org-pill[data-field="insertType"] .attr-badge{display:none;}
 .type-pill-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:none;}
 
@@ -1154,45 +1186,49 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    day). One card for any dataspy-scoped list: up to 6 fields, in the
    dataspy's own column order. Rendered via renderStdCard() in
    eam-shared.js — screens supply an ordered field array, not markup. ── */
-.ld-card{display:block;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:0 12px 10px;cursor:pointer;transition:border-color .15s;}
-.ld-card:hover{border-color:var(--gray-3);}
+/* §8.3 card → kit Card look: background-card, 8px, 16px padding, 1dp.
+   Kept as markup (renderStdCard): its 6-slot data layout (label/value rows,
+   org corner badge, status headline) doesn't map onto <uxt-card>'s overline
+   / heading / 3-line body, and .ld-card is keyed by equip multi-select and
+   WO List's local overrides. */
+.ld-card{display:block;background:var(--k-card);border:none;border-radius:var(--k-r);box-shadow:var(--k-e1);padding:var(--k-s4);margin:0 var(--k-s4) var(--k-s2);cursor:pointer;transition:box-shadow .15s;}
+.ld-card:hover{box-shadow:var(--k-e2);}
 .ld-card:active{transform:scale(0.985);}
-.ld-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.ld-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--k-s2);}
 /* Slot 1 — headline: bold, no label. */
-.ld-card-headline{font-size:0.9375rem;font-weight:700;color:var(--octave-black);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-[data-theme="dark"] .ld-card-headline{color:rgba(255,255,255,.9);}
+.ld-card-headline{font-family:var(--font-display);font-size:var(--uxt-theme-typography-sub-title-2-font-size,0.875rem);font-weight:var(--uxt-theme-typography-sub-title-2-font-weight,500);color:var(--k-text);line-height:1.43;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.ld-card-headline.ld-card-status{display:block;-webkit-line-clamp:unset;}
 /* Status-type override — pill fill, headline weight/position. Never used in slots 3-5. */
 /* No hardcoded color:#fff — WO List's own pill-green/pill-red/pill-outline
    tier classes (§23) decide text color per status; a hardcoded white here
    silently beat those with equal specificity (2 classes vs. 1), the exact
    same "local copy vs. shared source" bug found elsewhere this session,
    just inverted (shared file was the stale one this time). */
-.ld-card-headline.pill{display:inline-block;font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:100px;-webkit-line-clamp:unset;}
+.ld-card-headline.pill{display:inline-flex;align-items:center;height:32px;font-family:var(--font-sans);font-size:var(--k-body2);font-weight:400;padding:0 var(--k-sm,12px);border-radius:var(--k-pill);-webkit-line-clamp:unset;}
 /* .ld-card-headline's own `color` above is 1 class, same specificity as
    the bare .pill-green/.pill-red/.pill-outline rules — found live, losing
    that tie made every status pill's text invisible-on-fill regardless of
    source order. Compounding with .ld-card-headline (2 classes) here
    guarantees these win on the card; .ld-table-pill needs no equivalent
    since it never had a competing color rule to begin with. */
-.ld-card-headline.pill-green{color:#fff;}
-.ld-card-headline.pill-red{color:#fff;}
-.ld-card-headline.pill-outline{color:var(--octave-black);}
-[data-theme="dark"] .ld-card-headline.pill-outline{color:var(--white);}
+.ld-card-headline.pill-green{color:var(--k-ok-fg);}
+.ld-card-headline.pill-red{color:var(--k-err-fg);}
+.ld-card-headline.pill-outline{color:var(--k-neutral-fg);}
 /* Slot 2 — subline: muted, no label, single line. */
-.ld-card-subline{font-size:0.8125rem;font-weight:700;color:var(--gray-4);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ld-card-subline{font-size:var(--k-body2);font-weight:400;color:var(--k-text-2);margin-top:var(--k-s1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 /* Type/status-type override — coloured plain text, never a pill here.
    No separate font-weight — slot 2 is bold either way now (2026-07-20). */
 /* Organization carve-out — corner badge, gray (locked 2026-07-20 after a
    live comparison against a literal copy of .org-pill.in-header's own
    colours, which only read correctly on a permanently-dark surface like
    the nav header; gray is legible on this card in both themes). */
-.ld-card-org{display:inline-flex;align-items:center;padding:5px 11px;border-radius:999px;font-family:var(--font-sans);font-size:0.75rem;font-weight:600;flex-shrink:0;white-space:nowrap;margin-top:1px;background:transparent;border:1px solid var(--border-strong);color:var(--gray-4);}
+.ld-card-org{display:inline-flex;align-items:center;height:24px;padding:0 var(--k-s2);border-radius:var(--k-pill);font-family:var(--font-sans);font-size:var(--k-caption);font-weight:400;flex-shrink:0;white-space:nowrap;background:var(--k-neutral-bg);border:none;color:var(--k-neutral-fg);}
 /* Slots 3-5 — reuse .field-label/.field-value exactly, stripped of .form-field's tap/border/hover/min-height chrome (read-only rows). */
-.ld-card-attrs{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
-.ld-card-attr-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:2px 0;}
+.ld-card-attrs{margin-top:var(--k-s2);padding-top:var(--k-s2);border-top:1px solid var(--k-divider);}
+.ld-card-attr-row{display:flex;align-items:baseline;justify-content:space-between;gap:var(--k-s2);padding:2px 0;}
 .ld-card-attr-row .field-label{width:auto;}
 .ld-card-attr-row .field-value{text-align:right;}
-.ld-card-attr-row .field-value.tinted{font-weight:700;}
+.ld-card-attr-row .field-value.tinted{font-weight:500;}
 
 /* Header Fields / Non-nullable fields (§5.2, 2026-07-16, revised same
    day) — holds every non-nullable field on the screen, badge-style or
@@ -1211,8 +1247,8 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 
 /* ── Header fields — Type/Priority-style colour badge pair (§9.3) ── */
 .equip-attrs{margin:0;background:var(--bg-card);display:grid;grid-template-columns:1fr 1fr;}
-.attr-item{position:relative;padding:12px 14px;display:flex;flex-direction:column;gap:6px;border-right:1px solid var(--border);border-top:1px solid var(--border);cursor:pointer;transition:background .15s;}
-.attr-item:hover{background:var(--bg-section);}
+.attr-item{position:relative;padding:var(--k-sm,12px) var(--k-s4);display:flex;flex-direction:column;gap:var(--k-s1);border-right:1px solid var(--k-divider);border-top:1px solid var(--k-divider);cursor:pointer;transition:background .15s;}
+.attr-item:hover{background:var(--k-hover);}
 .attr-item:last-child{border-right:none;}
 /* Required marker (§5.2, 2026-07-16 policy change) — Header Fields
    membership no longer implies required; a given field's required-ness
@@ -1238,10 +1274,10 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    the value below it — List's single-row .form-field.protected already
    puts label and lock "in the same row" trivially; Grid's 2-row column
    layout needed this explicit wrapper to match. */
-.attr-item.protected{background:var(--bg-section);opacity:.75;cursor:default;}
-[data-theme="dark"] .attr-item.protected{background:rgba(255,255,255,.03);}
+.attr-item.protected{background:var(--k-paper);opacity:.75;cursor:default;}
+[data-theme="dark"] .attr-item.protected{background:var(--k-paper);}
 .attr-label-row{display:flex;align-items:center;gap:6px;}
-.attr-label{font-size:0.8125rem;color:var(--gray-4);}
+.attr-label{font-size:var(--k-caption);color:var(--k-text-2);}
 /* min-height fix 2026-07-29: without it, a field whose badge is present
    (28px tall) sits taller than a sibling field whose badge is empty/
    hidden (.attr-badge:empty, text-only) — both rows start at the same
@@ -1251,14 +1287,13 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    badge's own height keeps every grid field's text vertically justified
    the same way regardless of which objects that particular field has. */
 .attr-value{display:flex;align-items:center;gap:6px;min-height:28px;}
-.attr-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;flex-shrink:0;}
+.attr-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:var(--k-r);flex-shrink:0;}
 /* Outline (not gray/color-filled) and critical-red-exception variants
    (palette pass, 2026-07-22) — used by renderColorBadge() (eam-shared.js)
    and any screen-local badge renderer (e.g. WO Record View's
    fieldRowBadgeAttr()). Icon SVGs must use stroke/fill="currentColor",
    not a hardcoded "white", so they pick up this class's `color`. */
-.attr-badge-outline{border:1.5px solid var(--border-strong);color:var(--octave-black);}
-[data-theme="dark"] .attr-badge-outline{color:rgba(255,255,255,.9);}
+.attr-badge-outline{border:1px solid var(--k-control);color:var(--k-glyph);}
 .attr-badge-critical{background:var(--red);border-color:var(--red);color:#fff;}
 /* WO Type colour badge (4th palette instrument, design-decisions-v3-1.md
    "WO Type Colour + Icon Badge") — solid fill per Type family, same shape
@@ -1276,27 +1311,26 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    photo asset in this prototype, and the tap-to-preview/edit interaction
    §7.5 also specifies is still unbuilt) — a stored photo would replace
    this fill with an <img> without touching layout. */
-.attr-badge-photo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#007B87,#00AA9E);color:#fff;}
+.attr-badge-photo{width:44px;height:44px;border-radius:var(--k-r);background:var(--k-selected);color:var(--k-glyph);border:1px solid var(--k-divider);}
 .attr-badge-photo svg{width:22px;height:22px;}
 /* §5.2: no configured colour → omit the badge entirely and left-align —
    renderColorBadge() (eam-shared.js) still emits an empty span when meta
    is falsy, so this needs to hide itself; :empty removing it from the
    flex row is what actually left-aligns .attr-text, no extra rule needed. */
 .attr-badge:empty{display:none;}
-.attr-text{font-size:0.875rem;font-weight:600;color:var(--octave-black);}
-[data-theme="dark"] .attr-text{color:rgba(255,255,255,.9);}
+.attr-text{font-size:var(--k-body2);font-weight:500;color:var(--k-text);}
 /* Grid equivalent of .field-value.multiline above — already left-aligned
    by default, so only white-space needs the override. */
 .attr-text.multiline{white-space:pre-wrap;}
 
-.caption{padding:6px 14px 12px;font-size:0.6875rem;color:var(--gray-4);line-height:1.4;background:var(--bg-section);border-bottom:1px solid var(--border);}
-.caption b{color:var(--octave-black);}
-[data-theme="dark"] .caption b{color:var(--white);}
+.caption{padding:var(--k-s2) var(--k-s4);font-size:var(--k-caption);color:var(--k-text-2);line-height:1.4;background:var(--k-paper);border-bottom:1px solid var(--k-divider);}
+.caption b{color:var(--k-text);}
 .caption:last-of-type{border-bottom:none;}
 
 /* ── SHEETS (§3.4) ── */
-.sheet-overlay{position:absolute;inset:0;background:rgba(0,0,0,0);z-index:200;pointer-events:none;transition:background .3s;}
-.sheet-overlay.open{background:rgba(0,0,0,.45);pointer-events:all;}
+.sheet-overlay{position:absolute;inset:0;background:transparent;z-index:200;pointer-events:none;transition:background .3s;}
+/* Scrim = kit modal scrim: common-black at 32%. */
+.sheet-overlay.open{background:color-mix(in srgb, var(--uxt-theme-palette-common-black,#000) 32%, transparent);pointer-events:all;}
 /* --kb-inset (added 2026-07-31, direct instruction) — the on-screen
    keyboard's own height, kept in sync live by syncKeyboardInset()
    (eam-shared.js, driven off window.visualViewport). Fixing the "keyboard
@@ -1322,7 +1356,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    nothing.
    Adding the inset to the closed transform fixes every sheet at once, and needs
    no change to the .text-editor-sheet / .compact `bottom` overrides. */
-.bottom-sheet{position:absolute;bottom:var(--kb-inset,0px);left:0;right:0;background:var(--bg-card);border-radius:var(--sheet-radius) var(--sheet-radius) 0 0;transform:translateY(calc(100% + var(--kb-inset,0px)));transition:transform .3s cubic-bezier(.32,.72,0,1),bottom .15s ease-out;z-index:201;max-height:80vh;max-height:80dvh;display:flex;flex-direction:column;}
+.bottom-sheet{position:absolute;bottom:var(--kb-inset,0px);left:0;right:0;background:var(--k-card);border-radius:var(--sheet-radius) var(--sheet-radius) 0 0;box-shadow:var(--k-e2);transform:translateY(calc(100% + var(--kb-inset,0px)));transition:transform .3s cubic-bezier(.32,.72,0,1),bottom .15s ease-out;z-index:201;max-height:80vh;max-height:80dvh;display:flex;flex-direction:column;}
 .bottom-sheet.open{transform:translateY(0);}
 /* Insert Mode (§9.2) — full-screen sheet, not the compact .bottom-sheet. */
 /* z-index 199 — deliberately BELOW every transient overlay it can trigger
@@ -1342,20 +1376,19 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    either side shifted "Create" off the header's true center. It's the
    anchor: always dead-center of the header, regardless of what either
    sibling's width happens to be. */
-.insert-mode-header{padding:6px 16px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg-card);touch-action:none;position:relative;}
-.insert-mode-handle-row{display:flex;justify-content:center;padding:8px 0 2px;flex-shrink:0;background:var(--bg-card);touch-action:none;cursor:grab;}
-.insert-mode-title{position:absolute;left:0;right:0;text-align:center;font-size:1.0625rem;font-weight:700;color:var(--octave-black);pointer-events:none;}
-[data-theme="dark"] .insert-mode-title{color:var(--white);}
+.insert-mode-header{padding:var(--k-s1) var(--k-s4) var(--k-s2);display:flex;align-items:center;justify-content:space-between;gap:var(--k-s2);border-bottom:1px solid var(--k-divider);flex-shrink:0;background:var(--k-card);touch-action:none;position:relative;}
+.insert-mode-handle-row{display:flex;justify-content:center;padding:var(--k-s2) 0 var(--k-s1);flex-shrink:0;background:var(--k-card);touch-action:none;cursor:grab;}
+.insert-mode-title{position:absolute;left:0;right:0;text-align:center;font-family:var(--font-display);font-size:var(--uxt-theme-typography-h-6-font-size,1.125rem);font-weight:var(--uxt-theme-typography-h-6-font-weight,500);color:var(--k-text);pointer-events:none;}
 .insert-mode-body{flex:1;overflow-y:auto;}
-.insert-mode-footer{padding:12px 16px 20px;border-top:1px solid var(--border);flex-shrink:0;background:var(--bg-card);}
-.insert-save-btn{width:100%;height:50px;border-radius:100px;border:none;font-size:0.9375rem;font-weight:700;font-family:var(--font-sans);cursor:default;background:var(--gray-2);color:var(--gray-4);transition:background .15s,color .15s;}
-.insert-save-btn.ready{background:var(--green);color:white;cursor:pointer;}
-[data-theme="dark"] .insert-save-btn{background:var(--gray-5);color:var(--gray-3);}
-[data-theme="dark"] .insert-save-btn.ready{background:var(--green);color:white;}
+.insert-mode-footer{padding:var(--k-s4) var(--k-s4) var(--k-s6);border-top:1px solid var(--k-divider);flex-shrink:0;background:var(--k-card);}
+/* Save / commit pill (screen markup) → kit contained button: primary when
+   ready (was green), kit disabled state otherwise. */
+.insert-save-btn{width:100%;height:var(--k-h);border-radius:var(--k-pill);border:none;font-size:var(--k-body2);font-weight:var(--k-btn-weight);font-family:var(--font-sans);cursor:default;background:var(--uxt-theme-palette-action-disabled-background,rgba(26,26,31,.12));color:var(--uxt-theme-palette-action-disabled,rgba(26,26,31,.5));transition:background .15s,color .15s;}
+.insert-save-btn.ready{background:var(--k-primary);color:var(--k-on-primary);cursor:pointer;}
 /* Always-ready red variant (§18.6) — a correction is deliberate, never
    gated; Book Labor's own Correction sheet is the first real consumer. */
-.insert-save-btn.danger-ready{background:var(--red);color:white;cursor:pointer;box-shadow:0 4px 16px rgba(228,75,74,.25);}
-.insert-save-btn.danger-ready:hover{background:#ff6060;}
+.insert-save-btn.danger-ready{background:var(--uxt-theme-palette-error-main,#f3434a);color:var(--uxt-theme-palette-error-contrast-text,#fff);cursor:pointer;box-shadow:none;}
+.insert-save-btn.danger-ready:hover{background:var(--uxt-theme-palette-error-dark,#e4171f);}
 
 /* ── EQUIPMENT GRID ROW (§15.5, rolled into the standard grid 2026-07-24
    — was its own large standalone bordered card above the grid before
@@ -1379,12 +1412,12 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    LOVs only — List's .field-lov-value keeps its own pre-existing
    code-over-description order, unchanged. ── */
 .attr-lov-stack{display:flex;flex-direction:column;gap:2px;}
-.attr-lov-stack-code{font-family:var(--font-mono);font-size:0.6875rem;font-weight:600;color:var(--gray-4);line-height:1.2;}
+.attr-lov-stack-code{font-family:var(--font-mono);font-size:var(--k-caption);font-weight:400;color:var(--k-text-2);line-height:1.2;}
 /* font-weight:500 added 2026-07-24 (promoted from screen-layout-field-
    behavior-prototype-v1.html) — dims Protected's Grid value down from
    .attr-text's default 600 weight, matching .field-value.muted's own
    lighter weight relative to .field-value's 500 base. */
-.attr-text.muted{color:var(--gray-3);font-weight:500;}
+.attr-text.muted{color:var(--k-hint);font-weight:400;}
 
 /* ── HYPERLINKED POPUP (added 2026-07-16) — a full-screen sheet that slides
    up from the bottom to show a record reached by tapping a "link" field
@@ -1430,39 +1463,31 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    rest. Bumped to var(--border-strong) (the same token .tree-row.current
    already keyed its own real distinction off of) plus a real, if
    subtle, drop shadow so rows read as raised cards, not flat outlines. */
-.tree-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: background 0.15s, box-shadow .15s; border: 1px solid var(--border-strong); background: var(--bg-card); margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
-[data-theme="dark"] .tree-row { box-shadow: none; }
-.tree-row:hover { background: var(--bg-section); }
+.tree-row { display: flex; align-items: center; gap: var(--k-s2); min-height: var(--k-row); padding: var(--k-s2) var(--k-sm,12px); border-radius: var(--k-r); cursor: pointer; transition: background 0.15s, box-shadow .15s; border: 1px solid var(--k-divider); background: var(--k-card); margin-bottom: var(--k-s2); box-shadow: none; }
+.tree-row:hover { background: linear-gradient(var(--k-hover),var(--k-hover)),var(--k-card); }
 /* Was purple (current) / orange (focused) — same "no color outside the
    3 instruments" rule; both are just browsing-position indicators, not
    required/status/sync, so both go ink/neutral, not a 4th/5th hue. */
-.tree-row.current { border-color: var(--octave-black); background: var(--bg-section); box-shadow: 0 2px 6px rgba(0,0,0,.1); }
-[data-theme="dark"] .tree-row.current { border-color: var(--white); box-shadow: none; }
-.tree-row.focused { border-color: var(--gray-3); }
-.tree-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-section); color: var(--gray-4); border: 1px solid var(--border); }
-.tree-row.current .tree-icon { background: var(--bg-card); color: var(--octave-black); }
-[data-theme="dark"] .tree-row.current .tree-icon { color: var(--white); }
+.tree-row.current { border-color: var(--k-divider); background: var(--k-selected); box-shadow: none; }
+.tree-row.focused { border-color: var(--k-control); }
+.tree-icon { width: 32px; height: 32px; border-radius: var(--k-r); display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--k-paper); color: var(--k-glyph); border: 1px solid var(--k-divider); }
+.tree-row.current .tree-icon { background: var(--k-card); color: var(--k-glyph); }
 .tree-body { flex: 1; min-width: 0; }
-.tree-type { font-size: 0.625rem; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: var(--gray-4); font-family: var(--font-mono); margin-bottom: 1px; }
-.tree-desc { font-size: 0.8125rem; font-weight: 600; color: var(--octave-black); }
-[data-theme="dark"] .tree-desc { color: rgba(255,255,255,0.9); }
+.tree-type { font-size: var(--k-caption); font-weight: 500; letter-spacing: 0.4px; text-transform: uppercase; color: var(--k-text-2); font-family: var(--font-sans); margin-bottom: 1px; }
+.tree-desc { font-size: var(--k-body2); font-weight: 500; color: var(--k-text); }
 .tree-row.current .tree-desc { font-weight: 700; }
-.tree-code { font-family: var(--font-mono); font-size: 0.6875rem; color: var(--gray-4); margin-top: 1px; }
+.tree-code { font-family: var(--font-mono); font-size: var(--k-caption); color: var(--k-text-2); margin-top: 1px; }
 /* Border bumped border-strong→2px (was 1px), same reasoning as .tree-row
    above — this pill is the "you are here" marker, worth it standing out
    more, not less, than the rows around it. */
-.tree-here { font-family: var(--font-mono); font-size: 0.625rem; font-weight: 700; color: var(--octave-black); background: none; border: 2px solid var(--border-strong); padding: 2px 7px; border-radius: 100px; flex-shrink: 0; }
-[data-theme="dark"] .tree-here { color: var(--white); }
-.tree-guide { position: absolute; left: -14px; top: -8px; bottom: 24px; width: 14px; border-left: 2px solid var(--border-strong); border-bottom: 2px solid var(--border-strong); border-radius: 0 0 0 8px; }
-.tree-caret { width: 26px; height: 26px; border-radius: 6px; border: none; background: none; color: var(--gray-4); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: transform .15s; }
+.tree-here { font-family: var(--font-sans); font-size: var(--k-caption); font-weight: 400; color: var(--k-neutral-fg); background: var(--k-neutral-bg); border: none; height: 24px; display: inline-flex; align-items: center; padding: 0 var(--k-s2); border-radius: var(--k-pill); flex-shrink: 0; }
+.tree-guide { position: absolute; left: -14px; top: -8px; bottom: 24px; width: 14px; border-left: 1px solid var(--k-control); border-bottom: 1px solid var(--k-control); border-radius: 0 0 0 var(--k-r); }
+.tree-caret { flex-shrink: 0; transition: transform .15s cubic-bezier(0.4,0,0.2,1); }
 .tree-caret.expanded { transform: rotate(90deg); }
 /* Was purple — this is a confirm/primary action ("select this node"),
    same green-fill language as every other primary CTA in the app
    (.insert-save-btn.ready, .bar-pill-ready), not a "current state" hue. */
-.tree-select-btn { font-size: 0.6875rem; font-weight: 600; color: white; background: var(--green); border: none; border-radius: 100px; padding: 5px 12px; flex-shrink: 0; }
-.equip-search-scan-btn { flex-shrink: 0; background: none; border: none; color: var(--gray-4); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 2px; transition: color .15s; }
-.equip-search-scan-btn:hover { color: var(--octave-black); }
-[data-theme="dark"] .equip-search-scan-btn:hover { color: var(--white); }
+.tree-select-btn { flex-shrink: 0; }
 /* ── Equipment popup, host-page CSS immunity (2026-07-23, user-reported:
    Create WO's Equipment field looked different/"wonky" opened from WO
    List's own Create vs. Home's Create bar). Root cause: this popup's
@@ -1506,7 +1531,6 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    nothing separating it from the popup background behind it. Bordered
    here, scoped to this popup only, not the shared base rule every other
    sheet's search bar also uses. */
-#equipmentPopup .lov-search-row { border: 1.5px solid var(--border-strong); }
 .qr-scan-overlay { position: absolute; inset: 0; background: #0b0b0d; z-index: 230; display: flex; flex-direction: column; transform: translateY(100%); transition: transform .3s cubic-bezier(.32,.72,0,1); }
 .qr-scan-overlay.open { transform: translateY(0); }
 .qr-scan-header { display: flex; justify-content: flex-end; padding: 14px; flex-shrink: 0; }
@@ -1535,141 +1559,120 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 /* Always light-filled, regardless of app theme — this overlay's own
    backdrop is always near-black (like .qr-scan-overlay), so the usual
    .btn-contained (dark fill) would nearly disappear against it here. */
-.photo-viewer-modify-btn { width: 100%; height: 46px; border-radius: 100px; border: none; background: var(--white); color: var(--octave-black); font-size: 0.875rem; font-weight: 700; font-family: var(--font-sans); cursor: pointer; }
+.photo-viewer-modify-btn { width: 100%; height: var(--k-h); border-radius: var(--k-pill); border: none; background: var(--uxt-theme-palette-common-white,#fff); color: var(--uxt-theme-palette-ui-black-900,#1a1a1f); font-size: var(--k-body2); font-weight: var(--k-btn-weight); font-family: var(--font-sans); cursor: pointer; }
 .photo-viewer-modify-btn:hover { background: rgba(255,255,255,.85); }
-.sheet-handle-row{display:flex;justify-content:center;padding:10px 0 4px;flex-shrink:0;}
-.sheet-handle{width:36px;height:4px;background:var(--gray-2);border-radius:100px;}
-[data-theme="dark"] .sheet-handle{background:var(--gray-5);}
-.sheet-header{padding:4px 16px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);flex-shrink:0;}
-.sheet-title{flex:1;text-align:center;font-size:1.0625rem;font-weight:700;color:var(--octave-black);}
-[data-theme="dark"] .sheet-title{color:var(--white);}
-.sheet-close{width:30px;height:30px;border-radius:50%;background:var(--bg-section);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gray-4);}
-.sheet-clear-btn{font-size:0.9375rem;font-weight:500;color:var(--gray-4);background:none;border:none;cursor:pointer;padding:4px 2px;flex-shrink:0;}
+.sheet-handle-row{display:flex;justify-content:center;padding:var(--k-s2) 0 var(--k-s1);flex-shrink:0;}
+.sheet-handle{width:32px;height:4px;background:var(--k-control);opacity:.5;border-radius:var(--k-pill);}
+.sheet-header{min-height:56px;padding:var(--k-s1) var(--k-s4) var(--k-s2);display:flex;align-items:center;gap:var(--k-s2);border-bottom:1px solid var(--k-divider);flex-shrink:0;}
+.sheet-title{flex:1;text-align:center;font-family:var(--font-display);font-size:var(--uxt-theme-typography-h-6-font-size,1.125rem);font-weight:var(--uxt-theme-typography-h-6-font-weight,500);color:var(--k-text);}
+/* Legacy ✕ (screen markup) — kit Icon Button look; shared sheets emit
+   <uxt-icon-button icon="close">. */
+.sheet-close{width:var(--k-h);height:var(--k-h);border-radius:50%;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--k-glyph);flex-shrink:0;}
+.sheet-close:hover{background:var(--k-hover);}
+.sheet-clear-btn{height:var(--k-h);font-size:var(--k-body2);font-weight:var(--k-btn-weight);color:var(--k-text);background:none;border:none;border-radius:var(--k-pill);cursor:pointer;padding:0 var(--k-sm,12px);flex-shrink:0;font-family:var(--font-sans);}
 .sheet-clear-btn.hidden{visibility:hidden;}
 /* Date-range filter sheet (§8.3, 2026-08-11) — the two-bound companion to the
    single-value calendar sheet. Only consumer is openDateRangeFilter(). */
-.range-row{display:flex;gap:10px;padding:4px 16px 0;}
-.range-field{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
-.range-label{font-size:0.6875rem;font-weight:600;letter-spacing:.3px;text-transform:uppercase;color:var(--gray-4);font-family:var(--font-mono);}
-.range-input{width:100%;padding:10px 12px;background:var(--bg-section);border:1px solid var(--border);border-radius:10px;font-size:1rem;font-family:var(--font-sans);color:var(--octave-black);outline:none;}
-[data-theme="dark"] .range-input{color:var(--white);}
-.range-input:focus{border-color:var(--border-strong);}
-.range-hint{padding:12px 16px 4px;font-size:0.75rem;color:var(--gray-4);}
-.lov-search-row{display:flex;align-items:center;gap:8px;margin:2px 16px 10px;padding:9px 14px;background:var(--bg-section);border-radius:100px;color:var(--gray-4);flex-shrink:0;}
+.range-row{display:flex;gap:var(--k-s2);padding:var(--k-s4) var(--k-s4) 0;}
+.range-row > uxt-input{flex:1;min-width:0;}
+.range-hint{padding:var(--k-s2) var(--k-s4) var(--k-s1);font-size:var(--k-caption);color:var(--k-text-2);}
+.lov-search-row{display:flex;align-items:center;gap:var(--k-s2);margin:var(--k-s1) var(--k-s4) var(--k-s2);height:var(--k-h);padding:0 var(--k-s4);background:var(--k-card);border:1px solid var(--k-control);border-radius:var(--k-pill);color:var(--k-glyph);flex-shrink:0;}
 .lov-search-row.hidden{display:none;}
-.lov-search-input{flex:1;border:none;background:none;outline:none;font-size:1rem;font-family:var(--font-sans);color:var(--octave-black);}
-[data-theme="dark"] .lov-search-input{color:var(--white);}
-.lov-search-input::placeholder{color:var(--gray-4);}
+.lov-search-input{flex:1;border:none;background:none;outline:none;font-size:1rem;font-family:var(--font-sans);color:var(--k-text);}
+.lov-search-input::placeholder{color:var(--k-hint);}
 .lov-option.filtered-out{display:none;}
-.confirm-overlay{position:absolute;inset:0;background:rgba(0,0,0,0);display:flex;align-items:center;justify-content:center;z-index:260;pointer-events:none;transition:background .2s;}
-.confirm-overlay.open{background:rgba(0,0,0,.5);pointer-events:all;}
-.confirm-modal{background:var(--bg-card);border-radius:14px;padding:20px;width:280px;text-align:center;transform:scale(.9);opacity:0;transition:all .18s;}
+.confirm-overlay{position:absolute;inset:0;background:transparent;display:flex;align-items:center;justify-content:center;z-index:260;pointer-events:none;transition:background .2s;}
+.confirm-overlay.open{background:color-mix(in srgb, var(--uxt-theme-palette-common-black,#000) 32%, transparent);pointer-events:all;}
+.confirm-modal{background:var(--k-card);border-radius:var(--k-r);padding:var(--k-s4);width:280px;text-align:left;box-shadow:var(--k-e3);transform:scale(.9);opacity:0;transition:all .18s;}
 .confirm-overlay.open .confirm-modal{transform:scale(1);opacity:1;}
-.confirm-message{font-size:0.9375rem;font-weight:600;color:var(--octave-black);margin-bottom:16px;line-height:1.4;}
-[data-theme="dark"] .confirm-message{color:var(--white);}
-.confirm-actions{display:flex;gap:10px;}
-.confirm-btn{flex:1;height:42px;border-radius:100px;border:none;font-size:0.875rem;font-weight:600;cursor:pointer;font-family:var(--font-sans);}
-.confirm-cancel{background:var(--bg-section);color:var(--octave-black);}
-[data-theme="dark"] .confirm-cancel{color:var(--white);}
-.confirm-danger{background:var(--red);color:white;}
+.confirm-message{font-size:var(--k-body2);font-weight:400;color:var(--k-text);margin-bottom:var(--k-s4);line-height:1.43;}
+.confirm-actions{display:flex;gap:var(--k-s1);justify-content:flex-end;}
+.confirm-btn{flex:none;min-width:64px;height:var(--k-h);padding:0 var(--k-s4);border-radius:var(--k-pill);border:none;font-size:var(--k-body2);font-weight:var(--k-btn-weight);cursor:pointer;font-family:var(--font-sans);}
+.confirm-cancel{background:none;border:1px solid var(--k-control);color:var(--k-text);}
+.confirm-danger{background:var(--uxt-theme-palette-error-main,#f3434a);color:var(--uxt-theme-palette-error-contrast-text,#fff);}
 /* Non-destructive variant (added 2026-07-29, back-button timer prompt —
    the first caller whose confirmed action isn't a delete-like "this is
    bad/irreversible" action) — same black/white pill language as
    .btn-contained rather than .confirm-danger's red, since red is reserved
    for destructive actions elsewhere in the app (§23) and pausing a timer
    to leave a screen isn't one. */
-.confirm-primary{background:var(--octave-black);color:white;}
-.confirm-primary:hover{background:#111114;}
-[data-theme="dark"] .confirm-primary{background:rgba(255,255,255,0.12);}
-[data-theme="dark"] .confirm-primary:hover{background:rgba(255,255,255,0.18);}
+.confirm-primary{background:var(--k-primary);color:var(--k-on-primary);}
+.confirm-primary:hover{background:var(--uxt-theme-palette-primary-dark,#0048d9);}
 /* Bottom padding unconditional, not just on footer-less sheets — harmless
    extra scroll-area breathing room when a footer follows, and directly
    fixes the "last row flush against the screen edge" bug (conformance
    audit 2026-07-16, §3.4) on sheets that have no footer at all (e.g. the
    comment actions menu). */
-.sheet-body{flex:1;overflow-y:auto;padding-bottom:20px;}
-.sheet-footer{padding:12px 16px 20px;border-top:1px solid var(--border);flex-shrink:0;}
-.lov-option{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;}
-.lov-option:last-child{border-bottom:none;}
-.lov-option:hover{background:var(--bg-section);}
-.lov-option.selected{background:var(--bg-section);}
+.sheet-body{flex:1;overflow-y:auto;padding-bottom:var(--k-s6);}
+.sheet-footer{padding:var(--k-s4) var(--k-s4) var(--k-s6);border-top:1px solid var(--k-divider);flex-shrink:0;}
+/* Legacy LOV rows (screen markup) — kit List Item look: 40px+, Body 2, gray
+   action-selected for the chosen row. Shared pickers emit <uxt-list-item>. */
+.lov-option:not(uxt-list-item){display:flex;align-items:center;gap:var(--k-s2);min-height:var(--k-row);padding:var(--k-s2) var(--k-s4);border-bottom:none;cursor:pointer;}
+.lov-option:not(uxt-list-item):hover{background:var(--k-hover);}
+.lov-option.selected:not(uxt-list-item){background:var(--k-selected);}
 .lov-option-texts{flex:1;}
-.lov-option-desc{font-size:0.875rem;font-weight:500;color:var(--octave-black);}
-[data-theme="dark"] .lov-option-desc{color:rgba(255,255,255,.9);}
-.lov-option-code{font-family:var(--font-mono);font-size:0.6875rem;color:var(--gray-4);margin-top:1px;}
-.lov-check{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid var(--border-strong);}
-.lov-check.checked{background:var(--octave-black);border-color:var(--octave-black);}
-[data-theme="dark"] .lov-check.checked{background:var(--white);border-color:var(--white);}
-.edit-input-wrap{padding:16px;}
-.edit-input{width:100%;background:var(--bg-section);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--font-sans);font-size:1rem;color:var(--octave-black);outline:none;}
-[data-theme="dark"] .edit-input{color:var(--white);color-scheme:dark;}
+.lov-option-desc{font-size:var(--k-body2);font-weight:400;color:var(--k-text);}
+.lov-option-code{font-family:var(--font-mono);font-size:var(--k-caption);color:var(--k-text-2);margin-top:1px;}
+.lov-check{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid var(--k-control);}
+.lov-check.checked{background:var(--k-primary);border-color:var(--k-primary);}
+.edit-input-wrap{padding:var(--k-s4);}
+/* Single-line edit input (screen markup) → the kit Classic input look: 40px M,
+   1px border-control, 8px radius, primary focus border. 1rem stays (§31.6). */
+.edit-input{width:100%;height:var(--k-h);background:var(--k-card);border:1px solid var(--k-control);border-radius:var(--k-r);padding:0 var(--k-sm,12px);font-family:var(--font-sans);font-size:1rem;color:var(--k-text);outline:none;}
+.edit-input:focus{border-color:var(--k-primary);box-shadow:inset 0 0 0 1px var(--k-primary);}
+[data-theme="dark"] .edit-input{color-scheme:dark;}
 .edit-input[type=number]::-webkit-outer-spin-button,.edit-input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
 .edit-input[type=number]{-moz-appearance:textfield;}
-.btn-save{width:100%;height:50px;border-radius:100px;border:none;font-size:0.9375rem;font-weight:700;font-family:var(--font-sans);cursor:pointer;background:var(--octave-black);color:white;}
-[data-theme="dark"] .btn-save{background:var(--white);color:var(--octave-black);}
+.btn-save{width:100%;height:var(--k-h);border-radius:var(--k-pill);border:none;font-size:var(--k-body2);font-weight:var(--k-btn-weight);font-family:var(--font-sans);cursor:pointer;background:var(--k-primary);color:var(--k-on-primary);}
 /* Required-and-empty gate (added 2026-07-28) — textEditorInputChanged()
    (eam-shared.js) toggles this whenever the field being edited is
    required and the textarea is blank, so Save can't commit an empty
    value. Dimmed, not hidden — the button stays in place, same "still
    there, just not actionable yet" language .insert-save-btn's own
    not-ready state already uses. */
-.btn-save.disabled{opacity:.4;cursor:default;pointer-events:none;}
+.btn-save.disabled{opacity:var(--uxt-theme-palette-action-disabled-opacity,.5);cursor:default;pointer-events:none;}
 /* Btn: outlined (§3.4) — secondary action pill used outside sheets too (e.g.
    Add Parts, its first real consumer, §17.5) — flex row so an icon+label
    pair centers the same way a plain text label already did by default. */
-.btn-outlined{width:100%;height:46px;border-radius:100px;border:1.5px solid var(--gray-5);background:none;font-size:0.875rem;font-weight:700;font-family:var(--font-sans);cursor:pointer;color:var(--octave-black);transition:border-color .15s,color .15s;display:flex;align-items:center;justify-content:center;gap:7px;}
-[data-theme="dark"] .btn-outlined{border-color:var(--white);color:var(--white);}
+/* Legacy button classes (screen markup only; shared code emits <uxt-button>)
+   mirror the kit: outlined neutral / contained primary, 40px M, Button 1. */
+.btn-outlined{width:100%;height:var(--k-h);border-radius:var(--k-pill);border:1px solid var(--k-control);background:none;font-size:var(--k-body2);font-weight:var(--k-btn-weight);font-family:var(--font-sans);cursor:pointer;color:var(--k-text);transition:background .15s;display:flex;align-items:center;justify-content:center;gap:var(--k-s2);}
 /* Was a stray bright cyan #00FFFF — corrected 2026-07-22 (§23), found
    during the Sample Screen sweep. Never purple/orange so no earlier grep
    this session ever caught it, despite being live on 3 real screens (WO
    Closing/Book Labor/Issue Parts Cancel-type buttons). Plain background
    tint on hover, matching every other outlined-button/row hover in the
    app (e.g. .sh-close:hover, .ld-card:hover) — no hue change at all. */
-.btn-outlined:hover{background:var(--bg-section);}
+.btn-outlined:hover{background:var(--k-hover);}
 
 /* ── Primary contained button (§17.14's "Octave Black contained, primary
    action" pattern) — generalized 2026-07-21, 2nd real consumer (Book
    Labor's Add Labor). Issue Parts' own `.btn-quick-issue-all` is the 1st,
    still local/near-identical — candidate for converging onto this next
    time that screen is touched, not migrated preemptively here. ── */
-.btn-contained{width:100%;height:46px;border-radius:100px;border:none;background:var(--octave-black);color:white;font-size:0.875rem;font-weight:700;font-family:var(--font-sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s;}
-[data-theme="dark"] .btn-contained{background:rgba(255,255,255,0.12);}
-.btn-contained:hover{background:#111114;box-shadow:0 4px 16px rgba(0,0,0,0.2);}
-[data-theme="dark"] .btn-contained:hover{background:rgba(255,255,255,0.18);}
-.btn-contained:disabled{background:var(--gray-2);color:var(--gray-4);cursor:default;box-shadow:none;}
-[data-theme="dark"] .btn-contained:disabled{background:var(--gray-5);color:var(--gray-3);}
+.btn-contained{width:100%;height:var(--k-h);border-radius:var(--k-pill);border:none;background:var(--k-primary);color:var(--k-on-primary);font-size:var(--k-body2);font-weight:var(--k-btn-weight);font-family:var(--font-sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:var(--k-s2);transition:background .15s;}
+.btn-contained:hover{background:var(--uxt-theme-palette-primary-dark,#0048d9);}
+.btn-contained:disabled{background:var(--uxt-theme-palette-action-disabled-background,rgba(26,26,31,.12));color:var(--uxt-theme-palette-action-disabled,rgba(26,26,31,.5));cursor:default;}
 /* Btn: row action (UI inventory pass, 2026-07-21) — tertiary outlined pill
    for a per-row secondary action on a list row (Issue Parts' Quick Issue,
    Book Labor's row detail action, WO Closing's viewer actions all did this
    locally with 3 different sizes before converging here at Issue Parts'
    34px/13px spec, picked as the standard). .success/.danger are generic
    replacements for what were screen-local .issued-state/.danger variants. */
-.row-action-btn{flex:1;height:34px;border-radius:100px;border:1.5px solid var(--gray-2);background:var(--bg-card);color:var(--octave-black);font-size:0.8125rem;font-weight:600;font-family:var(--font-sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .15s;}
-[data-theme="dark"] .row-action-btn{border-color:var(--gray-5);background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.85);}
-.row-action-btn:hover{border-color:var(--octave-black);color:var(--octave-black);}
-[data-theme="dark"] .row-action-btn:hover{border-color:var(--white);color:var(--white);}
-.row-action-btn.success{border-color:rgba(0,170,20,0.35);color:var(--green);background:rgba(0,170,20,0.06);}
-.row-action-btn.danger{border-color:rgba(228,75,74,0.35);color:var(--red);background:rgba(228,75,74,0.04);}
-.row-action-btn.danger:hover{background:rgba(228,75,74,0.1);border-color:var(--red);}
+.row-action-btn{flex:1;height:var(--k-h);border-radius:var(--k-pill);border:1px solid var(--k-control);background:none;color:var(--k-text);font-size:var(--k-body2);font-weight:var(--k-btn-weight);font-family:var(--font-sans);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:var(--k-s1);transition:background .15s;}
+.row-action-btn:hover{background:var(--k-hover);}
+.row-action-btn.success{border-color:var(--k-control);color:var(--k-ok-fg);background:var(--k-ok-bg);}
+.row-action-btn.danger{border-color:var(--uxt-theme-palette-error-main,#f3434a);color:var(--uxt-theme-palette-text-error,#e4171f);background:none;}
+.row-action-btn.danger:hover{background:var(--k-err-bg);}
 .row-action-btn svg{flex-shrink:0;}
 
 /* ── MULTI-SELECT DELETE (§16.10, added 2026-08-10) — rows of what's
    already on screen, checkable, behind a mandatory confirm. Reuses
    .lov-check like every other multi-select surface here. ── */
-.md-selectall{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;font-size:0.8125rem;font-weight:700;color:var(--octave-black);}
-[data-theme="dark"] .md-selectall{color:var(--white);}
-.md-row{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;border-bottom:1px solid var(--border);}
-.md-row:last-child{border-bottom:none;}
-.md-row.selected{background:var(--bg-section);}
-[data-theme="dark"] .md-row.selected{background:rgba(255,255,255,.04);}
-.md-texts{flex:1;min-width:0;}
-.md-title{font-size:0.84375rem;font-weight:600;color:var(--octave-black);}
-[data-theme="dark"] .md-title{color:rgba(255,255,255,.9);}
-.md-sub{font-size:0.71875rem;color:var(--gray-4);margin-top:1px;font-family:var(--font-mono);}
 /* Danger-tinted commit, unlike the multi-select LOV's neutral Add. */
-.md-footer{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--border);}
+.md-footer{display:flex;align-items:center;gap:var(--k-s2);padding:var(--k-s2) var(--k-s4);border-top:1px solid var(--k-divider);}
 .md-footer .insert-save-btn{flex:1;margin:0;}
-.md-footer .insert-save-btn.ready{background:var(--red);border-color:var(--red);}
+.md-footer .insert-save-btn.ready{background:var(--uxt-theme-palette-error-main,#f3434a);color:var(--uxt-theme-palette-error-contrast-text,#fff);}
 
 /* ── EQUIPMENT LOV — MULTI-SELECT (§16.10, added 2026-08-10) — the same
    Equipment LOV component in a mode where a result row toggles instead of
@@ -1678,19 +1681,17 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    the standard result card untouched — this only adds the check gutter and
    the footer. ── */
 .equip-multi-row{display:flex;align-items:center;gap:0;cursor:pointer;}
-.equip-multi-row .lov-check{flex-shrink:0;margin-left:14px;}
+.equip-multi-row .equip-multi-check{flex-shrink:0;margin-left:var(--k-s4);}
 .equip-multi-card{flex:1;min-width:0;}
 /* The card carries its own 12px side margins; kill the left one so the
    check gutter sets the row's left edge instead of doubling up. */
-.equip-multi-card .ld-card{margin-left:8px;}
-.equip-multi-row.selected .ld-card{border-color:var(--octave-black);}
-[data-theme="dark"] .equip-multi-row.selected .ld-card{border-color:var(--white);}
-.equip-multi-footer{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--border);background:var(--bg-card);flex-shrink:0;}
-.equip-multi-count{font-size:0.78125rem;font-weight:600;color:var(--gray-4);flex-shrink:0;}
+.equip-multi-card .ld-card{margin-left:var(--k-s2);}
+.equip-multi-row.selected .ld-card{background:linear-gradient(var(--k-selected),var(--k-selected));}
+.equip-multi-footer{display:flex;align-items:center;gap:var(--k-s2);padding:var(--k-s2) var(--k-s4);border-top:1px solid var(--k-divider);background:var(--k-card);flex-shrink:0;}
+.equip-multi-count{font-size:var(--k-caption);font-weight:400;color:var(--k-text-2);flex-shrink:0;}
 .equip-multi-footer .insert-save-btn{flex:1;margin:0;}
 /* Tree rows in multi-select mode get a persistent Add/Added toggle rather
    than the focused-row-only Select button. */
-.tree-select-btn.added{background:var(--green);border-color:var(--green);color:#fff;}
 
 /* ── ACTION ROW (promoted 2026-07-24) — the real component behind what
    used to be Issue Parts' Part Card and Book Labor's Labor Row: "a
@@ -1721,8 +1722,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .action-row-accent{width:3px;align-self:stretch;border-radius:100px;flex-shrink:0;background:var(--gray-2);margin-top:2px;}
 [data-theme="dark"] .action-row-accent{background:var(--gray-5);}
 .action-row-main{flex:1;min-width:0;}
-.action-row-title{font-size:0.875rem;font-weight:600;color:var(--octave-black);line-height:1.3;}
-[data-theme="dark"] .action-row-title{color:var(--white);}
+.action-row-title{font-size:0.875rem;font-weight:600;color:var(--k-text);line-height:1.3;}
 .action-row-code{font-family:var(--font-mono);font-size:0.6875rem;color:var(--gray-4);margin-top:1px;}
 .action-row-meta-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:4px;}
 .action-row-meta{font-family:var(--font-mono);font-size:0.6875rem;color:var(--gray-4);display:flex;align-items:center;gap:3px;}
@@ -1733,27 +1733,22 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .action-row-detail.open{display:block;}
 .action-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px 8px;margin-bottom:10px;font-size:0.75rem;}
 .action-detail-label{color:var(--gray-4);padding:3px 0;}
-.action-detail-value{color:var(--octave-black);text-align:right;padding:3px 0;font-size:0.75rem;}
-[data-theme="dark"] .action-detail-value{color:rgba(255,255,255,.85);}
+.action-detail-value{color:var(--k-text);text-align:right;padding:3px 0;font-size:0.75rem;}
 .action-detail-value.mono{font-family:var(--font-mono);}
 .action-detail-value.green{color:var(--green);font-weight:600;font-family:var(--font-mono);}
 .action-detail-value.red{color:var(--red);font-weight:600;font-family:var(--font-mono);}
 .action-row-actions{display:flex;gap:6px;padding-top:8px;border-top:1px solid var(--border);}
 .cal-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;}
-.cal-nav-btn{width:32px;height:32px;border-radius:50%;border:none;background:var(--bg-section);color:var(--octave-black);cursor:pointer;display:flex;align-items:center;justify-content:center;}
-[data-theme="dark"] .cal-nav-btn{color:var(--white);}
-.cal-month-label{font-size:0.9375rem;font-weight:700;color:var(--octave-black);font-family:var(--font-sans);}
-[data-theme="dark"] .cal-month-label{color:var(--white);}
+.cal-nav-btn{width:var(--k-h);height:var(--k-h);border-radius:50%;border:none;background:none;color:var(--k-glyph);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.cal-nav-btn:hover{background:var(--k-hover);}
+.cal-month-label{font-family:var(--font-display);font-size:var(--uxt-theme-typography-sub-title-1-font-size,1rem);font-weight:500;color:var(--k-text);}
 .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);padding:0 12px;}
-.cal-weekday{text-align:center;font-size:0.625rem;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--gray-4);font-family:var(--font-sans);padding:4px 0 8px;}
+.cal-weekday{text-align:center;font-size:var(--k-caption);font-weight:500;letter-spacing:.4px;text-transform:uppercase;color:var(--k-text-2);font-family:var(--font-sans);padding:var(--k-s1) 0 var(--k-s2);}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:0 12px 8px;}
-.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:0.8125rem;border-radius:50%;cursor:pointer;color:var(--octave-black);}
-[data-theme="dark"] .cal-day{color:var(--white);}
-.cal-day.other-month{color:var(--gray-3);}
-.cal-day.today{border:1.5px solid var(--octave-black);}
-[data-theme="dark"] .cal-day.today{border-color:var(--white);}
-.cal-day.selected{background:var(--octave-black);color:white;}
-[data-theme="dark"] .cal-day.selected{background:var(--white);color:var(--octave-black);}
+.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:var(--k-body2);border-radius:50%;cursor:pointer;color:var(--k-text);}
+.cal-day.other-month{color:var(--k-hint);}
+.cal-day.today{border:1px solid var(--k-primary);}
+.cal-day.selected{background:var(--k-primary);color:var(--k-on-primary);}
 /* Time Only field (§3.4/§5.2, locked 2026-07-21) — Inter, not mono
    (corrected same day; a time-of-day value isn't a code, so it follows
    the same font rule as any other plain field value). Every Time Only
@@ -1770,10 +1765,8 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    2026-07-24 when screen-layout-field-behavior-prototype-v1.html became
    the canonical field-type reference — the standalone itself carries
    no explanatory prose anymore, only the doc does). */
-.time-input{background:none;border:none;outline:none;font-family:var(--font-sans);color:var(--octave-black);text-align:right;width:100%;cursor:pointer;position:relative;}
-[data-theme="dark"] .time-input{color:rgba(255,255,255,.9);}
-.time-input:focus{color:var(--octave-black);}
-[data-theme="dark"] .time-input:focus{color:var(--white);}
+.time-input{background:none;border:none;outline:none;font-family:var(--font-sans);color:var(--k-text);text-align:right;width:100%;cursor:pointer;position:relative;}
+.time-input:focus{color:var(--k-text);}
 /* Tap-anywhere-opens-the-picker (regression fixed 2026-07-21): Chromium
    only treats the tiny built-in calendar/clock glyph as the trigger for
    the full picker overlay — tapping the digits themselves just focuses
@@ -1820,7 +1813,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .attr-item.checkbox-zone-row{flex-direction:row;align-items:center;justify-content:space-between;}
 .attr-item.checkbox-zone-row .attr-label{flex:1;}
 .attr-checkbox-zone{width:28%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.attr-checkbox-zone .field-checkbox{width:24px;height:24px;}
+.attr-checkbox-zone .field-checkbox{width:16px;height:16px;}
 /* ── Keyboard-editing popups: controls in the TOP CORNERS (§3.4, reworked
    2026-08-11 after a real-device report) ──
    The bottom Save pill was the whole problem. `.bottom-sheet` lifts itself by
@@ -1836,16 +1829,15 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    NOTE: iOS's own accessory bar cannot be suppressed from a web page. This
    doesn't remove it; it stops us putting anything underneath it. */
 .text-editor-sheet{top:0;bottom:0;height:auto;max-height:none;border-radius:0;}
-.text-editor-header{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border);gap:10px;}
-.text-editor-left{display:flex;align-items:center;gap:10px;flex-shrink:0;min-width:30px;}
-.text-editor-close{width:30px;height:30px;border-radius:50%;background:var(--bg-section);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gray-4);flex-shrink:0;}
-.text-editor-discard{display:none;background:rgba(228,75,74,.12);color:var(--red);border:none;border-radius:100px;padding:7px 14px;font-size:0.75rem;font-weight:700;cursor:pointer;flex-shrink:0;}
+.text-editor-header{display:flex;align-items:center;min-height:56px;padding:var(--k-s2) var(--k-s4);border-bottom:1px solid var(--k-divider);gap:var(--k-s2);}
+.text-editor-left{display:flex;align-items:center;gap:var(--k-s1);flex-shrink:0;min-width:40px;}
+.text-editor-close{width:var(--k-h);height:var(--k-h);border-radius:50%;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--k-glyph);flex-shrink:0;}
+.text-editor-close:hover{background:var(--k-hover);}
+.text-editor-discard{display:none;background:none;color:var(--uxt-theme-palette-text-error,#e4171f);border:1px solid var(--uxt-theme-palette-error-main,#f3434a);border-radius:var(--k-pill);height:32px;padding:0 var(--k-sm,12px);font-size:var(--k-body2);font-weight:var(--k-btn-weight);cursor:pointer;flex-shrink:0;font-family:var(--font-sans);}
 .text-editor-discard.show{display:block;}
-.text-editor-title{flex:1;text-align:center;font-size:0.9375rem;font-weight:700;color:var(--octave-black);}
-[data-theme="dark"] .text-editor-title{color:var(--white);}
-.text-editor-body{flex:1;padding:14px 16px;}
-.text-editor-textarea{width:100%;height:100%;border:none;outline:none;resize:none;font-family:var(--font-sans);font-size:1rem;color:var(--octave-black);background:transparent;line-height:1.5;}
-[data-theme="dark"] .text-editor-textarea{color:var(--white);}
+.text-editor-title{flex:1;text-align:center;font-family:var(--font-display);font-size:var(--uxt-theme-typography-h-6-font-size,1.125rem);font-weight:var(--uxt-theme-typography-h-6-font-weight,500);color:var(--k-text);}
+.text-editor-body{flex:1;padding:var(--k-s4);}
+.text-editor-textarea{width:100%;height:100%;border:none;outline:none;resize:none;font-family:var(--font-sans);font-size:1rem;color:var(--k-text);background:transparent;line-height:1.5;}
 /* Compact variant (Description, added 2026-07-28) — same ✕/✓ mechanics as the
    full editor above, just a much shorter box: Description is a 1-2 line field,
    not a long-text one, so a full-cover editor is oversized for it. This one
@@ -1873,24 +1865,26 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    Carries the identical gating the Save pill had: `.disabled` when a required
    field is empty (updateTextEditorSaveGate / updateEditSaveGate), dropping to
    gray rather than a faded green — faded green still reads as "go." */
-.sheet-confirm-btn{width:34px;height:34px;border-radius:50%;background:var(--green);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--white);flex-shrink:0;transition:opacity .15s,background .15s;}
+/* ✓ confirm stays Danny's GREEN (§3.4, pinned by test-editors.js) — the one
+   deliberate non-kit colour in the sheet header; now at the kit 40px Icon
+   Button size. */
+.sheet-confirm-btn{width:var(--k-h);height:var(--k-h);border-radius:50%;background:var(--green);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--uxt-theme-palette-success-contrast-text,#fff);flex-shrink:0;transition:opacity .15s,background .15s;}
 .sheet-confirm-btn:active{opacity:.82;}
-.sheet-confirm-btn.disabled{background:var(--gray-2);color:var(--gray-4);pointer-events:none;}
-[data-theme="dark"] .sheet-confirm-btn.disabled{background:var(--gray-2);color:var(--gray-3);}
+.sheet-confirm-btn.disabled{background:var(--uxt-theme-palette-action-disabled-background,rgba(26,26,31,.12));color:var(--uxt-theme-palette-action-disabled,rgba(26,26,31,.5));pointer-events:none;}
 /* Opt-in for a consumer whose existing gate toggles `.ready` (the positive
    form) rather than `.disabled` — Issue Parts' issue/return sheet, whose
    updateSaveGate() has several early-return branches all written that way.
    Inverting the class in CSS beats rewriting those branches and risking one
    being missed. Same rendered result either way. */
-.sheet-confirm-btn.ready-gated:not(.ready){background:var(--gray-2);color:var(--gray-4);pointer-events:none;}
-[data-theme="dark"] .sheet-confirm-btn.ready-gated:not(.ready){background:var(--gray-2);color:var(--gray-3);}
+.sheet-confirm-btn.ready-gated:not(.ready){background:var(--uxt-theme-palette-action-disabled-background,rgba(26,26,31,.12));color:var(--uxt-theme-palette-action-disabled,rgba(26,26,31,.5));pointer-events:none;}
 /* Right-hand cluster when a sheet needs Clear AND confirm (the edit sheet). */
-.sheet-header-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
-.toast{position:absolute;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(26,26,31,.95);color:white;padding:9px 16px;border-radius:100px;font-size:0.8125rem;font-weight:600;display:flex;align-items:center;gap:7px;opacity:0;transition:all .25s;z-index:300;pointer-events:none;white-space:nowrap;}
+.sheet-header-right{display:flex;align-items:center;gap:var(--k-s1);flex-shrink:0;}
+/* Legacy toast — only shown when the kit is absent; showToast() uses the kit
+   <uxt-snackbar> otherwise. */
+.toast{position:absolute;bottom:var(--k-s6);left:50%;transform:translateX(-50%) translateY(20px);background:var(--k-card);color:var(--k-text);box-shadow:var(--k-e2);padding:var(--k-s2) var(--k-s4);border-radius:var(--k-r);font-size:var(--k-body2);font-weight:400;display:flex;align-items:center;gap:var(--k-s2);opacity:0;transition:all .25s;z-index:300;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-.comment-add-row{display:flex;align-items:center;gap:6px;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;color:var(--octave-black);font-size:0.8125rem;font-weight:600;}
-[data-theme="dark"] .comment-add-row{color:var(--white);}
-.comment-add-row:hover{background:var(--bg-section);}
+.comment-add-row:not(uxt-list-item){display:flex;align-items:center;gap:var(--k-s2);min-height:var(--k-row);padding:var(--k-s2) var(--k-s4);border-bottom:1px solid var(--k-divider);cursor:pointer;color:var(--k-text);font-size:var(--k-body2);font-weight:var(--k-btn-weight);}
+.comment-add-row:not(uxt-list-item):hover{background:var(--k-hover);}
 .comment-add-plus{font-size:0.9375rem;font-weight:700;line-height:1;}
 /* Comment card — chat-style (§7.2, restyled 2026-08-11, direct instruction).
    Was a flat row separated by hairlines with the ellipsis inline beside the
@@ -1898,49 +1892,40 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    TOP-RIGHT, an author avatar, and the technician's own comments tinted so
    "mine vs theirs" reads before any text is parsed. Actions themselves are
    unchanged (openCommentActions: Edit+Delete on own, Copy on others'). */
-.comment-item{position:relative;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:11px 12px 12px;margin:0 0 8px;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+.comment-item{position:relative;background:var(--k-card);border:1px solid var(--k-divider);border-radius:var(--k-r);padding:var(--k-sm,12px) var(--k-s4);margin:0 0 var(--k-s2);}
 .comment-item:last-child{margin-bottom:0;}
-.comment-item[data-mine="true"]{background:#F4F8FF;border-color:#D6E4FA;}
-[data-theme="dark"] .comment-item[data-mine="true"]{background:#22293A;border-color:#33405C;}
-.comment-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;padding-right:22px;}
-.comment-avatar{width:26px;height:26px;border-radius:50%;background:var(--gray-5);color:var(--white);font-size:0.625rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.comment-item[data-mine="true"] .comment-avatar{background:#2F6FB2;}
-.comment-author{font-size:0.78125rem;font-weight:700;color:var(--octave-black);}
-[data-theme="dark"] .comment-author{color:rgba(255,255,255,.9);}
-.comment-you{font-size:0.65625rem;font-weight:600;color:var(--gray-4);}
-.comment-time-actions{margin-left:auto;display:flex;align-items:center;gap:6px;}
-.comment-time{font-size:0.65625rem;color:var(--gray-4);font-family:var(--font-mono);}
+.comment-item[data-mine="true"]{background:var(--k-info-bg);border-color:var(--k-divider);}
+.comment-header{display:flex;align-items:center;gap:var(--k-s2);margin-bottom:var(--k-s1);padding-right:var(--k-h);}
+.comment-author{font-size:var(--k-body2);font-weight:500;color:var(--k-text);}
+.comment-you{font-size:var(--k-caption);font-weight:400;color:var(--k-text-2);}
+.comment-time-actions{margin-left:auto;display:flex;align-items:center;gap:var(--k-s1);}
+.comment-time{font-size:var(--k-caption);color:var(--k-text-2);font-family:var(--font-sans);}
 /* Pinned to the card's own top-right corner, out of the header's flow. */
-.comment-ellipsis{position:absolute;top:7px;right:7px;background:none;border:none;color:var(--gray-4);font-size:0.9375rem;font-weight:700;cursor:pointer;padding:2px 5px;line-height:1;border-radius:5px;}
-.comment-ellipsis:hover{color:var(--octave-black);background:var(--bg-section);}
-[data-theme="dark"] .comment-ellipsis:hover{color:var(--white);}
-.comment-text{font-size:0.8125rem;color:var(--octave-black);line-height:1.55;}
-[data-theme="dark"] .comment-text{color:rgba(255,255,255,.8);}
+.comment-ellipsis{position:absolute;top:var(--k-s1);right:var(--k-s1);}
+.comment-text{font-size:var(--k-body2);color:var(--k-text);line-height:1.43;}
 /* Wraps the cards so they sit on the page background with real gutters,
    rather than butting against a .section-card's own edges. */
-.comment-card-list{padding:9px 12px 4px;}
+.comment-card-list{padding:var(--k-s2) var(--k-s4) var(--k-s1);}
 
 /* "View more" footer (§7.2, 2026-08-11) — the Record View shows the top 3 of
    Comments/Documents and this opens the full tab. Deliberately NOT styled as
    a .comment-add-row: adding and navigating are different intents and were
    previously the same-looking row, which made "View all" read as an action. */
-.view-more-row{display:flex;align-items:center;justify-content:center;gap:5px;padding:11px;font-size:0.78125rem;font-weight:700;color:var(--teal);cursor:pointer;border-top:1px solid var(--border);}
-.view-more-row:hover{background:var(--bg-section);}
+.view-more-row{display:flex;align-items:center;justify-content:center;padding:var(--k-s1);border-top:1px solid var(--k-divider);}
 
 /* Documents (§7.2, D7/D9 2026-07-16) — pulled from Equipment's existing
    pattern into the shared library; every standard record view gets this,
    not just Equipment. Same add-row-on-top affordance as Comments. */
-.doc-item{display:flex;align-items:center;gap:11px;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;}
+.doc-item{display:flex;align-items:center;gap:var(--k-sm,12px);min-height:var(--k-row);padding:var(--k-s2) var(--k-s4);border-bottom:1px solid var(--k-divider);cursor:pointer;transition:background .15s;}
 .doc-item:last-child{border-bottom:none;}
-.doc-item:hover{background:var(--bg-section);}
+.doc-item:hover{background:var(--k-hover);}
 /* Outlined, not gray-filled, and icon shape alone tells pdf apart from
    image now — was a gray fill + red(pdf)/purple(img) color pair, neither
    of which is one of the 3 real color instruments. */
 .doc-icon{width:32px;height:32px;border-radius:7px;background:none;border:1.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--gray-4);}
 .doc-info{flex:1;min-width:0;}
-.doc-name{font-size:0.8125rem;font-weight:500;color:var(--octave-black);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-[data-theme="dark"] .doc-name{color:rgba(255,255,255,.9);}
-.doc-meta{font-size:0.6875rem;color:var(--gray-4);font-family:var(--font-mono);}
+.doc-name{font-size:var(--k-body2);font-weight:400;color:var(--k-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.doc-meta{font-size:var(--k-caption);color:var(--k-text-2);font-family:var(--font-sans);}
 .doc-arrow{color:var(--gray-4);flex-shrink:0;}
 
 /* ── Document preview slot + source hierarchy tree (§7.2, 2026-08-11) ──
@@ -1951,7 +1936,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    app's normal state, not an edge case. Because the box never changes size,
    neither case looks like a failure and a late-arriving image can't reflow
    the list. Never make this slot's size depend on whether an image loaded. */
-.doc-slot{width:38px;height:38px;border-radius:7px;background:var(--bg-section);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;position:relative;}
+.doc-slot{width:38px;height:38px;border-radius:var(--k-r);background:var(--k-paper);border:1px solid var(--k-divider);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;position:relative;}
 .doc-slot img{width:100%;height:100%;object-fit:cover;display:block;}
 .doc-slot-ext{font-family:var(--font-mono);font-size:0.53125rem;font-weight:700;letter-spacing:.3px;color:var(--gray-4);text-transform:uppercase;}
 /* Source group — one per hierarchy level that ACTUALLY has documents. A level
@@ -1963,10 +1948,8 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .doc-group-chev{color:var(--gray-4);display:flex;flex-shrink:0;transition:transform .18s ease;}
 .doc-group.open .doc-group-chev{transform:rotate(90deg);}
 .doc-group-label{font-size:0.6875rem;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--gray-4);}
-.doc-group-value{font-size:0.75rem;font-weight:600;color:var(--octave-black);font-family:var(--font-mono);}
-[data-theme="dark"] .doc-group-value{color:rgba(255,255,255,.9);}
-.doc-group-count{margin-left:auto;font-family:var(--font-mono);font-size:0.65625rem;font-weight:600;color:var(--octave-black);border:1px solid var(--border-strong);border-radius:100px;padding:1px 7px;background:transparent;}
-[data-theme="dark"] .doc-group-count{color:var(--white);}
+.doc-group-value{font-size:0.75rem;font-weight:600;color:var(--k-text);font-family:var(--font-mono);}
+.doc-group-count{margin-left:auto;font-family:var(--font-mono);font-size:0.65625rem;font-weight:600;color:var(--k-text);border:1px solid var(--border-strong);border-radius:100px;padding:1px 7px;background:transparent;}
 .doc-group-body{display:none;}
 .doc-group.open .doc-group-body{display:block;}
 /* Indented past the chevron so the nesting reads without connector lines. */
@@ -1989,34 +1972,27 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    error-msg CSS that used to live here are gone along with the JS that
    drove them.
    ══════════════════════════════════════════════════════════════════════ */
-.sync-error-banner{display:none;margin:12px 12px 0;background:rgba(228,75,74,.08);border:1px solid rgba(228,75,74,.3);border-radius:10px;padding:12px 14px;}
+/* Container for the kit <uxt-banner> renderSyncBanner() emits. */
+.sync-error-banner{display:none;margin:var(--k-s2) var(--k-s4) 0;}
 .sync-error-banner.show{display:block;}
-.sync-error-banner-head{display:flex;align-items:center;gap:8px;font-size:0.8125rem;font-weight:700;color:var(--red);}
-.sync-error-banner-head svg{flex-shrink:0;}
-.sync-error-banner-msg{font-size:0.78125rem;color:var(--gray-4);margin-top:4px;line-height:1.4;}
 /* Two-button action row (2026-07-20) — promoted here from the Sync Status
    Screen's card list, its 1st consumer, when the banner became its 2nd:
    same Retry/Discard pair, same visual language, in both places (locked —
    "ensure behavior is consistent on sync screen and other screens"). */
-.sync-card-actions{display:flex;gap:8px;margin-top:10px;padding-top:9px;border-top:1px solid var(--border);}
-.sync-card-btn{flex:1;text-align:center;font-size:0.78125rem;font-weight:700;padding:9px 0;border-radius:8px;background:var(--bg-section);color:var(--octave-black);cursor:pointer;border:none;font-family:var(--font-sans);}
-[data-theme="dark"] .sync-card-btn{color:rgba(255,255,255,.9);}
-.sync-card-btn.danger{color:var(--red);}
+.sync-card-actions{display:flex;gap:var(--k-s1);margin-top:var(--k-s2);padding-top:var(--k-s2);border-top:1px solid var(--k-divider);}
+.sync-card-btn{flex:1;text-align:center;height:var(--k-h);font-size:var(--k-body2);font-weight:var(--k-btn-weight);border-radius:var(--k-pill);background:none;border:1px solid var(--k-control);color:var(--k-text);cursor:pointer;font-family:var(--font-sans);}
+.sync-card-btn.danger{color:var(--uxt-theme-palette-text-error,#e4171f);border-color:var(--uxt-theme-palette-error-main,#f3434a);}
 /* Retry is always .ready now (2026-07-22) — the old "protected until the
    flagged field clears" gate went away with field-level detail itself,
    so there's no "not ready yet" state left to distinguish from this one.
    Same green "go ahead" language as .insert-save-btn.ready. */
-.sync-card-btn.ready{background:var(--green);color:#fff;}
+.sync-card-btn.ready{background:var(--k-primary);border-color:var(--k-primary);color:var(--k-on-primary);}
 /* Pending/synced states (§4.5, 2026-07-20). Pending was tinted orange —
    corrected 2026-07-22 (§23): "retry submitted, still resolving" is the
    same neutral "in progress" language as .sync-ctrl-pill.state-syncing/
    .sync-item-dot.queued (fixed the same session), not its own 3rd hue.
    Synced stays green — a real claim of success, the one case here that
    is a §23 instrument. */
-.sync-error-banner.state-pending{background:var(--bg-section);border-color:var(--border-strong);}
-.sync-error-banner.state-pending .sync-error-banner-head{color:var(--gray-4);}
-.sync-error-banner.state-synced{background:rgba(0,170,20,.08);border-color:rgba(0,170,20,.3);}
-.sync-error-banner.state-synced .sync-error-banner-head{color:var(--green);}
 
 /* ══════════════════════════════════════════════════════════════════════
    SELECTOR PILL (Phase 2b consolidation, 2026-07-22) — the mono-code
@@ -2035,9 +2011,8 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    .store-selector.protected (Issue Parts, screen-local, below) is
    explicitly restored to its original outline look — pills only,
    protected states untouched. */
-.store-selector,.crew-selector-pill{display:inline-flex;align-items:center;gap:5px;background:var(--octave-black);border:1.5px solid var(--octave-black);border-radius:100px;padding:5px 10px 5px 8px;cursor:pointer;transition:all .15s;font-family:var(--font-mono);font-size:0.75rem;font-weight:600;color:#fff;white-space:nowrap;}
-[data-theme="dark"] .store-selector,[data-theme="dark"] .crew-selector-pill{background:var(--white);border-color:var(--white);color:var(--octave-black);}
-.store-selector:hover,.crew-selector-pill:hover{opacity:.85;}
+.store-selector,.crew-selector-pill{display:inline-flex;align-items:center;gap:var(--k-s1);height:32px;background:var(--k-card);border:1px solid var(--k-control);border-radius:var(--k-pill);padding:0 var(--k-sm,12px);cursor:pointer;transition:background .15s;font-family:var(--font-mono);font-size:var(--k-caption);font-weight:500;color:var(--k-text);white-space:nowrap;}
+.store-selector:hover,.crew-selector-pill:hover{background:var(--k-hover);opacity:1;}
 .store-selector svg:first-child,.crew-selector-pill svg:first-child{color:currentColor;opacity:.75;}
 
 /* Positive/negative tint-pill treatment (Phase 2b consolidation) — Book
@@ -2049,8 +2024,8 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    file keeps its own base `.labor-hours-badge`/`.qty-badge` sizing local
    (real, if minor, padding difference — 3px 9px vs 2px 7px — not forced
    identical just to finish a consolidation). */
-.badge-green,.qty-badge-issued{background:rgba(0,170,20,.1);color:var(--green);border:1px solid rgba(0,170,20,.2);}
-.badge-red{background:rgba(228,75,74,.1);color:var(--red);border:1px solid rgba(228,75,74,.2);}
+.badge-green,.qty-badge-issued{background:var(--k-ok-bg);color:var(--k-ok-fg);border:none;}
+.badge-red{background:var(--k-err-bg);color:var(--k-err-fg);border:none;}
 
 /* ══════════════════════════════════════════════════════════════════════
    SYNC PANEL (§4.4.2) — bottom sheet opened from the sync icon (any
@@ -2059,34 +2034,32 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    .sheet-header/.sheet-body shell (§3.4) — only the body content below
    is new.
    ══════════════════════════════════════════════════════════════════════ */
-.sync-panel-state{padding:2px 16px 12px;font-size:0.78125rem;font-weight:600;text-align:center;}
-.sync-panel-state.state-error{color:var(--red);}
+.sync-panel-state{padding:var(--k-s1) var(--k-s4) var(--k-sm,12px);font-size:var(--k-body2);font-weight:500;text-align:center;}
+.sync-panel-state.state-error{color:var(--uxt-theme-palette-text-error,#e4171f);}
 .sync-panel-state.state-syncing{color:var(--gray-4);}
 .sync-panel-state.state-offline{color:var(--gray-4);}
-.sync-panel-state.state-synced{color:var(--green);}
-.sync-panel-section-label{padding:12px 14px 4px;font-size:0.6875rem;font-weight:700;color:var(--gray-4);text-transform:uppercase;letter-spacing:.4px;}
-.sync-item-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);}
+.sync-panel-state.state-synced{color:var(--k-ok-fg);}
+.sync-panel-section-label{padding:var(--k-s4) var(--k-s4) var(--k-s1);font-size:var(--k-caption);font-weight:500;color:var(--k-text-2);text-transform:uppercase;letter-spacing:.4px;}
+.sync-item-row{display:flex;align-items:center;gap:var(--k-s2);min-height:var(--k-row);padding:var(--k-s2) var(--k-s4);border-bottom:1px solid var(--k-divider);}
 .sync-item-row:last-child{border-bottom:none;}
-.sync-item-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--gray-3);}
-.sync-item-dot.ok{background:var(--green);}
+.sync-item-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--uxt-theme-palette-ui-grey-50,#cbd0d8);}
+.sync-item-dot.ok{background:var(--uxt-theme-palette-success-main,#47be68);}
 /* Was orange — corrected 2026-07-22 (§23): queued is "waiting," the same
    neutral-gray language the panel-level state text already uses for
    Offline/Syncing (.sync-panel-state.state-syncing/.state-offline), not
    its own 3rd hue. Explicit rather than just falling through to the base
    rule above, since they happen to match today but mean different things. */
-.sync-item-dot.queued{background:var(--gray-3);}
-.sync-item-dot.error{background:var(--red);}
+.sync-item-dot.queued{background:var(--uxt-theme-palette-ui-grey-50,#cbd0d8);}
+.sync-item-dot.error{background:var(--uxt-theme-palette-error-main,#f3434a);}
 .sync-item-info{flex:1;min-width:0;}
-.sync-item-name{font-size:0.8125rem;font-weight:600;color:var(--octave-black);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-[data-theme="dark"] .sync-item-name{color:rgba(255,255,255,.9);}
-.sync-item-meta{font-size:0.6875rem;color:var(--gray-4);font-family:var(--font-mono);margin-top:1px;}
-.sync-item-action{font-size:0.75rem;font-weight:700;color:var(--octave-black);background:none;border:none;cursor:pointer;padding:6px 8px;flex-shrink:0;font-family:var(--font-sans);}
-[data-theme="dark"] .sync-item-action{color:var(--white);}
+.sync-item-name{font-size:var(--k-body2);font-weight:500;color:var(--k-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sync-item-meta{font-size:var(--k-caption);color:var(--k-text-2);font-family:var(--font-mono);margin-top:1px;}
+.sync-item-action{flex-shrink:0;}
 .sync-panel-hydrate{padding:6px 14px 14px;}
 .sync-hydrate-row{padding:7px 0;}
-.sync-hydrate-label{font-size:0.75rem;color:var(--gray-4);margin-bottom:5px;display:flex;justify-content:space-between;}
-.sync-hydrate-track{height:6px;border-radius:100px;background:var(--bg-section);overflow:hidden;}
-.sync-hydrate-fill{height:100%;background:var(--gray-4);border-radius:100px;}
+.sync-hydrate-label{font-size:var(--k-caption);color:var(--k-text-2);margin-bottom:var(--k-s1);display:flex;justify-content:space-between;}
+.sync-hydrate-track{height:4px;border-radius:var(--k-pill);background:var(--k-divider);overflow:hidden;}
+.sync-hydrate-fill{height:100%;background:var(--k-primary);border-radius:var(--k-pill);}
 
 /* ══════════════════════════════════════════════════════════════════════
    STATUS CHANGE CONTROL + COMPLETION OVERLAY (design-decisions-v3-1.md
@@ -2097,11 +2070,10 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    summary + green completion overlay itself). Identical CSS/markup
    shape to what WO Closing always had; only the animation on the overlay
    below is new. ══════════════════════════════════════════════════════ */
-.status-banner { margin: 12px 12px 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.status-banner { margin: var(--k-s2) var(--k-s4) 0; background: var(--k-card); border: 1px solid var(--k-divider); border-radius: var(--k-r); padding: var(--k-s2) var(--k-s4); }
 .status-banner-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.status-banner-icon { width: 30px; height: 30px; border-radius: 50%; background: rgba(0,170,20,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.status-banner-title { font-size: 0.8125rem; font-weight: 600; color: var(--octave-black); }
-[data-theme="dark"] .status-banner-title { color: var(--white); }
+.status-banner-icon { width: 32px; height: 32px; border-radius: 50%; background: var(--k-ok-bg); color: var(--k-ok-fg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.status-banner-title { font-size: 0.8125rem; font-weight: 600; color: var(--k-text); }
 .status-row { display: flex; align-items: center; gap: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
 .status-row-arrow { color: var(--gray-3); flex-shrink: 0; }
 /* Both pills share one box model so a <div> (from — never tappable) and a
@@ -2113,24 +2085,21 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
   border-radius: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;
   font-family: var(--font-sans); font-size: 0.875rem; font-weight: 600; line-height: 1;
 }
-.status-pill.from { background: rgba(21,166,74,0.1); color: #157a35; cursor: default; }
-[data-theme="dark"] .status-pill.from { background: rgba(21,166,74,0.18); color: #4ade80; }
+.status-pill.from { background: var(--k-ok-bg); color: var(--k-ok-fg); cursor: default; }
 .status-pill.to { cursor: pointer; transition: filter 0.15s; }
 .status-pill.to:hover { filter: brightness(0.95); }
-.status-pill.to.fill-completed { background: var(--green); color: white; }
-.status-pill.to.fill-closed    { background: var(--gray-5); color: white; }
-.status-pill.to.fill-onhold    { background: var(--red); color: white; }
+.status-pill.to.fill-completed { background: var(--k-ok-bg); color: var(--k-ok-fg); }
+.status-pill.to.fill-closed    { background: var(--k-neutral-bg); color: var(--k-neutral-fg); }
+.status-pill.to.fill-onhold    { background: var(--k-err-bg); color: var(--k-err-fg); }
 
 /* Confirm-summary sheet — rich summary content, its own bottom sheet. */
 .confirm-wording { padding: 16px; font-size: 0.875rem; color: var(--gray-4); line-height: 1.6; border-bottom: 1px solid var(--border); }
-.confirm-wording strong { color: var(--octave-black); font-weight: 600; }
-[data-theme="dark"] .confirm-wording strong { color: var(--white); }
+.confirm-wording strong { color: var(--k-text); font-weight: 600; }
 .confirm-summary { padding: 12px 16px; border-bottom: 1px solid var(--border); }
 .confirm-summary-row { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; font-size: 0.8125rem; border-bottom: 1px solid var(--border); }
 .confirm-summary-row:last-child { border-bottom: none; }
 .confirm-summary-label { color: var(--gray-4); }
-.confirm-summary-value { font-family: var(--font-sans); font-size: 0.75rem; color: var(--octave-black); font-weight: 500; }
-[data-theme="dark"] .confirm-summary-value { color: rgba(255,255,255,0.85); }
+.confirm-summary-value { font-family: var(--font-sans); font-size: 0.75rem; color: var(--k-text); font-weight: 500; }
 .confirm-summary-value .mono { font-family: var(--font-mono); }
 .close-cancel-gap { margin-top: 8px; }
 
@@ -2142,11 +2111,11 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    animation actually restarts every time the overlay reopens — an
    animation-name on the bare rule only plays once, the first time the
    (otherwise display:none) element is ever painted. */
-.closed-overlay { position: absolute; inset: 0; background: rgba(0,170,20,0.97); z-index: 400; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; opacity: 0; transition: opacity .2s ease; }
+.closed-overlay { position: absolute; inset: 0; background: var(--uxt-theme-palette-success-dark,#209f43); z-index: 400; display: none; flex-direction: column; align-items: center; justify-content: center; gap: var(--k-s4); opacity: 0; transition: opacity .2s ease; }
 .closed-overlay.show { display: flex; opacity: 1; }
 .closed-icon { width: 72px; height: 72px; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; opacity: 0; transform: scale(0); }
 .closed-overlay.show .closed-icon { animation: closed-icon-pop .45s cubic-bezier(.34,1.56,.64,1) .1s forwards; }
-.closed-title { font-size: 1.5rem; font-weight: 700; color: white; letter-spacing: -0.5px; opacity: 0; }
+.closed-title { font-family: var(--font-display); font-size: var(--uxt-theme-typography-h-5-font-size,1.5rem); font-weight: 500; color: white; opacity: 0; }
 .closed-overlay.show .closed-title { animation: closed-fade-up .35s ease .28s forwards; }
 .closed-sub { font-size: 0.875rem; color: rgba(255,255,255,0.75); font-family: var(--font-mono); opacity: 0; }
 .closed-overlay.show .closed-sub { animation: closed-fade-up .35s ease .34s forwards; }
@@ -2160,21 +2129,19 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
    consumer): icon + title + optional sub-line, no checkmarks — for a
    one-time action choice, not a persistent selection (that's .lov-option's
    job instead). ── */
-.source-option { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
-.source-option:last-child { border-bottom: none; }
-.source-option:hover { background: var(--bg-section); }
-.source-option-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-section); color: var(--gray-4); border: 1.5px solid var(--border-strong); }
+.source-option:not(uxt-list-item) { display: flex; align-items: center; gap: var(--k-sm,12px); min-height: 56px; padding: var(--k-s2) var(--k-s4); border-bottom: 1px solid var(--k-divider); cursor: pointer; transition: background 0.12s; }
+.source-option:not(uxt-list-item):last-child { border-bottom: none; }
+.source-option:not(uxt-list-item):hover { background: var(--k-hover); }
+.source-option-icon { width: 40px; height: 40px; border-radius: var(--k-pill); display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--k-card); color: var(--k-glyph); border: 1px solid var(--k-control); }
 .source-option-texts { flex: 1; }
-.source-option-title { font-size: 0.875rem; font-weight: 600; color: var(--octave-black); }
-[data-theme="dark"] .source-option-title { color: rgba(255,255,255,0.9); }
-.source-option-sub { font-size: 0.75rem; color: var(--gray-4); margin-top: 2px; }
+.source-option-title { font-size: var(--k-body2); font-weight: 400; color: var(--k-text); }
+.source-option-sub { font-size: var(--k-caption); color: var(--k-text-2); margin-top: 2px; }
 /* Stub rows (Meter Reading/Operator Checklist, §9.4 "system actions" —
    same STUB_ENTITIES this sheet reuses) — muted title, same treatment
    .lov-option's own stub rows already use in the LOV-shaped picker this
    replaces. */
 .source-option.stub .source-option-title { color: var(--gray-4); font-weight: 500; }
 [data-theme="dark"] .source-option.stub .source-option-title { color: var(--gray-3); }
-.source-option-group-label { padding: 12px 16px 4px; font-size: 0.6875rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--gray-3); }
 .sync-panel-empty{padding:24px 16px 20px;text-align:center;font-size:0.8125rem;color:var(--gray-4);}
 
 /* ---------------------------------------------------------------------------
@@ -2217,8 +2184,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .sheet-confirm-btn,
 .rec-ellipsis-btn,
 .ds-fav-star,
-.step-btn,
-.sync-ctrl-dot { position: relative; }
+.step-btn { position: relative; }
 
 .nav-back::after,
 .sheet-close::after,
@@ -2228,8 +2194,7 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .sheet-confirm-btn::after,
 .rec-ellipsis-btn::after,
 .ds-fav-star::after,
-.step-btn::after,
-.sync-ctrl-dot::after {
+.step-btn::after {
   content: "";
   position: absolute;
   top: 50%;
@@ -2334,8 +2299,75 @@ button, .bar-pill, .bottom-nav-item, .home-tile, .fav-chip, .ld-card,
 /* Prototype controls inside a header menu (§31.6) — replaces the
    .proto-theme-bar banner. The state chip carries the current value so the
    row reads as "Appearance — Dark" rather than needing a separate label. */
-.proto-menu-label{font-size:0.625rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
-  color:var(--gray-4);font-family:var(--font-mono);padding:8px 14px 4px;}
-.proto-menu-row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
-.proto-menu-state{font-family:var(--font-mono);font-size:0.6875rem;font-weight:600;color:var(--gray-4);
-  flex-shrink:0;}
+
+/* ══════════════════════════════════════════════════════════════════════
+   OCTAVE KIT HOST LAYER (2026-10-20)
+   Layout for the real <uxt-*> elements the shared renderers now emit. These
+   rules only place and size the HOST (margins, flex, width) — never the
+   kit's own internals — so the kit's look always wins. Generic selectors
+   above are written so they can't reach inside a kit element: the shared
+   pickers' class hooks (.lov-option, .source-option) are scoped
+   :not(uxt-list-item), and kit hosts get their own kit-* classes.
+   ══════════════════════════════════════════════════════════════════════ */
+/* Kit buttons that fill their row (sheet footers, menu action bars). */
+uxt-button.kit-btn-block{display:block !important;width:100%;}
+.kit-sheet-spacer{width:var(--k-h);flex-shrink:0;}
+.kit-sheet-text-btn{flex-shrink:0;}
+/* Search row inside a shared filter sheet. */
+.kit-sheet-search{padding:var(--k-s1) var(--k-s4) var(--k-s2);}
+.kit-sheet-search > uxt-search-bar{display:block;width:100%;}
+/* Segmented mode switch (Detailed/List, Asc/Desc). */
+.kit-mode-tog{margin:var(--k-s2) var(--k-s4) 0;}
+.kit-mode-tog > uxt-toggle-button-group{display:block;width:100%;}
+/* Search bar beside its close / scan Icon Button, 4px apart. */
+.ld-search-bar > uxt-search-bar{flex:1;min-width:0;}
+.kit-sort-btn{flex-shrink:0;}
+/* Filter-chip row hosts kit outline status chips. */
+.filter-chip-row > uxt-status-chip{flex-shrink:0;}
+/* Tree row actions. */
+uxt-button.tree-select-btn{flex-shrink:0;}
+/* Sync control in the top bar. */
+#syncCtrl{display:inline-flex;align-items:center;}
+#syncCtrl uxt-status-chip{cursor:pointer;}
+/* Sync panel row action. */
+uxt-button.sync-item-action{flex-shrink:0;}
+/* Kit list-item rows inside sheets and menus: full width, no host chrome. */
+uxt-list-item.lov-option,uxt-list-item.source-option,uxt-list-item.md-row,uxt-list-item.md-selectall,uxt-list-item.kit-menu-row{display:block;}
+/* Menu action bar (Log out) — kit "container actions": 8px padding, 1px
+   divider above. */
+.kit-menu-actions{padding:var(--k-s2);border-top:1px solid var(--k-divider);margin-top:var(--k-s1);}
+/* Booking pull-up stepper (kit outlined Icon Buttons, hold-to-repeat). */
+uxt-icon-button.kit-step-btn{flex-shrink:0;}
+/* Comment card avatar + ellipsis. */
+uxt-avatar.comment-avatar{flex-shrink:0;}
+/* Kit dialogs (confirm / question) body copy. */
+.kit-dialog-msg{margin:0;}
+/* Overflow-menu scrim: visible exactly while a ⋮ bottom-sheet menu is open. */
+.kit-menu-scrim{position:fixed;inset:0;background:color-mix(in srgb, var(--uxt-theme-palette-common-black,#000) 32%, transparent);opacity:0;pointer-events:none;transition:opacity .2s;z-index:204;}
+.app:has(.rec-actions-menu.open:not(.kit-source-menu)) .kit-menu-scrim{opacity:1;pointer-events:auto;}
+/* Snackbar stack clears the floating bottom nav / step bottom bar. */
+.uxt-snackbar-stack{bottom:calc(var(--bar-reserve)) !important;}
+/* LOCKED §31.6 EXCEPTION — the one deliberate reach into kit internals. The
+   kit draws mobile inputs and the search field at Body 2 (14px); iOS force-
+   zooms any text input under 16px on focus and never zooms back. The rule is
+   "every text input is 1rem", so these two inner fields are held at 1rem.
+   Flag to the kit team: mobile density should ship 16px field text. */
+uxt-input .input-value,uxt-search-bar .sb-field{font-size:1rem !important;}
+/* KIT BUG WORKAROUND (2026-10-20): <uxt-status-chip> ships an UNSCOPED
+   `.content{display:flex;align-items:center;gap:4px}` in its inline <style>,
+   which lands on this app's .content scroll container on every screen that
+   shows a chip (sync pill, filter chips, status headlines). The kit's late
+   inline style wins every same-specificity tie, so this restores the
+   container's own display at higher specificity (inline style="display:none"
+   toggles still win). Remove once the kit scopes the rule to
+   `uxt-status-chip .content`. */
+.app .content:not(:where(.chip > .content)){display:block;align-items:normal;gap:0;}
+/* Activity Checklist's .content is a deliberate flex column (its own rule). */
+.app .content:not(:where(.chip > .content)):has(> .stepper-head){display:flex;flex-direction:column;align-items:stretch;}
+/* ...and the reverse leak: several screens style a bare `.content{padding:…}`,
+   which reaches the chip's own inner .content. Reset to the kit's values. */
+uxt-status-chip .chip > .content{padding:0;flex:none;overflow:visible;height:auto;}
+/* Kit checkbox in a form-field row: right edge, like the legacy box. */
+.form-field > uxt-checkbox.field-checkbox-kit{margin-left:auto;flex-shrink:0;}
+
+uxt-list-item.comment-add-row{display:block;border-bottom:1px solid var(--k-divider);}
