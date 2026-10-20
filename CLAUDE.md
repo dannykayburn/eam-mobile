@@ -1036,6 +1036,22 @@ prototype session trips over, one line each.
 - Reference screenshots for visual matching are in
   `prototypes/reference-screenshots/`.
 
+## Collaboration
+More than one person pushes to this repo, and `master` deploys to Pages on merge.
+- **Branch and PR, never push to `master`.** One branch per change, PR into `master`.
+- **Use `.github/pull_request_template.md` as the PR body** — fill it in, don't
+  bypass it with a bare `--body`. It is the checklist that keeps the docs in sync.
+- **Same PR as the change:** a design decision → `docs/design-decisions-v3-1.md`; a
+  requirement or sequence change → the design doc; a UI pattern → `component-library.md`;
+  a screen's state or traps → this file's "Current state" (snapshot only). Name the
+  spec § in the PR, and **flag a locked-rule conflict before acting, not after**.
+- **Checks:** `.claude/skills/verify/scripts/` — `bump-assets.js` on any stamped asset,
+  `check-keyboard.js` on a sheet with a text input, the relevant `tests/test-*.js`.
+- **Memory files named in this document are one person's local notes** and won't exist
+  here. The repo docs are the source of truth; treat a dangling memory pointer as
+  context, not a missing file to hunt for.
+- **US English** in every comment, commit message, doc and identifier.
+
 ## Working style
 - **Flag any request that conflicts with a locked rule** before acting on it.
 - **A new design decision goes into `design-decisions-v3-1.md` the same
