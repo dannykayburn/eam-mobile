@@ -647,6 +647,14 @@ const MEC_CHILD_WO_START = 20451;
 // counts (PUMPS 24 / FIREEXT 156) — generated rather than hand-listed so the
 // real "this list runs into the hundreds" case (§16.9) is actually reachable.
 const ROUTE_EQUIPMENT_DEFS = {
+  // PUMPSPM (2026-09-25) — the UXR route. Deliberately SMALL (12): a usability
+  // task needs a route a participant can actually finish inside a task slot,
+  // which the 24/156 scale demos above are not for. Added ALONGSIDE them rather
+  // than shrinking PUMPS, because that scale is deliberate (CLAUDE.md / §16.9:
+  // 'don't fix that by capping the fan-out') and is still reachable here.
+  PUMPSPM: { count: 12, prefix: 'P-', start: 1101, dept: 'ENG', descs: [
+    'Pump, Centrifugal — 3in Inlet', 'Pump, Centrifugal — 2in Inlet',
+    'Pump, Booster — North Header', 'Pump, Sump — Basement'] },
   PUMPS: { count: 24, prefix: 'P-', start: 1042, dept: 'ENG', descs: [
     'Pump, Centrifugal — 3in Inlet', 'Pump, Centrifugal — 2in Inlet',
     'Pump, Booster — North Header', 'Pump, Sump — Basement',
@@ -1721,6 +1729,35 @@ function resetDemoState() {
   // held list state would restore someone else's filters onto a fresh demo.
   woIdentityClear();
   listStateClearAll();
+  seedDemoRoute();
+}
+/* ══ SEEDED PM ROUTE (2026-09-25, UXR) ════════════════════════════════════
+   19831 comes back from a reset with its monthly pump route ALREADY
+   attached, rather than empty like every other WO.
+
+   Why it has to be seeded rather than set up live: the route task is run
+   remotely on the participant's own phone, so the moderator cannot touch the
+   device, and resetDemoState() runs on Log In — so without a seed every
+   participant would start the route task with an empty Equipment tab and the
+   moderator would have to talk them through attaching a route first. That is
+   a moderator instruction, which under the study's own help-level rule fails
+   the task before it starts.
+
+   It is also the more accurate state: a route is authored onto a PM work
+   order in the back office, so a technician picking one up in the field finds
+   the equipment already on it. Attaching one by hand is the ADMIN path, not
+   the technician path the study is measuring.
+
+   Seeded here and nowhere else — deliberately NOT on first page load, which
+   would resurrect the route after someone had cleared it on purpose. Delete
+   this function and the call above to go back to an empty 19831.          */
+const DEMO_SEED_ROUTE = { wo: '19831', code: 'PUMPSPM', desc: 'Pumps — Monthly PM' };
+function seedDemoRoute() {
+  if (typeof woEquipApplyRoute !== 'function') return;
+  // Never overwrite live rows — a manual add or a second call must be a no-op,
+  // or the MEC child numbers get re-minted underneath WO List.
+  if (woEquipRows(DEMO_SEED_ROUTE.wo).length) return;
+  woEquipApplyRoute(DEMO_SEED_ROUTE.wo, { code: DEMO_SEED_ROUTE.code, desc: DEMO_SEED_ROUTE.desc });
 }
 // Shared navigation target for both the dev-only Reset button below and
 // the real Profile menu's Log out item (2026-07-24) — same path either

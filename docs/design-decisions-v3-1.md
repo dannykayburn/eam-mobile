@@ -1024,15 +1024,18 @@ third is switchable:
 **Second, it is not a boolean — it is profile assignment.** An **offline
 profile** is a named bundle of §2.7's entity registry, its caps, §2.8's lookup
 classes and Sync Config, **assigned on User Group Setup** per §26.5's binding
-paradigm. **"None" is the off state.** Primary grain is **user group**, with a
-**device** axis applied as `min(group, device)` and per-user as override only.
+paradigm. **"None" is the off state.** Primary grain is **user group** — which
+may hold **none, one, or several** profiles (§2.10.1) — with a **device** axis
+applied as `min(group, device)` and per-user as override only.
 
 **The line against "this is a mode."** It will be challenged against the SWG's
 *"not a mode choice,"* so state it plainly: an **admin-provisioned capability,
 invisible to the technician and fixed for the session, is provisioning** — the
 same category as nav slots or dataspy assignment. It changes what the app *can
 do* for that user; it never changes what the app does moment to moment. The
-technician is never asked to choose.
+technician is never asked to choose **what they are granted** — and that
+survives §2.10.1 below, which moves who picks *within* the grant without
+touching who sets it.
 
 **One real design consequence: §4.4.1's sync control changes meaning** and needs
 a distinct state or copy. For a replicating user, "Offline" means *working from
@@ -1049,6 +1052,111 @@ two never-switchable layers (Tier 0, the outbox) first and treats profile
 axes this section names past the group — the **device** axis as
 `min(group, device)`, and per-user as override only — are **not** modelled by
 that surface and stay open in §20.
+
+## 2.10.1 A group may hold SEVERAL profiles — then the technician picks one at login (locked 2026-09-23)
+
+User direction. **The change is one field:** an offline profile's cardinality
+goes from *exactly one per user group* to *several*, so the portal's assignment
+control becomes a multi-select on both sides (§30.23's third shape). §30.13's
+rule is **not** broken by this, because cardinality still follows what the
+runtime resolves on — the **resolution key gained a dimension**, the way §29
+gave the layout key an `Instance` one. An offline profile now resolves on
+*(user group, the technician's own login choice)*.
+
+**Why several is worth having.** One user group covers people whose days differ
+— the same maintenance group holds the technician on a plant route this week and
+in the yard the next, and those two need different things at rest on the device.
+The shipping product's only answer is a **second user group**, which multiplies
+every *other* artifact — workflow, Home layout, navigation bar, function
+permissions — in order to vary one axis. Splitting the group to vary replication
+is the fault; this is the narrower fix.
+
+**And why it is still not a mode.** What the technician picks is **which
+declared scope to hydrate**, never whether to be online or offline:
+
+- every choice on the list was **authored and assigned by an admin**, so the
+  choice cannot widen past what the group grants — the same narrowing-only
+  property the device axis has;
+- every choice is **online-first** (§2.1). None of them changes what a read
+  does, what the outbox does, or what the app does moment to moment;
+- the nearest existing analogue is a **dataspy**: picking `My Open WOs` over
+  `Overdue PMs` does not make it a different app, and nobody calls that a mode.
+
+§5.1's *"no mode the technician chooses"* is about **connectivity**, and that is
+untouched. There is still no switch anywhere in this app that says *go offline*.
+
+**Three states, and only the third asks anything.**
+
+| Assigned to the group | At login | Who decided |
+| --- | --- | --- |
+| **None** | Nothing. Online only, exactly as before. | Admin |
+| **One** | Applied silently. No prompt, nothing visible. | Admin |
+| **Two or more** | **One prompt**, once, and the answer is remembered. | Admin grants the list; the technician picks from it |
+
+**One is the default and the common case**, which is why the provisioning
+argument above still describes nearly every user. A second profile is a
+deliberate act by an admin, and the portal's control states that consequence on
+the row that would cause it rather than leaving it to surface at someone's
+login (§30.23).
+
+**Where the prompt sits: inside the login round-trip, after Tier 0, before the
+record tiers** (§2.3). That ordering is load-bearing in both directions — Tier 0
+resolves on the **user group**, not on the profile, so it is fetched before
+anything is chosen and the chooser renders in the app's own chrome rather than
+an unstyled one; and the record tiers resolve on the **profile**, so they cannot
+start until the answer exists. **This is not the blocking modal §2.3
+prohibits**: §2.3 already draws that line at bulk record download and
+connectivity-triggered interruption, not at a user-initiated round-trip, and the
+prompt is one tap inside a login the technician started.
+
+**Remembered, not re-asked.** The answer is sticky per *(user, device)*. A
+technician who picks the route profile on Monday is not asked again on Tuesday.
+It is re-asked in exactly one case: **the remembered profile is no longer in the
+group's set** — an admin un-assigned it. A set that *changes around* a
+still-valid choice does not re-prompt, because re-asking on every admin edit is
+how a once-a-quarter prompt becomes a daily one.
+
+**And a setting to change it: the profile menu (§4.3).** A row naming the
+profile in force, which **renders only where the group holds two or more** —
+below that there is nothing to change and naming it would advertise a
+non-decision. Four rules on that control, because a switch is a
+**re-provisioning**, not a view filter:
+
+1. **It states the cost before it commits.** Records outside the new scope leave
+   the device; records inside it hydrate. That is a download, so say so.
+2. **The outbox is NEVER dropped** (item 2 above — never switchable). Pending
+   writes survive a profile switch. A switch that discarded unsynced work would
+   be the worst defect in the app, and it is one line of code away from
+   happening, which is why it is written here.
+3. **It requires connectivity, and is disabled without it.** You cannot
+   re-provision from a device with no server. Consistent with online-first, and
+   the honest alternative to a switch that half-applies.
+4. **It never evicts live work.** A **Started** WO pinned to this technician
+   (§14.11) and a manual pin (§2.6, `R5PINS`) both survive a narrowing
+   switch — a pin whose entity leaves scope degrades to *online-only* rather
+   than being deleted. This is not a new mechanism: it is the same rule §14.11
+   and §2.6 already require, that a **local pin survives a server list that
+   omits it**.
+
+**Inheritance is unchanged.** A group with no explicit rows inherits the
+`*` default's **whole set**, so inheriting three profiles means the
+technician picks one of three. That is the existing declared-vs-effective
+mechanic (§26.5 mechanic 2) applied to a set instead of a single row, not a
+fourth state.
+
+**Two costs, named rather than discovered.** First, *"why can't I see this asset
+offline?"* now has two possible answers — the group's grant, or the technician's
+own pick — so the **name of the chosen profile has to be visible**, on the
+profile-menu row and in the sync panel (§4.4.2), not buried in an admin screen.
+Second, this composes with the two axes §2.10 leaves open rather than replacing
+them: when the device axis lands it applies as `min(chosen, device)`,
+since the login choice is a selection *within* the group grant and
+narrowing-only either way.
+
+**Nothing on the device implements any of this yet** — no login chooser, no
+profile-menu row, and nothing feeds the app a portal artifact at all. §20
+carries it as one item in three parts, the same shape §30.24's navigation bar
+is in.
 
 # 3. Design System
 
@@ -6126,6 +6234,7 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **A labour row's write shape when the hours are untouched** | Opened 2026-09-17. §18.2's pull-up books **direct hours** once the technician adjusts the figure, because an adjusted value cannot keep the timer's start and end true — and keeps the real span when it is untouched. That is two write shapes off one sheet. It is the honest rendering of what is known in each case, and §18's Time Entry Mode already models both, but whether the real outbox envelope should carry a span at all for a timer-derived booking is not settled. Low stakes while there is no backend; decide it before the envelope is built. |
 | **No mobile screen demonstrates §5.2's revised container model** | Opened 2026-09-16 with §5.2's "Container shape is per-container" revision. The base-side designer can now author a Grid container anywhere in a form and a form with several Grids, but **every mobile prototype still shows the old arrangement** — one leading grid, collapsible List sections beneath. So the canonical references (`screen-layout-field-behavior-prototype-v1.html`, `eam-equipment-record-view-prototype-v1.html`) no longer demonstrate the full model they are canonical for, and a layout the designer can now produce has never been rendered. **Deliberately not fixed by rebuilding seven screens unasked** — the rule changed on the authoring side, which is where it was asked for. What is owed before the model is real end to end: one mobile screen showing a non-leading Grid, and a check that `.attr-item` / `.fg-section` CSS actually copes with a Grid that is not first (the `--bar-reserve` and `.full-width` interactions are the likely friction). Until then, treat the revised rule as authored-but-unproven on the device. |
 | **The §2.10 / §27.4 severity rules are pinned against an ARCHIVED screen** *(now actionable — 2026-09-16)* | Opened 2026-09-16. `test-user-group-offline.js` was kept rather than deleted with the retired prototype and runs against `old versions/`. That keeps the rules as executable code instead of prose — deliberately, because one of them (`capabilityGap()` keyed on the *configuration* rather than the function) already killed a live false positive. **A green run still says nothing about the portal.** The blocker is gone: the portal's User Groups area now exists (§30.13), so the port can happen. Re-pin every case against it — the two severity splits (online-only is *informational*, not a warning; a **Required** UDS step the group cannot open is an *error* while the same step optional is a warning) and the guard that "All records" has not crept back into any filter (§2.7 refuses it). `test-workflow-portal.js` already asserts the refusal on the authoring side, so what is owed is the **severity** half. Do not delete the archived file without porting the cases first.
+| **§2.10.1's login profile chooser has no device side — one item, three parts** | Opened 2026-09-23 with §2.10.1. The portal now assigns **several** offline profiles to a group and the decision says the technician picks one **at login**, with a **setting** to change it. None of that exists on the device, and the three parts are deliberately one row because building any of them alone is wasted: **(1)** the chooser itself, inside the login round-trip after Tier 0 and before the record tiers (§2.3) — `eam-login-prototype-v1.html` has no step for it; **(2)** the profile-menu row that names the profile in force and switches it (§4.3), which renders only where the group holds two or more, plus the four rules §2.10.1 puts on a switch — state the cost, never drop the outbox, refuse it offline, never evict live work; **(3)** the sticky *(user, device)* answer, and the one case that re-prompts (the remembered profile is no longer assigned). And the same blocker as §30.24's navigation bar sits in front of all three: **nothing feeds the app any portal artifact**, so a chooser today would be choosing from a hardcoded list. Two smaller things fall out and are cheap to do with it: the sync panel should **name** the profile in force (§4.4.2), since *"why is this not on my device?"* now has two possible answers; and the same copy question as the online-only sync state below, which is still open. |
 | **The offline profile's two SECOND axes are still unmodelled** *(narrowed 2026-09-16 — the authoring surface now exists)* | Opened 2026-09-08 with §29.6 as "no surface authors profiles." That half is **closed**: the portal's Offline Profiles area authors §2.7's per-entity registry, its caps and §2.8's lookup classes read-only, and profiles are assigned from either side of one membership table (§30.13/§30.14). `PROFILES` is now authorable rather than demo data standing in for records nobody can create. **What is still unmodelled is everything past the group axis** — §2.10 names two more and the new surface implements neither: the **device** axis, applied as `min(group, device)`, and **per-user as override only**. Both are narrowing-only by definition, so neither can widen what the group grants; that is the property the surface has to make visible rather than merely obey. Whoever builds them also owns what a technician sees when the device axis is the binding one, since the profile UI is admin-side and §4.4.1's sync control is the only technician-visible trace.
 | **§2.7 narrows offline capability relative to the SHIPPING product — DECISION REQUIRED** | Opened 2026-09-16 by building the offline registry against the live **User Group ▸ Mobile Settings** tab (§30.14). §2.7 places **Equipment/WO history** and **meter readings** in `server-only`; the shipping product **downloads both**, and customers use them. So this is not a mapping error, it is a deliberate reduction in offline capability that nothing has acknowledged as one — and it is exactly the kind of thing found during a migration rather than during design. Two ways out, and they are not equivalent: **(a)** §2.7 stands, the narrowing is real, and it needs communicating as a known regression with the online path as the answer — defensible under §2.1 (online-first, reads at full fidelity) but only where coverage is good; or **(b)** §2.7 gets a carve-out, which means a **bounded** history policy (last N readings, last N work orders per asset) rather than the unbounded history the current product ships, because unbounded history is what §2.7's row cap exists to refuse. Note the asymmetry that makes this urgent: a technician who could read meter history offline yesterday and cannot today experiences a *downgrade*, and the registry row currently says `server-only` with no note. **Cost, Purchase Orders** are the other two `server-only` rows and are not in tension — nothing suggests the product ships those offline. |
 | **Eleven offline entities have no policy decision** | Opened 2026-09-16 with §30.14. Mapping the shipping product's ~35 `Download X` booleans onto §2.7 left **11 of 31 entities genuinely undecided**: Inspection Results, WO Nonconformity, Permit to Work, Calibrations, Equipment Structure, Equipment Comments, Equipment Custom Fields, Mobile Notebook, Main Isolation Tables, Physical Inventory, Asset Inventory. The registry marks each one and warns on enabling it, so none of them can become a decision by accident — but the marking is not the decision. Two deserve deliberate calls rather than drift: **Main Isolation Tables**, safety-critical whichever way it goes (an isolation an offline technician cannot see is a different class of problem from a missing cost code), and **Inspection Results**, which is `work-set`-shaped and probably belongs with the three children already reached by traversal from the WO. The other nine are ordinary scoping calls and can be taken as a batch. **Do not resolve these by defaulting them in** — every one is a row cap and a sync cost against a device ceiling §2.7 sets at 200,000. |
@@ -9031,6 +9140,25 @@ reported after it.
 hold several, radios where it holds exactly one. See **§30.23**; that is the
 same derivation as the rule text, one level down.
 
+**A THIRD VALUE, ADDED 2026-09-23 — and it is a test of the rule, not an
+exception to it.** §2.10.1 lets a group hold **several offline profiles**, the
+technician picking one at login. That reads at first like a cardinality chosen
+for its own sake, which is the thing this decision refuses. It is not: **the
+resolution key gained a dimension**, exactly as §29 gave the layout key an
+`Instance` one, and an offline profile now resolves on *(user group, the
+technician's login choice)*. Cardinality follows the key, as before — so the
+declared value moves from `per-group` to `multi-group` and every
+derivation downstream comes along for free: the rule text, the control shape
+(§30.23's third row), and the absence of a clash to predict, since several is
+now the legal state rather than the fault. Home layouts are the one remaining
+`per-group` type, and the navigation bar rides on them (§30.24).
+
+**The tell that this is the rule working rather than bending:** nothing else had
+to change. Same membership table, same accessors, same both-directions
+assignment, same drop-on-delete. If a new cardinality had required a second
+store or a per-area special case, that would have been the signal the rule was
+being worked around.
+
 ### Decision 3 — Create follows SIZE
 
 **Chosen.** An artifact fully definable in one form gets a **modal** (offline
@@ -9231,6 +9359,30 @@ fixed at online-only, `For Dataspy` still live — so the membership question
 keeps its control even where there is no replication bound to set. That is the
 same argument this section already makes for Tier 0 and the outbox below, one
 element wider. §2.6.
+
+### Assignment is a multi-select, from both sides (2026-09-23)
+
+A group may hold **several** profiles, and past the first the **technician**
+picks which one at login — the decision, its reasoning and its device-side rules
+are §2.10.1's; this section owns only what the portal does about it. Three
+things, all of them derived rather than added:
+
+- the artifact type declares `multi-group`, so the rule text, the control
+  shape and the clash prediction all follow from that one field (§30.13/§30.23);
+- **there is no collision to report**, so offline is skipped by
+  `allConflicts()` rather than reporting *"N assigned, a group may have
+  one"* — which is what the old cardinality would have said about the state we
+  now want;
+- what replaces the clash is the **consequence**, stated where the click is
+  (§30.20): the row that would add a second profile says the technician would
+  then pick at login, and the popover names which of the three states the
+  current set produces — nothing selected (online only), one (applied silently),
+  or several (the technician chooses). The group band repeats it at two, where
+  the set is *read* rather than made.
+
+**What the portal does NOT author here** is the login prompt, the sticky answer
+or the device-side setting. Same boundary as a dataspy and a UDS definition: the
+portal decides the *set*, the device decides *within* it.
 
 ### What renders on every profile, including "None"
 
@@ -9857,8 +10009,10 @@ never meant to appear there. There is now **one writer from the group side**
 test, at the function, because the two controls still legitimately exist and
 the wrong one is one identifier away.
 
-**One-of-many is not a checkbox.** Three of the four artifact types are
-**exactly one per group**. A tick box beside each of them invites a second tick
+**One-of-many is not a checkbox.** A Home layout is **exactly one per
+group** (and was, at the time this was written, the shape three of the four
+artifact types had — §2.10.1 later moved the offline profile off it). A tick box
+beside a one-per-group artifact invites a second tick
 and then reports a **collision** for taking the invitation — the screen
 creating the fault it exists to prevent. So the control shape is now *derived
 from* `ARTIFACT_TYPES`, the same place the rule text comes from:
@@ -9866,7 +10020,8 @@ from* `ARTIFACT_TYPES`, the same place the rule text comes from:
 | Cardinality | Control | On pick |
 | --- | --- | --- |
 | `per-wotype` (workflows) | **Checkboxes**, and a Done button | Toggles; a clash is **refused at the click** (§30.2), popover stays open |
-| `per-group` (offline, home) | **Radios**, no Done button | **Replaces** whatever was there, and **closes** |
+| `multi-group` (offline) | **Checkboxes**, a Done button, and **no None row** | Toggles; there is **no clash to refuse**, so it carries the *consequence* instead |
+| `per-group` (home) | **Radios**, no Done button | **Replaces** whatever was there, and **closes** |
 
 A radio pick **replaces**, which is what makes it honest: a per-group collision
 can no longer be created from this side at all, rather than being predicted and
@@ -9877,6 +10032,26 @@ every state it is enforcing. Without it "exactly one" would be settable but
 never unsettable from the control that sets it. On a group that inherits from
 `*`, None reads as *"fall back to the `*` default"* — which is what unset
 means (§26.5 mechanic 2), not a fourth state.
+
+**The third shape, added 2026-09-23 with §2.10.1.** Offline profiles became
+`multi-group`, so they take checkboxes — and the two differences from the
+workflow checkbox list are both consequences of there being nothing illegal to
+express:
+
+- **no None row.** Un-ticking everything *is* none, and a radio-style None
+  beside a checkbox list would be a control that can contradict its own ticks.
+  The state line below says which state the set produces, including that one.
+- **no clash to refuse.** `wouldClash()` returns null for the whole
+  cardinality, and what takes its place is `assignNote()` — the same
+  before-the-click discipline aimed at a *consequence* rather than a
+  prohibition. The row that would make the second profile says the technician
+  would then pick at login. **This is the §30.20 rule in its harder form:** it
+  is easy to raise an error at the control, and the same argument applies to a
+  consequence, which is otherwise discovered by someone else on a device.
+
+So the derivation now carries three values and still no per-area branch: one
+field on `ARTIFACT_TYPES`, and the rule text, the control, the clash and
+the note all read it.
 
 **The "No insert here" footer is gone.** The area's own header paragraph already
 says a group is created in **Security ▸ User Groups**, so this was the same
@@ -10197,6 +10372,62 @@ The `Nonconformities` tile is now **Work Requests** (user direction). It keeps
 `demoCount: 0`, because that seed is what makes §30.16's "a statement
 returning 0 renders no badge at all" visible on load.
 
+## 30.26 Fallback resolution — three tiers, and `*` is delivered (locked)
+
+Locked 2026-09-28, user direction. It closes the `*`-shaped half of §30.18's
+wildcard item, and it corrects a reading of §30.2 that the prototype had
+implemented.
+
+> The `*` workflow is **system delivered** and carries the **Default Page
+> Layout**. It is never authored, never assigned, and never occupies one of a
+> group's slots.
+
+**Free Form is a property, not a slot.** §30.2's Free Form clause is scoped to
+the case where **WO Type is absent** — *"a Free Form workflow with no Type is a
+group's fallback, and a group cannot have two fallbacks."* Any workflow may
+carry the Free Form toggle, including one bound to a specific WO Type; the seed
+data has always had one (`wf-free-insp` is `INS` **and** Free Form). So the
+slot a workflow occupies is decided by **WO Type or its absence**, and the
+toggle never enters the key.
+
+**The ladder, in resolution order:**
+
+| Tier | Row | Who authors it | Cardinality |
+| --- | --- | --- | --- |
+| 1 | `(WO Type, group)` | the customer | one per `(group, Type)` |
+| 2 | `(no WO Type, group)` — the group's own fallback | the customer | **one per group** |
+| 3 | `*` — Default Page Layout | **delivered** | exactly one, system-wide |
+
+Tier 2 is where *"we need multiple fallbacks"* is satisfied, and it needs no
+new mechanism: a fallback is an ordinary artifact with no WO Type, so a
+customer authors **as many as they like** and assigns a different one to each
+group. What stays capped at one is the **per-group** assignment, because §11
+must land on a single row — several fallbacks on one group is the one shape
+that is still refused.
+
+**Why `*` sits outside the clash space.** §30.18 put the question correctly: a
+wildcard *always* collides under one-per-group cardinality **unless the
+resolver reads it as a fallback rather than a member**. Being delivered is what
+makes it a fallback — there is no membership row to collide with, so the
+resolver falls through to it rather than resolving onto it. This is also why it
+cannot be a fifth artifact type (§30.13): it is not authored, so it has no
+assignment, no cardinality and no Create control.
+
+**What X is.** WO Type is a **code domain** (Tier 0 `0f`, §2.3/§2.8), so the
+number of tier-1 slots is whatever the customer's LOV holds — the prototype's
+seven are one environment's list, not a fixed set. The authoring surface is
+therefore `(X + 1) × |placed screens|`, the `+ 1` being tier 2. Tier 3 is
+delivered and costs the customer nothing.
+
+**The prototype was wrong in both directions** and is fixed with the key:
+`woType || 'FALLBACK'`. It had keyed `freeForm ? 'FREEFORM' : (woType || 'ANY')`,
+which **over-refused** (two typed Free Form workflows collided although their
+Types differ and §11 resolves both) and **under-refused** (a non-Free-Form
+no-Type workflow keyed `ANY`, separate from `FREEFORM`, so a group could hold
+**two** fallbacks — the one thing §30.2 names). Because "Any WO Type
+(fallback)" is the default selection for a new workflow, the second was the
+easy path into it.
+
 ## 30.18 What §30 does not settle
 
 *(Kept LAST in §30 by convention — it is a rolling open-items list, so it
@@ -10211,11 +10442,14 @@ same day and removed rather than marked.)*
   push in the same direction — and §30.13 has now done the same to three
   more artifact types, so a Draft/Current-Rev model would attach to four
   things rather than one. Still unaddressed, and still not decided here.
-- **The `*` default group as an assignment target** is modelled nowhere. The
-  User Groups area is built (§30.13) and §21's carry-over mechanics came with
-  it, but a wildcard row is a different shape from a named group: it is an
-  assignment that *always* clashes under one-per-group cardinality unless the
-  resolver reads it as a fallback rather than a member.
+- **The `*` default group — CLOSED 2026-09-28, §30.26.** It is **system
+  delivered** and carries the **Default Page Layout**, so it is never an
+  assignment target at all: it has no membership row, and the resolver falls
+  through to it rather than resolving onto it. That is exactly the "reads it
+  as a fallback rather than a member" escape this item asked for. **What is
+  still open is the delivered artifact itself** — nothing specifies what the
+  Default Page Layout places, and the portal neither ships nor displays a `*`
+  row, so an admin cannot currently see the behaviour their groups inherit.
 - **What happens to in-flight work when an assignment is removed.** The
   membership table makes removal a one-click operation from either side, which
   raises the question more sharply than §26.5 did. §29.5's config-version

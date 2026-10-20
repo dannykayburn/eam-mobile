@@ -1038,12 +1038,38 @@ console.log('\nAreas: cardinality follows what the runtime resolves on');
      per Type. Everything else resolves on the group alone. That is why the
      rule generalises instead of needing a special case per area. */
   ok('workflow is per-WO-Type', ev(ctx, 'ARTIFACT_TYPES.workflow.cardinality') === 'per-wotype');
-  ok('offline and home are per-group',
-    ev(ctx, 'ARTIFACT_TYPES.offline.cardinality') === 'per-group' &&
-    ev(ctx, 'ARTIFACT_TYPES.home.cardinality') === 'per-group');
+  ok('home is per-group', ev(ctx, 'ARTIFACT_TYPES.home.cardinality') === 'per-group');
+  /* THE THIRD VALUE (2026-09-23). An offline profile's resolution key gained a
+     session dimension — (user group, the technician's own login choice) — the
+     way §29 gave the layout key an Instance one. So a group may hold SEVERAL,
+     which is the same derivation rather than an exception to it. */
+  ok('offline is multi-group', ev(ctx, 'ARTIFACT_TYPES.offline.cardinality') === 'multi-group');
   ok('the rule TEXT is derived, not written per area', ev(ctx,
-    'assignRuleText("offline").indexOf("exactly one") > -1 && ' +
+    'assignRuleText("home").indexOf("exactly one") > -1 && ' +
+    'assignRuleText("offline").indexOf("at login") > -1 && ' +
     'assignRuleText("workflow").indexOf("per WO Type") > -1'));
+  /* A multi-group type has no slot to collide in, so there is nothing to
+     refuse and nothing to report — from either side. */
+  ok('a second offline profile on a group is NOT a clash', evb(ctx,
+    '(function(){var mine=artifactsForGroup("MAINT-TECH","offline")[0];' +
+    'var other=PROFILES.filter(function(p){return p.id!==mine.artifactId;})[0];' +
+    'return !wouldClash("offline", other.id, "MAINT-TECH");})()'));
+  ok('...and two assigned at once is not a conflict either', evb(ctx,
+    '(function(){var mine=artifactsForGroup("MAINT-TECH","offline")[0];' +
+    'var other=PROFILES.filter(function(p){return p.id!==mine.artifactId;})[0];' +
+    'setAssigned("offline", other.id, "MAINT-TECH", true);' +
+    'var n=allConflicts().filter(function(c){return c.type==="offline";}).length;' +
+    'setAssigned("offline", other.id, "MAINT-TECH", false);' +
+    'return n === 0;})()'));
+  /* What IS real is the consequence, and it is stated on the row that would
+     cause it rather than discovered at someone's login. */
+  ok('...but the row that would cause it names who then chooses', evb(ctx,
+    '(function(){var mine=artifactsForGroup("MAINT-TECH","offline")[0];' +
+    'var other=PROFILES.filter(function(p){return p.id!==mine.artifactId;})[0];' +
+    'return /at login/.test(assignNote("offline", other.id, "MAINT-TECH") || "");})()'));
+  ok('...and the FIRST one says nothing, because one profile is invisible', evb(ctx,
+    '(function(){var mine=artifactsForGroup("MAINT-TECH","offline")[0];' +
+    'return assignNote("offline", mine.artifactId, "SUPERVISOR") === null;})()'));
   /* A per-group clash is predicted BEFORE the click, not reported after. */
   ok('assigning a second per-group artifact is predicted as a clash', evb(ctx,
     '(function(){var mine=artifactsForGroup("SUPERVISOR","home")[0];' +
@@ -1069,6 +1095,43 @@ console.log('\nAreas: cardinality follows what the runtime resolves on');
     'if(!held || !free) return false;' +
     'var msg = wouldClash("workflow", free.id, "CONTRACTOR");' +
     'return !!msg && !isAssigned("workflow", free.id, "CONTRACTOR");})()'));
+  /* ── §30.26 THE SLOT KEY IS THE WO TYPE OR ITS ABSENCE ──────────────
+     Free Form is a PROPERTY, not a slot, so it must never enter the key.
+     The old key (freeForm ? FREEFORM : woType||ANY) failed both ways, and
+     each failure renders as a perfectly plausible screen — only a key test
+     catches them. Both cases below are latent in the seed data. ── */
+  ok('a typed Free Form workflow keys on its WO Type, not on Free Form',
+    evb(ctx, '(function(){' +
+    /* wf-free-insp is INS *and* Free Form. A second Free Form workflow for a
+       DIFFERENT Type must be assignable alongside it — §11 resolves each on
+       its own Type, so refusing this was over-refusal. */
+    'var insp=WFS.filter(function(w){return w.freeForm && w.woType==="INS";})[0];' +
+    'if(!insp) return false;' +
+    'var g=groupsOf("workflow",insp.id)[0];' +
+    'if(!g) return false;' +
+    'var probe={id:"__probe_typed",desc:"Probe",woType:"CAL",freeForm:true,fn:"WSJOBS",nodes:[]};' +
+    'WFS.push(probe);' +
+    'var clash=wouldClash("workflow", probe.id, g);' +
+    'WFS.pop();' +
+    'return wfSlot(insp)==="INS" && !clash;})()'));
+  ok('a no-Type workflow shares ONE fallback slot whether Free Form or not',
+    evb(ctx, '(function(){' +
+    /* §30.2: a group cannot have two fallbacks. The old key gave a
+       non-Free-Form no-Type workflow its own ANY slot, so a group could hold
+       two — and "Any WO Type (fallback)" is the DEFAULT for a new workflow,
+       which is the easy path into it. */
+    'var ff=WFS.filter(function(w){return w.freeForm && !w.woType;})[0];' +
+    'if(!ff) return false;' +
+    'var g=groupsOf("workflow",ff.id)[0];' +
+    'if(!g) return false;' +
+    'var probe={id:"__probe_any",desc:"Probe",woType:null,freeForm:false,fn:"WSJOBS",nodes:[]};' +
+    'WFS.push(probe);' +
+    'var clash=wouldClash("workflow", probe.id, g);' +
+    'WFS.pop();' +
+    'return wfSlot(ff)==="FALLBACK" && wfSlot(probe)==="FALLBACK" && !!clash;})()'));
+  ok('all three slot call sites read the one accessor',
+    evb(ctx, '[wouldClash, assignmentConflicts, allConflicts]' +
+      '.every(function(f){return f.toString().indexOf("wfSlot")>-1;})'));
   ok('and nothing was auto-resolved',
     ev(ctx, 'WFS.filter(w=>groupsOf("workflow",w.id).indexOf("MAINT-TECH")>-1).length') >= 2);
   ok('no collision roll-up is rendered anywhere',
@@ -2704,9 +2767,9 @@ console.log('\nStop Timer — the action that BOOKS (§30.21, reversed 2026-09-1
     (gal().match(/Security ▸ User Groups/g) || []).length === 1);
 
   /* CARDINALITY DECIDES THE CONTROL SHAPE (§30.13). One-of-many is not a
-     checkbox: a tick box beside each of three per-group artifacts invites a
-     second tick and then reports a collision for taking the invitation. */
-  ev(ctx, 'openGroupAssign({clientX:10,clientY:10},"MAINT-TECH","offline");');
+     checkbox: a tick box beside a per-group artifact invites a second tick
+     and then reports a collision for taking the invitation. */
+  ev(ctx, 'openGroupAssign({clientX:10,clientY:10},"MAINT-TECH","home");');
   ok('a per-group artifact is offered as RADIOS', pop().indexOf('class="rdo') > -1 &&
     pop().indexOf('class="cbx') === -1);
   ok('...including a None row, so the control can express every state it enforces',
@@ -2719,25 +2782,60 @@ console.log('\nStop Timer — the action that BOOKS (§30.21, reversed 2026-09-1
   ok('...and keeps a Done button, because a multi-select needs a way out',
     pop().indexOf('closePop()') > -1);
 
-  /* A RADIO PICK REPLACES. That is the difference between the control being
-     honest about "exactly one" and the screen reporting a collision the user
-     was invited to create. */
-  const profOf = g => ev(ctx, 'artifactsForGroup(' + JSON.stringify(g) + ',"offline").length');
-  ok('MAINT-TECH starts with exactly one offline profile', profOf('MAINT-TECH') === 1);
-  ok('picking a different one REPLACES rather than adding a second', evb(ctx,
+  /* THE THIRD SHAPE (2026-09-23). Several offline profiles are legal, so it is
+     a checkbox list — and it needs NO None row, because un-ticking everything
+     IS none. What it carries instead is the state the current set produces,
+     since past one the person who decides changes (§2.10). */
+  ev(ctx, 'openGroupAssign({clientX:10,clientY:10},"MAINT-TECH","offline");');
+  ok('a multi-group artifact is offered as CHECKBOXES',
+    pop().indexOf('class="cbx') > -1 && pop().indexOf('class="rdo') === -1);
+  ok('...with no None row, because un-ticking everything is none',
+    pop().indexOf('>None<') === -1);
+  ok('...and one profile reads as provisioning, with no prompt',
+    /no prompt/.test(pop()));
+  ok('a second profile is an ADDITION, and the control says who then chooses', evb(ctx,
     '(function(){' +
     'var had=artifactsForGroup("MAINT-TECH","offline")[0].artifactId;' +
     'var other=PROFILES.filter(function(p){return p.id!==had;})[0];' +
     'if(!other) return false;' +
     'groupAssignPick("offline", other.id, "MAINT-TECH");' +
-    'var now=artifactsForGroup("MAINT-TECH","offline");' +
+    'var h=document.getElementById("pop").innerHTML;' +
+    'return artifactsForGroup("MAINT-TECH","offline").length === 2 &&' +
+    '  /chooses one at login/.test(h) &&' +
+    '  document.getElementById("pop").classList.contains("open");})()'));
+  /* The same fact where the set is READ rather than made — and this is a
+     render path, so it is driven rather than inspected as a string. */
+  ok('...and the group band repeats it at two', evb(ctx,
+    '(function(){ render();' +
+    'return /profiles — the technician chooses one at login/' +
+    '  .test(document.getElementById("gallery").innerHTML); })()'));
+  ok('...and two is still not a collision', ev(ctx,
+    'allConflicts().filter(function(c){return c.type==="offline";}).length') === 0);
+  ok('un-ticking back to zero is the online-only state, and it says that too', evb(ctx,
+    '(function(){ artifactsForGroup("MAINT-TECH","offline").slice().forEach(function(r){' +
+    '  groupAssignPick("offline", r.artifactId, "MAINT-TECH"); });' +
+    'return artifactsForGroup("MAINT-TECH","offline").length === 0 &&' +
+    '  /online only/.test(document.getElementById("pop").innerHTML);})()'));
+
+  /* A RADIO PICK REPLACES. That is the difference between the control being
+     honest about "exactly one" and the screen reporting a collision the user
+     was invited to create. Measured on the one type that is still per-group. */
+  const homeOf = g => ev(ctx, 'artifactsForGroup(' + JSON.stringify(g) + ',"home").length');
+  ok('SUPERVISOR starts with exactly one home layout', homeOf('SUPERVISOR') === 1);
+  ok('picking a different one REPLACES rather than adding a second', evb(ctx,
+    '(function(){' +
+    'var had=artifactsForGroup("SUPERVISOR","home")[0].artifactId;' +
+    'var other=HOMES.filter(function(h){return h.id!==had;})[0];' +
+    'if(!other) return false;' +
+    'groupAssignPick("home", other.id, "SUPERVISOR");' +
+    'var now=artifactsForGroup("SUPERVISOR","home");' +
     'return now.length === 1 && now[0].artifactId === other.id;})()'));
   ok('...so a per-group collision can no longer be created from this side',
     ev(ctx, 'allConflicts().filter(function(c){' +
-      'return c.type==="offline" && c.group==="MAINT-TECH";}).length') === 0);
+      'return c.type==="home" && c.group==="SUPERVISOR";}).length') === 0);
   ok('the None row clears the explicit row', evb(ctx,
-    '(function(){ groupAssignPick("offline","","MAINT-TECH");' +
-    'return artifactsForGroup("MAINT-TECH","offline").length === 0; })()'));
+    '(function(){ groupAssignPick("home","","SUPERVISOR");' +
+    'return artifactsForGroup("SUPERVISOR","home").length === 0; })()'));
   ok('...and it CLOSES on the pick, no second popover', evb(ctx,
     '!document.getElementById("pop").classList.contains("open")'));
 

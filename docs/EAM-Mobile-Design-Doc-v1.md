@@ -181,8 +181,13 @@ there and leave this list alone.
 - **"Offline" is provisioned, not chosen.** Three layers — Tier 0 always
   persisted, the outbox always on, **record replication as the only switchable
   layer** — assigned as a named profile in the portal's User Groups area, with
-  "none" as the off state. Admin-provisioned, invisible to the technician, fixed
-  for the session: that is provisioning, not a mode. *(Spec §2.10.)*
+  "none" as the off state. Admin-provisioned and fixed for the session: that is
+  provisioning, not a mode. **A group may be granted SEVERAL profiles**
+  *(revised 2026-09-23)*, and where it is, the technician **picks one at login**
+  and can change it in Settings. Still provisioning: the list is admin-granted,
+  no option can widen it, and every option is online-first — what is chosen is
+  *which declared scope to hydrate*, never whether to be offline. One profile
+  stays silent and invisible, which is the common case. *(Spec §2.10/§2.10.1.)*
 - **The write path stays disabled until status authorizations are present.**
   *(Spec §2.3; see Security.)*
 - **Lookups resolve three ways offline** — bounded code domains replicate whole;
@@ -353,7 +358,10 @@ control shows a state that is honest about this rather than reading as an error.
 *(Spec §2.10; and see Open issue 7 — that state does not exist yet.)*
 
 **This is what profile `None` is for** — an internal online-only user group: a
-storeroom or planner group that is always in network.
+storeroom or planner group that is always in network. It is the **zero** case of
+§2.10.1's three: none, one, or several. A group granted several is the opposite
+end — the technician picks which scope to hydrate at login — and both are
+provisioning, because the admin decides what is on the list either way.
 
 ## Screens
 
@@ -969,6 +977,7 @@ re-listing of §20.
 | **5** | **Workflow config revisioning at runtime.** Authoring is handled (dangling and backward fork targets are cleared). **Runtime is not**: a fork's target is a pointer to another step, so reordering or deleting steps invalidates routing a technician may be mid-way through. | Ratify §14.11's config-version stamp as the answer, or reject it and propose another. Either way, stop carrying it as "recommended." | M6 |
 | **6** | ~~Offline-profile authoring has no surface~~ — **RESOLVED 2026-09-16** (§30.14). Built as an area of the portal, not improvised into User Group Setup, so the reason for keeping it off the group side still holds. It composes §2.7's per-entity registry with caps enforced at authoring time, §2.8's lookup classes read-only, and Tier 0 + the outbox rendered first on every profile including **None**. **Two things came out of building it and are now open in §20** — see issue 6b, and note that 11 of 31 entities have no policy decision at all. Still unmodelled and still owed: the **device** axis as `min(group, device)`, and per-user as override only. It remains a **privacy control**; price it accordingly. | Scope the two unmodelled axes as a base-track screen at M9. | M9 |
 | **6b** | **§2.7 narrows offline capability relative to the SHIPPING product — DECISION REQUIRED.** Found 2026-09-16 by mapping the live **User Group ▸ Mobile Settings** tab onto §2.7 (§30.14). §2.7 puts **equipment/WO history** and **meter readings** in `server-only`; the shipping product downloads both and customers use them. A technician who could read meter history offline yesterday and cannot today experiences a **downgrade**, and nothing has acknowledged it as one. Either §2.7 stands and this is communicated as a known regression with the online path as the answer — defensible under R1 but only where coverage is good — or §2.7 gets a **bounded** carve-out (last N readings, last N WOs per asset), never the unbounded history the current product ships, because unbounded history is what §2.7's row cap exists to refuse. | Product + the offline owner, together. Needed at **M1**, since it changes the per-entity policy registry that M1 delivers. | M1, M4 |
+| **6c** | **§2.10.1's login profile chooser has no device side.** Opened 2026-09-23 with the several-profiles decision. The portal assigns the set; the app has none of what the decision owes — no chooser inside the login round-trip, no Settings row naming the profile in force, and no sticky *(user, device)* answer. Treat it as **one item in three parts**, since any one alone is unusable, and note the blocker in front of all three is the general one: **nothing feeds the app a portal artifact yet**, so a chooser built today would choose from a hardcoded list. Four rules ride on the Settings row and are the part most likely to be got wrong — a switch states its cost, **never drops the outbox**, is **refused with no connectivity**, and **never evicts live work** (a Started WO or a manual pin). | Sequence it with the same hand-off that feeds the app workflow definitions; do the Settings row and the chooser together. Also **name the profile in force in the sync panel**, which folds into issue 7. | M8 |
 | **7** | **The sync control has no state or copy for an online-only user** (S7). Fell out of the R1 decision; the only prototype change that did. | UX, small. Do it before M8. | M8 |
 | **8** | **UDS: two answers left** — cardinality (1:1 or 1:N per `(WO, UDS)`), needed **before** the write envelope is built; and whether UDS fields are governed by status authorizations at all, which is a hole in the write gate. Plus two now-required guards: a per-UDS row cap, and authoring-time FK-mapping validation. | Both to the base team at M1. | M4 |
 | **9** | **Where user-defined text translations live.** The question fork is the first place an admin types prose a technician reads; the language-keyed map on the prompt row is a **stand-in, not a schema proposal** (no confirmed EAM table). One rule must survive any answer: a missing translation **falls back to the base language and never blanks**, because an empty question on a gated step is unanswerable. | Base team, at M1. | M6 |
@@ -1007,6 +1016,7 @@ Recorded so they are not re-opened. **Full "old → new, why" for each lives in
 | WO Type protection | **Protects at Start Work**, not at insert. Replaced a proposed four-tier gate ladder and closed required-field drift. Equipment's system type is Protected in update mode, always. One paradigm, two trigger points. | 2026-08-25 |
 | Start Work | **The commitment boundary** — five things happen at once and only make sense together (S2). | 2026-08-25 |
 | Activity Checklist navigation — the largest open *design* question | **Snap-scroll between items**, resolved on a device against paged Prev/Next. Snapping is **JS-owned on deceleration**; CSS `scroll-snap` was rejected on device. The paged path and its flag were **deleted, not pinned**, so there is one render path and no dead branch. Prev/Next is retained and commits the cursor directly. | 2026-09-21 |
+| How many offline profiles a user group gets | **Several, and then the technician picks one at login** — with a setting to change it, and the answer remembered per device. Cardinality on the offline profile moves from *exactly one per group* to *several*; §30.13's rule is untouched, because the resolution key gained a dimension rather than the rule gaining an exception. It is **not** a mode: every option is admin-granted, narrowing-only and online-first, so what is chosen is *which declared scope to hydrate*. One profile — the common case — still applies silently. The portal half is built; **the device half is not** (Open issue 6c). | 2026-09-23 |
 | The punch-list dataspy selector's home | **The offline profile's Work Orders row** — it was already built there, so the doc was trailing the prototype. Reverses the 2026-09-11 "on the user group" answer, whose objection assumed a *group-scoped* dataspy; the punch-list one is **user-relative** (`My Open WOs`), so a shared profile still yields a per-technician list. **Profile `None` gets one too**: the Work Orders row renders on every profile, policy fixed at online-only, because the punch list is a membership question and was never a consequence of replication — the same argument that already puts Tier 0 and the outbox on every profile. What remains is implementation only (Open issue 1c). | 2026-09-23 |
 | Gating direction | **Forward-only.** A completed step is always reopenable; a later step stays locked and explains itself. | 2026-08-11 |
 | Platform target | **Native React Native**, not a responsive PWA. The spec's own header cell contradicted this for weeks while naming a React-Native-only library. | 2026-08-25 |
