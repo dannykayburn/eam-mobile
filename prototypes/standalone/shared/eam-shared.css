@@ -1899,15 +1899,15 @@ body{font-family:var(--font-sans);font-size:var(--k-body2);background:var(--bg-p
 /* ✓ confirm stays Danny's GREEN (§3.4, pinned by test-editors.js) — the one
    deliberate non-kit colour in the sheet header; now at the kit 40px Icon
    Button size. */
-.sheet-confirm-btn{width:var(--k-h);height:var(--k-h);border-radius:50%;background:var(--green);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--uxt-theme-palette-success-contrast-text,#fff);flex-shrink:0;transition:opacity .15s,background .15s;}
-.sheet-confirm-btn:active{opacity:.82;}
-.sheet-confirm-btn.disabled{background:var(--uxt-theme-palette-action-disabled-background,rgba(26,26,31,.12));color:var(--uxt-theme-palette-action-disabled,rgba(26,26,31,.5));pointer-events:none;}
+button.sheet-confirm-btn{width:var(--k-h);height:var(--k-h);border-radius:50%;background:var(--green);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--uxt-theme-palette-success-contrast-text,#fff);flex-shrink:0;transition:opacity .15s,background .15s;}
+button.sheet-confirm-btn:active{opacity:.82;}
+button.sheet-confirm-btn.disabled{background:var(--uxt-theme-palette-action-disabled-background,rgba(26,26,31,.12));color:var(--uxt-theme-palette-action-disabled,rgba(26,26,31,.5));pointer-events:none;}
 /* Opt-in for a consumer whose existing gate toggles `.ready` (the positive
    form) rather than `.disabled` — Issue Parts' issue/return sheet, whose
    updateSaveGate() has several early-return branches all written that way.
    Inverting the class in CSS beats rewriting those branches and risking one
    being missed. Same rendered result either way. */
-.sheet-confirm-btn.ready-gated:not(.ready){background:var(--uxt-theme-palette-action-disabled-background,rgba(26,26,31,.12));color:var(--uxt-theme-palette-action-disabled,rgba(26,26,31,.5));pointer-events:none;}
+button.sheet-confirm-btn.ready-gated:not(.ready){background:var(--uxt-theme-palette-action-disabled-background,rgba(26,26,31,.12));color:var(--uxt-theme-palette-action-disabled,rgba(26,26,31,.5));pointer-events:none;}
 /* Right-hand cluster when a sheet needs Clear AND confirm (the edit sheet). */
 .sheet-header-right{display:flex;align-items:center;gap:var(--k-s1);flex-shrink:0;}
 /* Legacy toast — only shown when the kit is absent; showToast() uses the kit
@@ -2344,12 +2344,42 @@ button, .bar-pill, .bottom-nav-item, .home-tile, .fav-chip, .ld-card,
 uxt-button.kit-btn-block{display:block !important;width:100%;}
 .kit-sheet-spacer{width:var(--k-h);flex-shrink:0;}
 .kit-sheet-text-btn{flex-shrink:0;}
+uxt-button.kit-sheet-text-btn.hidden{visibility:hidden;}
+/* Kit buttons sharing a row equally (step bottom bars, timer Pause/Stop). */
+uxt-button.kit-flex-btn{flex:1;min-width:0;}
+uxt-button.kit-btn-gap{margin-top:var(--k-s1);}
+.attr-item > uxt-input{display:block;width:100%;min-width:0;}
+.form-field > uxt-input.kit-time-input{margin-left:auto;flex-shrink:0;}
+/* Top-bar and record-header Icon Buttons (one class on every screen):
+   outlined on background-card fill; gray (action-selected, never blue)
+   while their panel is open or the record is pinned. */
+uxt-icon-button.kit-bar-btn{flex-shrink:0;}
+uxt-icon-button.kit-bar-btn > .ib{background:var(--k-card);}
+uxt-icon-button.kit-bar-btn.hidden{display:none !important;}
+uxt-icon-button.kit-bar-btn.active > .ib,uxt-icon-button.kit-bar-btn.pinned > .ib{background:var(--k-selected);}
 /* Search row inside a shared filter sheet. */
 .kit-sheet-search{padding:var(--k-s1) var(--k-s4) var(--k-s2);}
 .kit-sheet-search > uxt-search-bar{display:block;width:100%;}
+.kit-sheet-search.hidden{display:none;}
+/* Dataspy sheet row (kitDataspyRow()): star Icon Button beside a List Item. */
+.kit-ds-row{display:flex;align-items:center;gap:var(--k-s1);padding-left:var(--k-s2);}
+.kit-ds-row > uxt-list-item{flex:1;min-width:0;display:block;}
+.kit-ds-row > uxt-icon-button{flex-shrink:0;}
 /* Segmented mode switch (Detailed/List, Asc/Desc). */
 .kit-mode-tog{margin:var(--k-s2) var(--k-s4) 0;}
 .kit-mode-tog > uxt-toggle-button-group{display:block;width:100%;}
+/* Full-width segmented switch: equal segments across the row. The kit group
+   has no full-width attribute yet (kit ask), so its pill grid is stretched
+   here, scoped to this wrapper only. */
+.kit-mode-tog > uxt-toggle-button-group > .tbg{display:grid;grid-auto-columns:1fr;width:100%;}
+/* Long-text editor's Discard (kit Button): hidden until the first close tap
+   on a dirty editor adds .show (textEditorCloseTap()). */
+uxt-button.text-editor-discard:not(.show){display:none !important;}
+uxt-button.text-editor-discard.show{display:inline-block !important;flex-shrink:0;}
+/* Gated kit buttons that still explain themselves when tapped while
+   disabled (kitGate() in eam-shared.js): the pointer passes through the
+   kit's disabled inner <button> to the host, whose onclick shows the toast. */
+uxt-button.kit-gated[disabled] > button, uxt-icon-button.kit-gated[disabled] > button{pointer-events:none;}
 /* Search bar beside its close / scan Icon Button, 4px apart. */
 .ld-search-bar > uxt-search-bar{flex:1;min-width:0;}
 .kit-sort-btn{flex-shrink:0;}

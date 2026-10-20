@@ -21,21 +21,6 @@
   /* ── Octave kit host layer (screen-local, 2026-10-20): places and sizes
      the real <uxt-*> elements in this screen's own markup; the kit owns
      their look. ── */
-  /* A gated kit button: pointer-events off while disabled so the tap lands
-     on the wrapper, which still runs the save and its "required" toast. */
-  .kit-gate > uxt-button[disabled]{pointer-events:none;}
-  /* Shared toggles show/hide these by class; the kit writes an inline
-     display, so the class rule needs !important to win. */
-  uxt-button.text-editor-discard{display:none !important;}
-  uxt-button.text-editor-discard.show{display:inline-block !important;}
-  .kit-sheet-search.hidden{display:none;}
-  .filter-chip-row > uxt-status-chip{flex-shrink:0;}
-  .attr-item > uxt-input{display:block;width:100%;min-width:0;}
-  /* Dataspy sheet row: favourite star (kit Icon Button, its own tap target)
-     beside a kit List Item; the current dataspy is the gray selected row. */
-  .kit-ds-row{display:flex;align-items:center;gap:var(--k-s1);padding-left:var(--k-s2);}
-  .kit-ds-row > uxt-list-item{flex:1;min-width:0;display:block;}
-  .kit-ds-row > uxt-icon-button{flex-shrink:0;}
   /* Real pull-up sheet motion (2026-07-22, home-nav wiring pass) — this
      screen is only ever reached "pulled up" from Home (no tab-root of its
      own), and the .app frame already matches Home's exactly (verified:
@@ -384,7 +369,7 @@
       <div class="sheet-title" id="csTitle">Filter</div>
       <div class="sheet-header-right">
         <uxt-button class="sheet-clear-btn kit-sheet-text-btn" variant="text" tone="neutral" text="Clear" onclick="clearCS()"></uxt-button>
-        <button class="sheet-confirm-btn" onclick="applyCS()" aria-label="Apply"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>
+        <uxt-icon-button class="sheet-confirm-btn" icon="check" tone="success" outlined label="Apply" density="m" onclick="applyCS()"></uxt-icon-button>
       </div>
     </div>
     <!-- Search-within row (§6.11, added 2026-08-11) — part of the List Search
@@ -503,10 +488,10 @@
       </div>
     </div>
     <div class="insert-mode-footer">
-      <!-- Kit contained button. The shared gate still toggles .ready on
-           #insertSaveBtn; scrKitGate() mirrors it to the kit disabled state,
-           and the wrapper keeps the tap (and its "X is required" toast). -->
-      <div class="kit-gate" onclick="saveInsertRecord()"><uxt-button class="kit-btn-block" id="insertSaveBtn" variant="contained" text="Create"></uxt-button></div>
+      <!-- Kit contained button. updateInsertSaveGate() (kitGate()) toggles
+           .ready and the kit `disabled` together; .kit-gated keeps the tap
+           while disabled, so the "X is required" toast still explains it. -->
+      <uxt-button class="kit-btn-block kit-gated" id="insertSaveBtn" variant="contained" text="Create" disabled onclick="saveInsertRecord()"></uxt-button>
     </div>
   </div>
 
@@ -535,10 +520,7 @@
       <div class="insert-mode-title">Select Equipment</div>
       <div class="kit-sheet-spacer"></div>
     </div>
-    <div class="mode-tog">
-      <button class="mode-btn active" id="equipTabBtnSearch" onclick="switchEquipTab('search')">Search</button>
-      <button class="mode-btn" id="equipTabBtnStructure" onclick="switchEquipTab('structure')">Structure</button>
-    </div>
+    <div class="kit-mode-tog"><uxt-toggle-button-group id="equipTabTog" density="m" options='[{"value":"search","label":"Search"},{"value":"structure","label":"Structure"}]' value="search" onchange="switchEquipTab(event.detail.value)"></uxt-toggle-button-group></div>
     <div class="insert-mode-body" id="equipmentPopupBody">
       <div id="equipTabSearch">
         <div id="equipSearchShell"></div>
@@ -589,7 +571,7 @@
       <!-- ✓ replaces the old bottom Save pill (§3.4, 2026-08-11): a pill at the
            sheet's bottom edge collided with iOS's own keyboard accessory bar
            once --kb-inset lifted the sheet. Same gating as that Save had. -->
-      <button class="sheet-confirm-btn" id="textEditorConfirmBtn" onclick="saveTextEditor()" aria-label="Save"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>
+      <uxt-icon-button class="sheet-confirm-btn" id="textEditorConfirmBtn" icon="check" tone="success" outlined label="Save" density="m" onclick="saveTextEditor()"></uxt-icon-button>
     </div>
     <div class="text-editor-body"><textarea class="text-editor-textarea" id="textEditorTextarea" oninput="textEditorInputChanged()" placeholder="Type here…"></textarea></div>
   </div>
@@ -626,15 +608,6 @@ function scrFocusKitField(cell, e) {
   if (!f) return;
   f.focus();
   try { f.setSelectionRange(f.value.length, f.value.length); } catch (err) { /* no caret API */ }
-}
-// The shared Save gate toggles a CLASS (.ready on #insertSaveBtn, which the
-// tests also read). Mirror it onto the kit button's disabled state.
-function scrKitGate(id, readyClass) {
-  const b = document.getElementById(id);
-  if (!b) return;
-  const sync = () => b.toggleAttribute('disabled', !b.classList.contains(readyClass));
-  sync();
-  if (typeof MutationObserver !== 'undefined') new MutationObserver(sync).observe(b, { attributes: true, attributeFilter: ['class'] });
 }
 // Insert Mode's Type pill (§9.4.1, added 2026-07-29) re-scopes the flat
 // fields section on every change, not just on entity switch — same
@@ -975,11 +948,8 @@ function scrollListToTop() {
 /* ══ DATASPY SHEET ══ */
 function openEquipDsSheet() {
   const sorted = [...DS].sort((a, b) => (isFavoriteEquipDS(b.id) ? 1 : 0) - (isFavoriteEquipDS(a.id) ? 1 : 0));
-  document.getElementById('equipDsSheetBody').innerHTML = sorted.map(d => `
-    <div class="kit-ds-row">
-      <uxt-icon-button class="kit-ds-star" icon="star" label="${isFavoriteEquipDS(d.id) ? 'Remove favorite' : 'Favorite'}"${isFavoriteEquipDS(d.id) ? ' tone="warning"' : ''} density="m" onclick="event.stopPropagation();toggleFavEquipDS('${d.id}')"></uxt-icon-button>
-      <uxt-list-item class="lov-option" density="m" text="${kitEsc(d.name)}"${curDS === d.id ? ' selected' : ''} onclick="selEquipDS('${d.id}')"></uxt-list-item>
-    </div>`).join('');
+  document.getElementById('equipDsSheetBody').innerHTML = sorted.map(d =>
+    kitDataspyRow(d.name, isFavoriteEquipDS(d.id), curDS === d.id, `toggleFavEquipDS('${d.id}')`, `selEquipDS('${d.id}')`)).join('');
   openSheet('equipDsSheet');
 }
 function selEquipDS(id) {
@@ -1106,7 +1076,6 @@ refS1();
 // all declared further up the file, and re-runs refS1/refS2 itself. Skipped
 // when a Home tile handed over a dataspy (see applyPendingSpy above).
 if (!pendingSpyApplied) restoreListState();
-scrKitGate('insertSaveBtn', 'ready');
 // Mirror a hidden text source into a kit element's `text` attribute.
 (function scrMirrorText(srcId, kitId) {
   const src = document.getElementById(srcId), kit = document.getElementById(kitId);

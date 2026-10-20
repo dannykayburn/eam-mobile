@@ -57,12 +57,6 @@
 /* ── Octave kit hosts (2026-10-20) — host layout only, never kit internals.
    Top-bar and header controls are kit outlined Icon Buttons on the card
    fill; the kit pins its host background inline, hence !important. */
-uxt-icon-button.kit-bar-btn { background: var(--k-card) !important; border-radius: var(--k-pill); flex-shrink: 0; }
-uxt-icon-button.kit-bar-btn.hidden { display: none !important; }
-uxt-icon-button.kit-bar-btn.active { background: var(--k-selected) !important; }
-/* Shared code shows the discard pill with .show; the kit sets an inline
-   display on connect, so the hidden state needs !important. */
-uxt-button.text-editor-discard:not(.show) { display: none !important; }
 </style>
 </head>
 <body>
@@ -179,7 +173,7 @@ uxt-button.text-editor-discard:not(.show) { display: none !important; }
       <!-- ✓ replaces the old bottom Save pill (§3.4, 2026-08-11): a pill at the
            sheet's bottom edge collided with iOS's own keyboard accessory bar
            once --kb-inset lifted the sheet. Same gating as that Save had. -->
-      <button class="sheet-confirm-btn" id="textEditorConfirmBtn" onclick="saveTextEditor()" aria-label="Save"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>
+      <uxt-icon-button class="sheet-confirm-btn" id="textEditorConfirmBtn" icon="check" tone="success" outlined label="Save" density="m" onclick="saveTextEditor()"></uxt-icon-button>
     </div>
     <div class="text-editor-body"><textarea class="text-editor-textarea" id="textEditorTextarea" oninput="textEditorInputChanged()" placeholder="Type here…"></textarea></div>
   </div>

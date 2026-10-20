@@ -124,12 +124,6 @@
 
 /* ── Sheet controls moved onto kit elements (this file's hand-copied
    shared sheets). Host layout only. ── */
-#lovSearchRow.hidden{display:none;}
-/* Gated buttons keep firing their handler while disabled (the not-ready
-   Create still explains what's missing via toast), so the inner button
-   passes the tap to the kit host. */
-#insertSaveBtn[disabled] button{pointer-events:none;}
-#insertSaveBtn{display:block;width:100%;}
 .qr-scan-footer > uxt-button{display:block;width:100%;}
 </style>
 </head>
@@ -354,11 +348,7 @@
       <div class="insert-mode-title">Select Equipment</div>
       <div class="kit-sheet-spacer"></div>
     </div>
-    <!-- Kit toggle group. switchEquipTab() (eam-shared.js) still flips
-         .active on the two hidden #equipTabBtn* spans; kitSyncEquipTabs()
-         below mirrors that into the group's value. -->
     <div class="kit-mode-tog"><uxt-toggle-button-group id="equipTabTog" density="m" options='[{"value":"search","label":"Search"},{"value":"structure","label":"Structure"}]' value="search" onchange="switchEquipTab(event.detail.value)"></uxt-toggle-button-group></div>
-    <span class="active" id="equipTabBtnSearch" hidden></span><span id="equipTabBtnStructure" hidden></span>
     <div class="insert-mode-body" id="equipmentPopupBody">
       <div id="equipTabSearch">
         <div id="equipSearchShell"></div>
@@ -416,7 +406,7 @@
            once --kb-inset lifted the sheet. Same gating as that Save had. -->
       <!-- Kit outlined Icon Button; updateTextEditorSaveGate() still toggles
            `.disabled`, mirrored to the kit `disabled` attribute below. -->
-      <uxt-icon-button id="textEditorConfirmBtn" icon="check" tone="success" outlined label="Save" density="m" onclick="saveTextEditor()"></uxt-icon-button>
+      <uxt-icon-button class="sheet-confirm-btn" id="textEditorConfirmBtn" icon="check" tone="success" outlined label="Save" density="m" onclick="saveTextEditor()"></uxt-icon-button>
     </div>
     <div class="text-editor-body"><textarea class="text-editor-textarea" id="textEditorTextarea" oninput="textEditorInputChanged()" placeholder="Type here…"></textarea></div>
   </div>
@@ -522,9 +512,10 @@
       </div>
     </div>
     <div class="insert-mode-footer">
-      <!-- Kit contained button; updateInsertSaveGate() still toggles `.ready`,
-           mirrored to the kit `disabled` attribute below. -->
-      <uxt-button id="insertSaveBtn" variant="contained" text="Create" disabled onclick="saveInsertRecord()"></uxt-button>
+      <!-- Kit contained button. updateInsertSaveGate() (kitGate()) toggles
+           .ready and the kit `disabled` together; .kit-gated keeps the tap
+           while disabled, so the "X is required" toast still explains it. -->
+      <uxt-button class="kit-btn-block kit-gated" id="insertSaveBtn" variant="contained" text="Create" disabled onclick="saveInsertRecord()"></uxt-button>
     </div>
   </div>
 
@@ -954,21 +945,6 @@ renderEntityFields(); // pre-render defaults so the sheet isn't empty the first 
 initSharedApp({ contentSelector: '.home-body' });
 initDemoOnlineToggle();
 
-/* Kit glue: shared code gates these controls by CLASS (`.ready` on the
-   Insert Mode Create, `.disabled` on the text editor ✓, `.active` on the
-   equipment Search/Structure tabs). Mirror each class onto the kit
-   attribute that draws it, so no shared handler changes. */
-(function kitClassMirrors() {
-  if (typeof MutationObserver === 'undefined') return;
-  const watch = (el, fn) => { if (!el) return; fn(); new MutationObserver(fn).observe(el, { attributes: true, attributeFilter: ['class'] }); };
-  const save = document.getElementById('insertSaveBtn');
-  watch(save, () => save.toggleAttribute('disabled', !save.classList.contains('ready')));
-  const ok = document.getElementById('textEditorConfirmBtn');
-  watch(ok, () => ok.toggleAttribute('disabled', ok.classList.contains('disabled')));
-  const tog = document.getElementById('equipTabTog');
-  const st = document.getElementById('equipTabBtnStructure');
-  watch(st, () => { const v = st.classList.contains('active') ? 'structure' : 'search'; if (tog.getAttribute('value') !== v) tog.setAttribute('value', v); });
-})();
 </script>
 </body>
 </html>

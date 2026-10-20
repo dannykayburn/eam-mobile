@@ -121,9 +121,6 @@
    Top-bar and header controls are kit outlined Icon Buttons on the card
    fill; the kit pins its host background inline, hence !important. Shared
    code still toggles .hidden/.active on #listDetailSearchBtn. */
-uxt-icon-button.kit-bar-btn { background: var(--k-card) !important; border-radius: var(--k-pill); flex-shrink: 0; }
-uxt-icon-button.kit-bar-btn.hidden { display: none !important; }
-uxt-icon-button.kit-bar-btn.active { background: var(--k-selected) !important; }
 /* Scanner overlay is always near-black: its kit controls render in the dark
    theme (data-uxt-theme="dark" on the container). */
 .qr-scan-header > uxt-icon-button { flex-shrink: 0; }
@@ -260,14 +257,7 @@ uxt-icon-button.kit-bar-btn.active { background: var(--k-selected) !important; }
       <div class="insert-mode-title">Add Equipment</div>
       <div class="kit-sheet-spacer"></div>
     </div>
-    <!-- Search/Structure → kit toggle group (2026-10-20). The shared
-         switchEquipTab() still flips .active on #equipTabBtnSearch /
-         #equipTabBtnStructure, so those ids sit on the wrapper and the group;
-         the local switchEquipTab wrapper below keeps the group's value in step
-         when shared code switches tabs itself (e.g. defaulting to Structure). -->
-    <div class="kit-mode-tog" id="equipTabBtnSearch">
-      <uxt-toggle-button-group id="equipTabBtnStructure" density="m" options='[{"value":"search","label":"Search"},{"value":"structure","label":"Structure"}]' value="search" onchange="switchEquipTab(event.detail.value)"></uxt-toggle-button-group>
-    </div>
+    <div class="kit-mode-tog"><uxt-toggle-button-group id="equipTabTog" density="m" options='[{"value":"search","label":"Search"},{"value":"structure","label":"Structure"}]' value="search" onchange="switchEquipTab(event.detail.value)"></uxt-toggle-button-group></div>
     <div class="insert-mode-body" id="equipmentPopupBody">
       <div id="equipTabSearch">
         <div id="equipSearchShell"></div>
@@ -278,7 +268,7 @@ uxt-icon-button.kit-bar-btn.active { background: var(--k-selected) !important; }
     </div>
     <div class="equip-multi-footer" id="equipMultiFooter" style="display:none;">
       <span class="equip-multi-count" id="equipMultiCount">0 selected</span>
-      <button class="insert-save-btn" id="equipMultiAddBtn" onclick="commitEquipmentMultiSelection()">Add</button>
+      <uxt-button class="kit-flex-btn" id="equipMultiAddBtn" variant="contained" text="Add" disabled onclick="commitEquipmentMultiSelection()"></uxt-button>
     </div>
   </div>
 
@@ -319,7 +309,7 @@ uxt-icon-button.kit-bar-btn.active { background: var(--k-selected) !important; }
     <div class="sheet-body" id="multiDeleteBody"></div>
     <div class="md-footer">
       <span class="equip-multi-count" id="multiDeleteCount">0 selected</span>
-      <button class="insert-save-btn" id="multiDeleteBtn" onclick="commitMultiDelete()">Delete</button>
+      <uxt-button class="kit-flex-btn" id="multiDeleteBtn" variant="contained" tone="error" text="Delete" disabled onclick="commitMultiDelete()"></uxt-button>
     </div>
   </div>
 
@@ -651,15 +641,6 @@ function emptyStateHTML() {
 // would silently lose. One tab here, so it's set once and never changes.
 currentTab = 'equipment';
 
-/* Search/Structure is a kit <uxt-toggle-button-group> (2026-10-20). The
-   shared switchEquipTab() owns the panel swap; this keeps the group's
-   selected value in step when shared code switches tabs on its own. */
-const _sharedSwitchEquipTab = switchEquipTab;
-switchEquipTab = function (tab) {
-  _sharedSwitchEquipTab(tab);
-  const g = document.getElementById('equipTabBtnStructure');
-  if (g && g.getAttribute('value') !== tab) g.setAttribute('value', tab);
-};
 
 /* ══ INIT ════════════════════════════════════════════════════════════ */
 // Consume-once WO identity hand-off, same pattern as every other screen.

@@ -88,6 +88,53 @@ function kitToggleGroup(idAttr, options, value, callPrefix) {
   return `<div class="kit-mode-tog"><uxt-toggle-button-group${idAttr ? ` id="${idAttr}"` : ''} density="m" options='${opts}' value="${kitEsc(value)}"`
     + ` onchange="${callPrefix}event.detail.value)"></uxt-toggle-button-group></div>`;
 }
+// Presence-attribute setter. setAttribute/removeAttribute, not
+// toggleAttribute: the verify DOM shim implements only the former.
+function kitFlag(el, name, on) { if (!el) return; if (on) el.setAttribute(name, ''); else el.removeAttribute(name); }
+function kitIsEl(el) { return !!(el && typeof el.tagName === 'string' && el.tagName.indexOf('UXT-') === 0); }
+// A kit element's label is its `text` attribute; a legacy element's is its
+// textContent. Shared renderers write through this so either markup works.
+function kitSetText(el, text) { if (!el) return; if (kitIsEl(el)) el.setAttribute('text', text); else el.textContent = text; }
+// Save gates keep Danny's CLASS (.ready / .disabled: his CSS and the verify
+// tests read it) and mirror it onto the kit `disabled` attribute. A gated
+// control with class "kit-gated" still takes the tap while disabled (shared
+// CSS passes the pointer through to the host), so a handler that explains
+// itself (Insert Mode's "X is required" toast) keeps doing so.
+function kitGate(btn, cls, on, disabled) {
+  if (!btn) return;
+  btn.classList.toggle(cls, on);
+  if (kitIsEl(btn)) kitFlag(btn, 'disabled', disabled);
+}
+// Glyphs the kit icon registry lacks yet (kit ask), registered once here
+// through the kit's own OctaveDesignKit.icons.register() instead of per
+// screen: Material Symbols Outlined "keep" (weight 400, rescaled to 24) for
+// the record pin.
+const KIT_EXTRA_ICONS = {
+  keep: '<g transform="scale(0.025) translate(0 960)"><path d="m640-480 80 80v80H520v240l-40 40-40-40v-240H240v-80l80-80v-280h-40v-80h400v80h-40v280Zm-286 80h252l-46-46v-314H400v314l-46 46Zm126 0Z"/></g>',
+};
+(function kitRegisterExtraIcons() {
+  try {
+    if (typeof window === 'undefined') return;
+    // This classic script runs before the deferred kit module, so the
+    // registration is hooked onto the moment the kit publishes its icon API
+    // (OctaveDesignKit.icons): every element then renders with the glyph on
+    // its first pass and the kit never warns about an unknown icon.
+    const dk = window.OctaveDesignKit = window.OctaveDesignKit || {};
+    const reg = (api) => { try { if (api && api.register) api.register(KIT_EXTRA_ICONS); } catch (e) { /* kit API changed */ } };
+    if (dk.icons) { reg(dk.icons); return; }
+    let api;
+    Object.defineProperty(dk, 'icons', { configurable: true, enumerable: true,
+      get() { return api; }, set(v) { api = v; reg(v); } });
+  } catch (e) { /* no kit (verify DOM shim): nothing to register */ }
+})();
+// Dataspy sheet row (§8.3): favourite star (kit Icon Button, its own tap
+// target, warning tone when favourited) beside a kit List Item; the current
+// dataspy is the gray `selected` row. Shared by every dataspy sheet.
+function kitDataspyRow(name, fav, selected, favExpr, selectExpr) {
+  return `<div class="kit-ds-row">`
+    + `<uxt-icon-button class="kit-ds-star" icon="star" label="${fav ? 'Remove favorite' : 'Favorite'}"${fav ? ' tone="warning"' : ''} density="m" onclick="event.stopPropagation();${favExpr}"></uxt-icon-button>`
+    + `<uxt-list-item class="lov-option" density="m" text="${kitEsc(name)}"${selected ? ' selected' : ''} onclick="${selectExpr}"></uxt-list-item></div>`;
+}
 // Sheet-header ✕ → kit Icon Button (40px, glyph-default, halo states).
 function kitSheetClose(onclickExpr, label) {
   return `<uxt-icon-button class="kit-sheet-close" icon="close" label="${kitEsc(label || 'Close')}" density="m" onclick="${onclickExpr}"></uxt-icon-button>`;
@@ -1038,8 +1085,8 @@ function renderMultiDelete() {
   const btn = document.getElementById('multiDeleteBtn');
   if (count) count.textContent = `${n} selected`;
   if (btn) {
-    btn.textContent = n ? `Delete ${n}` : 'Delete';
-    btn.disabled = !n;
+    kitSetText(btn, n ? `Delete ${n}` : 'Delete');
+    if (kitIsEl(btn)) kitFlag(btn, 'disabled', !n); else btn.disabled = !n;
     btn.classList.toggle('ready', n > 0);
   }
 }
@@ -1755,12 +1802,9 @@ function openDataspySheet(tabKey) {
   const cfg = LIST_DETAIL_TABS[tabKey];
   const current = (listDetailState[tabKey] && listDetailState[tabKey].dataspy) || cfg.dataspies[0].key;
   const sorted = [...cfg.dataspies].sort((a, b) => (favoriteDataspies[b.key] ? 1 : 0) - (favoriteDataspies[a.key] ? 1 : 0));
-  document.getElementById('dataspySheetBody').innerHTML = sorted.map(d => `
-    <div class="lov-option ${d.key===current?'selected':''}">
-      <button class="ds-fav-star ${favoriteDataspies[d.key] ? 'favorited' : ''}" onclick="event.stopPropagation(); toggleFavoriteDataspy('${tabKey}','${d.key}')" aria-label="Favorite">${LD_ICONS.star}</button>
-      <div class="lov-option-texts" onclick="selectDataspy('${d.key}')"><div class="lov-option-desc">${d.name}</div></div>
-      <div class="lov-check ${d.key===current?'checked':''}" onclick="selectDataspy('${d.key}')"></div>
-    </div>`).join('');
+  document.getElementById('dataspySheetBody').innerHTML = sorted.map(d =>
+    kitDataspyRow(d.name, !!favoriteDataspies[d.key], d.key === current,
+      `toggleFavoriteDataspy('${tabKey}','${d.key}')`, `selectDataspy('${d.key}')`)).join('');
   openSheet('dataspySheet');
 }
 function toggleFavoriteDataspy(tabKey, key) {
@@ -2927,7 +2971,7 @@ function updateInsertSaveGate() {
   // required field.
   const descEl = document.getElementById('fv-insertDescription');
   ready = ready && !!(descEl && descEl.value.trim());
-  btn.classList.toggle('ready', ready);
+  kitGate(btn, 'ready', ready, !ready);
 }
 // §9.2 "After Save": navigate to the new record's own Record View in
 // Standard Update Mode via sessionStorage — every entry point (Home,
@@ -3033,6 +3077,9 @@ function fieldIsEmpty(el) {
   // 2026-07-31 so this generalizes correctly instead of reading stale
   // markup text off a live input.
   if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') return el.value.trim() === '';
+  // A kit <uxt-input> renders its own markup (and a <style>) into light
+  // DOM, so its textContent is never empty: read its value instead.
+  if (el.tagName === 'UXT-INPUT') return String(el.value != null ? el.value : (el.getAttribute('value') || '')).trim() === '';
   return el.classList.contains('muted') || el.textContent.trim() === '';
 }
 function shouldHideClear(key, el) {
@@ -3368,9 +3415,9 @@ function updateEquipMultiFooter() {
   const btn = document.getElementById('equipMultiAddBtn');
   if (count) count.textContent = `${n} selected`;
   if (btn) {
-    btn.textContent = n ? `Add ${n} equipment` : 'Add';
+    kitSetText(btn, n ? `Add ${n} equipment` : 'Add');
     btn.classList.toggle('ready', n > 0);
-    btn.disabled = !n;
+    if (kitIsEl(btn)) kitFlag(btn, 'disabled', !n); else btn.disabled = !n;
   }
 }
 function commitEquipmentMultiSelection() {
@@ -3401,8 +3448,13 @@ function openEquipmentLookup(key) {
   openHyperlinkPopup('equipmentPopup');
 }
 function switchEquipTab(tab) {
-  document.getElementById('equipTabBtnSearch').classList.toggle('active', tab === 'search');
-  document.getElementById('equipTabBtnStructure').classList.toggle('active', tab === 'structure');
+  // Search/Structure is the kit toggle group #equipTabTog on every screen
+  // (2026-10-20); the legacy .mode-btn pair is still honoured if present.
+  const tog = document.getElementById('equipTabTog');
+  if (tog && tog.getAttribute('value') !== tab) tog.setAttribute('value', tab);
+  const bs = document.getElementById('equipTabBtnSearch'), bt = document.getElementById('equipTabBtnStructure');
+  if (bs) bs.classList.toggle('active', tab === 'search');
+  if (bt) bt.classList.toggle('active', tab === 'structure');
   document.getElementById('equipTabSearch').style.display = tab === 'search' ? '' : 'none';
   document.getElementById('equipTabStructure').style.display = tab === 'structure' ? '' : 'none';
   if (tab === 'structure') renderEquipTree();
@@ -3810,7 +3862,7 @@ function updateEditSaveGate() {
   // Same migration fallback as updateTextEditorSaveGate() above.
   const btn = document.getElementById('editConfirmBtn')
            || document.querySelector('#editSheet .btn-save');
-  if (btn) btn.classList.toggle('disabled', blocked);
+  kitGate(btn, 'disabled', blocked, blocked);
 }
 function saveEdit() {
   const val = document.getElementById('editSheetInput').value;
@@ -4097,7 +4149,7 @@ function updateTextEditorSaveGate() {
   // rather than silently allowing an empty required save.
   const btn = document.getElementById('textEditorConfirmBtn')
            || document.querySelector('#textEditorSheet .btn-save');
-  if (btn) btn.classList.toggle('disabled', blocked);
+  kitGate(btn, 'disabled', blocked, blocked);
 }
 function textEditorInputChanged() {
   if (textEditorAwaitingDiscard) {
@@ -4615,6 +4667,7 @@ function toggleStepTimerPause() {
     stepTimerRunning = false;
     if (icon) icon.innerHTML = STEP_TIMER_PLAY_ICON;
     if (label) label.textContent = 'Resume';
+    kitSetText(document.getElementById('stepPauseKit'), 'Resume');
   } else {
     stepTimerRunning = true;
     stepTimerInterval = setInterval(() => {
@@ -4623,6 +4676,7 @@ function toggleStepTimerPause() {
     }, 1000);
     if (icon) icon.innerHTML = STEP_TIMER_PAUSE_ICON;
     if (label) label.textContent = 'Pause';
+    kitSetText(document.getElementById('stepPauseKit'), 'Pause');
   }
 }
 function stopStepTimer() {
@@ -4712,12 +4766,15 @@ function selectStatus(key, label) {
   Object.keys(statusOptions).forEach(k => {
     const optEl = document.getElementById('sOpt-'+k);
     const chkEl = document.getElementById('sChk-'+k);
+    // Kit rows (<uxt-list-item>) draw selection from the `selected`
+    // attribute (gray, never blue) and need no separate check box.
+    if (kitIsEl(optEl)) kitFlag(optEl, 'selected', k === key);
+    else if (optEl) optEl.classList.toggle('selected', k === key);
+    if (!chkEl) return;
     if (k === key) {
-      optEl.classList.add('selected');
       chkEl.className = 'lov-check checked';
       chkEl.innerHTML = '<svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>';
     } else {
-      optEl.classList.remove('selected');
       chkEl.className = 'lov-check unchecked';
       chkEl.innerHTML = '';
     }
@@ -5088,8 +5145,7 @@ function openBookingPullup(opts) {
          handler a scrim tap does, and neither stops the timer. */
       + kitSheetClose('discardBookingPullup()', 'Discard')
       + '<div class="sheet-title">Book your time</div>'
-      + '<button class="sheet-confirm-btn" onclick="confirmBookingPullup()" aria-label="Book time">'
-        + '<svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>'
+      + '<uxt-icon-button class="sheet-confirm-btn" icon="check" tone="success" outlined label="Book time" density="m" onclick="confirmBookingPullup()"></uxt-icon-button>'
     + '</div>'
     + '<div class="bkg-banner" id="bkgBanner"></div>'
     + '<div class="sheet-body">'

@@ -68,12 +68,8 @@
    <uxt-*> elements. These rules only place the HOSTS; colours are kit
    tokens via the shared --k-* aliases (no [data-theme="dark"] overrides
    needed any more). */
-.bottom-bar > uxt-button.kit-bar-btn { flex: 1; min-width: 0; }
-uxt-button.kit-flex-btn { flex: 1; min-width: 0; }
 uxt-button.kit-flex-2 { flex: 2; }
 .kit-footer-row { display: flex; gap: var(--k-s1); }
-uxt-button.kit-sheet-text-btn.hidden { visibility: hidden; }
-.kit-sheet-search.hidden { display: none; }
 .kit-seg-wrap { margin: var(--k-sm) var(--k-s4); }
 .kit-seg-wrap > uxt-toggle-button-group { display: block; width: 100%; }
 uxt-button.kit-store-btn { flex-shrink: 0; }
@@ -163,7 +159,7 @@ uxt-status-chip.qty-badge { flex-shrink: 0; }
 
   <header class="nav" onclick="scrollFormToTop()">
     <div class="nav-left">
-      <uxt-icon-button class="nav-back-kit" icon="arrow-back" label="Back" outlined density="m" onclick="event.stopPropagation(); navBack()"></uxt-icon-button>
+      <uxt-icon-button class="kit-bar-btn" icon="arrow-back" label="Back" outlined density="m" onclick="event.stopPropagation(); navBack()"></uxt-icon-button>
       <span class="prototype-label">PROTOTYPE</span>
     </div>
     <div class="nav-title">Work Orders</div>
@@ -230,11 +226,10 @@ uxt-status-chip.qty-badge { flex-shrink: 0; }
       <div class="step-timer-panel">
         <div class="step-timer-value" id="stepTimerValue">00:00:00</div>
         <div class="step-timer-actions">
-          <!-- Kit outlined buttons. The shared toggleStepTimerPause() writes
-               the hidden #stepPauseBtnLabel; kitSyncPauseBtn() mirrors it. -->
+          <!-- Kit outlined buttons; the shared toggleStepTimerPause() sets the
+               Pause/Resume label on #stepPauseKit. -->
           <uxt-button class="kit-flex-btn" id="stepPauseKit" variant="outlined" text="Pause" onclick="event.stopPropagation(); toggleStepTimerPause()"></uxt-button>
           <uxt-button class="kit-flex-btn" variant="outlined" tone="error" text="Stop" onclick="event.stopPropagation(); confirmStopTimer()"></uxt-button>
-          <span hidden><span id="stepPauseBtnIcon"></span><span id="stepPauseBtnLabel">Pause</span></span>
         </div>
       </div>
       <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
@@ -400,7 +395,7 @@ uxt-status-chip.qty-badge { flex-shrink: 0; }
        are gated on it, §18.7) — same sessionStorage pattern as
        navigateToNewRecord()'s Insert Mode hand-off. -->
   <div class="bottom-bar">
-    <uxt-button class="kit-btn-block kit-bar-btn" id="nextBtn" variant="contained" text="Next: Book Labor" onclick="sessionStorage.setItem('eamArrivedViaNextStep','true'); sessionStorage.setItem('eamOpenDemoWo', DEMO_WO); window.location.href=WO_STEP_FILES.booklabor;"></uxt-button>
+    <uxt-button class="kit-btn-block kit-flex-btn" id="nextBtn" variant="contained" text="Next: Book Labor" onclick="sessionStorage.setItem('eamArrivedViaNextStep','true'); sessionStorage.setItem('eamOpenDemoWo', DEMO_WO); window.location.href=WO_STEP_FILES.booklabor;"></uxt-button>
   </div>
 
   <!-- ── SHEET OVERLAY ───────────────────────────────────────────────── -->
@@ -437,9 +432,7 @@ uxt-status-chip.qty-badge { flex-shrink: 0; }
            into it, so it raises the keyboard — which parked the old footer
            Save under iOS's accessory bar. Same gating: sheetSaveReady()
            mirrors what the footer button's own .ready class carried. -->
-      <button class="sheet-confirm-btn ready-gated" id="sheetSaveBtn" onclick="saveIssue()" aria-label="Save">
-        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-      </button>
+      <uxt-icon-button class="sheet-confirm-btn" id="sheetSaveBtn" icon="check" tone="success" outlined label="Save" density="m" disabled onclick="saveIssue()"></uxt-icon-button>
     </div>
 
     <!-- Issue / Return|Planned segment — 2nd slot's label/handler/enabled
@@ -528,17 +521,6 @@ uxt-status-chip.qty-badge { flex-shrink: 0; }
 <script src="../../data/wo-workflow-steps.js?v=202609211648"></script>
 <script src="shared/eam-shared.js?v=202609211648"></script>
 <script>
-/* ── Octave kit glue (2026-10-20) — the shared toggleStepTimerPause()
-   writes its label into the hidden #stepPauseBtnLabel; mirror it onto the
-   kit Pause button. Looked up by id each time, because renderStepRail()
-   re-creates the timer panel from its outerHTML. ── */
-function kitSyncPauseBtn() {
-  const label = document.getElementById('stepPauseBtnLabel');
-  const btn = document.getElementById('stepPauseKit');
-  if (label && btn) btn.setAttribute('text', label.textContent || 'Pause');
-}
-const _sharedToggleStepTimerPause = toggleStepTimerPause;
-toggleStepTimerPause = function () { _sharedToggleStepTimerPause(); kitSyncPauseBtn(); };
 
 /* ── screen-specific config/behavior — chrome (nav, header, step rail,
    confirm modal, toast, theme toggle) comes from eam-shared.js. ── */
@@ -1131,10 +1113,10 @@ function updateSaveGate() {
   const btn = document.getElementById('sheetSaveBtn');
   if (!btn) return;
   const partId = currentPartId || adHocSelectedPartId;
-  if (!partId) { btn.classList.remove('ready'); return; }
+  if (!partId) { kitGate(btn, 'ready', false, true); return; }
   const qty = txnQty[partId] || 0;
   if (currentMode === 'RETURN') {
-    btn.classList.toggle('ready', qty > 0);
+    kitGate(btn, 'ready', qty > 0, !(qty > 0));
     return;
   }
   // Lot only gates Save when it's both shown (store SHOWLOT) and the
@@ -1144,7 +1126,7 @@ function updateSaveGate() {
   const binRow = currentBinStock.find(r => r.bin === currentFieldValues.bin);
   const lotRequired = STORES[activeStoreCode].showLot && !!binRow && !!binRow.lot && binRow.lot !== '*';
   const ready = !!currentFieldValues.bin && (!lotRequired || !!currentFieldValues.lot) && qty > 0;
-  btn.classList.toggle('ready', ready);
+  kitGate(btn, 'ready', ready, !ready);
 }
 
 // ─── QTY STEPPER ──────────────────────────────────────────────────────────
