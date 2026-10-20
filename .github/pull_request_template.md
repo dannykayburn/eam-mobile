@@ -19,7 +19,9 @@
 
 - [ ] New or changed design rule is in `docs/design-decisions-v3-1.md` (same PR)
 - [ ] New requirement or changed sequence is in `docs/EAM-Mobile-Design-Doc-v1.md`
-- [ ] Neither applies
+- [ ] New or renamed UI pattern is in `docs/component-library.md`
+- [ ] A screen's state or traps changed, and the `CLAUDE.md` "Current state" section is updated (snapshot only, no narrative)
+- [ ] None of the above applies
 
 ## Checks
 
