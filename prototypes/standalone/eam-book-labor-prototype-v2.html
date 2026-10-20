@@ -89,159 +89,84 @@
    specific; the Standard Model's plain .content has no bottom bar). */
 .content { padding: 0 0 var(--bar-reserve); }
 .sheet-body::-webkit-scrollbar { display: none; }
-
-/* ── TIMER STOPPED BANNER (§18.1/§18.2) — restyled 2026-07-21, simplified
-   same day (no step-rail timer pill anymore, no message line), then
-   de-purpled the same day again: plain neutral card instead of a purple-
-   tinted background, black/white heading and value instead of purple —
-   only the small clock icon keeps its purple stroke as a single accent
-   touch. Matches §3.4's own "purple reserved for step pill/section
-   badges/focus states — never field values" rule, which the all-purple
-   version had actually been violating the whole time. ──────────────── */
-.timer-banner {
-  margin: 12px 12px 0;
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 10px; padding: 12px 14px;
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-}
-.timer-banner-head { display: flex; align-items: center; gap: 8px; font-size: 0.9375rem; font-weight: 700; color: var(--octave-black); flex-shrink: 0; }
-[data-theme="dark"] .timer-banner-head { color: var(--white); }
-.timer-banner-head svg { flex-shrink: 0; }
-.timer-banner-value { font-family: var(--font-mono); font-size: 1.125rem; font-weight: 700; color: var(--octave-black); flex-shrink: 0; }
-[data-theme="dark"] .timer-banner-value { color: var(--white); }
-
-/* ── LABOR LIST (§18.3) — the row shape itself (.action-row and friends)
-   is now the shared component promoted to eam-shared.css 2026-07-24 (see
-   its own comment there) — Book Labor and Issue Parts are its 2 real
-   consumers. Only the list container, the badge, and the correction-
-   specific callout stay local here. ── */
-.labor-list { padding: 0 12px; display: flex; flex-direction: column; gap: 6px; margin: 14px 0 10px; }
-/* Slower slide-in for THIS sheet only (2026-07-24, user report — "comes
-   in hot") — scoped override, not a change to the shared .bottom-sheet
-   rule every other sheet in the app also uses at .3s. This one's worth
-   singling out because it's the one sheet that can open automatically,
-   with no tap to soften it (applyArrivalState() below, the timer-stop
-   hand-off) — a fast transition reads fine when the technician just
-   caused it, less fine when it happens to them on page load. */
-#addLaborSheet { transition: transform .5s cubic-bezier(.22,.8,.32,1); }
-.labor-hours-badge { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 700; padding: 3px 9px; border-radius: 100px; white-space: nowrap; flex-shrink: 0; }
-/* .badge-green/.badge-red tint styling now lives in eam-shared.css's
-   shared block (Phase 2b, 2026-07-22) — was byte-for-byte identical to
-   Issue Parts' .qty-badge-issued. */
-.correction-note { display: flex; align-items: center; gap: 6px; background: rgba(228,75,74,0.06); border: 1px solid rgba(228,75,74,0.15); border-radius: 6px; padding: 6px 10px; margin-bottom: 8px; font-size: 0.6875rem; color: var(--red); font-family: var(--font-mono); }
-
-/* ── ADD BUTTON — promoted to the shared .btn-contained, full-width to
-   match the labor-list card above it (§18.7, 2026-07-21 — was centered/
-   fixed-width .btn-outlined). ── */
-.action-buttons { padding: 0 12px 10px; }
-
-/* ── FIELD-VALUE MODIFIERS — small local additions on top of the shared
-   .form-field/.field-value base (Hours/correction amount read as
-   computed values, not plain text). ─────────────────────────────────── */
-.field-value.green { color: var(--green); font-weight: 600; font-family: var(--font-mono); }
-.field-value.red   { color: var(--red);   font-weight: 600; font-family: var(--font-mono); }
-
-/* ── FORM SECTION LABEL / MINI SECTION LABEL — no shared equivalent. ──── */
-.form-section-label { padding: 14px 16px 6px; font-size: 0.875rem; font-weight: 600; color: var(--octave-black); }
-[data-theme="dark"] .form-section-label { color: var(--white); }
-.mini-section-label { font-size: 0.875rem; font-weight: 600; color: var(--octave-black); margin-bottom: 6px; }
-[data-theme="dark"] .mini-section-label { color: var(--white); }
-.activity-summary-val { color: var(--octave-black); }
-[data-theme="dark"] .activity-summary-val { color: var(--white); }
-
-/* ── ADD LABOR SHEET REDESIGN (2026-07-16) — Type of Hours pill, double-
-   wide Employee/Crew picker cards, "Labor Details" section-card. ────── */
-.hours-type-row { padding: 14px 16px 4px; }
-/* Palette pass, 2026-07-22: was Normal=purple (neutral/default),
-   Overtime=orange, Double time=red, Standby=gray (§16.4 comment, kept
-   for history below). Normal/Overtime now share one plain outlined
-   look — same reasoning as Activity Checklist's severity-tier collapse
-   (§23.1): the pill's own text label ("Normal"/"Overtime") already
-   conveys which is which, so no hue is needed for either. Double time
-   keeps its red — same exception Priority's Critical value gets (§23):
-   double-time pay is the one tier worth spending the red budget on.
-   .htp-orange has no override left at all (falls through to this base
-   style, on purpose — not a missing rule). */
-.hours-type-pill {
-  display: inline-flex; align-items: center; gap: 8px;
-  border: 1.5px solid var(--border-strong);
-  background: none;
-  border-radius: 100px; padding: 8px 14px 8px 10px;
-  cursor: pointer; transition: all 0.15s;
-  font-family: var(--font-sans);
-}
-.hours-type-pill:hover { border-color: var(--gray-3); }
-.hours-type-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--octave-black); flex-shrink: 0; }
-[data-theme="dark"] .hours-type-dot { background: var(--white); }
-.hours-type-desc { font-size: 0.8125rem; font-weight: 700; color: var(--octave-black); }
-[data-theme="dark"] .hours-type-desc { color: var(--white); }
-.hours-type-chevron { color: var(--gray-4); flex-shrink: 0; }
-.hours-type-pill.htp-red { border-color: rgba(228,75,74,0.3); background: rgba(228,75,74,0.08); }
-.hours-type-pill.htp-red .hours-type-dot { background: var(--red); }
-.hours-type-pill.htp-red .hours-type-desc { color: var(--red); }
-.hours-type-pill.htp-gray { border-color: var(--border-strong); background: var(--bg-section); }
-.hours-type-pill.htp-gray .hours-type-dot { background: var(--gray-4); }
-.hours-type-pill.htp-gray .hours-type-desc { color: var(--gray-4); }
-
-/* Employee/Crew Header Fields cells (§18.7, 2026-07-21 — replaced the
-   old standalone double-wide .picker-card component entirely, moved
-   into the shared .attr-item grid instead). .attr-item.protected is the
-   mutual-exclusion dimmed state (set on whichever of Employee/Crew
-   doesn't have a value, same treatment .form-field.protected uses
-   elsewhere); .attr-text-code is Employee's code line, stacked beneath
-   its description (§3.4 identifier-field exception — the code IS the
-   employee ID, same convention the labor row/Correction sheet already
-   use for Employee elsewhere on this screen). */
-.attr-item.protected { background: var(--bg-section); opacity: 0.6; cursor: default; }
-[data-theme="dark"] .attr-item.protected { background: rgba(255,255,255,0.03); }
-.attr-text-code { font-family: var(--font-mono); font-size: 0.625rem; color: var(--gray-4); margin-top: 1px; }
-
-/* Start/End (2026-07-21, unified with Date Worked/Hours Worked into one
-   2x2 Header Fields grid, retiring the old standalone big time-chip +
-   duration-connector treatment) reuse the shared .time-input class
-   directly (corrected same day — this used to be a local near-duplicate,
-   `.attr-time-input`, with the wrong font; deleted in favor of the one
-   shared class every Time Only field now uses). */
-
-/* ── CORRECTION SHEET ── */
-.correction-sheet-banner { background: rgba(228,75,74,0.06); border-bottom: 1px solid rgba(228,75,74,0.15); padding: 10px 16px; display: flex; align-items: flex-start; gap: 8px; font-size: 0.75rem; color: var(--red); flex-shrink: 0; }
-
-/* ── CREW SELECTOR PILL (top of crew sheet, like the store selector on
-   Issue Parts, §18.5) — no shared equivalent yet, one consumer so far. ── */
-.crew-selector-bar {
-  padding: 12px 16px; border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 10px;
-  background: var(--bg-section);
-}
-.crew-selector-label { font-size: 0.8125rem; color: var(--gray-4); flex-shrink: 0; }
-/* Base pill styling (background/border/font/etc.) now lives in
-   eam-shared.css's shared "SELECTOR PILL" block (Phase 2b, 2026-07-22) —
-   promoted once Issue Parts' .store-selector was confirmed identical,
-   not just "the same pattern" on paper. */
-
-/* ── CREW MEMBER ROWS ── */
-.crew-member-row { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
-.crew-row-info { flex: 1; min-width: 0; }
-.crew-row-name { font-size: 0.8125rem; font-weight: 600; color: var(--octave-black); }
-[data-theme="dark"] .crew-row-name { color: var(--white); }
-.crew-row-sub { font-size: 0.6875rem; color: var(--gray-4); font-family: var(--font-mono); }
-.crew-include-toggle { width: 44px; height: 26px; border-radius: 100px; border: none; cursor: pointer; position: relative; transition: background 0.2s; flex-shrink: 0; }
-.crew-include-toggle.on  { background: var(--green); }
-.crew-include-toggle.off { background: var(--gray-2); }
-[data-theme="dark"] .crew-include-toggle.off { background: var(--gray-5); }
-.toggle-knob { position: absolute; top: 3px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: left 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-.toggle-knob.on  { left: 21px; }
-.toggle-knob.off { left: 3px; }
-
-/* ── CORRECTION STEPPER (§18.6) — no shared equivalent. ────────────────  */
-/* .step-btn / .red-step moved to eam-shared.css 2026-09-17 — the booking
-   pull-up (§18.2) is the second consumer, which is this repo's own trigger
-   for promoting a component. Nothing here overrides it. */
-.step-btn.red-step:hover { background: rgba(228,75,74,0.1); border-color: var(--red); }
-
-/* Toast sits above the bottom bar on this screen (screen-specific override
-   — the shared default assumes no bottom chrome). */
+/* Toast sits above the bottom bar (legacy #toast fallback only; the kit
+   snackbar stack already clears --bar-reserve). */
 .toast { bottom: calc(var(--bar-height) + 10px); }
+
+/* Octave kit pass (2026-10-20): buttons, switches, inputs, search, list
+   rows, tags and banners are real <uxt-*> elements. These rules only place
+   the HOSTS; colours are kit tokens via the shared --k-* aliases, so the
+   old [data-theme="dark"] colour overrides are gone. */
+.bottom-bar > uxt-button.kit-bar-btn { flex: 1; min-width: 0; }
+uxt-button.kit-btn-gap { margin-top: var(--k-s1); }
+uxt-button.kit-flex-btn { flex: 1; min-width: 0; }
+uxt-button.kit-sheet-text-btn.hidden { visibility: hidden; }
+.kit-sheet-search.hidden { display: none; }
+.attr-value > uxt-input.kit-time-input { display: block; width: 100%; }
+.form-field > uxt-input.kit-time-input { margin-left: auto; flex-shrink: 0; }
+
+/* ── TIMER STOPPED (§18.1/§18.2) — a kit info Banner with the timer glyph,
+   shown only after the booking pull-up books the timer's time. ── */
+.timer-banner { margin: var(--k-s2) var(--k-s4) 0; }
+.timer-banner > uxt-banner { display: block; border: 1px solid var(--k-divider); border-radius: var(--k-r); overflow: hidden; }
+
+/* ── LABOR LIST (§18.3) — the row shape (.action-row) is the shared
+   component; the hours badge is a kit Tag. ── */
+.labor-list { padding: 0 var(--k-s4); display: flex; flex-direction: column; gap: var(--k-s2); margin: var(--k-s4) 0 var(--k-s2); }
+/* Slower slide-in for THIS sheet only (2026-07-24, "comes in hot"). */
+#addLaborSheet { transition: transform .5s cubic-bezier(.22,.8,.32,1); }
+uxt-tag.labor-hours-badge { flex-shrink: 0; }
+.correction-note { margin-bottom: var(--k-s2); }
+
+.action-buttons { padding: 0 var(--k-s4) var(--k-s2); }
+
+/* ── ACTIVITY SUMMARY — stat tiles; no kit equivalent (no stat/KPI tile
+   in the registry), so hand-built on kit tokens. ── */
+.activity-summary { margin: var(--k-s1) var(--k-s4) var(--k-s4); padding: var(--k-sm) var(--k-s4); background: var(--k-card); border-radius: var(--k-r); border: 1px solid var(--k-divider); }
+.activity-summary-grid { display: flex; flex-wrap: wrap; gap: var(--k-s2); }
+.activity-stat { flex: 1 1 30%; background: var(--k-paper); border-radius: var(--k-r); padding: var(--k-s2); text-align: center; }
+.activity-summary-val { font-family: var(--font-mono); font-size: 1.125rem; font-weight: 500; color: var(--k-text); }
+.activity-stat-label { font-size: var(--k-caption); color: var(--k-text-2); margin-top: 2px; }
+
+/* ── FIELD-VALUE MODIFIERS — Hours/correction amounts read as computed
+   values. ── */
+.field-value.green { color: var(--k-ok-fg); font-weight: 500; font-family: var(--font-mono); }
+.field-value.red   { color: var(--uxt-theme-palette-text-error, #e4171f); font-weight: 500; font-family: var(--font-mono); }
+
+/* ── SECTION LABELS — no kit equivalent; Octave Display sub-title. ── */
+.form-section-label { padding: var(--k-s4) var(--k-s4) var(--k-s2); font-family: var(--font-display); font-size: var(--uxt-theme-typography-sub-title-2-font-size, 0.875rem); font-weight: 500; color: var(--k-text); }
+.mini-section-label { font-family: var(--font-display); font-size: var(--uxt-theme-typography-sub-title-2-font-size, 0.875rem); font-weight: 500; color: var(--k-text); margin-bottom: var(--k-s2); }
+
+/* ── ADD LABOR SHEET — Type of Hours (kit outlined button), Employee/Crew
+   in the shared Header Fields grid. ── */
+.hours-type-row { padding: var(--k-s4) var(--k-s4) var(--k-s1); }
+.attr-item.protected { background: var(--k-paper); opacity: 0.6; cursor: default; }
+.attr-text-code { font-family: var(--font-mono); font-size: var(--k-caption); color: var(--k-text-2); margin-top: 2px; }
+
+/* ── CORRECTION SHEET (§18.6) — kit error Banner, kit outlined error Icon
+   Buttons as the hold stepper (shared startHoldStep()), kit multi-line
+   input for the reason. ── */
+.correction-sheet-banner { flex-shrink: 0; border-bottom: 1px solid var(--k-divider); }
+.correction-sheet-banner > uxt-banner { display: block; }
+.corr-amount { padding: var(--k-s4); border-bottom: 1px solid var(--k-divider); }
+.corr-amount-hint { font-size: var(--k-caption); color: var(--k-text-2); margin-bottom: var(--k-s2); }
+.corr-amount-row { display: flex; align-items: center; gap: var(--k-sm); }
+.corr-amount-mid { flex: 1; text-align: center; }
+.corr-amount-value { font-family: var(--font-mono); font-size: 1.625rem; font-weight: 500; color: var(--uxt-theme-palette-text-error, #e4171f); }
+.corr-amount-sub { font-size: var(--k-caption); color: var(--k-text-2); margin-top: 2px; }
+.corr-reason { padding: var(--k-s2) var(--k-s4); border-bottom: 1px solid var(--k-divider); }
+
+/* ── ADD BY CREW (§18.5) — crew selector is a kit outlined button, member
+   include toggles are kit Switches. ── */
+.crew-selector-bar { padding: var(--k-sm) var(--k-s4); border-bottom: 1px solid var(--k-divider); display: flex; align-items: center; gap: var(--k-s2); background: var(--k-paper); }
+.crew-selector-label { font-size: var(--k-body2); color: var(--k-text-2); flex-shrink: 0; }
+.crew-member-row { display: flex; align-items: center; gap: var(--k-s2); padding: var(--k-s2) var(--k-s4); border-bottom: 1px solid var(--k-divider); }
+.crew-row-info { flex: 1; min-width: 0; }
+.crew-row-name { font-size: var(--k-body2); font-weight: 500; color: var(--k-text); }
+.crew-row-sub { font-size: var(--k-caption); color: var(--k-text-2); font-family: var(--font-mono); }
+uxt-switch.crew-include-toggle { flex-shrink: 0; }
+.crew-selection-summary { margin: var(--k-s2) var(--k-s4); padding: var(--k-s2) var(--k-sm); background: var(--k-paper); border: 1px solid var(--k-divider); border-radius: var(--k-r); }
+.crew-selection-summary .activity-summary-val { font-size: var(--k-caption); }
 </style>
 </head>
 <body>
@@ -253,9 +178,7 @@
 
   <header class="nav" onclick="scrollFormToTop()">
     <div class="nav-left">
-      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation(); navBack()">
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
+      <uxt-icon-button class="nav-back-kit" icon="arrow-back" label="Back" outlined density="m" onclick="event.stopPropagation(); navBack()"></uxt-icon-button>
       <span class="prototype-label">PROTOTYPE</span>
     </div>
     <div class="nav-title">Work Orders</div>
@@ -275,23 +198,21 @@
         <span class="rec-desc protected" id="recDesc">Pump Cavitating; lost head</span>
       </div>
       <div class="rec-header-actions">
-        <button class="rec-ellipsis-btn" id="recEllipsisBtn" onclick="event.stopPropagation(); toggleRecActionsMenu()" aria-label="More actions">
-          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
-        </button>
+        <uxt-icon-button class="rec-ellipsis-kit" id="recEllipsisBtn" icon="more-vert" label="More actions" outlined density="m" onclick="event.stopPropagation(); toggleRecActionsMenu()"></uxt-icon-button>
         <div class="rec-actions-menu" id="recActionsMenu">
           <div class="rec-actions-group">
-            <div class="rec-actions-item" onclick="recCopyLink()">Copy Link</div>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" icon="link" text="Copy Link" onclick="recCopyLink()"></uxt-list-item>
           </div>
           <div class="rec-actions-divider"></div>
           <div class="rec-actions-group">
-            <div class="rec-actions-item" onclick="recCopyRecord()">Copy</div>
-            <div class="rec-actions-item danger" onclick="recDeleteRecord()">Delete</div>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" icon="content-copy" text="Copy" onclick="recCopyRecord()"></uxt-list-item>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" icon="delete" text="Delete" onclick="recDeleteRecord()"></uxt-list-item>
           </div>
           <div class="rec-actions-divider"></div>
           <!-- Comments(3)/Documents(4) removed 2026-07-22 — superseded by
                the step rail's "Reference" group (§14.8/§23). -->
           <div class="rec-actions-group" id="recActionsScreenSpecific">
-            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Printing work order — coming soon')">Print Work Order</div>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" icon="print" text="Print Work Order" onclick="closeRecActionsMenu(); showToast('Printing work order — coming soon')"></uxt-list-item>
           </div>
         </div>
       </div>
@@ -335,12 +256,12 @@
          direct link, WO List) never had a timer "just stop," so this
          banner has nothing true to say. Visibility set at init by
          applyArrivalState(), not hardcoded — see that function. -->
+    <!-- Kit <uxt-banner> (info, timer glyph). #timerBannerValue stays the
+         source of the booked value (tests read it); kitSyncTimerBanner()
+         writes it into the banner's text. -->
     <div class="timer-banner" id="timerBanner" style="display:none;">
-      <div class="timer-banner-head">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        Timer Stopped
-      </div>
-      <div class="timer-banner-value" id="timerBannerValue">01:23:47</div>
+      <uxt-banner id="timerBannerKit" density="m" severity="info" icon="timer" text="Timer stopped"></uxt-banner>
+      <span class="timer-banner-value" id="timerBannerValue" hidden>01:23:47</span>
     </div>
 
     <!-- Booked labor list — seeded from data/wo-19257.js's `labor` array via
@@ -350,10 +271,7 @@
     <div class="labor-list" id="laborList"></div>
 
     <div class="action-buttons">
-      <button class="btn-contained" onclick="openAddLaborSheet()">
-        <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
-        Add labor
-      </button>
+      <uxt-button class="kit-btn-block" variant="contained" text="Add labor" onclick="openAddLaborSheet()"></uxt-button>
     </div>
 
     <!-- Summary cards — 5 metrics now (§18.7, 2026-07-21): Trades removed
@@ -362,33 +280,33 @@
          booked labor), WO Regular Hours, WO OT Hours (both real sums by
          Type of Hours). Flex-wrap instead of a fixed single row so 5
          cards reflow to 3-then-2 instead of squeezing. -->
-    <div style="margin:4px 12px 12px;padding:10px 14px;background:var(--bg-section);border-radius:8px;border:1px solid var(--border);">
+    <div class="activity-summary">
       <div class="mini-section-label">Activity summary</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+      <div class="activity-summary-grid">
         <!-- All 5 values plain ink now (2026-07-22, §23) — was purple/
              blue(#42b2ea, a rogue hex not even a variable)/gray/green/
              orange, a different decorative hue per stat. None of these
              are one of the app's 3 real color instruments (status/sync/
              required), just numbers, so none of them get a hue. -->
-        <div style="flex:1 1 30%;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;">
-          <div class="activity-summary-val" style="font-family:var(--font-mono);font-size:1.125rem;font-weight:700;" id="totalHoursDisplay">1h 23m</div>
-          <div style="font-size:0.6875rem;color:var(--gray-4);margin-top:1px;">Total hours</div>
+        <div class="activity-stat">
+          <div class="activity-summary-val" id="totalHoursDisplay">1h 23m</div>
+          <div class="activity-stat-label">Total hours</div>
         </div>
-        <div style="flex:1 1 30%;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;">
-          <div class="activity-summary-val" style="font-family:var(--font-mono);font-size:1.125rem;font-weight:700;" id="entriesDisplay">1</div>
-          <div style="font-size:0.6875rem;color:var(--gray-4);margin-top:1px;">Entries</div>
+        <div class="activity-stat">
+          <div class="activity-summary-val" id="entriesDisplay">1</div>
+          <div class="activity-stat-label">Entries</div>
         </div>
-        <div style="flex:1 1 30%;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;">
-          <div class="activity-summary-val" style="font-family:var(--font-mono);font-size:1.125rem;font-weight:700;" id="estHoursDisplay">2h 30m</div>
-          <div style="font-size:0.6875rem;color:var(--gray-4);margin-top:1px;">WO Est. hours</div>
+        <div class="activity-stat">
+          <div class="activity-summary-val" id="estHoursDisplay">2h 30m</div>
+          <div class="activity-stat-label">WO Est. hours</div>
         </div>
-        <div style="flex:1 1 30%;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;">
-          <div class="activity-summary-val" style="font-family:var(--font-mono);font-size:1.125rem;font-weight:700;" id="regularHoursDisplay">1h 23m</div>
-          <div style="font-size:0.6875rem;color:var(--gray-4);margin-top:1px;">WO regular hours</div>
+        <div class="activity-stat">
+          <div class="activity-summary-val" id="regularHoursDisplay">1h 23m</div>
+          <div class="activity-stat-label">WO regular hours</div>
         </div>
-        <div style="flex:1 1 30%;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;text-align:center;">
-          <div class="activity-summary-val" style="font-family:var(--font-mono);font-size:1.125rem;font-weight:700;" id="otHoursDisplay">0m</div>
-          <div style="font-size:0.6875rem;color:var(--gray-4);margin-top:1px;">WO OT hours</div>
+        <div class="activity-stat">
+          <div class="activity-summary-val" id="otHoursDisplay">0m</div>
+          <div class="activity-stat-label">WO OT hours</div>
         </div>
       </div>
     </div>
@@ -401,10 +319,7 @@
        step at all (PM, §14.7.1/§19.7), so this stays untouched for every
        other WO Type. ──── -->
   <div class="bottom-bar">
-    <button class="bar-pill bar-pill-ready" id="nextBtn" onclick="sessionStorage.setItem('eamArrivedViaNextStep','true'); sessionStorage.setItem('eamOpenDemoWo', DEMO_WO); window.location.href=WO_STEP_FILES.closing;">
-      <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Next: WO Closing
-    </button>
+    <uxt-button class="kit-btn-block kit-bar-btn" id="nextBtn" variant="contained" text="Next: WO Closing" onclick="sessionStorage.setItem('eamArrivedViaNextStep','true'); sessionStorage.setItem('eamOpenDemoWo', DEMO_WO); window.location.href=WO_STEP_FILES.closing;"></uxt-button>
   </div>
 
   <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
@@ -418,14 +333,14 @@
   <div class="bottom-sheet" id="completeWoSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Confirm completion</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="status-banner" id="statusBanner">
       <div class="status-banner-header">
         <div class="status-banner-icon">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4" stroke="#00AA14" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="#00AA14" stroke-width="2"/></svg>
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/></svg>
         </div>
         <div class="status-banner-title">Work Order Completion Status</div>
       </div>
@@ -442,9 +357,9 @@
       Completing <strong>WO# 19831</strong> will set the status to <strong id="confirmTargetStatus">Completed</strong> and lock the record for further field edits. Ensure all work has been recorded before proceeding.
     </div>
     <div class="confirm-summary" id="confirmSummary"></div>
-    <div class="sheet-footer" style="display:flex;flex-direction:column;gap:0;">
-      <button class="insert-save-btn ready" onclick="executeComplete()">Complete Work Order</button>
-      <button class="btn-outlined close-cancel-gap" onclick="closeAllSheets()">Cancel</button>
+    <div class="sheet-footer">
+      <uxt-button class="kit-btn-block" variant="contained" text="Complete Work Order" onclick="executeComplete()"></uxt-button>
+      <uxt-button class="kit-btn-block kit-btn-gap" variant="outlined" text="Cancel" onclick="closeAllSheets()"></uxt-button>
     </div>
   </div>
 
@@ -453,25 +368,17 @@
   <div class="bottom-sheet" id="statusSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeSheet('statusSheet')">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeSheet('statusSheet')"></uxt-icon-button>
       <div class="sheet-title">Target status</div>
-      <button class="sheet-clear-btn hidden">Clear</button>
+      <uxt-button class="kit-sheet-text-btn hidden" variant="text" tone="neutral" text="Clear"></uxt-button>
     </div>
+    <!-- shared selectStatus() writes these; kitSyncStatusRows() mirrors the
+         pick onto the kit rows' `selected`. -->
+    <span hidden><span id="sChk-completed"></span><span id="sChk-closed"></span><span id="sChk-onhold"></span></span>
     <div class="sheet-body">
-      <div class="lov-option selected" id="sOpt-completed" onclick="selectStatus('completed','Completed')">
-        <div class="lov-option-texts"><div class="lov-option-desc">Completed</div></div>
-        <div class="lov-check checked" id="sChk-completed">
-          <svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
-        </div>
-      </div>
-      <div class="lov-option" id="sOpt-closed" onclick="selectStatus('closed','Closed')">
-        <div class="lov-option-texts"><div class="lov-option-desc">Closed</div></div>
-        <div class="lov-check unchecked" id="sChk-closed"></div>
-      </div>
-      <div class="lov-option" id="sOpt-onhold" onclick="selectStatus('onhold','On hold')">
-        <div class="lov-option-texts"><div class="lov-option-desc">On hold</div></div>
-        <div class="lov-check unchecked" id="sChk-onhold"></div>
-      </div>
+      <uxt-list-item class="lov-option" id="sOpt-completed" density="m" text="Completed" selected onclick="selectStatus('completed','Completed')"></uxt-list-item>
+      <uxt-list-item class="lov-option" id="sOpt-closed" density="m" text="Closed" onclick="selectStatus('closed','Closed')"></uxt-list-item>
+      <uxt-list-item class="lov-option" id="sOpt-onhold" density="m" text="On hold" onclick="selectStatus('onhold','On hold')"></uxt-list-item>
     </div>
   </div>
 
@@ -493,9 +400,9 @@
   <div class="bottom-sheet" id="syncPanelSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Sync Status</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sync-panel-state" id="syncPanelStateLabel"></div>
     <div class="sheet-body" id="syncPanelList"></div>
@@ -506,20 +413,19 @@
   <div class="bottom-sheet" id="addLaborSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Add Labor</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sheet-body">
 
       <!-- Type of Hours — pill, top-left. Cycle-on-tap demo LOV (§18.4,
            local — see file header note); colour-coded per type. -->
       <div class="hours-type-row">
-        <button class="hours-type-pill" id="addTypeOfHoursPill" onclick="openLov('typeOfHours')" data-required="true" data-value="N" data-field="typeOfHours">
-          <span class="hours-type-dot" id="addTypeOfHoursDot"></span>
-          <span class="hours-type-desc" id="addTypeOfHoursLov">Normal</span>
-          <svg class="hours-type-chevron" width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
+        <!-- Kit outlined button; Double time keeps its red (§23) as the kit's
+             error tone. #addTypeOfHoursLov stays the text source. -->
+        <uxt-button class="hours-type-pill" id="addTypeOfHoursPill" variant="outlined" tone="neutral" text="Normal" onclick="openLov('typeOfHours')" data-required="true" data-value="N" data-field="typeOfHours"></uxt-button>
+        <span id="addTypeOfHoursLov" hidden>Normal</span>
       </div>
 
       <!-- Header Fields (§5.2) — reorganized 2026-07-21: Employee/Crew
@@ -562,11 +468,11 @@
           </div>
           <div class="attr-item required">
             <span class="attr-label">Start Time</span>
-            <div class="attr-value"><input class="time-input" type="time" lang="en-GB" value="08:00" id="addStartTime" data-required="true" data-value="08:00" onchange="recalcHours(); setFieldValue(this, this.value); checkAddReady();"></div>
+            <div class="attr-value"><uxt-input class="kit-time-input" type="time" lang="en-GB" density="m" full-width aria-label="Start time" value="08:00" id="addStartTime" data-required="true" data-value="08:00" onchange="recalcHours(); setFieldValue(this, this.value); checkAddReady();"></uxt-input></div>
           </div>
           <div class="attr-item required">
             <span class="attr-label">End Time</span>
-            <div class="attr-value"><input class="time-input" type="time" lang="en-GB" value="09:23" id="addEndTime" data-required="true" data-value="09:23" onchange="recalcHours(); setFieldValue(this, this.value); checkAddReady();"></div>
+            <div class="attr-value"><uxt-input class="kit-time-input" type="time" lang="en-GB" density="m" full-width aria-label="End time" value="09:23" id="addEndTime" data-required="true" data-value="09:23" onchange="recalcHours(); setFieldValue(this, this.value); checkAddReady();"></uxt-input></div>
           </div>
         </div>
       </div>
@@ -613,7 +519,7 @@
     </div>
     <!-- Save locked until ready — reuses the shared gray→green button. -->
     <div class="sheet-footer" id="addLaborFooter">
-      <button class="insert-save-btn" id="addSaveBtn" onclick="saveAddLabor()">Save</button>
+      <uxt-button class="kit-btn-block" id="addSaveBtn" variant="contained" text="Save" disabled onclick="saveAddLabor()"></uxt-button>
     </div>
   </div>
 
@@ -621,13 +527,12 @@
   <div class="bottom-sheet" id="correctionSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Create Correction</div>
       <button class="sheet-confirm-btn" onclick="saveCorrection()" aria-label="Save"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>
     </div>
     <div class="correction-sheet-banner">
-      <svg width="15" height="15" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#E24B4A" stroke-width="2" stroke-linecap="round"/></svg>
-      <span>Adds a new entry with <strong>negative hours</strong> to reverse this booking. The original record is unchanged.</span>
+      <uxt-banner density="m" severity="error" text="Adds a new entry with negative hours to reverse this booking. The original record is unchanged."></uxt-banner>
     </div>
     <div class="sheet-body">
       <div class="form-section-label">Correcting entry for</div>
@@ -648,27 +553,27 @@
       </div>
 
       <div class="form-section-label">Correction amount</div>
-      <div style="padding:14px 16px;background:rgba(228,75,74,0.04);border-bottom:1px solid var(--border);">
-        <div style="font-size:0.75rem;color:var(--gray-4);margin-bottom:10px;">How many hours to reverse? Tap to adjust by 1 min. Hold for 15 min steps.</div>
-        <div style="display:flex;align-items:center;gap:12px;">
-          <button class="step-btn red-step" id="corrMinusBtn"
+      <div class="corr-amount">
+        <div class="corr-amount-hint">How many hours to reverse? Tap to adjust by 1 min. Hold for 15 min steps.</div>
+        <div class="corr-amount-row">
+          <uxt-icon-button class="kit-step-btn" id="corrMinusBtn" icon="remove" label="Less" outlined tone="error" density="m"
             onpointerdown="startHoldStep(adjustCorrByMin,-1)"
             onpointerup="stopHoldStep()"
-            onpointerleave="stopHoldStep()">−</button>
-          <div style="flex:1;text-align:center;">
-            <div style="font-family:var(--font-mono);font-size:1.625rem;font-weight:700;color:var(--red);" id="corrHoursDisplay">−1h 23m</div>
-            <div style="font-size:0.6875rem;color:var(--gray-4);margin-top:2px;">saved as negative entry</div>
+            onpointerleave="stopHoldStep()"></uxt-icon-button>
+          <div class="corr-amount-mid">
+            <div class="corr-amount-value" id="corrHoursDisplay">−1h 23m</div>
+            <div class="corr-amount-sub">saved as negative entry</div>
           </div>
-          <button class="step-btn red-step" id="corrPlusBtn"
+          <uxt-icon-button class="kit-step-btn" id="corrPlusBtn" icon="add" label="More" outlined tone="error" density="m"
             onpointerdown="startHoldStep(adjustCorrByMin,1)"
             onpointerup="stopHoldStep()"
-            onpointerleave="stopHoldStep()">+</button>
+            onpointerleave="stopHoldStep()"></uxt-icon-button>
         </div>
       </div>
 
       <div class="form-section-label">Reason (optional)</div>
-      <div style="padding:10px 16px;border-bottom:1px solid var(--border);">
-        <textarea id="corrReason" placeholder="Describe reason for correction…" style="width:100%;background:var(--bg-section);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:var(--font-sans);font-size:0.8125rem;color:var(--octave-black);resize:none;outline:none;min-height:64px;"></textarea>
+      <div class="corr-reason">
+        <uxt-input id="corrReason" lines="multiple" full-width density="m" aria-label="Reason for correction" placeholder="Describe reason for correction…"></uxt-input>
       </div>
       <div style="height:8px;"></div>
     </div>
@@ -681,19 +586,15 @@
   <div class="bottom-sheet" id="crewSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Add Labor by Crew</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
 
     <!-- Crew selector — top of sheet, above member list (§18.5) -->
     <div class="crew-selector-bar">
       <span class="crew-selector-label">Crew</span>
-      <button class="crew-selector-pill" id="crewSelectorPill" onclick="cycleCrew()">
-        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3.27-3.95M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span id="crewSelectorLabel">BLUE — Blue Shift</span>
-        <svg width="11" height="11" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;color:currentColor;opacity:.75;"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
+      <uxt-button class="kit-crew-selector" id="crewSelectorPill" variant="outlined" tone="neutral" text="BLUE — Blue Shift" onclick="cycleCrew()"></uxt-button>
     </div>
 
     <div class="sheet-body">
@@ -705,28 +606,28 @@
             <div class="crew-row-name">BCAMPBELL</div>
             <div class="crew-row-sub">TECH · MAINT · already booked</div>
           </div>
-          <button class="crew-include-toggle off" style="opacity:0.35;cursor:not-allowed;" disabled><div class="toggle-knob off"></div></button>
+          <uxt-switch class="crew-include-toggle" aria-label="Include BCAMPBELL (already booked)" disabled></uxt-switch>
         </div>
         <div class="crew-member-row">
           <div class="crew-row-info">
             <div class="crew-row-name">JRODRIGUEZ</div>
             <div class="crew-row-sub">TECH · MAINT</div>
           </div>
-          <button class="crew-include-toggle on" id="ct1" onclick="toggleCrew(1)"><div class="toggle-knob on" id="ck1"></div></button>
+          <uxt-switch class="crew-include-toggle" id="ct1" aria-label="Include in booking" checked onchange="toggleCrew(1, event.detail &amp;&amp; event.detail.checked)"></uxt-switch>
         </div>
         <div class="crew-member-row">
           <div class="crew-row-info">
             <div class="crew-row-name">MKUMAR</div>
             <div class="crew-row-sub">MECH · MAINT</div>
           </div>
-          <button class="crew-include-toggle on" id="ct2" onclick="toggleCrew(2)"><div class="toggle-knob on" id="ck2"></div></button>
+          <uxt-switch class="crew-include-toggle" id="ct2" aria-label="Include in booking" checked onchange="toggleCrew(2, event.detail &amp;&amp; event.detail.checked)"></uxt-switch>
         </div>
         <div class="crew-member-row">
           <div class="crew-row-info">
             <div class="crew-row-name">TPATEL</div>
             <div class="crew-row-sub">ELEC · MAINT</div>
           </div>
-          <button class="crew-include-toggle off" id="ct3" onclick="toggleCrew(3)"><div class="toggle-knob off" id="ck3"></div></button>
+          <uxt-switch class="crew-include-toggle" id="ct3" aria-label="Include in booking" onchange="toggleCrew(3, event.detail &amp;&amp; event.detail.checked)"></uxt-switch>
         </div>
       </div>
 
@@ -746,11 +647,11 @@
       </div>
       <div class="form-field required" data-required="true" data-value="08:00">
         <span class="field-label">Start time</span>
-        <input class="time-input" type="time" lang="en-GB" value="08:00" onchange="setFieldValue(this.closest('.form-field'),this.value); checkCrewReady();">
+        <uxt-input class="kit-time-input" type="time" lang="en-GB" density="m" aria-label="Start time" value="08:00" onchange="setFieldValue(this.closest('.form-field'),this.value); checkCrewReady();"></uxt-input>
       </div>
       <div class="form-field required" data-required="true" data-value="09:23">
         <span class="field-label">End time</span>
-        <input class="time-input" type="time" lang="en-GB" value="09:23" onchange="setFieldValue(this.closest('.form-field'),this.value); checkCrewReady();">
+        <uxt-input class="kit-time-input" type="time" lang="en-GB" density="m" aria-label="End time" value="09:23" onchange="setFieldValue(this.closest('.form-field'),this.value); checkCrewReady();"></uxt-input>
       </div>
       <div class="form-field protected">
         <span class="field-label">Hours each</span>
@@ -759,15 +660,15 @@
       </div>
 
       <!-- Selection summary -->
-      <div style="margin:10px 16px;padding:8px 12px;background:var(--bg-section);border:1px solid var(--border);border-radius:8px;">
-        <div class="activity-summary-val" style="font-size:0.6875rem;font-family:var(--font-mono);font-weight:600;" id="crewSelectionSummary">2 crew members selected · 2h 46m total</div>
+      <div class="crew-selection-summary">
+        <div class="activity-summary-val" id="crewSelectionSummary">2 crew members selected · 2h 46m total</div>
       </div>
       <div style="height:8px;"></div>
     </div>
     <!-- Crew save — ready when at least 1 member selected + time fields
          set; reuses the shared gray→green button. -->
     <div class="sheet-footer">
-      <button class="insert-save-btn ready" id="crewSaveBtn" onclick="saveCrewLabor()">Book labor for crew</button>
+      <uxt-button class="kit-btn-block" id="crewSaveBtn" variant="contained" text="Book labor for crew" onclick="saveCrewLabor()"></uxt-button>
     </div>
   </div>
 
@@ -778,13 +679,12 @@
   <div class="bottom-sheet" id="lovSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title" id="lovSheetTitle">Select value</div>
-      <button class="sheet-clear-btn" id="lovClearBtn" onclick="clearLov()">Clear</button>
+      <uxt-button class="kit-sheet-text-btn" id="lovClearBtn" onclick="clearLov()" variant="text" tone="neutral" text="Clear"></uxt-button>
     </div>
-    <div class="lov-search-row" id="lovSearchRow">
-      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <input class="lov-search-input" id="lovSearchInput" placeholder="Search" oninput="filterLovOptions(this.value)">
+    <div class="kit-sheet-search" id="lovSearchRow">
+      <uxt-search-bar id="lovSearchInput" density="m" placeholder="Search" oninput="filterLovOptions(this.value)"></uxt-search-bar>
     </div>
     <div class="sheet-body" id="lovSheetBody"></div>
   </div>
@@ -796,12 +696,12 @@
   <div class="bottom-sheet" id="editSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title" id="editSheetTitle">Edit field</div>
       <!-- Clear + ✓ share the right slot; the bottom Save pill is gone for the
            same keyboard-collision reason as the long-text editor (§3.4). -->
       <div class="sheet-header-right">
-        <button class="sheet-clear-btn" id="editClearBtn" onclick="clearEdit()">Clear</button>
+        <uxt-button class="kit-sheet-text-btn" id="editClearBtn" onclick="clearEdit()" variant="text" tone="neutral" text="Clear"></uxt-button>
         <button class="sheet-confirm-btn" id="editConfirmBtn" onclick="saveEdit()" aria-label="Save"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>
       </div>
     </div>
@@ -814,15 +714,15 @@
   <div class="bottom-sheet" id="dateSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title" id="dateSheetTitle">Select date</div>
-      <button class="sheet-clear-btn" id="dateClearBtn" onclick="clearDate()">Clear</button>
+      <uxt-button class="kit-sheet-text-btn" id="dateClearBtn" onclick="clearDate()" variant="text" tone="neutral" text="Clear"></uxt-button>
     </div>
     <div class="sheet-body">
       <div class="cal-header">
-        <button class="cal-nav-btn" onclick="calNavMonth(-1)">‹</button>
+        <uxt-icon-button class="kit-cal-nav" icon="chevron-left" label="Previous month" density="m" onclick="calNavMonth(-1)"></uxt-icon-button>
         <span class="cal-month-label" id="calMonthLabel">July 2026</span>
-        <button class="cal-nav-btn" onclick="calNavMonth(1)">›</button>
+        <uxt-icon-button class="kit-cal-nav" icon="chevron-right" label="Next month" density="m" onclick="calNavMonth(1)"></uxt-icon-button>
       </div>
       <div class="cal-weekdays"><span class="cal-weekday">Sun</span><span class="cal-weekday">Mon</span><span class="cal-weekday">Tue</span><span class="cal-weekday">Wed</span><span class="cal-weekday">Thu</span><span class="cal-weekday">Fri</span><span class="cal-weekday">Sat</span></div>
       <div class="cal-grid" id="calGrid"></div>
@@ -865,6 +765,27 @@ const PROTO_MENU_EXTRA = [
 </script>
 <script src="shared/eam-shared.js?v=202609211648"></script>
 <script>
+// Presence-attribute setter (the verify DOM shim lacks Element's toggle API).
+function kitFlag(el, name, on) { if (!el) return; if (on) el.setAttribute(name, ''); else el.removeAttribute(name); }
+/* ── Octave kit glue (2026-10-20) ─────────────────────────────────────
+   design-kit.js is a deferred module, so this script runs before the
+   <uxt-*> elements upgrade. A kit input's .value is a class accessor: read
+   the attribute until it exists, and always WRITE through the attribute
+   (assigning .value on an un-upgraded element would shadow the accessor
+   for good). */
+function kitValueOf(el) { return el ? (el.value != null ? el.value : (el.getAttribute('value') || '')) : ''; }
+function kitSetValue(el, v) { if (el) el.setAttribute('value', v == null ? '' : String(v)); }
+// Status picker rows are kit List Items; the shared selectStatus() owns the
+// state, this mirrors the pick onto their `selected` attribute.
+function kitSyncStatusRows() {
+  Object.keys(statusOptions).forEach(k => {
+    const row = document.getElementById('sOpt-' + k);
+    if (row) kitFlag(row, 'selected', k === currentStatusKey);
+  });
+}
+const _sharedSelectStatus = selectStatus;
+selectStatus = function (key, label) { _sharedSelectStatus(key, label); kitSyncStatusRows(); };
+
 /* ── screen-specific config/behavior — chrome (nav, header, step rail,
    confirm modal, toast, theme toggle) comes from eam-shared.js. ── */
 
@@ -979,8 +900,8 @@ function openAddLaborSheet(prefillCurrentUser) {
   // from the previous step, not just a static default.
   const startEl = document.getElementById('addStartTime');
   const endEl = document.getElementById('addEndTime');
-  startEl.value = STOPPED_TIMER_START;
-  endEl.value = STOPPED_TIMER_END;
+  kitSetValue(startEl, STOPPED_TIMER_START);
+  kitSetValue(endEl, STOPPED_TIMER_END);
   setFieldValue(startEl, STOPPED_TIMER_START);
   setFieldValue(endEl, STOPPED_TIMER_END);
   recalcHours();
@@ -1014,15 +935,12 @@ function isSheetReady(sheetId) {
   return true;
 }
 function checkAddReady() {
-  const btn = document.getElementById('addSaveBtn');
-  if (isSheetReady('addLaborSheet')) btn.classList.add('ready');
-  else btn.classList.remove('ready');
+  // Kit button: not ready = disabled (the tap does nothing, as before).
+  kitFlag(document.getElementById('addSaveBtn'), 'disabled', !isSheetReady('addLaborSheet'));
 }
 function checkCrewReady() {
-  const btn = document.getElementById('crewSaveBtn');
   const anySelected = crewState.slice(1).some(Boolean);
-  if (anySelected && isSheetReady('crewSheet')) btn.classList.add('ready');
-  else btn.classList.remove('ready');
+  kitFlag(document.getElementById('crewSaveBtn'), 'disabled', !(anySelected && isSheetReady('crewSheet')));
 }
 
 // ── LOV CODE VISIBILITY — description-only default, single source of
@@ -1055,7 +973,9 @@ function applyTypeOfHours(code) {
   const t = hourTypes.find(x => x.code === code) || hourTypes[0];
   document.getElementById('addTypeOfHoursLov').textContent = t.desc;
   const pill = document.getElementById('addTypeOfHoursPill');
-  pill.className = 'hours-type-pill' + (t.color !== 'purple' ? ' htp-' + t.color : '');
+  // Kit outlined button: label via attribute; Double time = error tone (§23).
+  pill.setAttribute('text', t.desc);
+  pill.setAttribute('tone', t.color === 'red' ? 'error' : 'neutral');
   pill.setAttribute('data-value', t.code);
   checkAddReady();
 }
@@ -1273,8 +1193,8 @@ function addMinutesToTime(time, mins) {
 }
 // Start/End → Hours Worked. Runs on every Start/End change (§18.4/§18.7).
 function recalcHours() {
-  const s = document.getElementById('addStartTime').value;
-  const e = document.getElementById('addEndTime').value;
+  const s = kitValueOf(document.getElementById('addStartTime'));
+  const e = kitValueOf(document.getElementById('addEndTime'));
   if (!s || !e) return;
   const mins = diffMinutesWrapped(s, e);
   const dec = decimalHoursFromMinutes(mins);
@@ -1289,9 +1209,9 @@ function recalcEndFromHours() {
   const startEl = document.getElementById('addStartTime');
   const dec = document.getElementById('fv-hoursWorked').textContent;
   const mins = minutesFromDecimalHours(dec);
-  const newEnd = addMinutesToTime(startEl.value, mins);
+  const newEnd = addMinutesToTime(kitValueOf(startEl), mins);
   const endEl = document.getElementById('addEndTime');
-  endEl.value = newEnd;
+  kitSetValue(endEl, newEnd);
   setFieldValue(endEl, newEnd);
   checkAddReady();
 }
@@ -1330,7 +1250,7 @@ let crewIdx = 0;
 function cycleCrew() {
   crewIdx = (crewIdx + 1) % crews.length;
   const c = crews[crewIdx];
-  document.getElementById('crewSelectorLabel').textContent = `${c.code} — ${c.desc}`;
+  document.getElementById('crewSelectorPill').setAttribute('text', `${c.code} — ${c.desc}`);
   document.getElementById('crewMembersLabel').textContent = `${c.desc} members`;
   const list = document.getElementById('crewMemberList');
   list.innerHTML = c.members.map((name, i) => `
@@ -1339,7 +1259,7 @@ function cycleCrew() {
         <div class="crew-row-name">${name}</div>
         <div class="crew-row-sub">TECH · MAINT</div>
       </div>
-      <button class="crew-include-toggle on" id="ct${i}" onclick="toggleCrewDyn(this,${i})"><div class="toggle-knob on" id="ck${i}"></div></button>
+      <uxt-switch class="crew-include-toggle" id="ct${i}" aria-label="Include ${name}" checked onchange="toggleCrewDyn(this,${i})"></uxt-switch>
     </div>`).join('');
   crewState.fill(true);
   crewState[0] = true;
@@ -1349,22 +1269,17 @@ function cycleCrew() {
 
 // ── CREW TOGGLES ──────────────────────────────────────────────────────────
 const crewState = [false, true, true, false];
-function toggleCrew(idx) {
-  crewState[idx] = !crewState[idx];
-  const btn = document.getElementById('ct'+idx);
-  const knob = document.getElementById('ck'+idx);
-  if (btn && knob) {
-    btn.className = 'crew-include-toggle ' + (crewState[idx] ? 'on' : 'off');
-    knob.className = 'toggle-knob ' + (crewState[idx] ? 'on' : 'off');
-  }
+// Kit <uxt-switch>: it flips its own `checked` and fires `change` with
+// detail.checked, so the state is read from the switch, never toggled twice.
+function toggleCrew(idx, checked) {
+  const sw = document.getElementById('ct'+idx);
+  crewState[idx] = (typeof checked === 'boolean') ? checked : !crewState[idx];
+  if (sw) kitFlag(sw, 'checked', crewState[idx]);
   updateCrewSummary();
   checkCrewReady();
 }
-function toggleCrewDyn(btn, idx) {
-  const isOn = btn.classList.contains('on');
-  btn.className = 'crew-include-toggle ' + (isOn ? 'off' : 'on');
-  btn.children[0].className = 'toggle-knob ' + (isOn ? 'off' : 'on');
-  const sel = document.querySelectorAll('#crewMemberList .crew-include-toggle.on').length;
+function toggleCrewDyn(sw, idx) {
+  const sel = document.querySelectorAll('#crewMemberList uxt-switch.crew-include-toggle[checked]').length;
   document.getElementById('crewSelectionSummary').textContent = `${sel} crew member${sel!==1?'s':''} selected · ${sel}h ${sel*23}m total`;
 }
 function updateCrewSummary() {
@@ -1376,7 +1291,7 @@ function updateCrewSummary() {
 // Reads the sheet's actual current field values (§18.7, 2026-07-21 fix —
 // previously booked a hardcoded demo row regardless of what was entered).
 function saveAddLabor() {
-  if (!document.getElementById('addSaveBtn').classList.contains('ready')) return;
+  if (document.getElementById('addSaveBtn').hasAttribute('disabled')) return;
   // Employee/Crew are mutually exclusive (§18.7). Booking against a Crew
   // isn't one row for the crew itself — the real system books labor
   // against every employee currently assigned to that crew, one row
@@ -1385,8 +1300,8 @@ function saveAddLabor() {
   const empCode = document.getElementById('fv-employee-code').textContent;
   const crewCode = document.getElementById('addCrewCard').getAttribute('data-value');
   const dateIso = document.getElementById('addStartDatePill').getAttribute('data-value');
-  const start = document.getElementById('addStartTime').value;
-  const end = document.getElementById('addEndTime').value;
+  const start = kitValueOf(document.getElementById('addStartTime'));
+  const end = kitValueOf(document.getElementById('addEndTime'));
   const typeCode = document.getElementById('addTypeOfHoursPill').getAttribute('data-value');
   const typeDesc = document.getElementById('addTypeOfHoursLov').textContent;
   const mins = diffMinutesWrapped(start, end);
@@ -1416,7 +1331,7 @@ function saveCorrection() {
   showToast('Correction record saved');
 }
 function saveCrewLabor() {
-  if (!document.getElementById('crewSaveBtn').classList.contains('ready')) return;
+  if (document.getElementById('crewSaveBtn').hasAttribute('disabled')) return;
   addLaborRow('JRODRIGUEZ', isoToDisplay(DEMO_LABOR_DATE_ISO), '08:00', '09:23', 83, 'N', 'Normal', 'MAINT', 'TECH', false);
   addLaborRow('MKUMAR',     isoToDisplay(DEMO_LABOR_DATE_ISO), '08:00', '09:23', 83, 'N', 'Normal', 'MAINT', 'MECH', false);
   updateSummary();
@@ -1445,7 +1360,7 @@ function addLaborRow(name, date, start, end, mins, typeCode, typeDesc, dept, tra
   const tradeFull = tradeNames[trade] || trade;
   const deptFull  = deptNames[dept]  || dept;
   const hours = minsToHM(mins);
-  const corrNote = isCorr ? `<div class="correction-note"><svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#E24B4A" stroke-width="2" stroke-linecap="round"/></svg>Correction — reverses original booking</div>` : '';
+  const corrNote = isCorr ? `<div class="correction-note"><uxt-tag severity="error" icon="warning" density="m" text="Correction — reverses original booking"></uxt-tag></div>` : '';
   const hoursClass = isCorr ? 'red' : 'green';
   const div = document.createElement('div');
   div.className = 'action-row' + (isCorr ? ' correction' : '');
@@ -1467,7 +1382,7 @@ function addLaborRow(name, date, start, end, mins, typeCode, typeDesc, dept, tra
           <span class="action-row-meta"><span class="action-row-meta-label">Trade&nbsp;</span>${tradeFull}</span>
         </div>
       </div>
-      <span class="labor-hours-badge badge-${isCorr?'red':'green'}">${hours}</span>
+      <uxt-tag class="labor-hours-badge" severity="${isCorr?'error':'success'}" density="m" text="${hours}"></uxt-tag>
       <svg class="action-row-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
     <div class="action-row-detail">
@@ -1481,10 +1396,7 @@ function addLaborRow(name, date, start, end, mins, typeCode, typeDesc, dept, tra
         <div class="action-detail-label">Hours</div><div class="action-detail-value ${hoursClass}">${hours}</div>
       </div>
       ${!isCorr ? `<div class="action-row-actions">
-        <button class="row-action-btn danger" onclick="openCorrectionSheet(${idx})">
-          <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          Create correction
-        </button>
+        <uxt-button class="kit-flex-btn" variant="outlined" tone="error" text="Create correction" onclick="openCorrectionSheet(${idx})"></uxt-button>
       </div>` : ''}
     </div>`;
   document.getElementById('laborList').appendChild(div);
@@ -1561,7 +1473,7 @@ function onDemoWoChanged() {
 function applyTerminalStepBar() {
   if (!(CURRENT_WORKFLOW.configured && !CURRENT_WORKFLOW.steps.includes('closing'))) return;
   const btn = document.getElementById('nextBtn');
-  btn.innerHTML = '<svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Complete Work Order';
+  btn.setAttribute('text', 'Complete Work Order');
   btn.onclick = onCompleteBarTap;
   statusFieldProtected = !CURRENT_WORKFLOW.freeForm;
   applyStatusProtection();
@@ -1694,6 +1606,7 @@ function offerTimerBooking() {
       // place in this screen that stops it.
       sessionStorage.setItem('eamTimerRunning', 'false');
       document.getElementById('timerBannerValue').textContent = minsToHM(mins);
+      document.getElementById('timerBannerKit').setAttribute('text', 'Timer stopped · ' + minsToHM(mins) + ' booked');
       document.getElementById('timerBanner').style.display = '';
       syncTimerDevToggle();
       showToast(adjusted

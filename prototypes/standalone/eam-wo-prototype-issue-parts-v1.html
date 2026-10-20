@@ -56,226 +56,102 @@
    specific; the Standard Model's plain .content has no bottom bar). */
 .content { padding: 0 0 var(--bar-reserve); }
 .content::-webkit-scrollbar, .sheet-body::-webkit-scrollbar { display: none; }
-
-/* Nested LOV overlay sits above the parent Issue/Return sheet so opening a
-   field picker from within a still-open transaction sheet only closes the
-   picker on backdrop tap, not the sheet underneath it. */
+/* Nested LOV overlay sits above the parent Issue/Return sheet so a backdrop
+   tap closes only the picker, not the sheet underneath it. */
 #lovOverlay { z-index: 210; }
 #lovSheet { z-index: 211; }
-
-/* Base pill styling (background/border/font/etc.) now lives in
-   eam-shared.css's shared "SELECTOR PILL" block (Phase 2b, 2026-07-22) —
-   this file just keeps its own protected/scoped variants below. */
-/* Protected variant — Return sheet (§17.8): store can't change on a
-   return, same pill component, lock icon instead of chevron, no hover.
-   Explicitly restores the pre-fill outline look (2026-07-22 pill-colour
-   pass gave the base .store-selector a solid ink fill for editable —
-   protected pills were directly excluded from that, so this now spells
-   out the original colors instead of just dimming the new fill). */
-.store-selector.protected { cursor: default; opacity: 0.75; background: var(--bg-section); border-color: var(--border-strong); color: var(--octave-black); }
-[data-theme="dark"] .store-selector.protected { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
-.store-selector.protected:hover { border-color: var(--border-strong); color: var(--octave-black); }
-[data-theme="dark"] .store-selector.protected:hover { color: var(--white); }
-
-/* ─── SHEET STORE ROW — Store lives as a pill above the part identity
-   block inside every Issue/Return/Add-Part sheet (moved 2026-07-16 from a
-   plain .form-field LOV row to match the same pill component the main
-   screen header already uses for this exact purpose). Given more room
-   than the header's version (added 2026-07-16, feedback: felt cramped) —
-   taller padding, larger type, a full-row border-bottom so it reads as
-   its own anchored row (matching every other .form-field row's divider)
-   instead of floating in a mostly-empty strip between the sheet header
-   and the part block. Scoped to this row, not the base .store-selector,
-   so the main screen header's pill (§17.2) is untouched. ──────────────── */
-.sheet-store-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-}
-.sheet-store-row .store-selector { padding: 8px 16px 8px 12px; font-size: 0.8125rem; gap: 7px; }
-
-/* ─── SCREEN HEADER ──────────────────────────────────────────────────────  */
-.screen-header { padding: 16px 16px 10px; display: flex; align-items: center; justify-content: space-between; }
-.screen-title { font-size: 1.25rem; font-weight: 700; color: var(--octave-black); letter-spacing: -0.3px; }
-[data-theme="dark"] .screen-title { color: var(--white); }
-
-/* ─── PARTS SUMMARY BAR ──────────────────────────────────────────────────  */
-.parts-summary {
-  margin: 0 12px 12px;
-  background: var(--bg-section);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 14px;
-  display: flex; align-items: center; gap: 10px;
-}
-.summary-stat { display: flex; flex-direction: column; align-items: center; flex: 1; }
-.summary-stat-val { font-family: var(--font-mono); font-size: 1.375rem; font-weight: 700; color: var(--octave-black); line-height: 1.1; }
-[data-theme="dark"] .summary-stat-val { color: var(--white); }
-.summary-stat-label { font-size: 0.6875rem; color: var(--gray-4); font-weight: 500; margin-top: 1px; }
-.summary-divider { width: 1px; height: 32px; background: var(--border-strong); }
-.issued-val { color: var(--green) !important; }
-
-/* ─── SECTION LABEL ──────────────────────────────────────────────────────  */
-.section-label { padding: 0 16px 6px; font-size: 0.875rem; font-weight: 600; color: var(--octave-black); }
-[data-theme="dark"] .section-label { color: var(--white); }
-
-/* ─── PART CARD → ACTION ROW (2026-07-24) ─────────────────────────────────
-   The row shell itself (.action-row and friends) is now the shared
-   component promoted to eam-shared.css (see its own comment there) —
-   Issue Parts and Book Labor are its 2 real consumers. Only the list
-   container and the issued-state accent/badge colours (Parts' own
-   semantic, kept deliberately separate from Labor's regular/correction
-   badge) stay local here.  ──────────────────────────────────────────── */
-.parts-list { padding: 0 12px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
-.action-row.issued { border-color: rgba(0,170,20,0.3); background: rgba(0,170,20,0.03); }
-[data-theme="dark"] .action-row.issued { background: rgba(0,170,20,0.06); border-color: rgba(0,170,20,0.25); }
-.action-row-accent.issued { background: var(--green); }
-
-.qty-badge { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 700; padding: 2px 7px; border-radius: 100px; flex-shrink: 0; }
-.qty-badge-planned { background: none; border: 1px solid var(--border-strong); color: var(--octave-black); }
-[data-theme="dark"] .qty-badge-planned { color: var(--white); }
-/* .qty-badge-issued tint now lives in eam-shared.css's shared block
-   (Phase 2b, 2026-07-22) — was the same green-tint recipe as Book
-   Labor's .badge-green, just at a slightly different opacity (.12 vs
-   .1); unified on the shared value. */
-/* Tertiary action pill (§17.14) */
-/* Was a local .btn-quick-issue — converged onto the shared .row-action-btn
-   2026-07-21 (UI inventory pass); this screen's own spec (34px/13px)
-   became the shared standard, so no size change here. .issued-state
-   became the generic .success variant. */
-
-.adhoc-section { padding: 0 12px 8px; }
-
-/* Quick Issue All Planned Parts (§17.6/§17.14) — was a local near-
-   duplicate of the shared .btn-contained (already flagged in that class's
-   own comment as an unmigrated convergence candidate) — converged onto
-   it 2026-07-21 (UI inventory pass). */
-.quick-issue-all-strip { padding: 0 12px 12px; }
-
-/* ─── QTY INPUT ROW (stepper — distinct from the Standard Model's plain
-   numeric field, §17.10) ──────────────────────────────────────────────── */
-.qty-row { display: flex; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--border); gap: 10px; position: relative; min-height: 46px; }
-.qty-row.required::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 100px 100px 0; background: var(--red); }
-.qty-label { font-size: 0.8125rem; color: var(--gray-4); flex: 1; }
-.qty-stepper { display: flex; align-items: center; gap: 0; background: var(--bg-section); border-radius: 8px; border: 1.5px solid var(--border-strong); overflow: hidden; }
-[data-theme="dark"] .qty-stepper { border-color: var(--gray-5); background: var(--bg-section); }
-.qty-step-btn { width: 36px; height: 36px; border: none; background: none; font-size: 1.125rem; font-weight: 700; color: var(--octave-black); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; }
-[data-theme="dark"] .qty-step-btn { color: var(--white); }
-.qty-step-btn:hover { background: var(--bg-section); }
-.qty-step-btn:active { background: var(--border-strong); }
-.qty-val { font-family: var(--font-mono); font-size: 0.9375rem; font-weight: 700; color: var(--octave-black); width: 44px; text-align: center; }
-[data-theme="dark"] .qty-val { color: var(--white); }
-.qty-uom { font-family: var(--font-mono); font-size: 0.6875rem; color: var(--gray-4); margin-left: 2px; }
-
-/* ─── PART SEARCH (ad hoc, §17.9) — sheet opens straight into this, no
-   intermediate "tap to reveal search" screen (collapsed 2026-07-16, a
-   redundant extra tap). Big tappable block invokes the device camera/
-   barcode scanner (invokeCameraScan()) — restored 2026-07-16 at request
-   after the redundant-tap fix had removed it along with the screen it
-   used to gate; the small search bar below it is always visible and
-   filters the same list live as typed. Only the block invokes the
-   camera — the search bar's own leading icon stays the shared,
-   decorative one, so there's exactly one scan trigger, not two. ───────── */
-.part-search-block {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-  padding: 18px 24px;
-  background: var(--bg-section);
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-[data-theme="dark"] .part-search-block { background: rgba(255,255,255,0.03); }
-.part-search-block:hover { background: var(--bg-section); }
-.part-search-icon { width: 40px; height: 40px; border-radius: 50%; background: none; border: 1.5px solid var(--border-strong); display: flex; align-items: center; justify-content: center; color: var(--octave-black); }
-[data-theme="dark"] .part-search-icon { color: var(--white); }
-.part-search-label { font-size: 0.875rem; font-weight: 700; color: var(--octave-black); }
-[data-theme="dark"] .part-search-label { color: var(--white); }
-.part-search-hint { font-size: 0.75rem; color: var(--gray-4); font-family: var(--font-mono); text-align: center; padding: 0 16px 10px; }
-
-/* ─── FIELD-VALUE MODIFIERS — small local additions on top of the shared
-   .form-field/.field-value base (§17.10). Colour is body colour by
-   default, purple stays reserved for step pill/badges/focus states. Mono
-   is reserved for genuine identifier/code values only — "Codes render in
-   monospace, descriptions never do" is a locked, screen-agnostic rule
-   (design-decisions-v3-1.md §3.4) — everything else (Available Qty's
-   formatted number, field labels) stays Inter like the Standard Model.
-   Fixed 2026-07-16: this used to force ALL .field-value text in this file
-   to monospace, which also caught Available Qty (a number, not a code)
-   and gave Store a non-standard 600-weight "highlighted" treatment with
-   no doc basis — removed both. */
-.field-value.green { color: var(--green); font-weight: 700; }
-.field-value.mono, .qty-val { font-family: var(--font-mono); }
-
-/* Part detail header in sheet — replaces the Part LOV row, not shown twice
-   (§17.8/§17.9). No shared equivalent. */
-.sheet-part-header { background: var(--bg-section); border-bottom: 1px solid var(--border); padding: 12px 16px; }
-.sheet-part-num { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600; color: var(--octave-black); margin-bottom: 3px; }
-[data-theme="dark"] .sheet-part-num { color: var(--white); }
-.sheet-part-desc { font-size: 0.9375rem; font-weight: 700; color: var(--octave-black); line-height: 1.3; }
-[data-theme="dark"] .sheet-part-desc { color: var(--white); }
-
-/* ─── SEGMENT CONTROL — Issue / Return on the planned-parts sheet (§17.8),
-   Issue / Planned on the ad hoc sheet (§17.9) — same two-slot control,
-   2nd slot's label/handler/enabled-state are set per sheet by
-   configureSegControl(). "active-alt" (not "active-return") is the 2nd
-   slot's active style since it now stands for either meaning. ────────── */
-.seg-control { display: flex; background: var(--bg-section); border-radius: 8px; padding: 3px; margin: 12px 16px; gap: 0; border: 1px solid var(--border); }
-.seg-btn { flex: 1; height: 34px; border: none; border-radius: 6px; font-size: 0.8125rem; font-weight: 700; cursor: pointer; background: none; color: var(--gray-4); transition: all 0.15s; }
-.seg-btn.active-issue { background: var(--octave-black); color: white; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
-[data-theme="dark"] .seg-btn.active-issue { background: rgba(255,255,255,0.15); }
-.seg-btn.active-alt { background: var(--octave-black); color: white; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
-[data-theme="dark"] .seg-btn.active-alt { background: rgba(255,255,255,0.15); }
-/* Return is disabled on the planned-parts sheet until the part has
-   actually been issued — nothing to return before then. */
-.seg-btn:disabled { color: var(--gray-3); cursor: not-allowed; opacity: 0.55; }
-[data-theme="dark"] .seg-btn:disabled { color: var(--gray-5); }
-
-/* Sheet Save button now reuses the shared gray→green .insert-save-btn
-   (§17.13, changed 2026-07-16 — was a locked white-contained/aqua-hover
-   local override; superseded at explicit request, see design-decisions
-   for the prior rule and why it was replaced). No local CSS needed. */
-
-/* Toast sits above the bottom bar on this screen (screen-specific override
-   — the shared default assumes no bottom chrome). */
+/* Toast above the bottom bar (legacy #toast fallback only). */
 .toast { bottom: calc(var(--bar-height) + 10px); }
 
-/* ─── QUICK ISSUE ALL STRIP / CONFIRM SHEET ROWS (§17.7) ──────────────────  */
-.bin-stock-list { padding: 4px 16px 10px; display: flex; flex-direction: column; gap: 2px; }
-.bin-stock-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--border); }
-.bin-stock-row:last-child { border-bottom: none; }
-.bin-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
-.bin-loc { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600; color: var(--octave-black); flex: 1; }
-[data-theme="dark"] .bin-loc { color: rgba(255,255,255,0.85); }
-.bin-lot-tag { font-family: var(--font-mono); font-size: 0.6875rem; color: var(--gray-4); background: var(--bg-section); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; flex-shrink: 0; }
-.bin-qty { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 700; color: var(--green); flex-shrink: 0; }
+/* Octave kit pass (2026-10-20): buttons, icon buttons, the Issue/Return
+   toggle group, search bars, list rows, status chips and banners are real
+   <uxt-*> elements. These rules only place the HOSTS; colours are kit
+   tokens via the shared --k-* aliases (no [data-theme="dark"] overrides
+   needed any more). */
+.bottom-bar > uxt-button.kit-bar-btn { flex: 1; min-width: 0; }
+uxt-button.kit-flex-btn { flex: 1; min-width: 0; }
+uxt-button.kit-flex-2 { flex: 2; }
+.kit-footer-row { display: flex; gap: var(--k-s1); }
+uxt-button.kit-sheet-text-btn.hidden { visibility: hidden; }
+.kit-sheet-search.hidden { display: none; }
+.kit-seg-wrap { margin: var(--k-sm) var(--k-s4); }
+.kit-seg-wrap > uxt-toggle-button-group { display: block; width: 100%; }
+uxt-button.kit-store-btn { flex-shrink: 0; }
+.kit-empty-note { padding: var(--k-s6) var(--k-s4); text-align: center; color: var(--k-text-2); font-size: var(--k-body2); }
+.kit-empty-note.kit-cap-note { padding: var(--k-sm) var(--k-s4); font-size: var(--k-caption); }
 
-.confirm-row-desc { font-size: 0.875rem; font-weight: 600; color: var(--octave-black); }
-[data-theme="dark"] .confirm-row-desc { color: var(--white); }
-.confirm-row-qty { font-family: var(--font-mono); font-size: 0.9375rem; font-weight: 700; color: var(--octave-black); }
-[data-theme="dark"] .confirm-row-qty { color: var(--white); }
-.confirm-warning-title { display: block; font-size: 0.8125rem; font-weight: 700; color: var(--octave-black); margin-bottom: 2px; }
-[data-theme="dark"] .confirm-warning-title { color: var(--white); }
-/* Added 2026-07-22, palette pass — this whole confirm-sheet row used to
-   be built from inline styles with color:var(--octave-black)/var(--purple)
-   baked in, which (a) was colored mono (purple part number/qty buttons,
-   the exact anti-pattern §23 retires) and (b) being inline, silently beat
-   .confirm-row-qty's own dark-mode override above — the qty number was
-   actually unreadable (dark-on-dark) in dark mode before this. Real bug,
-   not just a palette tweak. */
-.confirm-part-num { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600; color: var(--octave-black); margin-bottom: 2px; }
-[data-theme="dark"] .confirm-part-num { color: var(--white); }
-.confirm-qty-btn { width: 32px; height: 34px; border: none; background: none; font-size: 1.0625rem; font-weight: 700; color: var(--octave-black); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .1s; }
-[data-theme="dark"] .confirm-qty-btn { color: var(--white); }
-.confirm-qty-btn:hover { background: var(--bg-card); }
-[data-theme="dark"] .confirm-qty-btn:hover { background: rgba(255,255,255,.08); }
-/* Was a purple flash on change — ink instead (§23: emphasis is weight,
-   not a hue), and a class toggle instead of inline style so it actually
-   respects the current theme (an inline color set from JS can't). */
-.qty-flash { color: var(--octave-black) !important; }
-[data-theme="dark"] .qty-flash { color: var(--white) !important; }
-.confirm-warning-box { background: rgba(228,75,74,0.07); border: 1px solid rgba(228,75,74,0.2); border-radius: 8px; padding: 10px 12px; margin: 12px 0 4px; display: flex; align-items: flex-start; gap: 8px; }
-.confirm-warning-icon { flex-shrink: 0; margin-top: 1px; color: var(--red); }
-[data-theme="dark"] .confirm-stepper { border-color: var(--gray-5) !important; background: var(--bg-section) !important; }
+/* Protected store value on a Return (§17.8): a read-only value, not a
+   control, so it stays a hand-built pill (lock glyph, no tap) on tokens. */
+.store-selector.protected { display: inline-flex; align-items: center; gap: var(--k-s2); height: var(--k-h); padding: 0 var(--k-s4); border-radius: var(--k-pill); cursor: default; background: var(--k-paper); border: 1px solid var(--k-divider); color: var(--k-text-2); font-size: var(--k-body2); font-weight: 500; }
+.sheet-store-row { display: flex; align-items: center; justify-content: space-between; padding: var(--k-sm) var(--k-s4); border-bottom: 1px solid var(--k-divider); }
+
+/* ─── SCREEN HEADER (§17.2) ─── */
+.screen-header { padding: var(--k-s4) var(--k-s4) var(--k-s2); display: flex; align-items: center; justify-content: space-between; gap: var(--k-s2); }
+.screen-title { font-family: var(--font-display); font-size: var(--uxt-theme-typography-h-6-font-size, 1.125rem); font-weight: 500; color: var(--k-text); }
+
+/* ─── PARTS SUMMARY (§17.3) — stat tiles, no kit equivalent. ─── */
+.parts-summary { margin: 0 var(--k-s4) var(--k-s4); background: var(--k-card); border: 1px solid var(--k-divider); border-radius: var(--k-r); padding: var(--k-sm) var(--k-s4); display: flex; align-items: center; gap: var(--k-s2); }
+.summary-stat { display: flex; flex-direction: column; align-items: center; flex: 1; }
+.summary-stat-val { font-family: var(--font-mono); font-size: 1.375rem; font-weight: 500; color: var(--k-text); line-height: 1.1; }
+.summary-stat-label { font-size: var(--k-caption); color: var(--k-text-2); margin-top: 2px; }
+.summary-divider { width: 1px; height: 32px; background: var(--k-divider); }
+.issued-val { color: var(--k-ok-fg) !important; }
+
+.section-label { padding: 0 var(--k-s4) var(--k-s2); font-family: var(--font-display); font-size: var(--uxt-theme-typography-sub-title-2-font-size, 0.875rem); font-weight: 500; color: var(--k-text); }
+
+/* ─── PART ROWS (§17.4) — shared .action-row shell; issued accent local. ─── */
+.parts-list { padding: 0 var(--k-s4); display: flex; flex-direction: column; gap: var(--k-s2); margin-bottom: var(--k-s4); }
+.action-row.issued { border-color: var(--uxt-theme-palette-success-main, #47be68); }
+.action-row-accent.issued { background: var(--uxt-theme-palette-success-main, #47be68); }
+uxt-status-chip.qty-badge { flex-shrink: 0; }
+.adhoc-section { padding: 0 var(--k-s4) var(--k-s2); }
+.quick-issue-all-strip { padding: 0 var(--k-s4) var(--k-s4); }
+
+/* ─── QTY STEPPER (§17.10 — distinct from a plain numeric field): kit
+   outlined Icon Buttons either side of the value. ─── */
+.qty-row { display: flex; align-items: center; padding: var(--k-s2) var(--k-s4); border-bottom: 1px solid var(--k-divider); gap: var(--k-s2); position: relative; min-height: 56px; }
+.qty-row.required::before { content: ''; position: absolute; left: 0; top: var(--k-s2); bottom: var(--k-s2); width: 3px; border-radius: 0 var(--k-pill) var(--k-pill) 0; background: var(--uxt-theme-palette-error-main, #f3434a); }
+.qty-label { font-size: var(--k-body2); color: var(--k-text-2); flex: 1; }
+.qty-stepper { display: flex; align-items: center; gap: var(--k-s1); flex-shrink: 0; }
+.qty-val, .confirm-row-qty { font-family: var(--font-mono); font-size: 1rem; font-weight: 500; color: var(--k-text); min-width: 40px; text-align: center; }
+.qty-uom { font-family: var(--font-mono); font-size: var(--k-caption); color: var(--k-text-2); }
+
+/* ─── PART SEARCH (ad hoc, §17.9) — the big block is the one scan target;
+   no kit equivalent for the block itself. ─── */
+.part-search-block { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--k-s2); padding: var(--k-s4) var(--k-s6); background: var(--k-paper); border-bottom: 1px solid var(--k-divider); cursor: pointer; }
+.part-search-block:hover { background: linear-gradient(var(--k-hover), var(--k-hover)), var(--k-paper); }
+.part-search-icon { pointer-events: none; }
+.part-search-label { font-size: var(--k-body2); font-weight: 500; color: var(--k-text); }
+.part-search-hint { font-size: var(--k-caption); color: var(--k-text-2); text-align: center; padding: 0 var(--k-s4) var(--k-s2); }
+
+/* ─── FIELD-VALUE MODIFIERS (§17.10). Mono only for codes. ─── */
+.field-value.green { color: var(--k-ok-fg); font-weight: 500; }
+.field-value.mono { font-family: var(--font-mono); }
+.sheet-part-header { background: var(--k-paper); border-bottom: 1px solid var(--k-divider); padding: var(--k-sm) var(--k-s4); }
+.sheet-part-num { font-family: var(--font-mono); font-size: var(--k-caption); color: var(--k-text-2); margin-bottom: 2px; }
+.sheet-part-desc { font-size: var(--k-body2); font-weight: 500; color: var(--k-text); line-height: 1.3; }
+
+/* ─── BIN STOCK + QUICK ISSUE ALL CONFIRM (§17.7) ─── */
+.bin-stock-list { padding: var(--k-s1) var(--k-s4) var(--k-s2); display: flex; flex-direction: column; gap: 2px; }
+.bin-stock-row { display: flex; align-items: center; gap: var(--k-s2); padding: var(--k-s1) 0; border-bottom: 1px solid var(--k-divider); }
+.bin-stock-row:last-child { border-bottom: none; }
+.bin-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--uxt-theme-palette-success-main, #47be68); flex-shrink: 0; }
+.bin-loc { font-family: var(--font-mono); font-size: var(--k-caption); color: var(--k-text); flex: 1; }
+.bin-lot-tag { font-family: var(--font-mono); font-size: var(--k-caption); color: var(--k-text-2); background: var(--k-paper); border: 1px solid var(--k-divider); border-radius: var(--uxt-theme-shape-radius-sm, 4px); padding: 0 var(--k-s1); flex-shrink: 0; }
+.bin-qty { font-family: var(--font-mono); font-size: var(--k-caption); font-weight: 500; color: var(--k-ok-fg); flex-shrink: 0; }
+#confirmBody { padding: 0 var(--k-s4) var(--k-s2); }
+.confirm-warning-box { margin: var(--k-sm) 0 var(--k-s1); }
+.confirm-warning-box > uxt-banner { display: block; border: 1px solid var(--k-divider); border-radius: var(--k-r); overflow: hidden; }
+.confirm-rows { margin: 0 0 var(--k-s1); }
+.confirm-row { display: flex; align-items: center; gap: var(--k-s2); padding: var(--k-sm) 0; border-bottom: 1px solid var(--k-divider); }
+.confirm-row-info { flex: 1; min-width: 0; }
+.confirm-part-num { font-family: var(--font-mono); font-size: var(--k-caption); color: var(--k-text-2); margin-bottom: 2px; }
+.confirm-row-desc { font-size: var(--k-body2); font-weight: 500; color: var(--k-text); }
+.confirm-row-meta { font-size: var(--k-caption); color: var(--k-text-2); font-family: var(--font-mono); margin-top: 2px; }
+.confirm-row-uom { font-family: var(--font-mono); font-size: var(--k-caption); color: var(--k-text-2); width: 24px; flex-shrink: 0; }
+.confirm-foot-note { font-size: var(--k-caption); color: var(--k-text-2); padding: var(--k-s2) 0 var(--k-s1); font-family: var(--font-mono); }
+/* Emphasis on change is weight, not a hue (§23). */
+.qty-flash { font-weight: 700 !important; }
 </style>
 </head>
 <body>
@@ -287,11 +163,7 @@
 
   <header class="nav" onclick="scrollFormToTop()">
     <div class="nav-left">
-      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation(); navBack()">
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-          <path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
+      <uxt-icon-button class="nav-back-kit" icon="arrow-back" label="Back" outlined density="m" onclick="event.stopPropagation(); navBack()"></uxt-icon-button>
       <span class="prototype-label">PROTOTYPE</span>
     </div>
     <div class="nav-title">Work Orders</div>
@@ -312,23 +184,21 @@
         <span class="rec-desc protected" id="recDesc">Pump Cavitating; lost head</span>
       </div>
       <div class="rec-header-actions">
-        <button class="rec-ellipsis-btn" id="recEllipsisBtn" onclick="event.stopPropagation(); toggleRecActionsMenu()" aria-label="More actions">
-          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
-        </button>
+        <uxt-icon-button class="rec-ellipsis-kit" id="recEllipsisBtn" icon="more-vert" label="More actions" outlined density="m" onclick="event.stopPropagation(); toggleRecActionsMenu()"></uxt-icon-button>
         <div class="rec-actions-menu" id="recActionsMenu">
           <div class="rec-actions-group">
-            <div class="rec-actions-item" onclick="recCopyLink()">Copy Link</div>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" icon="link" text="Copy Link" onclick="recCopyLink()"></uxt-list-item>
           </div>
           <div class="rec-actions-divider"></div>
           <div class="rec-actions-group">
-            <div class="rec-actions-item" onclick="recCopyRecord()">Copy</div>
-            <div class="rec-actions-item danger" onclick="recDeleteRecord()">Delete</div>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" icon="content-copy" text="Copy" onclick="recCopyRecord()"></uxt-list-item>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" icon="delete" text="Delete" onclick="recDeleteRecord()"></uxt-list-item>
           </div>
           <div class="rec-actions-divider"></div>
           <!-- Comments(3)/Documents(4) removed 2026-07-22 — superseded by
                the step rail's "Reference" group (§14.8/§23). -->
           <div class="rec-actions-group" id="recActionsScreenSpecific">
-            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Printing work order — coming soon')">Print Work Order</div>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" icon="print" text="Print Work Order" onclick="closeRecActionsMenu(); showToast('Printing work order — coming soon')"></uxt-list-item>
           </div>
         </div>
       </div>
@@ -360,14 +230,11 @@
       <div class="step-timer-panel">
         <div class="step-timer-value" id="stepTimerValue">00:00:00</div>
         <div class="step-timer-actions">
-          <button class="step-timer-btn" onclick="toggleStepTimerPause()">
-            <span id="stepPauseBtnIcon"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="5" x2="8" y2="19"/><line x1="16" y1="5" x2="16" y2="19"/></svg></span>
-            <span id="stepPauseBtnLabel">Pause</span>
-          </button>
-          <button class="step-timer-btn danger" onclick="confirmStopTimer()">
-            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
-            Stop
-          </button>
+          <!-- Kit outlined buttons. The shared toggleStepTimerPause() writes
+               the hidden #stepPauseBtnLabel; kitSyncPauseBtn() mirrors it. -->
+          <uxt-button class="kit-flex-btn" id="stepPauseKit" variant="outlined" text="Pause" onclick="event.stopPropagation(); toggleStepTimerPause()"></uxt-button>
+          <uxt-button class="kit-flex-btn" variant="outlined" tone="error" text="Stop" onclick="event.stopPropagation(); confirmStopTimer()"></uxt-button>
+          <span hidden><span id="stepPauseBtnIcon"></span><span id="stepPauseBtnLabel">Pause</span></span>
         </div>
       </div>
       <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
@@ -384,10 +251,7 @@
     <!-- Screen header (§17.2) -->
     <div class="screen-header">
       <div class="screen-title">Issue Parts</div>
-      <button class="store-selector" id="storeSelectorBtn" onclick="openLovField('store')">
-        <span id="activeStore">IND-MAIN</span>
-        <svg width="11" height="11" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;color:currentColor;opacity:.75;"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
+      <uxt-button class="kit-store-btn" id="storeSelectorBtn" variant="outlined" tone="neutral" text="IND-MAIN" onclick="openLovField('store')"></uxt-button>
     </div>
 
     <!-- Parts summary stats (§17.3) -->
@@ -429,19 +293,13 @@
               <span class="action-row-meta"><span class="action-row-meta-label">Bin&nbsp;</span>A1-001</span>
             </div>
           </div>
-          <span class="qty-badge qty-badge-planned" data-qty-badge="1">8 EA</span>
+          <uxt-status-chip class="qty-badge" data-qty-badge="1" variant="filled" density="m" severity="neutral" text="8 EA"></uxt-status-chip>
           <svg class="action-row-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <div class="action-row-detail">
           <div class="action-row-actions">
-            <button class="row-action-btn" data-part="1" onclick="openIssueSheet(1)">
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-              Quick Issue/Return
-            </button>
-            <button class="row-action-btn" data-part="1" onclick="openModifySheet(1)">
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
-              Modify
-            </button>
+            <uxt-button class="kit-row-action kit-flex-btn" data-part="1" variant="outlined" text="Quick Issue/Return" onclick="openIssueSheet(1)"></uxt-button>
+            <uxt-button class="kit-flex-btn" data-part="1" variant="outlined" text="Modify" onclick="openModifySheet(1)"></uxt-button>
           </div>
         </div>
       </div>
@@ -459,19 +317,13 @@
               <span class="action-row-meta"><span class="action-row-meta-label">Bin&nbsp;</span>C3-014</span>
             </div>
           </div>
-          <span class="qty-badge qty-badge-planned" data-qty-badge="2">2 FA</span>
+          <uxt-status-chip class="qty-badge" data-qty-badge="2" variant="filled" density="m" severity="neutral" text="2 FA"></uxt-status-chip>
           <svg class="action-row-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <div class="action-row-detail">
           <div class="action-row-actions">
-            <button class="row-action-btn" data-part="2" onclick="openIssueSheet(2)">
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-              Quick Issue/Return
-            </button>
-            <button class="row-action-btn" data-part="2" onclick="openModifySheet(2)">
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
-              Modify
-            </button>
+            <uxt-button class="kit-row-action kit-flex-btn" data-part="2" variant="outlined" text="Quick Issue/Return" onclick="openIssueSheet(2)"></uxt-button>
+            <uxt-button class="kit-flex-btn" data-part="2" variant="outlined" text="Modify" onclick="openModifySheet(2)"></uxt-button>
           </div>
         </div>
       </div>
@@ -489,19 +341,13 @@
               <span class="action-row-meta"><span class="action-row-meta-label">Bin&nbsp;</span>A1-009</span>
             </div>
           </div>
-          <span class="qty-badge qty-badge-planned" data-qty-badge="3">4 EA</span>
+          <uxt-status-chip class="qty-badge" data-qty-badge="3" variant="filled" density="m" severity="neutral" text="4 EA"></uxt-status-chip>
           <svg class="action-row-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <div class="action-row-detail">
           <div class="action-row-actions">
-            <button class="row-action-btn" data-part="3" onclick="openIssueSheet(3)">
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-              Quick Issue/Return
-            </button>
-            <button class="row-action-btn" data-part="3" onclick="openModifySheet(3)">
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
-              Modify
-            </button>
+            <uxt-button class="kit-row-action kit-flex-btn" data-part="3" variant="outlined" text="Quick Issue/Return" onclick="openIssueSheet(3)"></uxt-button>
+            <uxt-button class="kit-flex-btn" data-part="3" variant="outlined" text="Modify" onclick="openModifySheet(3)"></uxt-button>
           </div>
         </div>
       </div>
@@ -519,19 +365,13 @@
               <span class="action-row-meta"><span class="action-row-meta-label">Bin&nbsp;</span>B2-033</span>
             </div>
           </div>
-          <span class="qty-badge qty-badge-planned" data-qty-badge="4">2 EA</span>
+          <uxt-status-chip class="qty-badge" data-qty-badge="4" variant="filled" density="m" severity="neutral" text="2 EA"></uxt-status-chip>
           <svg class="action-row-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <div class="action-row-detail">
           <div class="action-row-actions">
-            <button class="row-action-btn" data-part="4" onclick="openIssueSheet(4)">
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-              Quick Issue/Return
-            </button>
-            <button class="row-action-btn" data-part="4" onclick="openModifySheet(4)">
-              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
-              Modify
-            </button>
+            <uxt-button class="kit-row-action kit-flex-btn" data-part="4" variant="outlined" text="Quick Issue/Return" onclick="openIssueSheet(4)"></uxt-button>
+            <uxt-button class="kit-flex-btn" data-part="4" variant="outlined" text="Modify" onclick="openModifySheet(4)"></uxt-button>
           </div>
         </div>
       </div>
@@ -541,19 +381,13 @@
     <!-- Ad hoc — above Quick Issue All (§17.5). Reuses the shared outlined
          button (its first real consumer) instead of a near-duplicate local
          class. -->
-    <div class="adhoc-section" style="padding-bottom:8px;">
-      <button class="btn-outlined" onclick="openAdHocSheet()">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-        Add Parts
-      </button>
+    <div class="adhoc-section">
+      <uxt-button class="kit-btn-block" variant="outlined" text="Add Parts" onclick="openAdHocSheet()"></uxt-button>
     </div>
 
     <!-- Quick Issue All (§17.6) -->
     <div class="quick-issue-all-strip">
-      <button class="btn-contained" id="quickIssueAllBtn" onclick="confirmQuickIssueAll()">
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Quick Issue All Planned Parts
-      </button>
+      <uxt-button class="kit-btn-block" id="quickIssueAllBtn" variant="contained" text="Quick Issue All Planned Parts" onclick="confirmQuickIssueAll()"></uxt-button>
     </div>
 
   </div><!-- /content -->
@@ -566,10 +400,7 @@
        are gated on it, §18.7) — same sessionStorage pattern as
        navigateToNewRecord()'s Insert Mode hand-off. -->
   <div class="bottom-bar">
-    <button class="bar-pill bar-pill-ready" id="nextBtn" onclick="sessionStorage.setItem('eamArrivedViaNextStep','true'); sessionStorage.setItem('eamOpenDemoWo', DEMO_WO); window.location.href=WO_STEP_FILES.booklabor;">
-      <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Next: Book Labor
-    </button>
+    <uxt-button class="kit-btn-block kit-bar-btn" id="nextBtn" variant="contained" text="Next: Book Labor" onclick="sessionStorage.setItem('eamArrivedViaNextStep','true'); sessionStorage.setItem('eamOpenDemoWo', DEMO_WO); window.location.href=WO_STEP_FILES.booklabor;"></uxt-button>
   </div>
 
   <!-- ── SHEET OVERLAY ───────────────────────────────────────────────── -->
@@ -586,9 +417,9 @@
   <div class="bottom-sheet" id="syncPanelSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Sync Status</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sync-panel-state" id="syncPanelStateLabel"></div>
     <div class="sheet-body" id="syncPanelList"></div>
@@ -599,9 +430,7 @@
   <div class="bottom-sheet" id="issueSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeSheet()">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-      </button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeSheet()"></uxt-icon-button>
       <div class="sheet-title" id="sheetTitle">Issue / Return</div>
       <!-- ✓ replaces the footer Save (§3.4, 2026-08-11). This sheet's body is
            populated at runtime and the Add-Part flow injects a search input
@@ -615,9 +444,8 @@
 
     <!-- Issue / Return|Planned segment — 2nd slot's label/handler/enabled
          state are set per sheet by configureSegControl() (§17.8/§17.9). -->
-    <div class="seg-control">
-      <button class="seg-btn active-issue" id="segIssue" onclick="setMode('ISSUE')">Issue</button>
-      <button class="seg-btn" id="segReturn">Return</button>
+    <div class="kit-seg-wrap">
+      <uxt-toggle-button-group id="segControl" density="m" options='[{"value":"ISSUE","label":"Issue"},{"value":"RETURN","label":"Return"}]' value="ISSUE" onchange="onSegChange(event.detail.value)"></uxt-toggle-button-group>
     </div>
 
     <div class="sheet-body" id="sheetBody">
@@ -630,16 +458,14 @@
   <div class="bottom-sheet" id="confirmSheet" style="max-height:70dvh;">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeConfirmSheet()">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-      </button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeConfirmSheet()"></uxt-icon-button>
       <div class="sheet-title">Confirm Quick Issue</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
-    <div class="sheet-body" id="confirmBody" style="padding:0 16px 8px;"></div>
-    <div class="sheet-footer" style="display:flex;gap:10px;">
-      <button class="btn-outlined" style="flex:1;height:50px;" onclick="closeConfirmSheet()">Cancel</button>
-      <button class="insert-save-btn ready" style="flex:2;" onclick="executeQuickIssueAll()">Issue All</button>
+    <div class="sheet-body" id="confirmBody"></div>
+    <div class="sheet-footer kit-footer-row">
+      <uxt-button class="kit-flex-btn" variant="outlined" text="Cancel" onclick="closeConfirmSheet()"></uxt-button>
+      <uxt-button class="kit-flex-btn kit-flex-2" variant="contained" text="Issue All" onclick="executeQuickIssueAll()"></uxt-button>
     </div>
   </div>
 
@@ -652,15 +478,12 @@
   <div class="bottom-sheet" id="lovSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeLovSheet()">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-      </button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeLovSheet()"></uxt-icon-button>
       <div class="sheet-title" id="lovSheetTitle">Select value</div>
-      <button class="sheet-clear-btn hidden" id="lovClearBtn" onclick="closeLovSheet()">Clear</button>
+      <uxt-button class="kit-sheet-text-btn hidden" id="lovClearBtn" onclick="closeLovSheet()" variant="text" tone="neutral" text="Clear"></uxt-button>
     </div>
-    <div class="lov-search-row hidden" id="lovSearchRow">
-      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <input class="lov-search-input" id="lovSearchInput" placeholder="Search" oninput="filterLovOptions(this.value)">
+    <div class="kit-sheet-search hidden" id="lovSearchRow">
+      <uxt-search-bar id="lovSearchInput" density="m" placeholder="Search" oninput="filterLovOptions(this.value)"></uxt-search-bar>
     </div>
     <div class="sheet-body" id="lovSheetBody"></div>
   </div>
@@ -705,6 +528,18 @@
 <script src="../../data/wo-workflow-steps.js?v=202609211648"></script>
 <script src="shared/eam-shared.js?v=202609211648"></script>
 <script>
+/* ── Octave kit glue (2026-10-20) — the shared toggleStepTimerPause()
+   writes its label into the hidden #stepPauseBtnLabel; mirror it onto the
+   kit Pause button. Looked up by id each time, because renderStepRail()
+   re-creates the timer panel from its outerHTML. ── */
+function kitSyncPauseBtn() {
+  const label = document.getElementById('stepPauseBtnLabel');
+  const btn = document.getElementById('stepPauseKit');
+  if (label && btn) btn.setAttribute('text', label.textContent || 'Pause');
+}
+const _sharedToggleStepTimerPause = toggleStepTimerPause;
+toggleStepTimerPause = function () { _sharedToggleStepTimerPause(); kitSyncPauseBtn(); };
+
 /* ── screen-specific config/behavior — chrome (nav, header, step rail,
    confirm modal, toast, theme toggle) comes from eam-shared.js. ── */
 
@@ -838,17 +673,26 @@ let activeLovField = null;
 // enabled-state per sheet; secondMode tracks which one is currently wired.
 let secondMode = 'RETURN';
 
+// Kit <uxt-toggle-button-group>: the 2nd segment's value/label come from
+// the options attribute. The kit has no per-segment disabled state, so a
+// not-yet-available Return snaps back to Issue and says why.
+let secondEnabled = false;
 function configureSegControl(mode, label, enabled) {
   secondMode = mode;
-  const btn = document.getElementById('segReturn');
-  btn.textContent = label;
-  btn.disabled = !enabled;
-  btn.onclick = enabled ? () => setMode(mode) : null;
+  secondEnabled = enabled;
+  document.getElementById('segControl').setAttribute('options',
+    JSON.stringify([{ value: 'ISSUE', label: 'Issue' }, { value: mode, label }]));
 }
-
 function setSegActive(mode) {
-  document.getElementById('segIssue').className  = mode === 'ISSUE' ? 'seg-btn active-issue' : 'seg-btn';
-  document.getElementById('segReturn').className = mode === secondMode ? 'seg-btn active-alt' : 'seg-btn';
+  document.getElementById('segControl').setAttribute('value', mode);
+}
+function onSegChange(value) {
+  if (value === secondMode && !secondEnabled) {
+    setSegActive(currentMode);
+    showToast('Return is available once this part has been issued');
+    return;
+  }
+  setMode(value);
 }
 
 function openIssueSheet(partId) {
@@ -941,11 +785,10 @@ function setMode(mode) {
 // on Return — the store a part is being returned to isn't a free choice,
 // it's wherever it was issued from.
 function renderStorePill(protectedStore) {
-  const chev = `<svg width="11" height="11" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;color:currentColor;opacity:.75;"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   const lock = `<svg width="11" height="11" fill="none" viewBox="0 0 24 24" style="flex-shrink:0;"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
   const pill = protectedStore
     ? `<div class="store-selector protected"><span>${activeStoreCode}</span>${lock}</div>`
-    : `<button class="store-selector" onclick="openLovField('store')"><span>${activeStoreCode}</span>${chev}</button>`;
+    : `<uxt-button class="kit-store-btn" variant="outlined" tone="neutral" text="${kitEsc(activeStoreCode)}" onclick="openLovField('store')"></uxt-button>`;
   return `<div class="sheet-store-row"><span class="field-label">Store</span>${pill}</div>`;
 }
 
@@ -1010,9 +853,9 @@ function renderPartFields(p, partId) {
     <div class="qty-row required">
       <span class="qty-label">Transaction Qty</span>
       <div class="qty-stepper">
-        <button class="qty-step-btn" onclick="adjustQty(${partId},-1)">−</button>
+        <uxt-icon-button class="kit-step-btn" icon="remove" label="Decrease quantity" outlined density="m" onclick="adjustQty(${partId},-1)"></uxt-icon-button>
         <span class="qty-val" id="qtyDisplay_${partId}">${qty}</span>
-        <button class="qty-step-btn" onclick="adjustQty(${partId},1)">+</button>
+        <uxt-icon-button class="kit-step-btn" icon="add" label="Increase quantity" outlined density="m" onclick="adjustQty(${partId},1)"></uxt-icon-button>
       </div>
       <span class="qty-uom">${p.uom}</span>
     </div>
@@ -1068,9 +911,9 @@ function renderReturnFields(p, partId) {
     <div class="qty-row required">
       <span class="qty-label">Return Qty</span>
       <div class="qty-stepper">
-        <button class="qty-step-btn" onclick="adjustQty(${partId},-1)">−</button>
+        <uxt-icon-button class="kit-step-btn" icon="remove" label="Decrease quantity" outlined density="m" onclick="adjustQty(${partId},-1)"></uxt-icon-button>
         <span class="qty-val" id="qtyDisplay_${partId}">${qty}</span>
-        <button class="qty-step-btn" onclick="adjustQty(${partId},1)">+</button>
+        <uxt-icon-button class="kit-step-btn" icon="add" label="Increase quantity" outlined density="m" onclick="adjustQty(${partId},1)"></uxt-icon-button>
       </div>
       <span class="qty-uom">${p.uom}</span>
     </div>
@@ -1118,15 +961,12 @@ function renderAdHocSheet() {
            112 rows) as of 2026-08-11 — it used to search only this WO's 4
            planned lines, so you could only "add" a part already on the WO. -->
       <div class="part-search-block" onclick="invokeCameraScan()">
-        <div class="part-search-icon">
-          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-        </div>
+        <uxt-icon-button class="part-search-icon" icon="photo-camera" label="Scan a part" outlined density="m"></uxt-icon-button>
         <div class="part-search-label">Search or scan a part</div>
         <div class="part-search-hint">Part number · Description · Barcode</div>
       </div>
-      <div class="lov-search-row" style="margin:10px 16px 4px;">
-        <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <input class="lov-search-input" id="adHocSearchInput" placeholder="Search parts" oninput="renderAdHocResults(this.value)">
+      <div class="kit-sheet-search">
+        <uxt-search-bar id="adHocSearchInput" density="m" placeholder="Search parts" oninput="renderAdHocResults(this.value)"></uxt-search-bar>
       </div>
       <div id="adHocResults"></div>
     `;
@@ -1166,7 +1006,7 @@ function renderAdHocResults(query) {
   const shown = all.slice(0, AD_HOC_RESULT_CAP);
   const el = document.getElementById('adHocResults');
   if (!all.length) {
-    el.innerHTML = `<div style="padding:20px;text-align:center;color:var(--gray-4);font-size:0.8125rem;">No matching parts</div>`;
+    el.innerHTML = `<div class="kit-empty-note">No matching parts</div>`;
     return;
   }
   el.innerHTML = shown.map(p => {
@@ -1174,15 +1014,10 @@ function renderAdHocResults(query) {
     // (a second issue against the same line) but the technician should know.
     const planned = !!findPlannedIdByNum(p.partNum);
     return `
-    <div class="lov-option" onclick="selectAdHocPart('${p.partNum.replace(/'/g, "\\'")}')">
-      <div class="lov-option-texts">
-        <div class="lov-option-desc">${escHtml(p.desc)}</div>
-        <div class="lov-option-code">${escHtml(p.partNum)}${p.class ? ' · ' + escHtml(p.class) : ''}${planned ? ' · already on this WO' : ''}</div>
-      </div>
-    </div>`;
+    <uxt-list-item class="lov-option" density="m" text="${escHtml(p.desc)}" secondary="${escHtml(p.partNum)}${p.class ? ' · ' + escHtml(p.class) : ''}${planned ? ' · already on this WO' : ''}" onclick="selectAdHocPart('${p.partNum.replace(/'/g, "\\'")}')"></uxt-list-item>`;
   }).join('')
     + (all.length > shown.length
-      ? `<div style="padding:12px 16px;text-align:center;color:var(--gray-4);font-size:0.75rem;">Showing ${shown.length} of ${all.length} — keep typing to narrow</div>`
+      ? `<div class="kit-empty-note kit-cap-note">Showing ${shown.length} of ${all.length} — keep typing to narrow</div>`
       : '');
 }
 // Descriptions come from a real customer export and contain " and ' (feet/inch
@@ -1245,22 +1080,17 @@ function renderLovOptions(options, current, key) {
     // too because it's on the list (§17.10).
     const sameCodeDesc = !opt.desc || opt.desc === opt.code;
     const showCode = CODE_VISIBLE_FIELDS.has(key) && !sameCodeDesc;
+    // Kit List Item; selected = the kit's gray fill (no check box).
     return `
-    <div class="lov-option ${opt.code === current ? 'selected' : ''}" data-search="${((opt.desc || '') + ' ' + opt.code).toLowerCase()}" onclick="selectLovOption('${opt.code}')">
-      <div class="lov-option-texts">
-        <div class="lov-option-desc">${sameCodeDesc ? `<span style="font-family:var(--font-mono);">${opt.code}</span>` : opt.desc}</div>
-        ${showCode ? `<div class="lov-option-code">${opt.code}</div>` : ''}
-      </div>
-      <div class="lov-check ${opt.code === current ? 'checked' : ''}">${opt.code === current ? ICONS.check : ''}</div>
-    </div>`;
-  }).join('') : `<div style="padding:20px;text-align:center;color:var(--gray-4);font-size:0.8125rem;">No options</div>`;
+    <uxt-list-item class="lov-option" density="m" data-search="${kitEsc(((opt.desc || '') + ' ' + opt.code).toLowerCase())}" text="${kitEsc(sameCodeDesc ? opt.code : opt.desc)}"${showCode ? ` secondary="${kitEsc(opt.code)}"` : ''}${opt.code === current ? ' selected' : ''} onclick="selectLovOption('${opt.code}')"></uxt-list-item>`;
+  }).join('') : `<div class="kit-empty-note">No options</div>`;
 }
 
 function selectLovOption(code) {
   const key = activeLovField;
   if (key === 'store') {
     activeStoreCode = code;
-    document.getElementById('activeStore').textContent = code;
+    document.getElementById('storeSelectorBtn').setAttribute('text', code);
     // Switching store re-derives SHOWLOT for whatever sheet is open — the
     // real demonstration of §17.12's per-storeroom flag.
     if (document.getElementById('issueSheet').classList.contains('open')) {
@@ -1349,7 +1179,7 @@ function saveIssue() {
     unmarkPart(id);
     txnQty[id] = qty;
     const badge = document.querySelector(`[data-qty-badge="${id}"]`);
-    if (badge) badge.textContent = `${qty} ${p.uom}`;
+    if (badge) badge.setAttribute('text', `${qty} ${p.uom}`);
     showToast(`Added as planned part · ${p.num}`);
   }
   updateSummary();
@@ -1360,32 +1190,30 @@ function saveIssue() {
 function markPartIssued(id, qty, uom) {
   const card = document.querySelector(`[data-part-id="${id}"]`);
   const bar  = document.querySelector(`[data-bar="${id}"]`);
-  const btn  = card.querySelector('.row-action-btn');
+  const btn  = card.querySelector('.kit-row-action');
   const badge = document.querySelector(`[data-qty-badge="${id}"]`);
 
   card.classList.add('issued');
   bar.classList.add('issued');
-  btn.classList.add('success');
-  btn.innerHTML = `<svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Issued · Return?`;
+  btn.setAttribute('text', 'Issued · Return?');
   btn.onclick = () => { openIssueSheet(id); setMode('RETURN'); };
-  badge.className = 'qty-badge qty-badge-issued';
-  badge.textContent = `${qty} ${uom} ✓`;
+  badge.setAttribute('severity', 'success');
+  badge.setAttribute('text', `${qty} ${uom} ✓`);
 }
 
 function unmarkPart(id) {
   const card  = document.querySelector(`[data-part-id="${id}"]`);
   const bar   = document.querySelector(`[data-bar="${id}"]`);
-  const btn   = card.querySelector('.row-action-btn');
+  const btn   = card.querySelector('.kit-row-action');
   const badge = document.querySelector(`[data-qty-badge="${id}"]`);
   const p = parts[id];
 
   card.classList.remove('issued');
   bar.classList.remove('issued');
-  btn.classList.remove('success');
-  btn.innerHTML = `<svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg> Quick Issue/Return`;
+  btn.setAttribute('text', 'Quick Issue/Return');
   btn.onclick = () => openIssueSheet(id);
-  badge.className = 'qty-badge qty-badge-planned';
-  badge.textContent = `${p.qty} ${p.uom}`;
+  badge.setAttribute('severity', 'neutral');
+  badge.setAttribute('text', `${p.qty} ${p.uom}`);
   txnQty[id] = p.qty;
 }
 
@@ -1403,31 +1231,27 @@ function confirmQuickIssueAll() {
     const p = parts[id];
     const qty = confirmQty[id];
     return `
-      <div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border);">
-        <div style="flex:1;min-width:0;">
+      <div class="confirm-row">
+        <div class="confirm-row-info">
           <div class="confirm-part-num">${p.num}</div>
           <div class="confirm-row-desc">${p.desc}</div>
-          <div style="font-size:0.75rem;color:var(--gray-4);font-family:var(--font-mono);margin-top:2px;">Bin ${p.bin} · ${p.avail} ${p.uom} avail.</div>
+          <div class="confirm-row-meta">Bin ${p.bin} · ${p.avail} ${p.uom} avail.</div>
         </div>
-        <div style="display:flex;align-items:center;gap:0;background:var(--bg-section);border-radius:8px;border:1.5px solid var(--border-strong);overflow:hidden;flex-shrink:0;" class="confirm-stepper">
-          <button onclick="adjustConfirmQty(${id},-1)" class="confirm-qty-btn">−</button>
-          <span id="cqty_${id}" style="font-family:var(--font-mono);font-size:0.875rem;font-weight:700;width:36px;text-align:center;" class="confirm-row-qty">${qty}</span>
-          <button onclick="adjustConfirmQty(${id},1)" class="confirm-qty-btn">+</button>
+        <div class="qty-stepper confirm-stepper">
+          <uxt-icon-button class="kit-step-btn" icon="remove" label="Decrease quantity" outlined density="m" onclick="adjustConfirmQty(${id},-1)"></uxt-icon-button>
+          <span id="cqty_${id}" class="confirm-row-qty">${qty}</span>
+          <uxt-icon-button class="kit-step-btn" icon="add" label="Increase quantity" outlined density="m" onclick="adjustConfirmQty(${id},1)"></uxt-icon-button>
         </div>
-        <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--gray-4);width:22px;flex-shrink:0;">${p.uom}</div>
+        <div class="confirm-row-uom">${p.uom}</div>
       </div>`;
   }).join('');
 
   document.getElementById('confirmBody').innerHTML = `
     <div class="confirm-warning-box">
-      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" class="confirm-warning-icon"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <div style="font-size:0.8125rem;color:var(--gray-4);line-height:1.45;">
-        <strong class="confirm-warning-title">Verify quantities before issuing</strong>
-        Adjust any quantity if needed, then tap Issue All to confirm.
-      </div>
+      <uxt-banner density="m" severity="warning" text="Verify quantities before issuing. Adjust any quantity if needed, then tap Issue All to confirm."></uxt-banner>
     </div>
-    <div style="margin:0 0 4px;">${rows}</div>
-    <div style="font-size:0.75rem;color:var(--gray-4);padding:8px 0 4px;font-family:var(--font-mono);">${pending.length} part${pending.length > 1 ? 's' : ''} · ${activeStoreCode}</div>
+    <div class="confirm-rows">${rows}</div>
+    <div class="confirm-foot-note">${pending.length} part${pending.length > 1 ? 's' : ''} · ${activeStoreCode}</div>
   `;
 
   document.getElementById('sheetOverlay').classList.add('open');
@@ -1462,7 +1286,7 @@ function executeQuickIssueAll() {
   updateSummary();
   closeConfirmSheet();
   showToast(`${pending.length} part${pending.length > 1 ? 's' : ''} issued`);
-  document.getElementById('quickIssueAllBtn').disabled = true;
+  document.getElementById('quickIssueAllBtn').setAttribute('disabled', '');
 }
 
 // ─── SUMMARY UPDATE ───────────────────────────────────────────────────────
@@ -1472,7 +1296,7 @@ function updateSummary() {
   document.getElementById('issuedCount').textContent = n;
   document.getElementById('remainCount').textContent = total - n;
   if (n === total) {
-    document.getElementById('quickIssueAllBtn').disabled = true;
+    document.getElementById('quickIssueAllBtn').setAttribute('disabled', '');
   }
 }
 

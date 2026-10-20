@@ -153,7 +153,7 @@
    does, at any N. Position-within-the-list is "View all"'s job, not
    this bar's — a plain scrollable row list is the only thing that
    actually scales for jumping to a specific item at that size. ── */
-.stepper-head { position: sticky; top: 0; z-index: 5; padding: 10px 16px 8px; background: var(--bg-card); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.stepper-head { position: sticky; top: 0; z-index: 5; padding: 10px 16px 8px; background: var(--bg-card); border-bottom: 1px solid var(--k-divider); flex-shrink: 0; }
 .stepper-head-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
 .stepper-head-left { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
 /* Was a 3-way colored-text scheme per group (brown/purple/green for
@@ -163,8 +163,7 @@
    our new palette" — this label sits directly above the progress bar in
    the same sticky header). A group name isn't one of the 3 colour
    instruments any more than Type was elsewhere — plain ink now. */
-.stepper-group-name { font-size: 0.75rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--octave-black); }
-[data-theme="dark"] .stepper-group-name { color: rgba(255,255,255,.9); }
+.stepper-group-name { font-size: 0.75rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--k-text); }
 /* Plain muted text, not a pill/badge — a second competing pill here
    read as cluttered. Mono — a position/count, same family as every
    other count/number in the app. */
@@ -175,12 +174,7 @@
    active give it real presence as a tappable control, matching the
    weight-not-hue language the rest of the app uses for "this is a real
    button, not decoration." */
-.view-all-btn { display: flex; align-items: center; gap: 5px; font-size: 0.6875rem; font-weight: 700; color: var(--octave-black); background: var(--bg-section); border: 1.5px solid var(--border-strong); border-radius: 100px; padding: 6px 13px; cursor: pointer; flex-shrink: 0; transition: background .15s, border-color .15s; }
-[data-theme="dark"] .view-all-btn { color: var(--white); }
-.view-all-btn:hover { background: var(--border-strong); }
-.view-all-btn:active { transform: scale(0.96); }
-.stepper-progress-bar { height: 4px; border-radius: 100px; background: var(--gray-1); overflow: hidden; }
-[data-theme="dark"] .stepper-progress-bar { background: var(--gray-5); }
+.stepper-progress-bar { height: 4px; border-radius: 100px; background: var(--uxt-theme-palette-background-track, #e1e6ed); overflow: hidden; }
 .stepper-progress-fill { height: 100%; background: var(--green); transition: width .3s; }
 
 /* ─── FOCUSED ITEM ───────────────────────────────────────────────── */
@@ -194,13 +188,11 @@
    above the bottom bar, which the screen wanted anyway. */
 .focus-wrap { flex: 1; padding: 14px 0 4px; min-height: calc(100% + 72px); }
 .focus-label-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 0 16px; margin-bottom: 10px; }
-.focus-label { flex: 1; font-size: 1.1875rem; font-weight: 700; color: var(--octave-black); line-height: 1.3; }
-[data-theme="dark"] .focus-label { color: var(--white); }
+.focus-label { flex: 1; font-size: 1.1875rem; font-weight: 700; color: var(--k-text); line-height: 1.3; }
 /* Required — same shape/font as the org corner-badge pill (§8.3's
    .ld-card-org). Orange, beside the item description, not a "*". */
 /* Was orange fill — required is red now (§23), and outlined not filled,
    matching the required-count-badge's own locked treatment. */
-.focus-req-tag { flex-shrink: 0; margin-top: 2px; display: inline-flex; align-items: center; font-family: var(--font-sans); font-size: 0.6875rem; font-weight: 600; color: var(--red); background: none; border: 1px solid var(--red); border-radius: 999px; padding: 4px 9px; }
 /* Dynamic checklist items — an item's answer can insert new items right
    after it (syncDynamicChildren()). This tag marks a dynamically-added
    item's provenance; the hint marks the trigger item itself. Purple —
@@ -208,8 +200,7 @@
 /* Was purple — this is an informational marker ("this item appeared
    from a previous answer"), not one of the 3 color instruments (§23),
    so ink, not a hue. */
-.focus-dynamic-tag { display: flex; align-items: center; gap: 6px; margin: 0 16px 6px; font-size: 0.6875rem; font-weight: 600; color: var(--octave-black); }
-[data-theme="dark"] .focus-dynamic-tag { color: var(--white); }
+.focus-dynamic-tag { display: flex; align-items: center; gap: 6px; margin: 0 16px 6px; font-size: 0.6875rem; font-weight: 600; color: var(--k-text); }
 .focus-dynamic-hint { display: flex; align-items: center; gap: 6px; margin: 8px 16px 0; font-size: 0.71875rem; color: var(--gray-4); }
 .focus-dynamic-tag svg, .focus-dynamic-hint svg { color: var(--gray-4); flex-shrink: 0; }
 
@@ -218,10 +209,9 @@
    §16.2 item 7 / §16.8): a muted outlined chip above the item label,
    the first thing rendered on an equipment-scoped item, so which
    equipment a question concerns never requires a tap or a scroll to see. */
-.focus-equip-chip { display: inline-flex; align-items: center; gap: 6px; margin: 0 16px 10px; font-size: 0.75rem; font-weight: 600; color: var(--gray-4); background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: 999px; padding: 6px 12px; }
+.focus-equip-chip { display: inline-flex; align-items: center; gap: 6px; margin: 0 16px 10px; font-size: 0.75rem; font-weight: 600; color: var(--gray-4); background: var(--bg-card); border: 1px solid var(--k-control); border-radius: 999px; padding: 6px 12px; }
 .focus-equip-chip svg { flex-shrink: 0; }
-.focus-equip-chip .mono { font-family: var(--font-mono); color: var(--octave-black); font-weight: 700; }
-[data-theme="dark"] .focus-equip-chip .mono { color: var(--white); }
+.focus-equip-chip .mono { font-family: var(--font-mono); color: var(--k-text); font-weight: 700; }
 
 .focus-control { padding: 18px 16px; }
 
@@ -262,22 +252,20 @@
    once §16.9's fan-out is in play: on a 156-asset route "item 237 of 624"
    locates you in the data, not on the job. The flat index stays alongside it for
    continuity with the rail's own counter. */
-.snap-banner { height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 16px; background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-.snap-banner-num { font-family: var(--font-mono); font-size: 1.4375rem; font-weight: 700; letter-spacing: -.02em; line-height: 1; color: var(--octave-black); }
-[data-theme="dark"] .snap-banner-num { color: var(--white); }
-.snap-banner-of { font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 600; color: var(--gray-3); align-self: flex-end; padding-bottom: 2px; }
+.snap-banner { height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 16px; background: var(--bg-card); border-top: 1px solid var(--k-divider); border-bottom: 1px solid var(--k-divider); }
+.snap-banner-num { font-family: var(--font-mono); font-size: 1.4375rem; font-weight: 700; letter-spacing: -.02em; line-height: 1; color: var(--k-text); }
+.snap-banner-of { font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 600; color: var(--k-control); align-self: flex-end; padding-bottom: 2px; }
 .snap-banner-sp { flex: 1; }
 .snap-banner-eq { min-width: 0; text-align: right; }
-.snap-banner-eq-code { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 700; color: var(--octave-black); }
-[data-theme="dark"] .snap-banner-eq-code { color: var(--white); }
+.snap-banner-eq-code { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 700; color: var(--k-text); }
 .snap-banner-eq-desc { font-size: 0.65625rem; color: var(--gray-4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.snap-banner-none { flex-shrink: 0; font-family: var(--font-mono); font-size: 0.625rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--gray-4); border: 1px solid var(--border-strong); border-radius: 999px; padding: 4px 9px; }
+.snap-banner-none { flex-shrink: 0; font-family: var(--font-mono); font-size: 0.625rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--gray-4); border: 1px solid var(--k-control); border-radius: 999px; padding: 4px 9px; }
 /* The arrival cue. Now the DEFAULT rather than scoped to .is-current, because
    the banner is locked design and paged mode carries it too — where there are no
    panels at all, so an .is-current selector would have silently dropped the
    shadow there. Stubs opt out instead: they haven't arrived anywhere. */
-.snap-banner { box-shadow: 0 6px 18px -8px rgba(26,26,31,.45); border-bottom-color: var(--border-strong); }
-.snap-panel.is-stub .snap-banner { box-shadow: none; border-bottom-color: var(--border); }
+.snap-banner { box-shadow: 0 6px 18px -8px rgba(26,26,31,.45); border-bottom-color: var(--k-control); }
+.snap-panel.is-stub .snap-banner { box-shadow: none; border-bottom-color: var(--k-divider); }
 
 /* Completion tick. Reuses the existing green rather than introducing a second
    one (§23: "green is reused, never re-invented"), and it is rendered on every
@@ -329,7 +317,7 @@
    leaking into the layout. .snap-tail below now supplies that room instead, once,
    below everything, where it is never between two items. The payoff is that the
    banner you left and the banner you're arriving at can be on screen together. */
-.snap-panel.is-stub { opacity: .5; border-top: 1px solid var(--border); cursor: pointer; }
+.snap-panel.is-stub { opacity: .5; border-top: 1px solid var(--k-divider); cursor: pointer; }
 /* The room that makes the last panel reachable. One band's worth, after every
    panel — not a per-stub minimum. Not a .snap-panel, so it can never win
    panelMostVisible() and be mistaken for an item. */
@@ -350,35 +338,15 @@
    described the scroll rather than the item, which is backwards for an
    orientation cue. */
 
-.f-toggle { display: flex; flex-direction: column; gap: 10px; }
-.f-opt { padding: 18px 0; text-align: center; font-size: 1rem; font-weight: 700; border-radius: 10px; border: 2px solid var(--gray-2); color: var(--octave-black); background: var(--bg-page); cursor: pointer; transition: all .15s; }
-[data-theme="dark"] .f-opt { border-color: var(--gray-5); color: var(--white); background: var(--bg-section); }
-.f-opt.sel-green  { background: var(--green);  border-color: var(--green);  color: #fff; }
-.f-opt.sel-red    { background: var(--red);    border-color: var(--red);    color: #fff; }
 /* Renamed in meaning, not in class name (avoids touching every option
    array/dotClass() mapping that references 'sel-orange'/'done-orange') —
    "Minor"/"Adjusted" now share the exact same red as "Fail"/"Major"/
    "Critical". Collapses a 3-tier green/orange/red severity scale to
    2-tier green/red (§23 — orange is retired, and the option's own text
    label already conveys the specific degree). */
-.f-opt.sel-orange { background: var(--red); border-color: var(--red); color: #fff; }
-.f-opt.sel-gray   { background: var(--gray-4); border-color: var(--gray-4); color: #fff; }
 
-.f-chk { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 22px 0; border-radius: 10px; border: 2px solid var(--gray-2); background: var(--bg-page); cursor: pointer; }
-[data-theme="dark"] .f-chk { border-color: var(--gray-5); background: var(--bg-section); }
-.f-chk.checked { border-color: var(--green); background: rgba(0,170,20,0.08); }
-.f-chk-circle { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--gray-3); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.f-chk.checked .f-chk-circle { background: var(--green); border-color: var(--green); }
-.f-chk-circle svg { display: none; }
-.f-chk.checked .f-chk-circle svg { display: block; }
-.f-chk-lbl { font-size: 0.9375rem; font-weight: 600; color: var(--octave-black); }
-[data-theme="dark"] .f-chk-lbl { color: var(--white); }
 
 .f-num-row { display: flex; align-items: center; gap: 12px; justify-content: center; }
-.f-num-in { width: 150px; background: var(--bg-page); border: 2px solid var(--gray-2); border-radius: 10px; padding: 16px 14px; font-size: 1.375rem; font-weight: 700; color: var(--octave-black); font-family: var(--font-mono); text-align: center; outline: none; }
-[data-theme="dark"] .f-num-in { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
-.f-num-in:focus { border-color: var(--octave-black); }
-[data-theme="dark"] .f-num-in:focus { border-color: var(--white); }
 .f-uom { font-size: 0.875rem; color: var(--gray-4); font-weight: 600; }
 .f-range-hint { text-align: center; font-size: 0.6875rem; color: var(--gray-4); font-family: var(--font-mono); margin-top: 10px; }
 
@@ -386,20 +354,14 @@
    types rendering as a slider instead of a number field, admin-
    configured min/max. Added as an exercise 2026-07-31; not yet a locked
    decision (no design-decisions-v3-1.md entry). */
-.f-slider-value { text-align: center; font-family: var(--font-mono); font-size: 1.625rem; font-weight: 700; color: var(--octave-black); margin-bottom: 20px; }
-[data-theme="dark"] .f-slider-value { color: var(--white); }
-.f-slider-track { position: relative; height: 8px; border-radius: 100px; background: var(--gray-1); margin: 0 8px; cursor: pointer; touch-action: none; }
-[data-theme="dark"] .f-slider-track { background: var(--gray-5); }
-.f-slider-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 100px; background: var(--gray-3); }
-.f-slider-track.answered .f-slider-fill { background: var(--octave-black); }
-[data-theme="dark"] .f-slider-track.answered .f-slider-fill { background: var(--white); }
-.f-slider-thumb { position: absolute; top: 50%; width: 26px; height: 26px; background: var(--bg-card); border: 3px solid var(--gray-3); border-radius: 50%; transform: translate(-50%,-50%); box-shadow: 0 1px 4px rgba(0,0,0,.2); }
-.f-slider-track.answered .f-slider-thumb { border-color: var(--octave-black); }
-[data-theme="dark"] .f-slider-track.answered .f-slider-thumb { border-color: var(--white); }
+.f-slider-value { text-align: center; font-family: var(--font-mono); font-size: 1.625rem; font-weight: 700; color: var(--k-text); margin-bottom: 20px; }
+.f-slider-track { position: relative; height: 8px; border-radius: 100px; background: var(--uxt-theme-palette-background-track, #e1e6ed); margin: 0 8px; cursor: pointer; touch-action: none; }
+.f-slider-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 100px; background: var(--k-control); }
+.f-slider-track.answered .f-slider-fill { background: var(--k-text); }
+.f-slider-thumb { position: absolute; top: 50%; width: 26px; height: 26px; background: var(--bg-card); border: 3px solid var(--k-control); border-radius: 50%; transform: translate(-50%,-50%); box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+.f-slider-track.answered .f-slider-thumb { border-color: var(--k-text); }
 .f-slider-minmax { display: flex; justify-content: space-between; margin: 10px 8px 0; font-size: 0.6875rem; color: var(--gray-4); font-family: var(--font-mono); }
 
-.f-textarea { width: 100%; min-height: 120px; background: var(--bg-page); border: 2px solid var(--gray-2); border-radius: 10px; padding: 12px 13px; font-size: 1rem; color: var(--octave-black); font-family: var(--font-sans); resize: none; outline: none; line-height: 1.5; }
-[data-theme="dark"] .f-textarea { background: var(--bg-section); border-color: var(--gray-5); color: var(--white); }
 
 /* Follow-up — full-width, deliberately loud, not one of several small
    competing pills. Create Follow-up WO is hidden entirely (not just
@@ -407,22 +369,11 @@
 /* Was orange — a flagged follow-up is a "needs attention" case, same
    family as required/sync-error (§23: "red covers... both 'needs your
    attention' states" — extended here to a 3rd case, same reasoning). */
-.followup-btn-lg { margin: 12px 12px 0; display: flex; align-items: center; justify-content: center; gap: 8px; width: calc(100% - 24px); padding: 13px 0; border-radius: 10px; border: 1.5px solid var(--red); background: var(--bg-card); color: var(--red); font-size: 0.875rem; font-weight: 700; cursor: pointer; transition: all .15s; font-family: var(--font-sans); }
-.followup-btn-lg:hover { background: rgba(228,75,74,.08); }
-.followup-btn-lg.on { background: var(--red); color: #fff; }
-[data-theme="dark"] .followup-btn-lg { background: var(--bg-section); }
-.create-fu-wo-btn { margin: 10px 12px 0; width: calc(100% - 24px); animation: fuBtnIn .2s ease; }
 @keyframes fuBtnIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
 /* ─── PREV/NEXT NAV — replaces free scrolling; hidden once the prompt
    bar takes over (see updateFooter()). ── */
-.stepper-nav { position: absolute; bottom: 0; left: 0; right: 0; height: var(--bar-height); background: var(--bg-card); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; padding: 0 14px; z-index: 50; }
-.snav-btn { flex: 1; height: 46px; border-radius: 12px; border: none; font-size: 0.875rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
-.snav-btn.prev { background: var(--bg-section); color: var(--octave-black); flex: 0 0 46px; }
-[data-theme="dark"] .snav-btn.prev { color: var(--white); }
-.snav-btn.next { background: var(--octave-black); color: #fff; }
-[data-theme="dark"] .snav-btn.next { background: var(--white); color: var(--octave-black); }
-.snav-btn:disabled { opacity: .35; cursor: default; }
+.stepper-nav { position: absolute; bottom: 0; left: 0; right: 0; height: var(--bar-height); background: var(--bg-card); border-top: 1px solid var(--k-divider); display: flex; align-items: center; gap: var(--k-s1); padding: 0 var(--k-s4); z-index: 50; }
 
 /* ─── PROMPT BAR — Yes/No fork (design-decisions-v3-1.md §14.6). Still
    local, no 2nd consumer yet. Restyled 2026-07-29, 2 rounds of direct
@@ -435,24 +386,17 @@
    .org-pill/.btn-contained fill+flip convention used everywhere else in
    the app; dark mode flips to solid white with black text, not a
    translucent variant, matching .org-pill's own light/dark flip exactly. */
-.prompt-bar { position: absolute; bottom: 0; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--border); padding: 10px 16px 16px; flex-shrink: 0; z-index: 51; display: none; }
-[data-theme="dark"] .prompt-bar { background: var(--octave-black); }
+.prompt-bar { position: absolute; bottom: 0; left: 0; right: 0; background: var(--bg-card); border-top: 1px solid var(--k-divider); padding: 10px 16px 16px; flex-shrink: 0; z-index: 51; display: none; }
 .prompt-bar.show { display: block; }
-.prompt-question { font-family: var(--font-sans); font-size: 1rem; font-weight: 700; color: var(--octave-black); text-align: center; margin-bottom: 10px; }
-[data-theme="dark"] .prompt-question { color: var(--white); }
+.prompt-question { font-family: var(--font-sans); font-size: 1rem; font-weight: 700; color: var(--k-text); text-align: center; margin-bottom: 10px; }
 .prompt-seg { display: flex; gap: 8px; }
-.prompt-seg-btn { flex: 1; height: 48px; border-radius: 100px; border: 1px solid var(--octave-black); font-size: 0.9375rem; font-weight: 700; cursor: pointer; font-family: var(--font-sans); background: var(--octave-black); color: #fff; transition: background .15s; }
-[data-theme="dark"] .prompt-seg-btn { background: var(--white); border-color: var(--white); color: var(--octave-black); }
-.prompt-seg-btn:hover { background: #111114; }
-[data-theme="dark"] .prompt-seg-btn:hover { background: rgba(255,255,255,.85); }
 
 /* ─── "VIEW ALL" OVERVIEW — the escape hatch back to an at-a-glance
    list, and the only navigation that scales to a large checklist. ── */
 .overview-overlay { position: absolute; inset: 0; background: var(--bg-page); z-index: 90; display: none; flex-direction: column; }
 .overview-overlay.open { display: flex; }
-.overview-head { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--bg-card); }
-.overview-title { font-size: 0.9375rem; font-weight: 700; color: var(--octave-black); }
-[data-theme="dark"] .overview-title { color: var(--white); }
+.overview-head { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--k-divider); background: var(--bg-card); }
+.overview-title { font-size: 0.9375rem; font-weight: 700; color: var(--k-text); }
 .overview-body { flex: 1; overflow-y: auto; }
 /* Unified group header (2026-08-10) — one component for BOTH grouping
    modes, replacing what used to be two visually mismatched ones (a plain
@@ -460,23 +404,18 @@
    Equipment). Style is Step's own thin muted-bg strip; the done/total
    badge + collapse chevron are Equipment's own — every group in either
    mode is now collapsible and badged, not just Equipment's. */
-.ov-group-hdr { display: flex; align-items: center; gap: 8px; padding: 7px 16px; font-size: 0.75rem; font-weight: 700; color: var(--gray-4); background: var(--bg-section); cursor: pointer; }
+.ov-group-hdr { display: flex; align-items: center; gap: 8px; padding: 7px 16px; font-size: 0.75rem; font-weight: 700; color: var(--gray-4); background: var(--k-paper); cursor: pointer; }
 .ov-group-hdr-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ov-group-hdr-code { font-family: var(--font-mono); font-weight: 700; color: var(--octave-black); }
-[data-theme="dark"] .ov-group-hdr-code { color: var(--white); }
+.ov-group-hdr-code { font-family: var(--font-mono); font-weight: 700; color: var(--k-text); }
 /* Counter Badge convention (§23.5) — outlined, transparent, black/white,
    never a gray fill. See eam-shared.css's .section-card-badge comment. */
-.ov-group-badge { font-size: 0.65625rem; font-weight: 700; font-family: var(--font-mono); color: var(--octave-black); background: transparent; border: 1px solid var(--border-strong); border-radius: 100px; padding: 2px 8px; flex-shrink: 0; }
-[data-theme="dark"] .ov-group-badge { color: var(--white); }
 .ov-group-chev { flex-shrink: 0; transition: transform .2s; }
 .ov-group-chev.collapsed { transform: rotate(-90deg); }
 .ov-group-body.collapsed { display: none; }
-.ov-row { display: flex; align-items: center; gap: 10px; padding: 11px 16px; border-bottom: 1px solid var(--border); background: var(--bg-card); cursor: pointer; }
-.ov-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-2); flex-shrink: 0; }
+.ov-row { display: flex; align-items: center; gap: 10px; padding: 11px 16px; border-bottom: 1px solid var(--k-divider); background: var(--bg-card); cursor: pointer; }
+.ov-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--k-divider); flex-shrink: 0; }
 .ov-status-dot.green { background: var(--green); } .ov-status-dot.red { background: var(--red); } .ov-status-dot.orange { background: var(--red); }
-.ov-label { flex: 1; font-size: 0.84375rem; font-weight: 500; color: var(--octave-black); }
-[data-theme="dark"] .ov-label { color: rgba(255,255,255,0.9); }
-.ov-close-btn { width: 30px; height: 30px; border-radius: 50%; background: var(--bg-section); border: none; display: flex; align-items: center; justify-content: center; color: var(--gray-4); cursor: pointer; }
+.ov-label { flex: 1; font-size: 0.84375rem; font-weight: 500; color: var(--k-text); }
 /* Dynamic items — indented under their trigger, with a branch icon; the
    trigger itself gets a smaller branch cue so a scan of the list shows
    where branching can happen before it's happened. A ghost row (locked
@@ -497,10 +436,7 @@
    where one item per Route equipment makes Equipment the more useful
    axis to scan/jump by than the workflow step grouping alone. Same
    solid-fill segmented-pill convention as .prompt-seg-btn (§14.6). */
-.ov-seg-wrap { display: flex; gap: 8px; padding: 10px 16px; background: var(--bg-card); border-bottom: 1px solid var(--border); }
-.ov-seg-btn { flex: 1; text-align: center; padding: 8px 0; font-size: 0.78125rem; font-weight: 700; font-family: var(--font-sans); color: var(--gray-4); background: var(--bg-section); border: 1px solid var(--border-strong); border-radius: 100px; cursor: pointer; }
-.ov-seg-btn.on { background: var(--octave-black); color: #fff; border-color: var(--octave-black); }
-[data-theme="dark"] .ov-seg-btn.on { background: var(--white); color: var(--octave-black); border-color: var(--white); }
+.ov-seg-wrap { display: flex; gap: 8px; padding: 10px 16px; background: var(--bg-card); border-bottom: 1px solid var(--k-divider); }
 
 /* Dataspy selector + search (2026-08-10) — sits above the Group-by
    toggle. Dataspy reuses the app's real shared §8.3 .ds-bar component
@@ -516,10 +452,6 @@
 /* Selector extended rather than a second copy of the same declarations — the
    collapse-all control is the same affordance as search (a square icon button
    in the filter bar) and must not drift from it. */
-.ov-search-icon-btn, .ov-collapse-icon-btn { width: 44px; height: 44px; flex-shrink: 0; border-radius: 14px; border: 1.5px solid var(--border); background: var(--bg-card); color: var(--gray-4); display: flex; align-items: center; justify-content: center; cursor: pointer; }
-.ov-search-icon-btn:hover, .ov-collapse-icon-btn:hover { border-color: var(--gray-3); }
-.ov-search-icon-btn.on, .ov-collapse-icon-btn.on { color: var(--octave-black); border-color: var(--octave-black); }
-[data-theme="dark"] .ov-search-icon-btn.on, [data-theme="dark"] .ov-collapse-icon-btn.on { color: var(--white); border-color: var(--white); }
 .ov-search-row { margin: 10px 16px 0; }
 
 .toast { bottom: calc(var(--bar-height) + 10px); }
@@ -539,6 +471,37 @@
 .instr-body li { margin-bottom: 4px; }
 .instr-body p { margin: 0 0 8px; }
 .instr-body p:last-child { margin-bottom: 0; }
+
+/* ── Octave kit pass (2026-10-20) — host layout for the real <uxt-*>
+   elements; colours are kit tokens (--k-* aliases), which flip with
+   data-uxt-theme, so the per-rule [data-theme="dark"] overrides are gone. ── */
+uxt-button.view-all-kit { flex-shrink: 0; }
+.focus-req-tag { flex-shrink: 0; }
+/* Check answer: the whole row stays the tap target (gloved hands); the box
+   is a kit Checkbox (inert, the row toggles it). */
+.f-chk { display: flex; align-items: center; justify-content: center; gap: var(--k-sm); min-height: 72px; padding: var(--k-s4); border-radius: var(--k-r); border: 1px solid var(--k-control); background: var(--k-card); cursor: pointer; }
+.f-chk:hover { background: linear-gradient(var(--k-hover), var(--k-hover)), var(--k-card); }
+.f-chk.checked { background: var(--k-selected); }
+.f-chk-lbl { font-size: 1rem; font-weight: 500; color: var(--k-text); }
+.f-toggle > uxt-toggle-button-group { display: block; width: 100%; }
+.f-num-row > uxt-input.f-num-kit { width: 160px; }
+uxt-input.f-text-kit { display: block; }
+.followup-btn-lg { margin: var(--k-sm) var(--k-s4) 0; }
+.snap-panel.is-stub .followup-btn-lg { pointer-events: none; }
+.create-fu-wo-btn { margin: var(--k-s2) var(--k-s4) 0; animation: fuBtnIn .2s ease; }
+.stepper-nav > uxt-button.kit-bar-btn { flex: 1; min-width: 0; }
+.prompt-seg { display: flex; gap: var(--k-s1); }
+uxt-button.kit-flex-btn { flex: 1; min-width: 0; }
+.ov-seg-wrap { padding: var(--k-s2) var(--k-s4); background: var(--k-card); border-bottom: 1px solid var(--k-divider); }
+.ov-seg-wrap .kit-mode-tog { margin: 0; }
+.ov-search-row { margin: var(--k-s2) var(--k-s4) 0; }
+.ov-search-row > uxt-search-bar { flex: 1; min-width: 0; display: block; }
+.ov-filter-bar > uxt-icon-button { flex-shrink: 0; }
+uxt-status-chip.ov-group-badge { flex-shrink: 0; }
+.ov-req-star { color: var(--uxt-theme-palette-text-error, #e4171f); font-weight: 500; font-size: var(--k-caption); }
+.kit-spacer-16 { height: var(--k-s4); }
+.kit-te-discard { display: none; flex-shrink: 0; }
+.kit-te-discard.show { display: inline-block; }
 </style>
 </head>
 <body>
@@ -550,11 +513,7 @@
 
   <header class="nav" onclick="chScrollTop()">
     <div class="nav-left">
-      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation(); navBack()">
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-          <path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
+      <uxt-icon-button class="nav-back-kit" icon="arrow-back" label="Back" outlined density="m" onclick="event.stopPropagation(); navBack()"></uxt-icon-button>
       <span class="prototype-label">PROTOTYPE</span>
     </div>
     <div class="nav-title">Work Orders</div>
@@ -574,24 +533,22 @@
         <span class="rec-desc protected" id="recDesc">Pump Cavitating; lost head</span>
       </div>
       <div class="rec-header-actions">
-        <button class="rec-ellipsis-btn" id="recEllipsisBtn" onclick="event.stopPropagation(); toggleRecActionsMenu()" aria-label="More actions">
-          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
-        </button>
+        <uxt-icon-button class="rec-ellipsis-kit" id="recEllipsisBtn" icon="more-vert" label="More actions" outlined density="m" onclick="event.stopPropagation(); toggleRecActionsMenu()"></uxt-icon-button>
         <div class="rec-actions-menu" id="recActionsMenu">
           <div class="rec-actions-group">
-            <div class="rec-actions-item" onclick="recCopyLink()">Copy Link</div>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" icon="link" text="Copy Link" onclick="recCopyLink()"></uxt-list-item>
           </div>
           <div class="rec-actions-divider"></div>
           <div class="rec-actions-group">
-            <div class="rec-actions-item" onclick="recCopyRecord()">Copy</div>
-            <div class="rec-actions-item danger" onclick="recDeleteRecord()">Delete</div>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" icon="content-copy" text="Copy" onclick="recCopyRecord()"></uxt-list-item>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" icon="delete" text="Delete" onclick="recDeleteRecord()"></uxt-list-item>
           </div>
           <div class="rec-actions-divider"></div>
           <!-- Comments(3)/Documents(4) removed 2026-07-22 — superseded by
                the step rail's "Reference" group (§14.8/§23), which does
                the same job with a real jump-to instead of a toast stub. -->
           <div class="rec-actions-group" id="recActionsScreenSpecific">
-            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Printing work order — coming soon')">Print Work Order</div>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" icon="print" text="Print Work Order" onclick="closeRecActionsMenu(); showToast('Printing work order — coming soon')"></uxt-list-item>
           </div>
         </div>
       </div>
@@ -624,14 +581,11 @@
       <div class="step-timer-panel">
         <div class="step-timer-value" id="stepTimerValue">00:00:00</div>
         <div class="step-timer-actions">
-          <button class="step-timer-btn" onclick="toggleStepTimerPause()">
-            <span id="stepPauseBtnIcon"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="5" x2="8" y2="19"/><line x1="16" y1="5" x2="16" y2="19"/></svg></span>
-            <span id="stepPauseBtnLabel">Pause</span>
-          </button>
-          <button class="step-timer-btn danger" onclick="confirmStopTimer()">
-            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
-            Stop
-          </button>
+          <!-- Kit outlined buttons. The shared toggleStepTimerPause() writes
+               the hidden #stepPauseBtnLabel; kitSyncPauseBtn() mirrors it. -->
+          <uxt-button class="kit-flex-btn" id="stepPauseKit" variant="outlined" text="Pause" onclick="event.stopPropagation(); toggleStepTimerPause()"></uxt-button>
+          <uxt-button class="kit-flex-btn" variant="outlined" tone="error" text="Stop" onclick="event.stopPropagation(); confirmStopTimer()"></uxt-button>
+          <span hidden><span id="stepPauseBtnIcon"></span><span id="stepPauseBtnLabel">Pause</span></span>
         </div>
       </div>
       <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
@@ -650,10 +604,7 @@
           <span class="stepper-group-name" id="curGroupName">Safety checks</span>
           <span class="stepper-item-count" id="stepperItemCount">· Item 01 of 07</span>
         </div>
-        <button class="view-all-btn" onclick="openOverview()">
-          <svg width="12" height="12" fill="none" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          View all
-        </button>
+        <uxt-button class="view-all-kit" variant="text" tone="primary" text="View all" onclick="openOverview()"></uxt-button>
       </div>
       <div class="stepper-progress-bar"><div class="stepper-progress-fill" id="stepperProgressFill" style="width:0%"></div></div>
     </div>
@@ -662,10 +613,10 @@
   </div>
 
   <div class="stepper-nav" id="stepperNav">
-    <button class="snav-btn prev" id="prevBtn" onclick="goPrev()">
-      <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
-    <button class="snav-btn next" id="nextBtn" onclick="goNext()">Next<svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <!-- Minh 2026-10-20: the square Prev button is gone (scrolling back /
+         tapping the stub above still steps back; goPrev() stays defined).
+         Next is a kit contained button; its label is set via setNextLabel(). -->
+    <uxt-button class="kit-btn-block kit-bar-btn" id="nextBtn" variant="contained" density="m" text="Next" onclick="goNext()"></uxt-button>
   </div>
 
   <!-- ── PROMPT BAR — appears once every required item is complete AND
@@ -676,7 +627,7 @@
   <div class="overview-overlay" id="overviewOverlay">
     <div class="overview-head">
       <span class="overview-title">All items</span>
-      <button class="ov-close-btn" onclick="closeOverview()"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeOverview()"></uxt-icon-button>
     </div>
     <div class="overview-body" id="overviewBody"></div>
   </div>
@@ -689,13 +640,13 @@
   <div class="bottom-sheet" id="overviewDataspySheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Show</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sheet-body">
-      <div class="lov-option" onclick="setOverviewDataspy('all')"><div class="lov-option-texts"><div class="lov-option-desc">All Checklist Items</div></div></div>
-      <div class="lov-option" onclick="setOverviewDataspy('uncompleted')"><div class="lov-option-texts"><div class="lov-option-desc">Uncompleted checklist items</div></div></div>
+      <uxt-list-item class="lov-option" id="ovDsOpt-all" density="m" text="All Checklist Items" selected onclick="setOverviewDataspy('all')"></uxt-list-item>
+      <uxt-list-item class="lov-option" id="ovDsOpt-uncompleted" density="m" text="Uncompleted checklist items" onclick="setOverviewDataspy('uncompleted')"></uxt-list-item>
     </div>
   </div>
 
@@ -711,9 +662,9 @@
   <div class="bottom-sheet" id="syncPanelSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Sync Status</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sync-panel-state" id="syncPanelStateLabel"></div>
     <div class="sheet-body" id="syncPanelList"></div>
@@ -723,8 +674,8 @@
   <div class="bottom-sheet text-editor-sheet" id="textEditorSheet">
     <div class="text-editor-header">
       <div class="text-editor-left">
-        <button class="text-editor-close" id="textEditorCloseBtn" onclick="textEditorCloseTap()">✕</button>
-        <button class="text-editor-discard" id="textEditorDiscard" onclick="textEditorConfirmDiscard()">Discard unsaved changes</button>
+        <uxt-icon-button class="kit-te-close" id="textEditorCloseBtn" icon="close" label="Close" density="m" onclick="textEditorCloseTap()"></uxt-icon-button>
+        <uxt-button class="kit-te-discard" id="textEditorDiscard" variant="outlined" tone="error" text="Discard unsaved changes" onclick="textEditorConfirmDiscard()"></uxt-button>
       </div>
       <div class="text-editor-title" id="textEditorTitle">Edit</div>
       <!-- ✓ replaces the old bottom Save pill (§3.4, 2026-08-11): a pill at the
@@ -738,9 +689,9 @@
   <div class="bottom-sheet" id="commentActionsSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Comment Actions</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sheet-body" id="commentActionsBody"></div>
   </div>
@@ -782,6 +733,33 @@
 <script src="../../data/wo-workflow-steps.js?v=202609211648"></script>
 <script src="shared/eam-shared.js?v=202609211648"></script>
 <script>
+// Presence-attribute setter (the verify DOM shim lacks Element's toggle API).
+function kitFlag(el, name, on) { if (!el) return; if (on) el.setAttribute(name, ''); else el.removeAttribute(name); }
+/* ── Octave kit glue (2026-10-20) ─────────────────────────────────────
+   Next is a kit <uxt-button>: its label is an attribute, never innerHTML.
+   (The kit button has no icon attribute, so the old trailing chevron is
+   not drawn.) */
+function setNextLabel(text) {
+  const b = document.getElementById('nextBtn');
+  if (b && b.getAttribute('text') !== text) b.setAttribute('text', text);
+}
+/* The shared toggleStepTimerPause() writes its label into the hidden
+   #stepPauseBtnLabel; mirror it onto the kit Pause button. Looked up by id
+   each time, because renderStepRail() re-creates the panel from outerHTML. */
+function kitSyncPauseBtn() {
+  const label = document.getElementById('stepPauseBtnLabel');
+  const btn = document.getElementById('stepPauseKit');
+  if (label && btn) btn.setAttribute('text', label.textContent || 'Pause');
+}
+const _sharedToggleStepTimerPause = toggleStepTimerPause;
+toggleStepTimerPause = function () { _sharedToggleStepTimerPause(); kitSyncPauseBtn(); };
+/* Numeric answers keep the decimal keypad (§3.4): the kit input has no
+   inputmode attribute, so it is set on the inner field after each render. */
+function kitDecimalKeypad(root) {
+  (root || document).querySelectorAll('uxt-input.f-num-kit .input-value').forEach(i => { i.inputMode = 'decimal'; });
+}
+try { customElements.whenDefined('uxt-input').then(() => kitDecimalKeypad()); } catch (e) { /* no kit */ }
+
 /* ── screen-specific config/behavior — chrome (nav, header, step rail,
    confirm modal, toast, theme toggle) comes from eam-shared.js. ── */
 
@@ -1005,16 +983,23 @@ function renderStepperHead() {
   document.getElementById('stepperProgressFill').style.width = Math.round(doneCount / ITEMS.length * 100) + '%';
 }
 
+// Octave kit pass (2026-10-20): the answer controls are kit elements.
+// Check = a kit Checkbox (inert) inside the whole-row tap target, so the big
+// gloved-hand target survives; Pass/Fail-style answers = a kit Toggle Button
+// Group (selected = the kit's gray, per the Octave "selected is gray" rule);
+// numeric and free-text answers = kit Inputs (.value/oninput unchanged).
+// "__none__" keeps an unanswered group from showing its first option as
+// picked (the kit defaults an empty value to option 1).
 function controlHtml(it) {
   if (it.type === 'check') {
     return `<div class="f-chk ${it.value?'checked':''}" onclick="setCheck()">
-      <div class="f-chk-circle"><svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <uxt-checkbox class="f-chk-kit" inert aria-label="${kitEsc(it.label)}" value="${it.value ? 'checked' : 'unchecked'}"></uxt-checkbox>
       <span class="f-chk-lbl">${it.value ? 'Confirmed' : 'Tap to confirm'}</span>
     </div>`;
   }
   if (it.type === 'toggle2' || it.type === 'toggle3') {
-    return `<div class="f-toggle">` + it.options.map(([label,cls]) =>
-      `<button class="f-opt ${it.value===label?cls:''}" onclick="setToggle('${label}','${cls}')">${label}</button>`).join('') + `</div>`;
+    const opts = JSON.stringify(it.options.map(([label]) => ({ value: label, label }))).replace(/'/g, '&#39;');
+    return `<div class="f-toggle"><uxt-toggle-button-group class="f-toggle-kit" density="m" options='${opts}' value="${kitEsc(it.value || '__none__')}" onchange="setToggle(event.detail.value)"></uxt-toggle-button-group></div>`;
   }
   if (it.type === 'num') {
     // type="text" + inputmode="decimal" (2026-07-24, user direction) —
@@ -1024,7 +1009,7 @@ function controlHtml(it) {
     // checklist item type that renders through this one shared control
     // — Nonconformity Measurement, Quantitative, Meter Reading, etc.
     // (§16.3) are all just `type:'num'` here, one fix reaches all of them.
-    return `<div class="f-num-row"><input class="f-num-in" type="text" inputmode="decimal" value="${it.value}" placeholder="—" oninput="setNum(this)"><span class="f-uom">${it.uom}</span></div>`
+    return `<div class="f-num-row"><uxt-input class="f-num-kit" density="m" aria-label="${kitEsc(it.label)}" value="${kitEsc(it.value)}" placeholder="—" oninput="setNum(this)"></uxt-input><span class="f-uom">${it.uom}</span></div>`
       + (it.range ? `<p class="f-range-hint">Acceptable range: ${it.range}</p>` : '');
   }
   if (it.type === 'slider') {
@@ -1039,7 +1024,7 @@ function controlHtml(it) {
       <div class="f-slider-minmax"><span>Min ${it.min}</span><span>Max ${it.max}</span></div>`;
   }
   if (it.type === 'textarea') {
-    return `<textarea class="f-textarea" placeholder="Describe work performed and any findings…" oninput="setText(this)">${it.value}</textarea>`;
+    return `<uxt-input class="f-text-kit" lines="multiple" full-width density="m" aria-label="${kitEsc(it.label)}" value="${kitEsc(it.value)}" placeholder="Describe work performed and any findings…" oninput="setText(this)"></uxt-input>`;
   }
   return '';
 }
@@ -1365,9 +1350,8 @@ function renderInstructionsScreen() {
         <div class="comment-text instr-body">${TASK_PLAN_INSTRUCTIONS}</div>
       </div>
     </div>
-    <div style="height:16px;"></div>`;
-  document.getElementById('prevBtn').disabled = true;
-  document.getElementById('nextBtn').innerHTML = 'Start Checklist <svg width="16" height="16" fill="none" viewBox="0 0 24 24" style="margin-left:4px"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    <div class="kit-spacer-16"></div>`;
+  setNextLabel('Start Checklist');
   renderStepperHead();
   updateFooter();
 }
@@ -1482,7 +1466,7 @@ function itemStubHtml(it) {
     ${equipChipHtml(it)}
     <div class="focus-label-row">
       <p class="focus-label">${it.label}</p>
-      ${it.required ? '<span class="focus-req-tag">Required</span>' : ''}
+      ${it.required ? '<uxt-tag class="focus-req-tag" severity="error" density="m" text="Required"></uxt-tag>' : ''}
     </div>
     <div class="section-card"><div class="focus-control">${controlHtml(it)}</div></div>`;
 }
@@ -1492,11 +1476,8 @@ function equipChipHtml(it) {
 }
 
 function syncNavButtons() {
-  document.getElementById('prevBtn').disabled = cursor === 0 && !TASK_PLAN_INSTRUCTIONS.trim();
   const isLast = cursor === ITEMS.length - 1;
-  document.getElementById('nextBtn').innerHTML = isLast
-    ? 'Finish'
-    : 'Next <svg width="16" height="16" fill="none" viewBox="0 0 24 24" style="margin-left:4px"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  setNextLabel(isLast ? 'Finish' : 'Next');
 }
 
 /* Rebinds the shared record-level Comments/Documents data to the focused
@@ -1508,6 +1489,7 @@ function wireCurrentItem(it) {
   // the next keystroke, or a long note would render clipped until typed in.
   const notesEl = document.getElementById('fv-itemNotes');
   if (notesEl) autoGrow(notesEl);
+  kitDecimalKeypad(document.getElementById('focusWrap'));
   COMMENTS_DATA = it.comments;
   DOCUMENTS_DATA = it.documents;
   renderCommentsExcerptMount();
@@ -1521,7 +1503,7 @@ function itemFullHtml(it) {
     ${dynamicParent ? `<div class="focus-dynamic-tag">${BRANCH_ICON}<span>Added based on your "${dynamicParent.label}" response</span></div>` : ''}
     <div class="focus-label-row">
       <p class="focus-label">${it.label}</p>
-      ${it.required ? '<span class="focus-req-tag">Required</span>' : ''}
+      ${it.required ? '<uxt-tag class="focus-req-tag" severity="error" density="m" text="Required"></uxt-tag>' : ''}
     </div>
 
     <div class="section-card"><div class="focus-control">${controlHtml(it)}</div></div>
@@ -1534,15 +1516,9 @@ function itemFullHtml(it) {
       </div>
     </div>
 
-    <button class="followup-btn-lg ${it.followup?'on':''}" onclick="toggleFollowup()">
-      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 22V15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      ${it.followup ? 'Flagged for Follow-up' : 'Flag for Follow-up'}
-    </button>
+    <div class="followup-btn-lg"><uxt-button class="kit-btn-block" variant="${it.followup ? 'contained' : 'outlined'}" tone="error" text="${it.followup ? 'Flagged for Follow-up' : 'Flag for Follow-up'}" onclick="toggleFollowup()"></uxt-button></div>
 
-    ${it.followup ? `<button class="btn-contained create-fu-wo-btn" onclick="createFollowupWO()">
-      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-      Create Follow-up WO
-    </button>` : ''}
+    ${it.followup ? `<div class="create-fu-wo-btn"><uxt-button class="kit-btn-block" variant="contained" text="Create Follow-up WO" onclick="createFollowupWO()"></uxt-button></div>` : ''}
 
     <div class="rv-section">
       <div class="rv-toggle-row" onclick="rvToggle('comments')">
@@ -1598,11 +1574,11 @@ function renderPromptBar() {
   document.getElementById('promptBar').innerHTML = includesIssueParts
     ? `<div class="prompt-question">Do you need to issue parts?</div>
        <div class="prompt-seg">
-         <button class="prompt-seg-btn" onclick="promptAnswer(true)">Yes</button>
-         <button class="prompt-seg-btn" onclick="promptAnswer(false)">No</button>
+         <uxt-button class="kit-flex-btn" variant="outlined" text="Yes" onclick="promptAnswer(true)"></uxt-button>
+         <uxt-button class="kit-flex-btn" variant="outlined" text="No" onclick="promptAnswer(false)"></uxt-button>
        </div>`
     : `<div class="prompt-seg">
-         <button class="bar-pill bar-pill-ready" onclick="promptAnswer(false)">Continue to Book Labor</button>
+         <uxt-button class="kit-flex-btn" variant="contained" text="Continue to Book Labor" onclick="promptAnswer(false)"></uxt-button>
        </div>`;
 }
 
@@ -1638,7 +1614,7 @@ function goNext() {
   }
 }
 function setCheck() { const it = ITEMS[cursor]; it.value = !it.value; if (it.dynamicRules) syncDynamicChildren(it); renderFocus(); }
-function setToggle(label, cls) { const it = ITEMS[cursor]; it.value = label; if (it.dynamicRules) syncDynamicChildren(it); renderFocus(); }
+function setToggle(label) { const it = ITEMS[cursor]; it.value = label; if (it.dynamicRules) syncDynamicChildren(it); renderFocus(); }
 function setNum(el) { const it = ITEMS[cursor]; it.value = el.value; if (it.dynamicRules) syncDynamicChildren(it); renderStepperHead(); updateFooter(); syncBannerDone(); }
 function setText(el) { const it = ITEMS[cursor]; it.value = el.value; if (it.dynamicRules) syncDynamicChildren(it); renderStepperHead(); updateFooter(); syncBannerDone(); }
 function setNote(el) { ITEMS[cursor].note = el.value; }
@@ -1733,7 +1709,7 @@ function ovItemRowHtml(it, idx) {
     <span class="ov-status-dot ${dotClass(it).replace('done-','')}"></span>
     <span class="ov-row-num">${String(idx + 1).padStart(2, '0')}</span>
     <span class="ov-label">${it.label}</span>
-    ${it.required ? '<span style="color:var(--red);font-weight:700;font-size:0.75rem;">*</span>' : ''}
+    ${it.required ? '<span class="ov-req-star">*</span>' : ''}
     ${it.dynamicRules ? `<span class="ov-branch-cue" title="May add follow-up items">${BRANCH_ICON}</span>` : ''}
   </div>`;
   // Ghost placeholder — previews an as-yet-untriggered branch. Only shows
@@ -1756,7 +1732,7 @@ function ovItemRowHtml(it, idx) {
 function ovGroupHeaderHtml(groupKey, labelHtml, doneCount, total, collapsed) {
   return `<div class="ov-group-hdr" onclick="toggleOverviewGroup('${groupKey}')">
       <span class="ov-group-hdr-label">${labelHtml}</span>
-      <span class="ov-group-badge">${doneCount}/${total}</span>
+      <uxt-status-chip class="ov-group-badge" variant="filled" density="m" severity="${doneCount === total ? 'success' : 'neutral'}" text="${doneCount}/${total}"></uxt-status-chip>
       <span class="ov-group-chev ${collapsed ? 'collapsed' : ''}"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </div>`;
 }
@@ -1860,11 +1836,12 @@ function ovCollapseAllBtnHtml() {
   const icon = allCollapsed
     ? `<path d="M8 9l4-4 4 4"/><path d="M8 15l4 4 4-4"/><path d="M4 12h16"/>`
     : `<path d="M8 5l4 4 4-4"/><path d="M8 19l4-4 4 4"/><path d="M4 12h16"/>`;
-  return `<button class="ov-collapse-icon-btn ${allCollapsed ? 'on' : ''}" id="ovCollapseBtn"
-      onclick="toggleOverviewCollapseAll()"
-      aria-label="${allCollapsed ? 'Expand all groups' : 'Collapse all groups'}">
-      <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
-    </button>`;
+  // Kit outlined Icon Button. The kit registry has unfold-more but no
+  // unfold-less, so "collapse all" uses keyboard-arrow-up as its pair.
+  return `<uxt-icon-button class="ov-collapse-icon-btn${allCollapsed ? ' on' : ''}" id="ovCollapseBtn" outlined density="m"
+      icon="${allCollapsed ? 'unfold-more' : 'keyboard-arrow-up'}"
+      label="${allCollapsed ? 'Expand all groups' : 'Collapse all groups'}"
+      onclick="toggleOverviewCollapseAll()"></uxt-icon-button>`;
 }
 
 // Dataspy sheet — reuses the shared .lov-option row shape (same as any
@@ -1876,6 +1853,10 @@ function setOverviewDataspy(mode) {
   overviewDataspy = mode;
   closeAllSheets();
   document.getElementById('ovDataspyLabel').textContent = OVERVIEW_DATASPIES[mode];
+  Object.keys(OVERVIEW_DATASPIES).forEach(k => {
+    const row = document.getElementById('ovDsOpt-' + k);
+    if (row) kitFlag(row, 'selected', k === mode);
+  });
   renderOverviewBody();
 }
 // Search is icon-triggered (collapsed by default) rather than the
@@ -1928,18 +1909,14 @@ function renderOverviewBody() {
         <div class="ds-body"><div class="ds-name" id="ovDataspyLabel">${OVERVIEW_DATASPIES[overviewDataspy]}</div></div>
         <svg width="16" height="16" class="ds-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
       </div>
-      <button class="ov-search-icon-btn ${overviewSearchOpen ? 'on' : ''}" id="ovSearchBtn" onclick="toggleOverviewSearch()" aria-label="Search checklist items">
-        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      </button>
+      <uxt-icon-button class="ov-search-icon-btn${overviewSearchOpen ? ' on' : ''}" id="ovSearchBtn" icon="search" label="Search checklist items" outlined density="m" onclick="toggleOverviewSearch()"></uxt-icon-button>
       ${ovCollapseAllBtnHtml()}
     </div>
-    <div class="ld-search-bar ov-search-row" id="ovSearchRow" style="display:${overviewSearchOpen ? 'flex' : 'none'};">
-      <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input class="ld-search-input" id="ovSearchInput" type="text" placeholder="Search checklist items…" value="${overviewSearchTerm}" oninput="onOverviewSearchInput(this)" autocomplete="off">
+    <div class="ov-search-row" id="ovSearchRow" style="display:${overviewSearchOpen ? 'flex' : 'none'};">
+      <uxt-search-bar id="ovSearchInput" density="m" placeholder="Search checklist items…" value="${kitEsc(overviewSearchTerm)}" oninput="onOverviewSearchInput(this)"></uxt-search-bar>
     </div>
     <div class="ov-seg-wrap">
-      <button class="ov-seg-btn ${overviewGroupMode === 'step' ? 'on' : ''}" onclick="setOverviewGroupMode('step')">Group by Step</button>
-      <button class="ov-seg-btn ${overviewGroupMode === 'equipment' ? 'on' : ''}" onclick="setOverviewGroupMode('equipment')">Group by Equipment</button>
+      ${kitToggleGroup('', [['step', 'Group by Step'], ['equipment', 'Group by Equipment']], overviewGroupMode, 'setOverviewGroupMode(')}
     </div>
     <div id="ovGroupedList"></div>`;
   document.getElementById('overviewBody').innerHTML = html;
