@@ -1,8 +1,10 @@
-# Default reviewer for everything not listed below.
-* @dannykayburn
+# Default reviewers for everything not listed below. A PR author is never
+# asked to review their own PR, so each person is requested on the other's work.
+* @dannykayburn @tgminhp
 
 # Design source of truth. Changes here alter locked rules or requirements,
 # so they need the design owner's review even when the code change is small.
+# Owner-only on purpose: a later, more specific line replaces the default above.
 /docs/design-decisions-v3-1.md @dannykayburn
 /docs/EAM-Mobile-Design-Doc-v1.md @dannykayburn
 /CLAUDE.md @dannykayburn
