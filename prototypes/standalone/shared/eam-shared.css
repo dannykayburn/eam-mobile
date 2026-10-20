@@ -17,8 +17,8 @@
   --font-sans: var(--uxt-theme-typography-font-family, "Octave Sans", "Noto Sans", system-ui, sans-serif);
   --font-display: var(--uxt-theme-typography-h-5-font-family, "Octave Display", "Noto Sans", sans-serif);
   --font-mono: "JetBrains Mono", monospace;
-  --octave-black: #1A1A1F; --gray-5:#3E4047; --gray-4:#6F7480; --gray-3:#B2B8C4; --gray-2:#CBD0D8; --gray-1:#E7EBF2; --white:#FFFFFF;
-  --purple:#9933FF; --orange:#F46600; --octave-yellow:#FFF500;
+  --octave-black: var(--uxt-theme-palette-ui-black-700, #1A1A1F); --gray-5:var(--uxt-theme-palette-ui-grey-900, #3E4047); --gray-4:var(--uxt-theme-palette-ui-grey-600, #6F7480); --gray-3:var(--uxt-theme-palette-ui-grey-200, #B2B8C4); --gray-2:var(--uxt-theme-palette-ui-grey-50, #CBD0D8); --gray-1:var(--uxt-theme-palette-ui-white-400, #E7EBF2); --white:var(--uxt-theme-palette-common-white, #FFFFFF);
+  --purple:#9933FF; --orange:var(--uxt-theme-palette-cross-pillar-main, #F46600); --octave-yellow:var(--uxt-theme-palette-build-main, #FFF500);
   /* Bumped bolder 2026-07-28 (Primary palette pass) — was #00AA14/#E24B4A,
      both real but comparatively muted hues. Global tokens, not Status-
      local, so this also touches every other existing consumer (seg-done/
@@ -26,7 +26,7 @@
      .attr-badge-critical, .required-count-badge before its removal) —
      a deliberate app-wide bolder pass, not a Status-only change. */
   --green:var(--uxt-theme-palette-success-main, #47be68); --red:var(--uxt-theme-palette-error-main, #f3434a); --teal:#007B87;
-  --bg-page:var(--uxt-theme-palette-background-paper, #f3f5f9); --bg-card:var(--uxt-theme-palette-background-card, #ffffff); --bg-nav:#1A1A1F;
+  --bg-page:var(--uxt-theme-palette-background-paper, #f3f5f9); --bg-card:var(--uxt-theme-palette-background-card, #ffffff); --bg-nav:var(--uxt-theme-palette-ui-black-700, #1A1A1F);
   --bg-section:var(--uxt-theme-palette-background-alternate-row, #f3f5f9);
   --border:var(--uxt-theme-palette-border-divider, #e1e6ed); --border-strong:var(--uxt-theme-palette-border-control, #9196a2);
   --gray-4:var(--uxt-theme-palette-text-secondary, #6F7480);
@@ -118,7 +118,7 @@
   /* Surfaces, borders, --gray-4 and status colours come from the kit tokens,
      which data-uxt-theme="dark" flips; only the remaining greys swap here. */
   --bg-nav:#111114;
-  --octave-black:#1A1A1F; --gray-1:#2A2930; --gray-2:#3E4047; --gray-3:#6F7480;
+  --octave-black:var(--uxt-theme-palette-ui-black-700, #1A1A1F); --gray-1:#2A2930; --gray-2:var(--uxt-theme-palette-ui-grey-900, #3E4047); --gray-3:var(--uxt-theme-palette-ui-grey-600, #6F7480);
   --k-ok-bg:#193524; --k-ok-fg:#d9ffe3; --k-err-bg:#4c181e; --k-err-fg:#ffeeee;
   --k-warn-bg:#532f16; --k-warn-fg:#fff6e6; --k-info-bg:#12244b; --k-info-fg:#e6f9ff;
   --k-neutral-bg:var(--uxt-theme-palette-action-hover, rgba(255,255,255,.08)); --k-neutral-fg:var(--uxt-theme-palette-text-primary, #e1e6ed);
@@ -279,9 +279,9 @@ body{font-family:var(--font-sans);font-size:var(--k-body2);background:var(--bg-p
 .bottom-nav{position:absolute;left:var(--k-s4);right:var(--k-s4);bottom:var(--shell-pad-bottom);height:64px;background:var(--k-card);border:1px solid var(--k-divider);border-radius:var(--k-pill);display:flex;align-items:center;justify-content:space-around;gap:var(--k-s1);padding:0 var(--k-s1);flex-shrink:0;z-index:50;}
 .bottom-nav.hidden{display:none;}
 .bottom-nav-item{flex:1;max-width:96px;height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--k-s1);color:var(--k-text-2);background:none;border:none;border-radius:var(--k-pill);font-family:var(--font-sans);font-size:var(--k-caption);font-weight:500;padding:0;cursor:pointer;transition:background .15s;}
-.bottom-nav-item svg{width:24px;height:24px;}
+/* Kit glyphs in the pill nav: 24px box (the kit's own button-height var). */
+.bottom-nav-item uxt-icon-button{--uxt-theme-height-button:24px;}
 .bottom-nav-item.active{color:var(--k-text);background:var(--k-selected);}
-.bottom-nav-badge{position:absolute;top:-4px;right:-8px;min-width:16px;height:16px;background:var(--uxt-theme-palette-error-dark,#e4171f);color:var(--uxt-theme-palette-error-contrast-text,#fff);font-size:10px;font-weight:500;border-radius:var(--k-pill);display:flex;align-items:center;justify-content:center;padding:0 var(--k-s1);}
 /* Promoted from Home/WO List's own local <style> blocks (2026-07-22,
    Notifications badge fix) — .bottom-nav-badge is positioned absolute
    relative to its nearest positioned ancestor, and this wrapper is that
@@ -637,7 +637,7 @@ body{font-family:var(--font-sans);font-size:var(--k-body2);background:var(--bg-p
    its fixed size even with no icon inside, since its own background
    fill is what carries the WO Type colour in the free-form case. */
 .step-rail-type-icon:empty{display:none;}
-.step-rail-type-circle{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;align-self:center;}
+.step-rail-type-circle{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--uxt-theme-palette-common-white, #fff);align-self:center;}
 /* Same WO Type colour, smallest surface — a plain solid dot next to the
    Type value on a list/card row (WO List §6.7). No icon at this size;
    the field label already says "Type," a dot is enough. Bumped 7px->10px
@@ -802,7 +802,7 @@ body{font-family:var(--font-sans);font-size:var(--k-body2);background:var(--bg-p
 /* Counter Badge convention — see the .section-card-badge comment below. */
 /* Counter badges: kit count pill (16px, Caption, action-selected fill). Danny's
    outlined-mono recipe (§23.5) moved onto the kit count look. */
-.rv-badge{font-size:var(--k-caption);font-weight:400;min-width:16px;height:16px;line-height:16px;padding:0 var(--k-s1);text-align:center;border-radius:var(--k-pill);font-family:var(--font-sans);background:var(--k-selected);color:var(--k-text-2);border:none;}
+/* Section counters are kit <uxt-badge color="grey" show-zero> (kitSetCount()). */
 .rv-chev{color:var(--k-glyph);transition:transform .2s cubic-bezier(0.4,0,0.2,1);flex-shrink:0;}
 .rv-chev.open{transform:rotate(180deg);}
 .rv-collapse{display:none;border-top:1px solid var(--k-divider);}
@@ -1325,14 +1325,14 @@ body{font-family:var(--font-sans);font-size:var(--k-body2);background:var(--bg-p
    fieldRowBadgeAttr()). Icon SVGs must use stroke/fill="currentColor",
    not a hardcoded "white", so they pick up this class's `color`. */
 .attr-badge-outline{border:1px solid var(--k-control);color:var(--k-glyph);}
-.attr-badge-critical{background:var(--red);border-color:var(--red);color:#fff;}
+.attr-badge-critical{background:var(--red);border-color:var(--red);color:var(--uxt-theme-palette-common-white, #fff);}
 /* WO Type colour badge (4th palette instrument, design-decisions-v3-1.md
    "WO Type Colour + Icon Badge") — solid fill per Type family, same shape
    as .attr-badge-critical's one-off red but the colour itself comes from
    meta.color (a --wo-type-* var), set inline by whichever renderer built
    this badge (renderColorBadge()/fieldRowBadgeAttr()), not a fixed class
    per Type. */
-.attr-badge-fill{border:none;color:#fff;}
+.attr-badge-fill{border:none;color:var(--uxt-theme-palette-common-white, #fff);}
 /* Equipment "photo slot" (§7.5, re-derived 2026-08-10 against the current
    28px grid badge — the flag left on that section since 2026-07-24).
    Equipment is the one grid field whose badge stands in for a record
@@ -1562,7 +1562,7 @@ body{font-family:var(--font-sans);font-size:var(--k-body2);background:var(--bg-p
    nothing separating it from the popup background behind it. Bordered
    here, scoped to this popup only, not the shared base rule every other
    sheet's search bar also uses. */
-.qr-scan-overlay { position: absolute; inset: 0; background: #0b0b0d; z-index: 230; display: flex; flex-direction: column; transform: translateY(100%); transition: transform .3s cubic-bezier(.32,.72,0,1); }
+.qr-scan-overlay { position: absolute; inset: 0; background: var(--uxt-theme-palette-common-black, #0b0b0d); z-index: 230; display: flex; flex-direction: column; transform: translateY(100%); transition: transform .3s cubic-bezier(.32,.72,0,1); }
 .qr-scan-overlay.open { transform: translateY(0); }
 .qr-scan-header { display: flex; justify-content: flex-end; padding: 14px; flex-shrink: 0; }
 .qr-scan-close { background: rgba(255,255,255,.12); border: none; color: white; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; line-height: 1; }
@@ -1580,7 +1580,7 @@ body{font-family:var(--font-sans);font-size:var(--k-body2);background:var(--bg-p
    inline SVG, so the OS's native long-press menu (Share/Copy/Save) works
    for free — never add oncontextmenu or a touch/hold handler here, that
    would block it. */
-.photo-viewer-overlay { position: absolute; inset: 0; background: #0b0b0d; z-index: 240; display: flex; flex-direction: column; transform: translateY(100%); transition: transform .3s cubic-bezier(.32,.72,0,1); }
+.photo-viewer-overlay { position: absolute; inset: 0; background: var(--uxt-theme-palette-common-black, #0b0b0d); z-index: 240; display: flex; flex-direction: column; transform: translateY(100%); transition: transform .3s cubic-bezier(.32,.72,0,1); }
 .photo-viewer-overlay.open { transform: translateY(0); }
 .photo-viewer-header { display: flex; justify-content: flex-start; padding: 14px; flex-shrink: 0; }
 .photo-viewer-close { background: rgba(255,255,255,.12); border: none; color: white; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; line-height: 1; }
@@ -2323,7 +2323,7 @@ button, .bar-pill, .nav-avatar, .nav-back, .nav-icon-btn,
    value here — `none` would break scrolling. */
 button, .bar-pill, .bottom-nav-item, .home-tile, .fav-chip, .ld-card,
 .step-map-item, .tab-map-item, .field-row, .attr-item, .lov-option,
-.nav-avatar, .nav-back, .nav-icon-btn, .ds-bar, .chip {
+.nav-avatar, .nav-back, .nav-icon-btn, .ds-bar {
   touch-action: manipulation;
 }
 
@@ -2348,7 +2348,7 @@ uxt-button.kit-sheet-text-btn.hidden{visibility:hidden;}
 /* Kit buttons sharing a row equally (step bottom bars, timer Pause/Stop). */
 uxt-button.kit-flex-btn{flex:1;min-width:0;}
 uxt-button.kit-btn-gap{margin-top:var(--k-s1);}
-.attr-item > uxt-input{display:block;width:100%;min-width:0;}
+.attr-item > uxt-input,.form-field.stacked > uxt-input{display:block;width:100%;min-width:0;}
 .form-field > uxt-input.kit-time-input{margin-left:auto;flex-shrink:0;}
 /* Top-bar and record-header Icon Buttons (one class on every screen):
    outlined on background-card fill; gray (action-selected, never blue)

@@ -97,7 +97,7 @@ body{background:var(--uxt-theme-palette-ui-black-700,#1a1a1f);}
 @keyframes loginPulse{0%{transform:scale(.88);opacity:.7;}50%{transform:scale(1.06);opacity:1;}100%{transform:scale(.88);opacity:.7;}}
 /* No kit progress component exists; the bar is the four pillar accents. */
 .loading-bar-track{width:140px;height:4px;border-radius:var(--k-pill);background:color-mix(in srgb,var(--uxt-theme-palette-common-white,#fff) 18%,transparent);margin-top:var(--k-s6);overflow:hidden;}
-.loading-bar-fill{height:100%;width:0%;border-radius:var(--k-pill);background:linear-gradient(90deg,#00FFFF,#FFF500,#FF00C7,#4FFF00);}
+.loading-bar-fill{height:100%;width:0%;border-radius:var(--k-pill);background:linear-gradient(90deg,var(--uxt-theme-palette-design-main,#00FFFF),var(--uxt-theme-palette-build-main,#FFF500),var(--uxt-theme-palette-operate-main,#FF00C7),var(--uxt-theme-palette-protect-main,#4FFF00));}
 .login-loading.show .loading-bar-fill{animation:barFill 1.7s ease-out forwards;}
 @keyframes barFill{from{width:0%;}to{width:100%;}}
 .loading-status{margin-top:var(--k-sm);font-size:var(--k-caption);font-weight:500;color:var(--uxt-theme-palette-ui-grey-300,#a1a7b3);}

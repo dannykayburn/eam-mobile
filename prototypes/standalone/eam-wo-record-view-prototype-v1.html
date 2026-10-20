@@ -591,9 +591,9 @@ uxt-radio-button.act-radio .rb-label { position: absolute; width: 1px; height: 1
       </div>
 
       <div class="section-card">
-        <div class="form-field stacked" onclick="focusInlineField(this)">
+        <div class="form-field stacked" onclick="kitFocusField(this, event)">
           <span class="field-label">Note</span>
-          <textarea class="field-inline-input" id="activityEditName" rows="1" maxlength="255" oninput="updateInlineFieldLayout(this)"></textarea>
+          <uxt-input id="activityEditName" lines="multiple" full-width density="m" aria-label="Note"></uxt-input>
         </div>
       </div>
 
@@ -1355,9 +1355,11 @@ function openActivityEditPopup() {
 function populateActivityPopup(act) {
   document.getElementById('fv-activityNumber').value = act.id;
 
+  // Kit <uxt-input>: written through the attribute (safe before upgrade too),
+  // removed first so an unchanged value still overwrites unsaved typing.
   const nameInput = document.getElementById('activityEditName');
-  nameInput.value = act.name || '';
-  setTimeout(() => autoGrow(nameInput), 50);
+  nameInput.removeAttribute('value');
+  nameInput.setAttribute('value', act.name || '');
 
   const tradeCode = DISCIPLINE_CODE[act.discipline] || '';
   LOV_CURRENT.activityTrade = tradeCode;
@@ -1878,7 +1880,7 @@ function renderRecordViewTab() {
             <span class="rv-toggle-title">Comments</span>
           </div>
           <div class="rv-toggle-right">
-            <span class="rv-badge" id="commentsBadgeCount">${COMMENTS_DATA.length}</span>
+            <uxt-badge id="commentsBadgeCount" color="grey" show-zero value="${COMMENTS_DATA.length}"></uxt-badge>
             <svg class="rv-chev" id="rv-chev-comments" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
         </div>
@@ -1892,7 +1894,7 @@ function renderRecordViewTab() {
             <span class="rv-toggle-title">Documents</span>
           </div>
           <div class="rv-toggle-right">
-            <span class="rv-badge" id="documentsBadgeCount">${DOCUMENTS_DATA.length}</span>
+            <uxt-badge id="documentsBadgeCount" color="grey" show-zero value="${DOCUMENTS_DATA.length}"></uxt-badge>
             <svg class="rv-chev" id="rv-chev-documents" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
         </div>

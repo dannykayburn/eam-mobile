@@ -441,7 +441,7 @@
            Status no longer has a 2nd column partner to pair with. -->
       <div class="section-card">
         <div class="equip-attrs">
-          <div class="attr-item full-width required" data-field="insertDescription" onclick="scrFocusKitField(this, event)">
+          <div class="attr-item full-width required" data-field="insertDescription" onclick="kitFocusField(this, event)">
             <span class="attr-label">Description</span>
             <uxt-input id="fv-insertDescription" lines="multiple" full-width density="m" aria-label="Description" placeholder="Tap to add…" oninput="updateInsertSaveGate()" onfocusout="onInlineBlur(this)"></uxt-input>
           </div>
@@ -599,16 +599,6 @@ function scrPaintChip(el, text, active, count) {
 function scrChipKeep(e, el) { e.stopPropagation(); el.toggleAttribute('active', el.dataset.on === '1'); }
 function scrSortLabel(label) { const b = document.getElementById('sortBtn'); if (b) b.setAttribute('text', 'Sort: ' + label); }
 function scrModeSync(m) { const t = document.getElementById('modeTog'); if (t && t.getAttribute('value') !== m) t.setAttribute('value', m); }
-// Tap anywhere in a kit field's cell focuses it, caret at the end
-// (focusInlineField()'s contract; it only knows a bare <textarea>).
-function scrFocusKitField(cell, e) {
-  const kit = cell.querySelector('uxt-input');
-  if (!kit || (e && kit.contains(e.target))) return;
-  const f = kit.querySelector('.input-value');
-  if (!f) return;
-  f.focus();
-  try { f.setSelectionRange(f.value.length, f.value.length); } catch (err) { /* no caret API */ }
-}
 // Insert Mode's Type pill (§9.4.1, added 2026-07-29) re-scopes the flat
 // fields section on every change, not just on entity switch — same
 // optional per-key hook eam-shared.js's selectLov() already runs for any

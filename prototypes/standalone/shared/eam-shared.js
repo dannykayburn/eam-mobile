@@ -95,6 +95,9 @@ function kitIsEl(el) { return !!(el && typeof el.tagName === 'string' && el.tagN
 // A kit element's label is its `text` attribute; a legacy element's is its
 // textContent. Shared renderers write through this so either markup works.
 function kitSetText(el, text) { if (!el) return; if (kitIsEl(el)) el.setAttribute('text', text); else el.textContent = text; }
+// A count badge: kit <uxt-badge> takes `value` (show-zero keeps a 0 on
+// screen, like Danny's counters); a legacy span takes textContent.
+function kitSetCount(el, n) { if (!el) return; if (kitIsEl(el)) el.setAttribute('value', String(n)); else el.textContent = n; }
 // Save gates keep Danny's CLASS (.ready / .disabled: his CSS and the verify
 // tests read it) and mirror it onto the kit `disabled` attribute. A gated
 // control with class "kit-gated" still takes the tap while disabled (shared
@@ -134,6 +137,16 @@ function kitDataspyRow(name, fav, selected, favExpr, selectExpr) {
   return `<div class="kit-ds-row">`
     + `<uxt-icon-button class="kit-ds-star" icon="star" label="${fav ? 'Remove favorite' : 'Favorite'}"${fav ? ' tone="warning"' : ''} density="m" onclick="event.stopPropagation();${favExpr}"></uxt-icon-button>`
     + `<uxt-list-item class="lov-option" density="m" text="${kitEsc(name)}"${selected ? ' selected' : ''} onclick="${selectExpr}"></uxt-list-item></div>`;
+}
+// Tap anywhere in a kit field's cell focuses it, caret at the end
+// (focusInlineField()'s contract, for a cell holding a <uxt-input>).
+function kitFocusField(cell, e) {
+  const kit = cell.querySelector('uxt-input');
+  if (!kit || (e && kit.contains(e.target))) return;
+  const f = kit.querySelector('.input-value');
+  if (!f) return;
+  f.focus();
+  try { f.setSelectionRange(f.value.length, f.value.length); } catch (err) { /* no caret API */ }
 }
 // Sheet-header ✕ → kit Icon Button (40px, glyph-default, halo states).
 function kitSheetClose(onclickExpr, label) {
@@ -2244,7 +2257,11 @@ function updateNotifBadge() {
   if (typeof EAM_NOTIFICATIONS === 'undefined') return;
   const count = EAM_NOTIFICATIONS.filter(n => !n.read).length;
   const el = document.getElementById('notifBadge');
-  if (el) {
+  if (kitIsEl(el)) {
+    // Kit <uxt-badge> anchored on the bottom-nav bell: value 0 hides it.
+    el.setAttribute('value', String(count));
+    el.setAttribute('label', count > 0 ? `${count} unread notifications` : 'No unread notifications');
+  } else if (el) {
     el.textContent = count;
     el.style.display = count > 0 ? '' : 'none';
   }
@@ -4343,8 +4360,7 @@ function renderCommentsExcerptMount() {
   // all (WO Record View shows every comment inline, no "latest 3" limit)
   // still want their count badge to track the data instead of a static number.
   if (typeof COMMENTS_BADGE_ID !== 'undefined' && COMMENTS_BADGE_ID) {
-    const badge = document.getElementById(COMMENTS_BADGE_ID);
-    if (badge) badge.textContent = COMMENTS_DATA.length;
+    kitSetCount(document.getElementById(COMMENTS_BADGE_ID), COMMENTS_DATA.length);
   }
 }
 function renderCommentsTabContent() {
@@ -4479,8 +4495,7 @@ function renderDocumentsExcerptMount() {
     typeof DOCUMENTS_VIEW_MORE_ONCLICK !== 'undefined' ? DOCUMENTS_VIEW_MORE_ONCLICK : null);
   mount.innerHTML = html;
   if (typeof DOCUMENTS_BADGE_ID !== 'undefined' && DOCUMENTS_BADGE_ID) {
-    const badge = document.getElementById(DOCUMENTS_BADGE_ID);
-    if (badge) badge.textContent = all.length;
+    kitSetCount(document.getElementById(DOCUMENTS_BADGE_ID), all.length);
   }
 }
 // Groups start expanded: a technician opening Documents wants the documents,
