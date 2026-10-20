@@ -1,6 +1,6 @@
 # Default reviewers for everything not listed below. A PR author is never
 # asked to review their own PR, so each person is requested on the other's work.
-* @dannykayburn @tgminhp
+* @dannykayburn @tmphan
 
 # Design source of truth. Changes here alter locked rules or requirements,
 # so they need the design owner's review even when the code change is small.
