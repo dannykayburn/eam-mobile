@@ -147,7 +147,35 @@ body{font-family:var(--font-sans);font-size:var(--k-body2);background:var(--bg-p
    avatar slot, §4.2's browsing tier) shows no title. Overrides Danny's dark
    #1A1A1F bar; all §4.2 slot mechanics are untouched. */
 .nav{height:var(--nav-height);background:transparent;display:flex;align-items:center;justify-content:space-between;padding:0 var(--k-s4);gap:var(--k-s1);flex-shrink:0;position:relative;}
-.nav:has(.nav-avatar) .nav-title{display:none;}
+/* Top-level bars (eam-shared.js kitInitTopBars marks them .kit-top-level and
+   leads them with the hamburger) show no title; drill-ins keep theirs. The
+   avatar left the bar for the NavigationDrawer's profile block (Minh,
+   2026-10-20), so a screen's own .nav-avatar markup is simply not shown. */
+.nav.kit-top-level .nav-title,.nav:has(.kit-nav-menu) .nav-title{display:none;}
+.nav .nav-left > .nav-avatar,.nav > .nav-avatar{display:none;}
+/* Held at higher specificity than any screen's own `.nav{…}` so no screen's
+   local CSS can repaint the bar: no fill, no border, no shadow, no dark band. */
+.app .nav{background:transparent;border:0;box-shadow:none;padding:0 var(--k-s4);}
+.app .nav .nav-title{color:var(--k-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 112px;box-sizing:border-box;}
+/* Every kit Icon Button in the bar floats on the card fill (the kit draws the
+   outlined ring and the hover/press overlay inside; this is only the fill). */
+/* The kit writes an inline `background:transparent` on the host, so the fill
+   goes on its inner .ib (which also draws the outlined ring and the overlay). */
+.app .nav uxt-icon-button{flex-shrink:0;}
+.app .nav uxt-icon-button > .ib,.kit-drawer-head uxt-icon-button > .ib{background:var(--k-card);}
+.app .nav uxt-status-chip .chip{background:var(--k-card);}
+/* Optional MIDDLE slot (mobile kit AppShell `search`): any direct child of the
+   bar other than .nav-left / .nav-title / .nav-actions — e.g. an exposed
+   <uxt-search-bar> or a .nav-middle wrapper — fills the space between the
+   leading control and the actions, never overlapping them (320px floor:
+   the leading control and actions keep their size, the middle shrinks).
+   The dev-only PROTOTYPE watermark steps aside to give it the room. */
+.app .nav{gap:var(--k-s2);}
+.app .nav > .nav-left,.app .nav > .nav-actions{flex-shrink:0;}
+.app .nav > :not(.nav-left):not(.nav-title):not(.nav-actions):not(.rec-actions-menu){flex:1 1 auto;min-width:0;}
+.app .nav > uxt-search-bar{display:block;}
+.app .nav > uxt-search-bar > *{width:100%;max-width:none;}
+.nav:has(> :not(.nav-left):not(.nav-title):not(.nav-actions):not(.rec-actions-menu)) .prototype-label{display:none;}
 /* Cursor/radius/hover/transition/flex-shrink added 2026-07-22 (Phase 2b) —
    WO List's own local hand-copy of this class had quietly grown all 5
    (a real, sensible hover affordance every nav-bar icon button should
@@ -404,8 +432,8 @@ body{font-family:var(--font-sans);font-size:var(--k-body2);background:var(--bg-p
 /* Overflow (⋮) menus open as a SLIDE-UP BOTTOM SHEET (Octave mobile shell,
    2026-10-20), not a popover: fixed to the bottom of the app column, sheet
    radius on top, 2dp, on the shared scrim (#kitMenuScrim, eam-shared.js).
-   The profile menu becomes a kit <uxt-flyover-menu> when the kit loads and
-   this markup is then only its hidden source (.kit-source-menu). */
+   The profile menu is only the hidden source (.kit-source-menu) of the
+   hamburger's NavigationDrawer (eam-shared.js kitBuildNavDrawer). */
 .rec-actions-menu{position:fixed;left:50%;bottom:0;width:min(100vw,430px);max-height:80vh;max-height:80dvh;overflow-y:auto;background:var(--k-card);border-radius:var(--sheet-radius) var(--sheet-radius) 0 0;border:none;box-shadow:var(--k-e2);padding:var(--k-s2) 0 calc(var(--k-s4) + env(safe-area-inset-bottom,0px));visibility:hidden;transform:translate(-50%,100%);transition:transform .3s cubic-bezier(0.4,0,0.2,1),visibility .3s;z-index:205;}
 /* Left-anchored variant (§4.3, Profile) — same card, same items, just
    grown from the opposite corner since the avatar sits top-left, not
@@ -2371,3 +2399,29 @@ uxt-status-chip .chip > .content{padding:0;flex:none;overflow:visible;height:aut
 .form-field > uxt-checkbox.field-checkbox-kit{margin-left:auto;flex-shrink:0;}
 
 uxt-list-item.comment-add-row{display:block;border-bottom:1px solid var(--k-divider);}
+
+/* ── Navigation drawer (Octave mobile kit NavigationDrawer / web kit
+   .mobile-overflow, 2026-10-20) — opened by the top-level bar's hamburger.
+   Slides in from the LEFT over the Dialog scrim, 82% wide (max 360px),
+   background-drawer, 5dp. Header row 56px: outlined close Icon Button, the
+   Octave mark, "Octave" (the rail brand never takes the product name). Then
+   the profile block and every #profileMenu row as a kit List Item. Sits in
+   .app (the phone column), above every sheet and menu. */
+.kit-drawer{position:absolute;inset:0;z-index:400;visibility:hidden;pointer-events:none;transition:visibility 0s linear .28s;}
+.kit-drawer.open{visibility:visible;pointer-events:auto;transition:none;}
+.kit-drawer-scrim{position:absolute;inset:0;background:rgba(26,26,31,.5);opacity:0;transition:opacity .28s cubic-bezier(0.4,0,0.2,1);}
+.kit-drawer.open .kit-drawer-scrim{opacity:1;}
+.kit-drawer-sheet{position:absolute;top:0;bottom:0;left:0;width:82%;max-width:360px;display:flex;flex-direction:column;background:var(--uxt-theme-palette-background-drawer,var(--k-card));box-shadow:var(--uxt-theme-shadows-5,0px 24px 48px -12px rgba(16,24,40,.18));transform:translateX(-100%);transition:transform .28s cubic-bezier(0.4,0,0.2,1);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box;}
+.kit-drawer.open .kit-drawer-sheet{transform:translateX(0);}
+@media (prefers-reduced-motion: reduce){.kit-drawer-sheet,.kit-drawer-scrim{transition:none;}}
+.kit-drawer-head{height:56px;flex-shrink:0;display:flex;align-items:center;gap:var(--k-s2);padding:0 var(--k-s4);}
+.kit-drawer-head uxt-icon-button{flex-shrink:0;}
+.kit-drawer-mark{width:28px;height:28px;flex-shrink:0;border-radius:var(--uxt-theme-shape-radius-sm,4px);background:var(--uxt-theme-palette-octave-logo-background,#1a1a1f);color:var(--uxt-theme-palette-octave-logo-ink,#fff);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:var(--uxt-theme-typography-subtitle-2-font-size,.875rem);font-weight:var(--uxt-theme-typography-subtitle-2-font-weight,500);line-height:1;}
+.kit-drawer-brand{font-family:var(--font-display);font-size:var(--uxt-theme-typography-subtitle-1-font-size,1rem);font-weight:var(--uxt-theme-typography-subtitle-1-font-weight,500);color:var(--k-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kit-drawer-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;}
+.kit-drawer-profile{display:flex;align-items:center;gap:var(--uxt-theme-spacing-values-sm,12px);padding:var(--k-s2) var(--k-s4) var(--k-s4);border-bottom:1px solid var(--k-divider);margin-bottom:var(--k-s2);}
+.kit-drawer-who{min-width:0;}
+.kit-drawer-name{font-family:var(--font-sans);font-size:var(--uxt-theme-typography-body-1-font-size,1rem);font-weight:500;color:var(--k-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.kit-drawer-role{font-family:var(--font-sans);font-size:var(--k-caption,.75rem);color:var(--k-text-2);margin-top:2px;}
+uxt-list-item.kit-drawer-row{display:block;}
+

@@ -1349,13 +1349,16 @@ function toggleRecActionsMenu() { toggleActionsMenu('recActionsMenu'); }
 function closeRecActionsMenu() { closeActionsMenu('recActionsMenu'); closeActionsMenu('listDetailMenu'); }
 function toggleListDetailMenu() { toggleActionsMenu('listDetailMenu'); }
 function closeListDetailMenu() { closeActionsMenu('listDetailMenu'); }
-// With the kit loaded the profile menu is a <uxt-flyover-menu> anchored to
-// the avatar (kitBuildProfileFlyover below), which toggles itself from the
-// avatar's own click — so these two only drive the legacy menu without it.
-function toggleProfileMenu() { if (document.getElementById('kitProfileFlyover')) return; toggleActionsMenu('profileMenu'); }
+// The profile menu lives in the hamburger's NavigationDrawer (kitNavDrawer*
+// below) — these two keep every existing caller (hand-written rows call
+// closeProfileMenu() first) working, and only drive the legacy bottom-sheet
+// menu on a page that has no drawer.
+function toggleProfileMenu() {
+  if (document.getElementById('kitNavDrawer')) { kitNavDrawerIsOpen() ? closeNavDrawer() : openNavDrawer(); return; }
+  toggleActionsMenu('profileMenu');
+}
 function closeProfileMenu() {
-  const fm = document.getElementById('kitProfileFlyover');
-  if (fm) { fm.removeAttribute('open'); return; }
+  if (document.getElementById('kitNavDrawer')) { closeNavDrawer(); return; }
   closeActionsMenu('profileMenu');
 }
 // Closes ANY open .rec-actions-menu on an outside click — generalized
@@ -1369,80 +1372,206 @@ function initHeaderMenuOutsideClick() {
     document.querySelectorAll('.rec-actions-menu.open').forEach(m => m.classList.remove('open'));
   });
 }
-/* Overflow / profile menus open as a slide-up bottom sheet (Octave mobile
+/* Overflow menus open as a slide-up bottom sheet (Octave mobile
    kit, 2026-10-20), so they sit on the modal scrim like every other sheet.
    The scrim's visibility is pure CSS (`.app:has(.rec-actions-menu.open)`),
    so every existing open/close path — toggle, item tap, outside click,
    closeAllHeaderMenus — keeps it in step with no extra state. A tap on it is
    an outside click, which the listener above already turns into a close. */
-/* ── Profile menu → kit <uxt-flyover-menu> (2026-10-20, Minh: popup action
-   menus are the kit flyover, never a hand-built list). The #profileMenu
-   markup — hand-written on Home/Notifications, injected everywhere else by
-   ensureProfileMenu(), plus the prototype rows injectProtoMenuGroup() adds —
-   stays in the DOM, hidden, as the SOURCE of the menu: every row keeps its
-   own onclick, and the flyover's `select` simply clicks the matching source
-   row. So no screen's handler is re-implemented and a screen adding a row to
-   its own markup gets it in the flyover for free. The flyover reads its
-   items once, so it is rebuilt (closed) after every pick and whenever a
-   prototype state label changes. */
-function kitProfileSourceRows(menu) {
+/* ══ MOBILE SHELL: HAMBURGER + NAVIGATION DRAWER (2026-10-20, Minh) ═══════
+   Octave mobile kit rules: a top-level page ALWAYS leads its transparent top
+   bar with a hamburger (outlined Icon Button, `menu`); a drill-in page shows
+   its own back arrow there instead (untouched). The profile is no longer a
+   top-bar avatar: the hamburger opens the NavigationDrawer (mobile kit
+   NavigationDrawer.tsx / web kit .mobile-overflow) — from the LEFT over a
+   scrim, header row (close · Octave mark · "Octave"), the profile block, then
+   every #profileMenu row as a kit List Item.
+   The #profileMenu markup — hand-written on Home/Notifications, injected
+   everywhere else by ensureProfileMenu(), plus injectProtoMenuGroup()'s
+   prototype rows — stays in the DOM, hidden, as the SOURCE: every row keeps
+   its own onclick and a drawer row simply clicks the matching source row, so
+   no screen handler is re-implemented and a row a screen adds to its own
+   markup shows up in the drawer for free. Rows are rebuilt on every open, so
+   state labels (theme / connectivity / screen extras) are always current. */
+// A drill-in bar already has a back (or close) control in its leading slot;
+// anything else in .nav-left other than the avatar/hamburger counts as one.
+function kitNavIsDrillIn(nav) {
+  const left = nav.querySelector('.nav-left');
+  if (!left) return false;
+  return !!left.querySelector('.nav-back, uxt-icon-button:not(.kit-nav-menu):not([icon="menu"]), button:not(.nav-avatar)');
+}
+function kitTopLevelNavs() {
+  return [...document.querySelectorAll('.nav')].filter(n => !kitNavIsDrillIn(n));
+}
+const KIT_DRAWER_ICONS = {
+  'settings': 'settings', 'connectivity': 'wifi', 'timer': 'timer',
+  'reset demo': 'restart-alt', 'log out': 'logout', 'sync status': 'sync',
+  'notifications': 'notifications', 'help': 'help', 'row tap': 'tune',
+};
+function kitDrawerIcon(text) {
+  const k = String(text || '').trim().toLowerCase();
+  if (k === 'appearance') return document.documentElement.hasAttribute('data-theme') ? 'dark-mode' : 'light-mode';
+  return KIT_DRAWER_ICONS[k] || 'tune';
+}
+function kitDrawerSourceRows(menu) {
   const rows = [];
   [...menu.children].forEach(el => {
     if (el.classList.contains('rec-actions-divider')) { rows.push({ divider: true }); return; }
     if (el.hasAttribute('hidden') || el.classList.contains('profile-menu-identity')) return;
-    if (el.localName === 'uxt-list-item' && el.hasAttribute('header')) return;
+    if (el.localName === 'uxt-list-item' && el.hasAttribute('header')) {
+      rows.push({ header: true, text: el.getAttribute('text') || '' });
+      return;
+    }
     if (el.hasAttribute('data-menu-logout')) {
-      const b = el.querySelector('uxt-button');
-      if (b) rows.push({ el: b, text: b.getAttribute('text') || 'Log out', tone: 'danger', icon: 'logout' });
+      const b = el.querySelector('uxt-button, button, [onclick]') || el;
+      // The menu's action bar (Log out) always sits under a divider line.
+      rows.push({ divider: true });
+      rows.push({ el: b, text: (b.getAttribute && b.getAttribute('text')) || b.textContent.trim() || 'Log out', icon: 'logout' });
       return;
     }
     if (el.localName === 'uxt-list-item') {
-      rows.push({ el, text: el.getAttribute('text') || '', shortcut: el.getAttribute('shortcut'), icon: el.getAttribute('icon') });
+      const text = el.getAttribute('text') || '';
+      rows.push({ el, text, shortcut: el.getAttribute('shortcut'), icon: el.getAttribute('icon') || kitDrawerIcon(text) });
       return;
     }
     if (el.classList.contains('rec-actions-item')) {
-      const danger = el.classList.contains('danger');
-      rows.push({ el, text: el.textContent.trim(), tone: danger ? 'danger' : null, icon: danger ? 'logout' : null });
+      const text = el.textContent.trim();
+      rows.push({ el, text, icon: el.classList.contains('danger') ? 'logout' : kitDrawerIcon(text) });
     }
   });
-  // No leading/trailing/double dividers.
-  return rows.filter((r, i, a) => !r.divider || (i > 0 && i < a.length - 1 && !a[i - 1].divider));
+  // A divider becomes the next row's `divider` line; none leading/trailing.
+  const out = [];
+  let pendingDivider = false;
+  rows.forEach(r => {
+    if (r.divider) { pendingDivider = pendingDivider || out.length > 0; return; }
+    if (pendingDivider) { r.lineAbove = true; pendingDivider = false; }
+    out.push(r);
+  });
+  return out;
 }
-function kitBuildProfileFlyover() {
-  if (!kitReady('uxt-flyover-menu')) return;
+function kitNavDrawerIsOpen() {
+  const dr = document.getElementById('kitNavDrawer');
+  return !!(dr && dr.classList.contains('open'));
+}
+function kitRenderNavDrawerRows(dr, menu) {
+  const rows = kitDrawerSourceRows(menu);
+  dr._rows = rows;
+  const list = dr.querySelector('.kit-drawer-list');
+  list.innerHTML = rows.map((r, i) => r.header
+    ? `<uxt-list-item class="kit-drawer-row" header density="m" text="${kitEsc(r.text)}"${r.lineAbove ? ' divider' : ''}></uxt-list-item>`
+    : `<uxt-list-item class="kit-drawer-row" role="menuitem" density="m" data-row="${i}" value="${i}" text="${kitEsc(r.text)}"`
+      + `${r.icon ? ` icon="${kitEsc(r.icon)}"` : ''}${r.shortcut ? ` shortcut="${kitEsc(r.shortcut)}"` : ''}${r.lineAbove ? ' divider' : ''}></uxt-list-item>`).join('');
+}
+function kitBuildNavDrawer() {
   const menu = document.getElementById('profileMenu');
-  const avatar = document.querySelector('.nav .nav-avatar');
-  if (!menu || !avatar) return;
-  if (!avatar.id) avatar.id = 'kitProfileAnchor';
+  const app = document.querySelector('.app');
+  if (!menu || !app || document.getElementById('kitNavDrawer')) return;
   menu.classList.add('kit-source-menu');
-  const old = document.getElementById('kitProfileFlyover');
-  if (old && old.hasAttribute('open')) return;   // never rebuild under the finger
-  if (old) old.remove();
+  menu.classList.remove('open');
   const name = menu.querySelector('.profile-menu-name');
   const org = menu.querySelector('.profile-menu-org');
-  const heading = [name && name.textContent.trim(), org && org.textContent.trim()].filter(Boolean).join(' · ');
-  const rows = kitProfileSourceRows(menu);
-  const fm = document.createElement('uxt-flyover-menu');
-  fm.id = 'kitProfileFlyover';
-  fm.setAttribute('for', avatar.id);
-  fm.setAttribute('placement', 'bottom-start');
-  if (heading) fm.setAttribute('heading', heading);
-  fm.innerHTML = rows.map((r, i) => r.divider ? '<uxt-menu-divider></uxt-menu-divider>'
-    : `<uxt-menu-item value="${i}" text="${kitEsc(r.text)}"${r.icon ? ` icon="${kitEsc(r.icon)}"` : ''}${r.shortcut ? ` shortcut="${kitEsc(r.shortcut)}"` : ''}${r.tone ? ` tone="${r.tone}"` : ''}></uxt-menu-item>`).join('');
-  fm.addEventListener('select', (e) => {
-    const r = rows[+(e.detail && e.detail.value)];
-    fm.removeAttribute('open');
-    if (r && r.el) r.el.click();
-    setTimeout(kitBuildProfileFlyover, 0);
+  const userName = (name && name.textContent.trim()) || 'Bruce Campbell';
+  const userRole = (org && org.textContent.trim()) || '';
+  const dr = document.createElement('div');
+  dr.id = 'kitNavDrawer';
+  dr.className = 'kit-drawer';
+  dr.setAttribute('aria-hidden', 'true');
+  dr.inert = true;
+  dr.innerHTML = `
+    <div class="kit-drawer-scrim" aria-hidden="true"></div>
+    <aside class="kit-drawer-sheet" role="dialog" aria-modal="true" aria-label="Menu">
+      <div class="kit-drawer-head">
+        <uxt-icon-button class="kit-drawer-close" icon="close" label="Close menu" outlined density="m"></uxt-icon-button>
+        <span class="kit-drawer-mark" role="img" aria-label="Octave">O</span>
+        <span class="kit-drawer-brand">Octave</span>
+      </div>
+      <div class="kit-drawer-body">
+        <div class="kit-drawer-profile">
+          <uxt-avatar density="m" name="${kitEsc(userName)}"></uxt-avatar>
+          <div class="kit-drawer-who">
+            <div class="kit-drawer-name">${kitEsc(userName)}</div>
+            ${userRole ? `<div class="kit-drawer-role">${kitEsc(userRole)}</div>` : ''}
+          </div>
+        </div>
+        <div class="kit-drawer-list" role="menu" aria-label="Menu"></div>
+      </div>
+    </aside>`;
+  app.appendChild(dr);
+  dr.querySelector('.kit-drawer-scrim').addEventListener('click', () => closeNavDrawer());
+  dr.querySelector('.kit-drawer-close').addEventListener('click', (e) => { e.stopPropagation(); closeNavDrawer(); });
+  // The kit List Item fires `select` on click / Enter / Space; without the
+  // kit (DOM shim) only `click` exists. One pick per open either way.
+  const pick = (e) => {
+    const li = e.target.closest && e.target.closest('uxt-list-item[data-row]');
+    if (!li || !kitNavDrawerIsOpen() || dr._picked) return;
+    const r = dr._rows && dr._rows[+li.getAttribute('data-row')];
+    if (!r || !r.el) return;
+    dr._picked = true;
+    closeNavDrawer({ keepFocus: true });
+    r.el.click();
+  };
+  const list = dr.querySelector('.kit-drawer-list');
+  list.addEventListener('select', pick);
+  list.addEventListener('click', pick);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && kitNavDrawerIsOpen()) { e.preventDefault(); closeNavDrawer(); }
   });
-  document.body.appendChild(fm);
-  // Prototype state labels (theme / connectivity / screen extras) are
-  // written by textContent into hidden spans; rebuild when one changes.
-  if (typeof MutationObserver !== 'undefined' && !menu._kitFlyObs) {
-    menu._kitFlyObs = new MutationObserver(() => kitBuildProfileFlyover());
-    menu.querySelectorAll('.proto-menu-state').forEach(el =>
-      menu._kitFlyObs.observe(el, { childList: true, characterData: true, subtree: true }));
+}
+function openNavDrawer(trigger) {
+  const dr = document.getElementById('kitNavDrawer');
+  const menu = document.getElementById('profileMenu');
+  if (!dr || !menu) return;
+  if (typeof closeAllHeaderMenus === 'function') closeAllHeaderMenus();
+  kitRenderNavDrawerRows(dr, menu);
+  dr._picked = false;
+  dr._trigger = (trigger && trigger.nodeType === 1) ? trigger : document.querySelector('.nav .kit-nav-menu');
+  dr.inert = false;
+  dr.setAttribute('aria-hidden', 'false');
+  dr.classList.add('open');
+  document.querySelectorAll('.nav .kit-nav-menu').forEach(b => b.setAttribute('aria-expanded', 'true'));
+  const close = dr.querySelector('.kit-drawer-close');
+  setTimeout(() => { const b = close && (close.querySelector('button') || close); if (b && b.focus) b.focus(); }, 50);
+}
+function closeNavDrawer(opts) {
+  const dr = document.getElementById('kitNavDrawer');
+  if (!dr || !dr.classList.contains('open')) return;
+  dr.classList.remove('open');
+  dr.setAttribute('aria-hidden', 'true');
+  dr.inert = true;
+  document.querySelectorAll('.nav .kit-nav-menu').forEach(b => b.setAttribute('aria-expanded', 'false'));
+  if (!(opts && opts.keepFocus) && dr._trigger) {
+    const b = dr._trigger.querySelector && dr._trigger.querySelector('button') || dr._trigger;
+    if (b && b.focus) b.focus();
   }
+}
+// Leading slot of every top-level bar: the hamburger. Reuses one a screen
+// already wrote (`uxt-icon-button[icon="menu"]`) rather than doubling it.
+// Also marks the bar .kit-top-level (no title) and holds every kit Icon
+// Button in the bar to the outlined shell look.
+function kitInitTopBars() {
+  document.querySelectorAll('.nav').forEach(nav => {
+    nav.querySelectorAll('uxt-icon-button:not([outlined])').forEach(b => b.setAttribute('outlined', ''));
+    if (kitNavIsDrillIn(nav)) { nav.classList.add('kit-drill-in'); return; }
+    nav.classList.add('kit-top-level');
+    let left = nav.querySelector('.nav-left');
+    if (!left) { left = document.createElement('div'); left.className = 'nav-left'; nav.insertBefore(left, nav.firstChild); }
+    let btn = left.querySelector('.kit-nav-menu, uxt-icon-button[icon="menu"]');
+    if (!btn) {
+      btn = document.createElement('uxt-icon-button');
+      btn.setAttribute('icon', 'menu');
+      btn.setAttribute('label', 'Menu');
+      btn.setAttribute('outlined', '');
+      btn.setAttribute('density', 'm');
+      left.insertBefore(btn, left.firstChild);
+    }
+    btn.classList.add('kit-nav-menu');
+    btn.setAttribute('aria-haspopup', 'dialog');
+    btn.setAttribute('aria-expanded', 'false');
+    if (!btn.hasAttribute('onclick') && !btn._kitNavWired) {
+      btn._kitNavWired = true;
+      btn.addEventListener('click', (e) => { e.stopPropagation(); openNavDrawer(btn); });
+    }
+  });
 }
 function kitEnsureMenuScrim() {
   const host = document.querySelector('.app');
@@ -1910,13 +2039,16 @@ function goToLogin() { location.href = 'eam-login-prototype-v1.html'; }
    same markup is how three screens drift. The two existing inline copies are
    left alone — this only fires when a .nav-avatar has no menu to open, so it
    adds the missing one without touching the ones that work. */
+/* 2026-10-20: every TOP-LEVEL bar gets the menu now (it is the hamburger
+   drawer's source), avatar or not; drill-in screens still get none, so their
+   prototype rows keep landing in the record ⋮ menu (injectProtoMenuGroup). */
 function ensureProfileMenu() {
-  const nav = document.querySelector('.nav');
+  if (document.getElementById('profileMenu')) return;
+  const nav = kitTopLevelNavs()[0];
   if (!nav) return;
   const avatar = nav.querySelector('.nav-avatar');
-  if (!avatar || document.getElementById('profileMenu')) return;
 
-  avatar.insertAdjacentHTML('afterend', `
+  (avatar || nav.querySelector('.nav-left') || nav).insertAdjacentHTML(avatar || nav.querySelector('.nav-left') ? 'afterend' : 'beforeend', `
     <div class="rec-actions-menu anchor-left" id="profileMenu">
       <div class="profile-menu-identity">
         <span class="nav-avatar" style="cursor:default;">
@@ -1936,7 +2068,7 @@ function ensureProfileMenu() {
     </div>`);
   // The avatar's own handler is replaced, not augmented: on WO List it showed
   // a "coming soon" toast, which would now fire alongside the real menu.
-  avatar.onclick = (e) => { e.stopPropagation(); toggleProfileMenu(); };
+  if (avatar) avatar.onclick = (e) => { e.stopPropagation(); toggleProfileMenu(); };
 }
 
 /* Each prototype row is a kit List Item whose trailing `shortcut` text shows
@@ -2063,11 +2195,19 @@ function renderSyncControl() {
    CURRENT_USER_NAME elsewhere in this file — a screen that hasn't loaded
    data/notifications.js just shows no badge instead of erroring. */
 function updateNotifBadge() {
-  const el = document.getElementById('notifBadge');
-  if (!el || typeof EAM_NOTIFICATIONS === 'undefined') return;
+  if (typeof EAM_NOTIFICATIONS === 'undefined') return;
   const count = EAM_NOTIFICATIONS.filter(n => !n.read).length;
-  el.textContent = count;
-  el.style.display = count > 0 ? '' : 'none';
+  const el = document.getElementById('notifBadge');
+  if (el) {
+    el.textContent = count;
+    el.style.display = count > 0 ? '' : 'none';
+  }
+  // A top-bar notifications bell (mobile shell, kit Icon Button) carries the
+  // same unread state as the kit's 6px badge dot, and says the count aloud.
+  document.querySelectorAll('.nav uxt-icon-button[icon="notifications"]').forEach(b => {
+    b.toggleAttribute('badge', count > 0);
+    b.setAttribute('label', count > 0 ? `Notifications, ${count} new` : 'Notifications');
+  });
 }
 /* Only the last (highest sequenceOrder still present) item in a
    sequenceGroup may be deleted — legacy Transaction Log's Start/Stop
@@ -4813,9 +4953,11 @@ function initSharedApp(opts) {
   initRecHeaderScroll(opts.contentSelector);
   initHeaderMenuOutsideClick();
   kitEnsureMenuScrim();
-  // design-kit.js is a module script, so it defines its elements AFTER this
-  // classic init has run — build the kit flyover once the tag exists.
-  try { if (typeof customElements !== 'undefined' && customElements.whenDefined) customElements.whenDefined('uxt-flyover-menu').then(kitBuildProfileFlyover); } catch (e) { /* no kit */ }
+  // Mobile shell: hamburger on every top-level bar, profile + menu rows in
+  // the NavigationDrawer. Kit tags upgrade in place whenever design-kit.js
+  // (a module, so it runs after this) defines them.
+  kitInitTopBars();
+  kitBuildNavDrawer();
   initInsertModeDrag();
   initKeyboardInsetSync();
   renderSyncControl();
