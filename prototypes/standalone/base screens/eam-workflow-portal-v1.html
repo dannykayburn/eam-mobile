@@ -2870,9 +2870,18 @@ function seedRoutedWorkflow(wf){
    ═══════════════════════════════════════════════════════════════════════
    `cardinality` is not a style choice: it follows WHAT THE RUNTIME RESOLVES
    ON. §11 resolves a workflow from (WO Type, user group), so a group may
-   have one per Type. Everything else resolves on the group alone, so a group
-   has exactly one. That is why the rule generalises instead of needing a
-   special case per area.
+   have one per Type — `per-wotype`. A Home layout resolves on the group
+   alone, so a group has exactly one — `per-group`. That is why the rule
+   generalises instead of needing a special case per area.
+
+   THE THIRD VALUE, ADDED 2026-09-23: `multi-group`, and it follows the same
+   derivation rather than breaking it. An offline profile's resolution key
+   gained a second dimension the way §29 gave the layout key an `Instance`
+   one — it now resolves on (user group, the technician's own login choice).
+   So a group may hold SEVERAL profiles, and past the first the technician
+   picks one at login and can change it in the app's settings (§2.10).
+   Everything downstream is unchanged: the same membership table, and the
+   control's shape still derives from this field (§30.23).
 
    `create` follows SIZE: an artifact fully definable in one form gets a
    modal; one that needs a canvas gets a blank editor. Both end in the same
@@ -2882,7 +2891,7 @@ const ARTIFACT_TYPES = {
   workflow: {label:'Workflow',       plural:'Workflows',       icon:'route',
              cardinality:'per-wotype', create:'canvas', area:'workflows'},
   offline:  {label:'Offline profile', plural:'Offline Profiles', icon:'cloudoff',
-             cardinality:'per-group',  create:'modal',  area:'offline'},
+             cardinality:'multi-group', create:'modal', area:'offline'},
   home:     {label:'Home layout',    plural:'Home Layouts',    icon:'dashboard',
              cardinality:'per-group',  create:'canvas', area:'home'},
 };
@@ -4231,11 +4240,21 @@ function naSet(w, answers){
    neither one can see it alone — the same reason User Group Setup's
    cross-domain strip exists (§26.5). Reported, never auto-resolved:
    un-assigning the wrong one is the admin's call, not the screen's. ── */
+/* THE SLOT A WORKFLOW OCCUPIES ON A GROUP (§30.26) — one accessor, three
+   call sites (wouldClash, assignmentConflicts, allConflicts). They each
+   built this key themselves and all three had the same two bugs; a shared
+   reader is the only thing that keeps them agreeing. Free Form is NOT part
+   of the key: it is a property any workflow may carry, typed or not. `*` is
+   absent because it is system delivered and has no membership row. */
+function wfSlot(w){ return (w && w.woType) || 'FALLBACK'; }
+function wfSlotLabel(slot){
+  return slot === 'FALLBACK' ? 'the group’s fallback slot (no WO Type)' : 'WO Type ' + slot;
+}
 function assignmentConflicts(){
   const out = [];
   const byKey = {};
   WFS.forEach(w => groupsOf('workflow', w.id).forEach(g => {
-    const key = g + '|' + (w.freeForm ? 'FREEFORM' : (w.woType || 'ANY'));
+    const key = g + '|' + wfSlot(w);
     (byKey[key] = byKey[key] || []).push(w);
   }));
   Object.keys(byKey).forEach(key => {
@@ -4246,8 +4265,8 @@ function assignmentConflicts(){
       group:g,
       kind:kind,
       wfs:list,
-      msg: kind === 'FREEFORM'
-        ? 'is assigned ' + list.length + ' Free Form workflows. A group may have only one.'
+      msg: kind === 'FALLBACK'
+        ? 'is assigned ' + list.length + ' fallback workflows (no WO Type). A group may have only one.'
         : 'is assigned ' + list.length + ' workflows for WO Type ' + kind + '. A group may have only one per Type.',
     });
   });
@@ -4373,12 +4392,14 @@ function openAssign(ev, type, artifactId){
         /* The COLLISION is computed live, so the control tells you the
            consequence before the click rather than reporting it after. */
         const clash = !on && wouldClash(type, artifactId, g);
+        const note = clash ? null : assignNote(type, artifactId, g);
         return '<div class="menu__item' + (clash ? ' is-warn' : '') + '" ' +
           'onclick="toggleAssign(\'' + type + '\',\'' + artifactId + '\',\'' + g + '\')">' +
           '<span class="cbx' + (on ? ' is-on' : '') + '">' + ic('check',14) + '</span>' +
           '<span class="menu__row-b"><span class="menu__row-t">' + esc(g) +
             (g === '*' ? ' <span class="chip__count">default</span>' : '') + '</span>' +
             (clash ? '<span class="menu__row-d" style="color:var(--critical)">' + esc(clash) + '</span>' : '') +
+            (note ? '<span class="menu__row-d">' + esc(note) + '</span>' : '') +
           '</span></div>';
       }).join('') +
     '</div>' +
@@ -4390,17 +4411,27 @@ function toggleAssign(type, artifactId, group){
   render();
 }
 /* ONE rule, parameterised by cardinality — which follows what the runtime
-   resolves on (see ARTIFACT_TYPES). A workflow resolves on (WO Type, group)
-   so a group may hold one per Type; everything else resolves on the group
-   alone, so a group holds exactly one. */
+   resolves on (see ARTIFACT_TYPES). A workflow resolves on (WO Type, group),
+   so a group may hold one per Type; an offline profile resolves on (group,
+   the login choice), so a group may hold several; a Home layout resolves on
+   the group alone, so it holds exactly one. Three sentences, one accessor —
+   never a cardinality sentence hardcoded at a render site. */
 function assignRuleText(type){
   const t = artType(type);
-  return t.cardinality === 'per-wotype'
-    ? 'A group may have one workflow per WO Type, and one Free Form.'
-    : 'A group may have exactly one ' + t.label.toLowerCase() + '.';
+  if(t.cardinality === 'per-wotype')
+    return 'A group may have one workflow per WO Type, and one Free Form.';
+  if(t.cardinality === 'multi-group')
+    return 'A group may have several ' + t.plural.toLowerCase() +
+      '. Past the first, the technician chooses one at login.';
+  return 'A group may have exactly one ' + t.label.toLowerCase() + '.';
 }
 function wouldClash(type, artifactId, group){
   const t = artType(type);
+  /* A `multi-group` type CANNOT clash — several is the point (§2.10). What is
+     real is the consequence of the second one, and assignNote() states it
+     where the click is rather than leaving it to surface at someone's
+     login. */
+  if(t.cardinality === 'multi-group') return null;
   if(t.cardinality === 'per-group'){
     const other = ASSIGN.find(r => r.type === type && r.group === group && r.artifactId !== artifactId);
     if(other){
@@ -4409,13 +4440,35 @@ function wouldClash(type, artifactId, group){
     }
     return null;
   }
-  /* per-wotype */
+  /* per-wotype. THE KEY IS THE WO TYPE OR ITS ABSENCE, AND Free Form NEVER
+     ENTERS IT (§30.26). Free Form is a property any workflow may carry,
+     including a typed one — `wf-free-insp` is INS *and* Free Form — so
+     keying on the toggle both over-refused (two typed Free Form workflows
+     collided although §11 resolves each on its own Type) and under-refused
+     (a non-Free-Form no-Type workflow keyed separately from a Free Form one,
+     letting a group hold TWO fallbacks, the one thing §30.2 names). `*` is
+     absent here on purpose: it is system delivered, has no membership row,
+     and is fallen through to rather than resolved onto. */
   const w = artifactOf('workflow', artifactId); if(!w) return null;
-  const key = w.freeForm ? 'FREEFORM' : (w.woType || 'ANY');
+  const key = wfSlot(w);
   const other = ASSIGN.filter(r => r.type === 'workflow' && r.group === group && r.artifactId !== artifactId)
     .map(r => artifactOf('workflow', r.artifactId)).filter(Boolean)
-    .find(o => (o.freeForm ? 'FREEFORM' : (o.woType || 'ANY')) === key);
-  return other ? 'already has ' + esc(other.desc) + ' for this ' + (w.freeForm ? 'Free Form slot' : 'WO Type') : null;
+    .find(o => wfSlot(o) === key);
+  return other ? 'already has ' + esc(other.desc) + ' for ' + wfSlotLabel(key) : null;
+}
+/* THE CONSEQUENCE, NOT A CLASH (§30.20's rule: raise it where the action is).
+   A second profile on a group is legal and changes who decides — past one,
+   the technician picks at login. Stated on the row that would cause it. */
+function assignNote(type, artifactId, group){
+  const t = artType(type);
+  if(!t || t.cardinality !== 'multi-group') return null;
+  /* Through the accessor, like every other read of the table (§30.13). */
+  const others = artifactsForGroup(group, type)
+    .filter(r => r.artifactId !== artifactId).length;
+  if(!others) return null;
+  return isAssigned(type, artifactId, group)
+    ? 'one of ' + (others + 1) + ' — the technician picks at login'
+    : 'would make ' + (others + 1) + ' — the technician would pick at login';
 }
 function artifactOf(type, id){
   if(type === 'workflow') return WFS.find(x => x.id === id) || null;
@@ -4439,12 +4492,14 @@ function allConflicts(){
   const out = [];
   Object.keys(ARTIFACT_TYPES).forEach(type => {
     const t = ARTIFACT_TYPES[type];
+    /* A `multi-group` type has no slot to collide in, so it is skipped
+       rather than reported — otherwise the login-choice model (§2.10) would
+       read out as "N assigned, a group may have one". */
+    if(t.cardinality === 'multi-group') return;
     const byKey = {};
     ASSIGN.filter(r => r.type === type).forEach(r => {
       const art = artifactOf(type, r.artifactId); if(!art) return;
-      const slot = t.cardinality === 'per-wotype'
-        ? (art.freeForm ? 'FREEFORM' : (art.woType || 'ANY'))
-        : 'ONE';
+      const slot = t.cardinality === 'per-wotype' ? wfSlot(art) : 'ONE';
       const key = r.group + '|' + slot;
       (byKey[key] = byKey[key] || []).push(art);
     });
@@ -4454,8 +4509,8 @@ function allConflicts(){
       const [group, slot] = k.split('|');
       out.push({type:type, group:group, slot:slot, arts:list,
         msg: t.cardinality === 'per-wotype'
-          ? (slot === 'FREEFORM'
-              ? 'is assigned ' + list.length + ' Free Form workflows. A group may have only one.'
+          ? (slot === 'FALLBACK'
+              ? 'is assigned ' + list.length + ' fallback workflows (no WO Type). A group may have only one.'
               : 'is assigned ' + list.length + ' workflows for WO Type ' + slot + '. A group may have only one per Type.')
           : 'is assigned ' + list.length + ' ' + t.plural.toLowerCase() + '. A group may have exactly one.'});
     });
@@ -6156,6 +6211,16 @@ function groupTypeBand(g, type){
       (eff.arts.length
         ? eff.arts.map(a => groupArtRow(g, type, a, eff.state)).join('')
         : '<div class="menu__row-d">' + unsetCopy(type) + '</div>') +
+      /* WHO DECIDES MOVES AT TWO (§2.10, 2026-09-23). One profile is
+         provisioning and invisible; several makes the technician the one who
+         picks, so the band says so where the set is read. */
+      (t.cardinality === 'multi-group' && eff.arts.length > 1
+        ? '<div class="menu__row">' + ic('info',16) +
+          '<div class="menu__row-b"><div class="menu__row-t">' + eff.arts.length +
+            ' profiles — the technician chooses one at login</div>' +
+          '<div class="menu__row-d">The choice is remembered and changeable in Settings on the device. ' +
+            'Record hydration waits on it; Tier 0 and the outbox do not (§2.3).</div></div></div>'
+        : '') +
       (clash.length
         ? '<div class="menu__row" style="color:var(--critical)">' + ic('alert',16) +
           '<div class="menu__row-b"><div class="menu__row-t">' + esc(clash[0].msg) + '</div>' +
@@ -6215,17 +6280,23 @@ function artSummary(type, a){
      workflow (per-wotype)  — checkboxes. A group legitimately holds several,
                               one per WO Type plus Free Form, so it stays
                               open and a clash is refused at the click.
-     everything else        — radios, and it CLOSES on the pick. Exactly one
+     offline (multi-group)  — checkboxes too, and NO clash to refuse: past
+                              the first, the technician picks one at login
+                              (§2.10, 2026-09-23). The popover states which
+                              of those three states the current set produces,
+                              because that is the consequence of the click.
+     home (per-group)       — radios, and it CLOSES on the pick. Exactly one
                               per group, so a pick is a replacement and there
                               is nothing further to do in the popover.
 
    The radio set includes NONE, so the control can express every state it is
    enforcing. Without it, "exactly one" would be settable but never
-   unsettable from the control that sets it. */
+   unsettable from the control that sets it. A multi-select needs no None
+   row: un-ticking everything IS none, and the state line says so. */
 function openGroupAssign(ev, g, type){
   const t = artType(type);
   const arts = allArtifacts(type);
-  const multi = t.cardinality === 'per-wotype';
+  const multi = t.cardinality !== 'per-group';
   const mine = artifactsForGroup(g, type).map(r => r.artifactId);
   const inherits = g !== '*' && !mine.length && artifactsForGroup('*', type).length > 0;
 
@@ -6251,6 +6322,27 @@ function openGroupAssign(ev, g, type){
       '</span></div>';
   };
 
+  /* THE STATE THE CURRENT SET PRODUCES (§30.20 — raise it at the control,
+     never as a roll-up). Recomputed on every re-open, which is why a pick
+     re-opens this popover. */
+  const multiNote = t.cardinality !== 'multi-group' ? '' :
+    '<div class="menu__sep"></div>' +
+    '<div class="menu__row">' + ic('info',16) + '<div class="menu__row-b">' +
+      '<div class="menu__row-t">' + (
+        mine.length === 0
+          ? (inherits ? 'Nothing selected here — inherits the * default' : 'Nothing selected — online only')
+          : mine.length === 1
+            ? 'One profile — applied at login, no prompt'
+            : mine.length + ' profiles — the technician chooses one at login') + '</div>' +
+      '<div class="menu__row-d">' + (
+        mine.length === 0
+          ? (inherits ? 'Edit it on the * row — editing it from here would re-provision every other member (§29.6).'
+                      : 'Valid and deliberate (§2.10). Tier 0 and the outbox still apply, so the app works — it just cannot load work without a connection.')
+          : mine.length === 1
+            ? 'One profile is provisioning, and stays invisible to the technician (§2.10).'
+            : 'Chosen on the next login, remembered, and changeable in Settings on the device. Record hydration waits on that choice; Tier 0 and the outbox do not (§2.3).') +
+      '</div></div></div>';
+
   const noneRow = multi ? '' :
     '<div class="menu__item" onclick="groupAssignPick(\'' + type + '\',\'\',\'' + g + '\')">' +
       '<span class="rdo' + (mine.length?'':' is-on') + '"><span class="rdo__dot"></span></span>' +
@@ -6266,7 +6358,7 @@ function openGroupAssign(ev, g, type){
       '<div class="pop__sub">' + esc(assignRuleText(type)) +
         (multi ? '' : ' Picking one replaces what is there.') + '</div></div>' +
     '<div class="pop__body">' +
-      (arts.length ? noneRow + arts.map(row).join('')
+      (arts.length ? noneRow + arts.map(row).join('') + multiNote
       : '<div class="menu__row-d" style="padding:var(--s-3)">Nothing to assign — none exist yet.</div>') +
     '</div>' +
     /* A multi-select needs a way out; a radio closes itself, so giving it a
@@ -6279,7 +6371,10 @@ function openGroupAssign(ev, g, type){
    control, which is what produced the second popover. */
 function groupAssignPick(type, artifactId, g){
   const t = artType(type);
-  if(t.cardinality === 'per-wotype'){
+  /* Both multi-select cardinalities toggle. They differ only in whether
+     there is a clash to refuse, and wouldClash() already answers that per
+     type — so this stays one branch rather than two nearly-identical ones. */
+  if(t.cardinality !== 'per-group'){
     const on = isAssigned(type, artifactId, g);
     if(!on){
       const clash = wouldClash(type, artifactId, g);

@@ -13,8 +13,8 @@
 <link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — WO Record View</title>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202609211648">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202609211648">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202609251730">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202609251730">
 <!--
   WO WORKFLOW — STEP 1: WO RECORD VIEW (rebuilt 2026-07-16 onto shared/
   eam-shared.css + shared/eam-shared.js, per docs/archive/EAM-REBUILD-Strategy-and-
@@ -757,17 +757,17 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/custom_field_defs.js?v=202609211648"></script>
+<script src="../../data/custom_field_defs.js?v=202609251730"></script>
 <!-- Needed so the header Equipment field can resolve each demo WO's own
      equipmentAssetId to a real record (applyDemoWoEquipment below). -->
-<script src="../../data/equipment.js?v=202609211648"></script>
-<script src="../../data/wo-19257.js?v=202609211648"></script>
-<script src="../../data/wo-19831.js?v=202609211648"></script>
-<script src="../../data/wo-20450.js?v=202609211648"></script>
-<script src="../../data/wotype.js?v=202609211648"></script>
-<script src="../../data/wo-workflow.js?v=202609211648"></script>
-<script src="../../data/wo-workflow-steps.js?v=202609211648"></script>
-<script src="shared/eam-shared.js?v=202609211648"></script>
+<script src="../../data/equipment.js?v=202609251730"></script>
+<script src="../../data/wo-19257.js?v=202609251730"></script>
+<script src="../../data/wo-19831.js?v=202609251730"></script>
+<script src="../../data/wo-20450.js?v=202609251730"></script>
+<script src="../../data/wotype.js?v=202609251730"></script>
+<script src="../../data/wo-workflow.js?v=202609251730"></script>
+<script src="../../data/wo-workflow-steps.js?v=202609251730"></script>
+<script src="shared/eam-shared.js?v=202609251730"></script>
 <script>
 /* ── screen-specific config — everything below is data/wiring only;
    all behavior comes from shared/eam-shared.js. ── */
@@ -917,7 +917,9 @@ const LOV_DATA = {
   // openLov()/selectLov() at all), read by LOV_ON_SELECT.route below to
   // set RECORD.equipmentTabTotal — a rough stand-in for "how much
   // equipment this Route actually adds to the tab post-insert."
-  route: [{code:'PUMPS',desc:'Pumps',equipmentCount:24},{code:'FIREEXT',desc:'Fire Extinguishers',equipmentCount:156}],
+  // PUMPSPM is the small UXR route (12) — see ROUTE_EQUIPMENT_DEFS in
+  // eam-shared.js for why it sits alongside the 24/156 scale demos.
+  route: [{code:'PUMPSPM',desc:'Pumps — Monthly PM',equipmentCount:12},{code:'PUMPS',desc:'Pumps',equipmentCount:24},{code:'FIREEXT',desc:'Fire Extinguishers',equipmentCount:156}],
   activityTrade: ACTIVITY_TRADE_OPTIONS,
   activityStatus: ACTIVITY_STATUS_OPTIONS,
   activityTaskPlan: ACTIVITY_TASK_PLAN_OPTIONS,

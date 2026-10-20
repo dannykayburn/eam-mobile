@@ -53,10 +53,10 @@ doc's Requirements section; neither file holds the reasoning.
 | --- | --- | --- |
 | **Start Work is the commitment boundary** | §14.11 | Five things happen at once and only make sense together: status → Start Work Status, **Type protects**, **the WO pins to the technician**, **children hydrate**, config version stamped. Starting a WO found by search **is** its promotion into Tier 1, and it is the **first device-originated pin** — a local pin must survive a server list that omits it, or the next sync evicts live work. |
 | **The punch list is BOTH a dataspy and pins** | §2.6 | Locked 2026-09-11, replacing a two-month A-or-B open item. A **dataspy** is the *automatic* layer, selected on the **Work Orders row of the offline profile** — which renders on **every** profile including `None`, because a work list is a membership question, not a consequence of replication (settled 2026-09-23, §2.6/§30.14; this reversed "on the user group", whose objection assumed a group-scoped dataspy when `My Open WOs` is user-relative); **pinning** (`R5PINS`) is the *manual* layer on top. Costs both backend asks, not one. The membership row must record **which source** pinned it, or a dataspy re-evaluation evicts a manual pin — and a local pin must survive a server list that omits it, which is now architecturally required rather than just advisable. |
-| **One paradigm for every configuration artifact** | §30.13 | Workflows, offline profiles, Home layouts and Home tiles are all **authored once and applied**, and the four answers are shared, not per-area: assignment runs **both directions over ONE membership table** (`{type, artifactId, group}`, every read through an accessor — four parallel arrays is the failure mode); **cardinality follows what the runtime resolves on** (§11 resolves a workflow on *(WO Type, group)* → one per Type plus Free Form; everything else resolves on the group alone → exactly one); **Create follows size** (modal for what fits one form, blank canvas for an arrangement); **Home tiles are global and reused by reference**, so editing one reaches every layout using it and only the *layout* is assignable. |
+| **One paradigm for every configuration artifact** | §30.13 | Workflows, offline profiles, Home layouts and Home tiles are all **authored once and applied**, and the four answers are shared, not per-area: assignment runs **both directions over ONE membership table** (`{type, artifactId, group}`, every read through an accessor — four parallel arrays is the failure mode); **cardinality follows what the runtime resolves on**, and it now declares THREE values (§11 resolves a workflow on *(WO Type, group)* → `per-wotype`; an **offline profile resolves on *(group, the technician's login choice)*** → `multi-group`, **several per group, locked 2026-09-23 (§2.10.1)**; a Home layout resolves on the group alone → `per-group`, exactly one). **The third value is the rule working, not bending** — the resolution KEY gained a dimension, exactly as §29 did to the layout key, and nothing downstream needed a special case; **Create follows size** (modal for what fits one form, blank canvas for an arrangement); **Home tiles are global and reused by reference**, so editing one reaches every layout using it and only the *layout* is assignable. |
 | **Gating is forward-only** | §14.10 | A completed step is **always** reopenable; "Not Free Form" dictates forward order, not backward. Forward gating is untouched — a later step stays locked and explains itself. Completed rows carry a trailing chevron (`.step-map-back`), because `cursor:pointer` says nothing on a touch device. |
 | **Function resolution is per user group, never one blessed function** | §26.7 | Any function with `FUN_RENTITY = EVNT` may be workflow-enabled, opted in per **user group** — this customer already runs four `WSJOBS` clones (CCJOBS/TRJOBS/ZJ1000/WSJODC) as distinct business processes. **This half is still locked and holds either way.** *(What is NOT locked any more: "no new `FUN_CODE`s" — reuse `WSJOBS`/clones vs. a new standalone mobile function was reopened 2026-09-11 and is a **decision required**, §11/§20. A new Equipment function that renders by equipment type is **required** regardless, §26.8. Don't re-derive §26.7 with it.)* |
-| **Online-first, with declared offline scope** | §2.1 | Reads hit the server at full fidelity; the local store is a **scoped fallback**, never a projection of the whole database. **Database-wide search does not work offline.** Unchanged: one write path, always-on outbox, the UI never reads the network directly, **no mode the technician chooses**. Consequences live at §2.3/§2.7 (per-entity scope + traversal), §2.8 (three-way lookups), §2.9 (actions may narrow, field state never does), §2.10 (profile per user group), §2.5 (LWW withdrawn — per-shape conflicts). |
+| **Online-first, with declared offline scope** | §2.1 | Reads hit the server at full fidelity; the local store is a **scoped fallback**, never a projection of the whole database. **Database-wide search does not work offline.** Unchanged: one write path, always-on outbox, the UI never reads the network directly, **no mode the technician chooses**. Consequences live at §2.3/§2.7 (per-entity scope + traversal), §2.8 (three-way lookups), §2.9 (actions may narrow, field state never does), §2.10/§2.10.1 (profiles per user group — **several are allowed**, and past the first the technician picks one at login and can change it in Settings; still provisioning, since every option is admin-granted, narrowing-only and online-first), §2.5 (LWW withdrawn — per-shape conflicts). |
 | **R2 (GIS / maps) is Phase 2** | §28 | The map is an **editor, not a viewer** (the viewer reduction does not exist); it is a **second sync engine** and GIS edits **never** ride the EAM outbox; its offline unit is a **per-map-area download**. One v1 consequence: keep §27.3's definition-driven renderer generic enough for a map tab. |
 | **Hydration has a Tier 0** | §2.3 | Bootstrap config sits in front of the record tiers and is deliberately not one of them — records degrade (fewer rows), configuration doesn't (a missing layout is a blank screen). **Layout is first because it scopes everything after it.** Fetched inside the login round-trip — **not a separate modal**, though login itself legitimately blocks (§2.3 clarifies what "no blocking modals" actually prohibits: bulk record download and connectivity-triggered interruptions, not a user-initiated round-trip). Say **"my open pinned work orders"**, never "today's WOs". |
 | **WO resolves on Type; Equipment on system type** | §11–§13, §26.8 | WO needs a `PLO_WOTYPE` column + two WO Workflow tables. Equipment's four system types **already are** four `PLO_PAGENAME` values — no new column, no new table — so four base screens collapse into one mobile surface. **But the authoring surface for those four doesn't exist, and that blocks the Equipment track**: don't build Equipment RV against one hardcoded layout, or every child tab inherits it. |
@@ -272,7 +272,12 @@ facts and traps only.**
   fan out per equipment** (§16.9), recomputed from the store at load, so
   removing equipment removes its items with no separate teardown path. The
   scale is deliberate — demo Routes of 24 and 156 equipment give ~96/~624
-  items; **don't "fix" that by capping the fan-out.** §16.8 records several
+  items; **don't "fix" that by capping the fan-out** (a 3rd route was added
+  for UXR instead — see below). **The task plan is per-WO** (`CHECKLIST_DEFS`,
+  2026-09-25): 19257/20450 get the default 8-item single-asset plan, 19831 gets
+  a 3-item route plan (brief / one check per asset / close-out) that fans out to
+  14. Keyed on the WO, not on "has a route", so the plan is the same before and
+  after the route is picked. Pinned by `test-route-checklist.js`. §16.8 records several
   filtering/search gotchas worth reading before touching that area again.
 - **Issue Parts** (§17): Store/Bin/Lot picking is screen-local (dynamic
   per-sheet options). **Still on its own hardcoded parts data — not wired to
@@ -293,9 +298,14 @@ workflow step (not in `WO_STEP_FILES`) but it **does carry the step rail** —
 it has no bottom bar, so the rail is its only way back.
 - **State model:** a shared persisted store (`eamWoEquipment`) is the single
   truth for this tab *and* WO RV's pill. Empty unless a Route is set on the WO
-  header; selecting one inserts that Route's equipment (PUMPS 24 / FIREEXT 156)
-  and mints **one MEC child WO per row**; manual adds do the same. The pill is
-  exactly `rows exist`.
+  header; selecting one inserts that Route's equipment (**PUMPSPM 12** / PUMPS 24
+  / FIREEXT 156) and mints **one MEC child WO per row**; manual adds do the same.
+  The pill is exactly `rows exist`. **One exception: 19831 is seeded with PUMPSPM
+  by `resetDemoState()`** (`seedDemoRoute()`, 2026-09-25) so the UXR route task
+  needs no setup — a remote moderator cannot touch the participant’s phone, and
+  walking them through attaching a route would be a moderator instruction, which
+  fails the task under the study’s own help-level rule. Seeded on reset only,
+  never on page load, so a deliberate clear stays cleared.
 - **MEC children are real records:** WO List merges them in as child rows, and
   a child opens as itself via the session-scoped **WO identity override**
   (`woIdentitySet()`/`woIdentity()`/`woIdentityClear()`) while `eamOpenDemoWo`
@@ -485,11 +495,17 @@ node (real 390px emulator, not scaled).
 - **A node IS a §29.2 step instance.** `inst` is minted (smallest unused) and
   stable, the layout key is `id` then `id#n`, and **each instance deep-copies its
   own layout** — same load-bearing assertion as `test-step-instances.js`.
-- **New locked rule (§30.2):** a group gets **one workflow per WO Type** and **one
-  Free Form** — now a special case of §30.13's cardinality rule rather than a
-  workflow-only rule. Collisions are **predicted in the assignment control before
-  the click**, from either side, and **Copy carries no assignments** (it would
-  collide with its own source on every group) and re-mints every nid.
+- **Locked rule (§30.2, corrected by §30.26):** a group gets **one workflow per
+  WO Type plus ONE fallback** — a special case of §30.13's cardinality rule. **The
+  slot is the WO Type or its absence, and Free Form NEVER enters the key** — it
+  is a property any workflow may carry, typed or not (`wf-free-insp` is INS *and*
+  Free Form), read only through **`wfSlot()`**; three call sites built the key
+  themselves and all three carried the same two bugs. **`*` is system delivered**,
+  carries the **Default Page Layout**, and is outside the clash space entirely —
+  no membership row, fallen through to rather than resolved onto. Collisions are
+  **predicted in the assignment control before the click**, from either side, and
+  **Copy carries no assignments** (it would collide with its own source on every
+  group) and re-mints every nid.
 - **Forks are authored from the `+` on a connector** (recommended over a library
   entry: it names the insertion point), are still `kind:'prompt'` underneath, and
   are capped at two answers. `validateForks()` re-runs on **every** structural
@@ -713,7 +729,15 @@ twice until 2026-09-16.
 - **Deleting an artifact drops its membership rows** (`dropAssignmentsFor()`) —
   a row pointing at a deleted artifact is a group silently provisioned with
   nothing.
-- **Offline Profiles** authors §2.7's per-entity registry: **four** policies
+- **Offline Profiles** — **a group may hold SEVERAL** (§2.10.1, locked
+  2026-09-23), so it is the one `multi-group` type: checkboxes on both
+  sides, **no None row** (un-ticking everything IS none) and **no clash to
+  refuse**. What replaces the clash is the consequence — `assignNote()` on
+  the row that would add a second, and a live state line naming which of the
+  three states the set produces. `allConflicts()` **skips the whole
+  cardinality**, or the state we now want would report as a fault. The login
+  prompt, the sticky answer and the Settings row are **device-side and not
+  built** — §20. It authors §2.7's per-entity registry: **four** policies
   (reduced from five 2026-09-18), each **defined at the point of choice**, and
   labelled on the **capability** axis — Online only / Offline read / Offline
   read/write / Offline read/write — external. *Who decided this is on the
@@ -936,10 +960,11 @@ prototype session trips over, one line each.
   and unspecified — the function, its `PLO_PAGENAME` mapping across the four
   system types and their clones, and the Screen Designer surface for them.
   **Blocks the Equipment track.** §20/§26.8.
-- **The `*` default group has no model** — the User Groups area is built, but a
-  wildcard row is a different shape from a named group: under one-per-group
-  cardinality it *always* collides unless the resolver reads it as a fallback
-  rather than a member. §30.18.
+- **The `*` workflow's delivered CONTENT is unspecified** — its *model* closed
+  2026-09-28 (§30.26: system delivered, carries the Default Page Layout, never an
+  assignment target). What is owed is what that layout actually places, and a
+  read-only `*` row in the portal so an admin can see the behaviour their groups
+  inherit. §30.18.
 - **What happens to in-flight work when an assignment is removed** — the
   membership table makes removal one click from either side, which raises the
   question harder than §26.5 did. §29.5's config-version stamp is the mechanism;
@@ -954,6 +979,13 @@ prototype session trips over, one line each.
   REQUIRED.** It puts equipment/WO history and meter readings in `server-only`;
   the live product downloads both. Either communicate the regression or give
   §2.7 a **bounded** carve-out (last N), never unbounded history. §20.
+- **§2.10.1's login profile chooser has no device side** — the portal grants
+  several profiles; the app has no chooser in the login round-trip, no Settings
+  row naming the one in force, and no sticky *(user, device)* answer. One item,
+  three parts, blocked behind the same gap as §30.24's nav bar: nothing feeds
+  the app a portal artifact. Four rules ride on the Settings row — state the
+  cost, **never drop the outbox**, refuse it offline, **never evict live work**.
+  §20.
 - **11 offline entities have no policy decision** — marked in the registry and
   warned on, which is not the same as decided. Main Isolation Tables and
   Inspection Results deserve deliberate calls. §20.

@@ -13,8 +13,8 @@
 <link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — Activity Checklist (Step 2)</title>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202609211648">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202609211648">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202609251730">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202609251730">
 <!--
   SCROLL NAVIGATION IS THE MODEL — A/B RESOLVED 2026-09-21 (user direction:
   "Remove the A/B checklist option. We will go with the scroll version.").
@@ -772,13 +772,13 @@
 
 </div><!-- /app -->
 
-<script src="../../data/wo-19257.js?v=202609211648"></script>
-<script src="../../data/wo-19831.js?v=202609211648"></script>
-<script src="../../data/wo-20450.js?v=202609211648"></script>
-<script src="../../data/wotype.js?v=202609211648"></script>
-<script src="../../data/wo-workflow.js?v=202609211648"></script>
-<script src="../../data/wo-workflow-steps.js?v=202609211648"></script>
-<script src="shared/eam-shared.js?v=202609211648"></script>
+<script src="../../data/wo-19257.js?v=202609251730"></script>
+<script src="../../data/wo-19831.js?v=202609251730"></script>
+<script src="../../data/wo-20450.js?v=202609251730"></script>
+<script src="../../data/wotype.js?v=202609251730"></script>
+<script src="../../data/wo-workflow.js?v=202609251730"></script>
+<script src="../../data/wo-workflow-steps.js?v=202609251730"></script>
+<script src="shared/eam-shared.js?v=202609251730"></script>
 <script>
 /* ── screen-specific config/behavior — chrome (nav, header, step rail,
    confirm modal, toast, theme toggle) comes from eam-shared.js. ── */
@@ -869,7 +869,7 @@ let cursor = 0;
 // different concept from this: a per-task-plan screen that precedes the
 // whole checklist). Empty string means this task plan has none configured
 // and the screen is skipped entirely — see showingInstructions below.
-const TASK_PLAN_INSTRUCTIONS = `
+let TASK_PLAN_INSTRUCTIONS = `
   <p><strong>Before you begin:</strong> this task plan covers a full safety and condition inspection of Pump P-204 (Centrifugal). Complete every step in order — do not skip ahead.</p>
   <ul>
     <li>Ensure you follow all safety procedures required for this task, including confirming Lockout/Tagout (LOTO) is applied to <strong>all</strong> energy sources before opening any guarding or approaching rotating equipment.</li>
@@ -1998,6 +1998,61 @@ if (OPEN_DEMO_WO) {
   DEMO_WO = OPEN_DEMO_WO;
 }
 
+/* ══ PER-WO CHECKLIST DEFINITIONS (2026-09-25, UXR) ═══════════════════════
+   ITEMS above is the DEFAULT task plan — the full single-asset pump
+   inspection, and it stays the default for every WO that has no entry here.
+
+   A Route needs a different SHAPE, not a smaller version of the same one.
+   Fanning the default out over a route multiplies its four equipment-scoped
+   items by the row count (§16.9), which is the right behaviour and the wrong
+   task plan: a route walker does ONE condition check per asset, bracketed by
+   one brief at the start and one close-out at the end. So 19831 (PM) gets a
+   three-item plan that fans out to 1 + 12 + 1 = 14, not 4 x 12 + 4 = 52.
+
+   Keyed on the WO, NOT on "does this WO have a route" — the plan is authored
+   configuration (§11), so it must be the same whether or not the route has
+   been selected yet. Before selection 19831 shows 3 items; after, 14.
+
+   Splices ITEMS in place rather than reassigning it, so the array identity
+   every closure above already captured stays valid, and runs BEFORE
+   fanOutEquipmentItems() so the fan-out sees the route template.           */
+const CHECKLIST_DEFS = {
+  '19831': {
+    instructions: `
+  <p><strong>Before you begin:</strong> this is a monthly PM route covering 12 pumps. Record one condition check per pump as you walk the route.</p>
+  <ul>
+    <li>Confirm the route brief and required PPE once, at the start — it covers the whole route.</li>
+    <li>Record each pump where you inspect it. Do not batch the entries up until the end of the route.</li>
+    <li>If a pump fails its condition check, add a comment on that item saying what you found.</li>
+    <li>Close the route out once every pump has been recorded.</li>
+  </ul>
+`,
+    items: [
+      { id:1, group:'safety', label:'Route brief reviewed and PPE confirmed', required:false, type:'check',
+        documents:[], comments:[], note:'', followup:false, value:false },
+      // The one equipment-scoped template — equipId is exactly what the
+      // fan-out below reads as 'this item is per-asset' (§16.9).
+      { id:2, group:'main', label:'Pump condition check — leaks, noise, vibration', equipId:'P-1101', equipDesc:'Pump, Centrifugal — 3in Inlet', required:false, type:'toggle3',
+        options:[['Pass','sel-green'],['Fail','sel-red'],['N/A','sel-gray']],
+        documents:[], comments:[], note:'', followup:false, value:null },
+      { id:3, group:'close', label:'All pumps accessible and returned to service?', required:false, type:'toggle2',
+        options:[['Yes','sel-green'],['No','sel-red']],
+        documents:[], comments:[], note:'', followup:false, value:null },
+    ],
+  },
+};
+function applyChecklistDef() {
+  const def = CHECKLIST_DEFS[DEMO_WO];
+  if (!def) return;
+  ITEMS.length = 0;
+  // Deep-copied so a re-entry to the screen never inherits the last
+  // visit's answers through the definition object.
+  JSON.parse(JSON.stringify(def.items)).forEach(i => ITEMS.push(i));
+  TASK_PLAN_INSTRUCTIONS = def.instructions || '';
+  showingInstructions = !!TASK_PLAN_INSTRUCTIONS.trim();
+  cursor = 0;
+}
+applyChecklistDef();
 /* ══ ROUTE/MEC EQUIPMENT FAN-OUT (§16.9/§16.10, 2026-08-11) ═══════════════
    When the WO carries equipment on its Equipment tab, every equipment-scoped
    item becomes one item PER piece of equipment — a technician walking a Route
