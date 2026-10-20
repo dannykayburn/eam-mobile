@@ -27,46 +27,49 @@
   far has exactly one consumer (this screen).
 -->
 <style>
-  /* ── Screen-local: error-card content built on the shared .ld-card shell
-     (§8.3) — trouble-field chips and the protection/lock row are still
-     single-consumer-so-far, so they stay local. The two-button action row
-     (.sync-card-actions/.sync-card-btn) moved to eam-shared.css 2026-07-20
-     when the sync error banner became its 2nd real consumer. ── */
-  .sync-status-strip{padding:12px 14px;background:var(--bg-card);border-bottom:1px solid var(--border);flex-shrink:0;}
-  .sync-status-strip-row{display:flex;justify-content:space-between;align-items:baseline;font-size:0.78125rem;color:var(--gray-4);margin-bottom:10px;}
-  .sync-status-strip-row b{color:var(--octave-black);font-weight:700;}
-  [data-theme="dark"] .sync-status-strip-row b{color:var(--white);}
-  .sync-section-label{padding:14px 14px 4px;font-size:0.75rem;font-weight:700;color:var(--octave-black);}
-  [data-theme="dark"] .sync-section-label{color:var(--white);}
-  .sync-error-card{position:relative;}
-  .sync-error-card.flash{border-color:var(--red);}
-  .sync-card-error-text{font-size:0.78125rem;color:var(--gray-4);line-height:1.4;}
-  .sync-card-lock{display:flex;align-items:center;gap:6px;font-size:0.71875rem;color:var(--gray-4);margin-top:9px;padding-top:9px;border-top:1px solid var(--border);}
-  .sync-card-lock svg{flex-shrink:0;color:var(--gray-4);}
-  .sync-empty-state{padding:70px 24px;text-align:center;}
-  .sync-empty-state-title{font-size:0.9375rem;font-weight:700;color:var(--octave-black);margin-bottom:6px;}
-  [data-theme="dark"] .sync-empty-state-title{color:var(--white);}
-  .sync-empty-state-sub{font-size:0.78125rem;color:var(--gray-4);}
+  /* ── Screen-local (Octave kit restyle 2026-10-20): error-card content on
+     the shared .ld-card shell (§8.3). Retry/Discard are kit buttons, the
+     entity is a kit tag and the lock row's glyph a presentational kit Icon
+     Button; only the layout of those hosts lives here. The outbox bar stays
+     the shared .sync-hydrate-* bar (the kit has no progress component). ── */
+  .sync-status-strip{padding:var(--k-s2) var(--k-s4) var(--k-s4);flex-shrink:0;}
+  .sync-status-strip-row{display:flex;justify-content:space-between;align-items:baseline;font-size:var(--k-body2);color:var(--k-text-2);margin-bottom:var(--k-s2);}
+  .sync-status-strip-row b{color:var(--k-text);font-weight:500;}
+  .sync-section-label{margin:0;padding:var(--k-s4) var(--k-s4) var(--k-s2);font-family:var(--font-display);font-size:var(--uxt-theme-typography-h-6-font-size,1.125rem);font-weight:var(--uxt-theme-typography-h-6-font-weight,500);color:var(--k-text);}
+  .sync-error-card{position:relative;outline:2px solid transparent;transition:outline-color .2s;}
+  .sync-error-card.flash{outline-color:var(--uxt-theme-palette-error-main,#f3434a);}
+  .sync-error-card .ld-card-top > uxt-tag{flex-shrink:0;}
+  .sync-card-error-text{font-size:var(--k-body2);color:var(--k-text-2);line-height:1.43;}
+  .sync-card-lock{display:flex;align-items:center;gap:var(--k-s1);font-size:var(--k-caption);color:var(--k-text-2);margin-top:var(--k-s2);padding-top:var(--k-s2);border-top:1px solid var(--k-divider);}
+  .sync-card-lock > uxt-icon-button{flex-shrink:0;}
+  .sync-card-actions > uxt-button{flex:1;display:block;}
+  .sync-empty-state{padding:70px var(--k-s6);text-align:center;}
+  .sync-empty-state-title{font-family:var(--font-display);font-size:var(--uxt-theme-typography-h-6-font-size,1.125rem);font-weight:var(--uxt-theme-typography-h-6-font-weight,500);color:var(--k-text);margin-bottom:var(--k-s1);}
+  .sync-empty-state-sub{font-size:var(--k-body2);color:var(--k-text-2);}
+  /* Dev bar: kit buttons at desktop density keep the bar short. */
+  .proto-theme-bar > uxt-button{flex-shrink:0;}
 </style>
 </head>
 <body>
 
 <div class="proto-theme-bar">
   <span class="proto-theme-label">Preview theme</span>
-  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+  <!-- Kit buttons; #themeToggle/#onlineToggle stay as the hidden label
+       sources refreshThemeLabels()/updateOnlineToggleLabel() write. -->
+  <uxt-button data-mirror="themeToggle" variant="outlined" density="s" text="☀ Light" onclick="toggleThemeDemo()"></uxt-button>
+  <span id="themeToggle" hidden>☀ Light</span>
   <!-- Demo-only connectivity toggle (§4.5, 2026-07-20) — same one the
        Record View screens carry, so Retry's online-success path can be
        demoed straight from this list too, not just from inside a record. -->
-  <button class="theme-toggle" id="onlineToggle" onclick="toggleDemoOnline()">🌐 Offline</button>
+  <uxt-button data-mirror="onlineToggle" variant="outlined" density="s" text="🌐 Offline" onclick="toggleDemoOnline()"></uxt-button>
+  <span id="onlineToggle" hidden>🌐 Offline</span>
 </div>
 
 <div class="app" id="app">
 
   <header class="nav" onclick="scrollFormToTop()">
     <div class="nav-left">
-      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation();navBack()">
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
+      <uxt-icon-button class="kit-nav-back" icon="arrow-back" label="Back" outlined density="m" onclick="event.stopPropagation();navBack()"></uxt-icon-button>
       <span class="prototype-label">PROTOTYPE</span>
     </div>
     <div class="nav-title">Sync Status</div>
@@ -82,7 +85,7 @@
       </div>
     </div>
 
-    <div class="sync-section-label">Needs Attention</div>
+    <h2 class="sync-section-label">Needs Attention</h2>
     <div id="syncErrorList"></div>
   </div>
 
@@ -94,15 +97,17 @@
   <div class="bottom-sheet" id="syncPanelSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Sync Status</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sync-panel-state" id="syncPanelStateLabel"></div>
     <div class="sheet-body" id="syncPanelList"></div>
     <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
   </div>
 
+  <!-- Legacy confirm: only the fallback when the kit is absent (DOM-shim
+       tests); with the kit loaded openConfirm() shows a <uxt-dialog>. -->
   <div class="confirm-overlay" id="confirmOverlay">
     <div class="confirm-modal">
       <div class="confirm-message" id="confirmMessage">Are you sure?</div>
@@ -126,7 +131,7 @@ const PROTECTION_LABEL = {
   'delete-only': 'Only delete is available for this transaction',
   'locked-workflow': 'Status is protected — this Work Order’s workflow is Started',
 };
-const LOCK_ICON = '<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>';
+const LOCK_ICON = '<uxt-icon-button presentational icon="lock" density="s"></uxt-icon-button>';
 
 function renderSyncErrorCard(item) {
   const lockLabel = PROTECTION_LABEL[item.protection];
@@ -137,7 +142,7 @@ function renderSyncErrorCard(item) {
     <div class="ld-card sync-error-card" id="syncCard-${item.id}" data-sync-id="${item.id}" onclick="onSyncCardTap(event,'${item.id}')">
       <div class="ld-card-top">
         <div class="ld-card-headline">${item.recordLabel}</div>
-        <span class="ld-card-org">${item.entity}</span>
+        <uxt-tag density="m" text="${kitEsc(item.entity)}"></uxt-tag>
       </div>
       <div class="ld-card-subline">${item.sub} · ${item.timestamp}</div>
       <div class="ld-card-attrs">
@@ -146,8 +151,8 @@ function renderSyncErrorCard(item) {
       ${lockLabel ? `<div class="sync-card-lock">${LOCK_ICON}<span>${lockLabel}</span></div>` : ''}
       ${seqHint ? `<div class="sync-card-lock">${LOCK_ICON}<span>${seqHint}</span></div>` : ''}
       <div class="sync-card-actions">
-        <button class="sync-card-btn ready" onclick="event.stopPropagation();retrySyncItem('${item.id}')">Retry</button>
-        <button class="sync-card-btn danger" onclick="event.stopPropagation();onSyncCardDiscard('${item.id}')">Discard</button>
+        <uxt-button variant="outlined" tone="error" text="Discard" onclick="event.stopPropagation();onSyncCardDiscard('${item.id}')"></uxt-button>
+        <uxt-button variant="contained" text="Retry" onclick="event.stopPropagation();retrySyncItem('${item.id}')"></uxt-button>
       </div>
     </div>`;
 }
@@ -197,9 +202,21 @@ function renderSyncStatusScreen() {
 function navBack() {
   location.href = 'eam-home-screen-prototype-v1.html';
 }
+// Kit buttons take their label from `text`; shared code writes the dev
+// labels into the hidden #id spans by textContent, so mirror them across.
+function kitMirrorProtoButtons() {
+  document.querySelectorAll('uxt-button[data-mirror]').forEach(btn => {
+    const src = document.getElementById(btn.dataset.mirror);
+    if (!src) return;
+    const sync = () => { if (btn.getAttribute('text') !== src.textContent) btn.setAttribute('text', src.textContent); };
+    sync();
+    if (typeof MutationObserver !== 'undefined') new MutationObserver(sync).observe(src, { childList: true, characterData: true, subtree: true });
+  });
+}
 renderSyncStatusScreen();
 initDemoOnlineToggle();
 initSharedApp({ contentSelector: '.content' });
+kitMirrorProtoButtons();
 </script>
 </body>
 </html>

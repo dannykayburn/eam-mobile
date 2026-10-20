@@ -54,44 +54,25 @@
   markup, behavior comes entirely from eam-shared.js.
 -->
 <style>
-  .notif-section-label{padding:14px 14px 6px;font-size:0.75rem;font-weight:700;color:var(--octave-black);}
-  [data-theme="dark"] .notif-section-label{color:var(--white);}
-  .notif-card{display:flex;gap:11px;padding:13px 14px;margin:0 12px 8px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:border-color .15s;}
-  .notif-card:hover{border-color:var(--gray-3);}
-  .notif-card:active{transform:scale(.985);}
-  .notif-icon-wrap{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border-strong);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--gray-4);}
-  .notif-body{flex:1;min-width:0;}
-  .notif-top-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
-  .notif-subject-wrap{display:flex;align-items:flex-start;gap:6px;min-width:0;}
-  .notif-dot{width:7px;height:7px;border-radius:50%;background:var(--octave-black);flex-shrink:0;margin-top:5px;}
-  [data-theme="dark"] .notif-dot{background:var(--white);}
-  .notif-subject{font-size:0.84375rem;font-weight:500;color:var(--text-body);line-height:1.35;}
-  .notif-card.unread .notif-subject{font-weight:700;color:var(--octave-black);}
-  [data-theme="dark"] .notif-card.unread .notif-subject{color:var(--white);}
-  .notif-text{font-size:0.78125rem;color:var(--gray-4);line-height:1.4;margin-top:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-  .notif-meta{display:flex;align-items:center;gap:9px;margin-top:7px;font-size:0.6875rem;color:var(--text-faint);}
-  .notif-wo-link{font-family:var(--font-mono);font-weight:600;color:var(--gray-4);}
-  .notif-card.unread .notif-wo-link{color:var(--octave-black);}
-  [data-theme="dark"] .notif-card.unread .notif-wo-link{color:var(--white);}
-  .notif-dismiss{width:24px;height:24px;border-radius:50%;border:none;background:none;color:var(--text-faint);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:0.8125rem;}
-  .notif-dismiss:hover{background:var(--bg-section);color:var(--gray-4);}
-  /* 2nd pass, 2026-07-22 (user direction) — moved out of the header
-     entirely (the icon button there was a fix for the text label
-     colliding with .nav-title, but read poorly as its own thing) into
-     the same row as the All/Unread chips, pushed to the far right via
-     margin-left:auto on an otherwise-ordinary flex row — .filter-chip-row
-     is shared (WO List/Equipment List also use it for plain chip lists
-     with no trailing item), so the push lives on this button alone, not
-     on the shared row class. */
-  .notif-mark-all-chip{margin-left:auto;flex-shrink:0;display:inline-flex;align-items:center;gap:5px;font-size:0.75rem;font-weight:600;color:var(--octave-black);background:var(--bg-card);border:1px solid var(--border);border-radius:100px;padding:6px 13px;cursor:pointer;font-family:var(--font-sans);white-space:nowrap;}
-  [data-theme="dark"] .notif-mark-all-chip{color:var(--white);}
-  .notif-mark-all-chip:hover{border-color:var(--gray-3);}
-  .notif-mark-all-chip:disabled{opacity:.4;cursor:default;}
-  .notif-mark-all-chip:disabled:hover{border-color:var(--border);}
-  .notif-empty{padding:70px 24px;text-align:center;}
-  .notif-empty-title{font-size:0.9375rem;font-weight:700;color:var(--octave-black);margin-bottom:6px;}
-  [data-theme="dark"] .notif-empty-title{color:var(--white);}
-  .notif-empty-sub{font-size:0.78125rem;color:var(--gray-4);}
+  /* ── Screen-local (Octave kit restyle 2026-10-20). Each notification is a
+     kit <uxt-list-item> (icon · subject · body · time/WO · trailing ✕),
+     grouped Today/Earlier under a kit list header row on a 1dp card panel.
+     All/Unread are kit outline filter chips and Mark all read a kit button;
+     this block only places those hosts and carries the unread emphasis. ── */
+  .notif-filters{display:flex;align-items:center;gap:var(--k-s2);padding:var(--k-s2) var(--k-s4);flex-shrink:0;}
+  .notif-filters > uxt-status-chip{flex-shrink:0;}
+  .notif-filters > uxt-button{margin-left:auto;flex-shrink:0;}
+  .notif-group{background:var(--k-card);border-radius:var(--k-r);box-shadow:var(--k-e1);margin:var(--k-s2) var(--k-s4);overflow:hidden;}
+  .notif-group > uxt-list-item{display:block;}
+  .notif-group > uxt-list-item + uxt-list-item:not([header]){border-top:1px solid var(--k-divider);}
+  /* Unread: subject at Medium weight plus a 8px dot on the row's leading
+     edge (the kit row has no unread state of its own). */
+  uxt-list-item.notif-row{position:relative;}
+  uxt-list-item.notif-row.unread .uxt-li-l1{font-weight:500;color:var(--k-text);}
+  uxt-list-item.notif-row.unread::before{content:"";position:absolute;left:var(--k-s1);top:50%;width:8px;height:8px;margin-top:-4px;border-radius:var(--k-pill);background:var(--k-text);z-index:1;}
+  .notif-empty{padding:70px var(--k-s6);text-align:center;}
+  .notif-empty-title{font-family:var(--font-display);font-size:var(--uxt-theme-typography-h-6-font-size,1.125rem);font-weight:var(--uxt-theme-typography-h-6-font-weight,500);color:var(--k-text);margin-bottom:var(--k-s1);}
+  .notif-empty-sub{font-size:var(--k-body2);color:var(--k-text-2);}
 </style>
 </head>
 <body>
@@ -136,9 +117,13 @@
         </div>
       </div>
       <div class="rec-actions-divider"></div>
-      <div class="rec-actions-item" onclick="closeProfileMenu();showToast('Settings — coming soon')">Settings</div>
-      <div class="rec-actions-divider"></div>
-      <div class="rec-actions-item danger" onclick="closeProfileMenu();goToLogin()">Log out</div>
+      <!-- Hidden SOURCE of the kit <uxt-flyover-menu> profile menu
+           (kitBuildProfileFlyover(), eam-shared.js) — same kit rows as the
+           shared ensureProfileMenu(). -->
+      <uxt-list-item class="kit-menu-row" role="menuitem" density="m" icon="settings" text="Settings" onclick="closeProfileMenu();showToast('Settings — coming soon')"></uxt-list-item>
+      <div class="kit-menu-actions" data-menu-logout>
+        <uxt-button class="kit-btn-block" variant="outlined" text="Log out" onclick="closeProfileMenu();goToLogin()"></uxt-button>
+      </div>
     </div>
     <div class="nav-title">Notifications</div>
     <div class="nav-actions">
@@ -146,13 +131,13 @@
     </div>
   </header>
 
-  <div class="filter-chip-row">
-    <button class="filter-chip notif-filter-chip active" data-f="all" onclick="setNotifFilter('all')">All</button>
-    <button class="filter-chip notif-filter-chip" data-f="unread" onclick="setNotifFilter('unread')">Unread</button>
-    <button class="notif-mark-all-chip" id="markAllBtn" onclick="markAllRead()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12.5l4.5 4.5L15 8"/><path d="M11 12.5l3.5 3.5L22 8"/></svg>
-      Mark all read
-    </button>
+  <!-- All/Unread = kit outline filter chips (single-select: the chip toggles
+       its own `active`, so onchange puts it back to the filter state).
+       Mark all read sits on the same row, pushed to the far right. -->
+  <div class="notif-filters">
+    <uxt-status-chip class="notif-filter-chip" data-f="all" variant="outline" density="m" severity="neutral" text="All" active onclick="setNotifFilter('all')" onchange="event.stopPropagation();syncNotifFilterChips()"></uxt-status-chip>
+    <uxt-status-chip class="notif-filter-chip" data-f="unread" variant="outline" density="m" severity="neutral" text="Unread" onclick="setNotifFilter('unread')" onchange="event.stopPropagation();syncNotifFilterChips()"></uxt-status-chip>
+    <uxt-button id="markAllBtn" variant="text" tone="neutral" text="Mark all read" onclick="markAllRead()"></uxt-button>
   </div>
 
   <div class="content" id="notifContent">
@@ -183,15 +168,17 @@
   <div class="bottom-sheet" id="syncPanelSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Sync Status</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sync-panel-state" id="syncPanelStateLabel"></div>
     <div class="sheet-body" id="syncPanelList"></div>
     <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
   </div>
 
+  <!-- Legacy confirm: only the fallback when the kit is absent (DOM-shim
+       tests); with the kit loaded openConfirm() shows a <uxt-dialog>. -->
   <div class="confirm-overlay" id="confirmOverlay">
     <div class="confirm-modal">
       <div class="confirm-message" id="confirmMessage">Are you sure?</div>
@@ -213,18 +200,22 @@ let notifFilter = 'all';
 
 function setNotifFilter(f) {
   notifFilter = f;
-  document.querySelectorAll('.notif-filter-chip').forEach(c => c.classList.toggle('active', c.dataset.f === f));
+  syncNotifFilterChips();
   renderNotifList();
 }
+function syncNotifFilterChips() {
+  document.querySelectorAll('.notif-filter-chip').forEach(c => c.toggleAttribute('active', c.dataset.f === notifFilter));
+}
 
+// Kit icon registry names per notification type.
 function notifIcon(type) {
   const icons = {
-    wo_assigned: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>',
-    wo_reassigned: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg>',
-    wo_status: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.2 2.2 4.8-5"/></svg>',
-    comment_mention: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H9l-4 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/></svg>',
-    pm_due: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
-    follow_up_created: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4h13l-3 4 3 4H5"/></svg>',
+    wo_assigned: 'person',
+    wo_reassigned: 'person',
+    wo_status: 'check-circle',
+    comment_mention: 'chat-bubble',
+    pm_due: 'calendar-month',
+    follow_up_created: 'flag',
   };
   return icons[type] || icons.wo_status;
 }
@@ -233,24 +224,14 @@ function notifGroup(n) {
   return n.time.startsWith('07/22/2026') ? 'Today' : 'Earlier';
 }
 
+// One notification = one kit List Item: subject (line 1), body (line 2),
+// time · Work Order (line 3), trailing ✕ = dismiss. Row tap fires the kit
+// `select` event and ✕ its `trailing` event (wired once on #notifList).
 function notifCard(n) {
-  return `<div class="notif-card ${n.read ? '' : 'unread'}" onclick="openNotification('${n.id}')">
-    <div class="notif-icon-wrap">${notifIcon(n.type)}</div>
-    <div class="notif-body">
-      <div class="notif-top-row">
-        <div class="notif-subject-wrap">
-          ${n.read ? '' : '<span class="notif-dot"></span>'}
-          <span class="notif-subject">${n.subject}</span>
-        </div>
-        <button class="notif-dismiss" onclick="event.stopPropagation();confirmDismissNotif('${n.id}')" aria-label="Dismiss">✕</button>
-      </div>
-      <div class="notif-text">${n.body}</div>
-      <div class="notif-meta">
-        <span>${n.time}</span>
-        ${n.wo ? `<span class="notif-meta-sep">|</span><span>Work Order <span class="notif-wo-link">${n.wo}</span></span>` : ''}
-      </div>
-    </div>
-  </div>`;
+  const meta = n.time + (n.wo ? ` | Work Order ${n.wo}` : '');
+  return `<uxt-list-item class="notif-row${n.read ? '' : ' unread'}" role="listitem" density="m" data-id="${n.id}"
+    icon="${notifIcon(n.type)}" text="${kitEsc(n.subject)}" secondary="${kitEsc(n.body)}" tertiary="${kitEsc(meta)}"
+    trailing-icon="close" aria-label="${kitEsc(n.subject)}"></uxt-list-item>`;
 }
 
 function renderNotifList() {
@@ -260,14 +241,26 @@ function renderNotifList() {
   let html = '';
   ['Today', 'Earlier'].forEach(g => {
     if (!groups[g].length) return;
-    html += `<div class="notif-section-label">${g}</div>`;
+    html += `<div class="notif-group"><uxt-list-item class="notif-section-label" header density="m" text="${g}"></uxt-list-item>`;
     groups[g].forEach(n => { html += notifCard(n); });
+    html += '</div>';
   });
   document.getElementById('notifList').innerHTML = html || `<div class="notif-empty"><div class="notif-empty-title">${notifFilter === 'unread' ? 'No unread notifications' : 'No notifications'}</div><div class="notif-empty-sub">You’re all caught up.</div></div>`;
   const anyUnread = EAM_NOTIFICATIONS.some(n => !n.read);
-  document.getElementById('markAllBtn').disabled = !anyUnread;
+  document.getElementById('markAllBtn').toggleAttribute('disabled', !anyUnread);
   updateNotifBadge();
 }
+(function wireNotifRows() {
+  const list = document.getElementById('notifList');
+  list.addEventListener('select', (e) => {
+    const row = e.target.closest && e.target.closest('.notif-row');
+    if (row) openNotification(row.dataset.id);
+  });
+  list.addEventListener('trailing', (e) => {
+    const row = e.target.closest && e.target.closest('.notif-row');
+    if (row) confirmDismissNotif(row.dataset.id);
+  });
+})();
 
 // Punching into a WO from this screen (2026-07-22, punch-list item) —
 // 19257/19831/20450 open as themselves; any other WO number just opens

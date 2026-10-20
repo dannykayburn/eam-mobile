@@ -18,142 +18,162 @@
 <link rel="stylesheet" href="shared/eam-fonts.css?v=202609211648">
 <link rel="stylesheet" href="shared/eam-shared.css?v=202609211648">
 <!--
-  LOGIN SCREEN — new 2026-07-22, session riff (unplanned in
-  design-decisions-v3-1.md; this is pure app-entry chrome, not part of
-  the WO workflow or Home's own content). Modeled on the real Attune EAM
-  desktop login screen's brand identity (dark panel + magenta/purple
-  swoosh + "Attune EAM" wordmark, light panel + Octave logo + fields),
-  re-laid-out top/bottom for a phone frame instead of left/right. Reuses
-  eam-shared.css only for the `.app` phone-frame shell and showToast() —
-  everything else here (hero/card split, brand mark, loading overlay) is
-  genuinely one-off screen chrome with a single consumer, so it stays
-  local rather than promoted.
+  LOGIN SCREEN — rebuilt 2026-10-20 onto the OCTAVE MOBILE SIGN-IN SCREEN
+  (ux.octave.com › Shared Services › Sign In, Mobile tab; spec = that
+  page's llms.md §7/§8). Replaces Danny's 2026-07-22 Attune EAM hero/card
+  riff (dark swoosh hero over a light card): one sign-in serves every
+  Octave product, so the screen never names a product — the title is
+  "Sign in to Octave", not "Attune EAM" (llms.md §1).
 
-  BCAMPBELL/•••••••• are pre-filled per direction ("bake in BCAMPBELL and
-  PW") — fields stay live inputs, not readonly/disabled, so this still
-  looks and behaves like a real login form. Log In plays a ~2s branded
-  loading take-over (logo pulse + swoosh drift + progress bar) before
-  handing off to Home — a fixed timer, no real auth exists to wait on.
+  Layout (llms.md §7): full-screen dark page, pillar swirl lines at the
+  bottom masked by the dark top shape, white Octave logo, 300px form,
+  filled fields with no visible label, "Keep me signed in", white pill
+  primary, "Don't have an account? Sign Up", footer Reset Password /
+  Copyright Information / "English ⌄". The region is a kit dark theme
+  root (data-uxt-theme="dark"), so it stays dark whatever the app theme.
 
-  2026-07-22 follow-up: swapped the hand-drawn swoosh/mark placeholders
-  for the real brand artifacts in docs/Octave_articfacts/. The Octave
-  mark uses "Octave Logos/Octave_logo_primary_rgb_white.svg" directly
-  (true vector transparency, no processing needed) — white-only asset,
-  recolored to ink via CSS filter:invert(1) for the light card, used
-  as-is on the dark loading overlay. The swoosh wanted "Octave Arch
-  Pink.png", but that source file turned out to have an OPAQUE WHITE
-  background baked in (confirmed via canvas pixel read, alpha=255 at
-  every corner) rather than real transparency — laid directly over the
-  dark hero it painted a white rectangle over most of the panel. Rather
-  than hand-fake a replacement, cut a real transparent derivative from
-  the source file itself: `octave-arch-pink-cutout.png` (this folder),
-  generated once via a PowerShell/System.Drawing script that sets each
-  pixel's alpha to 255-min(R,G,B) — a standard white-matte knockout
-  (fully transparent where the source was pure white, fully opaque on
-  saturated arch color, smooth falloff on the anti-aliased edges between).
-  Kept as a local derivative here rather than overwriting/duplicating
-  into docs/Octave_articfacts/, which stays the untouched source-of-truth
-  brand folder. If a real pre-cut transparent export ever shows up there,
-  switch this file back to it and delete the local cutout.
-  2026-07-22 2nd follow-up: real "Attune EAM" wordmark showed up in
-  docs/Octave_articfacts/ ("Attune EAM-web (1).svg") — swapped in for
-  the plain-text placeholder above (clean vector, already the right
-  magenta #FF33D2, transparent background, no processing needed like
-  the arch PNG required). Also repositioned the arch per direction —
-  now anchored to the bottom of the hero so it reads as emerging out of
-  the top of the white card/pane rather than floating in the upper dark
-  area, with the wordmark moved up to the now-open top of the hero to
-  make room.
+  Flow (llms.md §8, Okta's, never changed): two steps — Identify
+  (Username, Keep me signed in, Next) → Verify with your password
+  (Password with show/hide, Verify). An empty submit shows "This field
+  cannot be left blank" on the field.
+
+  Every control is a real kit element: <uxt-input> fields (restyled to the
+  spec's filled #3E4047 field, the one deliberate reach into the kit's
+  input internals on this screen), <uxt-icon-button> eye toggle,
+  <uxt-checkbox>, <uxt-button> primary / text links, and a
+  <uxt-flyover-menu> language picker.
+
+  KEPT FROM DANNY: BCAMPBELL / password are pre-filled ("bake in BCAMPBELL
+  and PW") and stay live fields; Verify runs startLogin() unchanged —
+  resetDemoState(), the ~2s branded loading take-over, then navigation to
+  eam-home-screen-prototype-v1.html. The dev theme bar stays (Login has no
+  header menu to host it, §31.6) so a theme picked here still carries to
+  Home; this screen itself is always the dark sign-in.
 -->
 <style>
-body{background:#0E0D12;}
-.app{background:#0E0D12;}
+body{background:var(--uxt-theme-palette-ui-black-700,#1a1a1f);}
+.app{background:var(--uxt-theme-palette-ui-black-700,#1a1a1f);}
 
-/* ── HERO (dark) PANEL ── */
-.login-hero{position:relative;flex:0 0 auto;height:34%;min-height:230px;background:#141218;overflow:hidden;}
-.login-hero-inner{position:absolute;inset:0;padding:28px 26px 0;z-index:2;}
-.login-brand{display:block;width:150px;height:auto;}
-.login-swoosh{position:absolute;left:0;right:0;bottom:10%;width:100%;max-width:none;z-index:1;animation:swooshDrift 9s ease-in-out infinite;transform-origin:60% 100%;}
+/* ── OCTAVE MOBILE SIGN-IN (llms.md §7) ── */
+.m-login{position:relative;flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;align-items:center;
+  background:var(--uxt-theme-palette-ui-black-700,#1a1a1f);color:var(--uxt-theme-palette-common-white,#fff);
+  font-family:var(--font-sans);}
+/* Pillar swirl lines at the bottom, masked by the dark top shape. */
+.m-login__swirl{position:absolute;left:-285px;top:260px;width:1240px;height:1240px;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.m-login__swirl svg{width:961px;height:793px;transform:rotate(45deg);flex:none;}
+.m-login__mask{position:absolute;left:-13px;top:-9px;width:calc(100% + 26px);height:374px;pointer-events:none;}
+.m-login__main{position:relative;z-index:1;flex:1;min-height:0;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px;padding-top:var(--k-s6);}
+.m-login__logo{width:107px;height:70px;display:block;}
+.m-login__body{width:300px;display:flex;flex-direction:column;}
+.m-login__title{height:40px;display:flex;align-items:center;justify-content:center;margin:0 0 var(--k-s2);font-size:var(--k-body2);font-weight:500;line-height:20px;}
+.m-login__step{display:flex;flex-direction:column;}
+.m-login__step[hidden]{display:none;}
+.m-login__fields{display:flex;flex-direction:column;gap:var(--k-s4);}
+.m-login__fields > uxt-input{display:block;width:100%;}
+/* Spec field (llms.md §7): 40px, filled #3E4047, 8px radius, 16px side
+   padding, no visible label, #A1A7B3 placeholder. Scoped to this screen. */
+.m-login uxt-input .input-bar{background:var(--uxt-theme-palette-ui-black-400,#3e4047);border-color:transparent;padding:0 var(--k-s4);}
+.m-login uxt-input .input-field:not(.state-error) .input-bar:focus-within{border-color:var(--uxt-theme-palette-ui-grey-300,#a1a7b3);}
+.m-login uxt-input .input-value{color:var(--uxt-theme-palette-common-white,#fff);}
+.m-login uxt-input .input-value::placeholder{color:var(--uxt-theme-palette-ui-grey-300,#a1a7b3);}
+/* Password: the eye Icon Button sits at the field's end. */
+.m-login__pass{position:relative;}
+.m-login__pass uxt-input .input-bar{padding-right:48px;}
+.m-login__pass > uxt-icon-button{position:absolute;right:0;top:0;}
+.m-login__keep{margin-top:var(--k-s6);}
+.m-login__primary{margin-top:var(--k-s6);}
+/* Primary = the spec's white pill with #1A1A1F ink (llms.md §7), on the
+   kit contained button. */
+.m-login__primary .btn{background:var(--uxt-theme-palette-common-white,#fff) !important;color:var(--uxt-theme-palette-ui-black-700,#1a1a1f) !important;}
+.m-login__signup{height:40px;margin-top:var(--k-s2);display:flex;align-items:center;justify-content:center;gap:var(--k-s1);font-size:var(--k-body2);line-height:20px;}
+.m-login__footer{position:relative;z-index:1;width:300px;padding-bottom:20px;display:flex;flex-direction:column;align-items:center;}
+.m-login__footer > uxt-button,.m-login__footer > uxt-flyover-menu{display:block;}
 
-@keyframes swooshDrift{
-  0%{transform:translate(0,0) rotate(0deg);}
-  50%{transform:translate(-1.5%,1.5%) rotate(-2deg);}
-  100%{transform:translate(0,0) rotate(0deg);}
-}
-
-/* ── CARD (light) PANEL — overlaps the hero like a pulled-up sheet ── */
-.login-card{flex:1;min-height:0;background:#EDEFF6;border-radius:30px 30px 0 0;margin-top:-26px;position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;padding:40px 30px 34px;box-shadow:0 -8px 24px rgba(0,0,0,.12);}
-.login-mark{margin-bottom:34px;}
-/* Real asset is white-only (docs/Octave_articfacts/Octave Logos) — inverted to ink for this light card. */
-.login-mark img{height:42px;width:auto;display:block;filter:invert(1);}
-
-.login-form{width:100%;display:flex;flex-direction:column;gap:14px;}
-.login-input{width:100%;height:52px;border-radius:14px;border:none;background:#fff;padding:0 18px;font-family:'Inter',sans-serif;font-size:1rem;font-weight:500;color:#1A1A1F;box-shadow:0 1px 2px rgba(0,0,0,.06);outline:none;box-sizing:border-box;}
-.login-input::placeholder{color:#9AA0AC;}
-.login-input:focus{box-shadow:0 0 0 2px #1A1A1F;}
-
-.login-btn{width:100%;height:52px;margin-top:10px;border-radius:14px;border:none;background:#1A1A1F;color:#fff;font-family:'Inter',sans-serif;font-size:0.9375rem;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;}
-.login-btn:active{transform:scale(.98);}
-.login-btn:disabled{opacity:.6;cursor:default;}
-
-.login-forgot{display:block;text-align:center;margin-top:16px;font-family:'Inter',sans-serif;font-size:0.8125rem;font-weight:600;color:#3E5FE0;cursor:pointer;background:none;border:none;}
-
-/* ── LOADING TAKE-OVER ── */
-.login-loading{position:absolute;inset:0;z-index:20;background:#141218;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .35s;overflow:hidden;}
+/* ── LOADING TAKE-OVER (Danny's, kept: the ~2s hand-off into Home) ── */
+.login-loading{position:absolute;inset:0;z-index:20;background:var(--uxt-theme-palette-ui-black-700,#1a1a1f);display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .35s;overflow:hidden;}
 .login-loading.show{opacity:1;pointer-events:auto;}
 .login-loading.fading{opacity:0;}
-.loading-mark-wrap{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:14px;}
 .loading-mark-wrap img{height:56px;width:auto;display:block;animation:loginPulse 1.3s ease-in-out infinite;}
-@keyframes loginPulse{
-  0%{transform:scale(.88);opacity:.7;}
-  50%{transform:scale(1.06);opacity:1;}
-  100%{transform:scale(.88);opacity:.7;}
-}
-.loading-bar-track{position:relative;z-index:2;width:140px;height:4px;border-radius:100px;background:rgba(255,255,255,.18);margin-top:26px;overflow:hidden;}
-.loading-bar-fill{height:100%;width:0%;border-radius:100px;background:linear-gradient(90deg,#FF2FA0,#9B4DFF);}
+@keyframes loginPulse{0%{transform:scale(.88);opacity:.7;}50%{transform:scale(1.06);opacity:1;}100%{transform:scale(.88);opacity:.7;}}
+/* No kit progress component exists; the bar is the four pillar accents. */
+.loading-bar-track{width:140px;height:4px;border-radius:var(--k-pill);background:color-mix(in srgb,var(--uxt-theme-palette-common-white,#fff) 18%,transparent);margin-top:var(--k-s6);overflow:hidden;}
+.loading-bar-fill{height:100%;width:0%;border-radius:var(--k-pill);background:linear-gradient(90deg,#00FFFF,#FFF500,#FF00C7,#4FFF00);}
 .login-loading.show .loading-bar-fill{animation:barFill 1.7s ease-out forwards;}
 @keyframes barFill{from{width:0%;}to{width:100%;}}
-.loading-status{position:relative;z-index:2;margin-top:12px;font-family:'Inter',sans-serif;font-size:0.75rem;font-weight:600;color:rgba(255,255,255,.6);}
+.loading-status{margin-top:var(--k-sm);font-size:var(--k-caption);font-weight:500;color:var(--uxt-theme-palette-ui-grey-300,#a1a7b3);}
 </style>
 </head>
 <body>
-<!-- Dev theme bar (added 2026-07-22, demo-consistency pass) — Login's own
-     hero/card design ignores data-theme entirely (always the fixed dark
-     brand look), so this toggle has no visible effect here. It's still
-     included purely for layout parity: every other screen's .app frame
-     starts 35px down, below this bar; without it, Login's frame was
-     390×844 at y=0 while every other screen was 390×809 at y=35 — a
-     visible size/position jump on the very first screen transition of
-     any demo run (login → Home). Toggling it here still updates the
-     shared 'eamTheme' localStorage value, so a choice made here is
-     honored once the technician lands on a real screen. -->
-<div class="proto-theme-bar">
+<!-- Dev theme bar — kept (Login has no header menu for §31.6's Prototype
+     rows). The sign-in itself is always dark; the choice persists to the
+     'eamTheme' key the next screen reads. #themeToggle stays as the hidden
+     label source refreshThemeLabels() writes; the kit button mirrors it. -->
+<div class="proto-theme-bar" data-uxt-theme="dark">
   <span class="proto-theme-label">Preview theme</span>
-  <button class="theme-toggle" id="themeToggle">☀ Light</button>
+  <uxt-button class="kit-proto-btn" data-mirror="themeToggle" variant="outlined" density="s" text="☀ Light" onclick="toggleThemeDemo()"></uxt-button>
+  <span id="themeToggle" hidden>☀ Light</span>
 </div>
 <div class="app">
 
-  <div class="login-hero">
-    <img class="login-swoosh" src="octave-arch-pink-cutout.png" alt="">
-    <div class="login-hero-inner">
-      <img class="login-brand" src="../../docs/Octave_articfacts/Attune%20EAM-web%20(1).svg" alt="Attune EAM">
+  <div class="m-login" data-uxt-theme="dark">
+    <div class="m-login__swirl" aria-hidden="true">
+      <svg viewBox="0 0 961.346 793.3" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <mask id="siSwirlMask" fill="white"><path d="M694.545 162.727L810.45 46.823C743.466 19.3424 651.143 0 522.383 0C308.839 0 135.728 101.598 135.728 226.926C135.728 329.89 252.571 416.837 412.684 444.589L351.965 505.308C184.109 431.114 0 499.748 0 593.619C0 648.434 62.7775 694.643 148.438 708.834L84.3613 772.911C130.798 788.076 179.23 793.3 231.553 793.3C344.198 793.3 435.514 739.706 435.514 673.596C435.514 637.965 408.979 605.977 366.885 584.048C422.814 597.299 491.058 605.466 574.691 605.466C788.235 605.466 961.346 503.868 961.346 378.54C961.346 277.766 849.42 192.334 694.545 162.727ZM217.861 697.113C133.903 697.113 65.8422 666.042 65.8422 627.714C65.8422 589.385 133.903 558.314 217.861 558.314C301.818 558.314 369.879 589.385 369.879 627.714C369.879 666.042 301.818 697.113 217.861 697.113ZM552.081 436.998C390.25 436.998 259.06 376.829 259.06 302.605C259.06 228.382 390.25 168.212 552.081 168.212C713.912 168.212 845.102 228.382 845.102 302.605C845.102 376.828 713.912 436.998 552.081 436.998Z"/></mask>
+        <path d="M694.545 162.727L810.45 46.823C743.466 19.3424 651.143 0 522.383 0C308.839 0 135.728 101.598 135.728 226.926C135.728 329.89 252.571 416.837 412.684 444.589L351.964 505.308C184.109 431.114 0 499.748 0 593.619C0 648.434 62.7775 694.643 148.438 708.834L84.3613 772.911C130.798 788.076 179.23 793.3 231.553 793.3C344.198 793.3 435.514 739.706 435.514 673.596C435.514 637.965 408.979 605.977 366.885 584.048C422.814 597.299 491.058 605.466 574.691 605.466C788.235 605.466 961.346 503.868 961.346 378.54C961.346 277.766 849.42 192.334 694.545 162.727ZM217.86 697.113C133.903 697.113 65.8422 666.042 65.8422 627.714C65.8422 589.385 133.903 558.314 217.86 558.314C301.818 558.314 369.879 589.385 369.879 627.714C369.879 666.042 301.818 697.113 217.86 697.113ZM552.081 436.998C390.25 436.998 259.06 376.829 259.06 302.605C259.06 228.382 390.25 168.212 552.081 168.212C713.912 168.212 845.102 228.382 845.102 302.605C845.102 376.828 713.912 436.998 552.081 436.998Z" stroke-width="2" stroke="url(#siSwirlGrad)" mask="url(#siSwirlMask)"/>
+        <defs><linearGradient id="siSwirlGrad" x1="480.673" y1="0" x2="480.673" y2="793.3" gradientUnits="userSpaceOnUse"><stop stop-color="#0000FF"/><stop offset="0.5" stop-color="#FF00C7"/><stop offset="1" stop-color="#FFF500"/></linearGradient></defs>
+      </svg>
     </div>
+    <svg class="m-login__mask" viewBox="0 0 401 374" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0H401V152.241C401 152.241 235 179.545 0 302V0Z" fill="var(--uxt-theme-palette-ui-black-700,#1a1a1f)"/></svg>
+
+    <div class="m-login__main">
+      <img class="m-login__logo" src="../../docs/Octave_articfacts/Octave%20Logos/Octave_logo_primary_rgb_white.svg" alt="Octave">
+
+      <div class="m-login__body">
+        <!-- Never names a single product (llms.md §1). -->
+        <p class="m-login__title" id="loginTitle">Sign in to Octave</p>
+
+        <!-- Step 1 — Identify -->
+        <div class="m-login__step" id="loginStepIdentify">
+          <div class="m-login__fields">
+            <uxt-input id="loginUser" type="text" value="BCAMPBELL" placeholder="Username" label="Username" aria-label="Username" autocomplete="username" full-width density="m" helper-text="This field cannot be left blank"></uxt-input>
+          </div>
+          <uxt-checkbox class="m-login__keep" id="loginKeep" label="Keep me signed in" show-label density="m"></uxt-checkbox>
+          <uxt-button class="m-login__primary kit-btn-block" id="loginNextBtn" variant="contained" text="Next" onclick="loginNext()"></uxt-button>
+          <div class="m-login__signup">
+            <span>Don’t have an account?</span>
+            <uxt-button variant="text" tone="neutral" text="Sign Up" onclick="showToast('Coming soon')"></uxt-button>
+          </div>
+        </div>
+
+        <!-- Step 2 — Verify with your password -->
+        <div class="m-login__step" id="loginStepVerify" hidden>
+          <div class="m-login__fields">
+            <div class="m-login__pass">
+              <uxt-input id="loginPass" type="password" value="password123" placeholder="Password" label="Password" aria-label="Password" autocomplete="current-password" full-width density="m" helper-text="This field cannot be left blank"></uxt-input>
+              <uxt-icon-button id="loginPassEye" icon="visibility" label="Show password" density="m" aria-pressed="false" onclick="togglePasswordVisibility()"></uxt-icon-button>
+            </div>
+          </div>
+          <uxt-button class="m-login__primary kit-btn-block" id="loginBtn" variant="contained" text="Verify" onclick="startLogin()"></uxt-button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="m-login__footer">
+      <uxt-button variant="text" tone="neutral" text="Reset Password" onclick="showToast('Coming soon')"></uxt-button>
+      <uxt-button variant="text" tone="neutral" text="Copyright Information" onclick="showToast('Coming soon')"></uxt-button>
+      <!-- Language picker: plain "English ⌄" text trigger on mobile (llms.md §9),
+           opening a kit flyover menu above it. -->
+      <uxt-flyover-menu id="loginLang" trigger-text="English" trigger-icon="keyboard_arrow_down" trigger-variant="text" placement="top-start">
+        <uxt-menu-item value="en" text="English" selected></uxt-menu-item>
+        <uxt-menu-item value="de" text="Deutsch"></uxt-menu-item>
+        <uxt-menu-item value="es" text="Español"></uxt-menu-item>
+        <uxt-menu-item value="fr" text="Français"></uxt-menu-item>
+        <uxt-menu-item value="ja" text="日本語"></uxt-menu-item>
+      </uxt-flyover-menu>
+    </footer>
   </div>
 
-  <div class="login-card">
-    <div class="login-mark">
-      <img src="../../docs/Octave_articfacts/Octave%20Logos/Octave_logo_primary_rgb_white.svg" alt="Octave">
-    </div>
-
-    <div class="login-form">
-      <input class="login-input" id="loginUser" type="text" value="BCAMPBELL" placeholder="User ID">
-      <input class="login-input" id="loginPass" type="password" value="password123" placeholder="Password">
-      <button class="login-btn" id="loginBtn" onclick="startLogin()">Log In</button>
-      <button class="login-forgot" onclick="showToast('Coming soon')">Forgot Password</button>
-    </div>
-  </div>
-
-  <div class="login-loading" id="loginLoading">
+  <div class="login-loading" id="loginLoading" data-uxt-theme="dark">
     <div class="loading-mark-wrap">
       <img src="../../docs/Octave_articfacts/Octave%20Logos/Octave_logo_primary_rgb_white.svg" alt="Octave">
     </div>
@@ -167,10 +187,69 @@ body{background:#0E0D12;}
 <script src="shared/eam-shared.js?v=202609211648"></script>
 <script>
 initThemeToggle();
+// Kit buttons take their label from `text`; shared code writes the dev
+// labels into the hidden #id spans by textContent, so mirror them across.
+function kitMirrorProtoButtons() {
+  document.querySelectorAll('uxt-button[data-mirror]').forEach(btn => {
+    const src = document.getElementById(btn.dataset.mirror);
+    if (!src) return;
+    const sync = () => { if (btn.getAttribute('text') !== src.textContent) btn.setAttribute('text', src.textContent); };
+    sync();
+    if (typeof MutationObserver !== 'undefined') new MutationObserver(sync).observe(src, { childList: true, characterData: true, subtree: true });
+  });
+}
+kitMirrorProtoButtons();
+
+// Empty submit → the field's own error state + "This field cannot be left
+// blank" (llms.md §8). The error clears on the next keystroke.
+function loginFieldFilled(el) {
+  const ok = !!String(el.value || '').trim();
+  if (ok) { el.removeAttribute('state'); el.removeAttribute('show-helper-text'); }
+  else { el.setAttribute('state', 'error'); el.setAttribute('show-helper-text', ''); el.focus(); }
+  return ok;
+}
+['loginUser', 'loginPass'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => { if (el.getAttribute('state') === 'error' && String(el.value).trim()) { el.removeAttribute('state'); el.removeAttribute('show-helper-text'); } });
+  el.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); id === 'loginUser' ? loginNext() : startLogin(); } });
+});
+
+// Step 1 → Step 2 (Okta's identify-first flow, llms.md §8).
+function loginNext() {
+  if (!loginFieldFilled(document.getElementById('loginUser'))) return;
+  document.getElementById('loginStepIdentify').hidden = true;
+  document.getElementById('loginStepVerify').hidden = false;
+  document.getElementById('loginTitle').textContent = 'Verify with your password';
+  setTimeout(() => document.getElementById('loginPass').focus(), 50);
+}
+function togglePasswordVisibility() {
+  const pass = document.getElementById('loginPass');
+  const eye = document.getElementById('loginPassEye');
+  const show = pass.getAttribute('type') === 'password';
+  pass.setAttribute('type', show ? 'text' : 'password');
+  eye.setAttribute('icon', show ? 'visibility-off' : 'visibility');
+  eye.setAttribute('label', show ? 'Hide password' : 'Show password');
+  eye.setAttribute('aria-pressed', String(show));
+}
+// Language: the kit flyover reads its rows once, so a pick rebuilds them
+// with the new `selected` row and relabels the trigger.
+(function initLoginLang() {
+  const fm = document.getElementById('loginLang');
+  const LANGS = [['en', 'English'], ['de', 'Deutsch'], ['es', 'Español'], ['fr', 'Français'], ['ja', '日本語']];
+  fm.addEventListener('select', (e) => {
+    const v = e.detail && e.detail.value;
+    const hit = LANGS.find(l => l[0] === v);
+    if (!hit) return;
+    fm.items = LANGS.map(([value, text]) => ({ value, text, selected: value === v, children: [] }));
+    fm.setAttribute('trigger-text', hit[1]);
+  });
+})();
+
 function startLogin() {
   const btn = document.getElementById('loginBtn');
-  if (btn.disabled) return;
-  btn.disabled = true;
+  if (btn.hasAttribute('disabled')) return;
+  if (!loginFieldFilled(document.getElementById('loginPass'))) return;
+  btn.setAttribute('disabled', '');
   // Reset affordance for demo progress (added 2026-07-22, broadened
   // 2026-07-23 past just the sync outbox — see resetDemoState() in
   // eam-shared.js for the full list) — a fresh login is this app's one
@@ -179,7 +258,7 @@ function startLogin() {
   // later run with nothing left to demo. Theme is deliberately untouched
   // — it's a real preference, not demo progress, and survives a fresh
   // login same as it survives navigation. Reachable from anywhere via
-  // the "Reset" button in every other screen's .proto-theme-bar
+  // the "Reset demo" row in every other screen's header menu
   // (injectProtoMenuGroup(), eam-shared.js) or the Profile menu's real
   // Log out item (goToLogin(), wired 2026-07-24, same shared function
   // both call) — either just navigates here; this is still the only
