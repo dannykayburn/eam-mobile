@@ -1794,7 +1794,9 @@ function onListDetailSearchInput(tabKey, value) {
   listDetailState[tabKey] = listDetailState[tabKey] || {};
   listDetailState[tabKey].search = value;
   const q = value.trim().toLowerCase();
-  document.querySelectorAll(`.tab-content[data-tab="${tabKey}"] .ld-card-wrap, .tab-content[data-tab="${tabKey}"] .ld-table tbody tr`).forEach(row => {
+  // .plain-row too: tabs drawn as plain rows (Equipment RV Costs) were
+  // never filtered (pre-existing bug, fixed 2026-10-20).
+  document.querySelectorAll(`.tab-content[data-tab="${tabKey}"] .ld-card-wrap, .tab-content[data-tab="${tabKey}"] .ld-table tbody tr, .tab-content[data-tab="${tabKey}"] .plain-row`).forEach(row => {
     row.classList.toggle('filtered-out', q.length > 0 && !(row.dataset.search || '').includes(q));
   });
 }

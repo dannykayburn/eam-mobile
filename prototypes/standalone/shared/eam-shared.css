@@ -234,6 +234,9 @@ body{font-family:var(--font-sans);font-size:var(--k-body2);background:var(--bg-p
    synced" pattern as .nav-back (Phase 2b, same session). */
 .prototype-label{font-size:0.5625rem;font-weight:500;letter-spacing:.4px;color:var(--k-hint);white-space:nowrap;font-family:var(--font-sans);text-transform:uppercase;display:none;}
 @media(min-width:390px){.prototype-label{display:inline;}}
+/* A drill-in bar's centred title owns the middle (112px side gutters), so
+   the dev watermark beside the back button would run under it: hide it. */
+.nav.kit-drill-in:has(.nav-title) .prototype-label{display:none;}
 .nav-actions{display:flex;align-items:center;gap:var(--k-s1);flex-shrink:0;}
 /* Bottom nav (Home/Work/Notifications, §4.2/§4.3) — promoted here from two
    hand-copies (UI inventory pass, 2026-07-21): Home (1st consumer) and WO
