@@ -1,0 +1,12 @@
+# Default reviewer for everything not listed below.
+* @dannykayburn
+
+# Design source of truth. Changes here alter locked rules or requirements,
+# so they need the design owner's review even when the code change is small.
+/docs/design-decisions-v3-1.md @dannykayburn
+/docs/EAM-Mobile-Design-Doc-v1.md @dannykayburn
+/CLAUDE.md @dannykayburn
+
+# Shared components and the asset stamp. Every screen depends on these.
+/prototypes/standalone/shared/ @dannykayburn
+/.claude/skills/verify/scripts/ @dannykayburn
