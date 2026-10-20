@@ -96,27 +96,37 @@
 /* Padded out 2026-08-10 (user feedback: "must be hit exactly") so the code
    is a real ~32px-tall target rather than a line of text with an underline.
    Only used in tap mode 'split', which is no longer the default. */
-.eq-link { font-family: var(--font-mono); border-bottom: 1px dashed var(--gray-3); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 7px 8px 6px; margin: -7px -8px -6px; border-radius: 6px; }
-.eq-link:active { background: var(--bg-section); }
-.eq-link svg { color: var(--gray-4); flex-shrink: 0; }
+/* Kit tokens (2026-10-20): 8px radius, 4/8px spacing, hover overlay. */
+.eq-link { font-family: var(--font-mono); border-bottom: 1px dashed var(--k-control); cursor: pointer; display: inline-flex; align-items: center; gap: var(--k-s1); padding: var(--k-s2); margin: calc(-1 * var(--k-s2)); border-radius: var(--k-r); }
+.eq-link:active { background: var(--k-hover); }
+.eq-link svg { color: var(--k-glyph); flex-shrink: 0; }
 
 /* Mono identifier inside a card attribute row. renderStdCard() owns the
    .field-value span, so `.field-value.mono` can't be reached from here —
    this wraps the value instead. */
 .eq-mono { font-family: var(--font-mono); }
 
-/* Subtitle line under a .source-option-title in this screen's two local
-   action sheets — the base .source-option component has a title only. */
-.eq-opt-sub { font-size: 0.71875rem; color: var(--gray-4); margin-top: 2px; line-height: 1.35; }
 
 /* Empty state. Base EAM's own default for this tab really is "Records: 0
    of 0" — the tab stays empty until equipment is added or a Route is
    imported — so this is the faithful zero state, not just a safety net. */
-.eq-empty { margin: 28px 20px; text-align: center; }
-.eq-empty-icon { color: var(--gray-3); margin-bottom: 10px; }
-.eq-empty-title { font-size: 0.875rem; font-weight: 700; color: var(--octave-black); }
-[data-theme="dark"] .eq-empty-title { color: var(--white); }
-.eq-empty-sub { font-size: 0.78125rem; color: var(--gray-4); margin-top: 5px; line-height: 1.5; }
+/* Kit tokens (2026-10-20): Sub-title 2 heading in Octave Display, Body 2
+   copy in text-secondary, 24/16px spacing; both themes via the tokens. */
+.eq-empty { margin: var(--k-s6) var(--k-s4); text-align: center; }
+.eq-empty-icon { color: var(--k-glyph); margin-bottom: var(--k-s2); }
+.eq-empty-title { font-family: var(--font-display); font-size: var(--uxt-theme-typography-sub-title-2-font-size, 0.875rem); font-weight: var(--uxt-theme-typography-sub-title-2-font-weight, 500); color: var(--k-text); }
+.eq-empty-sub { font-size: var(--k-body2); color: var(--k-text-2); margin-top: var(--k-s1); line-height: 1.43; }
+
+/* ── Octave kit hosts (2026-10-20) — host layout only, never kit internals.
+   Top-bar and header controls are kit outlined Icon Buttons on the card
+   fill; the kit pins its host background inline, hence !important. Shared
+   code still toggles .hidden/.active on #listDetailSearchBtn. */
+uxt-icon-button.kit-bar-btn { background: var(--k-card) !important; border-radius: var(--k-pill); flex-shrink: 0; }
+uxt-icon-button.kit-bar-btn.hidden { display: none !important; }
+uxt-icon-button.kit-bar-btn.active { background: var(--k-selected) !important; }
+/* Scanner overlay is always near-black: its kit controls render in the dark
+   theme (data-uxt-theme="dark" on the container). */
+.qr-scan-header > uxt-icon-button { flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -129,9 +139,7 @@
       <!-- §24: back navigates for real — returns to the parent WO's Record
            View carrying the WO identity forward, same consume-once
            eamOpenDemoWo hand-off every other cross-screen jump uses. -->
-      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation(); goToWoStep(ORIGIN_STEP)">
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
+      <uxt-icon-button class="kit-bar-btn" icon="arrow-back" label="Back" outlined density="m" onclick="event.stopPropagation(); goToWoStep(ORIGIN_STEP)"></uxt-icon-button>
       <span class="prototype-label">PROTOTYPE</span>
     </div>
     <div class="nav-title">Equipment</div>
@@ -161,15 +169,9 @@
              Details section has exactly one required field (Equipment), so
              a sheet wrapping a single picker would be pure ceremony — and
              adding 24 Route pumps one modal at a time is not a flow. -->
-        <button class="rec-ellipsis-btn" onclick="event.stopPropagation(); onListDetailPlusTap()" aria-label="Add equipment">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
-        <button class="rec-ellipsis-btn" id="listDetailSearchBtn" onclick="event.stopPropagation(); onListDetailSearchTap()" aria-label="Search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        </button>
-        <button class="rec-ellipsis-btn" onclick="event.stopPropagation(); toggleListDetailMenu()" aria-label="More actions">
-          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
-        </button>
+        <uxt-icon-button class="kit-bar-btn" icon="add" label="Add equipment" outlined density="m" onclick="event.stopPropagation(); onListDetailPlusTap()"></uxt-icon-button>
+        <uxt-icon-button class="kit-bar-btn" id="listDetailSearchBtn" icon="search" label="Search" outlined density="m" onclick="event.stopPropagation(); onListDetailSearchTap()"></uxt-icon-button>
+        <uxt-icon-button class="kit-bar-btn" icon="more-vert" label="More actions" outlined density="m" onclick="event.stopPropagation(); toggleListDetailMenu()"></uxt-icon-button>
         <!-- HEADER ACTIONS live here, per the Action Row vs. ellipsis rule
              (2026-08-10, §8.4): a link button that errors with "Record must
              be selected before performing this action" is row-scoped and
@@ -183,15 +185,15 @@
              here. -->
         <div class="rec-actions-menu" id="listDetailMenu">
           <div class="rec-actions-group">
-            <div class="rec-actions-item" onclick="closeListDetailMenu(); addHeaderEquipment()">Add WO Header Equipment</div>
-            <div class="rec-actions-item" onclick="closeListDetailMenu(); importRouteEquipment()">Import Route Equipment</div>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" text="Add WO Header Equipment" onclick="closeListDetailMenu(); addHeaderEquipment()"></uxt-list-item>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" text="Import Route Equipment" onclick="closeListDetailMenu(); importRouteEquipment()"></uxt-list-item>
           </div>
           <div class="rec-actions-divider"></div>
           <div class="rec-actions-group">
-            <div class="rec-actions-item" onclick="closeListDetailMenu(); openDeleteEquipment()">Delete Equipment</div>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" text="Delete Equipment" onclick="closeListDetailMenu(); openDeleteEquipment()"></uxt-list-item>
           </div>
           <div class="rec-actions-divider"></div>
-          <div class="rec-actions-group"><div class="rec-actions-item" onclick="closeListDetailMenu(); showToast('Sort — coming soon')">Sort</div></div>
+          <div class="rec-actions-group"><uxt-list-item class="kit-menu-row" role="menuitem" density="m" text="Sort" onclick="closeListDetailMenu(); showToast('Sort — coming soon')"></uxt-list-item></div>
         </div>
       </div>
     </div>
@@ -228,9 +230,9 @@
   <div class="bottom-sheet" id="syncPanelSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Sync Status</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sync-panel-state" id="syncPanelStateLabel"></div>
     <div class="sheet-body" id="syncPanelList"></div>
@@ -240,9 +242,9 @@
   <div class="bottom-sheet" id="dataspySheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Select dataspy</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sheet-body" id="dataspySheetBody"></div>
   </div>
@@ -254,13 +256,17 @@
        per-screen, same convention as #lovSheet/#equipmentPopup elsewhere. -->
   <div class="hyperlink-popup" id="equipmentPopup">
     <div class="insert-mode-header">
-      <button class="sheet-close" onclick="closeHyperlinkPopup('equipmentPopup')">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeHyperlinkPopup('equipmentPopup')"></uxt-icon-button>
       <div class="insert-mode-title">Add Equipment</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
-    <div class="mode-tog">
-      <button class="mode-btn active" id="equipTabBtnSearch" onclick="switchEquipTab('search')">Search</button>
-      <button class="mode-btn" id="equipTabBtnStructure" onclick="switchEquipTab('structure')">Structure</button>
+    <!-- Search/Structure → kit toggle group (2026-10-20). The shared
+         switchEquipTab() still flips .active on #equipTabBtnSearch /
+         #equipTabBtnStructure, so those ids sit on the wrapper and the group;
+         the local switchEquipTab wrapper below keeps the group's value in step
+         when shared code switches tabs itself (e.g. defaulting to Structure). -->
+    <div class="kit-mode-tog" id="equipTabBtnSearch">
+      <uxt-toggle-button-group id="equipTabBtnStructure" density="m" options='[{"value":"search","label":"Search"},{"value":"structure","label":"Structure"}]' value="search" onchange="switchEquipTab(event.detail.value)"></uxt-toggle-button-group>
     </div>
     <div class="insert-mode-body" id="equipmentPopupBody">
       <div id="equipTabSearch">
@@ -277,15 +283,15 @@
   </div>
 
   <div class="qr-scan-overlay" id="qrScanOverlay">
-    <div class="qr-scan-header">
-      <button class="qr-scan-close" onclick="closeEquipScan()" aria-label="Close scanner">✕</button>
+    <div class="qr-scan-header" data-uxt-theme="dark">
+      <uxt-icon-button icon="close" label="Close scanner" density="m" onclick="closeEquipScan()"></uxt-icon-button>
     </div>
     <div class="qr-scan-body">
       <div class="qr-scan-reticle"></div>
       <div class="qr-scan-hint">Point camera at the equipment's QR code</div>
     </div>
-    <div class="qr-scan-footer">
-      <button class="insert-save-btn ready" onclick="simulateQrScan()">Simulate scan</button>
+    <div class="qr-scan-footer" data-uxt-theme="dark">
+      <uxt-button class="kit-btn-block" variant="contained" text="Simulate scan" onclick="simulateQrScan()"></uxt-button>
     </div>
   </div>
 
@@ -293,9 +299,9 @@
   <div class="bottom-sheet" id="rowTargetSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title" id="rowTargetTitle">Open</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sheet-body" id="rowTargetBody"></div>
   </div>
@@ -306,9 +312,9 @@
   <div class="bottom-sheet" id="multiDeleteSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title" id="multiDeleteTitle">Delete equipment</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sheet-body" id="multiDeleteBody"></div>
     <div class="md-footer">
@@ -541,21 +547,11 @@ const ROW_TAP_HANDLERS = {
     const r = row.r;
     if (ROW_TAP_MODE === 'split') { openChildWo(r.childWo, r.equip); return; }
     document.getElementById('rowTargetTitle').textContent = r.equip;
+    // Kit List Items (2026-10-20): icon + title + secondary line. The stub
+    // (no related WO yet) stays tappable — openChildWo() explains itself.
     document.getElementById('rowTargetBody').innerHTML = `
-      <div class="source-option" onclick="openEquipmentRecord('${r.equip}')">
-        <div class="source-option-icon"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke-linecap="round"/></svg></div>
-        <div class="source-option-texts">
-          <div class="source-option-title">Equipment record</div>
-          <div class="eq-opt-sub">${r.equip} — ${r.desc}</div>
-        </div>
-      </div>
-      <div class="source-option${r.childWo ? '' : ' stub'}" onclick="openChildWo(${r.childWo ? `'${r.childWo}'` : 'null'}, '${r.equip}')">
-        <div class="source-option-icon"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
-        <div class="source-option-texts">
-          <div class="source-option-title">Related work order</div>
-          <div class="eq-opt-sub">${r.childWo ? 'WO ' + r.childWo : 'None created for this equipment yet'}</div>
-        </div>
-      </div>`;
+      <uxt-list-item class="source-option" density="m" icon="precision-manufacturing" text="Equipment record" secondary="${kitEsc(r.equip + ' — ' + r.desc)}" onclick="openEquipmentRecord('${r.equip}')"></uxt-list-item>
+      <uxt-list-item class="source-option${r.childWo ? '' : ' stub'}" density="m" icon="assignment" text="Related work order" secondary="${r.childWo ? 'WO ' + r.childWo : 'None created for this equipment yet'}" onclick="openChildWo(${r.childWo ? `'${r.childWo}'` : 'null'}, '${r.equip}')"></uxt-list-item>`;
     openSheet('rowTargetSheet');
   },
 };
@@ -654,6 +650,16 @@ function emptyStateHTML() {
 // re-applies an open search query after each re-render, which a local copy
 // would silently lose. One tab here, so it's set once and never changes.
 currentTab = 'equipment';
+
+/* Search/Structure is a kit <uxt-toggle-button-group> (2026-10-20). The
+   shared switchEquipTab() owns the panel swap; this keeps the group's
+   selected value in step when shared code switches tabs on its own. */
+const _sharedSwitchEquipTab = switchEquipTab;
+switchEquipTab = function (tab) {
+  _sharedSwitchEquipTab(tab);
+  const g = document.getElementById('equipTabBtnStructure');
+  if (g && g.getAttribute('value') !== tab) g.setAttribute('value', tab);
+};
 
 /* ══ INIT ════════════════════════════════════════════════════════════ */
 // Consume-once WO identity hand-off, same pattern as every other screen.

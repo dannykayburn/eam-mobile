@@ -50,9 +50,19 @@
 /* Local tab switcher — two tabs is too few for the shared tab rail's
    collapsed-pill + expanded-map paradigm (that exists to make 8 tabs
    navigable). A plain segmented control is the honest control for a binary
-   choice, and it reuses the shared .mode-tog/.mode-btn pair rather than
-   inventing a third toggle style. */
-.ref-tog { margin: 10px 12px 2px; }
+   choice: the kit <uxt-toggle-button-group> (Octave kit, 2026-10-20), the
+   same element the shared Detailed/List switch renders. */
+.ref-tog { margin: var(--k-s2) var(--k-s4) var(--k-s1); }
+
+/* ── Octave kit hosts (2026-10-20) — host layout only, never kit internals.
+   Top-bar and header controls are kit outlined Icon Buttons on the card
+   fill; the kit pins its host background inline, hence !important. */
+uxt-icon-button.kit-bar-btn { background: var(--k-card) !important; border-radius: var(--k-pill); flex-shrink: 0; }
+uxt-icon-button.kit-bar-btn.hidden { display: none !important; }
+uxt-icon-button.kit-bar-btn.active { background: var(--k-selected) !important; }
+/* Shared code shows the discard pill with .show; the kit sets an inline
+   display on connect, so the hidden state needs !important. */
+uxt-button.text-editor-discard:not(.show) { display: none !important; }
 </style>
 </head>
 <body>
@@ -64,9 +74,7 @@
     <div class="nav-left">
       <!-- §24: back returns to whichever step the WO was on, carrying the WO
            identity forward — same consume-once hand-off as every other jump. -->
-      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation(); goToWoStep(ORIGIN_STEP)">
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
+      <uxt-icon-button class="kit-bar-btn" icon="arrow-back" label="Back" outlined density="m" onclick="event.stopPropagation(); goToWoStep(ORIGIN_STEP)"></uxt-icon-button>
       <span class="prototype-label">PROTOTYPE</span>
     </div>
     <div class="nav-title" id="navTitle">Comments</div>
@@ -85,23 +93,21 @@
       <div class="rec-header-actions">
         <!-- Plus = insert for whichever tab is showing (§8): a comment, or a
              document upload. One button, tab-aware, rather than two. -->
-        <button class="rec-ellipsis-btn" onclick="event.stopPropagation(); onRefPlusTap()" aria-label="Add">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
-        <button class="rec-ellipsis-btn" onclick="event.stopPropagation(); toggleListDetailMenu()" aria-label="More actions">
-          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
-        </button>
+        <uxt-icon-button class="kit-bar-btn" icon="add" label="Add" outlined density="m" onclick="event.stopPropagation(); onRefPlusTap()"></uxt-icon-button>
+        <uxt-icon-button class="kit-bar-btn" icon="more-vert" label="More actions" outlined density="m" onclick="event.stopPropagation(); toggleListDetailMenu()"></uxt-icon-button>
         <!-- Header actions per §8.4 — these open popups, so the ellipsis is
              where they belong, tab or not. -->
         <div class="rec-actions-menu" id="listDetailMenu">
           <div class="rec-actions-group">
-            <div class="rec-actions-item" onclick="closeListDetailMenu(); onRefPlusTap()">Add <span id="menuAddLabel">comment</span></div>
-            <div class="rec-actions-item" onclick="closeListDetailMenu(); showToast('Upload Multiple Documents — coming soon')">Upload Multiple Documents</div>
+            <!-- Rows are kit List Items (Octave kit, 2026-10-20); the label is the
+                 `text` attribute, which setRefTab() rewrites per tab. -->
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" id="menuAddRow" text="Add comment" onclick="closeListDetailMenu(); onRefPlusTap()"></uxt-list-item>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" text="Upload Multiple Documents" onclick="closeListDetailMenu(); showToast('Upload Multiple Documents — coming soon')"></uxt-list-item>
           </div>
           <div class="rec-actions-divider"></div>
           <div class="rec-actions-group">
-            <div class="rec-actions-item" onclick="closeListDetailMenu(); expandAllDocGroups(true)">Expand all</div>
-            <div class="rec-actions-item" onclick="closeListDetailMenu(); expandAllDocGroups(false)">Collapse all</div>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" text="Expand all" onclick="closeListDetailMenu(); expandAllDocGroups(true)"></uxt-list-item>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" text="Collapse all" onclick="closeListDetailMenu(); expandAllDocGroups(false)"></uxt-list-item>
           </div>
         </div>
       </div>
@@ -124,9 +130,8 @@
     <div class="step-map" id="stepMap"></div>
   </div>
 
-  <div class="mode-tog ref-tog">
-    <button class="mode-btn active" id="refBtnComments" onclick="setRefTab('comments')">Comments</button>
-    <button class="mode-btn" id="refBtnDocuments" onclick="setRefTab('documents')">Documents</button>
+  <div class="kit-mode-tog ref-tog">
+    <uxt-toggle-button-group id="refTabTog" density="m" options='[{"value":"comments","label":"Comments"},{"value":"documents","label":"Documents"}]' value="comments" onchange="setRefTab(event.detail.value)"></uxt-toggle-button-group>
   </div>
 
   <div class="content">
@@ -139,9 +144,9 @@
   <div class="bottom-sheet" id="syncPanelSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Sync Status</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sync-panel-state" id="syncPanelStateLabel"></div>
     <div class="sheet-body" id="syncPanelList"></div>
@@ -153,9 +158,9 @@
   <div class="bottom-sheet" id="commentActionsSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Comment</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sheet-body" id="commentActionsBody"></div>
   </div>
@@ -167,8 +172,8 @@
   <div class="bottom-sheet text-editor-sheet" id="textEditorSheet">
     <div class="text-editor-header">
       <div class="text-editor-left">
-        <button class="text-editor-close" id="textEditorCloseBtn" onclick="textEditorCloseTap()">✕</button>
-        <button class="text-editor-discard" id="textEditorDiscard" onclick="textEditorConfirmDiscard()">Discard unsaved changes</button>
+        <uxt-icon-button class="kit-sheet-close" id="textEditorCloseBtn" icon="close" label="Close" density="m" onclick="textEditorCloseTap()"></uxt-icon-button>
+        <uxt-button class="text-editor-discard" id="textEditorDiscard" variant="outlined" tone="error" text="Discard unsaved changes" onclick="textEditorConfirmDiscard()"></uxt-button>
       </div>
       <div class="text-editor-title" id="textEditorTitle">Edit</div>
       <!-- ✓ replaces the old bottom Save pill (§3.4, 2026-08-11): a pill at the
@@ -260,12 +265,12 @@ const DOCUMENTS_OWN_LEVEL = 'wo';
 let refTab = 'comments';
 function setRefTab(which) {
   refTab = which;
-  document.getElementById('refBtnComments').classList.toggle('active', which === 'comments');
-  document.getElementById('refBtnDocuments').classList.toggle('active', which === 'documents');
+  const tog = document.getElementById('refTabTog');
+  if (tog.getAttribute('value') !== which) tog.setAttribute('value', which);
   const label = which === 'comments' ? 'Comments' : 'Documents';
   document.getElementById('navTitle').textContent = label;
   document.querySelector('.step-rail .step-name').textContent = label;
-  document.getElementById('menuAddLabel').textContent = which === 'comments' ? 'comment' : 'document';
+  document.getElementById('menuAddRow').setAttribute('text', which === 'comments' ? 'Add comment' : 'Add document');
   renderRefBody();
   // Re-render the rail so its Reference-group highlight follows the tab.
   renderRail(which);

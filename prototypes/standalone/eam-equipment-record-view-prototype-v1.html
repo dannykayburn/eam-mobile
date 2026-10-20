@@ -15,6 +15,18 @@
 <title>HxGN EAM Mobile — Equipment Record View (Standard)</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
+<!-- The kit icon registry has no pin glyph yet, so the record pin registers
+     Material Symbols "keep" (outlined, weight 400, rescaled to 24) through the
+     kit's own OctaveDesignKit.icons.register(), then re-renders the button.
+     Remove once the kit ships "keep". Module scripts run in order, so this
+     runs after design-kit.js has defined its elements. -->
+<script type="module">
+const kitIcons = window.OctaveDesignKit && window.OctaveDesignKit.icons;
+if (kitIcons) {
+  kitIcons.register({ keep: '<g transform="scale(0.025) translate(0 960)"><path d="m640-480 80 80v80H520v240l-40 40-40-40v-240H240v-80l80-80v-280h-40v-80h400v80h-40v280Zm-286 80h252l-46-46v-314H400v314l-46 46Zm126 0Z"/></g>' });
+  document.querySelectorAll('uxt-icon-button[icon="keep"]').forEach(b => b.setAttribute('icon', 'keep'));
+}
+</script>
 <link rel="stylesheet" href="shared/eam-fonts.css?v=202609211648">
 <link rel="stylesheet" href="shared/eam-shared.css?v=202609211648">
 <!--
@@ -54,6 +66,24 @@
 .tree-indent-1 { margin-left: 20px; }
 .tree-indent-2 { margin-left: 40px; }
 .tree-indent-3 { margin-left: 60px; }
+/* "You are here" marker → kit Tag (2026-10-20). */
+.tree-row > uxt-tag { flex-shrink: 0; }
+/* Costs' local List/Detail fork uses the same kit hosts as the shared shell. */
+
+/* ── Octave kit hosts (2026-10-20) — host layout only, never kit internals.
+   Top-bar and header controls are kit outlined Icon Buttons on the card
+   fill; the kit pins its host background inline, hence !important. Shared
+   code still toggles .hidden / .active / .pinned on them by id (pinned =
+   the gray action-selected fill, never blue). */
+uxt-icon-button.kit-bar-btn { background: var(--k-card) !important; border-radius: var(--k-pill); flex-shrink: 0; }
+uxt-icon-button.kit-bar-btn.hidden { display: none !important; }
+uxt-icon-button.kit-bar-btn.active,
+uxt-icon-button.kit-bar-btn.pinned { background: var(--k-selected) !important; }
+/* Shared code shows the discard pill with .show; the kit sets an inline
+   display on connect, so the hidden state needs !important. */
+uxt-button.text-editor-discard:not(.show) { display: none !important; }
+/* LOV search row: a kit search bar; shared openLov() toggles .hidden. */
+.kit-sheet-search.hidden { display: none; }
 </style>
 </head>
 <body>
@@ -63,9 +93,7 @@
 
   <header class="nav" onclick="scrollFormToTop()">
     <div class="nav-left">
-      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation();navBack()">
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
+      <uxt-icon-button class="kit-bar-btn" icon="arrow-back" label="Back" outlined density="m" onclick="event.stopPropagation();navBack()"></uxt-icon-button>
       <span class="prototype-label">PROTOTYPE</span>
     </div>
     <div class="nav-title">Equipment</div>
@@ -88,25 +116,23 @@
         <span class="rec-desc" id="recDesc" onclick="openDescEditor(event)">Pump, Centrifugal</span>
       </div>
       <div class="rec-header-actions">
-        <button class="rec-pin-btn" id="recPinBtn" onclick="event.stopPropagation(); toggleRecordPin()" aria-label="Pin record" title="Pin to my list">
-          <svg class="pin-outline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
-          <svg class="pin-fill" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22h1v-5h-1z"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
-        </button>
-        <button class="rec-ellipsis-btn" id="recEllipsisBtn" onclick="event.stopPropagation(); toggleRecActionsMenu()" aria-label="More actions">
-          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
-        </button>
+        <!-- Pin / ⋮ → kit outlined Icon Buttons (2026-10-20). Pinned shows as the
+             gray selected fill (shared toggleRecordPin() toggles .pinned), never
+             a filled glyph: kit icons stay outlined in every state. -->
+        <uxt-icon-button class="kit-bar-btn" id="recPinBtn" icon="keep" label="Pin to my list" outlined density="m" onclick="event.stopPropagation(); toggleRecordPin()"></uxt-icon-button>
+        <uxt-icon-button class="kit-bar-btn" id="recEllipsisBtn" icon="more-vert" label="More actions" outlined density="m" onclick="event.stopPropagation(); toggleRecActionsMenu()"></uxt-icon-button>
         <div class="rec-actions-menu" id="recActionsMenu">
           <div class="rec-actions-group">
-            <div class="rec-actions-item" onclick="recCopyLink()">Copy Link</div>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" text="Copy Link" onclick="recCopyLink()"></uxt-list-item>
           </div>
           <div class="rec-actions-divider"></div>
           <div class="rec-actions-group">
-            <div class="rec-actions-item" onclick="recCopyRecord()">Copy</div>
-            <div class="rec-actions-item danger" onclick="recDeleteRecord()">Delete</div>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" text="Copy" onclick="recCopyRecord()"></uxt-list-item>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" text="Delete" onclick="recDeleteRecord()"></uxt-list-item>
           </div>
           <div class="rec-actions-divider"></div>
           <div class="rec-actions-group" id="recActionsScreenSpecific">
-            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Create/Insert Mode popup coming soon')">Create WO</div>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" text="Create WO" onclick="closeRecActionsMenu(); showToast('Create/Insert Mode popup coming soon')"></uxt-list-item>
           </div>
         </div>
       </div>
@@ -138,19 +164,13 @@
         <span class="rec-desc protected" id="listDetailDesc">Pump, Centrifugal</span>
       </div>
       <div class="rec-header-actions">
-        <button class="rec-ellipsis-btn" id="listDetailPlusBtn" onclick="event.stopPropagation(); onListDetailPlusTap()" aria-label="Add">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
-        <button class="rec-ellipsis-btn" id="listDetailSearchBtn" onclick="event.stopPropagation(); onListDetailSearchTap()" aria-label="Search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        </button>
-        <button class="rec-ellipsis-btn" onclick="event.stopPropagation(); toggleListDetailMenu()" aria-label="More actions">
-          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
-        </button>
+        <uxt-icon-button class="kit-bar-btn" id="listDetailPlusBtn" icon="add" label="Add" outlined density="m" onclick="event.stopPropagation(); onListDetailPlusTap()"></uxt-icon-button>
+        <uxt-icon-button class="kit-bar-btn" id="listDetailSearchBtn" icon="search" label="Search" outlined density="m" onclick="event.stopPropagation(); onListDetailSearchTap()"></uxt-icon-button>
+        <uxt-icon-button class="kit-bar-btn" icon="more-vert" label="More actions" outlined density="m" onclick="event.stopPropagation(); toggleListDetailMenu()"></uxt-icon-button>
         <div class="rec-actions-menu" id="listDetailMenu">
-          <div class="rec-actions-group"><div class="rec-actions-item" onclick="closeListDetailMenu(); showToast('Sort — coming soon')">Sort</div></div>
+          <div class="rec-actions-group"><uxt-list-item class="kit-menu-row" role="menuitem" density="m" text="Sort" onclick="closeListDetailMenu(); showToast('Sort — coming soon')"></uxt-list-item></div>
           <div class="rec-actions-divider"></div>
-          <div class="rec-actions-group"><div class="rec-actions-item" onclick="closeListDetailMenu(); showToast('Detailed/List view toggle — coming soon')">View: Detailed</div></div>
+          <div class="rec-actions-group"><uxt-list-item class="kit-menu-row" role="menuitem" density="m" text="View: Detailed" onclick="closeListDetailMenu(); showToast('Detailed/List view toggle — coming soon')"></uxt-list-item></div>
         </div>
       </div>
     </div>
@@ -189,9 +209,9 @@
   <div class="bottom-sheet" id="syncPanelSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Sync Status</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sync-panel-state" id="syncPanelStateLabel"></div>
     <div class="sheet-body" id="syncPanelList"></div>
@@ -201,13 +221,12 @@
   <div class="bottom-sheet" id="lovSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title" id="lovSheetTitle">Select value</div>
-      <button class="sheet-clear-btn" id="lovClearBtn" onclick="clearLov()">Clear</button>
+      <uxt-button class="sheet-clear-btn kit-sheet-text-btn" id="lovClearBtn" variant="text" tone="neutral" text="Clear" onclick="clearLov()"></uxt-button>
     </div>
-    <div class="lov-search-row" id="lovSearchRow">
-      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <input class="lov-search-input" id="lovSearchInput" placeholder="Search" oninput="filterLovOptions(this.value)">
+    <div class="kit-sheet-search" id="lovSearchRow">
+      <uxt-search-bar id="lovSearchInput" density="m" placeholder="Search" oninput="filterLovOptions(this.value)"></uxt-search-bar>
     </div>
     <div class="sheet-body" id="lovSheetBody"></div>
   </div>
@@ -215,9 +234,9 @@
   <div class="bottom-sheet" id="dataspySheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Select dataspy</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sheet-body" id="dataspySheetBody"></div>
   </div>
@@ -225,12 +244,12 @@
   <div class="bottom-sheet" id="editSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title" id="editSheetTitle">Edit field</div>
       <!-- Clear + ✓ share the right slot; the bottom Save pill is gone for the
            same keyboard-collision reason as the long-text editor (§3.4). -->
       <div class="sheet-header-right">
-        <button class="sheet-clear-btn" id="editClearBtn" onclick="clearEdit()">Clear</button>
+        <uxt-button class="sheet-clear-btn kit-sheet-text-btn" id="editClearBtn" variant="text" tone="neutral" text="Clear" onclick="clearEdit()"></uxt-button>
         <button class="sheet-confirm-btn" id="editConfirmBtn" onclick="saveEdit()" aria-label="Save"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>
       </div>
     </div>
@@ -240,15 +259,15 @@
   <div class="bottom-sheet" id="dateSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title" id="dateSheetTitle">Select date</div>
-      <button class="sheet-clear-btn" id="dateClearBtn" onclick="clearDate()">Clear</button>
+      <uxt-button class="sheet-clear-btn kit-sheet-text-btn" id="dateClearBtn" variant="text" tone="neutral" text="Clear" onclick="clearDate()"></uxt-button>
     </div>
     <div class="sheet-body">
       <div class="cal-header">
-        <button class="cal-nav-btn" onclick="calNavMonth(-1)">‹</button>
+        <uxt-icon-button icon="chevron-left" label="Previous month" density="m" onclick="calNavMonth(-1)"></uxt-icon-button>
         <span class="cal-month-label" id="calMonthLabel">July 2026</span>
-        <button class="cal-nav-btn" onclick="calNavMonth(1)">›</button>
+        <uxt-icon-button icon="chevron-right" label="Next month" density="m" onclick="calNavMonth(1)"></uxt-icon-button>
       </div>
       <div class="cal-weekdays"><span class="cal-weekday">Sun</span><span class="cal-weekday">Mon</span><span class="cal-weekday">Tue</span><span class="cal-weekday">Wed</span><span class="cal-weekday">Thu</span><span class="cal-weekday">Fri</span><span class="cal-weekday">Sat</span></div>
       <div class="cal-grid" id="calGrid"></div>
@@ -258,8 +277,8 @@
   <div class="bottom-sheet text-editor-sheet" id="textEditorSheet">
     <div class="text-editor-header">
       <div class="text-editor-left">
-        <button class="text-editor-close" id="textEditorCloseBtn" onclick="textEditorCloseTap()">✕</button>
-        <button class="text-editor-discard" id="textEditorDiscard" onclick="textEditorConfirmDiscard()">Discard unsaved changes</button>
+        <uxt-icon-button class="kit-sheet-close" id="textEditorCloseBtn" icon="close" label="Close" density="m" onclick="textEditorCloseTap()"></uxt-icon-button>
+        <uxt-button class="text-editor-discard" id="textEditorDiscard" variant="outlined" tone="error" text="Discard unsaved changes" onclick="textEditorConfirmDiscard()"></uxt-button>
       </div>
       <div class="text-editor-title" id="textEditorTitle">Edit</div>
       <!-- ✓ replaces the old bottom Save pill (§3.4, 2026-08-11): a pill at the
@@ -283,9 +302,9 @@
   <div class="bottom-sheet" id="commentActionsSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Comment Actions</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sheet-body" id="commentActionsBody"></div>
   </div>
@@ -948,22 +967,18 @@ function renderCostsTab() {
   return `
     ${state.searchOpen ? `
     <div class="ld-search-bar">
-      <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input class="ld-search-input" type="text" placeholder="Search Costs" value="${(state.search||'').replace(/"/g,'&quot;')}" oninput="onListDetailSearchInput('costs', this.value)" autocomplete="off">
-      <button class="ld-search-close" onclick="toggleListDetailSearch('costs')" aria-label="Close search"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+      <uxt-search-bar class="ld-search-input" density="m" placeholder="Search Costs" value="${kitEsc(state.search || '')}" oninput="onListDetailSearchInput('costs', this.value)"></uxt-search-bar>
+      <uxt-icon-button icon="close" label="Close search" density="m" onclick="toggleListDetailSearch('costs')"></uxt-icon-button>
     </div>` : ''}
     <div class="ds-bar" onclick="openDataspySheet('costs')">
       <div class="ds-icon-w"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg></div>
       <div class="ds-body"><div class="ds-name">${ds.name}</div><div class="ds-count">${rows.length} work order${rows.length===1?'':'s'}</div></div>
       <svg class="ds-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-    <div class="mode-tog">
-      <button class="mode-btn ${mode==='detailed'?'active':''}" onclick="setListDetailMode('costs','detailed')">Detailed</button>
-      <button class="mode-btn ${mode==='list'?'active':''}" onclick="setListDetailMode('costs','list')">List</button>
-    </div>
+    ${kitToggleGroup('', [['detailed', 'Detailed'], ['list', 'List']], mode, "setListDetailMode('costs',")}
     <div class="res-row">
       <span class="res-count">${rows.length} work order${rows.length===1?'':'s'}</span>
-      <button class="sort-btn" onclick="showToast('Sort — coming soon')"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="14" y2="6"/><line x1="4" y1="12" x2="11" y2="12"/><line x1="4" y1="18" x2="8" y2="18"/><path d="M17 4v16m0 0l3-3m-3 3l-3-3"/></svg>Total cost</button>
+      <uxt-button class="kit-sort-btn" variant="text" tone="neutral" text="Sort: Total cost" onclick="showToast('Sort — coming soon')"></uxt-button>
     </div>
     <div class="plain-list">${rows.map(r => `
       <div class="plain-row" data-search="${('wo '+r.wo+' '+r.type+' '+r.status).toLowerCase()}" onclick="showToast('Opens this record in Update Mode — code/PK protected there (coming soon)')">
@@ -1011,7 +1026,7 @@ function renderStructureTab() {
       <div class="tree-row current">
         <div class="tree-icon">${ICONS.structure}</div>
         <div class="tree-body"><div class="tree-type">Asset</div><div class="tree-desc">Pump, Centrifugal</div><div class="tree-code">A-00067333</div></div>
-        <span class="tree-here">YOU ARE HERE</span>
+        <uxt-tag text="You are here" severity="info" density="m"></uxt-tag>
       </div>
     </div>
   </div><div style="height:16px;"></div>`;

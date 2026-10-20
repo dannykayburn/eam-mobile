@@ -15,6 +15,18 @@
 <title>HxGN EAM Mobile — WO Record View</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
+<!-- The kit icon registry has no pin glyph yet, so the record pin registers
+     Material Symbols "keep" (outlined, weight 400, rescaled to 24) through the
+     kit's own OctaveDesignKit.icons.register(), then re-renders the button.
+     Remove once the kit ships "keep". Module scripts run in order, so this
+     runs after design-kit.js has defined its elements. -->
+<script type="module">
+const kitIcons = window.OctaveDesignKit && window.OctaveDesignKit.icons;
+if (kitIcons) {
+  kitIcons.register({ keep: '<g transform="scale(0.025) translate(0 960)"><path d="m640-480 80 80v80H520v240l-40 40-40-40v-240H240v-80l80-80v-280h-40v-80h400v80h-40v280Zm-286 80h252l-46-46v-314H400v314l-46 46Zm126 0Z"/></g>' });
+  document.querySelectorAll('uxt-icon-button[icon="keep"]').forEach(b => b.setAttribute('icon', 'keep'));
+}
+</script>
 <link rel="stylesheet" href="shared/eam-fonts.css?v=202609211648">
 <link rel="stylesheet" href="shared/eam-shared.css?v=202609211648">
 <!--
@@ -128,10 +140,13 @@
      note (act.name) is the only optional line — collapses with no gap
      when absent (.has-note only adds the block's top margin when a
      note is actually present). ── */
-.act-item { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s; position: relative; }
+/* Octave kit (2026-10-20): rows on kit tokens (16/12px spacing, hover
+   overlay, selected = the gray action-selected fill, never blue); the radio
+   is the kit <uxt-radio-button>, inert inside the row that owns the tap. */
+.act-item { display: flex; align-items: center; gap: var(--k-sm); padding: var(--k-sm) var(--k-s4); border-bottom: 1px solid var(--k-divider); cursor: pointer; transition: background .15s; position: relative; }
 .act-item:last-child { border-bottom: none; }
-.act-item:hover { background: var(--bg-section); }
-.act-item.selected { background: var(--bg-section); }
+.act-item:hover { background: var(--k-hover); }
+.act-item.selected { background: var(--k-selected); }
 /* Closed/Completed protection (added 2026-07-29, direct feedback) — same
    .protected dimming every other locked field/row in the app already
    uses (.attr-item.protected/.form-field.protected, eam-shared.css).
@@ -139,19 +154,16 @@
    visual half. No hover wash while protected — nothing happens on tap. */
 .act-item.protected { opacity: .75; cursor: default; }
 .act-item.protected:hover { background: none; }
-.act-item.selected::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--octave-black); }
-[data-theme="dark"] .act-item.selected::before { background: var(--white); }
-.act-radio { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--border-strong); background: var(--bg-section); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .15s; }
-.act-item.selected .act-radio { border-color: var(--octave-black); background: var(--octave-black); }
-[data-theme="dark"] .act-item.selected .act-radio { border-color: var(--white); background: var(--white); }
-.act-radio svg { display: none; color: white; }
-.act-item.selected .act-radio svg { display: block; }
-[data-theme="dark"] .act-item.selected .act-radio svg { color: var(--octave-black); }
-.act-num-big { font-size: 1.375rem; font-weight: 700; font-family: var(--font-mono); color: var(--octave-black); flex-shrink: 0; width: 32px; text-align: center; }
-[data-theme="dark"] .act-num-big { color: rgba(255,255,255,.9); }
+.act-item.selected::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--k-text); }
+uxt-radio-button.act-radio { flex-shrink: 0; }
+/* KIT GAP: <uxt-radio-button> always paints its label (falls back to the
+   word "Label"), and this row's big activity number already says it. The
+   label stays for screen readers, visually hidden. Drop this once the kit
+   has a label-less radio. */
+uxt-radio-button.act-radio .rb-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.act-num-big { font-size: 1.375rem; font-weight: 700; font-family: var(--font-mono); color: var(--k-text); flex-shrink: 0; width: 32px; text-align: center; }
 .act-info { flex: 1; min-width: 0; }
-.act-name { font-size: 0.8125rem; font-weight: 600; color: var(--octave-black); line-height: 1.35; }
-[data-theme="dark"] .act-name { color: rgba(255,255,255,.9); }
+.act-name { font-size: var(--k-body2); font-weight: 500; color: var(--k-text); line-height: 1.43; }
 .act-item.selected .act-name { font-weight: 700; }
 .act-meta-block { margin-top: 0; }
 .has-note .act-meta-block { margin-top: 7px; }
@@ -170,9 +182,8 @@
    for browsers/pointer input that don't honor inputmode. Same treatment
    should apply to Currency once a grid cell needs one; screen-local for
    now (only 1 real consumer), promote to eam-shared.css on a 2nd. */
-.attr-text-input { font-size: 1rem; font-weight: 600; color: var(--octave-black); font-family: var(--font-sans); border: none; background: none; outline: none; padding: 0; width: 100%; text-align: left; }
-[data-theme="dark"] .attr-text-input { color: rgba(255,255,255,.9); }
-.attr-text-input::placeholder { color: var(--gray-3); font-weight: 500; }
+.attr-text-input { font-size: 1rem; font-weight: 500; color: var(--k-text); font-family: var(--font-sans); border: none; background: none; outline: none; padding: 0; width: 100%; text-align: left; }
+.attr-text-input::placeholder { color: var(--k-hint); font-weight: 400; }
 /* Same-day follow-up (2026-07-23): the grid cell's own onclick now
    explicitly focuses its <input> — tapping the LABEL (or anywhere else in
    the cell) puts the field into edit mode, not just the exact input box.
@@ -181,18 +192,15 @@
    this. Activity's own number field converts to the same inline-input
    pattern here too (was still the old openEdit()-popup shape) — its
    trailing chevron is gone since there's no popup left for it to imply. */
-.act-num-big-input { font-size: 1.375rem; font-weight: 700; font-family: var(--font-mono); color: var(--octave-black); flex: 1; width: auto; text-align: right; border: none; background: none; outline: none; padding: 0; }
-[data-theme="dark"] .act-num-big-input { color: rgba(255,255,255,.9); }
-.meta-grid-a { display: flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-.meta-cell-a { flex: 1 1 50%; padding: 7px 10px; border-left: 1px solid var(--border); border-top: 1px solid var(--border); }
+.act-num-big-input { font-size: 1.375rem; font-weight: 700; font-family: var(--font-mono); color: var(--k-text); flex: 1; width: auto; text-align: right; border: none; background: none; outline: none; padding: 0; }
+.meta-grid-a { display: flex; flex-wrap: wrap; border: 1px solid var(--k-divider); border-radius: var(--k-r); overflow: hidden; }
+.meta-cell-a { flex: 1 1 50%; padding: var(--k-s2); border-left: 1px solid var(--k-divider); border-top: 1px solid var(--k-divider); }
 .meta-cell-a:nth-child(odd) { border-left: none; }
 .meta-cell-a:nth-child(-n+2) { border-top: none; }
-.meta-cell-label { font-size: 0.625rem; color: var(--gray-4); display: block; margin-bottom: 3px; }
-.trade-code { font-size: 0.625rem; color: var(--gray-4); font-family: var(--font-mono); display: block; }
-.trade-desc { font-size: 0.75rem; font-weight: 600; color: var(--octave-black); }
-[data-theme="dark"] .trade-desc { color: rgba(255,255,255,.9); }
-.date-val { font-size: 0.75rem; font-weight: 600; color: var(--octave-black); font-family: var(--font-mono); }
-[data-theme="dark"] .date-val { color: rgba(255,255,255,.9); }
+.meta-cell-label { font-size: var(--k-caption); color: var(--k-text-2); display: block; margin-bottom: var(--k-s1); }
+.trade-code { font-size: var(--k-caption); color: var(--k-text-2); font-family: var(--font-mono); display: block; }
+.trade-desc { font-size: var(--k-body2); font-weight: 500; color: var(--k-text); }
+.date-val { font-size: var(--k-body2); font-weight: 500; color: var(--k-text); font-family: var(--font-mono); }
 
 /* Completed-activity state (2026-07-23, corrected same day — 2nd live
    review). "Superscript" was the user's own shorthand for a strikethrough
@@ -228,14 +236,13 @@
    session's other bumped icon buttons, e.g. the header's pin/ellipsis). */
 /* Was purple — same "no color outside the 3 instruments" rule as
    everything else on this screen (palette pass, 2026-07-22). */
-.rv-icon-btn { background: none; border: none; color: var(--gray-4); cursor: pointer; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 8px; transition: background .15s; flex-shrink: 0; }
-.rv-icon-btn:hover { background: var(--bg-section); color: var(--octave-black); }
-[data-theme="dark"] .rv-icon-btn:hover { color: var(--white); }
+/* Now kit Icon Buttons (2026-10-20): 40px circle, glyph-default, halo states. */
+.rv-toggle-right > uxt-icon-button { flex-shrink: 0; }
 
 /* Empty-value state for a badge-less grid cell (Route defaults empty on
    every WO). Mirrors .field-lov-desc.muted's role on the List rows;
    selectLov() removes this class on pick, clearLov() puts it back. */
-.attr-text.muted { color: var(--gray-3); }
+.attr-text.muted { color: var(--k-hint); }
 
 /* Route / MEC indicator pill (§16.9) — inside Equipment's own .attr-item,
    below the badge+value row. Screen-local (no 2nd consumer yet) — see
@@ -247,27 +254,36 @@
    but solid), the Route code in mono per §3.4, and a count badge for how
    many equipment records sit behind it. Still strictly monochrome — this is
    navigation, not one of §23's colour instruments. */
-.equip-route-pill { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 5px 8px 5px 5px; background: var(--bg-card); border: 1.5px solid var(--border-strong); border-radius: 100px; font-size: 0.78125rem; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.06); transition: border-color .15s, box-shadow .15s, transform .1s; }
-.equip-route-pill:hover { border-color: var(--octave-black); box-shadow: 0 2px 9px rgba(0,0,0,.11); }
-[data-theme="dark"] .equip-route-pill:hover { border-color: var(--white); }
-.equip-route-pill:active { transform: scale(0.985); }
-.erp-icon { width: 24px; height: 24px; border-radius: 50%; background: var(--octave-black); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-[data-theme="dark"] .erp-icon { background: var(--white); color: var(--octave-black); }
-/* All three text parts share ONE font-size and line-height:1, differing only
-   by family/weight/colour — the first pass mixed 9.5px uppercase, 12px mono
-   and 12.5px bold, which read as unbalanced and sat on visibly different
-   baselines (the tiny uppercase kicker was the worst offender). line-height:1
-   plus the row's align-items:center is what actually gets mono and sans
-   glyphs optically centred against each other. */
-.erp-kicker { font-size: 0.78125rem; font-weight: 600; line-height: 1; color: var(--gray-4); flex-shrink: 0; }
-.erp-code { font-family: var(--font-mono); font-size: 0.78125rem; font-weight: 600; line-height: 1; color: var(--octave-black); flex-shrink: 0; }
-[data-theme="dark"] .erp-code { color: var(--white); }
-.erp-desc { font-size: 0.78125rem; font-weight: 700; line-height: 1; color: var(--octave-black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-[data-theme="dark"] .erp-desc { color: rgba(255,255,255,.92); }
-/* Counter Badge convention (§23.5) — org-pill recipe, no gray fill. */
-.erp-count { margin-left: auto; flex-shrink: 0; background: transparent; border: 1px solid var(--border-strong); border-radius: 100px; padding: 3px 9px; font-family: var(--font-mono); font-size: 0.6875rem; font-weight: 700; line-height: 1; color: var(--octave-black); }
-[data-theme="dark"] .erp-count { color: var(--white); }
-.equip-route-pill > svg:last-child { flex-shrink: 0; color: var(--gray-4); margin-right: 1px; }
+/* Octave kit (2026-10-20): no kit element composes a nav row with a mono
+   code, a count and a chevron, so the pill stays markup on kit tokens —
+   card fill, 1px border-control, full radius, hover overlay, 8px gaps, Body 2
+   text, and the count on the shared counter-badge look (.rv-badge). */
+.equip-route-pill { display: flex; align-items: center; gap: var(--k-s2); margin-top: var(--k-s2); min-height: var(--k-h); padding: var(--k-s1) var(--k-s2) var(--k-s1) var(--k-s1); background: var(--k-card); border: 1px solid var(--k-control); border-radius: var(--k-pill); font-size: var(--k-body2); cursor: pointer; transition: background .15s; }
+.equip-route-pill:hover { background: linear-gradient(var(--k-hover), var(--k-hover)), var(--k-card); }
+.erp-icon { width: 32px; height: 32px; border-radius: 50%; background: var(--k-selected); color: var(--k-glyph); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.erp-icon svg { width: 18px; height: 18px; }
+/* All three text parts share ONE font-size and line-height:1 so mono and
+   sans glyphs sit on one baseline (Danny's 2026-08-10 note). */
+.erp-kicker { font-size: var(--k-body2); font-weight: 400; line-height: 1; color: var(--k-text-2); flex-shrink: 0; }
+.erp-code { font-family: var(--font-mono); font-size: var(--k-body2); font-weight: 500; line-height: 1; color: var(--k-text); flex-shrink: 0; }
+.erp-desc { font-size: var(--k-body2); font-weight: 500; line-height: 1; color: var(--k-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.erp-count { margin-left: auto; flex-shrink: 0; font-size: var(--k-caption); font-weight: 400; min-width: 16px; height: 16px; line-height: 16px; padding: 0 var(--k-s1); text-align: center; border-radius: var(--k-pill); background: var(--k-selected); color: var(--k-text-2); }
+.equip-route-pill > svg:last-child { flex-shrink: 0; color: var(--k-glyph); }
+
+/* ── Octave kit hosts (2026-10-20) — host layout only, never kit internals.
+   Top-bar and header controls are kit outlined Icon Buttons on the card
+   fill; the kit pins its host background inline, hence !important. Shared
+   code still toggles .hidden / .active / .pinned on them by id (pinned =
+   the gray action-selected fill, never blue). */
+uxt-icon-button.kit-bar-btn { background: var(--k-card) !important; border-radius: var(--k-pill); flex-shrink: 0; }
+uxt-icon-button.kit-bar-btn.hidden { display: none !important; }
+uxt-icon-button.kit-bar-btn.active,
+uxt-icon-button.kit-bar-btn.pinned { background: var(--k-selected) !important; }
+/* Shared code shows the discard pill with .show; the kit sets an inline
+   display on connect, so the hidden state needs !important. */
+uxt-button.text-editor-discard:not(.show) { display: none !important; }
+/* LOV search row: a kit search bar; shared openLov() toggles .hidden. */
+.kit-sheet-search.hidden { display: none; }
 </style>
 </head>
 <body>
@@ -277,9 +293,7 @@
 
   <header class="nav" onclick="scrollFormToTop()">
     <div class="nav-left">
-      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation();navBack()">
-        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
+      <uxt-icon-button class="kit-bar-btn" icon="arrow-back" label="Back" outlined density="m" onclick="event.stopPropagation();navBack()"></uxt-icon-button>
       <span class="prototype-label">PROTOTYPE</span>
     </div>
     <div class="nav-title">Work Orders</div>
@@ -295,25 +309,23 @@
         <span class="rec-desc" id="recDesc" onclick="openDescEditor(event)">Pump Cavitating; lost head</span>
       </div>
       <div class="rec-header-actions">
-        <button class="rec-pin-btn" id="recPinBtn" onclick="event.stopPropagation(); toggleRecordPin()" aria-label="Pin record" title="Pin to my list">
-          <svg class="pin-outline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
-          <svg class="pin-fill" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22h1v-5h-1z"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
-        </button>
-        <button class="rec-ellipsis-btn" id="recEllipsisBtn" onclick="event.stopPropagation(); toggleRecActionsMenu()" aria-label="More actions">
-          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
-        </button>
+        <!-- Pin / ⋮ → kit outlined Icon Buttons (2026-10-20). Pinned shows as the
+             gray selected fill (shared toggleRecordPin() toggles .pinned), never
+             a filled glyph: kit icons stay outlined in every state. -->
+        <uxt-icon-button class="kit-bar-btn" id="recPinBtn" icon="keep" label="Pin to my list" outlined density="m" onclick="event.stopPropagation(); toggleRecordPin()"></uxt-icon-button>
+        <uxt-icon-button class="kit-bar-btn" id="recEllipsisBtn" icon="more-vert" label="More actions" outlined density="m" onclick="event.stopPropagation(); toggleRecActionsMenu()"></uxt-icon-button>
         <div class="rec-actions-menu" id="recActionsMenu">
           <div class="rec-actions-group">
-            <div class="rec-actions-item" onclick="recCopyLink()">Copy Link</div>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" text="Copy Link" onclick="recCopyLink()"></uxt-list-item>
           </div>
           <div class="rec-actions-divider"></div>
           <div class="rec-actions-group">
-            <div class="rec-actions-item" onclick="recCopyRecord()">Copy</div>
-            <div class="rec-actions-item danger" onclick="recDeleteRecord()">Delete</div>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" text="Copy" onclick="recCopyRecord()"></uxt-list-item>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" text="Delete" onclick="recDeleteRecord()"></uxt-list-item>
           </div>
           <div class="rec-actions-divider"></div>
           <div class="rec-actions-group" id="recActionsScreenSpecific">
-            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Printing work order — coming soon')">Print Work Order</div>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" text="Print Work Order" onclick="closeRecActionsMenu(); showToast('Printing work order — coming soon')"></uxt-list-item>
           </div>
         </div>
       </div>
@@ -367,10 +379,10 @@
 
   <!-- BOTTOM BAR — locked until an activity is selected (§14.7) -->
   <div class="bottom-bar" id="bottomBar">
-    <button class="bar-pill bar-pill-locked" id="barBtn" onclick="onBarPillTap()">
-      <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <span id="barBtnLabel">Select an activity to start</span>
-    </button>
+    <!-- Kit Button (2026-10-20). Locked = outlined (still tappable: it
+         explains itself in a toast, §14.7), ready = contained primary.
+         updateStartGate() drives `variant` and `text`. -->
+    <uxt-button class="kit-btn-block" id="barBtn" variant="outlined" text="Select an activity to start" onclick="onBarPillTap()"></uxt-button>
   </div>
 
   <!-- ── SHEETS (shared component markup — behavior lives in eam-shared.js) ── -->
@@ -384,9 +396,9 @@
   <div class="bottom-sheet" id="syncPanelSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Sync Status</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sync-panel-state" id="syncPanelStateLabel"></div>
     <div class="sheet-body" id="syncPanelList"></div>
@@ -402,12 +414,12 @@
   <div class="bottom-sheet" id="editSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title" id="editSheetTitle">Edit field</div>
       <!-- Clear + ✓ share the right slot; the bottom Save pill is gone for the
            same keyboard-collision reason as the long-text editor (§3.4). -->
       <div class="sheet-header-right">
-        <button class="sheet-clear-btn" id="editClearBtn" onclick="clearEdit()">Clear</button>
+        <uxt-button class="sheet-clear-btn kit-sheet-text-btn" id="editClearBtn" variant="text" tone="neutral" text="Clear" onclick="clearEdit()"></uxt-button>
         <button class="sheet-confirm-btn" id="editConfirmBtn" onclick="saveEdit()" aria-label="Save"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>
       </div>
     </div>
@@ -417,13 +429,12 @@
   <div class="bottom-sheet" id="lovSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title" id="lovSheetTitle">Select value</div>
-      <button class="sheet-clear-btn" id="lovClearBtn" onclick="clearLov()">Clear</button>
+      <uxt-button class="sheet-clear-btn kit-sheet-text-btn" id="lovClearBtn" variant="text" tone="neutral" text="Clear" onclick="clearLov()"></uxt-button>
     </div>
-    <div class="lov-search-row" id="lovSearchRow">
-      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <input class="lov-search-input" id="lovSearchInput" placeholder="Search" oninput="filterLovOptions(this.value)">
+    <div class="kit-sheet-search" id="lovSearchRow">
+      <uxt-search-bar id="lovSearchInput" density="m" placeholder="Search" oninput="filterLovOptions(this.value)"></uxt-search-bar>
     </div>
     <div class="sheet-body" id="lovSheetBody"></div>
   </div>
@@ -431,15 +442,15 @@
   <div class="bottom-sheet" id="dateSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title" id="dateSheetTitle">Select date</div>
-      <button class="sheet-clear-btn" id="dateClearBtn" onclick="clearDate()">Clear</button>
+      <uxt-button class="sheet-clear-btn kit-sheet-text-btn" id="dateClearBtn" variant="text" tone="neutral" text="Clear" onclick="clearDate()"></uxt-button>
     </div>
     <div class="sheet-body">
       <div class="cal-header">
-        <button class="cal-nav-btn" onclick="calNavMonth(-1)">‹</button>
+        <uxt-icon-button icon="chevron-left" label="Previous month" density="m" onclick="calNavMonth(-1)"></uxt-icon-button>
         <span class="cal-month-label" id="calMonthLabel">July 2026</span>
-        <button class="cal-nav-btn" onclick="calNavMonth(1)">›</button>
+        <uxt-icon-button icon="chevron-right" label="Next month" density="m" onclick="calNavMonth(1)"></uxt-icon-button>
       </div>
       <div class="cal-weekdays"><span class="cal-weekday">Sun</span><span class="cal-weekday">Mon</span><span class="cal-weekday">Tue</span><span class="cal-weekday">Wed</span><span class="cal-weekday">Thu</span><span class="cal-weekday">Fri</span><span class="cal-weekday">Sat</span></div>
       <div class="cal-grid" id="calGrid"></div>
@@ -449,8 +460,8 @@
   <div class="bottom-sheet text-editor-sheet" id="textEditorSheet">
     <div class="text-editor-header">
       <div class="text-editor-left">
-        <button class="text-editor-close" id="textEditorCloseBtn" onclick="textEditorCloseTap()">✕</button>
-        <button class="text-editor-discard" id="textEditorDiscard" onclick="textEditorConfirmDiscard()">Discard unsaved changes</button>
+        <uxt-icon-button class="kit-sheet-close" id="textEditorCloseBtn" icon="close" label="Close" density="m" onclick="textEditorCloseTap()"></uxt-icon-button>
+        <uxt-button class="text-editor-discard" id="textEditorDiscard" variant="outlined" tone="error" text="Discard unsaved changes" onclick="textEditorConfirmDiscard()"></uxt-button>
       </div>
       <div class="text-editor-title" id="textEditorTitle">Edit</div>
       <!-- ✓ replaces the old bottom Save pill (§3.4, 2026-08-11): a pill at the
@@ -488,9 +499,9 @@
   <div class="bottom-sheet" id="commentActionsSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Comment Actions</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sheet-body" id="commentActionsBody"></div>
   </div>
@@ -502,13 +513,16 @@
        needs more room for a search list + a tree. -->
   <div class="hyperlink-popup" id="equipmentPopup">
     <div class="insert-mode-header">
-      <button class="sheet-close" onclick="closeHyperlinkPopup('equipmentPopup')">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeHyperlinkPopup('equipmentPopup')"></uxt-icon-button>
       <div class="insert-mode-title">Select Equipment</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
-    <div class="mode-tog">
-      <button class="mode-btn active" id="equipTabBtnSearch" onclick="switchEquipTab('search')">Search</button>
-      <button class="mode-btn" id="equipTabBtnStructure" onclick="switchEquipTab('structure')">Structure</button>
+    <!-- Search/Structure → kit toggle group (2026-10-20). The shared
+         switchEquipTab() still flips .active on #equipTabBtnSearch /
+         #equipTabBtnStructure, so those ids sit on the wrapper and the group;
+         the local switchEquipTab wrapper keeps the group's value in step. -->
+    <div class="kit-mode-tog" id="equipTabBtnSearch">
+      <uxt-toggle-button-group id="equipTabBtnStructure" density="m" options='[{"value":"search","label":"Search"},{"value":"structure","label":"Structure"}]' value="search" onchange="switchEquipTab(event.detail.value)"></uxt-toggle-button-group>
     </div>
     <div class="insert-mode-body" id="equipmentPopupBody">
       <div id="equipTabSearch">
@@ -527,15 +541,15 @@
        "Equipment LOV": WO Insert Mode (WO List's + Home's Create bar)
        carries this exact same markup + shared CSS/JS (2026-07-21). -->
   <div class="qr-scan-overlay" id="qrScanOverlay">
-    <div class="qr-scan-header">
-      <button class="qr-scan-close" onclick="closeEquipScan()" aria-label="Close scanner">✕</button>
+    <div class="qr-scan-header" data-uxt-theme="dark">
+      <uxt-icon-button icon="close" label="Close scanner" density="m" onclick="closeEquipScan()"></uxt-icon-button>
     </div>
     <div class="qr-scan-body">
       <div class="qr-scan-reticle"></div>
       <div class="qr-scan-hint">Point camera at the equipment's QR code</div>
     </div>
-    <div class="qr-scan-footer">
-      <button class="insert-save-btn ready" onclick="simulateQrScan()">Simulate scan</button>
+    <div class="qr-scan-footer" data-uxt-theme="dark">
+      <uxt-button class="kit-btn-block" variant="contained" text="Simulate scan" onclick="simulateQrScan()"></uxt-button>
     </div>
   </div>
 
@@ -546,12 +560,12 @@
        eam-shared.js). Plain <img> — long-press invokes the OS's own
        native Share/Copy/Save menu, nothing custom wired for it. -->
   <div class="photo-viewer-overlay" id="equipPhotoViewerOverlay">
-    <div class="photo-viewer-header">
-      <button class="photo-viewer-close" onclick="closeEquipPhotoViewer()" aria-label="Close">✕</button>
+    <div class="photo-viewer-header" data-uxt-theme="dark">
+      <uxt-icon-button icon="close" label="Close" density="m" onclick="closeEquipPhotoViewer()"></uxt-icon-button>
     </div>
     <div class="photo-viewer-body"><img id="equipPhotoViewerImg" src="" alt="Equipment photo"></div>
-    <div class="photo-viewer-footer">
-      <button class="photo-viewer-modify-btn" onclick="modifyEquipPhoto()">Modify</button>
+    <div class="photo-viewer-footer" data-uxt-theme="dark">
+      <uxt-button class="kit-btn-block" variant="contained" text="Modify" onclick="modifyEquipPhoto()"></uxt-button>
     </div>
   </div>
 
@@ -563,41 +577,14 @@
   <div class="bottom-sheet" id="equipPhotoSourceSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Set Equipment Photo</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sheet-body">
-      <div class="source-option" onclick="setEquipPhoto('camera')">
-        <div class="source-option-icon">
-          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="13" r="4" stroke="currentColor" stroke-width="2"/></svg>
-        </div>
-        <div class="source-option-texts">
-          <div class="source-option-title">Camera</div>
-          <div class="source-option-sub">Take a photo now</div>
-        </div>
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="var(--gray-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="source-option" onclick="setEquipPhoto('library')">
-        <div class="source-option-icon">
-          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-        <div class="source-option-texts">
-          <div class="source-option-title">Photo library</div>
-          <div class="source-option-sub">Choose from device photos</div>
-        </div>
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="var(--gray-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="source-option" onclick="setEquipPhoto('file')">
-        <div class="source-option-icon">
-          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-        <div class="source-option-texts">
-          <div class="source-option-title">File or document</div>
-          <div class="source-option-sub">PDF, Word, or other file</div>
-        </div>
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="var(--gray-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
+      <uxt-list-item class="source-option" density="m" icon="photo-camera" text="Camera" secondary="Take a photo now" onclick="setEquipPhoto('camera')"></uxt-list-item>
+      <uxt-list-item class="source-option" density="m" icon="image" text="Photo library" secondary="Choose from device photos" onclick="setEquipPhoto('library')"></uxt-list-item>
+      <uxt-list-item class="source-option" density="m" icon="description" text="File or document" secondary="PDF, Word, or other file" onclick="setEquipPhoto('file')"></uxt-list-item>
     </div>
   </div>
 
@@ -620,9 +607,9 @@
        defaults, and the title/footer verb. -->
   <div class="hyperlink-popup" id="activityEditPopup">
     <div class="insert-mode-header">
-      <button class="sheet-close" onclick="closeHyperlinkPopup('activityEditPopup')">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeHyperlinkPopup('activityEditPopup')"></uxt-icon-button>
       <div class="insert-mode-title" id="activityEditTitle">Edit Activity</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="insert-mode-body">
       <div class="form-field required" data-field="activityNumber" onclick="this.querySelector('input').focus()">
@@ -644,7 +631,7 @@
             <div class="attr-value">
               <div style="display:flex;flex-direction:column;align-items:flex-start;">
                 <span class="attr-text" id="fv-activityTrade-desc"></span>
-                <span id="fv-activityTrade-code" style="display:none;font-family:var(--font-mono);font-size:0.625rem;color:var(--gray-4);margin-top:1px;"></span>
+                <span id="fv-activityTrade-code" style="display:none;font-family:var(--font-mono);font-size:var(--k-caption);color:var(--k-text-2);"></span>
               </div>
             </div>
           </div>
@@ -669,7 +656,7 @@
             <div class="attr-value">
               <div style="display:flex;flex-direction:column;align-items:flex-start;">
                 <span class="attr-text" id="fv-activityTaskPlan-desc"></span>
-                <span id="fv-activityTaskPlan-code" style="display:none;font-family:var(--font-mono);font-size:0.625rem;color:var(--gray-4);margin-top:1px;"></span>
+                <span id="fv-activityTaskPlan-code" style="display:none;font-family:var(--font-mono);font-size:var(--k-caption);color:var(--k-text-2);"></span>
               </div>
             </div>
           </div>
@@ -678,7 +665,7 @@
             <div class="attr-value">
               <div style="display:flex;flex-direction:column;align-items:flex-start;">
                 <span class="attr-text" id="fv-activityMaterialList-desc"></span>
-                <span id="fv-activityMaterialList-code" style="display:none;font-family:var(--font-mono);font-size:0.625rem;color:var(--gray-4);margin-top:1px;"></span>
+                <span id="fv-activityMaterialList-code" style="display:none;font-family:var(--font-mono);font-size:var(--k-caption);color:var(--k-text-2);"></span>
               </div>
             </div>
           </div>
@@ -698,7 +685,7 @@
                after comparing 7 mockup options) needed no JS changes. -->
           <div class="attr-item checkbox-zone-row" data-field="activityCompleted" onclick="toggleCheckbox(this)">
             <span class="attr-label">Completed</span>
-            <div class="attr-checkbox-zone"><div class="field-checkbox"></div></div>
+            <div class="attr-checkbox-zone"><uxt-checkbox class="field-checkbox-kit" inert aria-label="Completed" value="unchecked"></uxt-checkbox></div>
           </div>
         </div>
       </div>
@@ -711,7 +698,7 @@
         <div class="section-card-body">
           <div class="form-field" data-field="activityMultipleTrades" onclick="toggleCheckbox(this)">
             <span class="field-label">Multiple Trades</span>
-            <div class="field-checkbox"></div>
+            <uxt-checkbox class="field-checkbox-kit" inert aria-label="Multiple Trades" value="unchecked"></uxt-checkbox>
           </div>
           <div class="form-field" data-field="activityHoursRemaining" onclick="openEdit('activityHoursRemaining','Hours Remaining','number')">
             <span class="field-label">Hours Remaining</span>
@@ -725,7 +712,7 @@
           </div>
           <div class="form-field" data-field="activityHiredLabor" onclick="toggleCheckbox(this); onActivityHiredLaborToggled()">
             <span class="field-label">Hired Labor</span>
-            <div class="field-checkbox"></div>
+            <uxt-checkbox class="field-checkbox-kit" inert aria-label="Hired Labor" value="unchecked"></uxt-checkbox>
           </div>
           <div class="form-field protected" data-field="activitySupplier" id="activitySupplierField" onclick="onActivityProtectedFieldTap('activitySupplier','Supplier')">
             <span class="field-label">Supplier</span>
@@ -751,7 +738,7 @@
       </div>
     </div>
     <div class="insert-mode-footer">
-      <button class="insert-save-btn ready" onclick="saveActivityEdit()">Save</button>
+      <uxt-button class="kit-btn-block" variant="contained" text="Save" onclick="saveActivityEdit()"></uxt-button>
     </div>
   </div>
 
@@ -1300,6 +1287,8 @@ function selectActivity(id) {
   RECORD.selectedActivity = id;
   document.querySelectorAll('.act-item').forEach(a => a.classList.remove('selected'));
   document.getElementById('act' + id)?.classList.add('selected');
+  // Kit radio (2026-10-20) mirrors the row's selection.
+  document.querySelectorAll('.act-item .act-radio').forEach(r => r.toggleAttribute('checked', r.getAttribute('value') === String(id)));
   markDirty();
   updateStartGate();
 }
@@ -1310,14 +1299,14 @@ function isActivityComplete(act) {
   return !!act.completed || act.assignmentStatus === 'Completed';
 }
 function renderActivitiesListHTML() {
-  if (!ACTIVITIES.length) return `<div class="comment-add-row" onclick="showToast('Create activity — coming soon')"><span class="comment-add-plus">+</span> Add Activity</div>`;
+  if (!ACTIVITIES.length) return `<uxt-list-item class="comment-add-row" density="m" icon="add" text="Add Activity" onclick="showToast('Create activity — coming soon')"></uxt-list-item>`;
   // Closed/Completed protection (§20, added 2026-07-29) — computed here,
   // not just toggled after the fact, so a later re-render (add/edit
   // activity) can't accidentally drop the dimming while the WO is closed.
   const isClosed = CLOSED_STATUS_CODES.has(LOV_CURRENT.__status);
   return ACTIVITIES.map(a => `
     <div class="act-item${a.id===RECORD.selectedActivity?' selected':''}${a.name ? ' has-note' : ''}${isActivityComplete(a) ? ' completed' : ''}${isClosed ? ' protected' : ''}" id="act${a.id}" onclick="selectActivity('${a.id}')" data-act="${a.id}">
-      <div class="act-radio"><svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <uxt-radio-button class="act-radio" inert name="woActivity" value="${a.id}" label="Activity ${a.id}"${a.id===RECORD.selectedActivity ? ' checked' : ''}></uxt-radio-button>
       <div class="act-num-big">${a.id}</div>
       <div class="act-info">
         ${a.name ? `<div class="act-name">${a.name}</div>` : ''}
@@ -1449,15 +1438,19 @@ function setLovCellText(key, code, desc) {
   descEl.classList.toggle('muted', !desc);
   if (codeEl) { codeEl.textContent = code; codeEl.style.display = code ? '' : 'none'; }
 }
+// The three popup checkboxes are kit <uxt-checkbox> (2026-10-20): inert inside
+// a row that owns the tap; state lives in its `value` attribute. Without the
+// kit (DOM shim) the attribute is still the source of truth.
 function isActivityChecked(field) {
-  const box = document.querySelector(`#activityEditPopup [data-field="${field}"] .field-checkbox`);
-  return !!box && box.classList.contains('checked');
+  const box = document.querySelector(`#activityEditPopup [data-field="${field}"] uxt-checkbox`);
+  if (!box) return false;
+  return typeof box.checked === 'boolean' ? box.checked : box.getAttribute('value') === 'checked';
 }
 function setActivityChecked(field, val) {
-  const box = document.querySelector(`#activityEditPopup [data-field="${field}"] .field-checkbox`);
+  const box = document.querySelector(`#activityEditPopup [data-field="${field}"] uxt-checkbox`);
   if (!box) return;
-  box.classList.toggle('checked', !!val);
-  box.innerHTML = val ? '<svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>' : '';
+  box.checked = !!val;   // kit setter (or a plain property under the DOM shim)
+  box.setAttribute('value', val ? 'checked' : 'unchecked');
 }
 // Hired Labor unlocks Supplier/Labor Type — same mutual-unlock shape as
 // Book Labor's own Employee/Crew protect (§18.7), just a checkbox instead
@@ -1486,7 +1479,7 @@ function onActivityProtectedFieldTap(field, label) {
 function renderActivityCommentsHTML(act) {
   const rows = (act.comments || []).map(c => `
     <div class="comment-item"><div class="comment-header"><span class="comment-author">${c.author}</span><span class="comment-time">${c.time}</span></div><p class="comment-text">${c.text}</p></div>`).join('');
-  return `<div class="comment-add-row" onclick="openTextEditor('__activityComment','Add Comment',(t)=>addActivityComment(t))"><span class="comment-add-plus">+</span> Add comment</div>${rows || '<div class="field-caption">No comments yet.</div>'}`;
+  return `<uxt-list-item class="comment-add-row" density="m" icon="add" text="Add comment" onclick="openTextEditor('__activityComment','Add Comment',(t)=>addActivityComment(t))"></uxt-list-item>${rows || '<div class="field-caption">No comments yet.</div>'}`;
 }
 function addActivityComment(text) {
   if (!text.trim() || !activityDraft) return;
@@ -1647,7 +1640,6 @@ const EQUIP_LOOKUP_ON_SELECT = { equipment: (o) => {
    selected, then "Start Work" starts the WO timer (moves to Step 2). ── */
 function updateStartGate() {
   const btn = document.getElementById('barBtn');
-  const label = document.getElementById('barBtnLabel');
   const selectedAct = ACTIVITIES.find(a => a.id === RECORD.selectedActivity);
   // A completed activity is still selectable (§15.2, so it can be reopened
   // for edit — see openActivityEditPopup()), but Start Work on it is
@@ -1656,10 +1648,12 @@ function updateStartGate() {
   // disabled/gray state.
   const completed = selectedAct && isActivityComplete(selectedAct);
   const ready = !!selectedAct && !completed;
-  btn.className = 'bar-pill ' + (ready ? 'bar-pill-ready' : 'bar-pill-locked');
-  label.textContent = !selectedAct ? 'Select an activity to start'
+  // Kit Button: state is attributes, never className/textContent (either
+  // would wipe the element's own markup).
+  btn.setAttribute('variant', ready ? 'contained' : 'outlined');
+  btn.setAttribute('text', !selectedAct ? 'Select an activity to start'
     : completed ? 'Activity is completed'
-    : 'Start Work';
+    : 'Start Work');
 }
 function onBarPillTap() {
   const selectedAct = ACTIVITIES.find(a => a.id === RECORD.selectedActivity);
@@ -1896,12 +1890,8 @@ function renderRecordViewTab() {
                  selected activity. Not a generalized Standard Model
                  pattern — no other collapsible section anywhere else in
                  the app has an inline Edit affordance in its toggle row. -->
-            <button class="rv-icon-btn" onclick="event.stopPropagation(); openActivityEditPopup()" aria-label="Edit selected activity" title="Edit selected activity">
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
-            </button>
-            <button class="rv-icon-btn" onclick="event.stopPropagation(); openActivityAddPopup()" aria-label="Add activity" title="Add activity">
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-            </button>
+            <uxt-icon-button icon="edit" label="Edit selected activity" density="m" onclick="event.stopPropagation(); openActivityEditPopup()"></uxt-icon-button>
+            <uxt-icon-button icon="add" label="Add activity" density="m" onclick="event.stopPropagation(); openActivityAddPopup()"></uxt-icon-button>
             <svg class="rv-chev open" id="rv-chev-activities" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
         </div>
@@ -1939,6 +1929,17 @@ function renderRecordViewTab() {
       <div style="height:16px;"></div>
     </div>`;
 }
+
+/* Search/Structure is a kit <uxt-toggle-button-group> (2026-10-20). The
+   shared switchEquipTab() owns the panel swap; this keeps the group's
+   selected value in step when shared code switches tabs on its own (it
+   defaults to Structure once equipment is selected, §15.5). */
+const _sharedSwitchEquipTab = switchEquipTab;
+switchEquipTab = function (tab) {
+  _sharedSwitchEquipTab(tab);
+  const g = document.getElementById('equipTabBtnStructure');
+  if (g && g.getAttribute('value') !== tab) g.setAttribute('value', tab);
+};
 
 /* ── init ── */
 applyCustomFields('wo', RECORD_CLASS, RECORD_CLASS_ORG, (typeof WO_19257 !== 'undefined' && WO_19257.customFieldValues) || {});
