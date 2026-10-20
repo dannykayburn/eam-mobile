@@ -18,367 +18,76 @@
 <link rel="stylesheet" href="shared/eam-fonts.css?v=202609211648">
 <link rel="stylesheet" href="shared/eam-shared.css?v=202609211648">
 <style>
+  /* ── Octave kit host layer (screen-local, 2026-10-20): places and sizes
+     the real <uxt-*> elements in this screen's own markup; the kit owns
+     their look. ── */
+  /* A gated kit button: pointer-events off while disabled so the tap lands
+     on the wrapper, which still runs the save and its "required" toast. */
+  .kit-gate > uxt-button[disabled]{pointer-events:none;}
+  /* Shared toggles show/hide these by class; the kit writes an inline
+     display, so the class rule needs !important to win. */
+  uxt-button.text-editor-discard{display:none !important;}
+  uxt-button.text-editor-discard.show{display:inline-block !important;}
+  .kit-sheet-search.hidden{display:none;}
+  .filter-chip-row > uxt-status-chip{flex-shrink:0;}
+  .attr-item > uxt-input{display:block;width:100%;min-width:0;}
+  /* Dataspy sheet row: favourite star (kit Icon Button, its own tap target)
+     beside a kit List Item; the current dataspy is the gray selected row. */
+  .kit-ds-row{display:flex;align-items:center;gap:var(--k-s1);padding-left:var(--k-s2);}
+  .kit-ds-row > uxt-list-item{flex:1;min-width:0;display:block;}
+  .kit-ds-row > uxt-icon-button{flex-shrink:0;}
 /* ══════════════════════════════════════════════════════════
-   OCTAVE — HxGN EAM Mobile · WO List v5 · Inline SVG icons
-   Tokens reconciled to the canonical scheme shared by the
-   workflow standalones (eam-wo-record-view-prototype-v1.html
-   etc.) — same shell (.app/.nav/.theme-toggle/.prototype-label)
-   instead of this file's earlier bespoke phone-bezel chrome.
-   shared/eam-shared.css now linked too (added 2026-07-20, WO
-   Insert Mode — needs the LOV-sheet/section-card/org-pill/
-   equip-card machinery already built there for 2 other
-   consumers). Loaded before this local <style> block so any
-   already-hand-copied class here (.nav-avatar, .bottom-nav,
-   .field-label) wins ties as an identical-but-local override,
-   same convention every migrated screen already uses — full
-   de-duplication of those stays out of scope for now (WO
-   List's own future full rebuild pass, see CLAUDE.md). The
-   §8.3 "List Search Screen standard" component (.ld-card/
-   .ld-table/.ld-card-org and friends) below is still its own
-   local copy of shared/eam-shared.css's version, same
-   convention this file already used for .nav-avatar/.bottom-nav.
+   WO List v5 — screen-local CSS only (Octave kit pass, 2026-10-20).
+   The hand-copied shell that used to live here (local :root palette,
+   body, .app, the DARK .nav band, .nav-avatar/.nav-title/.nav-left/
+   .nav-actions, .proto-theme-bar/.theme-toggle, .ds-bar, .mode-tog,
+   .res-row/.sort-btn, .ld-card/.ld-table/.pill-*, .field-label/
+   .field-value, .ds-fav-star) is deleted: eam-shared.css already owns
+   every one of those, and the local copies were overriding the kit
+   shell (CLAUDE.md "WO List shared-component consolidation"). What is
+   left is genuinely this screen's own, on kit tokens.
    ══════════════════════════════════════════════════════════ */
-:root {
-  --font-sans: "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
 
-  --octave-black:   #1A1A1F;
-  --gray-5:         #3E4047;
-  --gray-4:         #6F7480;
-  --gray-3:         #B2B8C4;
-  --gray-2:         #CBD0D8;
-  --gray-1:         #E7EBF2;
-  --white:          #FFFFFF;
+/* Top-bar search entry (#s1): fills the middle slot between the left
+   control and the actions. The dev watermark yields its width here. */
+.nav .nav-search{flex:1;min-width:0;}
+.nav .nav-search > uxt-search-bar{display:block;width:100%;}
+#s1 .nav .prototype-label{display:none;}
 
-  --purple:         #9933FF;
-  --purple-soft:    rgba(153,51,255,0.11);
-  --purple-glow:    rgba(153,51,255,0.18);
-  --orange:         #F46600;
-  --green:          #00AA14;
-  --red:            #E24B4A;
-  --teal:           #007B87;
-
-  --bg-page:        #F5F6F8;
-  --bg-card:        #FFFFFF;
-  --bg-nav:         #1A1A1F;
-  --bg-section:     #F0F2F5;
-  --border:         #E7EBF2;
-  --border-strong:  #CBD0D8;
-
-  --nav-height:     52px;
-
-  /* Text hierarchy — derived from the gray scale so both themes stay
-     correctly contrasted for free (dark mode below swaps which hex
-     plays gray-3 vs gray-4, same trick the canonical tokens use). */
-  --text-body:  var(--octave-black);
-  --text-muted: var(--gray-4);
-  --text-faint: var(--gray-3);
-}
-[data-theme="dark"] {
-  --bg-page:        #1A1A1F;
-  --bg-card:        #26252B;
-  --bg-nav:         #111114;
-  --bg-section:     #302F33;
-  --border:         #3E4047;
-  --border-strong:  #4A4C55;
-  --white:          #FFFFFF;
-  --octave-black:   #1A1A1F;
-  --gray-1:         #2A2930;
-  --gray-2:         #3E4047;
-  --gray-3:         #6F7480;
-  --gray-4:         #B2B8C4;
-  --purple-soft:    rgba(153,51,255,0.14);
-  --purple-glow:    rgba(153,51,255,0.22);
-  --text-body:      var(--white);
-}
-
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;}
-body{
-  font-family:var(--font-sans);
-  background:var(--bg-page);
-  color:var(--text-body);
-  -webkit-font-smoothing:antialiased;
-  overflow:hidden;
-  transition:background 0.2s,color 0.2s;
-  /* dvh fallback pair — see eam-shared.css's own body rule for why. This
-     file still carries a local body rule, so it needs the same fix. */
-  display:flex;flex-direction:column;height:100vh;height:100dvh;
-}
-
-/* ── PROTOTYPE-ONLY THEME PREVIEW BAR — outside the app frame. Real app
-   theme lives in User Settings (design-decisions-v3-1.md §20), not here. ── */
-.proto-theme-bar{flex-shrink:0;display:flex;align-items:center;justify-content:center;
-  gap:8px;padding:6px 0;}
-.proto-theme-label{font-size:0.625rem;font-weight:600;letter-spacing:0.3px;color:var(--text-muted);
-  font-family:var(--font-mono);text-transform:uppercase;}
-
-/* ── SVG ICON HELPER ──────────────────────────────────── */
-.ic{display:inline-flex;align-items:center;justify-content:center;
-  flex-shrink:0;line-height:1;}
-.ic svg{display:block;}
-
-/* ── APP SHELL (canonical) ────────────────────────────── */
-.app{
-  display:flex;flex-direction:column;flex:1;min-height:0;max-width:430px;width:100%;
-  margin:0 auto;position:relative;overflow:clip;background:var(--bg-page);
-  box-shadow:0 0 40px rgba(0,0,0,0.18);
-}
-
-/* ── NAV (canonical) ──────────────────────────────────── */
-.nav{position:relative;height:var(--nav-height);background:var(--bg-nav);display:flex;
-  align-items:center;justify-content:space-between;padding:0 12px;gap:8px;flex-shrink:0;z-index:100;}
-/* Avatar (§4.2) — copied from eam-shared.css rather than linking it in;
-   this file predates the shared-file architecture and stays self-
-   contained until its own dedicated rebuild, same reasoning as
-   design-decisions-v3-1.md's note on why this file's nav wasn't touched
-   during the earlier conformance-audit pass. */
-.nav-avatar{width:30px;height:30px;border-radius:50%;overflow:hidden;background:var(--gray-5);color:var(--white);font-size:0.6875rem;font-weight:700;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;flex-shrink:0;font-family:var(--font-sans);padding:0;}
-.nav-avatar-img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
-.nav-avatar-initials{width:100%;height:100%;align-items:center;justify-content:center;}
-/* Was flex:1 + font-mono — two bugs, fixed 2026-07-16: flex:1 only
-   centers within the leftover space between nav-back/nav-avatar and
-   nav-actions, which aren't equal widths, so it read as off-center
-   against the true bar width (same bug already fixed once in
-   eam-shared.css's own .nav-title, this file just has its own local
-   duplicate that was never brought in line with that fix). Absolute +
-   left:0/right:0 centers it against the whole bar regardless of either
-   sibling's width; pointer-events:none so it doesn't block them. Font
-   was mono (a leftover from this file's pre-Standard-Model styling) —
-   should be the app's default sans (Inter) like every other nav-title. */
-/* 14px→15px, 2026-07-24 — matches the same bump to eam-shared.css's
-   canonical .nav-title (this file hand-copies it, doesn't link the
-   shared file, per this file's own header note). */
-.nav-title{position:absolute;left:0;right:0;text-align:center;font-family:var(--font-sans);font-size:0.9375rem;font-weight:700;
-  color:var(--white);pointer-events:none;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-/* .nav-back/.nav-icon-btn now come from eam-shared.css only (Phase 2b,
-   2026-07-22) — this local copy had drifted (8px radius vs the shared
-   file's 6px) before this pass promoted the hover/radius treatment up
-   to the shared source instead of leaving two copies to keep in sync. */
-.nav-left{display:flex;align-items:center;gap:6px;flex-shrink:0;}
-.nav-actions{display:flex;align-items:center;gap:4px;flex-shrink:0;}
-/* .prototype-label now comes from eam-shared.css only (2026-07-22) — this
-   local copy's orange never got promoted/fixed when the rest of the app's
-   orange did, and was the fuller of the two definitions besides (had
-   properties the shared copy lacked) — promoted up instead of just
-   patched here. */
-/* Real bug fixed 2026-07-23: this hardcoded white-on-white-ish colors
-   (rgba(255,255,255,...) for both text and background), which only reads
-   correctly against a dark backdrop — .proto-theme-bar actually sits
-   directly on var(--bg-page), which is light in light mode, so the whole
-   bar (and the "Reset" button eam-shared.js injects next to it)
-   was nearly invisible and looked untappable. Converged to the same
-   theme-aware tokens the canonical .theme-toggle in eam-shared.css
-   already uses (var(--gray-4)/var(--bg-section)/var(--border-strong)),
-   which stay legible in both themes. */
-.theme-toggle{font-size:0.6875rem;font-family:var(--font-sans);font-weight:600;
-  color:var(--gray-4);background:var(--bg-section);
-  border:1px solid var(--border-strong);border-radius:100px;padding:3px 10px;
-  cursor:pointer;transition:all 0.15s;white-space:nowrap;flex-shrink:0;}
-.theme-toggle:hover{background:var(--border-strong);}
-
-/* ── SCREENS ──────────────────────────────────────────── */
+/* Two screens in one file (List #s1, Search #s2). */
 .screen{display:none;flex-direction:column;flex:1;overflow:hidden;position:relative;}
 .screen.active{display:flex;}
 
-/* ── DATASPY BAR — no record count (§8.3, dropped 2026-07-20) ── */
-.ds-bar{margin:11px 14px 0;background:var(--bg-card);border:1.5px solid var(--border);
-  border-radius:14px;padding:11px 14px;display:flex;align-items:center;
-  gap:11px;cursor:pointer;flex-shrink:0;
-  transition:border-color 0.18s,box-shadow 0.18s;
-  box-shadow:0 1px 3px rgba(0,0,0,0.05);}
-/* Was purple — this file hand-copies .ds-bar/.sort-btn/.ld-card, which
-   also exist in eam-shared.css; that shared copy went monochrome in the
-   2026-07-22 palette pass, so this local one is corrected to match and
-   stop silently overriding it (same bug found + fixed the same session
-   on Equipment's Structure Details tree — see that file's own note). */
-.ds-bar:hover{border-color:var(--gray-3);box-shadow:0 2px 8px rgba(0,0,0,0.08);}
-[data-theme="dark"] .ds-bar{box-shadow:0 1px 6px rgba(0,0,0,0.2);}
-.ds-icon-w{width:34px;height:34px;border-radius:9px;background:var(--bg-section);
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-  border:1px solid var(--border);}
-.ds-body{flex:1;min-width:0;}
-.ds-name{font-size:0.875rem;font-weight:700;color:var(--text-body);letter-spacing:-0.2px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-
-/* ── MODE TOGGLE ──────────────────────────────────────── */
-.mode-tog{margin:10px 14px 0;display:flex;background:var(--bg-section);
-  border-radius:11px;padding:3px;flex-shrink:0;border:1px solid var(--border);}
-.mode-btn{flex:1;height:36px;border:none;border-radius:9px;
-  font-size:0.8125rem;font-weight:600;cursor:pointer;font-family:var(--font-sans);
-  background:transparent;color:var(--text-muted);transition:all 0.18s;}
-.mode-btn.active{background:var(--bg-card);color:var(--text-body);
-  box-shadow:0 1px 5px rgba(0,0,0,0.10),0 0 0 1px var(--border);}
-[data-theme="dark"] .mode-btn.active{background:var(--gray-2);color:var(--white);
-  box-shadow:0 1px 4px rgba(0,0,0,0.3);}
-
-/* ── RESULTS ROW ──────────────────────────────────────── */
-.res-row{padding:9px 16px 4px;display:flex;align-items:center;
-  justify-content:space-between;flex-shrink:0;}
-.res-count{font-size:0.75rem;color:var(--text-muted);font-family:var(--font-mono);}
-.sort-btn{display:flex;align-items:center;gap:5px;font-size:0.75rem;
-  font-weight:600;color:var(--text-muted);background:none;border:none;cursor:pointer;
-  padding:4px 8px;border-radius:8px;font-family:var(--font-sans);transition:all 0.15s;}
-.sort-btn:hover{color:var(--octave-black);background:var(--bg-section);}
-[data-theme="dark"] .sort-btn:hover{color:var(--white);}
-
-/* ── WO LIST ──────────────────────────────────────────── */
-.wo-list{flex:1;overflow-y:auto;padding:4px 14px 100px;}
+/* Card list / table scroll containers. Bottom room clears the floating
+   64px pill nav plus its --shell-pad-bottom gap. */
+.wo-list{flex:1;overflow-y:auto;padding:var(--k-s1) 0 calc(64px + var(--shell-pad-bottom) + var(--k-s6));}
 .wo-list::-webkit-scrollbar{display:none;}
-
-/* ── LIST SEARCH SCREEN STANDARD (§8.3, locked/unified 2026-07-20) — the
-   generic card + all-fields table, local copy of shared/eam-shared.css's
-   own .ld-card/.ld-table rules (see the file-header note above for why
-   this file copies rather than links). WO's own first-6 dataspy columns:
-   Status (pill headline), Description (subline), WO Number/Type/Due
-   Date (attribute rows), Organization (carved to the corner badge — see
-   §6.5). Type replaced Priority here 2026-07-22 (punch-list item).
-   Superseded 2026-07-20: the old wo-card, card-prefixed,
-   list-table, and lt-prefixed rules this replaced (bespoke WO-only
-   anatomy, §6.5/§6.6) — see design-decisions-v3-1.md §21. ── */
-.ld-card{display:block;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin:0 12px 10px;cursor:pointer;transition:border-color .15s;}
-.ld-card:hover{border-color:var(--gray-3);}
-.ld-card:active{transform:scale(0.985);}
-.ld-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
-.ld-card-headline{font-size:0.9375rem;font-weight:700;color:var(--text-body);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.ld-card-headline.pill{display:inline-block;font-size:0.75rem;font-weight:700;padding:4px 10px;border-radius:100px;-webkit-line-clamp:unset;}
-/* Status pill fill/outline tiers (§23) — green=operational/completed,
-   red=down (unused by this file's demo data yet, kept for real statuses
-   that need it), outline=standby/waiting. Shared by the card headline
-   pill and the table-mode pill below. */
-.pill-green{background:var(--green);color:#fff;}
-.pill-red{background:var(--red);color:#fff;}
-.pill-outline{background:none;border:1.5px solid var(--border-strong);color:var(--octave-black);}
-[data-theme="dark"] .pill-outline{color:var(--white);}
-/* 5th tier, orange, added 2026-07-22 (user direction) — Waiting approval
-   (WAPPR) specifically, pulled out of the generic outline/standby tier
-   into its own solid fill so it reads as its own state rather than
-   blending into every other "waiting on something" status. Waiting
-   materials (WMATL) stays outline, unaffected — the user's ask was
-   Waiting approval by name, not every waiting-tier status. Same
-   #F46600 as the rest of the app's Orange instrument (Corrective WO's
-   tile, etc.) — solid fill needs no dark-theme override, same as
-   pill-green/pill-red above. */
-.pill-orange{background:#F46600;color:#fff;}
-/* .ld-card-headline's own `color` above is equal (1-class) specificity to
-   the bare tier rules just above — currently wins only because these
-   happen to sit later in the file; found genuinely broken by that same
-   tie the other way round in eam-shared.css/Sample Screen (2026-07-22),
-   so hardening here too rather than relying on source-order luck. */
-.ld-card-headline.pill-green{color:#fff;}
-.ld-card-headline.pill-red{color:#fff;}
-.ld-card-headline.pill-outline{color:var(--octave-black);}
-[data-theme="dark"] .ld-card-headline.pill-outline{color:var(--white);}
-.ld-card-headline.pill-orange{color:#fff;}
-/* Was --text-muted (gray) — a real inconsistency, not a deliberate "muted
-   subline" choice: this same field (Description) already renders in
-   ink (--text-body) everywhere else on this screen (List mode's table
-   cell, .field-value on any other card) — only the Detailed card's
-   slot-2 subline was left gray. Bold ink now, matching the rest of the
-   palette (user report, 2026-07-22). */
-.ld-card-subline{font-size:0.8125rem;font-weight:700;color:var(--text-body);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-/* No separate font-weight for .tinted — slot 2 is bold either way now (2026-07-20, matches eam-shared.css). */
-.ld-card-org{display:inline-flex;align-items:center;padding:5px 11px;border-radius:999px;font-family:var(--font-sans);font-size:0.75rem;font-weight:600;flex-shrink:0;white-space:nowrap;margin-top:1px;background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);}
-.ld-card-attrs{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
-.ld-card-attr-row{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:2px 0;}
-.ld-card-attr-row .field-label{width:auto;}
-.ld-card-attr-row .field-value{text-align:right;}
-.ld-card-attr-row .field-value.tinted{font-weight:700;}
-/* Base field-label/field-value (§5.2) — this file has no other Standard
-   Model form fields to need these for, but §8.3's attr rows reuse them
-   "exactly," so they're ported here verbatim rather than redefined with
-   different sizes inside .ld-card-attr-row (that was the actual drift —
-   a locally "enhanced" 12.5px/13px pair instead of the real 13px/14px). */
-.field-label{font-size:0.8125rem;color:var(--text-muted);width:128px;flex-shrink:0;line-height:1.35;}
-.field-value{flex:1;font-size:0.875rem;font-weight:500;color:var(--text-body);text-align:right;}
-
-/* .wo-list/.ld-card sit inside the screen's own flex column, so
-   .ld-table-wrap needs the same flex:1/overflow-y:auto role .wo-list has
-   — the one legitimate difference from eam-shared.css's own
-   .ld-table-wrap, which lives inside an already-scrolling tab body and
-   doesn't need to scroll itself. Cell styling below is otherwise the
-   exact canonical treatment, not the sticky/uppercase/mono/bordered-grid
-   version this used to carry. */
-.ld-table-wrap{flex:1;overflow-y:auto;overflow-x:auto;margin:4px 14px 78px;border:1px solid var(--border);border-radius:10px;}
-.ld-table{width:max-content;min-width:100%;background:var(--bg-card);border-collapse:collapse;font-size:0.78125rem;}
-.ld-table th{text-align:left;font-weight:600;color:var(--text-muted);padding:9px 14px;background:var(--bg-section);white-space:nowrap;border-bottom:1px solid var(--border);}
-.ld-table td{padding:9px 14px;color:var(--text-body);white-space:nowrap;border-bottom:1px solid var(--border);}
+/* The table scrolls itself here (it sits in the screen's flex column, not
+   inside an already-scrolling tab body like the shared .ld-table-wrap). */
+.ld-table-wrap{flex:1;overflow-y:auto;margin-bottom:calc(64px + var(--shell-pad-bottom) + var(--k-s4));}
 .ld-table tbody tr{cursor:pointer;}
-.ld-table tbody tr:last-child td{border-bottom:none;}
-.ld-table tbody tr.child-row{background:rgba(0,0,0,0.035);}
-[data-theme="dark"] .ld-table tbody tr.child-row{background:rgba(255,255,255,0.06);}
-.ld-table-pill{display:inline-block;font-size:0.6875rem;font-weight:700;padding:3px 9px;border-radius:100px;}
-/* Chevron + child-row tint (§6.9) — legitimately WO-only, no other
-   current List Search Screen consumer has a parent/child concept. */
-.ld-chev{width:20px;height:20px;border-radius:6px;background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;vertical-align:-4px;margin-right:4px;transition:transform 0.18s,background 0.15s;color:var(--text-muted);}
-.ld-chev:hover{background:var(--bg-section);}
-.ld-chev.open{transform:rotate(90deg);}
-.ld-chev-ph{display:inline-block;width:24px;}
+.ld-table tbody tr.child-row{background:var(--k-paper);}
+.ld-table td uxt-status-chip{vertical-align:middle;}
 
-/* Detailed-card equivalent of the chevron/tint pair above (§6.9 — §20
-   punch-list fix, 2026-07-23: Detailed mode's card() had no chevron at
-   all, so a parent WO's card just navigated away instead of expanding
-   its children the way Table mode's tRow() already did). */
-.ld-card.has-chev{padding-left:38px;position:relative;}
-.ld-card-chev{position:absolute;left:12px;top:14px;width:20px;height:20px;border-radius:6px;background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:transform 0.18s,background 0.15s;color:var(--text-muted);}
-.ld-card-chev:hover{background:var(--bg-section);}
-.ld-card-chev.open{transform:rotate(90deg);}
-/* Child WO card (§6.9) — a real indent, not just a tint. The tint alone was
-   3.5% black / 6% white, which on a device is effectively invisible: with a
-   Route's children expanded under a parent you couldn't tell the hierarchy was
-   there at all. Now indented from the left with a connector bar and a "Child
-   of <parent>" caption, so the relationship is legible without relying on
-   contrast a phone screen may not render. */
-.ld-card.child-card{
-  background:rgba(0,0,0,0.035);
-  margin-left:30px;
-  position:relative;
-  border-left:3px solid var(--border-strong);
-  border-top-left-radius:4px;
-  border-bottom-left-radius:4px;
-}
-[data-theme="dark"] .ld-card.child-card{background:rgba(255,255,255,0.06);}
-/* Elbow joining the child back to the parent's own left edge. */
-.ld-card.child-card::before{
-  content:'';
-  position:absolute;
-  left:-19px;
-  top:-6px;
-  width:16px;
-  height:calc(50% + 6px);
-  border-left:2px solid var(--border-strong);
-  border-bottom:2px solid var(--border-strong);
-  border-bottom-left-radius:8px;
-  pointer-events:none;
-}
-.ld-child-caption{
-  display:block;
-  font-size:0.65625rem;
-  font-weight:700;
-  letter-spacing:.3px;
-  text-transform:uppercase;
-  color:var(--text-muted);
-  font-family:var(--font-mono);
-  margin-bottom:6px;
-}
+/* Parent/child expand (§6.9) — WO-only. The chevron is a kit Icon Button;
+   only its rotation is ours. */
+uxt-icon-button.ld-chev, uxt-icon-button.ld-card-chev{transition:transform .18s cubic-bezier(0.4,0,0.2,1);}
+uxt-icon-button.ld-chev.open, uxt-icon-button.ld-card-chev.open{transform:rotate(90deg);}
+uxt-icon-button.ld-chev{vertical-align:middle;margin-right:var(--k-s1);}
+.ld-chev-ph{display:inline-block;width:44px;}
+.ld-card.has-chev{padding-left:56px;position:relative;}
+uxt-icon-button.ld-card-chev{position:absolute;left:var(--k-s2);top:var(--k-s2);}
+/* Child WO card (§6.9) — a real indent with a connector elbow and a
+   "Child of" caption, so the hierarchy reads without relying on a tint. */
+.ld-card.child-card{background:var(--k-paper);margin-left:40px;position:relative;box-shadow:none;border:1px solid var(--k-divider);}
+.ld-card.child-card::before{content:'';position:absolute;left:-20px;top:-8px;width:16px;height:calc(50% + 8px);border-left:1px solid var(--k-control);border-bottom:1px solid var(--k-control);border-bottom-left-radius:var(--k-r);pointer-events:none;}
+.ld-child-caption{display:block;font-size:var(--k-caption);color:var(--k-text-2);margin-bottom:var(--k-s1);}
 
-/* Favorite star, dataspy selector sheet (§8.3). */
-.ds-fav-star{width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--gray-3);padding:0;}
-.ds-fav-star svg{width:16px;height:16px;fill:none;stroke:currentColor;}
-.ds-fav-star.favorited{color:var(--octave-black);}
-.ds-fav-star.favorited svg{fill:var(--octave-black);}
-[data-theme="dark"] .ds-fav-star.favorited{color:var(--white);}
-[data-theme="dark"] .ds-fav-star.favorited svg{fill:var(--white);}
-
-/* ── EMPTY ────────────────────────────────────────────── */
-.empty{flex:1;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:12px;padding:48px;}
-.empty-icon{width:60px;height:60px;border-radius:18px;background:var(--bg-section);
-  border:1px solid var(--border);display:flex;align-items:center;
-  justify-content:center;}
-.empty-title{font-size:1rem;font-weight:700;color:var(--text-body);}
-.empty-sub{font-size:0.8125rem;color:var(--text-muted);text-align:center;line-height:1.55;}
+/* Empty state — no kit empty-state component; kit type + tokens. */
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--k-s2);padding:var(--k-s6) var(--k-s4);}
+.empty-icon{width:48px;height:48px;border-radius:var(--k-pill);background:var(--k-selected);color:var(--k-glyph);display:flex;align-items:center;justify-content:center;}
+.empty-title{font-family:var(--font-display);font-size:var(--uxt-theme-typography-h-6-font-size,1.125rem);font-weight:var(--uxt-theme-typography-h-6-font-weight,500);color:var(--k-text);}
+.empty-sub{font-size:var(--k-body2);color:var(--k-text-2);text-align:center;line-height:1.43;}
 
 </style>
 </head>
@@ -524,45 +233,38 @@ body{
            §4.2 for the note this raised (browsing-tier nav can carry
            extra actions beyond avatar+sync — wasn't spelled out before). -->
       <div class="nav-left">
-        <button class="nav-avatar" onclick="event.stopPropagation();showToast('Profile — coming soon')" aria-label="Profile">
-          <img class="nav-avatar-img" src="shared/img/bcampbell.jpg" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-          <span class="nav-avatar-initials" style="display:none;">BC</span>
-        </button>
         <span class="prototype-label">PROTOTYPE</span>
       </div>
-      <div class="nav-title">Work orders</div>
+      <!-- Search lives in the CENTER of the top bar (Minh, 2026-10-20; Octave
+           mobile kit AppShell: menu left, search middle, actions right). No
+           title on this top-level page. It is an entry point, not a second
+           search: focusing or typing hands off to the Search screen (#s2)
+           that goSearch() opens, carrying any typed text into #sInp, so
+           results, chips and closeSearch() are unchanged. -->
+      <div class="nav-search" onclick="event.stopPropagation()">
+        <uxt-search-bar id="s1SearchEntry" density="m" placeholder="Search work orders" onfocusin="scrEnterSearch(this)" oninput="scrEnterSearch(this)"></uxt-search-bar>
+      </div>
       <div class="nav-actions">
-        <button class="nav-icon-btn" onclick="event.stopPropagation();openCreateSheet('WO')" aria-label="Create work order" title="Create work order">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </button>
-        <button class="nav-icon-btn" onclick="event.stopPropagation();goSearch()" aria-label="Search" title="Search">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        </button>
+        <uxt-icon-button icon="add" label="Create work order" outlined density="m" onclick="event.stopPropagation();openCreateSheet('WO')"></uxt-icon-button>
         <span id="syncCtrl"></span>
       </div>
     </header>
 
     <div class="ds-bar" onclick="openDS()">
       <div class="ds-icon-w">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-database"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-database"/></svg>
       </div>
       <div class="ds-body">
         <div class="ds-name" id="dsName">My Assigned WOs</div>
       </div>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-chevdown"/></svg>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-chevdown"/></svg>
     </div>
 
-    <div class="mode-tog">
-      <button class="mode-btn active" id="modeD" onclick="setMode('detailed')">Detailed</button>
-      <button class="mode-btn" id="modeL" onclick="setMode('list')">List</button>
-    </div>
+    <div class="kit-mode-tog"><uxt-toggle-button-group id="modeTog" density="m" options='[{"value":"detailed","label":"Detailed"},{"value":"list","label":"List"}]' value="detailed" onchange="setMode(event.detail.value)"></uxt-toggle-button-group></div>
 
     <div class="res-row">
       <span class="res-count" id="s1Count">8 work orders</span>
-      <button class="sort-btn" onclick="openSort()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-sort"/></svg>
-        <span class="sort-btn-label">Due date</span>
-      </button>
+      <uxt-button class="kit-sort-btn" id="sortBtn" variant="text" tone="neutral" text="Sort: Due date" onclick="openSort()"></uxt-button>
     </div>
 
     <div class="wo-list" id="s1DL"></div>
@@ -573,9 +275,9 @@ body{
     <div class="bottom-sheet" id="dsSheet">
       <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
       <div class="sheet-header">
-        <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+        <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
         <div class="sheet-title">Select dataspy</div>
-        <div style="width:30px;flex-shrink:0;"></div>
+        <div class="kit-sheet-spacer"></div>
       </div>
       <div class="sheet-body" id="dsList"></div>
     </div>
@@ -585,24 +287,18 @@ body{
   <div class="screen" id="s2">
     <header class="nav" onclick="scrollListToTop()">
       <div class="nav-left">
-        <button class="nav-back" onclick="event.stopPropagation();closeSearch()" aria-label="Back">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l-7-7 7-7"/></svg>
-        </button>
+        <uxt-icon-button icon="arrow-back" label="Back" outlined density="m" onclick="event.stopPropagation();closeSearch()"></uxt-icon-button>
         <span class="prototype-label">PROTOTYPE</span>
       </div>
       <div class="nav-title">Search work orders</div>
       <div class="nav-actions">
-        <button class="nav-icon-btn" onclick="event.stopPropagation();openCreateSheet('WO')" aria-label="Create work order" title="Create work order">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </button>
+        <uxt-icon-button icon="add" label="Create work order" outlined density="m" onclick="event.stopPropagation();openCreateSheet('WO')"></uxt-icon-button>
         <span id="syncCtrl"></span>
       </div>
     </header>
 
-    <div class="ld-search-bar" style="margin:12px 14px 0;">
-      <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input class="ld-search-input" id="sInp" type="text" placeholder="Search work orders…" oninput="onSearch(this.value)" autocomplete="off">
-      <button class="ld-search-close" id="sClr" onclick="clearSearch()" aria-label="Clear" style="display:none;">✕</button>
+    <div class="ld-search-bar">
+      <uxt-search-bar id="sInp" density="m" placeholder="Search work orders…" oninput="onSearch(this.value)"></uxt-search-bar>
     </div>
 
     <!-- Filter chips — dataspy-driven, the same 6 fields the card uses
@@ -618,12 +314,12 @@ body{
          item), reusing the exact same chip-sheet mechanism Priority had,
          just repointed at TM's Type codes instead of PRI's priority codes. -->
     <div class="filter-chip-row" id="chipsRow">
-      <button class="filter-chip" id="cStatus" onclick="openCS('status')">Status</button>
-      <button class="filter-chip" id="cDesc" onclick="openTextChip('desc')">Description</button>
-      <button class="filter-chip" id="cNum" onclick="openTextChip('num')">WO number</button>
-      <button class="filter-chip" id="cType" onclick="openCS('type')">Type</button>
-      <button class="filter-chip" id="cDue" onclick="openDueChip()">Due date</button>
-      <button class="filter-chip" id="cOrg" onclick="openCS('org')">Organization</button>
+      <uxt-status-chip class="kit-filter-chip" id="cStatus" variant="outline" density="m" severity="neutral" text="Status" onclick="openCS('status')" onchange="scrChipKeep(event,this)"></uxt-status-chip>
+      <uxt-status-chip class="kit-filter-chip" id="cDesc" variant="outline" density="m" severity="neutral" text="Description" onclick="openTextChip('desc')" onchange="scrChipKeep(event,this)"></uxt-status-chip>
+      <uxt-status-chip class="kit-filter-chip" id="cNum" variant="outline" density="m" severity="neutral" text="WO number" onclick="openTextChip('num')" onchange="scrChipKeep(event,this)"></uxt-status-chip>
+      <uxt-status-chip class="kit-filter-chip" id="cType" variant="outline" density="m" severity="neutral" text="Type" onclick="openCS('type')" onchange="scrChipKeep(event,this)"></uxt-status-chip>
+      <uxt-status-chip class="kit-filter-chip" id="cDue" variant="outline" density="m" severity="neutral" text="Due date" onclick="openDueChip()" onchange="scrChipKeep(event,this)"></uxt-status-chip>
+      <uxt-status-chip class="kit-filter-chip" id="cOrg" variant="outline" density="m" severity="neutral" text="Organization" onclick="openCS('org')" onchange="scrChipKeep(event,this)"></uxt-status-chip>
     </div>
 
     <div class="res-row"><span class="res-count" id="s2Count">8 work orders</span></div>
@@ -638,17 +334,16 @@ body{
     <div class="bottom-sheet" id="csSheet">
       <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
       <div class="sheet-header">
-        <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+        <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
         <div class="sheet-title" id="csTitle">Filter</div>
         <div class="sheet-header-right">
-          <button class="sheet-clear-btn" onclick="clearCS()">Clear</button>
+          <uxt-button class="sheet-clear-btn kit-sheet-text-btn" variant="text" tone="neutral" text="Clear" onclick="clearCS()"></uxt-button>
           <button class="sheet-confirm-btn" onclick="applyCS()" aria-label="Apply"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>
         </div>
       </div>
-      <div class="lov-search-row">
-        <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <input class="lov-search-input" id="csSearch" placeholder="Search…" oninput="filterCSRows(this.value)">
-      </div>
+      <div class="kit-sheet-search">
+      <uxt-search-bar id="csSearch" density="m" placeholder="Search…" oninput="filterCSRows(this.value)"></uxt-search-bar>
+    </div>
       <div class="sheet-body" id="csList"></div>
     </div>
   </div>
@@ -689,9 +384,9 @@ body{
   <div class="bottom-sheet" id="syncPanelSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Sync Status</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sync-panel-state" id="syncPanelStateLabel"></div>
     <div class="sheet-body" id="syncPanelList"></div>
@@ -701,13 +396,12 @@ body{
   <div class="bottom-sheet" id="lovSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title" id="lovSheetTitle">Select value</div>
-      <button class="sheet-clear-btn" id="lovClearBtn" onclick="clearLov()">Clear</button>
+      <uxt-button class="sheet-clear-btn kit-sheet-text-btn" id="lovClearBtn" variant="text" tone="neutral" text="Clear" onclick="clearLov()"></uxt-button>
     </div>
-    <div class="lov-search-row" id="lovSearchRow">
-      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <input class="lov-search-input" id="lovSearchInput" placeholder="Search" oninput="filterLovOptions(this.value)">
+    <div class="kit-sheet-search" id="lovSearchRow">
+      <uxt-search-bar id="lovSearchInput" density="m" placeholder="Search" oninput="filterLovOptions(this.value)"></uxt-search-bar>
     </div>
     <div class="sheet-body" id="lovSheetBody"></div>
   </div>
@@ -719,9 +413,9 @@ body{
        shared CSS/JS in eam-shared.css/.js drives both. -->
   <div class="hyperlink-popup" id="equipmentPopup">
     <div class="insert-mode-header">
-      <button class="sheet-close" onclick="closeHyperlinkPopup('equipmentPopup')">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeHyperlinkPopup('equipmentPopup')"></uxt-icon-button>
       <div class="insert-mode-title">Select Equipment</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="mode-tog">
       <button class="mode-btn active" id="equipTabBtnSearch" onclick="switchEquipTab('search')">Search</button>
@@ -738,29 +432,29 @@ body{
   </div>
   <div class="qr-scan-overlay" id="qrScanOverlay">
     <div class="qr-scan-header">
-      <button class="qr-scan-close" onclick="closeEquipScan()" aria-label="Close scanner">✕</button>
+      <uxt-icon-button icon="close" label="Close scanner" outlined density="m" onclick="closeEquipScan()"></uxt-icon-button>
     </div>
     <div class="qr-scan-body">
       <div class="qr-scan-reticle"></div>
       <div class="qr-scan-hint">Point camera at the equipment's QR code</div>
     </div>
     <div class="qr-scan-footer">
-      <button class="insert-save-btn ready" onclick="simulateQrScan()">Simulate scan</button>
+      <uxt-button class="kit-btn-block" variant="contained" text="Simulate scan" onclick="simulateQrScan()"></uxt-button>
     </div>
   </div>
 
   <div class="bottom-sheet" id="dateSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title" id="dateSheetTitle">Select date</div>
-      <button class="sheet-clear-btn" id="dateClearBtn" onclick="clearDate()">Clear</button>
+      <uxt-button class="sheet-clear-btn kit-sheet-text-btn" id="dateClearBtn" variant="text" tone="neutral" text="Clear" onclick="clearDate()"></uxt-button>
     </div>
     <div class="sheet-body">
       <div class="cal-header">
-        <button class="cal-nav-btn" onclick="calNavMonth(-1)">‹</button>
+        <uxt-icon-button icon="chevron-left" label="Previous month" density="m" onclick="calNavMonth(-1)"></uxt-icon-button>
         <span class="cal-month-label" id="calMonthLabel">July 2026</span>
-        <button class="cal-nav-btn" onclick="calNavMonth(1)">›</button>
+        <uxt-icon-button icon="chevron-right" label="Next month" density="m" onclick="calNavMonth(1)"></uxt-icon-button>
       </div>
       <div class="cal-weekdays"><span class="cal-weekday">Sun</span><span class="cal-weekday">Mon</span><span class="cal-weekday">Tue</span><span class="cal-weekday">Wed</span><span class="cal-weekday">Thu</span><span class="cal-weekday">Fri</span><span class="cal-weekday">Sat</span></div>
       <div class="cal-grid" id="calGrid"></div>
@@ -770,8 +464,8 @@ body{
   <div class="bottom-sheet text-editor-sheet" id="textEditorSheet">
     <div class="text-editor-header">
       <div class="text-editor-left">
-        <button class="text-editor-close" id="textEditorCloseBtn" onclick="textEditorCloseTap()">✕</button>
-        <button class="text-editor-discard" id="textEditorDiscard" onclick="textEditorConfirmDiscard()">Discard unsaved changes</button>
+        <uxt-icon-button id="textEditorCloseBtn" icon="close" label="Close" density="m" onclick="textEditorCloseTap()"></uxt-icon-button>
+        <uxt-button class="text-editor-discard" id="textEditorDiscard" variant="outlined" tone="error" text="Discard unsaved changes" onclick="textEditorConfirmDiscard()"></uxt-button>
       </div>
       <div class="text-editor-title" id="textEditorTitle">Edit</div>
       <!-- ✓ replaces the old bottom Save pill (§3.4, 2026-08-11): a pill at the
@@ -794,7 +488,7 @@ body{
   <div class="insert-mode-sheet" id="insertModeSheet">
     <div class="insert-mode-handle-row" id="insertModeHandle"><div class="sheet-handle"></div></div>
     <div class="insert-mode-header">
-      <button class="sheet-close" onclick="closeInsertMode()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeInsertMode()"></uxt-icon-button>
       <div class="insert-mode-title">Create</div>
       <button class="org-pill protected im-entity-pill" id="insertEntityPill" data-field="insertEntity" onclick="onEntityPillTap()">
         <span class="field-value" id="fv-insertEntity-desc">Work order</span>
@@ -830,9 +524,9 @@ body{
            partner to pair with. -->
       <div class="section-card">
         <div class="equip-attrs">
-          <div class="attr-item full-width required" data-field="insertDescription" onclick="focusInlineField(this)">
+          <div class="attr-item full-width required" data-field="insertDescription" onclick="scrFocusKitField(this, event)">
             <span class="attr-label">Description</span>
-            <textarea class="field-inline-input" id="fv-insertDescription" rows="1" maxlength="255" placeholder="Tap to add…" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus()" onblur="onInlineBlur(this)"></textarea>
+            <uxt-input id="fv-insertDescription" lines="multiple" full-width density="m" aria-label="Description" placeholder="Tap to add…" oninput="updateInsertSaveGate()" onfocusout="onInlineBlur(this)"></uxt-input>
           </div>
           <div class="attr-item full-width required" id="insertEquipCard" data-field="insertEquipment" onclick="openEquipmentLookup('insertEquipment')">
             <span class="attr-label">Equipment</span>
@@ -871,20 +565,19 @@ body{
       <div class="section-card">
         <div class="section-card-header"><span class="section-card-title">Comments</span></div>
         <div id="insertCommentsList">
-          <div class="comment-add-row" onclick="openTextEditor('__insertComment','Add Comment',(t)=>addComment(t,'insertCommentsList'))">
-            <span class="comment-add-plus">+</span> Add comment
-          </div>
+          <uxt-list-item class="comment-add-row" density="m" icon="add" text="Add comment" onclick="openTextEditor('__insertComment','Add Comment',(t)=>addComment(t,'insertCommentsList'))"></uxt-list-item>
         </div>
       </div>
       <div class="section-card">
         <div class="section-card-header"><span class="section-card-title">Documents</span></div>
-        <div class="comment-add-row" onclick="showToast('Attach document — coming soon')">
-          <span class="comment-add-plus">+</span> Add document
-        </div>
+        <uxt-list-item class="comment-add-row" density="m" icon="attach-file" text="Add document" onclick="showToast('Attach document — coming soon')"></uxt-list-item>
       </div>
     </div>
     <div class="insert-mode-footer">
-      <button class="insert-save-btn" id="insertSaveBtn" onclick="saveInsertRecord()">Create</button>
+      <!-- Kit contained button. The shared gate still toggles .ready on
+           #insertSaveBtn; scrKitGate() mirrors it to the kit disabled state,
+           and the wrapper keeps the tap (and its "X is required" toast). -->
+      <div class="kit-gate" onclick="saveInsertRecord()"><uxt-button class="kit-btn-block" id="insertSaveBtn" variant="contained" text="Create"></uxt-button></div>
     </div>
   </div>
 
@@ -896,9 +589,9 @@ body{
   <div class="bottom-sheet" id="commentActionsSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Comment Actions</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sheet-body" id="commentActionsBody"></div>
   </div>
@@ -920,6 +613,43 @@ body{
 <script src="../../data/notifications.js?v=202609211648"></script>
 <script src="shared/eam-shared.js?v=202609211648"></script>
 <script>
+/* ══ OCTAVE KIT GLUE (screen-local, 2026-10-20) — the controls below are real
+   <uxt-*> elements, which take their state from ATTRIBUTES. These keep this
+   screen's existing handlers and state untouched: they only paint the kit
+   element from that state. scr* prefix: one shared top-level scope with
+   eam-shared.js. ══ */
+// Filter chip (kit outline status chip). `active` + `count` come from this
+// screen's filter state; dataset.on remembers it, because the kit chip
+// toggles its own `active` on click.
+function scrPaintChip(el, text, active, count) {
+  if (!el) return;
+  el.setAttribute('text', text);
+  el.toggleAttribute('active', !!active);
+  if (count) el.setAttribute('count', String(count)); else el.removeAttribute('count');
+  el.dataset.on = active ? '1' : '';
+}
+function scrChipKeep(e, el) { e.stopPropagation(); el.toggleAttribute('active', el.dataset.on === '1'); }
+function scrSortLabel(label) { const b = document.getElementById('sortBtn'); if (b) b.setAttribute('text', 'Sort: ' + label); }
+function scrModeSync(m) { const t = document.getElementById('modeTog'); if (t && t.getAttribute('value') !== m) t.setAttribute('value', m); }
+// Tap anywhere in a kit field's cell focuses it, caret at the end
+// (focusInlineField()'s contract; it only knows a bare <textarea>).
+function scrFocusKitField(cell, e) {
+  const kit = cell.querySelector('uxt-input');
+  if (!kit || (e && kit.contains(e.target))) return;
+  const f = kit.querySelector('.input-value');
+  if (!f) return;
+  f.focus();
+  try { f.setSelectionRange(f.value.length, f.value.length); } catch (err) { /* no caret API */ }
+}
+// The shared Save gate toggles a CLASS (.ready on #insertSaveBtn, which the
+// tests also read). Mirror it onto the kit button's disabled state.
+function scrKitGate(id, readyClass) {
+  const b = document.getElementById(id);
+  if (!b) return;
+  const sync = () => b.toggleAttribute('disabled', !b.classList.contains(readyClass));
+  sync();
+  if (typeof MutationObserver !== 'undefined') new MutationObserver(sync).observe(b, { attributes: true, attributeFilter: ['class'] });
+}
 // Insert Mode's Type pill (§9.4.1, added 2026-07-29) re-scopes the flat
 // fields section on every change, not just on entity switch — same
 // optional per-key hook eam-shared.js's selectLov() already runs for any
@@ -958,34 +688,12 @@ const SVGS={
   chevR:  `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-chevright"/></svg>`,
 };
 
-/* ══ LIST SEARCH SCREEN STANDARD (§8.3) — local copy of
-   shared/eam-shared.js's own renderStdCard/renderStdTable, same
-   convention as this file's other locally-copied shared components. ══ */
-// Status and Type are the two fields that keep colour (§23/WO Type Colour
-// + Icon Badge) — Status as the pill-fill/outline treatment below, Type
-// as a small dot ahead of its value (f.type==='wotype'), never as tinted
-// text (that scheme died with the old §6.7 and stays dead).
-function renderStdCard(fields) {
-  const first6 = fields.slice(0, 6);
-  const orgIdx = first6.findIndex(f => f.type === 'org');
-  const org = orgIdx > -1 ? first6[orgIdx] : null;
-  const body = first6.filter((f, i) => i !== orgIdx).slice(0, 5);
-  const [head, sub, ...attrs] = body;
-  let html = '<div class="ld-card-top">';
-  if (head) {
-    html += head.type === 'status'
-      ? `<span class="ld-card-headline pill pill-${head.tier}">${head.value}</span>`
-      : `<div class="ld-card-headline">${head.value}</div>`;
-  }
-  if (org) html += `<span class="ld-card-org">${org.value}</span>`;
-  html += '</div>';
-  if (sub) html += `<div class="ld-card-subline">${sub.value}</div>`;
-  if (attrs.length) {
-    html += '<div class="ld-card-attrs">' + attrs.map(f => `
-      <div class="ld-card-attr-row"><span class="field-label">${f.label}</span><span class="field-value">${f.type === 'wotype' && f.color ? `<span class="wotype-dot" style="background:${f.color}"></span>` : ''}${f.value}</span></div>`).join('') + '</div>';
-  }
-  return html;
-}
+/* ══ LIST SEARCH SCREEN STANDARD (§8.3) — the card is the SHARED
+   renderStdCard() (eam-shared.js: kit status chip headline, org corner
+   badge). The local copy that used to shadow it is gone (Octave kit pass,
+   2026-10-20); Type's colour dot rides in the field's `html` (fieldDisplay()),
+   never in `value`, which feeds data-search. ══ */
+function woTypeHtml(f){return f.color?`<span class="wotype-dot" style="background:${f.color}"></span>${f.value}`:f.value;}
 
 /* ══ DATA ════════════════════════════════════════════════ */
 // Type regained its per-code colour 2026-07-28 (WO Type Colour + Icon
@@ -1325,7 +1033,7 @@ function card(w,isChild){
   const hk=w.isP&&ck.length>0;
   const ex=!!exp[w.id];
   const chevBtn=hk
-    ?`<button class="ld-card-chev${ex?' open':''}" onclick="event.stopPropagation();toggleP('${w.id}')">${SVGS.chevR}</button>`
+    ?`<uxt-icon-button class="ld-card-chev${ex?' open':''}" icon="chevron-right" label="${ex?'Collapse':'Expand'} child work orders" density="m" onclick="event.stopPropagation();toggleP('${w.id}')"></uxt-icon-button>`
     :'';
   // A child states its parent outright. The indent/connector carry the
   // hierarchy visually, but a Route can expand to 24+ children and once the
@@ -1334,7 +1042,8 @@ function card(w,isChild){
   const caption=isChild&&w.pid
     ?`<span class="ld-child-caption">Child of ${woNum(w.pid)}</span>`
     :'';
-  return`<div class="ld-card${hk?' has-chev':''}${isChild?' child-card':''}" onclick="openWO('${w.id}')">${chevBtn}${caption}${renderStdCard(woCardFields(w))}</div>`;
+  const fields=woCardFields(w).map(f=>f.type==='wotype'?{...f,html:woTypeHtml(f)}:f);
+  return renderStdCard(fields).replace('<div class="ld-card">',`<div class="ld-card${hk?' has-chev':''}${isChild?' child-card':''}" onclick="openWO('${w.id}')">${chevBtn}${caption}`);
 }
 
 /* ══ LIST TABLE — all fields (§8.3), local (not the generic shared
@@ -1349,12 +1058,13 @@ function tRow(w,isChild){
   const hk=w.isP&&ck.length>0;
   const ex=!!exp[w.id];
   const chevBtn=hk
-    ?`<button class="ld-chev${ex?' open':''}" id="chev-${w.id}" onclick="event.stopPropagation();toggleP('${w.id}')">${SVGS.chevR}</button>`
+    ?`<uxt-icon-button class="ld-chev${ex?' open':''}" id="chev-${w.id}" icon="chevron-right" label="${ex?'Collapse':'Expand'} child work orders" density="m" onclick="event.stopPropagation();toggleP('${w.id}')"></uxt-icon-button>`
     :`<span class="ld-chev-ph"></span>`;
   let h=`<tr class="${isChild?'child-row':''}" onclick="openWO('${w.id}')">${fields.map((f,i)=>{
-    if(f.type==='status')return`<td><span class="ld-table-pill pill-${f.tier}">${f.value}</span></td>`;
+    if(f.type==='status')return`<td>${kitStatusChip(f.value,f.tier)}</td>`;
     if(f.type==='wotype')return`<td>${f.color?`<span class="wotype-dot" style="background:${f.color}"></span>`:''}${f.value}</td>`;
-    if(f.type==='priority')return`<td>${f.color?`<span class="ld-table-pill" style="background:${f.color}">${f.value}</span>`:f.value}</td>`;
+    // Priority High/Critical keep their fill (§23.4) as the kit filled status chip.
+    if(f.type==='priority')return`<td>${f.color?kitStatusChip(f.value,f.value==='Critical'?'red':'orange'):f.value}</td>`;
     const val=i===1?chevBtn+f.value:f.value; // chevron sits in front of Description, col index 1
     return`<td>${val}</td>`;
   }).join('')}</tr>`;
@@ -1377,8 +1087,8 @@ function scrollListToTop(){
 }
 
 /* ══ RENDER ══════════════════════════════════════════════ */
-function emptyH(){return`<div class="empty"><div class="empty-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-search"/></svg></div><div class="empty-title">No work orders found</div><div class="empty-sub">Try a different dataspy or adjust your search</div></div>`;}
-function emptyT(){return`<div class="empty"><div class="empty-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--text-faint)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-search"/></svg></div><div class="empty-title">No work orders found</div><div class="empty-sub">Try a different dataspy or adjust your search</div></div>`;}
+function emptyH(){return`<div class="empty"><div class="empty-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-search"/></svg></div><div class="empty-title">No work orders found</div><div class="empty-sub">Try a different dataspy or adjust your search</div></div>`;}
+function emptyT(){return`<div class="empty"><div class="empty-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-search"/></svg></div><div class="empty-title">No work orders found</div><div class="empty-sub">Try a different dataspy or adjust your search</div></div>`;}
 function renderD(id,wos){
   const el=document.getElementById(id);
   if(!wos||!wos.length){el.innerHTML=emptyH();return;}
@@ -1441,9 +1151,8 @@ function openDueChip(){
 function paintChip(id,label,active,valueText){
   const el=document.getElementById(id);
   if(!el)return;
-  el.classList.toggle('active',active);
   const short=(valueText||'').length>14?valueText.slice(0,13)+'…':valueText;
-  el.textContent=active?label+': '+short:label;
+  scrPaintChip(el, active ? label + ': ' + short : label, active, 0);
 }
 const SORT_FIELDS=[
   {key:'due',label:'Due date'},{key:'desc',label:'Description'},
@@ -1454,7 +1163,7 @@ function openSort(){
   openSortSheet({fields:SORT_FIELDS,key:sortBy,dir:sortDir,onApply:(k,d)=>{
     sortBy=k;sortDir=d;applySortOrder();
     const f=SORT_FIELDS.find(x=>x.key===k);
-    document.querySelectorAll('.sort-btn-label').forEach(el=>{el.textContent=f.label;});
+    scrSortLabel(f.label);
     refS1();refS2();
     showToast('Sorted by '+f.label+(d==='asc'?' (ascending)':' (descending)'));
   }});
@@ -1478,8 +1187,7 @@ function applySortOrder(){
 /* ══ MODE ════════════════════════════════════════════════ */
 function setMode(m){
   mode=m;
-  document.getElementById('modeD').classList.toggle('active',m==='detailed');
-  document.getElementById('modeL').classList.toggle('active',m==='list');
+  scrModeSync(m);
   refS1();refS2();
 }
 
@@ -1492,10 +1200,9 @@ function toggleP(id){exp[id]=!exp[id];refS1();refS2();}
 function openDS(){
   const sorted=[...DS].sort((a,b)=>(isFavoriteDS(b.id)?1:0)-(isFavoriteDS(a.id)?1:0));
   document.getElementById('dsList').innerHTML=sorted.map(d=>`
-    <div class="lov-option">
-      <button class="ds-fav-star${isFavoriteDS(d.id)?' favorited':''}" onclick="event.stopPropagation();toggleFavDS('${d.id}')" aria-label="Favorite">${SVGS.star}</button>
-      <div class="lov-option-texts" onclick="selDS('${d.id}')"><div class="lov-option-desc">${d.name}</div></div>
-      <div class="lov-check${curDS===d.id?' checked':''}" onclick="selDS('${d.id}')"></div>
+    <div class="kit-ds-row">
+      <uxt-icon-button class="kit-ds-star" icon="star" label="${isFavoriteDS(d.id) ? 'Remove favorite' : 'Favorite'}"${isFavoriteDS(d.id) ? ' tone="warning"' : ''} density="m" onclick="event.stopPropagation();toggleFavDS('${d.id}')"></uxt-icon-button>
+      <uxt-list-item class="lov-option" density="m" text="${kitEsc(d.name)}"${curDS === d.id ? ' selected' : ''} onclick="selDS('${d.id}')"></uxt-list-item>
     </div>`).join('');
   openSheet('dsSheet');
 }
@@ -1507,9 +1214,22 @@ function goSearch(){
   document.getElementById('s2').classList.add('active');
   refS2();setTimeout(()=>document.getElementById('sInp').focus(),80);
 }
+// Top-bar search entry → the Search screen. Typed text carries over and
+// filters at once; the entry bar is emptied so it is clean on the way back.
+function scrEnterSearch(entry){
+  const v=entry.value||'';
+  entry.value='';
+  const f=entry.querySelector('.input-value, input'); if(f) f.blur();
+  goSearch();
+  const inp=document.getElementById('sInp');
+  if(v){inp.value=v;onSearch(v);}
+  // Focus inside the tap's own handler so iOS raises the keyboard (a
+  // deferred focus() would not).
+  const sf=inp.querySelector('.sb-field, input'); if(sf) sf.focus();
+}
 function closeSearch(){document.getElementById('s2').classList.remove('active');document.getElementById('s1').classList.add('active');}
-function onSearch(v){sv=v.toLowerCase();document.getElementById('sClr').style.display=v.length>0?'flex':'none';refS2();}
-function clearSearch(){document.getElementById('sInp').value='';sv='';document.getElementById('sClr').style.display='none';refS2();}
+function onSearch(v){sv=v.toLowerCase();refS2();}
+function clearSearch(){document.getElementById('sInp').value='';sv='';refS2();}
 
 /* ══ CHIP SHEET (§6.11 — Status/Type/Organization only; the other 3
    dataspy-driven chips are toast stubs, wired directly in their markup).
@@ -1526,23 +1246,19 @@ function openCS(k){
 }
 function renderCSRows(rows){
   document.getElementById('csList').innerHTML=rows.map(r=>`
-    <div class="lov-option" onclick="togCS('${r.code}')">
-      <div class="lov-option-texts"><div class="lov-option-desc">${r.name}</div></div>
-      <div class="lov-check${csel[r.code]?' checked':''}" id="csr-${r.code}"></div>
-    </div>`).join('');
+    <uxt-list-item class="lov-option" density="m" checkbox id="csr-${r.code}" text="${kitEsc(r.name)}"${csel[r.code] ? ' checked' : ''} onclick="togCS('${r.code}')"></uxt-list-item>`).join('');
 }
 function filterCSRows(v){
   const q=v.toLowerCase();
   renderCSRows(CD[ack].rows.filter(r=>r.name.toLowerCase().includes(q)||r.code.toLowerCase().includes(q)));
 }
-function togCS(c){csel[c]=!csel[c];const el=document.getElementById('csr-'+c);if(el)el.className='lov-check'+(csel[c]?' checked':'');}
+function togCS(c){csel[c]=!csel[c];const el=document.getElementById('csr-'+c);if (el) el.toggleAttribute('checked', !!csel[c]);}
 function clearCS(){csel={};renderCSRows(CD[ack].rows);}
 function applyCS(){
   const sel=Object.keys(csel).filter(k=>csel[k]);
   cf[ack]=sel;
   const el=document.getElementById(CID[ack]);
-  el.classList.toggle('active',sel.length>0);
-  el.innerHTML=CLB[ack]+(sel.length>0?`<span class="chip-count">${sel.length}</span>`:'');
+  scrPaintChip(el, CLB[ack], sel.length>0, sel.length);
   refS2();closeAllSheets();
   if(sel.length)showToast(sel.length+' filter'+(sel.length>1?'s':'')+' applied');
 }
@@ -1584,15 +1300,14 @@ function restoreListState(){
   sortBy = s.sortBy || sortBy; sortDir = s.sortDir || sortDir;
   applySortOrder();
   const sf = SORT_FIELDS.find(x => x.key === sortBy);
-  if (sf) document.querySelectorAll('.sort-btn-label').forEach(el => { el.textContent = sf.label; });
+  if (sf) scrSortLabel(sf.label);
   // Repaint every chip's own label/active state from the restored values —
   // the chips are plain markup, so nothing derives this for us.
   Object.keys(CID).forEach(k => {
     const el = document.getElementById(CID[k]);
     const n = (cf[k] || []).length;
     if (!el) return;
-    el.classList.toggle('active', n > 0);
-    el.innerHTML = CLB[k] + (n > 0 ? `<span class="chip-count">${n}</span>` : '');
+    scrPaintChip(el, CLB[k], n > 0, n);
   });
   Object.keys(TEXT_CHIP_META).forEach(k => {
     const m = TEXT_CHIP_META[k];
@@ -1606,7 +1321,6 @@ function restoreListState(){
     document.getElementById('s2').classList.add('active');
     const inp = document.getElementById('sInp');
     if (inp) inp.value = sv;
-    document.getElementById('sClr').style.display = sv ? 'flex' : 'none';
   }
   refS1(); refS2();
 }
@@ -1707,6 +1421,7 @@ refS1();
 // fighting it. Restoring re-runs refS1/refS2 itself.
 if (!pendingSpyApplied) restoreListState();
 renderEntityFields(); // pre-render defaults so the sheet isn't empty the first time it opens (currentEntity defaults 'WO', matching this screen's only use)
+scrKitGate('insertSaveBtn', 'ready');
 initSharedApp();
 initDemoOnlineToggle();
 </script>

@@ -226,10 +226,6 @@
 
   <header class="nav" onclick="scrollFormToTop()">
     <div class="nav-left">
-      <button class="nav-avatar" onclick="event.stopPropagation();toggleProfileMenu()" aria-label="Profile">
-        <img class="nav-avatar-img" src="shared/img/bcampbell.jpg" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-        <span class="nav-avatar-initials" style="display:none;">BC</span>
-      </button>
       <span class="prototype-label">PROTOTYPE</span>
     </div>
     <!-- §4.3 Profile dropdown — 100% reused: same .rec-actions-menu/
@@ -288,14 +284,9 @@
     <h2 class="home-section-label" id="favSectionLabel">Favorites<uxt-icon-button presentational icon="star" density="m"></uxt-icon-button></h2>
     <div class="fav-row" id="favRow"></div>
 
-    <h2 class="home-section-label">My Work</h2>
-    <div class="home-tilegrid" id="homeTileGridMyWork"></div>
-
-    <h2 class="home-section-label">My Equipment</h2>
-    <div class="home-tilegrid" id="homeTileGridReference"></div>
-
-    <h2 class="home-section-label">Reference Section</h2>
-    <div class="home-tilegrid" id="homeTileGridRefSection"></div>
+    <!-- My Work / My Equipment / Reference Section tile grids removed while
+         Home is redesigned (Minh, 2026-10-20). HOME_TILES and renderTileGroup()
+         stay so the grids can come back by restoring these containers. -->
   </div>
 
   <div class="reorder-done-bar" id="reorderDoneBar">
@@ -877,7 +868,9 @@ function renderFavorites() {
 function renderTileGroup(containerId, group) {
   const mode = reorderTarget === 'tile';
   const indexed = HOME_TILES.map((t, i) => ({ t, i })).filter(x => x.t.group === group);
-  document.getElementById(containerId).innerHTML = indexed.map(({ t, i }) => `
+  const el = document.getElementById(containerId);
+  if (!el) return; // grid removed during the Home redesign
+  el.innerHTML = indexed.map(({ t, i }) => `
     <div class="home-tile${mode ? ' reordering' : ''}" data-id="${t.id}" onpointerdown="onItemPointerDown(event,'tile','${t.id}')">
       <span class="home-tile-sq" style="background:${t.tint || (t.color + '22')};color:${t.color}">
         <uxt-badge value="${t.count}" max="999" color="grey" label="${t.count} records">${kitGlyph(t.icon)}</uxt-badge>

@@ -36,6 +36,31 @@
   own canonical home elsewhere: Equipment Record View §5.3, WO List §8.3,
   Home/WO List/Equipment List §9.6, Equipment RV §7.2).
 -->
+<style>
+  /* Octave kit host layer for this file (2026-10-20). Places and sizes kit
+     elements only; the kit owns their look. Every field TYPE that is a real
+     control is the kit element (uxt-input single/multiple lines, uxt-input
+     type=time, uxt-input read-only, uxt-checkbox); the tap-to-open-a-sheet
+     types (LOV, Currency, Number, Date, Date/Time, Long-text) keep the
+     shared value-row markup the shared fieldRow*() renderers emit, because
+     openLov()/saveEdit()/selectDate() write their value by textContent into
+     the #fv-* spans. */
+  /* min-width:0 so a kit field can't widen its 1fr grid track past the card. */
+  .equip-attrs > .attr-item{min-width:0;}
+  .attr-item > uxt-input, .form-field.stacked > uxt-input{display:block;width:100%;min-width:0;}
+  .form-field > uxt-input.kit-time-field{margin-left:auto;width:128px;flex-shrink:0;}
+  .attr-item > uxt-input.kit-time-field{width:100%;}
+  .form-field.protected > uxt-input{margin-left:auto;flex:1;min-width:0;max-width:200px;}
+  .attr-label-row{display:flex;align-items:center;gap:var(--k-s1);}
+  /* Kit buttons that a shared toggle shows/hides by class: the kit writes an
+     inline display, so the class rule needs !important to win. */
+  uxt-button.text-editor-discard{display:none !important;}
+  uxt-button.text-editor-discard.show{display:inline-block !important;}
+  .kit-sheet-search.hidden{display:none;}
+  /* A gated kit button: pointer-events off while disabled so the tap lands on
+     the wrapper, which still runs the save (and its own "required" toast). */
+  .kit-gate > uxt-button[disabled], .kit-gate > uxt-icon-button[disabled]{pointer-events:none;}
+</style>
 </head>
 <body>
 
@@ -43,7 +68,7 @@
 <div class="app" id="app">
   <header class="nav" onclick="scrollFormToTop()">
     <div class="nav-left">
-      <button class="nav-back" onclick="event.stopPropagation();navBack()"><svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <uxt-icon-button class="kit-nav-btn" icon="arrow-back" label="Back" outlined density="m" onclick="event.stopPropagation();navBack()"></uxt-icon-button>
       <span class="prototype-label">PROTOTYPE</span>
     </div>
     <div class="nav-title">Screen Layout &amp; Field Behavior</div>
@@ -61,12 +86,10 @@
         <span class="rec-desc" id="recDesc" onclick="openDescEditor(event)">[Click in here] Dummy record used only to carry the standard header — code, description, org, status. Not the subject of this file.</span>
       </div>
       <div class="rec-header-actions">
-        <button class="rec-ellipsis-btn" id="recEllipsisBtn" onclick="event.stopPropagation(); toggleRecActionsMenu()" aria-label="More actions">
-          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
-        </button>
+        <uxt-icon-button id="recEllipsisBtn" icon="more-vert" label="More actions" outlined density="m" onclick="event.stopPropagation(); toggleRecActionsMenu()"></uxt-icon-button>
         <div class="rec-actions-menu" id="recActionsMenu">
           <div class="rec-actions-group">
-            <div class="rec-actions-item" onclick="closeRecActionsMenu(); showToast('Example only — this file has no real record actions')">Example action</div>
+            <uxt-list-item class="kit-menu-row" role="menuitem" density="m" text="Example action" onclick="closeRecActionsMenu(); showToast('Example only — this file has no real record actions')"></uxt-list-item>
           </div>
         </div>
       </div>
@@ -93,9 +116,9 @@
     <div class="section-card">
       <div class="equip-attrs">
 
-        <div class="attr-item full-width" data-field="g_notes" onclick="focusInlineField(this)">
+        <div class="attr-item full-width" data-field="g_notes" onclick="fbFocusKitField(this, event)">
           <span class="attr-label">Notes / Description</span>
-          <textarea class="field-inline-input" id="fv-g_notes" rows="1" maxlength="255" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus(this)" onblur="onInlineBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">Sample notes text — this field type is always double-wide, regardless of container.</textarea>
+          <uxt-input id="fv-g_notes" lines="multiple" full-width density="m" aria-label="Notes / Description" placeholder="Tap to add…" value="Sample notes text — this field type is always double-wide, regardless of container." onfocusout="onInlineBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();event.target.blur();}"></uxt-input>
         </div>
 
         <div class="attr-item" data-field="g_badge" onclick="openLov('g_badge')">
@@ -125,9 +148,9 @@
           </div>
         </div>
 
-        <div class="attr-item" data-field="g_inline" onclick="focusInlineField(this)">
+        <div class="attr-item" data-field="g_inline" onclick="fbFocusKitField(this, event)">
           <span class="attr-label">Inline Text</span>
-          <textarea class="field-inline-input" id="fv-g_inline" rows="1" maxlength="255" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus(this)" onblur="onInlineBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">Sample text</textarea>
+          <uxt-input id="fv-g_inline" full-width density="m" aria-label="Inline Text" placeholder="Tap to add…" value="Sample text" onfocusout="onInlineBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();event.target.blur();}"></uxt-input>
         </div>
         <div class="attr-item" data-field="g_currency" onclick="openEdit('g_currency','Currency','currency')">
           <span class="attr-label">Currency</span>
@@ -149,19 +172,19 @@
         </div>
         <div class="attr-item" data-field="g_time">
           <span class="attr-label">Time Only</span>
-          <div class="attr-value"><input class="time-input" type="time" lang="en-GB" id="fv-g_time" value="08:00"></div>
+          <uxt-input class="kit-time-field" id="fv-g_time" type="time" lang="en-GB" full-width density="m" aria-label="Time Only" value="08:00"></uxt-input>
         </div>
 
         <div class="attr-item checkbox-zone-row" data-field="g_checkbox" onclick="toggleCheckbox(this)">
           <span class="attr-label">Checkbox</span>
-          <div class="attr-checkbox-zone"><div class="field-checkbox checked" id="fv-g_checkbox-box"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></div></div>
+          <div class="attr-checkbox-zone"><uxt-checkbox class="field-checkbox-kit" id="fv-g_checkbox-box" inert aria-label="Checkbox" value="checked"></uxt-checkbox></div>
         </div>
         <div class="attr-item protected" data-field="g_protected">
           <div class="attr-label-row">
             <span class="attr-label">Protected</span>
             <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           </div>
-          <div class="attr-value"><span class="attr-text muted" id="fv-g_protected">SYS-0001</span></div>
+          <uxt-input id="fv-g_protected" state="readonly" full-width density="m" aria-label="Protected" value="SYS-0001"></uxt-input>
         </div>
 
         <div class="attr-item full-width" data-field="g_longtext" onclick="openTextEditor('g_longtext','Edit Long-text')">
@@ -184,9 +207,9 @@ Second line — carriage returns are preserved here, unlike Inline Text.</span><
       </div>
       <div class="fg-collapse open">
 
-        <div class="form-field stacked" data-field="l_notes" onclick="focusInlineField(this)">
+        <div class="form-field stacked" data-field="l_notes" onclick="fbFocusKitField(this, event)">
           <span class="field-label">Notes / Description</span>
-          <textarea class="field-inline-input" id="fv-l_notes" rows="1" maxlength="255" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus(this)" onblur="onInlineBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">Sample notes text — already full-width by default in a List row; the double-wide rule only has visible effect in Grid.</textarea>
+          <uxt-input id="fv-l_notes" lines="multiple" full-width density="m" aria-label="Notes / Description" placeholder="Tap to add…" value="Sample notes text — already full-width by default in a List row; the double-wide rule only has visible effect in Grid." onfocusout="onInlineBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();event.target.blur();}"></uxt-input>
         </div>
 
         <div class="form-field" data-field="l_badge" onclick="openLov('l_badge')">
@@ -214,9 +237,9 @@ Second line — carriage returns are preserved here, unlike Inline Text.</span><
           <span class="field-chevron">›</span>
         </div>
 
-        <div class="form-field stacked" data-field="l_inline" onclick="focusInlineField(this)">
+        <div class="form-field stacked" data-field="l_inline" onclick="fbFocusKitField(this, event)">
           <span class="field-label">Inline Text</span>
-          <textarea class="field-inline-input" id="fv-l_inline" rows="1" maxlength="255" oninput="updateInlineFieldLayout(this)" onfocus="onInlineFocus(this)" onblur="onInlineBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">Sample text</textarea>
+          <uxt-input id="fv-l_inline" full-width density="m" aria-label="Inline Text" placeholder="Tap to add…" value="Sample text" onfocusout="onInlineBlur(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();event.target.blur();}"></uxt-input>
         </div>
         <div class="form-field" data-field="l_currency" onclick="openEdit('l_currency','Currency','currency')">
           <span class="field-label">Currency</span>
@@ -244,18 +267,20 @@ Second line — carriage returns are preserved here, unlike Inline Text.</span><
 
         <div class="form-field" data-field="l_time">
           <span class="field-label">Time Only</span>
-          <input class="time-input" type="time" lang="en-GB" id="fv-l_time" value="08:00">
+          <uxt-input class="kit-time-field" id="fv-l_time" type="time" lang="en-GB" density="m" aria-label="Time Only" value="08:00"></uxt-input>
         </div>
 
         <div class="form-field" data-field="l_checkbox" onclick="toggleCheckbox(this)">
           <span class="field-label">Checkbox</span>
-          <div class="field-checkbox checked" id="fv-l_checkbox-box"><svg width="13" height="13" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+          <uxt-checkbox class="field-checkbox-kit" id="fv-l_checkbox-box" inert aria-label="Checkbox" value="checked"></uxt-checkbox>
         </div>
 
-        <div class="form-field protected">
-          <span class="field-label">Protected</span>
-          <span class="field-value muted">SYS-0001</span>
-          <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <div class="form-field protected" data-field="l_protected">
+          <div class="attr-label-row field-label">
+            <span>Protected</span>
+            <svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <uxt-input id="fv-l_protected" state="readonly" density="m" aria-label="Protected" value="SYS-0001"></uxt-input>
         </div>
 
         <div class="form-field" data-field="l_longtext" onclick="openTextEditor('l_longtext','Edit Long-text')">
@@ -278,9 +303,9 @@ Second line — carriage returns are preserved here, unlike Inline Text.</span>
   <div class="bottom-sheet" id="syncPanelSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title">Sync Status</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <div class="kit-sheet-spacer"></div>
     </div>
     <div class="sync-panel-state" id="syncPanelStateLabel"></div>
     <div class="sheet-body" id="syncPanelList"></div>
@@ -290,13 +315,12 @@ Second line — carriage returns are preserved here, unlike Inline Text.</span>
   <div class="bottom-sheet" id="lovSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title" id="lovSheetTitle">Select value</div>
-      <button class="sheet-clear-btn" id="lovClearBtn" onclick="clearLov()">Clear</button>
+      <uxt-button class="sheet-clear-btn kit-sheet-text-btn" id="lovClearBtn" variant="text" tone="neutral" text="Clear" onclick="clearLov()"></uxt-button>
     </div>
-    <div class="lov-search-row" id="lovSearchRow">
-      <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <input class="lov-search-input" id="lovSearchInput" placeholder="Search" oninput="filterLovOptions(this.value)">
+    <div class="kit-sheet-search" id="lovSearchRow">
+      <uxt-search-bar id="lovSearchInput" density="m" placeholder="Search" oninput="filterLovOptions(this.value)"></uxt-search-bar>
     </div>
     <div class="sheet-body" id="lovSheetBody"></div>
   </div>
@@ -304,26 +328,35 @@ Second line — carriage returns are preserved here, unlike Inline Text.</span>
   <div class="bottom-sheet" id="editSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title" id="editSheetTitle">Edit field</div>
-      <button class="sheet-clear-btn" id="editClearBtn" onclick="clearEdit()">Clear</button>
+      <!-- Clear + ✓ share the right slot, no bottom Save pill (§3.4: a button
+           at the bottom edge of a keyboard sheet collides with iOS's accessory
+           bar) — the canonical shape eam-wo-record-view-prototype-v1.html uses.
+           ✓ stays Danny's green .sheet-confirm-btn (test-editors.js pins it). -->
+      <div class="sheet-header-right">
+        <uxt-button class="sheet-clear-btn kit-sheet-text-btn" id="editClearBtn" variant="text" tone="neutral" text="Clear" onclick="clearEdit()"></uxt-button>
+        <button class="sheet-confirm-btn" id="editConfirmBtn" onclick="saveEdit()" aria-label="Save"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>
+      </div>
     </div>
+    <!-- Native input on purpose: openEdit()/sanitizeCurrencyInput() drive
+         inputMode and the caret (setSelectionRange) on this element, which a
+         kit <uxt-input> host does not expose. Styled as the kit Classic input. -->
     <div class="edit-input-wrap"><input class="edit-input" id="editSheetInput" type="text" oninput="sanitizeCurrencyInput(this)"></div>
-    <div class="sheet-footer"><button class="btn-save" onclick="saveEdit()">Save</button></div>
   </div>
 
   <div class="bottom-sheet" id="dateSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title" id="dateSheetTitle">Select date</div>
-      <button class="sheet-clear-btn" id="dateClearBtn" onclick="clearDate()">Clear</button>
+      <uxt-button class="sheet-clear-btn kit-sheet-text-btn" id="dateClearBtn" variant="text" tone="neutral" text="Clear" onclick="clearDate()"></uxt-button>
     </div>
     <div class="sheet-body">
       <div class="cal-header">
-        <button class="cal-nav-btn" onclick="calNavMonth(-1)">‹</button>
+        <uxt-icon-button icon="chevron-left" label="Previous month" density="m" onclick="calNavMonth(-1)"></uxt-icon-button>
         <span class="cal-month-label" id="calMonthLabel">July 2026</span>
-        <button class="cal-nav-btn" onclick="calNavMonth(1)">›</button>
+        <uxt-icon-button icon="chevron-right" label="Next month" density="m" onclick="calNavMonth(1)"></uxt-icon-button>
       </div>
       <div class="cal-weekdays"><span class="cal-weekday">Sun</span><span class="cal-weekday">Mon</span><span class="cal-weekday">Tue</span><span class="cal-weekday">Wed</span><span class="cal-weekday">Thu</span><span class="cal-weekday">Fri</span><span class="cal-weekday">Sat</span></div>
       <div class="cal-grid" id="calGrid"></div>
@@ -333,37 +366,40 @@ Second line — carriage returns are preserved here, unlike Inline Text.</span>
   <div class="bottom-sheet" id="dateTimeSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
-      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title" id="dateTimeSheetTitle">Select date &amp; time</div>
-      <button class="sheet-clear-btn" id="dateTimeClearBtn" onclick="clearDateTime()">Clear</button>
+      <uxt-button class="sheet-clear-btn kit-sheet-text-btn" id="dateTimeClearBtn" variant="text" tone="neutral" text="Clear" onclick="clearDateTime()"></uxt-button>
     </div>
     <div class="sheet-body">
       <div class="cal-header">
-        <button class="cal-nav-btn" onclick="calNavMonthDT(-1)">‹</button>
+        <uxt-icon-button icon="chevron-left" label="Previous month" density="m" onclick="calNavMonthDT(-1)"></uxt-icon-button>
         <span class="cal-month-label" id="calMonthLabelDT">July 2026</span>
-        <button class="cal-nav-btn" onclick="calNavMonthDT(1)">›</button>
+        <uxt-icon-button icon="chevron-right" label="Next month" density="m" onclick="calNavMonthDT(1)"></uxt-icon-button>
       </div>
       <div class="cal-weekdays"><span class="cal-weekday">Sun</span><span class="cal-weekday">Mon</span><span class="cal-weekday">Tue</span><span class="cal-weekday">Wed</span><span class="cal-weekday">Thu</span><span class="cal-weekday">Fri</span><span class="cal-weekday">Sat</span></div>
       <div class="cal-grid" id="calGridDT"></div>
       <div class="form-field">
         <span class="field-label">Time</span>
-        <input class="time-input" type="time" lang="en-GB" id="dateTimeInput" value="14:30">
+        <uxt-input class="kit-time-field" id="dateTimeInput" type="time" lang="en-GB" density="m" aria-label="Time" value="14:30"></uxt-input>
       </div>
     </div>
-    <div class="sheet-footer"><button class="btn-save" onclick="saveDateTime()">Save</button></div>
+    <div class="sheet-footer"><uxt-button class="kit-btn-block" variant="contained" text="Save" onclick="saveDateTime()"></uxt-button></div>
   </div>
 
   <div class="bottom-sheet text-editor-sheet" id="textEditorSheet">
     <div class="text-editor-header">
       <div class="text-editor-left">
-        <button class="text-editor-close" id="textEditorCloseBtn" onclick="textEditorCloseTap()">✕</button>
-        <button class="text-editor-discard" id="textEditorDiscard" onclick="textEditorConfirmDiscard()">Discard unsaved changes</button>
+        <uxt-icon-button id="textEditorCloseBtn" icon="close" label="Close" density="m" onclick="textEditorCloseTap()"></uxt-icon-button>
+        <uxt-button class="text-editor-discard" id="textEditorDiscard" variant="outlined" tone="error" text="Discard unsaved changes" onclick="textEditorConfirmDiscard()"></uxt-button>
       </div>
       <div class="text-editor-title" id="textEditorTitle">Edit</div>
-      <div style="width:30px;flex-shrink:0;"></div>
+      <!-- ✓ replaces the old bottom Save pill (§3.4, 2026-08-11) — same as every
+           other screen's copy of this sheet; this file still had the pill. -->
+      <button class="sheet-confirm-btn" id="textEditorConfirmBtn" onclick="saveTextEditor()" aria-label="Save"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>
     </div>
+    <!-- Native textarea on purpose: the full-screen editor body; the kit's
+         multiple-lines input is a fixed 72px field. -->
     <div class="text-editor-body"><textarea class="text-editor-textarea" id="textEditorTextarea" oninput="textEditorInputChanged()" placeholder="Type here…"></textarea></div>
-    <div class="sheet-footer"><button class="btn-save" onclick="saveTextEditor()">Save</button></div>
   </div>
 
 
@@ -422,6 +458,17 @@ const LOV_TITLES = {
    ORG_STYLE_LOVS above is declared for consistency but never actually
    exercised by this file. */
 
+/* Tapping anywhere in a kit input's cell/row focuses the field with the caret
+   at the end (focusInlineField()'s contract, which looks for a bare
+   <textarea>). A tap inside the kit field itself is left to the kit. */
+function fbFocusKitField(cell, e) {
+  const kit = cell.querySelector('uxt-input');
+  if (!kit || (e && kit.contains(e.target))) return;
+  const f = kit.querySelector('.input-value');
+  if (!f) return;
+  f.focus();
+  try { f.setSelectionRange(f.value.length, f.value.length); } catch (err) { /* type=time has no caret */ }
+}
 function navBack() {
   location.href = 'eam-home-screen-prototype-v1.html';
 }

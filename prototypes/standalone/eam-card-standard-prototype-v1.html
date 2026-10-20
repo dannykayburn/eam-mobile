@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-uxt-density="mobile" data-uxt-theme="light">
 <head>
+<script>/* guarded: localStorage throws in iOS Private Browsing, and this runs before eam-shared.js so lsGet() does not exist yet */document.documentElement.setAttribute('data-uxt-density','mobile');document.documentElement.setAttribute('data-uxt-theme','light');try{if(localStorage.getItem('eamTheme')==='dark'){document.documentElement.setAttribute('data-theme','dark');document.documentElement.setAttribute('data-uxt-theme','dark');}}catch(e){}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#1A1A1F">
@@ -43,15 +44,20 @@
   copy to drift from the shared one.
 -->
 <style>
-  .demo-label{font-size:0.6875rem;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--gray-4);margin:18px 12px 6px;font-family:var(--font-mono);}
-  .demo-note{font-size:0.75rem;color:var(--gray-4);margin:0 12px 10px;line-height:1.5;}
+  /* Demo scaffolding only, on kit type tokens: label = Subtitle 2 (Octave
+     Display), note = Caption in text-secondary; 4/8/16/24 spacing. */
+  .demo-label{font-family:var(--font-display);font-size:var(--uxt-theme-typography-sub-title-2-font-size,0.875rem);font-weight:var(--uxt-theme-typography-sub-title-2-font-weight,500);color:var(--k-text);margin:var(--k-s6) var(--k-s4) var(--k-s1);}
+  .demo-note{font-size:var(--k-caption);color:var(--k-text-2);margin:0 var(--k-s4) var(--k-s2);line-height:1.5;}
+  /* The theme toggle is a kit outlined button (was a hand-built pill that
+     only flipped data-theme, so the kit elements stayed light). */
+  .proto-theme-bar uxt-button{flex-shrink:0;}
 </style>
 </head>
 <body>
 <div class="app" style="overflow:auto;">
   <div class="proto-theme-bar">
     <span class="proto-theme-label">theme</span>
-    <button class="theme-toggle" onclick="document.documentElement.hasAttribute('data-theme')?document.documentElement.removeAttribute('data-theme'):document.documentElement.setAttribute('data-theme','dark')">toggle dark</button>
+    <uxt-button variant="outlined" density="m" text="Toggle dark" onclick="toggleThemeDemo()"></uxt-button>
   </div>
 
   <div class="demo-label">A — baseline (5/5 fields populated)</div>
