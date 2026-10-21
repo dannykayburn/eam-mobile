@@ -38,7 +38,7 @@ function routeRows(wo, code, desc, prefix, start, count) {
                 org: 'FBPP', type: 'Asset', source: 'route',
                 childWo: String(20451 + i), parentWo: wo });
   }
-  return { eamOpenDemoWo: wo, eamWoEquipment: JSON.stringify({
+  return { eamOpenDemoWo: wo, eamDemoRouteSeeded2: '1', eamWoEquipment: JSON.stringify({
     [wo]: { route: { code, desc }, rows }, __nextChildWo: 20451 + count }) };
 }
 
@@ -48,7 +48,7 @@ console.log('route checklist (§16.9 fan-out over a per-WO task plan)');
    configuration (§11), so it is the route plan whether or not the route has
    been picked yet: 3 items, not the 8-item default. */
 {
-  const ctx = runScreen(CHECKLIST, { eamOpenDemoWo: '19831' });
+  const ctx = runScreen(CHECKLIST, { eamOpenDemoWo: '19831', eamDemoRouteSeeded2: '1' }); // seeded-flag set: simulates a deliberately cleared route
   eq(read(ctx, 'ITEMS.length'), 3, '19831 with no route selected: 3 items');
   eq(read(ctx, 'ITEMS.filter(i => i.equipId).length'), 1, '  exactly one equipment-scoped template');
   eq(read(ctx, 'ITEMS[0].group'), 'safety', '  opens on the route brief');
@@ -120,7 +120,7 @@ console.log('route checklist (§16.9 fan-out over a per-WO task plan)');
    session, so they drive the real reset path rather than a pre-seeded store. */
 {
   const ctx = runScreen('eam-wo-record-view-prototype-v1.html', null);
-  eq(read(ctx, "woEquipRows('19831').length"), 0, 'cold start: 19831 has no equipment');
+  eq(read(ctx, "woEquipRows('19831').length"), 12, 'cold start: 19831 already carries the PUMPSPM route (seeded on load, 2026-10-21)');
   read(ctx, 'resetDemoState()');
   eq(read(ctx, "woEquipRows('19831').length"), 12, 'after Log In reset: 19831 carries 12 route assets');
   eq(read(ctx, "woEquipRoute('19831').code"), 'PUMPSPM', '  route is set on the header too (drives the WO route field)');

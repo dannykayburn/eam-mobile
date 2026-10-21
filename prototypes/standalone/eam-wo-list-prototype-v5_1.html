@@ -13,8 +13,8 @@
 <link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — WO List v5</title>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202609251730">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202609251730">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202610212141">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202610212141">
 <style>
 /* ══════════════════════════════════════════════════════════
    OCTAVE — HxGN EAM Mobile · WO List v5 · Inline SVG icons
@@ -915,8 +915,8 @@ body{
 
 </div><!-- /app -->
 
-<script src="../../data/notifications.js?v=202609251730"></script>
-<script src="shared/eam-shared.js?v=202609251730"></script>
+<script src="../../data/notifications.js?v=202610212141"></script>
+<script src="shared/eam-shared.js?v=202610212141"></script>
 <script>
 // Insert Mode's Type pill (§9.4.1, added 2026-07-29) re-scopes the flat
 // fields section on every change, not just on entity switch — same
@@ -1000,11 +1000,11 @@ const TM={
   CM: {name:'Corrective maint',  color: woTypeBadgeMetaForCode('CM').color},
   INS:{name:'Inspection'},
   MOD:{name:'Modification'},
-  PM: {name:'Preventive maint',  color: woTypeBadgeMetaForCode('PM').color},
+  PM: {name:'Preventive Maintenance',  color: woTypeBadgeMetaForCode('PM').color},
   // Added 2026-07-22 (punch-list item) — real WO Type for WO 20450, the
   // §11 fallback demo (no configured workflow). Matches data/wotype.js's
   // own ROUT ("Routine Maintenance") description.
-  ROUT:{name:'Routine maint',    color: woTypeBadgeMetaForCode('ROUT').color},
+  ROUT:{name:'Routine Maintenance', color: woTypeBadgeMetaForCode('ROUT').color},
 };
 // Priority gained real colour 2026-07-28 (Primary palette pass) —
 // High/Critical now render as a small filled pill, same treatment Type's
@@ -1058,7 +1058,7 @@ const WOS=[
   // used to disagree (CM/Corrective) with its own step rail/workflow
   // identity, invisible while Type carried no colour but a real
   // contradiction the instant it does (WO Type Colour + Icon Badge).
-  {id:'WO-19257',desc:'Pump Cavitating; lost head',                    eq:'Pump, Centrifugal',      ec:'PUMP-C-0045',tp:'BK',pr:'4',st:'RELEASED',   loc:'PUMP-HOUSE-3',org:'FBPP',due:'07/20/2026',isP:false,pid:null},
+  {id:'WO-19257',desc:'Pump Cavitating; lost head',                    eq:'Pump, Centrifugal',      ec:'PUMP-C-0045',tp:'BK',pr:'4',st:'RELEASED',   loc:'PUMP-HOUSE-3',org:'FBPP',due:'07/18/2026',isP:false,pid:null},
   {id:'WO-19244',desc:'Quarterly preventive maintenance inspection',    eq:'Conveyor Drive Unit',     ec:'CONV-D-0012',tp:'PM',pr:'3',st:'RELEASED',loc:'LINE-B-WEST', org:'ORG1', due:'07/20/2026',isP:true, pid:null},
   {id:'WO-19243',desc:'Belt tension drifting out of spec',              eq:'Conveyor Belt Tensioner', ec:'CONV-T-0012',tp:'CM',pr:'3',st:'RELEASED',loc:'LINE-B-WEST', org:'ORG1', due:'07/20/2026',isP:false,pid:'WO-19244'},
   {id:'WO-19242',desc:'Gearbox oil change and inspection',              eq:'Conveyor Drive Gearbox',  ec:'CONV-G-0012',tp:'PM',pr:'3',st:'RELEASED',   loc:'LINE-B-WEST', org:'ORG1', due:'07/21/2026',isP:false,pid:'WO-19244'},
@@ -1072,11 +1072,11 @@ const WOS=[
   // now have real rows here too, not just 19257 — so "My Assigned WOs"
   // (DSF.ds1 below) can show exactly the 3 known-good identities, and
   // each opens as itself via openWO()'s literal-number match.
-  // Due dates 07/18 (20450) < 07/20 (19257) < 07/22 (19831) are deliberate: the
+  // Due dates 07/18 (19257) < 07/20 (20450) < 07/22 (19831) are deliberate: the
   // default Due sort then lists My Assigned WOs in the UXR script order — Task 2
-  // (routine 20450), Task 3 (breakdown 19257), Task 4 (PM 19831 + seeded route).
+  // (breakdown 19257), Task 3 (routine 20450), Task 4 (PM 19831 + seeded route).
   {id:'WO-19831',desc:'General inspection request',                     eq:'Pump, Centrifugal',       ec:'PUMP-C-0045',tp:'PM',pr:'2',st:'RELEASED',loc:'PUMP-HOUSE-3',org:'FBPP', due:'07/22/2026',isP:false,pid:null},
-  {id:'WO-20450',desc:'Replace batteries in lobby TV remote',            eq:'Building A — Main Lobby', ec:'BLDG-A',     tp:'ROUT',pr:'2',st:'RELEASED',loc:'MAIN-LOBBY', org:'FBPP', due:'07/18/2026',isP:false,pid:null},
+  {id:'WO-20450',desc:'Replace batteries in lobby TV remote',            eq:'Building A — Main Lobby', ec:'BLDG-A',     tp:'ROUT',pr:'2',st:'RELEASED',loc:'MAIN-LOBBY', org:'FBPP', due:'07/20/2026',isP:false,pid:null},
 ];
 /* MEC child WOs (§16.10) — the WO Equipment tab mints one child WO per piece
    of equipment on the header WO and persists them in the shared store. They
