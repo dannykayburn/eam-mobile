@@ -1635,7 +1635,19 @@ function goNext() {
     showToast(`Required: ${incomplete.label}`);
   }
 }
-function setCheck() { const it = ITEMS[cursor]; it.value = !it.value; if (it.dynamicRules) syncDynamicChildren(it); renderFocus(); }
+// Auto-advance (2026-10-21, UXR feedback): confirming a check-type item moves on
+// to the next one. Scoped to `check` ONLY — a single tap is a complete answer
+// there, whereas number/text/slider/multi-select entries are still being
+// composed and would feel aggressive. Un-confirming (2nd tap) never advances,
+// the last item has nowhere to go, and the short delay lets the confirmed state
+// register; the cursor guard drops it if the user navigated away in the meantime.
+const CHECK_ADVANCE_MS = 350;
+function setCheck() {
+  const it = ITEMS[cursor]; it.value = !it.value; if (it.dynamicRules) syncDynamicChildren(it); renderFocus();
+  if (!it.value || showingInstructions) return;
+  const from = cursor;
+  setTimeout(() => { if (cursor === from && cursor < ITEMS.length - 1 && !showingInstructions) goNext(); }, CHECK_ADVANCE_MS);
+}
 function setToggle(label, cls) { const it = ITEMS[cursor]; it.value = label; if (it.dynamicRules) syncDynamicChildren(it); renderFocus(); }
 function setNum(el) { const it = ITEMS[cursor]; it.value = el.value; if (it.dynamicRules) syncDynamicChildren(it); renderStepperHead(); updateFooter(); syncBannerDone(); }
 function setText(el) { const it = ITEMS[cursor]; it.value = el.value; if (it.dynamicRules) syncDynamicChildren(it); renderStepperHead(); updateFooter(); syncBannerDone(); }
