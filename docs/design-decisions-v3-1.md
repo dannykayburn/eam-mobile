@@ -4918,6 +4918,11 @@ per-*item* Comments/Documents below.
   (`.focus-req-tag`), same shape/font as the org corner-badge elsewhere
   in the app (§8.3's `.ld-card-org`: Inter, 12px, pill), just orange. Not
   a "*" glyph, not in the rail.
+- **Auto-advance on confirm — `check` items only** (2026-10-21, UXR feedback).
+  Confirming a check-type item moves to the next one after a short delay
+  (`CHECK_ADVANCE_MS`). Number, text, slider and toggle entries do not: they are
+  still being composed, or are multi-step, and advancing would feel aggressive.
+  Un-confirming never advances, and the last item stays put.
 
 ## 16.2 Item anatomy
 

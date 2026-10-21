@@ -1072,8 +1072,11 @@ const WOS=[
   // now have real rows here too, not just 19257 — so "My Assigned WOs"
   // (DSF.ds1 below) can show exactly the 3 known-good identities, and
   // each opens as itself via openWO()'s literal-number match.
+  // Due dates 07/18 (20450) < 07/20 (19257) < 07/22 (19831) are deliberate: the
+  // default Due sort then lists My Assigned WOs in the UXR script order — Task 2
+  // (routine 20450), Task 3 (breakdown 19257), Task 4 (PM 19831 + seeded route).
   {id:'WO-19831',desc:'General inspection request',                     eq:'Pump, Centrifugal',       ec:'PUMP-C-0045',tp:'PM',pr:'2',st:'RELEASED',loc:'PUMP-HOUSE-3',org:'FBPP', due:'07/22/2026',isP:false,pid:null},
-  {id:'WO-20450',desc:'Replace batteries in lobby TV remote',            eq:'Building A — Main Lobby', ec:'BLDG-A',     tp:'ROUT',pr:'2',st:'RELEASED',loc:'MAIN-LOBBY', org:'FBPP', due:'07/25/2026',isP:false,pid:null},
+  {id:'WO-20450',desc:'Replace batteries in lobby TV remote',            eq:'Building A — Main Lobby', ec:'BLDG-A',     tp:'ROUT',pr:'2',st:'RELEASED',loc:'MAIN-LOBBY', org:'FBPP', due:'07/18/2026',isP:false,pid:null},
 ];
 /* MEC child WOs (§16.10) — the WO Equipment tab mints one child WO per piece
    of equipment on the header WO and persists them in the shared store. They
