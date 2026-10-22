@@ -695,7 +695,7 @@ const has = p => pkg.has(p);
       'The template changed - re-check which slide carries the title treatment.');
     process.exit(1);
   }
-  const put = ['HxGN EAM Mobile v1', 'One app, one online/offline continuum, one guided workflow',
+  const put = ['Attune EAM Mobile v1', 'One app, one online/offline continuum, one guided workflow',
                'Vision and scope · September 2026', 'Daniel Kilburn', 'Technical Program Manager'];
   let k = 0;
   s1 = s1.replace(/<a:t>[\s\S]*?<\/a:t>/g, () => '<a:t>' + esc(put[k++]) + '</a:t>');

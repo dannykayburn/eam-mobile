@@ -1,4 +1,4 @@
-# HxGN EAM Mobile App
+# Attune EAM Mobile App
 
 Project Kickoff Briefing — Design & Architecture Handoff
 
@@ -18,7 +18,7 @@ Project Kickoff Briefing — Design & Architecture Handoff
 
 Audience: Dev Manager, Lead Dev Tech | Date: July 2026 (refreshed 2026-08-25, then retired) | Status: RETIRED
 
-This briefing summarizes where the HxGN EAM (Attune EAM) mobile app stands as it enters development planning: a technician-first, offline-capable work order execution app for iOS and Android. Design of the core work order execution workflow (all five steps) plus the WO List entry point, Home, Equipment record view/list, Insert Mode, Notifications and the sync system is complete, with decisions captured in the HxGN EAM Mobile Design Decisions doc v3.1. The purpose of this kickoff is to align on architecture, agree the open technical decisions — including the punch-list mechanism — and plan the build.
+This briefing summarizes where the Attune EAM mobile app stands as it enters development planning: a technician-first, offline-capable work order execution app for iOS and Android. Design of the core work order execution workflow (all five steps) plus the WO List entry point, Home, Equipment record view/list, Insert Mode, Notifications and the sync system is complete, with decisions captured in the Attune EAM Mobile Design Decisions doc v3.1. The purpose of this kickoff is to align on architecture, agree the open technical decisions — including the punch-list mechanism — and plan the build.
 
 > **Refresh note (2026-08-25).** Sections 1, 2 and 5 are unchanged and still accurate — the Voice-of-the-Customer themes, the architecture, and the prerequisites are as originally written. Sections 3, 4, 7 and 8 have been brought current: the mobile surface roughly doubled since July and consolidated onto a shared component system, and the design-system paragraph described a purple accent that has since been retired. A companion build-planning artifact — `EAM-Dev-Leadership-Review-2026-08-25.md`, with a sizing appendix — carries the screen-by-screen development inventory and the recommended sequence in more detail than belongs here.
 

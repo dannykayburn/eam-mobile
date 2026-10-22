@@ -1,4 +1,4 @@
-# HxGN EAM Mobile — Session Handoff
+# Attune EAM Mobile — Session Handoff
 ## Completed: Book Labor (Step 4) + WO Closing (Step 5)
 ## Next: Final compile — all five steps into one prototype
 **Date:** May 2026
@@ -16,7 +16,7 @@
 
 Upload all four. Tell Claude:
 
-> *"We are building the HxGN EAM Mobile app. Book Labor (Step 4) and WO Closing (Step 5) are now complete as standalone prototypes. We need to compile all five steps — WO Record View, Activity Checklist, Issue Parts, Book Labor, and WO Closing — into a single unified prototype. The design decisions doc (v2), the Issue Parts prototype, the Book Labor prototype (v2), and the WO Closing prototype (v1) are uploaded. Follow all locked design decisions throughout. The assembly brief in the handoff doc describes exactly what needs to happen."*
+> *"We are building the Attune EAM Mobile app. Book Labor (Step 4) and WO Closing (Step 5) are now complete as standalone prototypes. We need to compile all five steps — WO Record View, Activity Checklist, Issue Parts, Book Labor, and WO Closing — into a single unified prototype. The design decisions doc (v2), the Issue Parts prototype, the Book Labor prototype (v2), and the WO Closing prototype (v1) are uploaded. Follow all locked design decisions throughout. The assembly brief in the handoff doc describes exactly what needs to happen."*
 
 ---
 

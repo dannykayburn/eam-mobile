@@ -1,4 +1,4 @@
-﻿# HxGN EAM Mobile App
+﻿# Attune EAM Mobile App
 
 Design Decisions & System Reference
 
@@ -6,7 +6,7 @@ Version 3.1 — July 2026 — Technician Persona / Work Order Execution
 
 | | |
 | --- | --- |
-| **Product** | HxGN EAM / Attune EAM — enterprise asset management |
+| **Product** | Attune EAM — enterprise asset management |
 | **First persona** | Field technician executing work orders |
 | **Platform** | iOS and Android — **a native (React Native) app, not a PWA.** Corrected 2026-08-25 (user direction); this cell used to read "responsive PWA" and contradicted the architecture the rest of the doc specifies. See §2.2 for why the offline model forces native, and §21 for the supersession. |
 | **Prototype files** | Don't maintain a file list here — it drifts. `CLAUDE.md`'s "Current state" is the live inventory of which screen lives in which file; `prototypes/standalone/old versions/` holds retired ones. |
@@ -15,7 +15,7 @@ Version 3.1 — July 2026 — Technician Persona / Work Order Execution
 
 # 1. Project Context
 
-This document captures all design decisions made during the UX/UI design phase of the HxGN EAM (Attune EAM) mobile app. It is the authoritative reference for all new chat sessions and contributing team members. The first persona focus is the field technician executing work orders.
+This document captures all design decisions made during the UX/UI design phase of the Attune EAM mobile app. It is the authoritative reference for all new chat sessions and contributing team members. The first persona focus is the field technician executing work orders.
 
 # 2. Architecture — Online-First, with Declared Offline Scope
 
@@ -7809,7 +7809,7 @@ Three things it proves, and they reach well beyond maps:
    projection is the right pattern, and that authoring it is a real customer
    responsibility rather than a defaulted convenience.
 3. **ArcGIS network analysis was never available.** Of the Utility Network's
-   five service types, HxGN EAM supports **map service and feature service
+   five service types, Attune EAM supports **map service and feature service
    only** — `UtilityNetworkServer`, `NetworkDiagramServer` and
    `VersionManagementServer` are unsupported. Solving off EAM tables was the
    only route, not a preference.
