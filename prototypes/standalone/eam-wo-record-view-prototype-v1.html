@@ -13,8 +13,8 @@
 <link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>HxGN EAM Mobile — WO Record View</title>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202609251730">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202609251730">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202610212141">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202610212141">
 <!--
   WO WORKFLOW — STEP 1: WO RECORD VIEW (rebuilt 2026-07-16 onto shared/
   eam-shared.css + shared/eam-shared.js, per docs/archive/EAM-REBUILD-Strategy-and-
@@ -628,7 +628,7 @@
         <input class="act-num-big-input" id="fv-activityNumber" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,''); markDirty();">
       </div>
 
-      <div class="section-card">
+      <div class="section-card" id="activityNoteCard">
         <div class="form-field stacked" onclick="focusInlineField(this)">
           <span class="field-label">Note</span>
           <textarea class="field-inline-input" id="activityEditName" rows="1" maxlength="255" oninput="updateInlineFieldLayout(this)"></textarea>
@@ -757,17 +757,17 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/custom_field_defs.js?v=202609251730"></script>
+<script src="../../data/custom_field_defs.js?v=202610212141"></script>
 <!-- Needed so the header Equipment field can resolve each demo WO's own
      equipmentAssetId to a real record (applyDemoWoEquipment below). -->
-<script src="../../data/equipment.js?v=202609251730"></script>
-<script src="../../data/wo-19257.js?v=202609251730"></script>
-<script src="../../data/wo-19831.js?v=202609251730"></script>
-<script src="../../data/wo-20450.js?v=202609251730"></script>
-<script src="../../data/wotype.js?v=202609251730"></script>
-<script src="../../data/wo-workflow.js?v=202609251730"></script>
-<script src="../../data/wo-workflow-steps.js?v=202609251730"></script>
-<script src="shared/eam-shared.js?v=202609251730"></script>
+<script src="../../data/equipment.js?v=202610212141"></script>
+<script src="../../data/wo-19257.js?v=202610212141"></script>
+<script src="../../data/wo-19831.js?v=202610212141"></script>
+<script src="../../data/wo-20450.js?v=202610212141"></script>
+<script src="../../data/wotype.js?v=202610212141"></script>
+<script src="../../data/wo-workflow.js?v=202610212141"></script>
+<script src="../../data/wo-workflow-steps.js?v=202610212141"></script>
+<script src="shared/eam-shared.js?v=202610212141"></script>
 <script>
 /* ── screen-specific config — everything below is data/wiring only;
    all behavior comes from shared/eam-shared.js. ── */
@@ -1801,6 +1801,57 @@ function applyDemoWoEquipment() {
   const mount = document.getElementById('equipCardMount');
   if (mount) mount.innerHTML = renderEquipCard();
 }
+/* Per-WO-Type page layout + activity set (UXR, 2026-10-21) — stands in for
+   what Screen Designer authors per (WO Type, user group), §11/§29. Breakdown
+   keeps the delivered order; PM and Routine each rearrange the same
+   sections differently, so the three Types visibly resolve to three layouts.
+   Routine and PM carry ONE activity with no Note (Breakdown unchanged).
+   Sections are reordered by DOM move, never re-rendered, so every handler
+   and mount id stays live. */
+const DEMO_WO_LAYOUTS = {
+  BRKD: null,
+  // hdr/act keep the activity congruent with the header: Problem Code, Date
+  // Reported, and the activity's Trade/hours/date all describe the same job
+  // as the description and the WO List due date (PM 07/22, Routine 07/20).
+  PM:   { order: ['header', 'activities', 'details', 'custom', 'comments', 'documents'], hide: [],
+          hdr: { problemCode: { code: 'MECH', desc: 'Mechanical' }, dateReported: '2026-07-01' },
+          act: { discipline: 'Mechanical', peopleRequired: 1, estimatedHours: 4, date: '2026-07-22', endDate: '2026-07-22' } },
+  ROUT: { order: ['header', 'details', 'activities', 'documents', 'comments'], hide: ['custom'],
+          hdr: { problemCode: { code: 'ELEC', desc: 'Electrical' }, dateReported: '2026-07-14' },
+          act: { discipline: 'Electrical', peopleRequired: 1, estimatedHours: 1, date: '2026-07-20', endDate: '2026-07-20' } },
+};
+function applyDemoWoLayout() {
+  if (NEW_RECORD) return;
+  const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
+  const lay = DEMO_WO_LAYOUTS[jobType];
+  if (!lay) return;
+  const content = document.querySelector('#recordContentSlot .content');
+  if (!content) return;
+  const tail = content.lastElementChild; // trailing spacer stays last
+  const sec = k => content.querySelector(':scope > [data-sec="' + k + '"]');
+  lay.order.forEach(k => { const el = sec(k); if (el) content.insertBefore(el, tail); });
+  lay.hide.forEach(k => { const el = sec(k); if (el) el.style.display = 'none'; });
+  // One activity, no Note.
+  if (ACTIVITIES.length > 1) ACTIVITIES.splice(1);
+  const a = ACTIVITIES[0];
+  if (a) {
+    Object.assign(a, { name: '', assignmentStatus: 'Unfinished' }, lay.act);
+    a.hoursRemaining = a.scheduledHours = a.estimatedHours;
+    RECORD.selectedActivity = a.id;
+  }
+  // Header fields the activity has to agree with.
+  Object.assign(RECORD, { dateReported: lay.hdr.dateReported, problemCode: lay.hdr.problemCode });
+  LOV_CURRENT.problemCode = lay.hdr.problemCode.code;
+  const setTxt = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  setTxt('fv-dateReported', isoToDisplay(lay.hdr.dateReported));
+  setTxt('fv-problemCode-code', lay.hdr.problemCode.code);
+  setTxt('fv-problemCode-desc', lay.hdr.problemCode.desc);
+  const noteCard = document.getElementById('activityNoteCard');
+  if (noteCard) noteCard.style.display = 'none';
+  const list = document.getElementById('rv-activities');
+  if (list) list.innerHTML = renderActivitiesListHTML();
+  updateStartGate();
+}
 function onDemoWoChanged() {
   const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
   CURRENT_WORKFLOW = resolveWoWorkflow(jobType);
@@ -1816,6 +1867,7 @@ function onDemoWoChanged() {
   if (CURRENT_WORKFLOW.configured) renderStepRail(CURRENT_WORKFLOW, 'record', jobType);
   else renderFlatStepRail('record', jobType);
   applyWorkflowTypeHeader(CURRENT_WORKFLOW.freeForm ? 'FREE_FORM' : 'NOT_FREE_FORM');
+  applyDemoWoLayout();
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1831,7 +1883,7 @@ function renderRecordViewTab() {
            otherwise. -->
       <div class="sync-error-banner" id="syncErrorBanner"></div>
 
-      <div class="section-card">
+      <div class="section-card" data-sec="header">
         <div class="equip-attrs">
           <div class="attr-item full-width required" data-field="equipment" onclick="openEquipmentLookup('equipment')">
             <span class="attr-label">Equipment</span>
@@ -1860,7 +1912,7 @@ function renderRecordViewTab() {
            Department/Problem Code fields were silently never getting the
            orange required-count badge Equipment's equivalent groups get
            automatically, because of this class mismatch. -->
-      <div class="fg-section">
+      <div class="fg-section" data-sec="details">
         <div class="fg-toggle-row" onclick="toggleFg(this)">
           <span class="fg-toggle-title">Work order details</span>
           <svg class="fg-chev" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1883,9 +1935,9 @@ function renderRecordViewTab() {
            Equipment's. Class/Class Org aren't user-visible fields on this
            screen (no design decision to add one yet) — RECORD_CLASS/
            RECORD_CLASS_ORG below are just the gating values. -->
-      <div id="customFieldsMount">${renderCustomFieldsSection()}</div>
+      <div id="customFieldsMount" data-sec="custom">${renderCustomFieldsSection()}</div>
 
-      <div class="rv-section">
+      <div class="rv-section" data-sec="activities">
         <div class="rv-toggle-row" onclick="rvToggle('activities')">
           <div class="rv-toggle-left">
             <span class="rv-toggle-title">Activities</span>
@@ -1908,7 +1960,7 @@ function renderRecordViewTab() {
         <div class="rv-collapse open" id="rv-activities">${renderActivitiesListHTML()}</div>
       </div>
 
-      <div class="rv-section">
+      <div class="rv-section" data-sec="comments">
         <div class="rv-toggle-row" onclick="rvToggle('comments')">
           <div class="rv-toggle-left">
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1922,7 +1974,7 @@ function renderRecordViewTab() {
         <div class="rv-collapse" id="rv-comments"></div>
       </div>
 
-      <div class="rv-section">
+      <div class="rv-section" data-sec="documents">
         <div class="rv-toggle-row" onclick="rvToggle('documents')">
           <div class="rv-toggle-left">
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1941,23 +1993,9 @@ function renderRecordViewTab() {
 }
 
 /* ── init ── */
-applyCustomFields('wo', RECORD_CLASS, RECORD_CLASS_ORG, (typeof WO_19257 !== 'undefined' && WO_19257.customFieldValues) || {});
-document.getElementById('recordContentSlot').innerHTML = renderRecordViewTab();
-// Closed/Completed field protection (§15.4, added 2026-07-24, user
-// direction) — must run after the render immediately above, not before:
-// Type/Priority/Equipment/Department/Assigned To/Reported By/Date
-// Reported/Problem Code don't exist in the DOM until this point. Covers
-// landing here via the WO Closing hand-off above, or any future path
-// that opens a WO already Closed/Completed; LOV_ON_SELECT.__status
-// (declared earlier) re-runs this same function live on every real
-// Status change, so reopening to Released un-protects everything
-// immediately, not just after a fresh page load.
-applyClosedFieldProtection();
-renderEquipRoutePill();
-renderReferenceExcerpts();
-updateStartGate();
-applySyncErrorBanner();
-initDemoOnlineToggle();
+/* Which demo WO, and its stored Route, must be known BEFORE the first render:
+   the Route field and pill are painted from them, and rendering first left
+   the PM's seeded route invisible on load. */
 // Consume-once hand-off from WO List's real openWO() (2026-07-22, nav-bug
 // fix), same pattern as eamNewWoRecord/eamSyncReturnUrl — picks which of
 // the 3 demo WOs this visit should land on instead of always defaulting
@@ -1990,6 +2028,23 @@ if (OPEN_DEMO_WO) {
   LOV_CURRENT.route = stored ? stored.code : '';
   RECORD.route = stored ? { code: stored.code, desc: stored.desc } : { code: '', desc: '' };
 })();
+applyCustomFields('wo', RECORD_CLASS, RECORD_CLASS_ORG, (typeof WO_19257 !== 'undefined' && WO_19257.customFieldValues) || {});
+document.getElementById('recordContentSlot').innerHTML = renderRecordViewTab();
+// Closed/Completed field protection (§15.4, added 2026-07-24, user
+// direction) — must run after the render immediately above, not before:
+// Type/Priority/Equipment/Department/Assigned To/Reported By/Date
+// Reported/Problem Code don't exist in the DOM until this point. Covers
+// landing here via the WO Closing hand-off above, or any future path
+// that opens a WO already Closed/Completed; LOV_ON_SELECT.__status
+// (declared earlier) re-runs this same function live on every real
+// Status change, so reopening to Released un-protects everything
+// immediately, not just after a fresh page load.
+applyClosedFieldProtection();
+renderEquipRoutePill();
+renderReferenceExcerpts();
+updateStartGate();
+applySyncErrorBanner();
+initDemoOnlineToggle();
 onDemoWoChanged();
 // Arrived here via the step rail's Reference-group Comments/Documents
 // shortcut from one of the other 4 workflow screens (§14.2, 2026-07-22)?

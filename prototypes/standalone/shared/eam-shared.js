@@ -1729,6 +1729,7 @@ function resetDemoState() {
   // held list state would restore someone else's filters onto a fresh demo.
   woIdentityClear();
   listStateClearAll();
+  lsRemove(DEMO_ROUTE_SEEDED_KEY);
   seedDemoRoute();
 }
 /* ══ SEEDED PM ROUTE (2026-09-25, UXR) ════════════════════════════════════
@@ -1748,12 +1749,22 @@ function resetDemoState() {
    the equipment already on it. Attaching one by hand is the ADMIN path, not
    the technician path the study is measuring.
 
-   Seeded here and nowhere else — deliberately NOT on first page load, which
-   would resurrect the route after someone had cleared it on purpose. Delete
+   Seeded on reset AND once on first load (flag eamDemoRouteSeeded, 2026-10-21),
+   so a screen opened without passing Log In still has it; the flag keeps a
+   deliberate clear cleared. Delete
    this function and the call above to go back to an empty 19831.          */
 const DEMO_SEED_ROUTE = { wo: '19831', code: 'PUMPSPM', desc: 'Pumps — Monthly PM' };
+const DEMO_ROUTE_SEEDED_KEY = 'eamDemoRouteSeeded2';
 function seedDemoRoute() {
   if (typeof woEquipApplyRoute !== 'function') return;
+  // The route belongs to the PM only. A device carrying a route on another
+  // demo WO from earlier testing (e.g. the breakdown) is cleaned up here.
+  if (!lsGet(DEMO_ROUTE_SEEDED_KEY)) {
+    const st = woEquipStore();
+    ['19257', '20450'].forEach(wo => { delete st[wo]; });
+    woEquipSaveStore(st);
+  }
+  lsSet(DEMO_ROUTE_SEEDED_KEY, '1');
   // Never overwrite live rows — a manual add or a second call must be a no-op,
   // or the MEC child numbers get re-minted underneath WO List.
   if (woEquipRows(DEMO_SEED_ROUTE.wo).length) return;
@@ -4908,3 +4919,8 @@ function releaseBookingPullup() {
    same path a scrim tap takes is the whole point — two dismissals that look
    identical to the technician must not behave differently. */
 function discardBookingPullup() { closeAllSheets(); }
+
+/* Seed the PM route on first load too (2026-10-21, UXR): a session that opens
+   a screen directly, without passing Log In, would otherwise find 19831 with no
+   route. Once per reset — the flag keeps a deliberate clear cleared. */
+if (!lsGet(DEMO_ROUTE_SEEDED_KEY)) seedDemoRoute();
