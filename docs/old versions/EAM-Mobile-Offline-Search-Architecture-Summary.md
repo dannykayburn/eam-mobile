@@ -1,6 +1,6 @@
 # EAM Mobile — Offline Search Architecture: Summary
 
-**Product:** HxGN EAM (Attune EAM) Mobile — technician persona, work order execution
+**Product:** Attune EAM Mobile — technician persona, work order execution
 **Context:** Builds on the Progressive Offline Hydration architecture (Optimistic UI + Sync Queue, WatermelonDB/SQLite, UI reads only from local DB).
 **Source session:** July 2026 design session, captured in `EAM-HANDOFF-Offline-Search-and-Pinning.md`
 **Status:** Concept design complete; not yet merged into the master Mobile Design Decisions doc; no dev work started.

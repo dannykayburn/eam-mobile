@@ -1,4 +1,4 @@
-# HxGN EAM Mobile — Offline Architecture Options (Decision Brief)
+# Attune EAM Mobile — Offline Architecture Options (Decision Brief)
 
 **Status: PENDING DECISION. Not a spec, not a locked rule.**
 Opened 2026-09-03 at user direction. This file exists to hold one undecided
@@ -9,7 +9,7 @@ under each option.
 
 Nothing in this file overrides `design-decisions-v3-1.md`. Where the two
 disagree, the spec wins until the decision is taken. Where this file states a
-fact about the *existing shipped product*, its source is the four HxGN EAM GIS
+fact about the *existing shipped product*, its source is the four Attune EAM GIS
 functional briefs listed in §12.
 
 ---
@@ -250,7 +250,7 @@ Three things this proves:
    the right pattern — and that authoring it is a real customer
    responsibility, not a defaulted convenience.
 3. **ArcGIS network analysis is not available anyway.** Of the Utility
-   Network's five service types, HxGN EAM supports **map service and feature
+   Network's five service types, Attune EAM supports **map service and feature
    service only** — `UtilityNetworkServer`, `NetworkDiagramServer` and
    `VersionManagementServer` are unsupported. Doing the solve off EAM tables was
    not a preference; it was the only route.
@@ -709,14 +709,14 @@ query** rather than a hardcoded rule.
 - **Admin-only:** Salesforce Briefcase, ServiceMax, D365 FS (the user can
   trigger a sync, not change the scope).
 - **User-controlled:** MaintainX (offline settings, WO-scoped); Esri Field
-  Maps and HxGN's own Map Configurations screen (draw an extent, pick layers,
-  per-map Offline switch); **HxGN's own Sync Config screen**, which is
+  Maps and Attune's own Map Configurations screen (draw an extent, pick layers,
+  per-map Offline switch); **Attune's own Sync Config screen**, which is
   presented to the *user* at first login, plus the *"Download Main Isolation
   tables"* checkbox.
 - **Manual per-record pinning is genuinely rare.** No product in this survey
   documents a "keep this specific record offline" action for records.
 
-Two consequences. **HxGN EAM Mobile Offline is already at the user-controlled
+Two consequences. **Attune EAM Mobile Offline is already at the user-controlled
 end of this market** — more so than SAP-, Salesforce- or Microsoft-based
 competitors. And **R5 is a differentiator, not table stakes**, which also means
 no vendor has de-risked it; it will need designing rather than copying.
@@ -727,7 +727,7 @@ no vendor has de-risked it; it will need designing rather than copying.
   added to it. Online-first, declared per-entity filters, master data by
   traversal, no fleet-wide offline search.
 - **No product in this survey ships a general offline search index over the
-  full record population.** That does not make Tier 2 wrong — HxGN has the
+  full record population.** That does not make Tier 2 wrong — Attune has the
   dataspy paradigm and an Intelligent Search MVP that these competitors do not
   — but it means **Option 3 has no vendor precedent to lean on**, and "the
   searching aspect isn't catching on" is a rational reaction rather than a
@@ -1681,7 +1681,7 @@ grain, and what it costs.
 | **Salesforce** | a **Briefcase** is assigned to users/profiles; no briefcase = no offline records | per briefcase assignment |
 | **ServiceMax** | Download Criteria on a **Mobile Configuration** record | per mobile config |
 | **Maximo Mobile** | **no switch at all** — automatic online/offline switching | none |
-| **HxGN EAM Mobile Offline (today)** | **`BCBGIS` interface permission** gates GIS entirely — *"the ESRI map functionality and GIS sync can be turned OFF for the user by simply removing 'Query' permissions"*; and the per-map **Offline** switch (§5.3) | per user group (GIS), per map (maps) |
+| **Attune EAM Mobile Offline (today)** | **`BCBGIS` interface permission** gates GIS entirely — *"the ESRI map functionality and GIS sync can be turned OFF for the user by simply removing 'Query' permissions"*; and the per-map **Offline** switch (§5.3) | per user group (GIS), per map (maps) |
 
 **So this product already ships a master switch — for GIS, at user-group
 grain, implemented as a permission.** That is the precedent to reason from, not
@@ -1988,7 +1988,7 @@ Repo:
   sub-themes), §3 P1/P2, §6 (backend asks), §6.1 (punch list), §7.8
 - `docs/EAM-DESIGN-Pinning-Enhancement-v1.md`
 
-HxGN EAM functional briefs (supplied 2026-09-03, external to this repo):
+Attune EAM functional briefs (supplied 2026-09-03, external to this repo):
 - `Functional - Base/HxGN EAM GIS.docx`
 - `Functional - Mobile/HxGN EAM Mobile Offline GIS Map View Features.docx`
 - `Functional - Mobile/HxGN EAM Mobile Offline Configuring GIS Map View.docx`

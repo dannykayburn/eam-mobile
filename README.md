@@ -1,6 +1,6 @@
-# HxGN EAM Mobile — Design Prototype
+# Attune EAM Mobile — Design Prototype
 
-A technician-first, offline-capable work order execution app for HxGN EAM
+A technician-first, offline-capable work order execution app for Attune EAM
 (iOS/Android), prototyped as connected HTML screens. **No backend, no build
 step, no bundler** — every screen is a single HTML file loading two shared
 files (`eam-shared.css` / `eam-shared.js`) plus CDN-hosted fonts.

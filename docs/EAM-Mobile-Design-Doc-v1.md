@@ -1,4 +1,4 @@
-# Continuum — HxGN EAM Mobile v1
+# Continuum — Attune EAM Mobile v1
 
 *One app, one online/offline continuum, one guided workflow.*
 "Continuum" is a working codename so the project can be named in a sentence; drop
@@ -53,7 +53,7 @@ need rather than reading it end to end.**
 
 ## Objective
 
-Replace HxGN EAM's two mobile apps with **one native, technician-first work-order
+Replace Attune EAM's two mobile apps with **one native, technician-first work-order
 execution app** in which online and offline are a single continuum the technician
 never has to think about, and in which no completed work is ever lost.
 

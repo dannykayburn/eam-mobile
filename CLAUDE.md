@@ -1,8 +1,8 @@
-# HxGN EAM Mobile — Project Memory
+# Attune EAM Mobile — Project Memory
 
 ## What this is
 A technician-first, offline-capable work order execution app (iOS/Android)
-for HxGN EAM. We are prototyping a guided 5-step WO workflow — WO Record
+for Attune EAM. We are prototyping a guided 5-step WO workflow — WO Record
 View, Activity Checklist, Issue Parts, Book Labor, WO Closing — plus a Home
 screen and the app-level navigation shell (bottom nav, avatar/profile menu,
 sync icon) that wraps around all of it. The nav shell's *mechanics* are
