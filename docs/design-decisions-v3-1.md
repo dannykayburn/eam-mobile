@@ -143,8 +143,9 @@ Order, narrowest dependency first:
   gating, and each tab's `Step | More` placement), plus **Custom Field
   definitions** (§22).
 - **0d — Status authorizations.** Which transitions this user group may
-  perform, and the Completion Status Entity / Start Work Status /
-  Completion Status the workflow reads and writes (§12 tier 1).
+  perform. They feed a User-selected Status update's list; a System-mode
+  Status update bypasses them (§32.8). The workflow's own transitions are placed
+  Status updates (§30.11) and ride in `0c`.
 - **0e — Dataspy definitions** for the resolved functions (§6.3/§8.3). WO
   List cannot draw its dataspy bar without them — and **the automatic half of
   the punch list *is* a dataspy** (§2.6, locked 2026-09-11), so `0e` is now load
@@ -3615,10 +3616,8 @@ ones a configured workflow gets.**
   editable, no Not Free Form lock-icon/toast) — this is scoped to the
   rail/bar's visibility and shape only.
 
-**A workflow cannot reuse the same step type more than once** (e.g. two
-Issue Parts steps) — out of scope for initial release. Each of the 5 step
-types appears at most once per workflow; a WO Type that genuinely needs
-to revisit a step type mid-flow should use Free Form (§12) instead.
+**A step type may be placed more than once**, as numbered instances (§29.2). The
+original one-per-type limit is in §21.
 
 # 12. WO Workflow — 2-tier data shape
 
@@ -3650,6 +3649,8 @@ tiers, narrowest to broadest:
      re-defaults whenever Completion Status Entity changes.
    - **Completion Status** — same shape as Start Work Status, for the
      status set when the workflow completes.
+   - *Superseded: the three status fields above are now a **placed Status update**
+     (§30.11), and the Start Work transition is the **On Start Work** slot (§32.2).*
    - **Not a branch point for WO Closing's own field set** — WO Closing
      (Closing Codes/Downtime/Comments/Attachments) renders identically
      regardless of which entity is selected. If Completion Status Entity
@@ -3663,7 +3664,6 @@ tiers, narrowest to broadest:
    admin-configured: a numbered step and an always-available "More" entry
    are the same kind of thing — a tab of the function — differing only in
    whether the workflow sequences it. Holds, per tab:
-   - **Visible** (Y/N).
    - **Placement** — **`Step`** (numbered, sequenced, gated) or **`More`**
      (unsequenced, always reachable, never in the Next flow — §14.8).
    - **Sequence** (order) — `Step` only.
@@ -4250,14 +4250,9 @@ matching what Record View's own back button already did:
   above, not on the rail being restrictive.
 - Applies uniformly to all 4 steps regardless of Free Form/Not Free Form
   or the §11 fallback — one simple rule, not conditional on workflow type.
-- **If the WO's timer is running** (`eamTimerRunning` in sessionStorage),
-  back asks first: "Pause the timer and return to WO Search?" — a plain
-  2-button confirm (`openConfirm()`'s new `{primary:true}` neutral variant,
-  §14.6's comment above — not the red `.confirm-danger` style, this isn't
-  a destructive action). Confirming **pauses**, it does not stop/book time
-  — `eamTimerRunning` stays true so the timer is still considered "in
-  progress" if this WO is reopened later; declining leaves the technician
-  on the current step untouched.
+- **Back does not touch the timer** (changed 2026-10-23, §32.3). There's no
+  confirmation: leaving the screen is not leaving the job. The old "Pause & Leave"
+  confirm is in §21.
 - Record View (Step 1) keeps its own separate, simpler `navBack()` — it
   already always went to WO List, and never has a timer running while on
   screen (Start Work hands off to Checklist immediately), so it never
@@ -4374,21 +4369,14 @@ See `eam-shared.css`/`.js` for `.step-timer-panel` / `startStepTimer()` /
 - A larger timer readout + Pause/Stop pill buttons, sitting as the first
   child of the expanded `.step-map` — above the step list, directly under
   the still-visible collapsed title row.
-- **Shown only where the collapsed rail's timer pill is RUNNING** — same
-  condition as §14.2's timer pill, extended to its expanded form.
-  Currently Activity Checklist and Issue Parts only.
-- **Pause** stops the timer counting and swaps its icon/label to Resume.
-  **Resume** starts it counting again from where it left off.
-- **Stop** opens the question message (below): "Stop working and book
-  your current time?" — Yes: stop the timer, toast-simulated navigation
-  to Book Labor (real cross-screen navigation for this flow isn't built).
-  No: stop the timer but stay on the current step; the time is captured
-  and can be booked later. Applies regardless of Free Form/Not Free Form
-  (§15.4). Cancel: keep working, timer keeps running, dialog closes.
-- **Not yet wired:** passing the actual stopped timer value into Book
-  Labor's Timer Stopped banner (§18.1/§18.2), and routing back to the
-  step the technician was on when they invoked Stop. Needs real
-  cross-screen state that doesn't exist yet.
+- **Shown only while a timer is running or paused on this WO-Activity** (§32.6),
+  on any step. A timer that was never started, or was declined, shows nothing at all.
+- **Pause books the segment; Resume starts a new start record** (§32.4).
+- **Stop opens the booking pull-up** (§18.2) and **Reset** discards. There is no
+  stop-without-booking (§32.5). Manual **Start** is a header-ellipsis action, not a rail
+  control (§32.6).
+- *Superseded 2026-10-23:* the earlier Pause (local hold), Stop → Yes/No/Cancel question and
+  "time captured to book later" branch, and the two-screens-only scope. See §21.
 
 **Question message (Yes/No/Cancel)** — distinct from the 2-button
 confirm modal (§3.4, Cancel + Delete-style destructive actions): for
@@ -4456,15 +4444,17 @@ make sense together.**
 
 Tapping Start Work:
 
-1. **Sets the status** to the WO Workflow header's **Start Work Status**,
-   in whichever domain Completion Status Entity selects (§12 tier 1).
+1. **Fires the On Start Work actions**: every action placed directly after Record View
+   instance 1 (§32.2). A status transition at Start Work is a Status update placed there;
+   there's no declared Start Work Status any more (§30.11). It also **creates the workflow
+   run** (§32.7).
 2. **Protects WO Type.** From this point the record's layout is fixed —
    see §13.5.
 3. **Pins the WO to the technician** — `pinned = 1`, Tier 1 membership
    (§2.6).
 4. **Hydrates all child records** — activities, checklist items, parts
    lines, labor, equipment, comments, documents.
-5. **Recommended, not yet locked:** stamps the **resolved config version**
+5. **Locked 2026-10-23 (§32.12):** stamps the **resolved config version**
    on the WO, which is §2.3's answer to workflow-config revisioning (§20).
    Start Work is already the moment things get fixed, so this belongs here
    rather than as a separate mechanism.
@@ -4650,10 +4640,9 @@ Free Form`), wired to the resolved WO Workflow header's Free Form column
 Screen Designer lets the admin pick, per WO-type workflow, whether the WO
 header status or the Activity's own assignment status is the status
 these controls read/write (§12 tier 1's Completion Status Entity). This
-section covers editability of whichever one is selected. Start Work
-Status (§12 tier 1) is scoped to whichever entity Completion Status
-Entity selects — an Activity-driven WO Type sets its Start Work Status on
-the Activity, not the WO header.
+section covers editability of whichever one is selected. Since §30.11 a transition is a placed
+Status update whose own Status Entity decides this. At Start Work it is the one
+placed in the On Start Work slot (§32.2).
 
 **Not exempted by this flag:** Comments and Documents (§14.8) are
 reachable from any step regardless of Free Form/Not Free Form — that
@@ -4692,22 +4681,10 @@ Record View's own `STATUS_CLASS_MAP` (no Work-Request-equivalent code
 exists there) — a WO-specific status vocabulary, not a rule about the
 shared `.rec-status-btn` component's available tiers in general.
 
-**WO timer is not implicit on Free Form.** Tapping Start Work on Free
-Form checks `CURRENT_WORKFLOW.freeForm` and, if true, opens the shared
-`openQuestion()` modal ("Start the timer for this work order?") before
-proceeding — Yes sets the real gate (`eamTimerRunning`, sessionStorage);
-No continues without it. Not Free Form keeps setting the gate
-automatically, no prompt. Every downstream consumer checks this flag
-instead of assuming a timer is always running:
-- **Activity Checklist / Issue Parts:** only call `startStepTimer()` (and
-  show `#timerPill`) when the gate is set; otherwise the pill is hidden
-  entirely.
-- **Book Labor:** the Timer Stopped banner + Add Labor auto-open (§18.7)
-  require the gate to have been set, not just `eamArrivedViaNextStep`
-  alone — a Free Form WO whose technician answered No has no timer to
-  claim stopped, so neither fires. The auto-open itself has a 450ms pause
-  and a slower (.5s) sheet transition so it reads as an invitation rather
-  than firing the instant the page loads.
+**The timer (superseded 2026-10-23 → §32.2/§32.6).** A configured workflow starts its timer
+only from a placed Start Timer action. **Free Form** (and the §11 fallback) keeps the
+Start Work question, "Start the timer for this work order?", and a **No** shows no timer
+in the step rail at all. The old implicit-start rule and its per-screen gate are in §21.
 
 **Closed/Completed WO — every field except Status is protected.** When
 the WO's status is Closed or Completed, every other Record View field
@@ -5818,9 +5795,10 @@ either.
 
 ## 18.2 Timer integration
 
-- The WO Record View "Start" button starts the WO timer
-- Timer is visible as a small running pill in the collapsed step rail during Steps 2–4
-- When Book Labor is reached, the timer stops; its value loads into the timer banner
+- **Superseded 2026-10-23 (§32.2–§32.6).** The timer starts only from a placed Start Timer
+  action (or Free Form's Start Work question, or by hand). It shows in the rail only while
+  running or paused, and it stops only when booked or reset. The three original bullets
+  are in §21.
 
 ### The booking pull-up, and its one condition (locked 2026-09-17)
 
@@ -6151,58 +6129,13 @@ Note: the WO Details section was removed from this screen — the tech already k
   "waiting" tier established for Work Request, and none of the 3 touch
   the header's own `LOV_CURRENT.__status` value (display-only).
 
-## 19.7.1 PM has no Closing step — Book Labor completes it instead
+## 19.7.1 PM has no Closing step — superseded 2026-10-23
 
-Added 2026-07-29, direct feedback. PM's workflow-steps row for `closing`
-is removed (`data/wo-workflow-steps.js`) — PM now runs record → checklist
-→ booklabor only, same treatment Issue Parts already got for this WO
-Type. Book Labor becomes PM's terminal step, and its bottom bar reflects
-that (`applyTerminalStepBar()`, `eam-book-labor-prototype-v2.html`):
-
-- **Default ("Next: WO Closing") markup is untouched for every WO Type
-  that still has a configured Closing step** (BRKD) — the terminal-step
-  check only fires when `resolveWoWorkflow()` returns a configured
-  workflow with no `'closing'` in its step list.
-- **Terminal case swaps the bar to "Complete Work Order,"** opening a new
-  `#completeWoSheet` on Book Labor itself — not a 2nd Closing-shaped
-  screen. Reuses, verbatim, the exact from/to status banner + status
-  picker sheet + confirm-summary rows + green completion overlay WO
-  Closing already had (§19.2/§19.7) — this is why that whole component
-  set (CSS + the status/summary/overlay JS, not `buildConfirmSummary()`
-  itself, which stays screen-local since its rows are screen-specific)
-  got promoted to `eam-shared.css`/`.js` this same session: Book Labor is
-  a real 2nd consumer, not a one-off.
-- **Summary rows are fixed RV-only fields** (direct feedback, chosen over
-  a dynamic "show what changed" alternative) — Work order, Equipment,
-  Date completed. No closing codes (none exist for this path) and no
-  Attachments row (Book Labor has no attachments feature to summarize at
-  all, unlike WO Closing). Date completed has no editable field on this
-  simplified popup — defaults to today, same "plainest literal
-  rendering" convention as the rest of this prototype's demo data.
-- **Status edit only when not protected**, same `statusFieldProtected =
-  !workflow.freeForm` rule as WO Closing's own banner — PM is Free Form,
-  so this is always the editable case in practice today, but the check is
-  real, not hardcoded to PM.
-- Confirming reuses the identical green completion overlay (now animated,
-  see the eam-shared.css comment above it) and returns to Record View
-  with fields protected, exactly like a real Closing.
-
-**Bug fix, same day:** picking a status inside `#completeWoSheet`'s
-nested status picker locked the technician out of the whole completion
-popup — `selectStatus()` called the blanket `closeAllSheets()`, which
-closes *every* `.bottom-sheet`, not just the one the technician actually
-interacted with. On WO Closing this was harmless (its status banner
-lives directly on the page, never inside another sheet, so there was
-never a parent sheet to lose). On Book Labor's completion popup, the
-status picker opens *from inside* `completeWoSheet` — so closing
-everything dropped the technician all the way back out of the popup on a
-routine status pick, with no obvious way back in. Fixed with a new
-`closeSheet(id)` (`eam-shared.js`) that closes only the named sheet and
-only drops the shared overlay if nothing else is left open — used by
-`selectStatus()` and the status picker's own ✕ now, in both Closing and
-Book Labor. Behaves identically to `closeAllSheets()` whenever there's no
-parent sheet (Closing's case), and correctly preserves one when there is
-(Book Labor's).
+Relocated to §21. A workflow with no Closing step completes the WO through a placed
+**User selected Status update** (§30.21), not a Book Labor-specific completion sheet;
+§32.10 covers a completing status chosen mid-flow. One implementation fact from it still
+holds: `closeSheet(id)` (`eam-shared.js`) closes only the named sheet, and is what a
+picker opened from inside another sheet must use.
 
 ## 19.8 Design decisions locked (WO Closing)
 
@@ -6232,11 +6165,17 @@ into a locked-decision row in the section that governs it, or is deleted.
 
 | Item | Detail |
 | --- | --- |
+| **System-mode status updates bypass group authorization — base must VERIFY them** | Opened 2026-10-23 with §32.8 (D-15, user direction). The device writes a System action's status without checking the technician's group authorizations, so the outbox envelope must carry the workflow id, the stamped version and the node, and base must confirm that version actually authors that transition before accepting it. Without the server check this is an authorization bypass for any client. Same family as the write-gate row below; needs the API team. |
+| **Workflow run state is device-only** | Opened 2026-10-23 (§32.7, D-5). v1 rebuilds a missing run from WO data (first unsatisfied Required step; forks re-asked), which loses fork answers and the action log on a reinstall or a second device. A server-side run record is the real answer. It's a backend ask, not v1. |
+| **The portal implements none of §32.13's composition rules** | Opened 2026-10-23. No timer-order or status-order validation exists (`validateForks()` covers fork targets only). Owed: the path evaluation (§32.13), the per-node Error/Warning/Info rendering, the assignment refusal on Error, refusing WO Closing in More in `moveToRef()` and at the drop, the On Start Work label, Free Form's confirm listing removed actions, and dropping `visible` from the node shape. Pin it in `test-workflow-portal.js`, including a fork that routes around a Start Timer. |
+| **The app has no run model, and its timer cannot support one** | Opened 2026-10-23. `startStepTimer()` counts from 0 on every page load, `eamTimerRunning` sits in `sessionStorage`, `navBack()` still asks to pause, and no cursor, fork log or action log exists. Owed for §32 to be demonstrable: a time-stamped timer in durable storage, the run record, the Resume card on Home, the header *Start timer* action, the app-header timer indicator, and "Back to <current step>" on a revisited step. Book Labor's terminal "Complete Work Order" sheet (`applyTerminalStepBar()`) still exists although §19.7.1 is superseded. Remove it when a placed Status update can be fed to the app. **MEC is a conflict, not just a gap:** §32.7 makes the parent own the run, while the prototype opens a child as itself through all five steps (`applyDemoWoIdentity()`, §16.10). The shipping "All Equipment" booking split (Book Labor §9.10–§9.11) needs checking against the parent-owned timer before building. |
+| **Run end vs. the shipping close-with-timer-running flow** | Opened 2026-10-23. §32.11's run-end rule follows AUTOBOOK as the shipping product does when a WO is completed with its timer running. That flow lives in `EAM.MOBILE.REQ.CloseWorkOrderforWorkOrder`, which isn't in `docs/existing_use_cases/` and hasn't been read. Read it before building §32.11. |
+| **When does a reassigned run end?** | Opened 2026-10-23 (§32.12). A WO reassigned in base mid-run keeps its local pin (§2.6) and the run stays open so the technician can book a running timer. Whether the run should then end, or stay open until the next sync confirms the reassignment, is undecided. |
 | **Portal UI — Octave Experience vs. a new base UI — DECISION REQUIRED** | Raised 2026-09-23 (user). §30.7 locked the portal onto the Octave / OUX design system and §30.8 catalogued where it differs from the app's own; what was **not** weighed at the time was OUX as a **delivery platform** rather than a visual language. The case for it: it sidesteps the mobile configuration screens already scattered through base for the two apps; it collapses admin configuration into one screen; the diagram-authored canvas and the 390px emulator preview (§30.9/§30.10) are affordances the base toolkit does not offer; and the shell would transfer to any other operational mobile app in the portfolio. Against it: **on-premise deployment**, **other-team dependencies**, and **longevity — whether it is a two-way door**. **This reaches two locked positions rather than sitting beside them**, and re-opening it re-opens both: §30.7 (OUX for base screens) and NG8/§21 (desktop UI out of scope, which is what retired "restyle onto the base components" as an available answer). Entangled with the Sencha→Angular item below, since "new base UI" means the Angular one. Framed here rather than decided; the design doc carries it as **Open issue 0**, ahead of the `WSJOBS` call. |
 | **Can an authored workflow eventually be EXECUTED from base?** | Raised 2026-09-23 (user), alongside the `WSJOBS` decision below and genuinely new — nothing in §10–§13 or §29–§30 designs for it. Everything to date assumes the workflow is **authored** in the portal and **executed** on the device. If the same definition could also drive a base session, two things follow: the resolved artifact has to be a **transport**, not a device-shaped structure, which reaches §10's API and the row-shape item above; and it would count as a point in favour of the portal platform decision above, since one authoring surface would then feed two runtimes. If it could not, that is worth stating explicitly rather than leaving as an assumption nobody has tested. **Ask before the `WSJOBS` call**, because reuse of the customer's `EVNT` functions is the option that makes base execution plausible at all. |
 | **A non-step node's row shape on the base side is unspecified** | Opened 2026-09-23 with §29.2's final passage, which widened the tier-2 key from `Tab` to `Node` so that an action or a fork takes an instance row like a tab. That settles **identity**; it does not settle **payload**. A step's parameters are its layout rows, and a non-step node has none — so a Status update action's entity and status (§30.11) and an action's `mode` (§30.21) have nowhere declared to live. Two shapes are defensible: a column per parameter on the tier-2 row, which keys naturally like everything else in §12 but grows a column per action kind; or one typed payload column, which absorbs future kinds and gives up legibility. Deliberately not picked here, because §10's API in front of the workflow tables lands first and is what makes either affordable — and the prototype does not force the question, since it persists whole nodes as objects. **Pick it before any base-side table work, not during.** |
 | **The booking pull-up's SECOND caller is not wired** | Narrowed 2026-09-17 from "the pull-up is not built" — it is now built and wired to §18.2's tab trigger (see §18.2). What remains is that **nothing feeds a workflow definition to the app**, so §30.21's placed Stop Timer action cannot reach in and its `system` mode (book with no sheet) has no runtime caller. The component takes every derived value as an argument and honours `mode` itself, so the hand-off calls it unchanged — what is owed is the hand-off, not the sheet. A dev toggle on Book Labor's own theme bar drives the real `eamTimerRunning` key so the §18.2 condition is exercisable meanwhile. This is the first concrete instance of the general gap: **the portal authors workflows and the app cannot yet be told about them.** |
-| **A labour row's write shape when the hours are untouched** | Opened 2026-09-17. §18.2's pull-up books **direct hours** once the technician adjusts the figure, because an adjusted value cannot keep the timer's start and end true — and keeps the real span when it is untouched. That is two write shapes off one sheet. It is the honest rendering of what is known in each case, and §18's Time Entry Mode already models both, but whether the real outbox envelope should carry a span at all for a timer-derived booking is not settled. Low stakes while there is no backend; decide it before the envelope is built. |
+| **A labour row's write shape when the hours are untouched** | Opened 2026-09-17. §18.2's pull-up books **direct hours** once the technician adjusts the figure, because an adjusted value cannot keep the timer's start and end true — and keeps the real span when it is untouched. That is two write shapes off one sheet. It is the honest rendering of what is known in each case, and §18's Time Entry Mode already models both, but whether the real outbox envelope should carry a span at all for a timer-derived booking is not settled. Low stakes while there is no backend; decide it before the envelope is built. **Sharpened 2026-10-23 (§32.1):** the shipping mixed-format rule (Book Labor §9.8/§9.16) rejects a Start/End booking for an employee who already has a direct-hours booking on that WO-Activity and day, so a direct-hours adjusted booking followed by a true-span one fails at sync. The `docs/scope` execution draft proposes keeping a span on an adjusted booking (End = Start + adjusted hours); that is **not locked**, and §18.2 still says otherwise. |
 | **No mobile screen demonstrates §5.2's revised container model** | Opened 2026-09-16 with §5.2's "Container shape is per-container" revision. The base-side designer can now author a Grid container anywhere in a form and a form with several Grids, but **every mobile prototype still shows the old arrangement** — one leading grid, collapsible List sections beneath. So the canonical references (`screen-layout-field-behavior-prototype-v1.html`, `eam-equipment-record-view-prototype-v1.html`) no longer demonstrate the full model they are canonical for, and a layout the designer can now produce has never been rendered. **Deliberately not fixed by rebuilding seven screens unasked** — the rule changed on the authoring side, which is where it was asked for. What is owed before the model is real end to end: one mobile screen showing a non-leading Grid, and a check that `.attr-item` / `.fg-section` CSS actually copes with a Grid that is not first (the `--bar-reserve` and `.full-width` interactions are the likely friction). Until then, treat the revised rule as authored-but-unproven on the device. |
 | **The §2.10 / §27.4 severity rules are pinned against an ARCHIVED screen** *(now actionable — 2026-09-16)* | Opened 2026-09-16. `test-user-group-offline.js` was kept rather than deleted with the retired prototype and runs against `old versions/`. That keeps the rules as executable code instead of prose — deliberately, because one of them (`capabilityGap()` keyed on the *configuration* rather than the function) already killed a live false positive. **A green run still says nothing about the portal.** The blocker is gone: the portal's User Groups area now exists (§30.13), so the port can happen. Re-pin every case against it — the two severity splits (online-only is *informational*, not a warning; a **Required** UDS step the group cannot open is an *error* while the same step optional is a warning) and the guard that "All records" has not crept back into any filter (§2.7 refuses it). `test-workflow-portal.js` already asserts the refusal on the authoring side, so what is owed is the **severity** half. Do not delete the archived file without porting the cases first.
 | **§2.10.1's login profile chooser has no device side — one item, three parts** | Opened 2026-09-23 with §2.10.1. The portal now assigns **several** offline profiles to a group and the decision says the technician picks one **at login**, with a **setting** to change it. None of that exists on the device, and the three parts are deliberately one row because building any of them alone is wasted: **(1)** the chooser itself, inside the login round-trip after Tier 0 and before the record tiers (§2.3) — `eam-login-prototype-v1.html` has no step for it; **(2)** the profile-menu row that names the profile in force and switches it (§4.3), which renders only where the group holds two or more, plus the four rules §2.10.1 puts on a switch — state the cost, never drop the outbox, refuse it offline, never evict live work; **(3)** the sticky *(user, device)* answer, and the one case that re-prompts (the remembered profile is no longer assigned). And the same blocker as §30.24's navigation bar sits in front of all three: **nothing feeds the app any portal artifact**, so a chooser today would be choosing from a hardcoded list. Two smaller things fall out and are cheap to do with it: the sync panel should **name** the profile in force (§4.4.2), since *"why is this not on my device?"* now has two possible answers; and the same copy question as the online-only sync state below, which is still open. |
@@ -6245,7 +6184,7 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **Eleven offline entities have no policy decision** | Opened 2026-09-16 with §30.14. Mapping the shipping product's ~35 `Download X` booleans onto §2.7 left **11 of 31 entities genuinely undecided**: Inspection Results, WO Nonconformity, Permit to Work, Calibrations, Equipment Structure, Equipment Comments, Equipment Custom Fields, Mobile Notebook, Main Isolation Tables, Physical Inventory, Asset Inventory. The registry marks each one and warns on enabling it, so none of them can become a decision by accident — but the marking is not the decision. Two deserve deliberate calls rather than drift: **Main Isolation Tables**, safety-critical whichever way it goes (an isolation an offline technician cannot see is a different class of problem from a missing cost code), and **Inspection Results**, which is `work-set`-shaped and probably belongs with the three children already reached by traversal from the WO. The other nine are ordinary scoping calls and can be taken as a batch. **Do not resolve these by defaulting them in** — every one is a row cap and a sync cost against a device ceiling §2.7 sets at 200,000. |
 | **Relative dates in a condition fork** | Opened 2026-09-16 with §30.19. Operators are offered per field type, and a date field currently takes a **literal** date only. The cases an admin will ask for are relative — *due date is before today*, *within 7 days*, *before end of shift* — and every one of them carries evaluation-time semantics the literal form does not: relative to the device clock or the server's, evaluated at the Next tap or re-evaluated later, and what "end of shift" means for a group with no shift pattern. Deliberately not half-built. **Note the offline constraint makes this narrower than it looks:** the whole point of §30.19 is that a condition is client-evaluable at the Next tap, so any relative date has to resolve against the device clock — which is the answer, but it needs stating before someone reaches for a server call (§2.7's last row). |
 | **Where user-defined text translations live is unanswered** | Opened 2026-09-08 with §29.4. A question fork is the first place an **admin** types prose a **technician** reads, so it is the first thing in this programme needing a translation surface — every other mobile string is a delivered product label or record data. The prototype models it as a language-keyed map on the prompt row with a base-language fallback, which is a **stand-in, not a schema proposal**: this project has confirmed no EAM table for user-defined text translation. The one rule that must survive whatever the answer is: **a missing translation falls back to the base language and never blanks**, because an empty question on a gated step is unanswerable. |
-| **Workflow config revisioning — now more pressing, still unaddressed** | §21 recorded that the retired Workflow Designer was the only artifact to have considered a live configuration being edited while technicians are mid-workflow against the previous version. §29 makes this worse rather than better: a fork's target is a *pointer to another step*, so an admin deleting or reordering a step invalidates routing that a technician may be halfway through. The prototype clears dangling and backward fork targets at authoring time (§29.4), which is the authoring-side half; the **runtime** half — what happens to an in-flight workflow whose configuration just changed underneath it — has no answer. §13.3 item 5's "version the ruleset against the offline payload" and §14.11's recommended "stamp the resolved config version at Start Work" are both parts of it. |
+| **Workflow config revisioning — now more pressing, still unaddressed** | §21 recorded that the retired Workflow Designer was the only artifact to have considered a live configuration being edited while technicians are mid-workflow against the previous version. §29 makes this worse rather than better: a fork's target is a *pointer to another step*, so an admin deleting or reordering a step invalidates routing that a technician may be halfway through. The prototype clears dangling and backward fork targets at authoring time (§29.4), which is the authoring-side half; the **runtime** half — what happens to an in-flight workflow whose configuration just changed underneath it — has no answer. §13.3 item 5's "version the ruleset against the offline payload" and §14.11's recommended "stamp the resolved config version at Start Work" are both parts of it. **Runtime half answered 2026-10-23: §32.12.** |
 | **Bottom bar reserve is short app-wide, and `.focus-wrap`'s `flex:1` can make a screen unscrollable** | Found 2026-08-12 by instrumenting on device, after two wrong guesses from reading the CSS. Two separate faults. (1) **No screen in the app uses `env(safe-area-inset-bottom)` anywhere**, and six reserve bar space as `calc(var(--bar-height) + 16px)` — v2, the scroll-mode copy, Book Labor, Issue Parts, WO Closing, WO Record View. On a home-indicator device the bar covers more than is held back, so the last container is clipped; expect it worst on the screens with tall stacked containers. (2) A `flex:1` box in a column flex container **grows to consume exactly the space left over**, so when its content is shorter than the container, children sum to precisely the content box and `scrollHeight` can never exceed `clientHeight` — a scroll container with no overflow ignores the gesture entirely. That is why the checklist's paged mode was reported as completely unscrollable on device while scrolling fine in a desktop browser (a short window makes the content genuinely overflow). **Both fixed 2026-08-12, at the scope each fault actually has.** Fault 1 is app-wide: one shared `--bar-reserve` in `eam-shared.css` (`calc(var(--bar-height) + 24px + env(safe-area-inset-bottom, 0px))`) referenced by all six screens, rather than the short form written out six times — which is precisely how it stayed wrong on every screen at once. The `env()` fallback is load-bearing: without `0px` the whole `calc` is invalid at computed-value time on hardware with no inset, and an invalid padding computes to 0, which is worse than the original bug. Fault 2 is only the **two checklist screens** — checked, not assumed: `.content` is a column flex container on those two alone, the other four are plain block scrollers that overflow normally, so both get `min-height: calc(100% + 72px)` on `.focus-wrap`. Pinned by `test-bottom-reserve.js`, which is deliberately separate from the scroll-mode test file (that one gets deleted with the A/B) and whose flex-column guard was verified to fire by introducing a violation. **The diagnostic lesson is the durable part: `scrollHeight == clientHeight` means no range and is a layout fault; a non-zero gap with a stuck `scrollTop` means a swallowed gesture. Measure before theorising.** |
 | **Book Labor — Department and Trade fields still cycle-on-tap** | Not yet converted to the real `openLov()` sheet, unlike Employee/Crew/Type of Hours on the same screen (§18.4). |
 | **Issue Parts — button treatment consistency** | The screen mixes 3 different button weights: per-row outlined `.row-action-btn` (Quick Issue/Return, Modify), full-width outlined `.btn-outlined` (Add Parts), full-width filled `.btn-contained` (Quick Issue All). Not yet clear whether this 3-tier hierarchy (row action / secondary screen action / primary screen action) is correct as-is or needs converging. |
@@ -6268,7 +6207,6 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **A new Equipment screen function that renders by equipment type — required, and unspecified** | Stated as a requirement 2026-09-11 (user direction). Base models Equipment as four screens (Location / Asset / Position / System) and mobile collapses them into one surface that re-renders by system type (§26.8); nothing existing does that, so the function is new. **This supersedes the older framing of this gap** — it was previously logged only as "Equipment's four system-type layouts have no authoring surface," which is the *layout* half. The *function* half is now explicit and is an input to the decision above. Still owed: the function itself, its `PLO_PAGENAME` mapping across the four types and their clones, and the Screen Designer surface that authors them. **Blocks the Equipment mobile track** — don't build Equipment RV against one hardcoded layout, or every child tab inherits the assumption. |
 | **The punch list's remaining cost is a BACKEND ask, not a screen** *(authoring closed and built 2026-09-23)* | Opened 2026-09-11 with the punch-list lock (§2.6). **Both halves of the authoring side are now done:** the selector is the `For Dataspy` control on the **Work Orders** row of the portal's Offline Profiles area, and it renders on every profile *including* the one that replicates nothing (§2.6/§30.14/§21). The two prototype defects that contradicted it are fixed and pinned by `test-workflow-portal.js` — both had **failed silently**, which is the argument for the tests: `normalizeProfile()` wiped the dataspy whenever the policy stopped needing a filter, and the control collapsed to a dash so there was nowhere to set one. Work Orders now declares `membership:true` and `isMembershipEntity()` is the single seam. **What is left is the sharper half, and it was always the sharper half:** the membership row merges two upstream sources, so a pinned row has to record **which source** pinned it, or a dataspy re-evaluation silently evicts the technician's own additions (§2.6 consequence 3). That is server-side work with no UI to build. **One small design residue:** "no profile assigned" and "a profile that replicates nothing" are no longer interchangeable — a group that needs an automatic work list has to be assigned the **Online only profile**, not left unassigned, because the dataspy has to live on something. Worth stating in the assignment control.
 | **Tiered record model review** | On approval: merge tier-model architecture into §2. |
-| **WO timer placement + pause/resume** | Two open questions: (1) keep the timer in the step rail or move it to the nav bar so it stays visible while the rail is scrolled/collapsed; (2) whether pause/resume should exist, and if so whether it's a per-WO-type config flag alongside Free Form (§15.4). Not designed, not prototyped. |
 | **Activity Checklist's Checkbox-type control vs. the generic checkbox pattern** | §3.4's generic checkbox rule makes the whole row a compact tap target; the Checkbox-type item's control (§16.3) is a large, centered, full-width tap target instead, since the focused one-item-at-a-time screen has the room. Open call: is this divergence justified by context, or should it converge? |
 | **Search List screen dataspy/filter persistence** | §24's rule that a Record View's back button returns to the entity's Search List "maintaining the user's dataspy and persisting any filters" isn't wired up yet — WO List's and Equipment List's dataspy bars and filter chips are real and functional, but nothing carries the active dataspy/filter selection across the round trip to Record View and back. The navigation target is correct and built; the persistence mechanism isn't. |
 | **WO Record View — missing Notes section** | §15.1 lists "Notes — renamed from 'Description'" as part of the screen's section order; no such field exists in `eam-wo-record-view-prototype-v1.html`. |
@@ -6289,7 +6227,7 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **The base Sencha→Angular migration is an unowned dependency** | Opened 2026-09-11 (user). Base EAM is being moved off the Sencha/Java UI library onto **Angular**, as a separate programme — today the base UI does not format to a mobile device, under the new one it will. Nothing in this app blocks on it, but two items point at it and **nobody in this programme owns the relationship**: **(1)** an Angular front end implies **a real API behind it**, which is exactly what §10/§12 need in front of `R5PAGELAYOUT` and the workflow tables — and that is the prize. Whether one API layer can serve both is the question to ask. **(2)** phone-width responsive needs *confirming as an explicit goal* of that programme; "Angular" does not by itself mean usable at phone width. Also worth re-checking: §10's recommended "strangler-fig, not an embed" shape for Screen Designer assumed a *legacy* base UI to launch out of. |
 | **Tier 0 bootstrap-config contract — shape not defined** | Opened 2026-08-25 with §2.3's resequencing. The *ordering* and the "carried on the authentication response" recommendation are settled; the **contract is not**. Owed: what the bundle actually contains per domain (0a–0f), the per-domain **version-stamp** scheme that makes a reconnect delta-check cheap, and how a partial failure is reported — 0c missing is fatal, 0f missing is degraded-but-usable, and the response needs to say which happened rather than returning one opaque error. Also unresolved: whether 0f is scoped server-side (the server resolves layout, then returns only the code domains it references — smaller payload, more server logic) or client-side (the client resolves layout, then asks for domains by name — chattier, dumber server). Recommend server-side scoping: it is one round-trip inside the login wait instead of two. Needs the API team. |
 | **Write path must be gated on status authorizations, and nothing enforces that yet** | Opened 2026-08-25 (§2.3 consequence 3). If Tier 0's `0d` is absent or stale the app must **not** accept writes — permitting them queues outbox entries the server will reject, and under §2.4's optimistic UI the technician sees success and walks away, with the failure surfacing hours later in §4.4's trouble-field banner. That is exactly the "did my transaction actually land?" trust failure this app exists to fix, so a systematically wrong authorization set is worse than a blocked one. Owed: where the gate lives (a `resolveFieldState`-style seam would be the natural home — see the conditional-field-rules row), what the UI says while gated, and whether a stale-but-present authorization set is treated as usable. No prototype equivalent exists; there is no write path to gate yet. |
-| **Workflow config revisioning — a live config edited mid-execution** | Opened 2026-08-25, surfaced by retiring the Workflow Designer prototype (§21), which is the only artifact that had modelled it (Draft / Current Rev / Create Rev). Nothing in §11–§13 or §26 says what happens to a technician who is part-way through a gated workflow when an admin changes that `(function, WO Type)` configuration — steps reordered, a step removed, a field's required-ness flipped. The offline model makes it sharper than it would be online: the device holds a hydrated work set and a configuration that arrived at sync time, so "the config changed" and "the technician is mid-WO" can be separated by hours or days, and the WO's own step state was recorded against the *old* shape. **Recommendation added 2026-08-25 (§2.3 consequence 4): pin the resolved config version to the WO at start-of-work**, so a WO in flight finishes on the shape it started with and the new configuration applies to the next one started. Cheapest of the three candidates and the only one needing no migration of already-recorded step state; the alternatives were versioning the config and migrating step state on delta pull, or forbidding destructive edits while WOs are in flight. Note this is the same problem as the Tier 0 config-delta case, approached from the authoring side rather than the sync side — resolve them together, once. Still needs a call before workflow config is editable in production, not after. |
+| **Workflow config revisioning — a live config edited mid-execution** | Opened 2026-08-25, surfaced by retiring the Workflow Designer prototype (§21), which is the only artifact that had modelled it (Draft / Current Rev / Create Rev). Nothing in §11–§13 or §26 says what happens to a technician who is part-way through a gated workflow when an admin changes that `(function, WO Type)` configuration — steps reordered, a step removed, a field's required-ness flipped. The offline model makes it sharper than it would be online: the device holds a hydrated work set and a configuration that arrived at sync time, so "the config changed" and "the technician is mid-WO" can be separated by hours or days, and the WO's own step state was recorded against the *old* shape. **Recommendation added 2026-08-25 (§2.3 consequence 4): pin the resolved config version to the WO at start-of-work**, so a WO in flight finishes on the shape it started with and the new configuration applies to the next one started. Cheapest of the three candidates and the only one needing no migration of already-recorded step state; the alternatives were versioning the config and migrating step state on delta pull, or forbidding destructive edits while WOs are in flight. Note this is the same problem as the Tier 0 config-delta case, approached from the authoring side rather than the sync side — resolve them together, once. Still needs a call before workflow config is editable in production, not after. **Runtime half answered 2026-10-23 (§32.12):** the stamp is adopted, a run finishes on its stamped version, and Tier 0 retains it. Still open is the authoring half (Draft / Current Rev), including whether an edit to an assigned workflow may introduce a §32.13 Error. |
 | **UDS definitions widen Tier 0's `0f`, and nothing accounts for it** | Opened 2026-08-25 with §27.5. `0f` is scoped to the code domains that *delivered* layout references, but a UDS field can reference a customer-defined LOV domain — so §2.3's "layout first, because layout scopes everything after it" has to traverse UDS definitions too. Miss it and a UDS LOV field renders raw codes, which is the exact training-dependency regression that put code domains in Tier 0 to begin with. The per-domain version stamp §20 already owes must cover UDS definitions, or one changed UDS forces a full config refetch. |
 | **The card's 6-field projection number is provisional** | Opened 2026-08-26, **narrowed 2026-09-08** — it used to be two numbers and the index's ~10–20 closed with the index (§21). **6** is the card's current shape under §8.3, not a locked cap. What needs confirming is whether 6 is right for the card *and* for the chips/sort it also drives. |
 | **Eviction's refcount condition — real column or recomputed sweep?** | Opened 2026-09-08 with §2.3's traversal. §6.13's `!pinned && !dirty` interlock gained a third condition (*no other retained root references this row*), because a row can be present only as another root's depth-1 reference. Whether that is a maintained refcount column or a periodic sweep is a dev call with a correctness consequence: get it wrong and eviction either leaks rows forever or deletes a reference a retained root still needs. |
@@ -6326,6 +6264,13 @@ its original section with a note attached.
 
 | Former decision | Superseded by |
 | --- | --- |
+| **Back pauses the timer** (§14.7.1, 2026-07-29). With a timer running, Back asked "Pause the timer and return to WO Search?" (`openConfirm()` `{primary:true}`). Confirming paused it and kept `eamTimerRunning` true so the WO still read as in progress. | §32.3 (2026-10-23): **navigation never touches the timer**, with no confirmation. The timer is the technician's, not the screen's, and the shipping product keeps it running from a synced start record. |
+| **The §14.9 timer panel's Pause and Stop** (2026-07). Pause froze an in-memory counter, Resume continued it, and Stop asked "Stop working and book your current time?" — **Yes** went to Book Labor, **No** "stops the timer but stays… the time is captured and can be booked later". Shown on Activity Checklist and Issue Parts only. | §32.4 (Pause books the segment, Resume starts a new start record), §32.5 (booked or reset: "stopped but unbooked" contradicted §18.2's "the timer stops when the time is booked — the only place"), and §32.6 (shown wherever a timer runs or is paused on this WO-Activity, and nowhere else). |
+| **The timer starts implicitly at Start Work** (§15.4 "WO timer is not implicit on Free Form", §18.2's first bullets). Not Free Form set `eamTimerRunning` automatically. Free Form asked first. The pill showed during Steps 2–4, and reaching Book Labor stopped it into the Timer Stopped banner. Downstream screens each checked the gate before calling `startStepTimer()`. | §32.2 (2026-10-23): **a configured workflow starts its timer only from a placed Start Timer action**, and "time from Start Work" is one placed in the On Start Work slot. Two start sources meant a workflow with a Start Timer after Record View started twice. Free Form keeps the question (§32.6 for a No). |
+| **Start Work sets the header's Start Work Status** (§14.11 item 1, §15.4, §12 tier 1). | Already shapeless after §30.11 removed the field. Replaced 2026-10-23 by §32.2's **On Start Work** slot: a Status update placed directly after Record View instance 1 fires on Start Work. |
+| **A workflow cannot reuse a step type** (§11, 2026-07): each of the 5 step types at most once; a WO Type needing a step twice should use Free Form. | §29.2 (2026-09-08) step instances. The sentence was never edited when §29 landed and was relocated 2026-10-23. |
+| **§19.7.1 — PM has no Closing step, so Book Labor completes it** (2026-07-29). `applyTerminalStepBar()` swapped Book Labor's bar to "Complete Work Order", opening `#completeWoSheet` with the from/to status banner, the status picker, fixed RV-only summary rows (Work order, Equipment, Date completed) and the green completion overlay. The status edit was protected unless Free Form. | §30.21: a placed **User selected Status update** is the end-of-workflow prompt and composes anywhere, replacing "End of Workflow when Closing isn't present". §32.10 governs a completing status chosen mid-flow. The `closeSheet(id)` fix from the same section still stands (§19.7.1 stub). |
+| **`Visible` (Y/N) on a workflow tab/node row** (§12 tier 2, §27.1, §30.1). | Removed 2026-10-23 (§32.13, D-16). Never implemented in the portal or the app; "not in the flow" already means not shown; and it allowed a hidden-but-Required dead end. |
 | **"There is no Stop Timer action, and that is a decision"** (§30.21, 2026-09-17, held for a matter of hours). The argument: stopping a timer produces a labour record, a labour record needs a screen, that screen is Book Labor — so a Stop placed anywhere else needs a second labour form invented behind it, diverging from §18.4 the first time it changes. **The premise was wrong**, and §30.11's own paradigm is why: §18.4's whole field set is derivable from a running timer plus the session, so nothing has to be asked and no form has to exist. Recorded because the reasoning is seductive and reads as sound — it is worth knowing it was tried and where it broke, rather than re-deriving it the next time an action looks like it needs a screen. | §30.21's **Stop Timer** (2026-09-17, user direction). The action books the time itself; `User selected` mode confirms with **Hours editable and every derived field protected**, which is the narrow version of the form the refusal feared. One consequence survived unchanged: the rail's timer pill keeps its own manual stop. |
 | **The punch-list dataspy selector belongs on the USER GROUP, not the offline profile** (§2.6/§30.14, 2026-09-11 – 2026-09-23). The reasoning: a profile is one artifact shared by N groups (§26.5.1 Fault 1) while download scope is role-specific, so a dataspy on the profile would force every group sharing it to download the same rows. §30.14 re-confirmed it against the shipping product's conflated `Download Work Orders / For Dataspy` field and concluded "two selectors, two homes, by design." | **The OFFLINE PROFILE's Work Orders row** (user direction 2026-09-23). It was already built there, so the doc was trailing the prototype. **Why the objection failed:** it assumed a *group-scoped* dataspy. The punch-list dataspy is **user-relative** — `My Open WOs` resolves per logged-in user — so one profile shared by N groups still yields a per-technician list, and the "same rows" problem never arises. §30.14 had itself conceded "they may name the same dataspy in practice." **What the reversal costs, and it is real:** collapsing the two means a punch list cannot exist without replication, so a group on profile `None` has nowhere to name one. That is now the item's only open question (§20) — narrowed from "the selector has no home," not eliminated. To revert: move the control to the User Groups area and accept that it becomes that area's first configuring control. |
 | **§12 tier 2 keyed one row per `(WO Type, User Group, Tab)`** — "one row per tab is the point, not an implementation detail," on the reasoning that it made *"a tab is either a step or a More entry, never both"* a **key** constraint rather than a validation rule, which is what stopped forward gating from being bypassable. Rejected at the time: a separate list of More tabs, and overloading `Sequence = null`. | §29.2 (2026-09-08, on five workflow-authoring requirements) — the key gains an **`Instance`** dimension: `(WO Type, User Group, Tab, Instance)`. Two requirements broke the old key and turned out to be the **same** requirement: a tab placed more than once, and a second Record View carrying a *different* layout. **What survived intact:** the constraint that made one-row-per-tab worth having, one grain finer — an *instance* is either a Step or a More entry, never both, because `Placement` sits on the instance row, so a More entry pointing at the same tab is a different row and forward gating stays unbypassable. **What it cost:** `R5PAGELAYOUT` gains a page-variant dimension (§13), blank for instance 1. To revert: collapse instances back to one per tab, and the second-Record-View requirement goes with it — they are not separable. |
@@ -7510,7 +7455,7 @@ resolution concept, and no new authoring surface for placement. Concretely
 it inherits all of this free:
 
 - A UDS tab takes a §12 tier-2 row keyed `WO Type × User Group × Tab`, so it
-  carries **Visible**, **Placement** (`Step` | `More`), **Sequence** and
+  carries **Placement** (`Step` | `More`), **Sequence** and
   **Required** exactly like a delivered tab.
 - **A UDS tab can be a numbered workflow step.** This is the capability
   worth naming out loud: a customer's Permit to Work, Isolation Certificate
@@ -8000,7 +7945,10 @@ the first plus a layout key.
 having survives one grain finer: **an instance** is either a Step or a More
 entry, never both, because `Placement` sits on the instance row. A More entry
 pointing at the same tab is a *different instance* with its own row, so
-nothing routes a technician into a gated step early.
+nothing routes a technician into a gated step early. **Amended 2026-10-23
+(§32.13):** routing is protected but the *work* is not. A More instance of a stepped
+tab lets that step's work be done early, so WO Closing is never placeable in More
+and any other stepped-and-More tab is warned.
 
 **The layout key is the part to get right.** Instance 1 of a tab keys on the
 bare tab id; instance 2+ appends `#n`:
@@ -8336,7 +8284,7 @@ and nothing navigates to it. One layout, one editor, two zoom levels, one surfac
 | Which user groups the workflow applies to | |
 
 **§29 is the model this sits on, unchanged.** A canvas node *is* a §29.2 step
-instance: it carries `kind`, `placement`, `visible`, `required`, both gates, and
+instance: it carries `kind`, `placement`, `required`, both gates, and
 an `inst` number that is part of the layout key. Nothing about the key grain,
 the gates or the fork semantics is re-decided here — this section decides where
 that model is **authored** and how it is **applied**, and §29 continues to
@@ -9913,7 +9861,9 @@ Answered 2026-09-17. The pull-up shows the booking before it is written:
 
 #### Three runtime rules, all stated in the editor
 
-- **No timer running → nothing happens and the flow continues.** Nothing to
+- **No timer running on this WO-Activity → nothing happens and the flow
+  continues.** *(Tightened 2026-10-23 for one timer per technician, §32.1: a timer
+  running on another WO is never stopped by this action.)* Nothing to
   book is not an error, the same way an empty field is not a false condition
   (§30.19's "empty is not false").
 - **Discard never stops the timer.** One rule for both invocation points
@@ -10455,10 +10405,9 @@ same day and removed rather than marked.)*
   still open is the delivered artifact itself** — nothing specifies what the
   Default Page Layout places, and the portal neither ships nor displays a `*`
   row, so an admin cannot currently see the behaviour their groups inherit.
-- **What happens to in-flight work when an assignment is removed.** The
-  membership table makes removal a one-click operation from either side, which
-  raises the question more sharply than §26.5 did. §29.5's config-version
-  stamp is the mechanism that would answer it; nothing joins them up.
+- **What happens to in-flight work when an assignment is removed — CLOSED
+  2026-10-23, §32.12.** A run finishes on the config version stamped at Start Work, the
+  device retains every version a live run uses, and new starts resolve fresh.
 - **`warning` and `info` have no §23 equivalent** (§30.8). Octave leans on
   both heavily and mobile has neither token. That is the prerequisite for any
   shared component library across the two systems — a §23 decision, not a
@@ -10644,3 +10593,267 @@ The §5.3 scroll-collapse mechanism collapses opted-in chrome past `scrollTop > 
 **`#recHeader` was guarded identically at the same time.** It was not reported, but it collapses by reflow through the same listener, so a sparse record view could reproduce it exactly. Two call sites, one rule.
 
 **This was latent, not introduced.** Any marginally-scrollable screen could always have hit it; §31.6's bottom padding merely moved Home into the window where it fires. Worth recording because the symptom points at the padding and the cause is the collapse threshold.
+
+# 32. Workflow Runs, the Technician Timer, and Composition Rules
+
+**Locked 2026-10-23**, user review of a scenario analysis (decisions D-1 to D-17 in
+`docs/scope/workflow-review-and-scenarios.md`, which is a working file and retires once this
+section and §20 hold its content). The use case expressions — basic and alternate flows,
+messages — are `docs/scope/EAM.ADMN.SCOPE.WorkflowComposition` (what the portal accepts) and
+`docs/scope/EAM.MOBILE.SCOPE.WorkflowExecution` (what the app enforces). **This section owns
+the rules and their reasons; the SCOPE documents own the flows.** Neither restates the other.
+
+**Why it was needed.** §29–§30 made actions and forks **positional** — a timer starts, a
+status changes, a route splits *at a place in the flow*. The technician moves
+**non-positionally**: back to a completed step, out of the WO, onto another WO, and back
+tomorrow. Nothing reconciled the two, nothing validated timer order at all, and the shipping
+product's own timer model (below) had never been read against ours.
+
+## 32.1 One timer per technician — and the shipping product already defines it
+
+The technician has **one** timer, across every work order. It belongs to the technician, not
+to a screen, a step or a WO view. This is not new design: the shipping
+`EAM.MOBILE.REQ.ActivitiesforWorkOrder` already runs exactly this model, and §32 inherits it
+rather than re-deriving it.
+
+| Shipping rule | Source | Adopted as |
+| --- | --- | --- |
+| **AUTOBOOK** AUTO / PROMPT / ERROR — starting a timer while another runs, **and completing a WO with its timer running** | Activities §8.12 | §32.11 |
+| **MOBSTST = SYNC** — a start record synced to base at the start moment | Activities §8.11 | §32.3 |
+| The clock ticks "from the start moment defined in the start record" | Activities §8.9 | §32.3 |
+| Under 1 minute → zero-hours error; over 24 hours → error | Activities §8.12.4, §8.13 | §32.11 (the first softened) |
+| Hired labor / deferred maintenance hide Start/Stop; employee not on device refuses | WorkOrders §8.15, Activities §8.16 | §32.11 |
+| Cancel on the booking panel loses no time | Activities §8.8 | already §30.21's "Discard never stops the timer" |
+| **WOBKMIDN**, **BOOKDATE**, the overlap and mixed-format rules | Book Labor §8.8–§8.10, §9.2, §9.8, §9.15 | §32.11 |
+
+**Consequence for §30.21's Stop Timer:** *"no timer running → nothing happens"* reads
+**"no timer running on this WO-Activity"**. A Stop Timer never stops a timer the technician
+has running on another work order.
+
+## 32.2 A configured workflow starts its timer only from a placed action (D-1)
+
+**Start Work never starts a timer by itself** on a Not Free Form workflow. The timer starts
+when a **Start Timer** action fires. "Time from Start Work" is a Start Timer placed directly
+after Record View instance 1.
+
+**The On Start Work slot.** Nothing — of any kind — may precede Record View instance 1
+(clamped at the mutation, like the step-1 pin). Every **action** placed after it and before
+the next step fires when the technician taps Start Work. The canvas labels that group **"On
+Start Work"**. This is also where §12's retired *Start Work Status* went: a status transition
+at Start Work is a Status update placed in this slot (§30.11).
+
+**Free Form and the §11 / `*` fallback keep §15.4's prompt** ("Start the timer for this work
+order?"), because Free Form strips every action (§30.11) and so has nothing to place.
+
+**Why one mechanism.** With both an implicit start and a placed one, a workflow carrying a
+Start Timer after Record View started twice, and one carrying it at step 4 still started at
+Start Work. The admin could not say what they meant.
+
+## 32.3 The timer is time-stamped, and navigation never touches it (D-3)
+
+- **Calculated, never counted.** Elapsed time derives from the start record's start moment
+  (and Pause segments, §32.4), using device time corrected by the server offset captured at
+  sync. A negative elapsed time is refused. An in-memory counter cannot survive an app kill,
+  a restart or a second device; a start moment survives all three, and with MOBSTST = SYNC it
+  is visible to base.
+- **Leaving the screen is not leaving the job.** Back, Home, another WO, backgrounding, an OS
+  kill and logout all leave the timer exactly as it is, with **no confirmation**. Only Pause,
+  Stop, a Stop Timer action, Reset, AUTOBOOK and run completion change it. Logout warns and
+  does not stop. *(Replaces §14.7.1's "Pause the timer and return to WO Search?" — §21.)*
+
+## 32.4 Pause books the segment (D-2)
+
+**Pause = stop + book that segment; Resume = a new start record.** Every labor row stays a
+true start/end span, base never shows a running clock across a break, and the state survives
+a device swap. A paused timer counts as **not running** for AUTOBOOK, for Stop Timer and for
+§18.2's booking pull-up.
+
+*Rejected:* a device-local hold booked as direct hours at Stop (base's synced start record
+would show the clock running all through lunch); no Pause at all (matches shipping, but
+technicians break mid-job). *Accepted cost:* several labor rows per WO per day.
+
+## 32.5 A timer is either booked or reset
+
+"Stopped but not booked" **does not exist**. Stop always books, through the pull-up (§18.2)
+or a System-mode Stop Timer; **Reset** discards — an unsynced start record is deleted, a
+synced one gets a stop transaction at its own start moment (shipping Activities §8.14).
+*(Removes §14.9's Stop → "No: the time is captured and can be booked later", which
+contradicted §18.2's own "the timer stops when the time is booked — the only place" — §21.)*
+
+## 32.6 A timer that is not started is not shown (D-17)
+
+**User direction.** When the technician is asked to start the timer and says **No** — Free
+Form's Start Work question, a User-selected Start Timer, or an AUTOBOOK prompt that leaves
+this timer unstarted — **no timer appears in the step rail**: no 00:00 pill, no grayed pill,
+no timer panel. The same holds for a workflow with no Start Timer and an activity the timer
+cannot run on.
+
+**The rail shows a timer only while one is running or paused on this WO-Activity**, on any
+step. Elsewhere — Home, lists, another WO — a running or paused timer shows as an indicator in
+the app header, which opens its WO. *(Retires §14.9's "Activity Checklist and Issue Parts
+only" and answers §20's "WO timer placement" item.)*
+
+**Consequence, and the reason it is written down:** with no timer on the rail there is
+nothing to tap to start one, so **manual Start is a header action** — *Start timer* in the
+record's header ellipsis (§8.4: it is not row-scoped). Stop, Pause/Resume and Reset stay on
+the rail's timer panel, which exists exactly when they mean something. A later Start Timer
+action in the same run asks again — each action is independent.
+
+## 32.7 The workflow run (D-4, D-5, D-10 to D-13)
+
+**A run is keyed `(technician, WO, Activity)`.** Start Work creates it in the same moment as
+§14.11's commitment. A technician may hold **many runs in progress** (pulled off a PM onto a
+breakdown) and still **one timer** — AUTOBOOK handles the hand-off.
+
+**A Multiple Equipment child never has a run of its own (D-13, user direction — overruled the
+recommendation).** The run belongs to the **parent**; children are worked inside it, Start
+Work is not offered on a child, the timer and its bookings sit on the parent WO-Activity under
+the shipping MEC parent booking rules (Book Labor §9.9–§9.13), and Resume shows the parent. A
+child opened before its parent's run starts points to the parent. *This conflicts with the
+prototype, where a child opens "as itself" through all five steps via
+`applyDemoWoIdentity()` (§16.10) — §20.*
+
+**What a run holds:** workflow id + stamped config version; the **cursor** (a step, or an
+action waiting on the technician); per-node state (not reached / current / complete / N/A /
+skipped); the fork log (branch taken, and the evaluated value for a condition fork — §29.4's
+auditability reason); the action log (fired at, outcome); a pending prompt; and the current
+step's uncommitted edits. **Durable local storage, never `sessionStorage`** — a kill loses
+nothing.
+
+**It lives on the device in v1 (D-5).** A started WO with no run on this device (reinstall,
+second device) **rebuilds** one: cursor = first Required step not satisfied by the WO's data,
+forks ahead of it asked again. A server-side run record is a later backend ask (§20).
+
+**Resume (D-10, D-11).** Home carries a **system-delivered Resume card**, positioned and
+toggled by the Home layout the way `showFavorites` is (§30.16) — never an authored tile,
+because it is the technician's own state, which is the Favorites precedent. It shows the run
+with the running timer, else the most recently active, plus "+N more in progress" opening a
+list built from local run data (works offline). **Resume — and opening an in-progress WO from
+any list, search or notification — lands on the cursor**, re-presenting a pending prompt;
+Record View is a completed step one rail tap away. Home's *content* stays unlocked; this
+locks the mechanic only.
+
+**Start Work cannot be undone in v1 (D-12).** It is the commitment boundary. The timer can
+still be reset. Revisit if UXR shows mis-starts.
+
+## 32.8 Actions fire once per run; System status updates bypass group authorization (D-15)
+
+- **In order, on the preceding step's Next, until the next step.** Every fired action is
+  logged and **never fires twice in a run**. A held chain (User-mode status Cancel, §30.21)
+  resumes **at the held action**, not at the start of the chain — so a Start Timer that fired
+  before the canceled status prompt does not fire again on the retry.
+- **A System-mode Status update writes its authored status without checking the technician's
+  group status authorizations** (user direction — overruled the recommendation). The
+  administrator configured the transition; **the workflow is the authorization**. It is
+  refused only by base's own system-status lifecycle (e.g. the WO is already Closed), which
+  produces a non-blocking notice and the flow continues. **User-selected mode is unchanged:**
+  its list still resolves from the group's authorizations (§30.21 stands).
+- **This is a security boundary, not a UI choice.** Base must accept the write, and must
+  **verify it** — the queued change carries the workflow, its stamped version and the node,
+  and the server confirms that version actually authors that transition. Without the check any
+  client could claim a workflow and skip authorization. §20.
+
+## 32.9 Revisiting a completed step edits it in place (D-6)
+
+§14.10 makes a completed step reopenable; this settles where its button goes. **The bar reads
+"Back to <current step>", not "Next: X"**, and returns to the cursor. **Forks do not
+re-evaluate and actions do not re-fire.** A fork's result is pinned in the run at first
+traversal — the run-level form of §30.19's "evaluate at one moment". *Rejected:* re-traversal,
+which can re-route behind the technician and strand data on an abandoned branch (§13.3 item
+4). The reopened step's own gates still apply to that tap; leaving through the rail does not
+re-check them. **An N/A step is not navigable** — it states which answer skipped it. Deleting
+the comment or document that met a completed step's gate is allowed with a warning and does
+not un-complete it.
+
+## 32.10 A completing status cannot bypass Required steps (D-7)
+
+If the technician picks a status that maps to a Completed/Closed system status while steps
+remain — a User-selected Status update, or Free Form's editable status — it is **refused while
+any Required step is unfinished**. If only optional steps remain, it confirms and marks them
+N/A. *Rejected:* filtering completing codes out of the list, which would make the device a
+fifth place a status list is shaped (§30.21's own objection). **A non-completing status at
+Closing (On Hold) does not end the run** — the WO stays on Resume at Closing.
+
+## 32.11 Run end and the timer's edge cases
+
+- **The run ends** at its last node or at a fork's End. If **this WO-Activity's** timer is
+  still running, AUTOBOOK's completion branch applies (AUTO books; PROMPT asks Yes/No/Cancel,
+  and Cancel keeps the run open; ERROR refuses to end it). A run that sets no completing status
+  leaves the WO's status as it is.
+- **Starting a timer while another WO-Activity's runs** follows AUTOBOOK **even from a
+  System-mode Start Timer**, because the consequence lands on a different work order.
+- **Under one minute** discards the start with a toast — never the shipping zero-hours error,
+  because a System-mode Stop Timer must not block a flow.
+- **Over 24 hours** forces the pull-up into User mode with Hours cleared and required.
+- **Midnight with WOBKMIDN = NO books two rows split at midnight** (D-14) — both true spans.
+- **Booking pre-validates on the device** (BOOKDATE, overlap, mixed format). A violation opens
+  the pull-up in User mode with the reason, so a booking base would reject is never queued.
+- **Timer unavailable** (hired labor / deferred maintenance / employee not on device): Start
+  Timer and Stop Timer are no-ops with one notice per run; manual booking still works.
+
+## 32.12 A run finishes on the configuration it started with
+
+The config version stamped at Start Work (§14.11 item 5, previously "recommended, not yet
+locked") is **adopted**. A run continues on its stamped version when the workflow is edited,
+re-assigned or unassigned, and when base changes the WO's Type after start; **Tier 0 must
+retain every version a live run is stamped with.** New starts resolve fresh. This answers
+§30.18's "in-flight work when an assignment is removed" and the runtime half of §20's
+revisioning item; the authoring half (Draft / Current Rev) stays open.
+
+Changes underneath a run are shown on its **Resume card**, never as a blocking modal:
+completed elsewhere (book the timer, capped at Date Completed, then dismiss), reassigned (the
+local pin survives, §2.6), workflow updated, or a queued write rejected (links to Sync
+Status; the run is never rolled back).
+
+## 32.13 Composition rules — what the portal refuses, warns about and notes
+
+**Path-aware.** Forks route forward only, so a flow is a DAG; every timer and status rule is
+evaluated over **each path** (≤ 2^forks, capped at two answers each), tracking two states —
+timer on/off, and the last status with whether it is completing (WO Closing counts as
+completing). Checking nodes in isolation is how a fork that routes *around* a Start Timer
+passes.
+
+**Severity, raised on the node or control that causes it (§30.20 — no summary):**
+**Error** blocks assignment (refused in the assignment control, shaped like a clash) but never
+blocks saving; **Warning** is legal but probably wrong; **Info** is a stated consequence.
+
+| Rule | Severity |
+| --- | --- |
+| **Stop Timer with no Start Timer before it** — on no path / on some paths (D-9) | **Error** / Warning |
+| Start Timer never stopped by a Stop Timer or Book Labor step before the path ends | Warning |
+| Two Starts, or two Stops, in a row on one path | Warning |
+| **Stop Timer after a completing status** (books past Date Completed; base rejects) | **Error** |
+| **Flow step after a completing status** (every field protected, §15.4 — a dead end) | **Error** |
+| User-selected Status update with steps after it | Info (§32.10 applies) |
+| A path that ends with no Status update and no Closing; a fork End that skips Closing | Warning |
+| **WO Closing placed in More** (D-8) — refused at the drop and in `moveToRef()` | **Refused** |
+| A tab with both a Step instance and a More instance | Warning |
+| Required or gated step the group cannot open (§27.4) | **Error** (non-Required: Warning) |
+| A fork whose two branches resolve to the same target | Warning |
+| **Condition fork with no field / a stale field** — kept visibly broken, not silently cleared | **Error** |
+| Condition fork reading a step that some path skips | Info (empty continues) |
+| Consecutive identical Status updates | Warning |
+| Status update editor | Info stating §32.8's bypass for System mode, and that User mode uses the group's list |
+| Switching to Free Form | Its confirm lists the **actions** removed as well as the forks, plus "no status or timer automation" |
+
+**Deliberately not rules:** a Book Labor step plus a Stop Timer (§18.2 — one timer, one
+condition); a User-mode Start Timer that a decline can skip (counts as present — the
+technician chose).
+
+**§29.2's More-instance argument is amended, not reversed.** "Nothing routes a technician
+into a gated step early" is true of *routing*; the *work* of a stepped tab can still be done
+early from its More instance. Closing is the case where that is unacceptable, hence refused;
+the rest warn, because Book Labor in More is the point of §30.21.
+
+**`Visible` is removed from workflow node rows (D-16).** Neither the portal nor the app ever
+implemented it, "not in the flow" already means not shown, and keeping it created a
+hidden-but-Required dead end. §12 tier 2, §27.1 and §30.1 drop the column.
+
+## 32.14 What §32 does not settle
+
+All in §20: the base-side verification §32.8's bypass depends on; a server-side run record;
+building the composition rules (the portal implements none of §32.13 yet); the app's run
+model, Resume card and header *Start timer* (the prototype's timer is a per-page counter in
+`sessionStorage` and cannot support any of §32); the MEC parent-only model against the
+prototype and the shipping "All Equipment" split; whether a reassigned run ends once its timer
+is booked; and `EAM.MOBILE.REQ.CloseWorkOrderforWorkOrder`, not yet read against §32.11.
