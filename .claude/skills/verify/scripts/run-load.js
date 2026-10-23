@@ -4,7 +4,10 @@
    undefined globals, and anything thrown during init — which is the class of
    bug that left the search screens dead. */
 const fs = require('fs'), vm = require('vm'), path = require('path');
-const ROOT = 'C:/Users/dkilburn/Projects/eam-mobile';
+/* Resolved from this file, not hardcoded: a hardcoded checkout path made every
+   worktree silently test the MAIN checkout's screens instead of its own.
+   scripts → verify → skills → .claude → repo root. */
+const ROOT = path.resolve(__dirname, '..', '..', '..', '..').replace(/\\/g, '/');
 const DIR = ROOT + '/prototypes/standalone';
 
 function makeStyle() {
