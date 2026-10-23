@@ -4086,19 +4086,29 @@ one consumer so far.
 ## 14.2 Step rail (collapsed)
 
 - Persistent at top of screen below nav — always visible.
-- **Two rows:** Row 1 — current step name (`.step-name`, plain
-  `flex:1;text-align:left`, same left-justified shape as `.tab-rail-name`
-  for record tabs), timer pill (when this step has one) and the expand
-  chevron both in `.step-rail-right`. Row 2 — a dedicated, full-width
-  5-segment progress bar: done = green, active = ink (not a colour
-  instrument, §23), future = gray.
+- **Two rows, an "Up next" mini stepper** (2026-10-23, user direction —
+  replaces the step-name + segment-bar shape, §21). Row 1 — a filled dot and
+  the current step name (`.step-name`, bold), on the same row as the timer
+  pill (when one is running or paused here, §32.6), the WO Type glyph and the
+  expand chevron in `.step-rail-right`. Row 2 — a hollow dot, joined to row 1
+  by a short connector, reading **"Up next: <step>"**. **No WO number and no
+  Type text in the rail** — the record header already carries both.
+  - **Static flow:** the next step in sequence.
+  - **Forked flow:** while a question or condition fork ahead is unanswered,
+    both branches — **"Up next: Issue Parts or Book Labor"**. Once the answer
+    is pinned in the run (§32.9) it shows the branch taken.
+  - **Revisit or More destination:** "Back to <current step>", matching the
+    bar (§32.9). **Last step:** "Last step". **Free Form's flat rail** (§11
+    fallback) has no order, so it shows no preview.
+  - The 5-segment progress bar is **no longer drawn in the collapsed rail** —
+    the preview replaces it, as drawn. The expanded step map is the full list,
+    so the preview hides while it is open.
 - Step name is body-colour (black light / white dark) — not tinted.
 - Timer pill: green while running (`var(--green)` dot+text — a live
   elapsed-time readout reads as "actively counting"), gray/no-pulse
-  (`.timer-pill.stopped`) once stopped. Shows on Steps 2–3 (running);
-  Book Labor (Step 4) shows the stopped time in its own banner instead
-  (§18.7), not a rail pill; WO Record View and WO Closing (Steps 1, 5)
-  never have a timer.
+  (`.timer-pill.stopped`) while paused. **It shows on any step while a timer is
+  Running or Paused on this WO, and nowhere else (§32.6)** — never a 00:00 or a
+  grayed pill for a timer that was not started.
 - Tap or pull to expand full step map.
 - **No step-count pill ("2 of 5")** — the segment row and expanded step
   map already communicate progress; a numeric counter was redundant.
@@ -4895,11 +4905,15 @@ per-*item* Comments/Documents below.
   (`.focus-req-tag`), same shape/font as the org corner-badge elsewhere
   in the app (§8.3's `.ld-card-org`: Inter, 12px, pill), just orange. Not
   a "*" glyph, not in the rail.
-- **Auto-advance on confirm — `check` items only** (2026-10-21, UXR feedback).
-  Confirming a check-type item moves to the next one after a short delay
-  (`CHECK_ADVANCE_MS`). Number, text, slider and toggle entries do not: they are
-  still being composed, or are multi-step, and advancing would feel aggressive.
-  Un-confirming never advances, and the last item stays put.
+- **Auto-advance on any tap answer** (2026-10-23, user direction — widened from
+  `check` only, §21). Answering an item with a tap moves to the next one after a
+  short delay (`CHECK_ADVANCE_MS`): a check, or one option of a Yes/No or
+  Pass/Fail/N/A toggle. **An answer entered with the keyboard never advances**
+  (number, text) — the value is still being typed. **The slider does not advance
+  either**: it is adjusted, and letting go is not a decision. Un-confirming a
+  check never advances, and the last item stays put. A toggle that reveals
+  follow-up items inserts them directly after itself, so the advance lands on
+  the first follow-up rather than skipping it.
 
 ## 16.2 Item anatomy
 
@@ -6168,7 +6182,7 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **System-mode status updates bypass group authorization — base must VERIFY them** | Opened 2026-10-23 with §32.8 (D-15, user direction). The device writes a System action's status without checking the technician's group authorizations, so the outbox envelope must carry the workflow id, the stamped version and the node, and base must confirm that version actually authors that transition before accepting it. Without the server check this is an authorization bypass for any client. Same family as the write-gate row below; needs the API team. |
 | **Workflow run state is device-only** | Opened 2026-10-23 (§32.7, D-5). v1 rebuilds a missing run from WO data (first unsatisfied Required step; forks re-asked), which loses fork answers and the action log on a reinstall or a second device. A server-side run record is the real answer. It's a backend ask, not v1. |
 | **The portal implements none of §32.13's composition rules** | Opened 2026-10-23. No timer-order or status-order validation exists (`validateForks()` covers fork targets only). Owed: the path evaluation (§32.13), the per-node Error/Warning/Info rendering, the assignment refusal on Error, refusing WO Closing in More in `moveToRef()` and at the drop, the On Start Work label, Free Form's confirm listing removed actions, and dropping `visible` from the node shape. Pin it in `test-workflow-portal.js`, including a fork that routes around a Start Timer. |
-| **The app has no run model, and its timer cannot support one** | Opened 2026-10-23. `startStepTimer()` counts from 0 on every page load, `eamTimerRunning` sits in `sessionStorage`, `navBack()` still asks to pause, and no cursor, fork log or action log exists. Owed for §32 to be demonstrable: a time-stamped timer in durable storage, the run record, the Resume card on Home, the header *Start timer* action, the app-header timer indicator, and "Back to <current step>" on a revisited step. Book Labor's terminal "Complete Work Order" sheet (`applyTerminalStepBar()`) still exists although §19.7.1 is superseded. Remove it when a placed Status update can be fed to the app. **MEC is a conflict, not just a gap:** §32.7 makes the parent own the run, while the prototype opens a child as itself through all five steps (`applyDemoWoIdentity()`, §16.10). The shipping "All Equipment" booking split (Book Labor §9.10–§9.11) needs checking against the parent-owned timer before building. |
+| **What the app's run model still lacks** | Opened 2026-10-23, narrowed the same day once §32.16 built the technician half. Still owed: **MEC is a conflict, not just a gap** — §32.7 makes the parent own the run, while the prototype opens a child as itself (`applyDemoWoIdentity()`, §16.10); a child today gets no run, a positional rail and its own timer key. The shipping "All Equipment" booking split (Book Labor §9.10–§9.11) needs checking against a parent-owned timer before building. **Nothing feeds the app portal definitions**, so the gated demo workflows stand in for an "On Start Work" System Start Timer and the one fork is declared in `WO_DEMO_FORKS`. **Not built:** the app-header timer indicator on Home/lists (§32.6), AUTOBOOK beyond a fixed PROMPT (no AUTO/ERROR, and run end books AUTO-style rather than SCOPE 8.28's question), the 24-hour and midnight rules (§32.11), the Resume card's notices (§32.12), a pending prompt surviving a kill, the logout warning (SCOPE 8.37), and any sync of start records or bookings — timer labor rows are device-local (`eamTimerBookings`) and Book Labor lists them. Book Labor's terminal "Complete Work Order" sheet (`applyTerminalStepBar()`) still exists although §19.7.1 is superseded; remove it when a placed Status update can be fed to the app. |
 | **Run end vs. the shipping close-with-timer-running flow** | Opened 2026-10-23. §32.11's run-end rule follows AUTOBOOK as the shipping product does when a WO is completed with its timer running. That flow lives in `EAM.MOBILE.REQ.CloseWorkOrderforWorkOrder`, which isn't in `docs/existing_use_cases/` and hasn't been read. Read it before building §32.11. |
 | **When does a reassigned run end?** | Opened 2026-10-23 (§32.12). A WO reassigned in base mid-run keeps its local pin (§2.6) and the run stays open so the technician can book a running timer. Whether the run should then end, or stay open until the next sync confirms the reassignment, is undecided. |
 | **Portal UI — Octave Experience vs. a new base UI — DECISION REQUIRED** | Raised 2026-09-23 (user). §30.7 locked the portal onto the Octave / OUX design system and §30.8 catalogued where it differs from the app's own; what was **not** weighed at the time was OUX as a **delivery platform** rather than a visual language. The case for it: it sidesteps the mobile configuration screens already scattered through base for the two apps; it collapses admin configuration into one screen; the diagram-authored canvas and the 390px emulator preview (§30.9/§30.10) are affordances the base toolkit does not offer; and the shell would transfer to any other operational mobile app in the portfolio. Against it: **on-premise deployment**, **other-team dependencies**, and **longevity — whether it is a two-way door**. **This reaches two locked positions rather than sitting beside them**, and re-opening it re-opens both: §30.7 (OUX for base screens) and NG8/§21 (desktop UI out of scope, which is what retired "restyle onto the base components" as an available answer). Entangled with the Sencha→Angular item below, since "new base UI" means the Angular one. Framed here rather than decided; the design doc carries it as **Open issue 0**, ahead of the `WSJOBS` call. |
@@ -6264,6 +6278,8 @@ its original section with a note attached.
 
 | Former decision | Superseded by |
 | --- | --- |
+| **The collapsed step rail's segment bar** (§14.2, 2026-07). Row 2 of the collapsed rail was a full-width 5-segment progress bar (done green, active ink, future gray) under the step name. | §14.2 / §32.15 (2026-10-23, user direction): an "Up next" mini stepper — the current step beside the timer, "Up next: <step>" (or "X or Y" ahead of a fork) beneath. The segments are still rendered in markup but hidden while the preview shows. |
+| **Checklist auto-advance on `check` items only** (§16.1, 2026-10-21). Toggle, number, text and slider entries did not advance. | §16.1 (2026-10-23, user direction): **any tap answer** advances, toggles included; keyboard entry and the slider still do not. |
 | **Back pauses the timer** (§14.7.1, 2026-07-29). With a timer running, Back asked "Pause the timer and return to WO Search?" (`openConfirm()` `{primary:true}`). Confirming paused it and kept `eamTimerRunning` true so the WO still read as in progress. | §32.3 (2026-10-23): **navigation never touches the timer**, with no confirmation. The timer is the technician's, not the screen's, and the shipping product keeps it running from a synced start record. |
 | **The §14.9 timer panel's Pause and Stop** (2026-07). Pause froze an in-memory counter, Resume continued it, and Stop asked "Stop working and book your current time?" — **Yes** went to Book Labor, **No** "stops the timer but stays… the time is captured and can be booked later". Shown on Activity Checklist and Issue Parts only. | §32.4 (Pause books the segment, Resume starts a new start record), §32.5 (booked or reset: "stopped but unbooked" contradicted §18.2's "the timer stops when the time is booked — the only place"), and §32.6 (shown wherever a timer runs or is paused on this WO-Activity, and nowhere else). |
 | **The timer starts implicitly at Start Work** (§15.4 "WO timer is not implicit on Free Form", §18.2's first bullets). Not Free Form set `eamTimerRunning` automatically. Free Form asked first. The pill showed during Steps 2–4, and reaching Book Labor stopped it into the Timer Stopped banner. Downstream screens each checked the gate before calling `startStepTimer()`. | §32.2 (2026-10-23): **a configured workflow starts its timer only from a placed Start Timer action**, and "time from Start Work" is one placed in the On Start Work slot. Two start sources meant a workflow with a Start Timer after Record View started twice. Free Form keeps the question (§32.6 for a No). |
@@ -10852,8 +10868,29 @@ hidden-but-Required dead end. §12 tier 2, §27.1 and §30.1 drop the column.
 ## 32.14 What §32 does not settle
 
 All in §20: the base-side verification §32.8's bypass depends on; a server-side run record;
-building the composition rules (the portal implements none of §32.13 yet); the app's run
-model, Resume card and header *Start timer* (the prototype's timer is a per-page counter in
-`sessionStorage` and cannot support any of §32); the MEC parent-only model against the
+building the composition rules (the portal implements none of §32.13 yet); what the app's
+run model still lacks (§32.16 builds the rest); the MEC parent-only model against the
 prototype and the shipping "All Equipment" split; whether a reassigned run ends once its timer
 is booked; and `EAM.MOBILE.REQ.CloseWorkOrderforWorkOrder`, not yet read against §32.11.
+
+## 32.15 The rail previews what comes next, forks included (2026-10-23, user direction)
+
+The collapsed step rail names the current step beside the timer and, beneath it, **"Up
+next"** — one step in a static flow, **"X or Y"** ahead of an unanswered fork, and the
+branch taken once the answer is pinned (§14.2 owns the anatomy). It reads the run: the
+preview of a fork is exactly the routing §32.9 pins, so it can never promise a step the
+run will not take. A step a pinned fork routed around is **N/A** on the rail — dashed,
+not navigable, and its toast names the answer that skipped it ("Skipped by 'No' at 'Do
+you need to issue parts?'.").
+
+## 32.16 What the prototype builds of §32 (2026-10-23)
+
+The technician half of §32.1–§32.9 is built on the shared files: one durable,
+time-stamped timer (`techTimer()`), a run per *(technician, WO, activity)*
+(`woRunFor()`), Back with no prompt, Pause booking the segment, Stop through the booking
+pull-up, Reset with a confirm, no rail timer unless one runs or is paused here, *Start
+timer* in the header ellipsis, "Back to <current step>" on a revisit, and Home's Resume
+card with "+N more in progress". It is a **stand-in** in two places, both §20: the demo's
+gated workflows behave as if they carried a System Start Timer in the "On Start Work"
+slot, and the one fork is the checklist's Issue Parts question, declared in the app
+rather than read from a portal definition.

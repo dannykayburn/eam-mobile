@@ -313,8 +313,7 @@ function woTypeBadgeMetaForCode(code) {
 // asCircle=true (renderFlatStepRail, §11 fallback): the same icon inside
 // a solid filled circle instead — no glow (plain neutral shadow), the
 // circle itself is the free-form cue.
-// Icon glyph hides whenever the timer pill (Activity Checklist/Issue
-// Parts, #timerPill) is visible in this same .step-rail-right (added
+// Icon glyph hides whenever the timer pill (#timerPill, any step) is visible in this same .step-rail-right (added
 // 2026-07-28, direct instruction) — sitting right next to a coloured,
 // pulsing timer pill, the icon reads as part of that timer widget, not a
 // WO Type indicator. Colour still carries either way: the rail's own
@@ -322,10 +321,8 @@ function woTypeBadgeMetaForCode(code) {
 // circle case — only the glyph itself disappears (empty span collapses
 // via .step-rail-type-icon:empty{display:none}, eam-shared.css; the
 // circle stays visible at its fixed size, now just a plain colour dot).
-// Only reflects the timer's state at the moment this function runs
-// (page load, via onDemoWoChanged()) — stopping the timer without
-// leaving the page doesn't currently re-trigger this (a pre-existing gap
-// in the timer's own stop handling, not introduced here).
+// Reads techTimerShownHere() (§32.6), and refreshTechTimerUi() re-runs it on
+// every start/pause/stop/reset, so the glyph returns the moment the pill goes.
 function renderStepRailTypeSlot(rail, jobType, asCircle) {
   if (!rail) return;
   const right = rail.querySelector('.step-rail-right');
@@ -343,9 +340,7 @@ function renderStepRailTypeSlot(rail, jobType, asCircle) {
   slot.className = 'step-rail-type-slot ' + (asCircle ? 'step-rail-type-circle' : 'step-rail-type-icon');
   slot.style.background = asCircle ? meta.color : '';
   slot.style.color = asCircle ? '' : meta.color;
-  const timerPill = right.querySelector('.timer-pill');
-  const timerShowing = !!timerPill && timerPill.style.display !== 'none';
-  slot.innerHTML = timerShowing ? '' : woTypeIconSvg(meta.family, asCircle ? 12 : 15);
+  slot.innerHTML = techTimerShownHere() ? '' : woTypeIconSvg(meta.family, asCircle ? 12 : 15);
 }
 /* Renders the step-rail's step-map + progress segments + step-name from a
    resolved workflow's own step list — replaces each of the 5 WO-workflow
@@ -366,8 +361,20 @@ function renderStepRail(workflow, activeStep, jobType, activeRef) {
   const seg = rail.querySelector('.step-segments');
   const nameEl = rail.querySelector('.step-name');
   const steps = workflow.steps;
-  const activeIdx = steps.indexOf(activeStep);
+  // THE WO'S POSITION IS THE RUN'S CURSOR once work has started (§32.7), not
+  // whichever screen is on display — which is what lets a completed step be
+  // reopened as a REVISIT (§32.9): it renders as done-and-viewed, the cursor
+  // stays the current step, and the bar offers "Back to <cursor>". No run
+  // (not started, or an MEC child): the screen's own step, exactly as before.
+  const run = woRunTouch(steps, activeStep, workflow.freeForm, activeRef);
+  const viewIdx = steps.indexOf(activeStep);
+  const posStep = run && steps.indexOf(run.cursor) >= 0 ? run.cursor : activeStep;
+  const activeIdx = steps.indexOf(posStep);
+  const revisit = !activeRef && viewIdx >= 0 && viewIdx < activeIdx;
+  woRunRevisitStep = revisit ? posStep : null;
   woCurrentStep = activeStep;
+  woCurrentJobType = jobType;
+  woCurrentRailFlat = false;
   // activeRef (2026-08-10): the screen on display is a More destination
   // (the Equipment tab), not a numbered step. activeStep still drives the
   // segments and each step's done/locked state — it's the WO's real position,
@@ -376,17 +383,22 @@ function renderStepRail(workflow, activeStep, jobType, activeRef) {
   if (nameEl) nameEl.textContent = activeRef ? (woMoreLabel(activeRef)) : (WO_STEP_LABELS[activeStep] || '');
   rail.classList.toggle('rail-not-free-form', !workflow.freeForm);
   renderStepRailTypeSlot(rail, jobType, false);
-  // Preserve the expanded-rail timer panel (Steps 2–3's hardcoded first
-  // child of #stepMap, §14.2 follow-up) — this used to get silently wiped
-  // out by the innerHTML overwrite below, which is why it looked like it
-  // never got built at all (found + fixed 2026-07-22).
-  const timerPanel = map.querySelector('.step-timer-panel');
   // Gating toast only for Not Free Form (§14.2 comment above) — a Free
   // Form configured workflow (PM) has nothing to explain, so its rows
   // keep the old silent no-op (no onclick at all).
   const gated = !workflow.freeForm;
-  const activeLabel = WO_STEP_LABELS[activeStep];
-  map.innerHTML = (timerPanel ? timerPanel.outerHTML : '') + steps.map((s, i) => {
+  const activeLabel = WO_STEP_LABELS[posStep];
+  const skipped = run ? woRunSkippedSteps(steps, run) : [];
+  const skipFrom = {};
+  skipped.forEach(sk => {
+    skipFrom[sk] = Object.keys(run.forks).find(at => {
+      const a = steps.indexOf(at), b = steps.indexOf((run.forks[at] || {}).target);
+      return steps.indexOf(sk) > a && steps.indexOf(sk) < b;
+    });
+  });
+  // The timer panel is composed here, and is the empty string unless a
+  // timer is Running or Paused on THIS WO (§32.6) — never a hardcoded child.
+  map.innerHTML = railTimerPanelHtml() + steps.map((s, i) => {
     const label = WO_STEP_LABELS[s];
     /* A COMPLETED STEP IS ALWAYS NAVIGABLE (§14.10, locked 2026-08-11, direct
        instruction). "Not Free Form" governs the order you may move FORWARD in;
@@ -402,12 +414,23 @@ function renderStepRail(workflow, activeStep, jobType, activeRef) {
        onclick at all, so the row was a silent no-op. Both now navigate.
        Forward gating is untouched: a step past the WO's position stays locked
        with its own explanatory toast. */
+    // The completed step being revisited is this screen: done, highlighted,
+    // and not a link to itself.
+    // A step a pinned fork routed around is N/A (§29.4): shown, never opened,
+    // and it says which answer skipped it (§32.9).
+    if (i < activeIdx && skipped.includes(s)) {
+      const f = WO_DEMO_FORKS[skipFrom[s]], pin = run.forks[skipFrom[s]];
+      const why = ("Skipped by '" + pin.answer + "' at '" + f.question + "'.").replace(/'/g, "\\'");
+      return `<div class="step-map-item" onclick="showToast('${why}')"><div class="step-map-icon smi-na">–</div><span class="step-map-label step-map-label-na">${label}</span></div>`;
+    }
+    if (revisit && i === viewIdx) return `<div class="step-map-item active"><div class="step-map-icon smi-done">✓</div><span class="step-map-label active-label">${label}</span></div>`;
     if (i < activeIdx) return `<div class="step-map-item" onclick="goToWoStep('${s}')"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">${label}</span><span class="step-map-back">${STEP_BACK_CHEVRON}</span></div>`;
-    // The current step: only navigable from a More destination (§16.10),
-    // where the rail is the only way back into the flow. On a step screen it's
-    // the screen you're already on.
-    const selfNav = activeRef ? ` onclick="goToWoStep('${s}')"` : '';
-    if (i === activeIdx) return `<div class="step-map-item${activeRef ? '' : ' active'}"${selfNav}><div class="step-map-icon smi-active">${i + 1}</div><span class="step-map-label${activeRef ? '' : ' active-label'}">${label}</span></div>`;
+    // The current step: navigable from a More destination (§16.10), where the
+    // rail is the only way back into the flow, and from a revisit (§32.9). On
+    // its own step screen it's the screen you're already on.
+    const away = activeRef || revisit;
+    const selfNav = away ? ` onclick="goToWoStep('${s}')"` : '';
+    if (i === activeIdx) return `<div class="step-map-item${away ? '' : ' active'}"${selfNav}><div class="step-map-icon smi-active">${i + 1}</div><span class="step-map-label${away ? '' : ' active-label'}">${label}</span></div>`;
     return `<div class="step-map-item"${gated ? ` onclick="showToast('Locked — finish ${activeLabel} first')"` : ''}><div class="step-map-icon smi-locked">${i + 1}</div><span class="step-map-label">${label}</span></div>`;
   }).join('') + stepMapMoreGroupHtml(activeRef);
   if (seg) {
@@ -415,6 +438,8 @@ function renderStepRail(workflow, activeStep, jobType, activeRef) {
     seg.style.display = ''; // undo renderFlatStepRail()'s display:none, in case this rail was flat a moment ago
     seg.innerHTML = steps.map((s, i) => `<div class="seg ${i < activeIdx ? 'seg-done' : i === activeIdx ? 'seg-active' : 'seg-future'}"></div>`).join('');
   }
+  renderStepUpNext(rail, stepUpNextText(steps, posStep, run, activeRef || revisit));
+  renderRailPill();
 }
 /* Flat, unordered, ungated rail for the §11 fallback (no configured
    workflow — always Free Form), added 2026-07-22 (user direction — the
@@ -442,7 +467,12 @@ function renderFlatStepRail(activeStep, jobType, activeRef) {
   if (!rail || !map) return;
   const seg = rail.querySelector('.step-segments');
   const nameEl = rail.querySelector('.step-name');
+  // Free Form: the run's cursor is simply the last step opened (SCOPE 8.1).
+  woRunTouch(WO_FLAT_STEPS, activeStep, true, activeRef);
+  woRunRevisitStep = null;
   woCurrentStep = activeStep;
+  woCurrentJobType = jobType;
+  woCurrentRailFlat = true;
   if (nameEl) nameEl.textContent = activeRef ? (woMoreLabel(activeRef)) : (WO_STEP_LABELS[activeStep] || '');
   rail.classList.remove('rail-not-free-form'); // §11 fallback is always Free Form
   renderStepRailTypeSlot(rail, jobType, true);
@@ -454,8 +484,7 @@ function renderFlatStepRail(activeStep, jobType, activeRef) {
   // row was redundant. Hidden outright, not just emptied, so the pill
   // doesn't keep the row's own bottom padding with nothing in it.
   if (seg) { seg.classList.remove('flat'); seg.innerHTML = ''; seg.style.display = 'none'; }
-  const timerPanel = map.querySelector('.step-timer-panel');
-  map.innerHTML = (timerPanel ? timerPanel.outerHTML : '') + WO_FLAT_STEPS.map(s => {
+  map.innerHTML = railTimerPanelHtml() + WO_FLAT_STEPS.map(s => {
     // With a More destination on screen no step is "current", so every
     // step row stays freely navigable — which is the whole point of the flat
     // rail anyway (§11 fallback is ungated).
@@ -467,6 +496,8 @@ function renderFlatStepRail(activeStep, jobType, activeRef) {
       <span class="step-map-ref-icon"><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     </div>`;
   }).join('') + stepMapMoreGroupHtml(activeRef);
+  renderStepUpNext(rail, '');   // Free Form's flat rail has no order to preview
+  renderRailPill();
 }
 // Real navigation, not a same-page tab switch — each WO step is its own
 // file. Carries the demo WO's identity forward via the same
@@ -588,6 +619,9 @@ const WO_EQUIPMENT_TAB_FILE = 'eam-wo-equipment-tab-prototype-v1.html';
 // rail renderers, so any screen can hand its own step off without having to
 // restate a literal it already passed once.
 let woCurrentStep = null;
+// The rail's own inputs, kept so a timer change can repaint its Type slot.
+let woCurrentJobType = null;
+let woCurrentRailFlat = false;
 function goToWoEquipmentTab(fromStep) {
   sessionStorage.setItem('eamOpenDemoWo', DEMO_WO);
   // The Equipment tab renders the full step rail (§16.10) and needs to know
@@ -1104,7 +1138,12 @@ function applyDemoWoIdentity() {
    Phase 1 scope this pass isn't tackling (see design-decisions-v3-1.md
    §11's "lightweight vs. full ?wo= loading" note). */
 const DEMO_WO_JOBTYPES = { '19257': 'BRKD', '19831': 'PM', '20450': 'ROUT' };
-let DEMO_WO = '19257';
+// Falls back to the WO this tab last had open, so a RELOAD of a step screen
+// stays on its WO — the hand-off below is consume-once, and without this a
+// reload snapped to 19257 and lost its rail timer (§32.3). Saved by
+// initSharedApp(), which every screen calls after its own hand-off read.
+const LAST_DEMO_WO_KEY = 'eamLastDemoWo';
+let DEMO_WO = sessionStorage.getItem(LAST_DEMO_WO_KEY) || '19257';
 
 /* goToTab is the one function most screens never need to call directly
    (tab-map items call it via onclick) but every screen with more than one
@@ -1722,7 +1761,10 @@ function resetDemoState() {
    WO_EQUIP_STORE_KEY,
    // eamCreatedRecords (2026-08-11) — WOs/Equipment created through Insert
    // Mode. A fresh demo must start with only the seeded demo records.
-   CREATED_RECORDS_KEY]
+   CREATED_RECORDS_KEY,
+   // §32 (2026-10-23) — the technician timer, every workflow run, and the
+   // labor rows the timer booked. A fresh demo has no work in progress.
+   TECH_TIMER_KEY, WO_RUNS_KEY, TIMER_BOOKINGS_KEY]
     .forEach(k => lsRemove(k));
   // Session-scoped, so not in the list above — but a held MEC child identity
   // would otherwise survive a Reset and repaint the next WO's header, and a
@@ -4276,97 +4318,483 @@ function confirmDangerAction() {
    than reusing #confirmOverlay — sharing one overlay between two
    differently-shaped modals would show both stacked on open. ══════════ */
 let questionCallbacks = null;
-function openQuestion(message, onYes, onNo) {
+function openQuestion(message, onYes, onNo, onCancel) {
   document.getElementById('questionMessage').textContent = message;
-  questionCallbacks = { onYes, onNo };
+  // onCancel (2026-10-23, §32): optional. Fires when the question closes
+  // without Yes or No, so a flow that must carry on after a declined
+  // timer (SCOPE 8.7.2) can.
+  questionCallbacks = { onYes, onNo, onCancel };
   document.getElementById('questionOverlay').classList.add('open');
 }
 function closeQuestion() {
   document.getElementById('questionOverlay').classList.remove('open');
+  const cb = questionCallbacks;
   questionCallbacks = null;
+  if (cb && !cb.answered && cb.onCancel) cb.onCancel();
 }
 function questionAnswerYes() {
   const cb = questionCallbacks;
+  if (cb) cb.answered = true;
   closeQuestion();
   if (cb && cb.onYes) cb.onYes();
 }
 function questionAnswerNo() {
   const cb = questionCallbacks;
+  if (cb) cb.answered = true;
   closeQuestion();
   if (cb && cb.onNo) cb.onNo();
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   STEP TIMER (2026-07-16) — the WO timer shown running in the step rail
-   (§14.2) and, expanded, in .step-timer-panel with Pause/Stop controls.
-   Screen calls startStepTimer() once at init on any step where the timer
-   pill is present AND running (Activity Checklist, Issue Parts — not
-   Book Labor's already-stopped state, not WO Record View/Closing which
-   have no timer pill at all). ══════════════════════════════════════════ */
-let stepTimerSeconds = 0;
-let stepTimerRunning = false;
-let stepTimerInterval = null;
+   THE TECHNICIAN TIMER + WORKFLOW RUNS (§32.1–§32.9) — 2026-10-23
+   ══════════════════════════════════════════════════════════════════════
+   Replaces the per-page step counter, which reset to 00:00:00 on every
+   load and kept its only state (eamTimerRunning) in sessionStorage.
+
+   ONE TIMER, AND IT IS THE TECHNICIAN'S (§32.1). It is stored once, under
+   TECH_TIMER_KEY, naming the WO + activity it runs on, the start moment of
+   the current segment, and Running/Paused. Elapsed time is CALCULATED from
+   the start moment (§32.3), never counted, so navigation, a reload and an
+   app kill all leave it correct. Navigation never touches it: navBack() no
+   longer asks anything.
+
+   PAUSE BOOKS THE SEGMENT (§32.4); Resume starts a new segment. Stop opens
+   the shared booking pull-up; Reset discards. There is no stopped-but-
+   unbooked state (§32.5).
+
+   A TIMER THAT IS NOT STARTED IS NOT SHOWN (§32.6). The rail's pill and
+   panel exist only while a timer is Running or Paused on THIS WO, on any
+   step; otherwise there is nothing — no 00:00, no grayed pill. Manual
+   start is the "Start timer" row in the header ellipsis.
+
+   A RUN PER (technician, WO, activity) (§32.7), created at Start Work and
+   kept in durable storage: the cursor (the WO's real position), per-step
+   state and fork answers. Opening an in-progress WO lands on the cursor,
+   and a completed step reopened from the rail edits in place and offers
+   "Back to <cursor>" (§32.9) — nothing re-fires.
+
+   NOT BUILT HERE, on purpose (§20): an MEC child has no run of its own
+   (D-13 is open against applyDemoWoIdentity(), so a child keeps behaving
+   as it did — positional rail, its own timer key); nothing reads portal
+   workflow definitions, so a gated demo workflow stands in for an "On
+   Start Work" System Start Timer; AUTOBOOK is fixed at PROMPT; nothing
+   syncs. All storage goes through lsGet()/lsSet() (§31.5).
+   ══════════════════════════════════════════════════════════════════════ */
+const TECH_TIMER_KEY = 'eamTechTimer';
+const WO_RUNS_KEY = 'eamWorkflowRuns';
+const TIMER_BOOKINGS_KEY = 'eamTimerBookings';
+const DEMO_TECH = 'BCAMPBELL';          // the signed-in technician (Comments, Book Labor)
+const TIMER_MIN_MS = 60 * 1000;         // §32.11: under a minute books nothing
+
+function lsJson(k, dflt) {
+  try { const v = JSON.parse(lsGet(k)); return v == null ? dflt : v; } catch (e) { return dflt; }
+}
+function lsJsonSet(k, v) { lsSet(k, JSON.stringify(v)); }
+function timerNow() { return Date.now(); }
+
+/* The WO this screen's timer and run belong to. An MEC child carries its own
+   number through the identity override; it gets a timer key of its own but
+   never a run (see the header — D-13 is undecided). */
+function woRunWo() { const ov = woIdentity(); return ov ? ov.number : DEMO_WO; }
+function woRunEligible() { return !woIdentity(); }
+
+/* ── Runs ── */
+function woRuns() { return lsJson(WO_RUNS_KEY, {}); }
+function woRunKey(wo, act) { return DEMO_TECH + '|' + wo + '|' + (act || ''); }
+// The in-progress run for a WO, most recent first. Null for an MEC child.
+function woRunFor(wo) {
+  if (wo === undefined) { if (!woRunEligible()) return null; wo = DEMO_WO; }
+  return Object.values(woRuns())
+    .filter(r => r.wo === wo && r.state === 'in-progress')
+    .sort((a, b) => b.updatedAt - a.updatedAt)[0] || null;
+}
+function woRunSave(run) {
+  const all = woRuns();
+  run.updatedAt = timerNow();
+  all[woRunKey(run.wo, run.activity)] = run;
+  lsJsonSet(WO_RUNS_KEY, all);
+  return run;
+}
+function woRunStart(wo, activity, activityLabel, cursor) {
+  const at = timerNow();
+  return woRunSave({
+    tech: DEMO_TECH, wo, activity, activityLabel: activityLabel || '',
+    cursor, steps: { record: 'complete' }, forks: {}, state: 'in-progress',
+    startedAt: at, updatedAt: at,
+  });
+}
+// Every run still in progress: the timed one first, then most recent (§13.1).
+function woRunsInProgress() {
+  const t = techTimer();
+  return Object.values(woRuns()).filter(r => r.state === 'in-progress')
+    .sort((a, b) => {
+      const at = t && t.wo === a.wo ? 1 : 0, bt = t && t.wo === b.wo ? 1 : 0;
+      return (bt - at) || (b.updatedAt - a.updatedAt);
+    });
+}
+/* Called by both rail renderers, so every step screen keeps the run honest
+   without a call of its own. Free Form's cursor is the last tab opened
+   (SCOPE 8.1). A gated workflow's cursor moves only FORWARD: landing past
+   it means Next brought you here (a locked row cannot), so the steps in
+   between are complete. Landing behind it is a revisit and moves nothing. */
+function woRunTouch(steps, activeStep, freeForm, activeRef) {
+  const run = woRunFor();
+  if (!run) return null;
+  if (activeRef) return run;
+  const ai = steps.indexOf(activeStep), ci = steps.indexOf(run.cursor);
+  if (ai < 0) return run;
+  if (freeForm || ci < 0) {
+    if (run.cursor !== activeStep) { run.cursor = activeStep; woRunSave(run); }
+  } else if (ai > ci) {
+    // A step a pinned fork routed around is N/A, never complete (§29.4).
+    const skipped = woRunSkippedSteps(steps, run);
+    steps.slice(0, ai).forEach(s => { run.steps[s] = skipped.includes(s) ? 'na' : 'complete'; });
+    run.cursor = activeStep;
+    woRunSave(run);
+  }
+  return run;
+}
+/* FORKS (§29.4 / §32.9). Nothing feeds the app portal definitions yet, so
+   the demo's one question fork is declared here: Activity Checklist's "Do you
+   need to issue parts?" routes to Issue Parts or Book Labor — a fork only on a
+   workflow carrying both. Its answer is PINNED in the run the first time it is
+   given and never re-evaluated; the steps it routed around become N/A. */
+const WO_DEMO_FORKS = {
+  checklist: { question: 'Do you need to issue parts?', branches: ['issueparts', 'booklabor'] },
+};
+function woForkAt(steps, step) {
+  const f = WO_DEMO_FORKS[step];
+  return f && f.branches.every(b => steps.includes(b)) ? f : null;
+}
+function woRunPinFork(step, target, answer) {
+  const run = woRunFor();
+  if (!run || (run.forks[step] && run.forks[step].target)) return;
+  run.forks[step] = { target, answer };
+  woRunSave(run);
+}
+// Steps between a pinned fork and the branch it took.
+function woRunSkippedSteps(steps, run) {
+  const out = [];
+  Object.keys((run && run.forks) || {}).forEach(at => {
+    const f = woForkAt(steps, at), pin = run.forks[at];
+    if (!f || !pin || !pin.target) return;
+    const a = steps.indexOf(at), b = steps.indexOf(pin.target);
+    if (a >= 0 && b > a) steps.slice(a + 1, b).forEach(s => out.push(s));
+  });
+  return out;
+}
+/* "UP NEXT" (2026-10-23, user direction). The collapsed rail names the
+   current step on the timer's row, and beneath it what comes next: one step
+   when the flow is static, "X or Y" while a fork ahead is still unanswered,
+   and the one branch once its answer is pinned. Returns plain text, or ''
+   when there is nothing to preview (Free Form's flat rail has no order). */
+function stepUpNextText(steps, posStep, run, away) {
+  if (away) return 'Back to ' + WO_STEP_LABELS[posStep];
+  const i = steps.indexOf(posStep);
+  if (i < 0) return '';
+  const f = woForkAt(steps, posStep);
+  const pin = f && run && run.forks && run.forks[posStep];
+  let next;
+  if (f && pin && pin.target) next = [pin.target];
+  else if (f) next = f.branches;
+  else next = steps[i + 1] ? [steps[i + 1]] : [];
+  return next.length ? 'Up next: ' + next.map(s => WO_STEP_LABELS[s]).join(' or ') : 'Last step';
+}
+let woStepUpNext = '';
+function renderStepUpNext(rail, text) {
+  woStepUpNext = text;
+  rail.classList.toggle('has-next', !!text);
+  let el = document.getElementById('stepNext');
+  if (!el && text) {
+    const collapsed = rail.querySelector('.step-rail-collapsed');
+    if (collapsed) collapsed.insertAdjacentHTML('afterend', '<div class="step-next" id="stepNext"></div>');
+    el = document.getElementById('stepNext');
+  }
+  if (el) { el.textContent = text; el.style.display = text ? '' : 'none'; }
+}
+/* The cursor step when this screen is a completed step being revisited on a
+   gated workflow (§32.9) — what its bar should offer to go back to. */
+let woRunRevisitStep = null;
+function woRunBackToCursor() {
+  const run = woRunFor();
+  if (run) goToWoStep(run.cursor);
+}
+/* Rewrites a step's bar button as "Back to <current step>" when this screen
+   is a revisit. Returns true when it did, so a caller can skip its own Next. */
+function applyRunRevisitBar(btn, labelEl) {
+  if (!btn || !woRunRevisitStep) return false;
+  const text = 'Back to ' + WO_STEP_LABELS[woRunRevisitStep];
+  if (labelEl) labelEl.textContent = text; else btn.textContent = text;
+  btn.className = 'bar-pill bar-pill-ready';
+  btn.onclick = woRunBackToCursor;
+  return true;
+}
+/* Opening a WO from any list, search, notification or Resume lands on the
+   run's cursor (§32.7), and re-establishes the run's activity for the
+   steps that read it. No run: Record View, as before. */
+function openDemoWoAtCursor(demoWo) {
+  sessionStorage.setItem('eamOpenDemoWo', demoWo);
+  const run = woRunFor(demoWo);
+  if (run) {
+    sessionStorage.setItem('eamActiveActivityId', run.activity);
+    location.href = WO_STEP_FILES[run.cursor] || WO_STEP_FILES.record;
+    return;
+  }
+  location.href = WO_STEP_FILES.record;
+}
+/* The run ends with a completing status (§32.10). A timer still running on
+   it is booked — AUTOBOOK = AUTO's branch; PROMPT/ERROR at run end (SCOPE
+   8.28) are not built (§20). A non-completing status (On hold) keeps the
+   run, and the WO stays on Resume at Closing. */
+function woRunEnd(wo, statusKey) {
+  if (statusKey === 'onhold') return;
+  const all = woRuns();
+  let changed = false;
+  Object.values(all).forEach(r => {
+    if (r.wo === wo && r.state === 'in-progress') { r.state = 'complete'; r.updatedAt = timerNow(); changed = true; }
+  });
+  if (changed) lsJsonSet(WO_RUNS_KEY, all);
+  const t = techTimer();
+  if (t && t.wo === wo) {
+    if (t.state === 'running') techTimerBookSegment(t, null);
+    lsRemove(TECH_TIMER_KEY);
+  }
+}
+
+/* ── The timer ── */
+function techTimer() { return lsJson(TECH_TIMER_KEY, null); }
+function techTimerSave(t) { t ? lsJsonSet(TECH_TIMER_KEY, t) : lsRemove(TECH_TIMER_KEY); }
+// Milliseconds in the current segment. A negative span is refused (§32.3).
+function techTimerSegmentMs(t) {
+  if (!t || t.state !== 'running') return 0;
+  return Math.max(0, timerNow() - t.startedAt);
+}
+// What the pill shows: everything booked across segments, plus the live one.
+function techTimerTotalMs(t) { return t ? (t.bookedMs || 0) + techTimerSegmentMs(t) : 0; }
+function techTimerOn(wo) { const t = techTimer(); return !!t && t.wo === wo; }
+function techTimerShownHere() { return techTimerOn(woRunWo()); }
+function techTimerLabel(t) { return t.wo + (t.activityLabel ? ' / ' + t.activityLabel : ''); }
+function techTimerBookings() { return lsJson(TIMER_BOOKINGS_KEY, []); }
+/* Writes one labor row for a segment (§32.4: every row is a true span). The
+   row is local-only — Book Labor lists it; nothing syncs (§20). */
+function techTimerBookSegment(t, minutesOverride) {
+  const end = timerNow();
+  const ms = techTimerSegmentMs(t);
+  const minutes = minutesOverride || Math.max(1, Math.round(ms / 60000));
+  const list = techTimerBookings();
+  list.push({ tech: t.tech, wo: t.wo, activity: t.activity, activityLabel: t.activityLabel,
+              start: t.startedAt, end, minutes, adjusted: !!minutesOverride });
+  lsJsonSet(TIMER_BOOKINGS_KEY, list);
+  return minutes;
+}
+function timerHoursText(minutes) { return bookingDecHours(minutes); }
+
+/* Starts the timer on (wo, activity). With the technician's timer running
+   on ANOTHER WO, AUTOBOOK applies — fixed at PROMPT here (SCOPE 8.7.2).
+   A paused timer counts as not running, so it is simply replaced. done(started). */
+function techTimerStart(wo, activity, activityLabel, done) {
+  const go = () => {
+    techTimerSave({ tech: DEMO_TECH, wo, activity: activity || '', activityLabel: activityLabel || '',
+                    state: 'running', startedAt: timerNow(), bookedMs: 0 });
+    refreshTechTimerUi();
+    if (done) done(true);
+  };
+  const other = techTimer();
+  if (other && other.wo !== wo && other.state === 'running') {
+    const min = Math.max(1, Math.round(techTimerSegmentMs(other) / 60000));
+    openQuestion('Work is currently in progress on Work Order ' + other.wo + ' Activity '
+        + (other.activityLabel || other.activity) + '. Do you want the system to automatically book '
+        + timerHoursText(min) + ' hours?',
+      () => { if (techTimerSegmentMs(other) >= TIMER_MIN_MS) techTimerBookSegment(other, null); go(); },
+      () => go(),
+      () => { if (done) done(false); });
+    // Cancel starts nothing and the caller carries on: declining a timer
+    // holds nothing (SCOPE 8.7.2).
+    return;
+  }
+  go();
+}
+/* Pause = stop + book the segment (§32.4). Resume = a new segment. */
+function techTimerTogglePause() {
+  const t = techTimer();
+  if (!t || !techTimerShownHere()) return;
+  if (t.state === 'running') {
+    const ms = techTimerSegmentMs(t);
+    if (ms < TIMER_MIN_MS) {
+      showToast('Less than a minute was timed, so nothing was booked.');
+    } else {
+      const min = techTimerBookSegment(t, null);
+      t.bookedMs = (t.bookedMs || 0) + ms;
+      showToast('Booked ' + timerHoursText(min) + ' hours to ' + techTimerLabel(t) + '.');
+    }
+    t.state = 'paused';
+    t.pausedAt = timerNow();
+  } else {
+    t.state = 'running';
+    t.startedAt = timerNow();
+  }
+  techTimerSave(t);
+  refreshTechTimerUi();
+}
+/* Stop always books (§32.5) — through the shared pull-up. A paused timer has
+   nothing left to book, so Stop just ends it. Discard leaves it running. */
+function techTimerStop() {
+  const t = techTimer();
+  if (!t || !techTimerShownHere()) return;
+  if (t.state === 'paused') {
+    techTimerSave(null);
+    refreshTechTimerUi();
+    showToast('Timer stopped. Its time is already booked.');
+    return;
+  }
+  const ms = techTimerSegmentMs(t);
+  if (ms < TIMER_MIN_MS) {
+    techTimerSave(null);
+    refreshTechTimerUi();
+    showToast('Less than a minute was timed, so nothing was booked.');
+    return;
+  }
+  const fmt = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  const start = new Date(t.startedAt);
+  openBookingPullup({
+    minutes: ms / 60000,
+    employee: { code: DEMO_TECH, desc: 'Bruce Campbell' },
+    trade: 'Technician', dept: 'Maintenance',
+    activity: t.activityLabel || t.activity || '—',
+    date: isoToDisplay(start.getFullYear() + '-' + String(start.getMonth() + 1).padStart(2, '0') + '-' + String(start.getDate()).padStart(2, '0')),
+    span: fmt(start) + ' – ' + fmt(new Date()),
+    onBook: (mins, adjusted) => {
+      techTimerBookSegment(t, adjusted ? mins : null);
+      techTimerSave(null);
+      refreshTechTimerUi();
+      showToast('Booked ' + timerHoursText(mins) + ' hours to ' + techTimerLabel(t) + '.');
+      if (typeof onTechTimerBooked === 'function') onTechTimerBooked();
+    },
+    onDiscard: () => showToast('Nothing booked — your timer is still running'),
+  });
+}
+/* Reset discards (§32.5). Segments already booked by Pause stay booked. */
+function techTimerReset() {
+  if (!techTimerShownHere()) return;
+  openConfirm('Discard the time on this timer? Nothing will be booked.', () => {
+    techTimerSave(null);
+    refreshTechTimerUi();
+    showToast('Timer reset');
+  }, 'Discard');
+}
+/* Manual Start (§32.6) — the header ellipsis row, offered only while work is
+   started on this WO and no timer is running or paused here. */
+function startTimerOfferedHere() {
+  return !!woRunFor() && !techTimerShownHere();
+}
+function manualStartTimer() {
+  closeAllHeaderMenus();
+  const run = woRunFor();
+  if (!run) return;
+  techTimerStart(run.wo, run.activity, run.activityLabel, (started) => {
+    if (started) showToast('Timer started on ' + run.wo + (run.activityLabel ? ' / ' + run.activityLabel : ''));
+  });
+}
+
+/* ── Where it renders ── */
 function formatStepTimer(totalSeconds) {
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
   const s = totalSeconds % 60;
   return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
 }
-function updateStepTimerDisplays() {
-  const text = formatStepTimer(stepTimerSeconds);
-  const collapsed = document.getElementById('timerText');
-  if (collapsed) collapsed.textContent = text;
-  const expanded = document.getElementById('stepTimerValue');
-  if (expanded) expanded.textContent = text;
-}
-function startStepTimer() {
-  stepTimerSeconds = 0;
-  stepTimerRunning = true;
-  updateStepTimerDisplays();
-  stepTimerInterval = setInterval(() => {
-    stepTimerSeconds++;
-    updateStepTimerDisplays();
-  }, 1000);
-}
+function techTimerText() { return formatStepTimer(Math.floor(techTimerTotalMs(techTimer()) / 1000)); }
 const STEP_TIMER_PAUSE_ICON = '<svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="5" x2="8" y2="19"/><line x1="16" y1="5" x2="16" y2="19"/></svg>';
 const STEP_TIMER_PLAY_ICON = '<svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 4l14 8-14 8z"/></svg>';
-function toggleStepTimerPause() {
-  const icon = document.getElementById('stepPauseBtnIcon');
-  const label = document.getElementById('stepPauseBtnLabel');
-  if (stepTimerRunning) {
-    clearInterval(stepTimerInterval);
-    stepTimerRunning = false;
-    if (icon) icon.innerHTML = STEP_TIMER_PLAY_ICON;
-    if (label) label.textContent = 'Resume';
-  } else {
-    stepTimerRunning = true;
-    stepTimerInterval = setInterval(() => {
-      stepTimerSeconds++;
-      updateStepTimerDisplays();
-    }, 1000);
-    if (icon) icon.innerHTML = STEP_TIMER_PAUSE_ICON;
-    if (label) label.textContent = 'Pause';
-  }
+/* The expanded rail's panel. EMPTY STRING when no timer runs or is paused on
+   this WO (§32.6) — that is the whole rule, and the test pins it. */
+function railTimerPanelHtml() {
+  if (!techTimerShownHere()) return '';
+  const t = techTimer();
+  const paused = t.state === 'paused';
+  return '<div class="step-timer-panel' + (paused ? ' paused' : '') + '">'
+    + '<div class="step-timer-value" id="stepTimerValue">' + techTimerText() + '</div>'
+    + (paused ? '<div class="step-timer-sub">Paused — booked so far today</div>' : '')
+    + '<div class="step-timer-actions">'
+      + '<button class="step-timer-btn" onclick="event.stopPropagation();techTimerTogglePause()">'
+        + (paused ? STEP_TIMER_PLAY_ICON : STEP_TIMER_PAUSE_ICON) + (paused ? 'Resume' : 'Pause') + '</button>'
+      + '<button class="step-timer-btn danger" onclick="event.stopPropagation();techTimerStop()">'
+        + '<svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>Stop</button>'
+      + '<button class="step-timer-btn" onclick="event.stopPropagation();techTimerReset()">Reset</button>'
+    + '</div></div>';
 }
-function stopStepTimer() {
-  clearInterval(stepTimerInterval);
-  stepTimerRunning = false;
+function railTimerPillHtml() {
+  if (!techTimerShownHere()) return '';
+  const paused = techTimer().state === 'paused';
+  return '<div class="timer-pill' + (paused ? ' stopped' : '') + '" id="timerPill">'
+    + '<div class="timer-dot' + (paused ? ' stopped' : '') + '"></div><span id="timerText">' + techTimerText() + '</span></div>';
+}
+/* Puts the pill and panel in (or takes them out of) whatever rail this screen
+   has, then re-syncs everything that depends on them. Safe to call anywhere. */
+function renderRailPill() {
+  const rail = document.getElementById('stepRail');
+  if (!rail) return;
+  const right = rail.querySelector('.step-rail-right');
+  const oldPill = document.getElementById('timerPill');
+  if (oldPill && oldPill.remove) oldPill.remove();
+  const pill = railTimerPillHtml();
+  if (pill && right) right.insertAdjacentHTML('afterbegin', pill);
+  if (pill) startTechTimerTicker();
+}
+function renderRailTimer() {
+  const map = document.getElementById('stepMap');
+  if (!map) return;
+  const oldPanel = map.querySelector('.step-timer-panel');
+  if (oldPanel && oldPanel.remove) oldPanel.remove();
+  const panel = railTimerPanelHtml();
+  if (panel) map.insertAdjacentHTML('afterbegin', panel);
+  renderRailPill();
+}
+/* The header ellipsis's "Start timer" row. Self-injecting into the record's
+   own menu (§8.4: a header action, not row-scoped), shown or hidden live. */
+function syncStartTimerMenuRow() {
+  if (!document.getElementById('stepRail')) return;
+  const menu = document.getElementById('recActionsMenu') || document.getElementById('listDetailMenu');
+  if (!menu) return;
+  let row = document.getElementById('startTimerMenuGroup');
+  if (!row) {
+    menu.insertAdjacentHTML('afterbegin',
+      '<div class="rec-actions-group" id="startTimerMenuGroup">'
+      + '<div class="rec-actions-item" onclick="manualStartTimer()">Start timer</div>'
+      + '<div class="rec-actions-divider"></div></div>');
+    row = document.getElementById('startTimerMenuGroup');
+  }
+  if (row) row.style.display = startTimerOfferedHere() ? '' : 'none';
+}
+function refreshTechTimerUi() {
+  renderRailTimer();
+  syncStartTimerMenuRow();
+  const rail = document.getElementById('stepRail');
+  if (rail) {
+    renderStepRailTypeSlot(rail, woCurrentJobType, woCurrentRailFlat);
+  }
+  if (typeof onTechTimerChanged === 'function') onTechTimerChanged();
+}
+// One ticker for every display, recomputed from the start moment each time.
+let techTimerTicker = null;
+function startTechTimerTicker() {
+  if (techTimerTicker) return;
+  techTimerTicker = setInterval(() => {
+    const t = techTimer();
+    if (!t || t.state !== 'running') return;
+    const text = techTimerText();
+    ['timerText', 'stepTimerValue', 'resumeTimerText'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    });
+  }, 1000);
 }
 
-/* Back button, Steps 2-5 (Checklist/Issue Parts/Book Labor/Closing) —
-   generalized 2026-07-29, direct feedback: was 4 near-identical per-screen
-   functions each hardcoded to the *previous* step's file. Once you're
-   mid-workflow, back now always means "leave this WO" (WO List/Search),
-   not "undo one step" — consistent with the gated rail itself refusing to
-   let you jump back into a done step (initStepRail()'s comment above);
-   letting the physical back button quietly do what the rail just refused
-   was the actual inconsistency. Record View (step 1) keeps its own
-   separate navBack() — already goes to WO List unconditionally, and never
-   has a timer running while it's on screen (Start Work hands off to
-   Checklist immediately), so it never needs this confirmation. A screen
-   that defines its own navBack() after this file loads shadows this one,
-   same as any other override in this file — Record View's local copy is
-   what actually wins there, not a special-case here. */
+/* Back, Steps 2–5 and the WO child tabs. Leaving the screen is not leaving
+   the job (§32.3): the timer is left exactly as it is, with NO confirmation.
+   §14.7.1's "Pause the timer and return to WO Search?" is retired (§21).
+   A screen that defines its own navBack() after this file loads shadows
+   this one — Record View's local copy is what wins there. */
 /* eamNavReturnUrl (2026-08-10) — a consume-once "come back here" override,
    same shape as eamSyncReturnUrl. Without it, a record reached by drilling
    sideways out of some other screen always backed out to that entity's own
@@ -4379,13 +4807,73 @@ function navBack() {
   const ret = sessionStorage.getItem('eamNavReturnUrl');
   const target = ret || 'eam-wo-list-prototype-v5_1.html';
   if (ret) sessionStorage.removeItem('eamNavReturnUrl');
-  if (sessionStorage.getItem('eamTimerRunning') === 'true') {
-    openConfirm('Pause the timer and return to WO Search?', () => {
-      location.href = target;
-    }, 'Pause & Leave', { primary: true });
-    return;
-  }
   location.href = target;
+}
+
+/* ── The Home Resume card (§32.7, SCOPE 8.31 / 11.5) ──────────────────────
+   System-delivered, like Favorites — the technician's own state, never an
+   authored tile. The timed run first, else the most recent, plus "+N more in
+   progress" opening a list built from local run data (works offline). Home's
+   tile/chip CONTENT is still unlocked; this adds the card only. */
+function runStepLabel(run) { return WO_STEP_LABELS[run.cursor] || 'WO Record View'; }
+function runTimerState(run) {
+  const t = techTimer();
+  if (!t || t.wo !== run.wo) return null;
+  return t.state === 'paused' ? 'Paused' : 'Running';
+}
+function runWoDesc(wo) {
+  const map = { '19257': typeof WO_19257 !== 'undefined' ? WO_19257 : null,
+                '19831': typeof WO_19831 !== 'undefined' ? WO_19831 : null,
+                '20450': typeof WO_20450 !== 'undefined' ? WO_20450 : null };
+  return (map[wo] && map[wo].description) || '';
+}
+function resumeCardHtml() {
+  const runs = woRunsInProgress();
+  if (!runs.length) return '';
+  const r = runs[0];
+  const ts = runTimerState(r);
+  const desc = runWoDesc(r.wo);
+  return '<div class="resume-card" onclick="openDemoWoAtCursor(\'' + r.wo + '\')">'
+    + '<div class="resume-card-head"><span class="resume-card-eyebrow">Resume work</span>'
+      + (ts ? '<span class="timer-pill' + (ts === 'Paused' ? ' stopped' : '') + '"><div class="timer-dot' + (ts === 'Paused' ? ' stopped' : '') + '"></div>'
+        + '<span id="resumeTimerText">' + techTimerText() + '</span></span>' : '')
+    + '</div>'
+    + '<div class="resume-card-title"><span class="resume-card-wo">' + r.wo + '</span>' + (desc ? ' ' + desc : '') + '</div>'
+    + '<div class="resume-card-meta">' + (r.activityLabel ? r.activityLabel + ' · ' : '') + runStepLabel(r) + '</div>'
+    + '<div class="resume-card-actions">'
+      + '<button class="bar-pill bar-pill-ready resume-card-btn" onclick="event.stopPropagation();openDemoWoAtCursor(\'' + r.wo + '\')">Resume</button>'
+      + (runs.length > 1 ? '<button class="resume-card-more" onclick="event.stopPropagation();openRunsInProgress()">+'
+          + (runs.length - 1) + ' more in progress</button>' : '')
+    + '</div></div>';
+}
+function renderResumeCard(mountId) {
+  const el = document.getElementById(mountId || 'resumeCardMount');
+  if (!el) return;
+  el.innerHTML = resumeCardHtml();
+  if (techTimer()) startTechTimerTicker();
+}
+function runsInProgressRowsHtml() {
+  return woRunsInProgress().map(r => {
+    const ts = runTimerState(r);
+    return '<div class="lov-option run-row" onclick="closeAllSheets();openDemoWoAtCursor(\'' + r.wo + '\')">'
+      + '<div class="run-row-main"><div class="run-row-title"><span class="resume-card-wo">' + r.wo + '</span> ' + runWoDesc(r.wo) + '</div>'
+      + '<div class="run-row-meta">' + (r.activityLabel ? r.activityLabel + ' · ' : '') + runStepLabel(r)
+      + (ts ? ' · Timer ' + ts.toLowerCase() : '') + '</div></div>'
+      + '<svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      + '</div>';
+  }).join('');
+}
+function openRunsInProgress() {
+  ensureSharedSheet('runsInProgressSheet',
+    '<div class="sheet-handle-row"><div class="sheet-handle"></div></div>'
+    + '<div class="sheet-header">'
+      + '<button class="sheet-close" onclick="closeAllSheets()">&#10005;</button>'
+      + '<div class="sheet-title">In progress</div>'
+      + '<div style="width:30px;flex-shrink:0;"></div>'
+    + '</div>'
+    + '<div class="sheet-body" id="runsInProgressBody"></div>');
+  document.getElementById('runsInProgressBody').innerHTML = runsInProgressRowsHtml();
+  openSheetExclusive('runsInProgressSheet');
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -4470,6 +4958,9 @@ function showCompletionOverlay(opts) {
     sessionStorage.setItem('eamActivityJustCompleted', activeActivityId);
   }
   sessionStorage.setItem('eamClosedStatusKey', currentStatusKey);
+  // §32.10: a completing status ends this WO's run; On hold keeps it.
+  // An MEC child borrows its parent's DEMO_WO and has no run (D-13, §20).
+  if (woRunEligible()) woRunEnd(DEMO_WO, currentStatusKey);
   sessionStorage.setItem('eamOpenDemoWo', DEMO_WO);
   setTimeout(() => {
     document.getElementById('closedOverlay').classList.add('show');
@@ -4681,6 +5172,8 @@ function initSharedApp(opts) {
   initKeyboardInsetSync();
   renderSyncControl();
   updateNotifBadge();
+  sessionStorage.setItem(LAST_DEMO_WO_KEY, DEMO_WO);
+  syncStartTimerMenuRow();
   // Pre-filled inline (≤255-char) fields need their height set on load too,
   // not just on input — a long value present at render time shouldn't sit
   // clipped until the user's first keystroke.

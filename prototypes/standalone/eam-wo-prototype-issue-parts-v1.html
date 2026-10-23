@@ -13,8 +13,8 @@
 <link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>Attune EAM Mobile — Issue Parts (Step 3)</title>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202610212141">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202610212141">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202610231612">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202610231612">
 <!--
   WO WORKFLOW — STEP 3: ISSUE PARTS (rebuilt 2026-07-16 onto shared/
   eam-shared.css + shared/eam-shared.js, per docs/archive/EAM-REBUILD-Strategy-and-
@@ -333,13 +333,12 @@
     </div>
   </div>
 
-  <!-- ── STEP RAIL (§14.2/§14.3) — chrome + toggle are shared. Timer pill
-       added here (was missing) — §14.2: shown on Steps 2–4 while running. ── -->
+  <!-- ── STEP RAIL (§14.2/§14.3) — chrome + toggle are shared. The timer
+       pill/panel are added by eam-shared.js only while one runs here (§32.6). ── -->
   <div class="step-rail" id="stepRail">
     <div class="step-rail-collapsed">
       <div class="step-name">Issue Parts</div>
       <div class="step-rail-right">
-        <div class="timer-pill" id="timerPill"><div class="timer-dot"></div><span id="timerText">00:00:00</span></div>
         <svg class="step-chevron" id="stepChevron" width="16" height="16" fill="none" viewBox="0 0 24 24">
           <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -353,21 +352,6 @@
       <div class="seg seg-future"></div>
     </div>
     <div class="step-map" id="stepMap">
-      <!-- Larger timer + Pause/Stop (§14.2 follow-up, 2026-07-16) — shown
-           only where the timer is running, same condition as the pill. -->
-      <div class="step-timer-panel">
-        <div class="step-timer-value" id="stepTimerValue">00:00:00</div>
-        <div class="step-timer-actions">
-          <button class="step-timer-btn" onclick="toggleStepTimerPause()">
-            <span id="stepPauseBtnIcon"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="5" x2="8" y2="19"/><line x1="16" y1="5" x2="16" y2="19"/></svg></span>
-            <span id="stepPauseBtnLabel">Pause</span>
-          </button>
-          <button class="step-timer-btn danger" onclick="confirmStopTimer()">
-            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
-            Stop
-          </button>
-        </div>
-      </div>
       <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
       <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">Activity Checklist</span></div>
       <div class="step-map-item active"><div class="step-map-icon smi-active">3</div><span class="step-map-label active-label">Issue Parts</span></div>
@@ -694,36 +678,20 @@
 
 </div><!-- /app -->
 
-<script src="../../data/parts.js?v=202610212141"></script>
-<script src="../../data/wo-19257.js?v=202610212141"></script>
-<script src="../../data/wo-19831.js?v=202610212141"></script>
-<script src="../../data/wo-20450.js?v=202610212141"></script>
-<script src="../../data/wotype.js?v=202610212141"></script>
-<script src="../../data/wo-workflow.js?v=202610212141"></script>
-<script src="../../data/wo-workflow-steps.js?v=202610212141"></script>
-<script src="shared/eam-shared.js?v=202610212141"></script>
+<script src="../../data/parts.js?v=202610231612"></script>
+<script src="../../data/wo-19257.js?v=202610231612"></script>
+<script src="../../data/wo-19831.js?v=202610231612"></script>
+<script src="../../data/wo-20450.js?v=202610231612"></script>
+<script src="../../data/wotype.js?v=202610231612"></script>
+<script src="../../data/wo-workflow.js?v=202610231612"></script>
+<script src="../../data/wo-workflow-steps.js?v=202610231612"></script>
+<script src="shared/eam-shared.js?v=202610231612"></script>
 <script>
 /* ── screen-specific config/behavior — chrome (nav, header, step rail,
    confirm modal, toast, theme toggle) comes from eam-shared.js. ── */
 
-// ─── TIMER — gated on eamTimerRunning as of 2026-07-24 (§15.4/§20), same
-// reasoning as Activity Checklist's own copy of this comment: a Free
-// Form WO only has a timer to keep running here if one was actually
-// started back on Record View (technician answered Yes). Engine (start/
-// pause/resume) lives in eam-shared.js — this screen just starts it, or
-// hides the pill if it isn't running. ───────────────────────────────────
-if (sessionStorage.getItem('eamTimerRunning') === 'true') {
-  startStepTimer();
-} else {
-  document.getElementById('timerPill').style.display = 'none';
-}
-
-function confirmStopTimer() {
-  openQuestion('Stop working and book your current time?',
-    () => { stopStepTimer(); showToast('Time booked — moving to Book Labor…'); },
-    () => { stopStepTimer(); showToast('Time captured — resume later from Book Labor'); }
-  );
-}
+// ─── TIMER — see eam-shared.js (§32). Nothing screen-local: the rail adds
+// its pill and panel only while a timer is Running or Paused on this WO. ───
 
 // ─── ICONS ──────────────────────────────────────────────────────────────────
 const ICONS = {
@@ -1488,6 +1456,8 @@ function onDemoWoChanged() {
   const workflow = resolveWoWorkflow(jobType);
   if (workflow.configured) renderStepRail(workflow, 'issueparts', jobType);
   else renderFlatStepRail('issueparts', jobType);
+  // A completed step reopened from the rail edits in place (§32.9).
+  applyRunRevisitBar(document.getElementById('nextBtn'));
 }
 
 /* Consume-once hand-off (same pattern as WO Record View's own read) —

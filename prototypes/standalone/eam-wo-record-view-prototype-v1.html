@@ -13,8 +13,8 @@
 <link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>Attune EAM Mobile — WO Record View</title>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202610212141">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202610212141">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202610231612">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202610231612">
 <!--
   WO WORKFLOW — STEP 1: WO RECORD VIEW (rebuilt 2026-07-16 onto shared/
   eam-shared.css + shared/eam-shared.js, per docs/archive/EAM-REBUILD-Strategy-and-
@@ -334,8 +334,9 @@
     </div>
   </div>
 
-  <!-- STEP RAIL — gated (§14.2/§14.3). No timer pill: the WO timer hasn't
-       started yet on Step 1 (timer only shows while running, Steps 2-4). -->
+  <!-- STEP RAIL — gated (§14.2/§14.3). No timer markup here or on any step:
+       eam-shared.js adds the pill/panel only while a timer is Running or
+       Paused on this WO (§32.6), which on a revisit can be this screen too. -->
   <div class="step-rail" id="stepRail">
     <div class="step-rail-collapsed">
       <div class="step-name">WO Record View</div>
@@ -757,17 +758,17 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/custom_field_defs.js?v=202610212141"></script>
+<script src="../../data/custom_field_defs.js?v=202610231612"></script>
 <!-- Needed so the header Equipment field can resolve each demo WO's own
      equipmentAssetId to a real record (applyDemoWoEquipment below). -->
-<script src="../../data/equipment.js?v=202610212141"></script>
-<script src="../../data/wo-19257.js?v=202610212141"></script>
-<script src="../../data/wo-19831.js?v=202610212141"></script>
-<script src="../../data/wo-20450.js?v=202610212141"></script>
-<script src="../../data/wotype.js?v=202610212141"></script>
-<script src="../../data/wo-workflow.js?v=202610212141"></script>
-<script src="../../data/wo-workflow-steps.js?v=202610212141"></script>
-<script src="shared/eam-shared.js?v=202610212141"></script>
+<script src="../../data/equipment.js?v=202610231612"></script>
+<script src="../../data/wo-19257.js?v=202610231612"></script>
+<script src="../../data/wo-19831.js?v=202610231612"></script>
+<script src="../../data/wo-20450.js?v=202610231612"></script>
+<script src="../../data/wotype.js?v=202610231612"></script>
+<script src="../../data/wo-workflow.js?v=202610231612"></script>
+<script src="../../data/wo-workflow-steps.js?v=202610231612"></script>
+<script src="shared/eam-shared.js?v=202610231612"></script>
 <script>
 /* ── screen-specific config — everything below is data/wiring only;
    all behavior comes from shared/eam-shared.js. ── */
@@ -1648,6 +1649,17 @@ const EQUIP_LOOKUP_ON_SELECT = { equipment: (o) => {
 function updateStartGate() {
   const btn = document.getElementById('barBtn');
   const label = document.getElementById('barBtnLabel');
+  // WORK IS ALREADY STARTED (§32.7) — Start Work is the commitment boundary
+  // and is behind the technician, so it is never offered twice and nothing
+  // re-fires (§32.9). A gated workflow is a revisit: "Back to <current
+  // step>". Free Form has no forward order, so it simply carries on.
+  if (woRunFor()) {
+    btn.className = 'bar-pill bar-pill-ready';
+    label.textContent = woRunRevisitStep
+      ? 'Back to ' + WO_STEP_LABELS[woRunRevisitStep]
+      : 'Continue to ' + WO_STEP_LABELS.checklist;
+    return;
+  }
   const selectedAct = ACTIVITIES.find(a => a.id === RECORD.selectedActivity);
   // A completed activity is still selectable (§15.2, so it can be reopened
   // for edit — see openActivityEditPopup()), but Start Work on it is
@@ -1662,6 +1674,7 @@ function updateStartGate() {
     : 'Start Work';
 }
 function onBarPillTap() {
+  if (woRunFor()) { goToWoStep(woRunRevisitStep || 'checklist'); return; }
   const selectedAct = ACTIVITIES.find(a => a.id === RECORD.selectedActivity);
   if (!selectedAct) { showToast('Select an activity to start'); return; }
   if (isActivityComplete(selectedAct)) { showToast('Activity is completed. Uncheck Completed on the activity to reopen it.'); return; }
@@ -1678,29 +1691,27 @@ function onStatusBtnTap() {
   openLov('__status');
 }
 function startWork() {
-  // WO status transition on Start (e.g. → "In Progress") depends on a field
-  // on the not-yet-modeled WO Workflow Setup record (§15.4) — not
-  // implemented here, flagged there rather than guessed at.
-  // Timer gate, added 2026-07-24 (user direction, §15.4/§20): a Not Free
-  // Form (guided) workflow keeps its existing implicit behavior — the
-  // timer is a real, enforced part of that workflow, so it starts the
-  // instant work starts, no prompt. A Free Form workflow does NOT get an
-  // implicit timer start anymore — it's real, deliberate work the
-  // technician has to opt into, via the same openQuestion() 3-outcome
-  // modal used elsewhere in this app, not a silent side effect of tapping
-  // Start Work. eamTimerRunning (sessionStorage) is the real gate every
-  // downstream screen checks — Activity Checklist/Issue Parts only call
-  // startStepTimer() when it's set, Book Labor only treats itself as
-  // "arrived after the timer stopped" when it was actually running to
-  // begin with (see those files' own init code).
+  // §32.2 / §32.6 (2026-10-23). The timer is the technician's, time-stamped
+  // and durable (eam-shared.js techTimerStart()); nothing here is a
+  // sessionStorage flag any more.
+  //  - FREE FORM keeps §15.4's question. No starts work with NO timer, and
+  //    no timer appears anywhere on the rail (§32.6) — manual start is the
+  //    header ellipsis's "Start timer".
+  //  - NOT FREE FORM never starts a timer by itself; a placed Start Timer
+  //    does. Nothing feeds the app portal definitions yet (§20), so the demo's
+  //    gated workflows stand in for one carrying a System Start Timer in the
+  //    "On Start Work" slot — the same behavior the technician saw before.
+  // Starting while the timer runs on ANOTHER WO goes through AUTOBOOK's
+  // question inside techTimerStart(); its Cancel still starts the work.
+  const act = ACTIVITIES.find(a => a.id === RECORD.selectedActivity);
+  const actLabel = act ? act.num : '';
+  const wo = woRunWo();
+  const withTimer = () => techTimerStart(wo, RECORD.selectedActivity, actLabel, () => proceedStartWork());
   if (CURRENT_WORKFLOW && CURRENT_WORKFLOW.freeForm) {
-    openQuestion('Start the timer for this work order?',
-      () => { sessionStorage.setItem('eamTimerRunning', 'true'); proceedStartWork(); },
-      () => { sessionStorage.removeItem('eamTimerRunning'); proceedStartWork(); });
+    openQuestion('Start the timer for this work order?', withTimer, () => proceedStartWork());
     return;
   }
-  sessionStorage.setItem('eamTimerRunning', 'true');
-  proceedStartWork();
+  withTimer();
 }
 function proceedStartWork() {
   // Every configured workflow's 2nd step is Activity Checklist (both BRKD
@@ -1718,6 +1729,14 @@ function proceedStartWork() {
   // Completed regardless of source status (design-decisions-v3-1.md
   // §15.2/§19.8, 2026-07-23).
   sessionStorage.setItem('eamActiveActivityId', RECORD.selectedActivity);
+  // THE RUN (§32.7) is created here, in the same moment as §14.11's
+  // commitment — after the timer question, so a Cancel there starts nothing.
+  // Every workflow's second step is Activity Checklist, so that is the cursor.
+  // An MEC child never gets one (D-13 is open — §20).
+  if (woRunEligible()) {
+    const act = ACTIVITIES.find(a => a.id === RECORD.selectedActivity);
+    woRunStart(DEMO_WO, RECORD.selectedActivity, act ? act.num : '', 'checklist');
+  }
   window.location.href = WO_STEP_FILES.checklist;
 }
 
@@ -1868,6 +1887,7 @@ function onDemoWoChanged() {
   else renderFlatStepRail('record', jobType);
   applyWorkflowTypeHeader(CURRENT_WORKFLOW.freeForm ? 'FREE_FORM' : 'NOT_FREE_FORM');
   applyDemoWoLayout();
+  updateStartGate();   // the bar depends on the run the rail just read
 }
 
 /* ═══════════════════════════════════════════════════════════════════════

@@ -233,7 +233,7 @@ All 5 steps are rebuilt onto the shared-file architecture: `eam-wo-record-
 view-prototype-v1.html` (Step 1), `eam-activity-checklist-prototype-v2.html`
 (Step 2), `eam-wo-prototype-issue-parts-v1.html` (Step 3), `eam-book-labor-
 prototype-v2.html` (Step 4), `eam-wo-closing-prototype-v2.html` (Step 5).
-Shared chrome: step rail + timer pill, the **"More" group** pinned after the
+Shared chrome: step rail + timer, the **"More" group** pinned after the
 last numbered step, and the per-step bottom bar (§14.2/§14.5–§14.8). More's
 membership is **configuration, not definition** — driven by `WO_MORE_TABS` /
 `stepMapMoreGroupHtml()` / `openWoMoreTab()` in `eam-shared.js`, so don't
@@ -248,7 +248,39 @@ covers 3 WO identities — **19257** (Breakdown, full 5-step flow), **19831**
 (PM, skips Issue Parts), **20450** (Routine, no configured workflow — §11
 fallback: flat, unordered, ungated step rail). WO List routes any tapped WO
 to the correct identity by its Type (§24 rule 3); an unrecognized WO number
-falls back to 20450.
+falls back to 20450. A reload keeps its WO: `DEMO_WO` falls back to
+`eamLastDemoWo` (sessionStorage), saved by `initSharedApp()`.
+
+**Timer + workflow runs (§32.16 — what is built of §32).** All in `eam-shared.js`;
+no screen holds timer state.
+- **One technician timer** (`techTimer()`, key `eamTechTimer` via
+  `lsGet()`/`lsSet()`): WO + activity, segment start moment, Running/Paused.
+  Elapsed is **calculated**, so reloads and navigation are correct. Pause books
+  the segment (`eamTimerBookings`, device-local — Book Labor lists them), Stop
+  opens `openBookingPullup()`, Reset confirms then discards. Starting while it
+  runs on another WO asks AUTOBOOK's PROMPT question (`techTimerStart()`).
+- **The rail pill/panel render ONLY while a timer is Running or Paused on this
+  WO** (`railTimerPanelHtml()` returns `''` otherwise — pinned). No step screen
+  carries timer markup; don't add it back. Manual start is a self-injected
+  **Start timer** row in the record's ellipsis menu (`syncStartTimerMenuRow()`).
+- **A run per (technician, WO, activity)** (`woRunFor()`, key `eamWorkflowRuns`),
+  created in `proceedStartWork()` after the timer question (Cancel creates
+  nothing). Both rail renderers call `woRunTouch()`: a gated cursor moves only
+  forward, Free Form's is the last step opened. **The rail's position is the
+  cursor, not the screen** — a completed step reopened is a revisit
+  (`woRunRevisitStep`) whose bar reads "Back to <cursor>"
+  (`applyRunRevisitBar()`; Record View and the checklist prompt bar have their
+  own). WO List, Notifications and Home Resume open via `openDemoWoAtCursor()`.
+  A completing status ends the run in `showCompletionOverlay()`; On hold keeps it.
+- **"Up next" preview** (§14.2/§32.15): `stepUpNextText()` → `#stepNext`,
+  self-injected under `.step-rail-collapsed`; `.has-next` hides the segment
+  bar. The one fork is declared in `WO_DEMO_FORKS` (checklist → Issue Parts or
+  Book Labor); `promptAnswer()` pins it, and the skipped step renders N/A.
+- **Stand-ins, both §20:** the gated demo workflows act as if they carried an
+  "On Start Work" System Start Timer; the fork is app-declared. **MEC children
+  get no run** (D-13 undecided) — positional rail, own timer key.
+- **Test-shim trap:** `run-load.js` shares ONE storage across boots and each
+  boot clears it — carry a screen's keys out before booting the next.
 
 Per-screen notes — **design rules live in §15–§19; these are implementation
 facts and traps only.**
@@ -266,7 +298,9 @@ facts and traps only.**
   copy that carried both were **deleted, not pinned**, so there is one render
   path and no dead branch; the old paged v2 is in `old versions/`. Prev/Next is
   retained and commits the cursor directly. Snapping is JS-owned on
-  deceleration — CSS `scroll-snap` was rejected on device.
+  deceleration — CSS `scroll-snap` was rejected on device. **Any tap answer
+  auto-advances** (check, Yes/No, Pass/Fail/N/A — `autoAdvanceFrom()`);
+  keyboard entry and the slider never do (§16.1).
   No separate "Instructions" field on an item — the description *is* the
   instructional text (`feedback_checklist_field_model` memory); a task plan's
   own instructions are a different concept (§16.7). **Equipment-scoped items
@@ -330,7 +364,9 @@ files (§4.2/§4.3). Create opens an entity-choice menu
 that entity. **A deliberate, named exception to the monochrome palette rule
 (§23)** — tile/favorite icons keep real colour. **Tile/chip *content* (which
 dataspies, which tiles, counts) is still an unlocked design riff**; only the
-layout mechanics are locked.
+layout mechanics are locked. The **Resume card** (`#resumeCardMount`,
+`renderResumeCard()`, §32.7) sits under the greeting and renders nothing with
+no run in progress; it is system-delivered, not a tile.
 
 ### Comments & Documents (locked 2026-08-11, app-wide)
 §7.2 owns the rules: top 3 inline on the Record View plus a `View more` footer
@@ -933,14 +969,14 @@ exists and the **record ellipsis menu** otherwise — two homes because §4.2
 gives the nav bar one slot, so no control is on every screen. A screen adds its
 own row with `PROTO_MENU_EXTRA` (same optional-global shape as
 `TAB_PLUS_HANDLERS`); **Book Labor's timer toggle and the WO Equipment tab's
-row-tap toggle both use it, and both are load-bearing** — the first drives
-§18.2's booking-pull-up condition, the second is the open `chooser`/`split`
+row-tap toggle both use it, and both are load-bearing** — the first writes the
+shared timer backdated 83 minutes, which is §18.2's booking-pull-up condition, the second is the open `chooser`/`split`
 experiment. `ensureProfileMenu()` injects the §4.3 dropdown beside any
 `.nav-avatar` that lacks one (this is how WO List got a real menu instead of a
 "coming soon" toast). **Four screens keep the banner** because they have no
 header menu at all — Login, the two component-reference pages, Equipment List
 and Sync Status; the last two are a §20 item. The actual reset,
-`resetDemoState()` in `eam-shared.js`, clears all demo `localStorage` keys and
+`resetDemoState()` in `eam-shared.js`, clears all demo `localStorage` keys (timer, runs and timer bookings included) and
 runs on Log In. The online/offline control is a 3-way cycle (Offline → Online →
 **Synced**, `toggleDemoOnline()`) — Synced forces the nav-bar sync control green
 regardless of `SYNC_DEMO_ITEMS`' own seeded error rows, so a live demo doesn't

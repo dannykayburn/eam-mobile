@@ -4,7 +4,7 @@
    undefined globals, and anything thrown during init — which is the class of
    bug that left the search screens dead. */
 const fs = require('fs'), vm = require('vm'), path = require('path');
-const ROOT = 'C:/Users/dkilburn/Projects/eam-mobile';
+const ROOT = require('path').join(__dirname, '..', '..', '..', '..');
 const DIR = ROOT + '/prototypes/standalone';
 
 function makeStyle() {

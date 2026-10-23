@@ -681,3 +681,6 @@ not five hues for their own sake: the only distinction carrying weight is
 | Booked Labor List | Book Labor | Built (§18.3/§18.6); rows are Action Rows; correction sheet content hardcoded |
 | Entry Row (category term — Activity Row / Action Row) | WO Record View, Book Labor, Issue Parts | Category only; Action Row is a real merge, Activity Row stays a deliberate exception |
 | WO Type Colour + Icon Badge | WO Record View, WO List, all 5 WO workflow screens' step rail | Built 2026-07-28 (§23.3) — reverses the 2026-07-22 "Type has no colour" call |
+| Step Rail "Up next" preview | All 5 WO workflow screens + the WO child tabs | Built 2026-10-23 (§14.2/§32.15) — current step on the timer row, "Up next: X" or "X or Y" ahead of a fork beneath; replaces the collapsed segment bar |
+| Technician Timer (rail pill + panel) | Any WO workflow step, only while Running or Paused on this WO | Rebuilt 2026-10-23 (§32.3–§32.6) — shared `techTimer()`, time-stamped; Pause / Stop / Reset; manual start is a header-ellipsis row |
+| Resume Card | Home | Built 2026-10-23 (§32.7) — system-delivered like Favorites; opens the run's cursor; "+N more in progress" opens the Runs in progress sheet |
