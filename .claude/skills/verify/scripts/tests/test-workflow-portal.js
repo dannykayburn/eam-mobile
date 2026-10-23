@@ -283,9 +283,13 @@ console.log('\nDrop arithmetic — the auto-laid-out column');
 console.log('\nThe More group (§14.8) — a More entry can never be gated');
 {
   const ctx = boot('wf-bk-full');
-  const cls = 'wf().nodes.find(n=>n.step==="closing")';
-  ok('Closing starts Required and comment-gated',
-    ev(ctx, `${cls}.required && ${cls}.reqComment`));
+  /* Book Labor, not Closing: Closing can never be a More entry (§32.13,
+     D-8) — pinned in the composition block below. Both gates are set here
+     so the clear has something to clear. */
+  const cls = 'wf().nodes.find(n=>n.step==="booklabor")';
+  ev(ctx, `${cls}.reqComment = true; ${cls}.reqDoc = true;`);
+  ok('Book Labor starts Required and gated',
+    ev(ctx, `${cls}.required && ${cls}.reqComment && ${cls}.reqDoc`));
   ev(ctx, `moveToRef(${cls}.nid, true);`);
   ok('moving it to More clears Required and BOTH gates',
     ev(ctx, `${cls}.zone==="ref" && !${cls}.required && !${cls}.reqComment && !${cls}.reqDoc`));
@@ -2878,6 +2882,255 @@ console.log('\nStop Timer — the action that BOOKS (§30.21, reversed 2026-09-1
     'var p = window.__pair; if(!p) return false;' +
     'return groupsOf("workflow", p.id).indexOf(p.g) > -1 &&' +
     '  artifactsForGroup(p.g,"workflow").some(function(r){return r.artifactId===p.id;});})()'));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   COMPOSITION RULES (§32.13 — EAM.ADMN.SCOPE.WorkflowComposition 8.1–8.19)
+   ═══════════════════════════════════════════════════════════════════════
+   PATH-AWARE is the load-bearing property. A rule checked node by node
+   passes a fork that routes AROUND a Start Timer, so the headline case below
+   builds exactly that and requires the Warning to name the answer.
+
+   Every case owns its setup: wf-bk-full's nodes are REPLACED with a short
+   spec, so no assertion inherits another's mutations (the contamination
+   this file has been bitten by three times).
+
+   Spec tokens: rv (pinned Record View 1), a step id, timer, stop, stopU,
+   status:<CODE> (System mode, WO), statusU (User selected), fork, cond.
+   A fork's answers are wired after the build, by index. */
+console.log('\nComposition rules (§32.13) — path-aware, raised on the node');
+{
+  const ctx = boot('wf-bk-full');
+  ev(ctx, `
+    var __mk = function(spec){
+      var w = wf();
+      w.nodes = spec.map(function(t){
+        if(t === 'rv') return mkNode('recordview', {pinned:true, required:true});
+        if(t === 'timer') return mkTimerNode({});
+        if(t === 'stop') return mkStopTimerNode({});
+        if(t === 'stopU') return mkStopTimerNode({mode:'user'});
+        if(t === 'statusU') return mkStatusNode({mode:'user'});
+        if(t.indexOf('status:') === 0) return mkStatusNode({status:t.slice(7)});
+        if(t === 'fork') return mkNode('fork', {question:'Q?', yesLabel:'Yes', noLabel:'No'});
+        if(t === 'cond') return mkCondNode({});
+        if(t.indexOf('ref:') === 0) return mkNode(t.slice(4), {zone:'ref'});
+        return mkNode(t, {});
+      });
+      normalizeWf(w);
+      return w;
+    };
+    var __iss = function(code){ return compositionIssues(wf()).filter(function(i){ return !code || i.code === code; }); };
+    var __at = function(i){ return flowNodes(wf())[i]; };
+  `);
+  const sev = (code) => ev(ctx, `(__iss(${JSON.stringify(code)})[0]||{}).sev`);
+  const msg = (code) => ev(ctx, `(__iss(${JSON.stringify(code)})[0]||{}).msg`) || '';
+  const onNode = (code, i) => evb(ctx, `__iss(${JSON.stringify(code)}).some(function(x){return x.nid===__at(${i}).nid;})`);
+
+  /* BASIC FLOW (ADMN 7.0) — the clean case raises nothing at all. */
+  ev(ctx, `__mk(['rv','status:INPROG','timer','checklist','parts','stop','closing'])`);
+  ok('the basic flow raises no Error and no Warning',
+    evb(ctx, `__iss().filter(function(i){return i.sev!=='info';}).length === 0`),
+    JSON.stringify(ev(ctx, '__iss().map(function(i){return i.code;})')));
+  ok('...and exactly one path through a fork-less flow', ev(ctx, 'wfPaths(wf()).length') === 1);
+  ok('the two actions after Record View are the "On Start Work" group',
+    evb(ctx, `startWorkActions(wf()).join() === [__at(1).nid, __at(2).nid].join()`));
+  ok('...and the canvas labels that group',
+    evb(ctx, `render(); document.getElementById('cv').innerHTML.indexOf('On Start Work') > -1`));
+
+  /* 8.1 — no Start on ANY path: Error. */
+  ev(ctx, `__mk(['rv','stop','closing'])`);
+  ok('8.1 a Stop Timer that nothing starts is an ERROR', sev('stop-no-start') === 'error');
+  ok('...with the scoped wording', msg('stop-no-start') === 'Nothing starts the timer before this. It will never book any time.');
+  ok('...raised on the Stop Timer node itself', onNode('stop-no-start', 1));
+  ok('...outlined on the card (node--err), not in a banner',
+    evb(ctx, `render(); var h=document.getElementById('cv').innerHTML; h.indexOf('node--err') > -1 && h.indexOf('Nothing starts the timer') > -1`));
+
+  /* 8.2 — THE HEADLINE CASE: a fork routes AROUND the Start Timer. Checked
+     node by node the Stop has a Start before it; on the 'No' path it does
+     not. Warning, not Error, and it names the fork and the answer. */
+  ev(ctx, `var w=__mk(['rv','fork','timer','checklist','stop','closing']); __at(1).noTarget = __at(3).nid;`);
+  ok('8.2 a fork routing around the Start Timer gives the Stop a WARNING',
+    sev('stop-some-start') === 'warn' && !ev(ctx, `__iss('stop-no-start').length`));
+  ok('...naming the answer and the fork question',
+    msg('stop-some-start') === 'The timer is not started on the ‘No’ route of ‘Q?’. On that route this does nothing.',
+    msg('stop-some-start'));
+  ok('...two paths were enumerated, one per answer', ev(ctx, 'wfPaths(wf()).length') === 2);
+  ok('...and a Warning does NOT refuse assignment', ev(ctx, `assignErrorRefusal('workflow', wf().id)`) === null);
+  ok('a User-selected Start Timer counts as present (declining is the technician’s choice)',
+    evb(ctx, `__mk(['rv','timer','stop','closing']); __at(1).mode='user'; __iss('stop-no-start').length===0 && __iss('stop-some-start').length===0`));
+
+  /* 8.3 — never stopped; Book Labor counts as the stop. */
+  ev(ctx, `__mk(['rv','timer','checklist','closing'])`);
+  ok('8.3 a Start never stopped is a Warning on the Start Timer',
+    sev('start-never-stopped') === 'warn' && onNode('start-never-stopped', 1));
+  ok('...worded per the scope', msg('start-never-stopped') ===
+    'Nothing in this workflow stops the timer on its only route. It will be booked when the work order is completed, according to AUTOBOOK.');
+  ok('...and a Book Labor step before the end counts as stopping it',
+    evb(ctx, `__mk(['rv','timer','booklabor','closing']); __iss('start-never-stopped').length === 0`));
+  ok('a Book Labor step plus a Stop Timer is NOT a rule (§18.2)',
+    evb(ctx, `__mk(['rv','timer','booklabor','stop','closing']); __iss().filter(function(i){return i.sev!=='info';}).length === 0`));
+
+  /* 8.4 — two in a row. */
+  ev(ctx, `__mk(['rv','timer','timer','stop','stop','closing'])`);
+  ok('8.4 a second Start in a row warns "already running" on the second',
+    sev('start-twice') === 'warn' && onNode('start-twice', 2) && !onNode('start-twice', 1));
+  ok('...and a second Stop warns "already stopped" on the second',
+    sev('stop-twice') === 'warn' && onNode('stop-twice', 4) && msg('stop-twice') === 'The timer is already stopped here. This does nothing.');
+
+  /* 8.5 — Stop after a completing status: Error, naming what completed it. */
+  ev(ctx, `__mk(['rv','timer','closing','stop'])`);
+  ok('8.5 a Stop Timer after WO Closing is an ERROR',
+    sev('stop-after-complete') === 'error' && msg('stop-after-complete').indexOf('Move it before Closing.') > -1,
+    msg('stop-after-complete'));
+  ev(ctx, `__mk(['rv','timer','status:CLOSE','stop'])`);
+  ok('...and after a System Status update to a Closed system status',
+    sev('stop-after-complete') === 'error' && msg('stop-after-complete').indexOf('the Status update to Closed') > -1);
+  ok('a Status update to a NON-completing status is not completing',
+    evb(ctx, `__mk(['rv','timer','status:INPROG','stop','closing']); __iss('stop-after-complete').length === 0`));
+  ok('a User-selected status is not completing at authoring time (§32.10 guards it on the device)',
+    evb(ctx, `__mk(['rv','timer','statusU','stop','closing']); __iss('stop-after-complete').length === 0`));
+
+  /* 8.6 — a flow step after completion; More entries unaffected. */
+  ev(ctx, `__mk(['rv','status:CLOSE','checklist','ref:comments'])`);
+  ok('8.6 a flow step after a completing status is an ERROR on that step',
+    sev('step-after-complete') === 'error' && onNode('step-after-complete', 2));
+  ok('...and a More entry is not affected',
+    evb(ctx, `__iss('step-after-complete').length === 1`));
+
+  /* 8.7 / 8.8 — Info in the Status update editor. */
+  ev(ctx, `__mk(['rv','statusU','checklist','closing'])`);
+  ok('8.7 a User-selected status with steps after it is an INFO',
+    sev('user-status-steps-after') === 'info');
+  ok('...shown inside the Status update editor, not on the canvas',
+    evb(ctx, `openStatusEditor(__at(1).nid); document.getElementById('mbox').innerHTML.indexOf('the app refuses it') > -1`) &&
+    evb(ctx, `render(); document.getElementById('cv').innerHTML.indexOf('the app refuses it') === -1`));
+  ok('8.8 the User-mode editor says the list comes from Security',
+    evb(ctx, `document.getElementById('mbox').innerHTML.indexOf('That list comes from Security, not from this workflow.') > -1`));
+  ok('8.8 the System-mode editor states the bypass, naming the status',
+    evb(ctx, `__mk(['rv','status:INPROG','closing']); openStatusEditor(__at(1).nid);` +
+      `document.getElementById('mbox').innerHTML.indexOf('Sets In Progress whatever the technician') > -1 &&` +
+      `document.getElementById('mbox').innerHTML.indexOf('The workflow is the authorization.') > -1`));
+  ok('...and no Warning is raised about group authorizations for a System action',
+    evb(ctx, `__iss().filter(function(i){return i.sev!=='info';}).length === 0`));
+
+  /* 8.9 — routes that never change status; a fork End before Closing. */
+  ev(ctx, `__mk(['rv','checklist'])`);
+  ok('8.9 a route with no Status update and no Closing warns on its last node',
+    sev('no-status') === 'warn' && onNode('no-status', 1) &&
+    msg('no-status') === 'This route ends without changing the work order’s status.');
+  ev(ctx, `__mk(['rv','fork','checklist','closing']); __at(1).noTarget = '__end';`);
+  ok('...and a fork End that skips Closing warns on the fork, naming the answer',
+    sev('end-before-closing') === 'warn' && onNode('end-before-closing', 1) &&
+    msg('end-before-closing').indexOf('This answer ends the workflow before WO Closing.') > -1 &&
+    msg('end-before-closing').indexOf('No') > -1, msg('end-before-closing'));
+
+  /* 8.10 — nothing precedes Record View 1, AT THE MUTATION. */
+  ev(ctx, `__mk(['rv','checklist','closing']); drag={from:'lib',stepId:'timer'}; dropIdx=0; dropZone='flow'; flowDrop(${DRAG_EV});`);
+  ok('8.10 a node dropped above Record View lands directly after it',
+    evb(ctx, `__at(0).pinned && __at(1).kind==='action' && __at(1).action==='timer'`));
+  ok('...and the admin is told why',
+    ev(ctx, `document.getElementById('toast').textContent`) === 'Record View is always first. Placed after it, so it runs on Start Work.');
+  ok('...the clamp lives in addNodeToWf() too, so no caller can route around it',
+    evb(ctx, `var n=addNodeToWf(wf(),'stoptimer',0,'flow'); wf().nodes[0].pinned && wf().nodes[1]===n`));
+  ok('...and a stored workflow with something ahead of Record View is repaired on load',
+    evb(ctx, `var w=__mk(['checklist','rv','closing']); w.nodes[0].pinned === true && w.nodes[0].step === 'recordview'`));
+
+  /* 8.11 — WO Closing can never be a More entry. */
+  ev(ctx, `__mk(['rv','checklist','closing'])`);
+  ok('8.11 moveToRef() refuses Closing — guarded at the mutation',
+    evb(ctx, `moveToRef(__at(2).nid, true); __at(2).zone === 'flow' && __at(2).step === 'closing'`));
+  ok('...with the scoped toast',
+    ev(ctx, `document.getElementById('toast').textContent`) ===
+    'WO Closing completes the work order, so it can’t be reachable at any time. Leave it in the flow.');
+  ok('...the canvas drop into More refuses it too',
+    evb(ctx, `drag={from:'canvas',nid:__at(2).nid}; dropZone='ref'; refDrop(${DRAG_EV}); refNodes(wf()).length === 0`));
+  ok('...and so does a library drop into More',
+    evb(ctx, `drag={from:'lib',stepId:'closing'}; dropZone='ref'; refDrop(${DRAG_EV}); refNodes(wf()).length === 0`));
+  ok('...while another step still moves to More normally',
+    evb(ctx, `moveToRef(__at(1).nid, true); refNodes(wf()).length === 1`));
+
+  /* 8.12 — same tab as a Step and a More entry. */
+  ev(ctx, `__mk(['rv','checklist','booklabor','closing','ref:booklabor'])`);
+  ok('8.12 a tab placed as a Step AND in More warns on the More instance',
+    sev('step-and-more') === 'warn' && msg('step-and-more') === 'The technician can do this from More before reaching step 3.',
+    msg('step-and-more'));
+
+  /* 8.14 — a fork that routes nothing. */
+  ev(ctx, `__mk(['rv','fork','checklist','closing'])`);
+  ok('8.14 a fork with both answers on "continue" warns',
+    sev('fork-same') === 'warn' && onNode('fork-same', 1));
+  ok('...and so does an explicit target that IS the next step',
+    evb(ctx, `__at(1).noTarget = __at(2).nid; __iss('fork-same').length === 1`));
+  ok('...while a real route clears it',
+    evb(ctx, `__at(1).noTarget = __at(3).nid; __iss('fork-same').length === 0`));
+
+  /* 8.15 — condition fork with no / a stale field: KEPT VISIBLY BROKEN. */
+  ev(ctx, `__mk(['rv','checklist','cond','parts','closing'])`);
+  ok('8.15 a condition fork with no field is an ERROR naming the step to pick from',
+    sev('cond-no-field') === 'error' && msg('cond-no-field') === 'Pick a field from ' + ev(ctx, '__at(1).name') + '.');
+  ok('...and one with no step in front of it says so',
+    evb(ctx, `var w=wf(); w.nodes=[mkCondNode({}), mkNode('checklist',{})];` +
+      `__iss('cond-no-source').length===1 && __iss('cond-no-source')[0].msg==='There is no step before this to read a field from.'`));
+  {
+    const c2 = boot('wf-pm-routed');
+    ok('a STALE field is still cleared by validateForks()...',
+      evb(c2, `var c=wf().nodes.filter(function(n){return n.kind==='cond';})[0]; c.field='NO_SUCH_FIELD'; validateForks(wf()); c.field===''`));
+    ok('...but the node now STAYS in error instead of reading as unfinished',
+      evb(c2, `compositionIssues(wf()).some(function(i){return i.nid===c.nid && i.sev==='error';})`) &&
+      evb(c2, `render(); document.getElementById('cv').innerHTML.indexOf('node--err') > -1`));
+    ok('...and that Error refuses assignment', !!ev(c2, `assignErrorRefusal('workflow', wf().id)`));
+    ok('the seeded routed workflow is clean before that edit',
+      evb(boot('wf-pm-routed'), `compositionIssues(wf()).filter(function(i){return i.sev==='error';}).length === 0`));
+  }
+
+  /* 8.16 — condition fork reading a step some path skips: Info. */
+  ev(ctx, `__mk(['rv','fork','checklist','cond','closing']);` +
+    `var cn=__at(3); cn.field=condFieldsFor(wf(), cn)[0].api; cn.op='notempty'; __at(1).noTarget = cn.nid;`);
+  ok('8.16 a condition fork whose source step a path skips is an INFO',
+    sev('cond-skippable') === 'info' &&
+    msg('cond-skippable').indexOf('is skipped on the ‘No’ route of ‘Q?’. There the field is empty') > -1,
+    msg('cond-skippable'));
+  ok('...shown in the condition editor',
+    evb(ctx, `openCondEditor(__at(3).nid); document.getElementById('mbox').innerHTML.indexOf('There the field is empty') > -1`));
+
+  /* 8.18 — consecutive identical Status updates. */
+  ev(ctx, `__mk(['rv','status:INPROG','status:INPROG','closing'])`);
+  ok('8.18 a second identical Status update warns on the second',
+    sev('status-twice') === 'warn' && onNode('status-twice', 2) && msg('status-twice') === 'The status is already In Progress here. This does nothing.');
+
+  /* 8.19 — an Error refuses assignment, from BOTH sides, before the click. */
+  ev(ctx, `__mk(['rv','stop','closing']); ASSIGN = ASSIGN.filter(function(r){return r.artifactId!==wf().id;});`);
+  const refusal = 'This workflow has 1 error. Fix them before assigning it.';
+  ok('8.19 the refusal reads as the scope words it', ev(ctx, `assignErrorRefusal('workflow', wf().id)`) === refusal);
+  ok('...shown on every group row in the gallery-side control, before the click',
+    evb(ctx, `openAssign(null,'workflow',wf().id); document.getElementById('pop').innerHTML.indexOf(${JSON.stringify(refusal)}) > -1`));
+  ok('...and the click is refused there',
+    evb(ctx, `toggleAssign('workflow', wf().id, 'DK'); groupsOf('workflow', wf().id).length === 0`));
+  ok('...shown on the group-side control too',
+    evb(ctx, `openGroupAssign(null,'DK','workflow'); document.getElementById('pop').innerHTML.indexOf(${JSON.stringify(refusal)}) > -1`));
+  ok('...and refused by groupAssignPick()',
+    evb(ctx, `groupAssignPick('workflow', wf().id, 'DK'); groupsOf('workflow', wf().id).length === 0`));
+  ok('...while saving is never blocked', evb(ctx, `saveWFS(); true`));
+  ok('an ASSIGNED workflow that gains an Error keeps its groups and outlines its card',
+    evb(ctx, `__mk(['rv','checklist','closing']); setAssigned('workflow', wf().id, 'DK', true);` +
+      `__mk(['rv','stop','closing']); state.view='gallery'; renderGallery();` +
+      `groupsOf('workflow', wf().id).indexOf('DK') > -1 && document.getElementById('gallery').innerHTML.indexOf('wfc--err') > -1`));
+  ok('...and un-assigning it is still allowed',
+    evb(ctx, `toggleAssign('workflow', wf().id, 'DK'); groupsOf('workflow', wf().id).indexOf('DK') === -1`));
+  ok('no seeded workflow carries an Error (the demo assignments stay legal)',
+    evb(boot(), `WFS.every(function(w){ return wfErrors(w).length === 0; })`));
+
+  /* 8.17 — Free Form confirm names the actions, by kind. */
+  ev(ctx, `openWf(wf().id); __mk(['rv','status:INPROG','timer','checklist','stop','closing']); toggleFreeForm();`);
+  ok('8.17 the Free Form confirm lists the actions it removes, by kind',
+    evb(ctx, `var h=document.getElementById('mbox').innerHTML; h.indexOf('1 Status update') > -1 && h.indexOf('1 Start Timer') > -1 && h.indexOf('1 Stop Timer') > -1`));
+  ok('...plus the no-automation Info',
+    evb(ctx, `document.getElementById('mbox').innerHTML.indexOf('Free Form has no status or timer automation. The technician sets status and runs the timer by hand.') > -1`));
+  ok('a Free Form workflow is not path-evaluated', evb(ctx, `applyFreeForm(wf()); compositionIssues(wf()).length === 0`));
+
+  /* D-16 — Visible is gone from node rows. */
+  ok('normalizeWf() drops a stored `visible` flag from every node',
+    evb(ctx, `var w={nodes:[{nid:'x',kind:'step',step:'checklist',zone:'flow',visible:false,layout:[]}]}; normalizeWf(w); !('visible' in w.nodes[0])`));
 }
 
 /* ── THREE DEVICE-REPORTED FAULTS, 2026-09-23 ──

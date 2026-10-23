@@ -6167,7 +6167,7 @@ into a locked-decision row in the section that governs it, or is deleted.
 | --- | --- |
 | **System-mode status updates bypass group authorization — base must VERIFY them** | Opened 2026-10-23 with §32.8 (D-15, user direction). The device writes a System action's status without checking the technician's group authorizations, so the outbox envelope must carry the workflow id, the stamped version and the node, and base must confirm that version actually authors that transition before accepting it. Without the server check this is an authorization bypass for any client. Same family as the write-gate row below; needs the API team. |
 | **Workflow run state is device-only** | Opened 2026-10-23 (§32.7, D-5). v1 rebuilds a missing run from WO data (first unsatisfied Required step; forks re-asked), which loses fork answers and the action log on a reinstall or a second device. A server-side run record is the real answer. It's a backend ask, not v1. |
-| **The portal implements none of §32.13's composition rules** | Opened 2026-10-23. No timer-order or status-order validation exists (`validateForks()` covers fork targets only). Owed: the path evaluation (§32.13), the per-node Error/Warning/Info rendering, the assignment refusal on Error, refusing WO Closing in More in `moveToRef()` and at the drop, the On Start Work label, Free Form's confirm listing removed actions, and dropping `visible` from the node shape. Pin it in `test-workflow-portal.js`, including a fork that routes around a Start Timer. |
+| **§32.13's tab-permission rule has no portal model** | Opened 2026-10-23; narrowed the same day when the rest of §32.13 was built (`compositionIssues()`, pinned in `test-workflow-portal.js`). Left: "Required or gated step the group cannot open" (ADMN 8.13) — the portal holds **no tab-permission data** per group, so the Error cannot be computed, shown on the group's row in the assignment control, or counted in the assignment refusal. Needs base's tab permissions fed to the portal (same shape as §27.4's UDS check, which lives only in the retired User Group Setup). |
 | **The app has no run model, and its timer cannot support one** | Opened 2026-10-23. `startStepTimer()` counts from 0 on every page load, `eamTimerRunning` sits in `sessionStorage`, `navBack()` still asks to pause, and no cursor, fork log or action log exists. Owed for §32 to be demonstrable: a time-stamped timer in durable storage, the run record, the Resume card on Home, the header *Start timer* action, the app-header timer indicator, and "Back to <current step>" on a revisited step. Book Labor's terminal "Complete Work Order" sheet (`applyTerminalStepBar()`) still exists although §19.7.1 is superseded. Remove it when a placed Status update can be fed to the app. **MEC is a conflict, not just a gap:** §32.7 makes the parent own the run, while the prototype opens a child as itself through all five steps (`applyDemoWoIdentity()`, §16.10). The shipping "All Equipment" booking split (Book Labor §9.10–§9.11) needs checking against the parent-owned timer before building. |
 | **Run end vs. the shipping close-with-timer-running flow** | Opened 2026-10-23. §32.11's run-end rule follows AUTOBOOK as the shipping product does when a WO is completed with its timer running. That flow lives in `EAM.MOBILE.REQ.CloseWorkOrderforWorkOrder`, which isn't in `docs/existing_use_cases/` and hasn't been read. Read it before building §32.11. |
 | **When does a reassigned run end?** | Opened 2026-10-23 (§32.12). A WO reassigned in base mid-run keeps its local pin (§2.6) and the run stays open so the technician can book a running timer. Whether the run should then end, or stay open until the next sync confirms the reassignment, is undecided. |
@@ -10840,6 +10840,18 @@ blocks saving; **Warning** is legal but probably wrong; **Info** is a stated con
 condition); a User-mode Start Timer that a decline can skip (counts as present — the
 technician chose).
 
+**Three readings the build fixed (2026-10-23), so the rules are computable:**
+- **"Completing" is a Work Order status only.** A System-mode Status update counts when its
+  entity is the WO and its code maps to system status C; an Activity reaching Complete
+  neither sets Date Completed nor protects the WO, so it is not completing. A User-selected
+  status is unknown at authoring time and is not counted — §32.10 guards the pick on the
+  device.
+- **Book Labor stops the timer for the "never stopped" rule only.** It books a running timer
+  (§18.2), so a Start followed by Book Labor is not left running; it is not a Stop *Timer*,
+  so it does not make a later Stop Timer "two in a row" or "no Start before it".
+- **"Continue" goes to the next node**, actions included (as `naSet()` already read it); a
+  target jumps, and everything jumped over is absent from that path.
+
 **§29.2's More-instance argument is amended, not reversed.** "Nothing routes a technician
 into a gated step early" is true of *routing*; the *work* of a stepped tab can still be done
 early from its More instance. Closing is the case where that is unacceptable, hence refused;
@@ -10852,7 +10864,7 @@ hidden-but-Required dead end. §12 tier 2, §27.1 and §30.1 drop the column.
 ## 32.14 What §32 does not settle
 
 All in §20: the base-side verification §32.8's bypass depends on; a server-side run record;
-building the composition rules (the portal implements none of §32.13 yet); the app's run
+the one composition rule the portal cannot compute (tab permissions — the rest of §32.13 is built); the app's run
 model, Resume card and header *Start timer* (the prototype's timer is a per-page counter in
 `sessionStorage` and cannot support any of §32); the MEC parent-only model against the
 prototype and the shipping "All Equipment" split; whether a reassigned run ends once its timer

@@ -828,6 +828,22 @@ option,optgroup{
   font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;
   transition:box-shadow .13s,color .13s;}
 .fork__ans:hover{box-shadow:inset 0 0 0 1px var(--node-accent,var(--fg-muted));color:var(--node-accent,inherit);}
+/* §32.13 COMPOSITION SEVERITIES, on the node that causes them (§30.20 — no
+   summary). Declared AFTER .node--act/.node--fork so an Error outline wins
+   over a kind's accent ring at equal specificity. An Error carries its
+   message on the card; a Warning carries a tag whose message shows on hover
+   and in full once the node is selected; an Info lives in the editor. */
+.node--err{box-shadow:var(--elev-2),inset 0 0 0 2px var(--critical);}
+.node--err:hover{box-shadow:var(--elev-3),inset 0 0 0 2px var(--critical);}
+.node__tag--err{color:var(--critical);font-weight:600;}
+.node__tag--warn{color:var(--uxt-theme-palette-warning-dark);font-weight:500;}
+.node__msgs{display:flex;flex-direction:column;gap:4px;margin-top:var(--s-2);}
+/* §32.13 / ADMN 11.3: the actions directly after Record View instance 1 fire
+   on Start Work, so the canvas names that group. A label, not a container —
+   the actions stay ordinary nodes in the one flow array. */
+.startwork{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;margin:0 0 4px;
+  font-size:var(--uxt-theme-typography-caption-font-size);font-weight:500;color:var(--fg-muted);}
+.wfc--err{box-shadow:var(--elev-2),inset 0 0 0 2px var(--critical);}
 
 /* CONNECTOR + the wire layer */
 .conn{position:relative;flex-shrink:0;height:36px;display:flex;align-items:center;justify-content:center;}
@@ -1953,11 +1969,11 @@ function toTx(v){
    ═══════════════════════════════════════════════════════════════════════ */
 const EVST_STATUSES = [
   {code:'WAPPR', desc:'Work Request'}, {code:'RELEASED', desc:'Released'},
-  {code:'INPROG', desc:'In Progress'}, {code:'CLOSE', desc:'Closed'},
+  {code:'INPROG', desc:'In Progress'}, {code:'CLOSE', desc:'Closed', sys:'C'},
 ];
 const AAST_STATUSES = [
   {code:'NOTSTARTED', desc:'Not Started'}, {code:'INPROG', desc:'In Progress'},
-  {code:'COMPLETE', desc:'Complete'},
+  {code:'COMPLETE', desc:'Complete', sys:'C'},
 ];
 function statusListForEntity(e){ return e === 'activity' ? AAST_STATUSES : EVST_STATUSES; }
 function statusDesc(e, code){
@@ -2722,6 +2738,9 @@ function mintName(wf, stepId, inst){
 }
 
 function addNodeToWf(wf, stepId, index, zone){
+  /* Nothing precedes Record View instance 1 (ADMN 8.10) — clamped HERE, at
+     the one place every library insertion goes through. */
+  if(index != null && zone !== 'ref') index = Math.max(index, minFlowIndex(wf));
   /* 'uds:<id>' is how a UDS arrives from the library — one drag channel for
      every kind, so the drop handlers do not each need to know the kinds. */
   if(typeof stepId === 'string' && stepId.indexOf('uds:') === 0){
@@ -3858,6 +3877,7 @@ let state = {
 let drag = null;      // {from:'lib'|'canvas', stepId?, nid?}
 let dropIdx = null;   // insertion index inside the flow while dragging
 let dropZone = null;  // 'flow' | 'ref' | null
+let dropClamped = false; // the drop line was clamped below Record View instance 1 (ADMN 8.10)
 let fieldDrag = null; // {cIdx, fIdx} inside the designer panel
 
 function saveWFS(){
@@ -4097,7 +4117,18 @@ function normalizeWf(w){
   const d = COMPLETION_DEFAULTS[w.completionEntity] || COMPLETION_DEFAULTS.wo;
   if(!w.startWorkStatus) w.startWorkStatus = d.start;
   if(!w.completionStatus) w.completionStatus = d.complete;
+  /* NOTHING PRECEDES RECORD VIEW INSTANCE 1 (§32.13 / ADMN 8.10). Every
+     mutation clamps to minFlowIndex(); this repairs a stored workflow that
+     predates the clamp, so the path evaluation can start at the head. */
+  if(!w.freeForm && Array.isArray(w.nodes)){
+    const pi = w.nodes.findIndex(n => n.pinned);
+    if(pi > 0) w.nodes.unshift(w.nodes.splice(pi, 1)[0]);
+  }
   (w.nodes || []).forEach(nd => {
+    /* `Visible` IS GONE FROM NODE ROWS (§32.13, D-16). Nothing ever read it,
+       "not in the flow" already means not shown, and keeping it made a
+       hidden-but-Required dead end expressible. Dropped from stored rows. */
+    delete nd.visible;
     if(nd.kind === 'fork'){
       nd.question = toTx(nd.question);
       nd.yesLabel = toTx(nd.yesLabel);
@@ -4232,6 +4263,295 @@ function naSet(w, answers){
     i++;
   }
   return na;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   COMPOSITION RULES (§32.13 — EAM.ADMN.SCOPE.WorkflowComposition 8.1–8.19)
+   ═══════════════════════════════════════════════════════════════════════
+   PATH-AWARE, because checking nodes in isolation is how a fork that routes
+   AROUND a Start Timer passes. Forks route forward only (§29.4), so the flow
+   is a DAG and every path can simply be enumerated: at most 2^forks, since
+   each fork has exactly two answers.
+
+   Each path tracks two states and nothing more (ADMN 11.2):
+     · the timer — never started / started / stopped / booked by Book Labor
+     · the status — whether a COMPLETING status has been reached, and by
+       which node (WO Closing, or a System-mode Status update whose status
+       maps to a Completed/Closed system status)
+
+   Every rule returns {nid, sev, code, msg}. Severity decides where it shows
+   (§30.20 — on the node or control, never a roll-up):
+     error  outlined on the node, and REFUSES ASSIGNMENT (assignRefusal())
+     warn   a tag on the node, message on hover and once selected
+     info   a note inside the node's own editor
+   Nothing here mutates the workflow, and nothing blocks saving. Recomputed
+   on every render, so every structural change re-runs it for free. ── */
+
+/* WHICH NODE COMPLETES THE WORK ORDER. Only the WORK ORDER entity counts:
+   §32.13's two consequences — a booking past Date Completed, every field
+   protected (§15.4) — are both WO-level, and completing one activity does
+   neither. A User-selected status is unknown at authoring time, so it is not
+   counted; §32.10 is what guards the technician's pick on the device. */
+function isCompletingNode(n){
+  if(!n) return false;
+  if(isStepKind(n)) return n.kind === 'step' && n.step === 'closing';
+  if(n.kind !== 'action' || n.action !== 'status' || actionAsks(n)) return false;
+  if(n.entity !== 'wo') return false;
+  const st = statusListForEntity(n.entity).find(x => x.code === n.status);
+  return !!(st && st.sys === 'C');
+}
+function isStatusAction(n){ return !!n && n.kind === 'action' && n.action === 'status'; }
+function isClosingStep(n){ return !!n && n.kind === 'step' && n.step === 'closing'; }
+const CLOSING_IN_MORE_MSG = 'WO Closing completes the work order, so it can’t be reachable at any time. Leave it in the flow.';
+
+/* EVERY PATH THROUGH THE FLOW, from Record View instance 1 (the head of the
+   flow, clamped there at the mutation) to the last node or a fork's End.
+   "Continue" goes to the NEXT NODE in sequence — the same reading naSet()
+   uses — so an action straight after a fork is on its continue path. A
+   target jumps there, and everything jumped over is absent from that path,
+   actions included. Each `via` entry records the fork, the answer and what
+   that answer skipped, which is what lets a message NAME the route. */
+function wfPaths(w){
+  if(!w || w.freeForm) return [];
+  const flow = flowNodes(w);
+  if(!flow.length) return [];
+  const paths = [];
+  const walk = (i, nodes, via) => {
+    while(i < flow.length){
+      const n = flow[i];
+      nodes = nodes.concat([n]);
+      if(isForkKind(n)){
+        forkBranches(n).forEach(pair => {
+          const t = n[pair[1]];
+          if(t === '__end'){
+            paths.push({nodes:nodes, via:via.concat([{fork:n, br:pair[0], skipped:flow.slice(i + 1)}]), endFork:n, endBr:pair[0]});
+            return;
+          }
+          let ti = i + 1;
+          if(t){ const k = flow.findIndex(x => x.nid === t); if(k > i) ti = k; }
+          walk(ti, nodes, via.concat([{fork:n, br:pair[0], skipped:flow.slice(i + 1, ti)}]));
+        });
+        return;
+      }
+      i++;
+    }
+    paths.push({nodes:nodes, via:via, endFork:null, endBr:null});
+  };
+  walk(0, [], []);
+  return paths;
+}
+/* How a fork reads in a message: its question, or a condition's sentence. */
+function forkQuestionText(w, f){
+  if(!f) return '';
+  if(f.kind === 'cond') return condSummary(w, f);
+  return tx(f.question, BASE_LANG) || 'Untitled fork';
+}
+function routeName(w, v){
+  return 'the ‘' + forkBranchLabel(v.fork, v.br) + '’ route of ‘' + forkQuestionText(w, v.fork) + '’';
+}
+/* The via entry most responsible for a path missing `pred` — the answer
+   whose jump skipped a matching node — else the last answer on the path. */
+function viaSkipping(path, pred){
+  return path.via.find(v => v.skipped.some(pred)) || path.via[path.via.length - 1] || null;
+}
+
+function compositionIssues(w){
+  const out = [];
+  if(!w || w.freeForm) return out;
+  const seen = {};
+  const add = (n, sev, code, msg) => {
+    if(!n) return;
+    const k = n.nid + '|' + code + '|' + msg;
+    if(seen[k]) return; seen[k] = true;
+    out.push({nid:n.nid, sev:sev, code:code, msg:msg});
+  };
+  const flow = flowNodes(w);
+  const paths = wfPaths(w);
+  const hasClosing = flow.some(isClosingStep);
+
+  /* Per-node tallies across paths, for the all/some distinctions. */
+  const stopSeen = {}, stopNoStart = {};
+  const startSeen = {}, startOpen = {};
+
+  paths.forEach(p => {
+    let timer = 'never';           /* never | started | stopped | booked */
+    let lastStart = null;
+    let completedBy = null;
+    let lastStatus = null;         /* the last Status update ACTION on this path */
+    let changed = false;           /* any Status update or Closing on this path */
+    p.nodes.forEach(n => {
+      if(n.kind === 'action' && n.action === 'timer'){
+        startSeen[n.nid] = (startSeen[n.nid] || 0) + 1;
+        if(timer === 'started') add(n, 'warn', 'start-twice', 'The timer is already running here. This does nothing.');
+        timer = 'started'; lastStart = n;
+        return;
+      }
+      if(n.kind === 'action' && n.action === 'stoptimer'){
+        stopSeen[n.nid] = (stopSeen[n.nid] || []).concat([p]);
+        if(completedBy) add(n, 'error', 'stop-after-complete',
+          'This books time after the work order is completed. EAM will reject it. Move it before ' +
+          (isClosingStep(completedBy) ? completedBy.name : 'the Status update to ' + statusDesc(completedBy.entity, completedBy.status)) + '.');
+        if(timer === 'never') stopNoStart[n.nid] = (stopNoStart[n.nid] || []).concat([p]);
+        else if(timer === 'stopped') add(n, 'warn', 'stop-twice', 'The timer is already stopped here. This does nothing.');
+        /* A Stop after Book Labor is deliberately NOT a rule (§18.2): one
+           timer, one condition — the second finds nothing to do. */
+        timer = 'stopped'; lastStart = null;
+        return;
+      }
+      if(isStatusAction(n)){
+        if(lastStatus && !actionAsks(n) && !actionAsks(lastStatus) &&
+           lastStatus.entity === n.entity && lastStatus.status === n.status)
+          add(n, 'warn', 'status-twice', 'The status is already ' + statusDesc(n.entity, n.status) + ' here. This does nothing.');
+        lastStatus = n; changed = true;
+        if(!completedBy && isCompletingNode(n)) completedBy = n;
+        return;
+      }
+      if(isStepKind(n)){
+        if(completedBy) add(n, 'error', 'step-after-complete',
+          'The work order is completed before this step. Its fields are protected and it cannot be done.');
+        /* Book Labor books a running timer (§18.2), so it counts as the stop
+           for 8.3 — but it is not a Stop TIMER for 8.1/8.4. */
+        if(n.kind === 'step' && n.step === 'booklabor' && timer === 'started'){ timer = 'booked'; lastStart = null; }
+        if(isClosingStep(n)){ changed = true; if(!completedBy) completedBy = n; }
+      }
+    });
+    if(timer === 'started' && lastStart) startOpen[lastStart.nid] = (startOpen[lastStart.nid] || []).concat([p]);
+
+    /* 8.9 — a route that never changes status, and a fork End before Closing. */
+    if(p.endFork){
+      const lbl = '‘' + forkBranchLabel(p.endFork, p.endBr) + '’: ';
+      if(hasClosing && !p.nodes.some(isClosingStep))
+        add(p.endFork, 'warn', 'end-before-closing', lbl + 'This answer ends the workflow before WO Closing.');
+      else if(!changed)
+        add(p.endFork, 'warn', 'no-status', lbl + 'This route ends without changing the work order’s status.');
+    } else if(!changed){
+      add(p.nodes[p.nodes.length - 1], 'warn', 'no-status', 'This route ends without changing the work order’s status.');
+    }
+  });
+
+  /* 8.1 / 8.2 — a Stop Timer with no Start before it, on every path or some. */
+  Object.keys(stopNoStart).forEach(id => {
+    const n = nodeById(w, id);
+    const bad = stopNoStart[id], all = stopSeen[id] || [];
+    if(bad.length === all.length){
+      add(n, 'error', 'stop-no-start', 'Nothing starts the timer before this. It will never book any time.');
+    } else {
+      const v = viaSkipping(bad[0], x => x.kind === 'action' && x.action === 'timer');
+      add(n, 'warn', 'stop-some-start', 'The timer is not started on ' +
+        (v ? routeName(w, v) : 'one route') + '. On that route this does nothing.');
+    }
+  });
+  /* 8.3 — a Start never stopped before the path ends. */
+  Object.keys(startOpen).forEach(id => {
+    const n = nodeById(w, id);
+    const open = startOpen[id], all = startSeen[id] || 0;
+    let route;
+    if(paths.length === 1) route = 'its only route';
+    else if(open.length >= all) route = 'any route';
+    else { const v = open[0].via[open[0].via.length - 1]; route = v ? routeName(w, v) : 'one route'; }
+    add(n, 'warn', 'start-never-stopped', 'Nothing in this workflow stops the timer on ' + route +
+      '. It will be booked when the work order is completed, according to AUTOBOOK.');
+  });
+
+  flow.forEach(n => {
+    /* 8.14 — a fork whose two answers land in the same place routes nothing.
+       Resolved through forkBranchTargetNid(), so "continue" and an explicit
+       target at the next step count as the same destination. */
+    if(isForkKind(n)){
+      const ts = forkBranches(n).map(pair => forkBranchTargetNid(w, flow, n, n[pair[1]]));
+      if(ts[0] === ts[1]) add(n, 'warn', 'fork-same', 'Both answers go to the same place. This fork doesn’t route anything.');
+    }
+    if(n.kind === 'cond'){
+      const src = condSourceStep(w, n);
+      /* 8.15 — KEPT VISIBLY BROKEN. validateForks() still clears a stale
+         field reference (it would evaluate "cannot tell" forever), but the
+         node now stays in error rather than reading as merely unfinished. */
+      if(!src) add(n, 'error', 'cond-no-source', 'There is no step before this to read a field from.');
+      else if(!n.field || !condFieldMeta(w, n)) add(n, 'error', 'cond-no-field', 'Pick a field from ' + src.name + '.');
+      /* 8.16 — the step it reads can be skipped by an earlier fork. Info: an
+         empty field continues in sequence (§30.19), so this is a consequence,
+         not a fault. Shown in the condition editor. */
+      if(src){
+        const skip = paths.find(p => p.nodes.indexOf(n) > -1 && p.nodes.indexOf(src) === -1);
+        if(skip){
+          const v = viaSkipping(skip, x => x === src);
+          add(n, 'info', 'cond-skippable', src.name + ' is skipped on ' + (v ? routeName(w, v) : 'one route') +
+            '. There the field is empty, and the workflow continues in sequence.');
+        }
+      }
+    }
+    /* 8.7 — a User-selected status with steps after it. §32.10 is what
+       happens on the device; the editor says so. */
+    if(isStatusAction(n) && actionAsks(n)){
+      const after = paths.some(p => { const i = p.nodes.indexOf(n); return i > -1 && p.nodes.slice(i + 1).some(isStepKind); });
+      if(after) add(n, 'info', 'user-status-steps-after',
+        'If the technician picks a completing status here while required steps remain, the app refuses it. ' +
+        'If only optional steps remain, they are marked Not Applicable.');
+    }
+  });
+
+  /* 8.12 — a tab placed as a Step AND as a More entry. Warned, not refused:
+     Book Labor in More is the point of §30.21. Closing is the one refused. */
+  refNodes(w).forEach(r => {
+    const twin = seqNodes(w).find(s => s.kind === r.kind && (r.kind === 'uds' ? s.uds === r.uds : s.step === r.step));
+    if(twin) add(r, 'warn', 'step-and-more', 'The technician can do this from More before reaching step ' + seqNo(w, twin) + '.');
+  });
+  return out;
+}
+function issuesForNode(list, n){ return list.filter(i => i.nid === n.nid); }
+/* The paint's own list, set by renderCanvas(); anything else recomputes. */
+let canvasIssues = null;
+function canvasIssueList(w){
+  return canvasIssues && canvasIssues.w === w ? canvasIssues.list : compositionIssues(w);
+}
+function wfErrors(w){ return compositionIssues(w).filter(i => i.sev === 'error'); }
+
+/* 8.19 — AN ERROR REFUSES ASSIGNMENT, shaped like a clash: predicted in the
+   assignment control before the click, from the gallery side and the group
+   side alike. Assigned rows are never touched — an edit that introduces an
+   Error keeps them and outlines the card instead (ADMN 8.19). */
+function assignErrorRefusal(type, artifactId){
+  if(type !== 'workflow') return null;
+  const w = artifactOf('workflow', artifactId); if(!w) return null;
+  const n = wfErrors(w).length;
+  return n ? 'This workflow has ' + n + ' error' + (n === 1 ? '' : 's') + '. Fix them before assigning it.' : null;
+}
+
+/* The node's own messages, as tags. Errors always show their text (§32.13:
+   "message on the node"); a Warning shows its text once the node is
+   selected and on hover otherwise. Info never renders here — it belongs to
+   the editor. */
+function nodeIssueHtml(list, n){
+  const mine = issuesForNode(list, n).filter(i => i.sev !== 'info');
+  if(!mine.length) return '';
+  const sel = state.selNid === n.nid;
+  return '<div class="node__msgs">' + mine.map(i => i.sev === 'error'
+    ? '<span class="node__tag node__tag--err">' + ic('block',14) + esc(i.msg) + '</span>'
+    : '<span class="node__tag node__tag--warn" title="' + esc(i.msg) + '">' + ic('alert',14) +
+        (sel ? esc(i.msg) : 'Warning') + '</span>').join('') + '</div>';
+}
+/* Info notes for a node's editor. */
+function nodeInfoHtml(w, n){
+  return issuesForNode(compositionIssues(w), n).filter(i => i.sev === 'info')
+    .map(i => '<div class="pop__note">' + ic('info',14) + ' ' + esc(i.msg) + '</div>').join('');
+}
+
+/* NOTHING PRECEDES RECORD VIEW INSTANCE 1 (ADMN 8.10), clamped at the
+   mutation rather than only in the drag geometry. Returns the smallest legal
+   absolute index in w.nodes for a flow insertion. */
+function minFlowIndex(w){
+  if(!w || w.freeForm) return 0;
+  const i = w.nodes.findIndex(n => n.pinned);
+  return i < 0 ? 0 : i + 1;
+}
+/* §32.13 / ADMN 11.3 — the actions straight after Record View instance 1
+   fire on Start Work. Returns their nids, in order. */
+function startWorkActions(w){
+  const flow = flowNodes(w);
+  if(!flow[0] || !flow[0].pinned) return [];
+  const out = [];
+  for(let i = 1; i < flow.length && flow[i].kind === 'action'; i++) out.push(flow[i].nid);
+  return out;
 }
 
 /* ── THE ASSIGNMENT RULE ──
@@ -4391,7 +4711,9 @@ function openAssign(ev, type, artifactId){
         const on = isAssigned(type, artifactId, g);
         /* The COLLISION is computed live, so the control tells you the
            consequence before the click rather than reporting it after. */
-        const clash = !on && wouldClash(type, artifactId, g);
+        /* §32.13 / ADMN 8.19: a workflow carrying an Error is refused the
+           same way, at the same place — before the click. */
+        const clash = !on && (assignErrorRefusal(type, artifactId) || wouldClash(type, artifactId, g));
         const note = clash ? null : assignNote(type, artifactId, g);
         return '<div class="menu__item' + (clash ? ' is-warn' : '') + '" ' +
           'onclick="toggleAssign(\'' + type + '\',\'' + artifactId + '\',\'' + g + '\')">' +
@@ -4406,6 +4728,10 @@ function openAssign(ev, type, artifactId){
     '<div class="pop__foot"><button class="Button Button--contained Button--primary" onclick="closePop()">Done</button></div>');
 }
 function toggleAssign(type, artifactId, group){
+  /* An Error refuses a NEW assignment (ADMN 8.19). Un-assigning is always
+     allowed, and existing rows are never touched by an edit. */
+  const refused = !isAssigned(type, artifactId, group) && assignErrorRefusal(type, artifactId);
+  if(refused){ toast(refused); return; }
   setAssigned(type, artifactId, group, !isAssigned(type, artifactId, group));
   openAssign(lastMenuEv, type, artifactId);
   render();
@@ -6304,7 +6630,7 @@ function openGroupAssign(ev, g, type){
     const on = mine.indexOf(a.id) > -1;
     /* Predicted before the click, from this side too (§30.2). Only a
        multi-select can clash: a radio pick replaces, so it cannot. */
-    const clash = multi && !on ? wouldClash(type, a.id, g) : null;
+    const clash = multi && !on ? (assignErrorRefusal(type, a.id) || wouldClash(type, a.id, g)) : null;
     return '<div class="menu__item' + (clash ? ' is-warn' : '') + '" ' +
       'onclick="groupAssignPick(\'' + type + '\',\'' + a.id + '\',\'' + g + '\')">' +
       (multi
@@ -6377,6 +6703,8 @@ function groupAssignPick(type, artifactId, g){
   if(t.cardinality !== 'per-group'){
     const on = isAssigned(type, artifactId, g);
     if(!on){
+      const refused = assignErrorRefusal(type, artifactId);
+      if(refused){ toast(refused); return; }
       const clash = wouldClash(type, artifactId, g);
       if(clash){ toast(esc(g) + ' ' + clash + ' — un-assign that one first'); return; }
     }
@@ -6518,7 +6846,10 @@ function galCard(w){
       '<div class="wfc__chips">' + ref.map(n=>'<span class="sstep sstep--more">' + ic(stepIcon(n.step),11) + esc(n.name) + '</span> ').join('') + '</div>'
     : '';
   const conflict = wfHasConflict(w);
-  return '<div class="wfc' + (w.freeForm?' wfc--ff':'') + '" onclick="openWf(\'' + w.id + '\')">' +
+  /* ADMN 8.19: an Error outlines the card. An assigned workflow keeps its
+     groups; an unassigned one is refused them in the assignment control. */
+  const errs = wfErrors(w).length;
+  return '<div class="wfc' + (w.freeForm?' wfc--ff':'') + (errs?' wfc--err':'') + '" onclick="openWf(\'' + w.id + '\')">' +
     '<div class="wfc__head">' +
       '<div class="wfc__title">' + esc(w.desc || 'Untitled workflow') + '</div>' +
       '<button class="IconButton IconButton--sm IconButton--muted" onclick="event.stopPropagation();cardMenu(event,\'' + w.id + '\')" title="Actions">' + ic('dots',17) + '</button>' +
@@ -6772,10 +7103,15 @@ function saveWf(){
    order, so they become a sequence in that order and nothing is lost. An
    unnecessary confirm on the way back would teach people to dismiss the
    one that matters. ── */
+const FREE_FORM_NO_AUTOMATION = 'Free Form has no status or timer automation. The technician sets status and runs the timer by hand.';
 function toggleFreeForm(){
   const w = wf(); if(!w) return;
   if(!w.freeForm){
     const forks = w.nodes.filter(isForkKind).length;
+    /* ADMN 8.17 — the actions go too, so the confirm names them BY KIND. */
+    const acts = {};
+    w.nodes.filter(n => n.kind === 'action').forEach(n => { const k = actionKindLabel(n); acts[k] = (acts[k] || 0) + 1; });
+    const actList = Object.keys(acts).map(k => acts[k] + ' ' + k + (acts[k] === 1 ? '' : 's'));
     const seen = {}; const dupes = [];
     w.nodes.filter(n=>n.kind==='step').forEach(n=>{
       if(seen[n.step]) dupes.push(n); else seen[n.step] = n;
@@ -6795,10 +7131,14 @@ function toggleFreeForm(){
           (forks
             ? '<li><b>' + forks + ' question fork' + (forks===1?'':'s') + ' removed</b> — a fork routes forward through a sequence, and there is no sequence to route through.</li>'
             : '<li>No question forks to remove.</li>') +
+          (actList.length
+            ? '<li><b>' + esc(actList.join(', ')) + ' removed</b> — an action fires at a position in the sequence, and there is no sequence.</li>'
+            : '<li>No actions to remove.</li>') +
           '<li><b>Gates and Required flags are cleared</b> — nothing gates anything when the technician can open any tab at any time.</li>' +
           (refs ? '<li>The <b>More group merges into the canvas</b> — in Free Form the whole canvas already is the More group.</li>' : '') +
         '</ul>' +
-        '<div class="pop__note" style="margin-top:12px">Switching back rebuilds a sequence from the card order shown. It does not bring the forks or gates back.</div>',
+        '<div class="pop__note" style="margin-top:12px">' + ic('info',14) + ' ' + esc(FREE_FORM_NO_AUTOMATION) + '</div>' +
+        '<div class="pop__note" style="margin-top:12px">Switching back rebuilds a sequence from the card order shown. It does not bring the forks, actions or gates back.</div>',
       ok:'Switch to Free Form', danger:true,
       onOk:function(){ applyFreeForm(w); },
     });
@@ -6985,9 +7325,16 @@ function renderCanvas(){
     wireCanvas(); return;
   }
 
+  /* §32.13: computed ONCE per paint and read by every nodeHtml() call, so a
+     render pays for one path enumeration, not one per card. */
+  canvasIssues = {w:w, list:compositionIssues(w)};
+  const onStart = startWorkActions(w);
   let flowHtml = '';
   flow.forEach((n, i) => {
     if(dropZone === 'flow' && dropIdx === i) flowHtml += '<div class="dropline"></div>';
+    if(onStart[0] === n.nid)
+      flowHtml += '<div class="startwork" title="Every action directly after Record View fires when the technician taps Start Work">' +
+        ic('flag',14) + 'On Start Work</div>';
     flowHtml += nodeHtml(w, n, false);
     const isLast = i === flow.length - 1;
     if(!isLast) flowHtml += connHtml(w, i);
@@ -7013,6 +7360,7 @@ function renderCanvas(){
       '<div class="flow">' + flowHtml + '</div>' +
     '</div>' +
     refHtml;
+  canvasIssues = null;
   wireCanvas();
 }
 
@@ -7053,6 +7401,10 @@ function freeFormHtml(w){
 /* ── A NODE ── */
 function nodeHtml(w, n, inZone){
   const sel = state.selNid === n.nid ? ' sel' : '';
+  /* §32.13 severities, on the card that causes them. */
+  const iss = issuesForNode(canvasIssueList(w), n);
+  const err = iss.some(i => i.sev === 'error') ? ' node--err' : '';
+  const issHtml = nodeIssueHtml(iss, n);
   if(n.kind === 'action'){
     const glyph = actionIcon(n);
     /* The MODE is on the card, because it is the difference between an
@@ -7062,7 +7414,7 @@ function nodeHtml(w, n, inZone){
        that DIFFERS between two of the same kind. It read "Start Timer ·
        Start Timer · Ask the technician" before this. */
     const line = actionNodeLine(n);
-    return '<div class="node node--act' + sel + '" style="' + nodeAccentStyle(n) + '" draggable="true" data-nid="' + n.nid + '" ' +
+    return '<div class="node node--act' + err + sel + '" style="' + nodeAccentStyle(n) + '" draggable="true" data-nid="' + n.nid + '" ' +
         'ondragstart="nodeDragStart(event,\'' + n.nid + '\')" ondragend="dragEnd()" ' +
         'onclick="selectNode(\'' + n.nid + '\')">' +
       '<span class="node__seq node__seq--act">' + ic(glyph,14) + '</span>' +
@@ -7075,6 +7427,7 @@ function nodeHtml(w, n, inZone){
               : n.action === 'stoptimer' ? 'Technician confirms the hours'
               : 'Asks the technician') + '</span></div>'
           : '') +
+        issHtml +
       '</div>' +
       '<div class="node__acts">' +
         '<button class="IconButton IconButton--sm IconButton--muted" onclick="event.stopPropagation();nodeMenu(event,\'' + n.nid + '\')">' + ic('dots',18) + '</button>' +
@@ -7085,10 +7438,13 @@ function nodeHtml(w, n, inZone){
     const f = condFieldMeta(w, n);
     const broken = !!n.field && !f;
     const unset = !n.field || !n.op;
+    /* A field that exists but no longer resolves is still named here; a
+       missing source or field is an ERROR from compositionIssues() (8.15),
+       which keeps the node visibly broken after validateForks() clears it. */
     const out = (br, label) =>
       '<button class="fork__ans" data-fork="' + n.nid + '" data-branch="' + br + '" ' +
         'onclick="event.stopPropagation();openCondEditor(\'' + n.nid + '\')">' + label + '</button>';
-    return '<div class="node node--fork node--cond' + sel + '" style="' + nodeAccentStyle(n) + '" draggable="true" data-nid="' + n.nid + '" ' +
+    return '<div class="node node--fork node--cond' + err + sel + '" style="' + nodeAccentStyle(n) + '" draggable="true" data-nid="' + n.nid + '" ' +
         'ondragstart="nodeDragStart(event,\'' + n.nid + '\')" ondragend="dragEnd()" ' +
         'onclick="selectNode(\'' + n.nid + '\')">' +
       '<span class="node__seq">' + ic('rule',13) + '</span>' +
@@ -7100,10 +7456,8 @@ function nodeHtml(w, n, inZone){
         (broken
           ? '<div class="node__sub"><span class="node__tag node__tag--nocap">' + ic('block',14) +
             'The step in front of this changed — pick a field again</span></div>'
-          : (!condSourceStep(w, n)
-            ? '<div class="node__sub"><span class="node__tag node__tag--nocap">' + ic('block',14) +
-              'No step in front of this, so there is no form to read</span></div>'
-            : '')) +
+          : '') +
+        issHtml +
         '<div class="fork__ans-row">' + out('true','True') + out('false','False') + '</div>' +
       '</div>' +
       '<div class="node__acts">' +
@@ -7116,13 +7470,14 @@ function nodeHtml(w, n, inZone){
       '<button class="fork__ans" data-fork="' + n.nid + '" data-branch="' + br + '" ' +
         'onclick="event.stopPropagation();openForkEditor(\'' + n.nid + '\')">' +
         esc(label || (br === 'yes' ? 'Yes' : 'No')) + '</button>';
-    return '<div class="node node--fork' + sel + '" style="' + nodeAccentStyle(n) + '" draggable="true" data-nid="' + n.nid + '" ' +
+    return '<div class="node node--fork' + err + sel + '" style="' + nodeAccentStyle(n) + '" draggable="true" data-nid="' + n.nid + '" ' +
         'ondragstart="nodeDragStart(event,\'' + n.nid + '\')" ondragend="dragEnd()" ' +
         'onclick="selectNode(\'' + n.nid + '\')">' +
       '<span class="node__seq">' + ic('fork',13) + '</span>' +
       '<div class="node__b">' +
         '<div class="fork__q' + (tx(n.question,BASE_LANG)?'':' fork__q--empty') + '">' +
           (tx(n.question,BASE_LANG) ? esc(tx(n.question,BASE_LANG)) : 'No question yet') + '</div>' +
+        issHtml +
         '<div class="fork__ans-row">' + ans('yes', tx(n.yesLabel,BASE_LANG)) + ans('no', tx(n.noLabel,BASE_LANG)) + '</div>' +
       '</div>' +
       '<div class="node__acts">' +
@@ -7150,7 +7505,7 @@ function nodeHtml(w, n, inZone){
   if(n.reqDoc) tags.push('<span class="node__tag node__tag--gate">' + ic('clip',11) + 'Document gate</span>');
   const sub = tags.length ? '<div class="node__sub">' + tags.join('') + '</div>' : '';
 
-  return '<div class="node' + (isUds?' node--uds':'') + (noCap?' node--nocap':'') + sel + '" draggable="true" data-nid="' + n.nid + '" ' +
+  return '<div class="node' + (isUds?' node--uds':'') + (noCap?' node--nocap':'') + err + sel + '" draggable="true" data-nid="' + n.nid + '" ' +
       'ondragstart="nodeDragStart(event,\'' + n.nid + '\')" ondragend="dragEnd()" ' +
       'onclick="selectNode(\'' + n.nid + '\')">' +
     seqHtml +
@@ -7161,6 +7516,7 @@ function nodeHtml(w, n, inZone){
       (n.renamed ? '<span class="node__orig">' + ic(glyph,14) + esc(isUds ? (udsDefOf(n.uds)||{label:'UDS'}).label : stepLabel(n.step)) + '</span>' : '') +
       '<div class="node__name">' + esc(n.name) + '</div>' +
       sub +
+      issHtml +
     '</div>' +
     '<div class="node__acts">' +
       '<button class="IconButton IconButton--sm IconButton--muted" onclick="event.stopPropagation();nodeMenu(event,\'' + n.nid + '\')">' + ic('dots',16) + '</button>' +
@@ -7201,7 +7557,7 @@ function insertForkAt(flowIdx){
   const w = wf(); if(!w) return;
   const flow = flowNodes(w);
   const anchor = flow[flowIdx];
-  const abs = anchor ? w.nodes.indexOf(anchor) : w.nodes.length;
+  const abs = Math.max(anchor ? w.nodes.indexOf(anchor) : w.nodes.length, minFlowIndex(w));
   const n = mkNode('fork', {});
   w.nodes.splice(abs, 0, n);
   state.selNid = n.nid;
@@ -7409,7 +7765,8 @@ function flowDragOver(ev){
      drop target while it is present. Clamping is quieter than rejecting the
      drop after the fact. */
   const pinnedFirst = flow[0] && flow[0].pinned;
-  if(pinnedFirst && idx === 0) idx = 1;
+  if(pinnedFirst && idx === 0){ idx = 1; dropClamped = true; }
+  else dropClamped = false;
   if(dropIdx !== idx || dropZone !== 'flow'){ dropIdx = idx; dropZone = 'flow'; renderCanvas(); }
 }
 function flowDrop(ev){
@@ -7422,7 +7779,11 @@ function flowDrop(ev){
      place that mutates the array — the connector + and any future caller
      reach this function without having gone through the dragover geometry. */
   let idx = dropIdx == null ? flow.length : dropIdx;
-  if(flow[0] && flow[0].pinned && idx === 0) idx = 1;
+  /* ADMN 8.10: ANY kind dropped above it lands directly after it, and the
+     admin is told why — the slot after Record View is the Start Work slot. */
+  let clamped = dropClamped; dropClamped = false;
+  if(flow[0] && flow[0].pinned && idx === 0){ idx = 1; clamped = true; }
+  const clampMsg = clamped ? 'Record View is always first. Placed after it, so it runs on Start Work.' : null;
   const anchor = flow[idx];
   const abs = anchor ? w.nodes.indexOf(anchor) : w.nodes.length;
 
@@ -7430,8 +7791,8 @@ function flowDrop(ev){
     const node = addNodeToWf(w, drag.stepId, abs, 'flow');
     state.selNid = node.nid;
     drag = null; dropIdx = null; dropZone = null;
-    afterStructuralChange(isForkKind(node) ? 'Fork inserted'
-      : (node.kind === 'action' ? actionKindLabel(node) + ' inserted' : 'Added ' + node.name));
+    afterStructuralChange(clampMsg || (isForkKind(node) ? 'Fork inserted'
+      : (node.kind === 'action' ? actionKindLabel(node) + ' inserted' : 'Added ' + node.name)));
     if(node.kind === 'fork') openForkEditor(node.nid);
     else if(node.kind === 'cond') openCondEditor(node.nid);
     else if(node.kind === 'action') openActionEditor(node.nid);
@@ -7445,7 +7806,7 @@ function flowDrop(ev){
   n.zone = 'flow';
   w.nodes.splice(abs2 < 0 ? w.nodes.length : abs2, 0, n);
   drag = null; dropIdx = null; dropZone = null;
-  afterStructuralChange(wasRef ? (n.name + ' moved into the flow') : null);
+  afterStructuralChange(clampMsg || (wasRef ? (n.name + ' moved into the flow') : null));
 }
 
 function refDragOver(ev){
@@ -7461,6 +7822,7 @@ function refDrop(ev){
   const w = wf(); if(!w || !drag) return;
   if(drag.from === 'lib'){
     if(['fork','cond','status','timer','stoptimer'].indexOf(drag.stepId) > -1){ drag=null; dropZone=null; renderCanvas(); toast('Forks and actions are positional — none of them can sit in the More group'); return; }
+    if(drag.stepId === 'closing'){ drag=null; dropZone=null; renderCanvas(); toast(CLOSING_IN_MORE_MSG); return; }
     const node = addNodeToWf(w, drag.stepId, w.nodes.length, 'ref');
     state.selNid = node.nid;
     drag=null; dropZone=null; dropIdx=null;
@@ -7471,6 +7833,7 @@ function refDrop(ev){
   drag=null; dropZone=null; dropIdx=null;
   if(!n){ renderCanvas(); return; }
   if(isForkKind(n) || n.kind === 'action'){ renderCanvas(); toast('A fork and an action are positional — neither can sit in the More group'); return; }
+  if(isClosingStep(n)){ renderCanvas(); toast(CLOSING_IN_MORE_MSG); return; }
   moveToRef(n.nid, true);
 }
 
@@ -7534,6 +7897,8 @@ function openCondEditor(id){
         'the system routes.</div>' +
     '</div></div>' +
     '<div class="mbox__body mbox__body--plain">' +
+      /* ADMN 8.16 — the step it reads can be skipped by an earlier fork. */
+      nodeInfoHtml(w, nd) +
 
       (!src
         ? '<div class="Banner Banner--critical" style="margin:0 0 var(--s-3)">' +
@@ -7681,8 +8046,8 @@ function nodeMenu(ev, id){
       '<div class="menu__sep"></div>' +
       (inRef
         ? '<div class="menu__item" onclick="closeMenu();moveToRef(\'' + id + '\',false)">' + ic('route',14) + ' Move into the flow</div>'
-        : (n.pinned
-            ? '<div class="menu__item is-disabled" title="Record View is pinned as step 1 (§14)">' + ic('lock',14) + ' Move to More (reference)</div>'
+        : (n.pinned || isClosingStep(n)
+            ? '<div class="menu__item is-disabled" title="' + (n.pinned ? 'Record View is pinned as step 1 (§14)' : esc(CLOSING_IN_MORE_MSG)) + '">' + ic('lock',14) + ' Move to More (reference)</div>'
             : '<div class="menu__item" onclick="closeMenu();moveToRef(\'' + id + '\',true)">' + ic('layers',14) + ' Move to More (reference)</div>')) +
       '<div class="menu__item' + (inRef?' is-disabled':'') + '" ' +
         (inRef ? 'title="A More entry is never gated — nothing routes the technician there (§14.8)"' :
@@ -7711,6 +8076,11 @@ function moveToRef(id, toRef){
     toast('A fork and an action are positional — neither can sit in the More group');
     return;
   }
+  /* WO CLOSING IS NEVER A MORE ENTRY (§32.13, D-8). More is reachable at
+     any time, and Closing completes the work order — so placing it there
+     would let a technician complete the WO before the gated steps. Refused
+     here, at the mutation, as well as at the drop. */
+  if(toRef && isClosingStep(n)){ toast(CLOSING_IN_MORE_MSG); return; }
   n.zone = toRef ? 'ref' : 'flow';
   if(toRef){
     /* A More entry can never be Required and never carries a gate: nothing
@@ -8056,12 +8426,25 @@ function openStatusEditor(id){
             statusListForEntity(nd.entity).map(st => '<option value="' + st.code + '"' +
               (nd.status===st.code?' selected':'') + '>' + esc(st.desc) + '</option>').join('') +
           '</select>') +
+      /* ADMN 8.8 — §32.8's bypass, worded for the mode. A System-mode
+         update is NOT checked against the group's status authorizations:
+         the workflow is the authorization. No warning about a group's
+         authorizations is ever raised for it. */
+      '<div class="pop__sep"></div>' +
+      '<div class="pop__note">' + ic('info',14) + ' ' + esc(statusAuthNote(nd)) + '</div>' +
+      /* ADMN 8.7 — a User-selected status with steps after it. */
+      nodeInfoHtml(w, nd) +
     '</div>' +
     '<div class="mbox__foot mbox__foot--split">' +
       '<button class="Button Button--error" onclick="closeModal();deleteNode(\'' + id + '\')">' +
         ic('trash',16) + 'Delete action</button>' +
       '<button class="Button Button--contained Button--primary" onclick="closeModal()">Done</button>' +
     '</div>');
+}
+function statusAuthNote(nd){
+  return actionAsks(nd)
+    ? 'The technician picks from the statuses their group is authorized to move to. That list comes from Security, not from this workflow.'
+    : 'Sets ' + statusDesc(nd.entity, nd.status) + ' whatever the technician’s group is authorized to do by hand. The workflow is the authorization.';
 }
 /* Kept as a thin alias: the authored status is preserved across a flip to
    `user` (nothing to re-base \u2014 the entity has not changed), and the
@@ -8178,6 +8561,8 @@ function setStatusEntity(id, val){
 function setStatusValue(id, val){
   const w = wf(); const nd = nodeById(w, id); if(!nd) return;
   nd.status = val; w.updated = todayStr(); saveWFS(); renderCanvas();
+  /* Re-open so the authorization note names the status now selected. */
+  openStatusEditor(id);
 }
 
 /* ── THE NEAREST STEP IN FRONT OF A NODE ──
