@@ -492,6 +492,21 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 /* Dedicated progress row (Option A) — full-width continuous segments
    instead of the old fixed-28px dashes squeezed into the collapsed row. */
 .step-segments{display:flex;gap:4px;padding:0 0 10px;}
+/* "UP NEXT" PREVIEW (2026-10-23, user direction). The collapsed rail is a
+   two-row mini stepper: a filled dot + the current step on the timer's row,
+   then a hollow dot + "Up next: X" (or "X or Y" ahead of an unanswered
+   fork) beneath, joined by a short connector. It REPLACES the progress
+   segments in the collapsed rail, as drawn; the expanded step map is the
+   full list, so the preview hides while it is open. */
+.step-rail.has-next .step-rail-collapsed{height:auto;min-height:44px;padding-top:12px;padding-bottom:0;}
+.step-rail.has-next .step-segments{display:none;}
+.step-rail.has-next .step-name{position:relative;padding-left:20px;font-weight:700;line-height:1.3;}
+.step-rail.has-next .step-name::before{content:"";position:absolute;left:0;top:50%;width:9px;height:9px;margin-top:-4.5px;border-radius:50%;background:var(--octave-black);}
+[data-theme="dark"] .step-rail.has-next .step-name::before{background:var(--white);}
+.step-next{position:relative;padding:4px 0 14px 20px;font-size:0.8125rem;color:var(--gray-4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.step-next::before{content:"";position:absolute;left:0;top:7px;width:9px;height:9px;box-sizing:border-box;border:1.5px solid var(--gray-3);border-radius:50%;}
+.step-next::after{content:"";position:absolute;left:4px;top:-6px;width:1px;height:12px;background:var(--gray-3);}
+.step-rail.expanded .step-next{display:none;}
 .seg{flex:1;height:7px;border-radius:100px;}
 .seg-done{background:var(--green);}
 .seg-active{background:var(--octave-black);}
@@ -549,6 +564,9 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 .smi-active{background:var(--octave-black);color:var(--white);}
 [data-theme="dark"] .smi-active{background:var(--white);color:var(--octave-black);}
 .smi-locked{background:none;border:2px solid var(--gray-3);color:var(--gray-3);}
+/* N/A — a step a pinned fork routed around (§29.4/§32.9): shown, not opened. */
+.smi-na{background:none;border:2px dashed var(--gray-3);color:var(--gray-3);}
+.step-map-label-na{color:var(--gray-3);text-decoration:line-through;}
 /* Flat rail's own "you are here" marker (§11 fallback, renderFlatStepRail(),
    added 2026-07-22, user direction) — a plain dot, not a number, so it
    doesn't reintroduce the sequence indicator this rail deliberately
@@ -609,6 +627,30 @@ body{font-family:var(--font-sans);background:var(--bg-page);color:var(--octave-b
 [data-theme="dark"] .step-timer-btn:hover{border-color:var(--white);color:var(--white);}
 .step-timer-btn.danger{border-color:rgba(228,75,74,.35);background:rgba(228,75,74,.06);color:var(--red);}
 .step-timer-btn.danger:hover{background:rgba(228,75,74,.12);border-color:var(--red);}
+/* §32.4 (2026-10-23) — a PAUSED timer: its segments are already booked, so
+   the value reads as a total, not a running clock. Reset is a neutral button,
+   not danger — it discards only the unbooked segment. */
+.step-timer-sub{text-align:center;font-size:0.75rem;color:var(--gray-4);margin:-6px 0 10px;}
+.step-timer-panel.paused .step-timer-value{color:var(--gray-4);}
+/* §32.7 — the Home Resume card. System-delivered, like Favorites; neutral
+   card chrome (Home's colour exception is for tiles, §23). The timer pill
+   inside it is the rail's own .timer-pill, unchanged. */
+.resume-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:14px;margin:12px 0 4px;cursor:pointer;}
+.resume-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
+.resume-card-eyebrow{font-size:0.75rem;font-weight:700;color:var(--gray-4);}
+.resume-card-title{font-size:0.9375rem;font-weight:700;color:var(--octave-black);line-height:1.3;}
+[data-theme="dark"] .resume-card-title{color:var(--white);}
+.resume-card-wo{font-family:var(--font-mono);font-weight:600;}
+.resume-card-meta{font-size:0.8125rem;color:var(--gray-4);margin-top:3px;}
+.resume-card-actions{display:flex;align-items:center;gap:12px;margin-top:12px;}
+.resume-card-btn{flex:0 0 auto;height:40px;padding:0 22px;}
+.resume-card-more{background:none;border:none;padding:10px 0;font-family:var(--font-sans);font-size:0.8125rem;font-weight:600;color:var(--octave-black);text-decoration:underline;cursor:pointer;}
+[data-theme="dark"] .resume-card-more{color:var(--white);}
+.run-row{justify-content:space-between;}
+.run-row-main{flex:1;min-width:0;}
+.run-row-title{font-size:0.875rem;font-weight:600;color:var(--octave-black);}
+[data-theme="dark"] .run-row-title{color:var(--white);}
+.run-row-meta{font-size:0.75rem;color:var(--gray-4);margin-top:2px;}
 
 /* ── QUESTION MESSAGE (2026-07-16) — first of its kind: a centered modal
    with 3 stacked outcomes (Yes/No/Cancel), for questions with a real

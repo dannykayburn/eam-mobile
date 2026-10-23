@@ -27,7 +27,7 @@
    overflow explicitly. If a future screen adopts that layout, this catches it
    before a device does. */
 const fs = require('fs'), path = require('path');
-const DIR = 'C:/Users/dkilburn/Projects/eam-mobile/prototypes/standalone';
+const DIR = require('path').join(__dirname, '..', '..', '..', '..', '..') + '/prototypes/standalone';
 const SHARED = DIR + '/shared/eam-shared.css';
 
 let fail = 0;

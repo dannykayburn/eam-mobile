@@ -32,7 +32,7 @@
 const { runScreen } = require('./_lib.js');
 const vm = require('vm');
 const fs = require('fs');
-const ROOT = 'C:/Users/dkilburn/Projects/eam-mobile';
+const ROOT = require('path').join(__dirname, '..', '..', '..', '..', '..');
 const SHARED = ROOT + '/prototypes/standalone/shared';
 
 let fail = 0;
@@ -41,9 +41,14 @@ const ok = (label, cond, extra) => {
   if (!cond) fail++;
 };
 const ev = (ctx, expr) => { try { return vm.runInContext(expr, ctx); } catch (e) { return '<<' + e.message + '>>'; } };
+/* §32.3: the timer is the shared, time-stamped record, not a session flag.
+   TIMER83() starts one on this WO backdated 83 minutes — the span the
+   assertions below were written against. */
+const TIMER83_SRC = 'function TIMER83(){ techTimerSave({tech:DEMO_TECH,wo:woRunWo(),activity:"10",activityLabel:"Activity 10",state:"running",startedAt:Date.now()-83*60000,bookedMs:0}); }';
 const boot = () => {
   const ctx = runScreen('eam-book-labor-prototype-v2.html', null);
-  ev(ctx, 'sessionStorage.setItem("eamTimerRunning","false"); bookingPullup = null;');
+  ev(ctx, TIMER83_SRC);
+  ev(ctx, 'techTimerSave(null); bookingPullup = null;');
   return ctx;
 };
 const html = id => 'String(document.getElementById(' + JSON.stringify(id) + ').innerHTML)';
@@ -127,7 +132,7 @@ console.log('\n§18.2 — ONE condition: is a timer running');
     ev(ctx, '(function(){ offerTimerBooking(); return bookingPullup === null; })()') === true);
   ok('...and the screen just sits there, no sheet state',
     ev(ctx, 'bookingPullup') === null);
-  ev(ctx, 'sessionStorage.setItem("eamTimerRunning","true");');
+  ev(ctx, 'TIMER83();');
   ok('timer running → the pull-up is offered',
     ev(ctx, '(function(){ offerTimerBooking(); return bookingPullup !== null; })()') === true);
   ok('it opens on the elapsed value', ev(ctx, 'bookingPullup.min') === 83 &&
@@ -149,7 +154,7 @@ console.log('\n§18.2 — ONE condition: is a timer running');
 console.log('\nONE editable value — the shape IS the rule');
 {
   const ctx = boot();
-  ev(ctx, 'sessionStorage.setItem("eamTimerRunning","true"); offerTimerBooking();');
+  ev(ctx, 'TIMER83(); offerTimerBooking();');
   /* If a second editable row ever appears here, the question to ask is
      whether Book Labor (§18.4) should have been opened instead — that ratio
      is what stops this becoming a second labour form. */
@@ -176,7 +181,7 @@ console.log('\nONE editable value — the shape IS the rule');
 console.log('\nThe hours stepper');
 {
   const ctx = boot();
-  ev(ctx, 'sessionStorage.setItem("eamTimerRunning","true"); offerTimerBooking();');
+  ev(ctx, 'TIMER83(); offerTimerBooking();');
   ok('it reads as h/m and states what it books', ev(ctx, 'document.getElementById("bkgHoursV").textContent') === '1h 23m' &&
     /books as 1\.38 h/.test(ev(ctx, 'document.getElementById("bkgHoursSub").textContent')));
   ok('a tap moves one minute', ev(ctx, '(function(){ adjustBookingMin(-1); return bookingPullup.min; })()') === 82);
@@ -205,7 +210,7 @@ console.log('\nBook, and the three dismissal routes');
   /* BUG 3: a booking must not also report a discard. Both end in
      closeAllSheets(), so the state has to be cleared BEFORE the close. */
   const ctx = boot();
-  ev(ctx, 'sessionStorage.setItem("eamTimerRunning","true"); offerTimerBooking(); confirmBookingPullup();');
+  ev(ctx, 'TIMER83(); offerTimerBooking(); confirmBookingPullup();');
   ok('booking stops the timer — this is the only place that does',
     ev(ctx, 'timerIsRunning()') === false);
   ok('...and it is not reported as a discard',
@@ -221,7 +226,7 @@ console.log('\nBook, and the three dismissal routes');
      asserted. */
   ok('booking fires onBook EXACTLY once and onDiscard NEVER', ev(ctx,
     '(function(){ var booked = 0, discarded = 0;' +
-    ' sessionStorage.setItem("eamTimerRunning","true");' +
+    ' TIMER83();' +
     ' openBookingPullup({minutes:83, onBook:function(){ booked++; },' +
     '   onDiscard:function(){ discarded++; }});' +
     ' confirmBookingPullup();' +
@@ -244,7 +249,7 @@ console.log('\nBook, and the three dismissal routes');
      technician cannot tell them apart. */
   ['discardBookingPullup()', 'closeAllSheets()'].forEach(route => {
     const c = boot();
-    ev(c, 'sessionStorage.setItem("eamTimerRunning","true"); offerTimerBooking(); ' + route + ';');
+    ev(c, 'TIMER83(); offerTimerBooking(); ' + route + ';');
     ok(route + ' leaves the timer RUNNING', ev(c, 'timerIsRunning()') === true);
     ok('  ...releases the state', ev(c, 'bookingPullup') === null);
     ok('  ...and says nothing was booked',
@@ -254,7 +259,7 @@ console.log('\nBook, and the three dismissal routes');
   /* BUG 1: the screen's own closeAllSheets() closed sheets BY ID, which no
      self-injecting sheet can ever be in. */
   const c2 = boot();
-  ev(c2, 'sessionStorage.setItem("eamTimerRunning","true"); offerTimerBooking();');
+  ev(c2, 'TIMER83(); offerTimerBooking();');
   ok('the sheet actually closes on this screen (it shadows closeAllSheets)', ev(c2,
     '(function(){ var o = document.getElementById("bookingPullupSheet").classList.contains("open");' +
     ' closeAllSheets();' +
@@ -277,7 +282,7 @@ console.log('\nAdjusted bookings lose the timer span, and that is correct');
      booking is written as direct hours (§18's own Time Entry Mode) and the
      row shows no span. An untouched one keeps the real one. */
   const ctx = boot();
-  ev(ctx, 'sessionStorage.setItem("eamTimerRunning","true"); offerTimerBooking();');
+  ev(ctx, 'TIMER83(); offerTimerBooking();');
   ok('an untouched booking reports itself as unadjusted', ev(ctx,
     '(function(){ var seen = null;' +
     ' openBookingPullup({minutes:83, onBook:function(m,a){ seen = a; }});' +

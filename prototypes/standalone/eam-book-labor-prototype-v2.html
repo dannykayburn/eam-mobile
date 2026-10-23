@@ -13,8 +13,8 @@
 <link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>Attune EAM Mobile — Book Labor (Step 4)</title>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202610212141">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202610212141">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202610231612">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202610231612">
 <!--
   WO WORKFLOW — STEP 4: BOOK LABOR (rebuilt 2026-07-16 onto shared/eam-
   shared.css + shared/eam-shared.js, per docs/archive/EAM-REBUILD-Strategy-and-
@@ -843,25 +843,25 @@
 
 </div><!-- /app -->
 
-<script src="../../data/employees.js?v=202610212141"></script>
-<script src="../../data/crews.js?v=202610212141"></script>
-<script src="../../data/crew_employees.js?v=202610212141"></script>
-<script src="../../data/wo-19257.js?v=202610212141"></script>
-<script src="../../data/wo-19831.js?v=202610212141"></script>
-<script src="../../data/wo-20450.js?v=202610212141"></script>
-<script src="../../data/wotype.js?v=202610212141"></script>
-<script src="../../data/wo-workflow.js?v=202610212141"></script>
-<script src="../../data/wo-workflow-steps.js?v=202610212141"></script>
+<script src="../../data/employees.js?v=202610231612"></script>
+<script src="../../data/crews.js?v=202610231612"></script>
+<script src="../../data/crew_employees.js?v=202610231612"></script>
+<script src="../../data/wo-19257.js?v=202610231612"></script>
+<script src="../../data/wo-19831.js?v=202610231612"></script>
+<script src="../../data/wo-20450.js?v=202610231612"></script>
+<script src="../../data/wotype.js?v=202610231612"></script>
+<script src="../../data/wo-workflow.js?v=202610231612"></script>
+<script src="../../data/wo-workflow-steps.js?v=202610231612"></script>
 <script>
 /* §31.6 — the timer dev toggle moved out of the removed .proto-theme-bar and
-   into the header menu. It is NOT decoration: it drives the real
-   eamTimerRunning key, which is the §18.2 condition deciding whether the
+   into the header menu. It is NOT decoration: it writes the real
+   shared timer record (§32.3, techTimer()), which is the §18.2 condition deciding whether the
    booking pull-up opens, so without it that whole path is unreachable. */
 const PROTO_MENU_EXTRA = [
   { label: 'Timer', stateId: 'timerDemoToggle', stateText: '⏱ —', onclick: 'toggleTimerDemo()' }
 ];
 </script>
-<script src="shared/eam-shared.js?v=202610212141"></script>
+<script src="shared/eam-shared.js?v=202610231612"></script>
 <script>
 /* ── screen-specific config/behavior — chrome (nav, header, step rail,
    confirm modal, toast, theme toggle) comes from eam-shared.js. ── */
@@ -1545,6 +1545,8 @@ function onDemoWoChanged() {
   CURRENT_WORKFLOW = workflow;
   if (workflow.configured) renderStepRail(workflow, 'booklabor', jobType);
   else renderFlatStepRail('booklabor', jobType);
+  // A completed step reopened from the rail edits in place (§32.9).
+  applyRunRevisitBar(document.getElementById('nextBtn'));
   applyTerminalStepBar();
 }
 
@@ -1605,6 +1607,7 @@ if (OPEN_DEMO_WO) {
 
 /* ── init ── */
 renderSeedLabor();
+renderTimerBookings();
 updateSummary();
 checkAddReady();
 applyCodeVisibility('activity', document.getElementById('addActivityCode'));
@@ -1612,23 +1615,6 @@ applyCodeVisibility('employee', document.getElementById('corrEmpCode'));
 onDemoWoChanged();
 initSharedApp({ contentSelector: '.content' });
 
-// Timer Stopped banner + Add Labor auto-open only apply on a real guided-
-// workflow hand-off — the technician tapping "Next: Book Labor" on Issue
-// Parts, where a WO timer genuinely just stopped. A freeflow visit (step
-// map, direct link, WO List row tap) has no such event, so neither should
-// appear (§18.7, 2026-07-21). Consume-once sessionStorage flag, same
-// pattern as navigateToNewRecord()'s eamNewWoRecord/eamNewEquipRecord
-// hand-off (eam-shared.js) — set by Issue Parts' Next button before it
-// navigates here for real (first real inter-screen navigation edge in
-// these standalones; every other "Next" button elsewhere is still a
-// toast stub).
-// Second condition added 2026-07-24 (§15.4/§20): arriving via "Next" is
-// no longer sufficient on its own — a Free Form WO whose timer was never
-// actually started (technician answered No on Record View's "start the
-// timer?" prompt) has nothing to claim stopped here. eamTimerRunning is
-// the same real gate Activity Checklist/Issue Parts check before ever
-// starting the pill in the first place; if it was never set, there's no
-// timer in this workflow instance's story at all, guided or not.
 // ── §18.2's BOOKING PULL-UP (locked 2026-09-17, direct instruction) ──
 // "When the Book Labor tab is opened AND a timer is running, it invokes a
 // pull-up with the hours calculated. If Book Labor is opened and no timer is
@@ -1653,9 +1639,15 @@ initSharedApp({ contentSelector: '.content' });
 // stopped, here is its value" — but it is now set when the booking is taken,
 // which is when the timer actually stops. A discard leaves it hidden,
 // because nothing stopped.
-const DEMO_TIMER_MINS = 83;          // 01:23:47, the same span the banner shows
+const DEMO_TIMER_MINS = 83;          // the dev toggle's backdated start (see below)
 
-function timerIsRunning() { return sessionStorage.getItem('eamTimerRunning') === 'true'; }
+// §32 (2026-10-23): the technician's one timer, from eam-shared.js. "Running"
+// means running on THIS WO — a paused timer counts as not running (§32.4), and
+// one running on another WO is not this screen's to book (§32.1).
+function timerIsRunning() {
+  const t = techTimer();
+  return !!t && t.state === 'running' && techTimerShownHere();
+}
 
 // The signed-in technician, and their own department/trade — EAM_EMPLOYEES[0]
 // is the app-wide current-user identity (BCAMPBELL, same person Comments
@@ -1667,14 +1659,19 @@ function currentTechnician() {
 
 function offerTimerBooking() {
   if (!timerIsRunning()) return;                 // nothing to book — sits quietly
+  const t = techTimer();
+  const elapsed = techTimerSegmentMs(t) / 60000;
+  if (elapsed < 1) return;                       // under a minute: nothing to offer yet (§32.11)
   const me = currentTechnician();
-  const startHHMM = '08:00', endHHMM = '09:23';  // the demo timer's own span
+  const hhmm = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  const startHHMM = hhmm(new Date(t.startedAt)), endHHMM = hhmm(new Date());
+  const timerMins = Math.max(1, Math.round(elapsed));
   openBookingPullup({
-    minutes: DEMO_TIMER_MINS,
+    minutes: elapsed,
     employee: { code: me.code, desc: me.name },
     trade: tradeNames[me.trade] || me.trade,
     dept: deptNames[me.dept] || me.dept,
-    activity: '10 · Inspect & repair pump assembly',
+    activity: t.activityLabel || '10 · Inspect & repair pump assembly',
     date: isoToDisplay(DEMO_LABOR_DATE_ISO),
     span: startHHMM + ' – ' + endHHMM,
     onBook: (mins, adjusted) => {
@@ -1688,14 +1685,16 @@ function offerTimerBooking() {
         adjusted ? '—' : startHHMM, adjusted ? '—' : endHHMM,
         mins, 'N', 'Normal', me.dept, me.trade, false);
       updateSummary();
-      // The timer stops because the time is now booked — this is the one
-      // place in this screen that stops it.
-      sessionStorage.setItem('eamTimerRunning', 'false');
+      // The timer stops because the time is now booked (§32.5) — the row
+      // above is this screen's; the shared record is what other screens read.
+      techTimerBookSegment(t, adjusted ? mins : null);
+      techTimerSave(null);
+      refreshTechTimerUi();
       document.getElementById('timerBannerValue').textContent = minsToHM(mins);
       document.getElementById('timerBanner').style.display = '';
       syncTimerDevToggle();
       showToast(adjusted
-        ? `Booked ${minsToHM(mins)} — adjusted from ${minsToHM(DEMO_TIMER_MINS)}`
+        ? `Booked ${minsToHM(mins)} — adjusted from ${minsToHM(timerMins)}`
         : `Booked ${minsToHM(mins)} to this work order`);
     },
     // §30.21: discard never stops the timer. A technician who opened this
@@ -1719,17 +1718,47 @@ function applyArrivalState() {
 
 // ── DEV ONLY ──
 // Nothing feeds a workflow definition to the app yet, so the portal's Stop
-// Timer action cannot reach in and neither can a real guided hand-off from a
-// device sitting on this URL. This toggle is how the §18.2 condition gets
-// exercised: it is the same `eamTimerRunning` key the real screens set, not
-// a parallel switch. Same convention as the online/offline toggle.
+// Timer action cannot reach in. This toggle is how the §18.2 condition gets
+// exercised without waiting an hour: it writes the SAME shared timer record
+// the real screens use (§32.3), backdated DEMO_TIMER_MINS, not a parallel
+// switch. Same convention as the online/offline toggle.
 function toggleTimerDemo() {
   const now = !timerIsRunning();
-  sessionStorage.setItem('eamTimerRunning', now ? 'true' : 'false');
+  if (now) {
+    const run = woRunFor();
+    techTimerSave({ tech: DEMO_TECH, wo: woRunWo(), activity: run ? run.activity : '',
+                    activityLabel: run ? run.activityLabel : '', state: 'running',
+                    startedAt: Date.now() - DEMO_TIMER_MINS * 60000, bookedMs: 0 });
+  } else {
+    techTimerSave(null);
+  }
+  refreshTechTimerUi();
   syncTimerDevToggle();
   if (now) { document.getElementById('timerBanner').style.display = 'none'; offerTimerBooking(); }
   else { discardBookingPullup(); showToast('Timer cleared'); }
 }
+// Pause and Stop on the rail book through the shared timer, possibly on
+// another step — those rows are listed here too, so a booked segment never
+// goes missing from the one screen that shows labor (§32.4).
+function renderTimerBookings() {
+  const me = currentTechnician();
+  techTimerBookings().filter(b => b.wo === woRunWo()).forEach(b => {
+    const d = new Date(b.start), e = new Date(b.end);
+    const hhmm = x => String(x.getHours()).padStart(2, '0') + ':' + String(x.getMinutes()).padStart(2, '0');
+    const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    addLaborRow(me.code, isoToDisplay(iso), b.adjusted ? '—' : hhmm(d), b.adjusted ? '—' : hhmm(e),
+      b.minutes, 'N', 'Normal', me.dept, me.trade, false);
+  });
+}
+// The rail's own Stop books through the shared pull-up; repaint the list.
+function onTechTimerBooked() {
+  document.querySelectorAll('#laborList .action-row').forEach(r => r.remove());
+  renderSeedLabor();
+  renderTimerBookings();
+  updateSummary();
+  syncTimerDevToggle();
+}
+function onTechTimerChanged() { syncTimerDevToggle(); }
 function syncTimerDevToggle() {
   const b = document.getElementById('timerDemoToggle');
   if (b) b.textContent = timerIsRunning() ? '⏱ Timer: running' : '⏱ Timer: stopped';

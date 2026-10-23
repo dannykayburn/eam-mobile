@@ -13,8 +13,8 @@
 <link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>Attune EAM Mobile — WO List v5</title>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202610212141">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202610212141">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202610231612">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202610231612">
 <style>
 /* ══════════════════════════════════════════════════════════
    OCTAVE — Attune EAM Mobile · WO List v5 · Inline SVG icons
@@ -915,8 +915,8 @@ body{
 
 </div><!-- /app -->
 
-<script src="../../data/notifications.js?v=202610212141"></script>
-<script src="shared/eam-shared.js?v=202610212141"></script>
+<script src="../../data/notifications.js?v=202610231612"></script>
+<script src="shared/eam-shared.js?v=202610231612"></script>
 <script>
 // Insert Mode's Type pill (§9.4.1, added 2026-07-29) re-scopes the flat
 // fields section on every change, not just on entity switch — same
@@ -1638,8 +1638,8 @@ function openWO(id){
   } else {
     demoWo = (w && TYPE_TO_DEMO_WO[w.tp]) || '20450';
   }
-  sessionStorage.setItem('eamOpenDemoWo', demoWo);
-  location.href = 'eam-wo-record-view-prototype-v1.html';
+  // A WO with a workflow run in progress opens at its cursor (§32.7).
+  openDemoWoAtCursor(demoWo);
 }
 
 

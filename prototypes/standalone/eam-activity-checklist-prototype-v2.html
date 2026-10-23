@@ -13,8 +13,8 @@
 <link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>Attune EAM Mobile — Activity Checklist (Step 2)</title>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202610212141">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202610212141">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202610231612">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202610231612">
 <!--
   SCROLL NAVIGATION IS THE MODEL — A/B RESOLVED 2026-09-21 (user direction:
   "Remove the A/B checklist option. We will go with the scroll version.").
@@ -603,7 +603,6 @@
     <div class="step-rail-collapsed">
       <div class="step-name">Activity Checklist</div>
       <div class="step-rail-right">
-        <div class="timer-pill" id="timerPill"><div class="timer-dot"></div><span id="timerText">00:00:00</span></div>
         <svg class="step-chevron" id="stepChevron" width="16" height="16" fill="none" viewBox="0 0 24 24">
           <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -617,21 +616,6 @@
       <div class="seg seg-future"></div>
     </div>
     <div class="step-map" id="stepMap">
-      <!-- Larger timer + Pause/Stop (§14.2 follow-up) — shown only where
-           the timer is running, same condition as the pill. -->
-      <div class="step-timer-panel">
-        <div class="step-timer-value" id="stepTimerValue">00:00:00</div>
-        <div class="step-timer-actions">
-          <button class="step-timer-btn" onclick="toggleStepTimerPause()">
-            <span id="stepPauseBtnIcon"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" y1="5" x2="8" y2="19"/><line x1="16" y1="5" x2="16" y2="19"/></svg></span>
-            <span id="stepPauseBtnLabel">Pause</span>
-          </button>
-          <button class="step-timer-btn danger" onclick="confirmStopTimer()">
-            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
-            Stop
-          </button>
-        </div>
-      </div>
       <div class="step-map-item"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">WO Record View</span></div>
       <div class="step-map-item active"><div class="step-map-icon smi-active">2</div><span class="step-map-label active-label">Activity Checklist</span></div>
       <div class="step-map-item"><div class="step-map-icon smi-locked">3</div><span class="step-map-label">Issue Parts</span></div>
@@ -772,39 +756,22 @@
 
 </div><!-- /app -->
 
-<script src="../../data/wo-19257.js?v=202610212141"></script>
-<script src="../../data/wo-19831.js?v=202610212141"></script>
-<script src="../../data/wo-20450.js?v=202610212141"></script>
-<script src="../../data/wotype.js?v=202610212141"></script>
-<script src="../../data/wo-workflow.js?v=202610212141"></script>
-<script src="../../data/wo-workflow-steps.js?v=202610212141"></script>
-<script src="shared/eam-shared.js?v=202610212141"></script>
+<script src="../../data/wo-19257.js?v=202610231612"></script>
+<script src="../../data/wo-19831.js?v=202610231612"></script>
+<script src="../../data/wo-20450.js?v=202610231612"></script>
+<script src="../../data/wotype.js?v=202610231612"></script>
+<script src="../../data/wo-workflow.js?v=202610231612"></script>
+<script src="../../data/wo-workflow-steps.js?v=202610231612"></script>
+<script src="shared/eam-shared.js?v=202610231612"></script>
 <script>
 /* ── screen-specific config/behavior — chrome (nav, header, step rail,
    confirm modal, toast, theme toggle) comes from eam-shared.js. ── */
 
-/* ─── TIMER — gated on eamTimerRunning as of 2026-07-24 (§15.4/§20), not
-   unconditional anymore. Not Free Form workflows set this implicitly on
-   Start Work; Free Form ones only set it if the technician answers Yes
-   to the "start the timer?" prompt there (eam-wo-record-view-prototype-
-   v1.html's startWork()) — a Free Form WO whose technician answered No,
-   or who free-flow-tapped straight into this step without going through
-   Start Work at all, never had a timer to start, so this screen must not
-   show one running. Engine (start/pause/resume) lives in eam-shared.js —
-   this screen just starts it, or hides the pill entirely if it isn't
-   running, and supplies the Stop confirmation's outcomes. ── */
-if (sessionStorage.getItem('eamTimerRunning') === 'true') {
-  startStepTimer();
-} else {
-  document.getElementById('timerPill').style.display = 'none';
-}
-
-function confirmStopTimer() {
-  openQuestion('Stop working and book your current time?',
-    () => { stopStepTimer(); showToast('Time booked — moving to Book Labor…'); },
-    () => { stopStepTimer(); showToast('Time captured — resume later from Book Labor'); }
-  );
-}
+/* ─── TIMER — none of it lives here any more (§32, 2026-10-23). The
+   technician's timer is time-stamped and durable in eam-shared.js, and the
+   rail adds its pill and panel only while it is Running or Paused on this WO
+   (§32.6). Stop books through the shared pull-up; there is no Yes/No/Cancel
+   "stop without booking" question (§32.5 retired §14.9's). ── */
 
 // ═══════════════════════════════════════════════════════════════════════
 // CHECKLIST DATA — one item focused at a time (cursor). Comments/
@@ -1592,6 +1559,15 @@ function updateFooter() {
 // ask; the bar just confirms moving on to whatever the next configured
 // step actually is.
 function renderPromptBar() {
+  // A REVISIT (§32.9): the checklist was completed earlier in this run, so
+  // the question is NOT asked again — its answer is pinned in the run. The
+  // bar returns to the current step instead; the same gate (every required
+  // item answered, last item reached) still decides when it shows.
+  if (woRunRevisitStep) {
+    document.getElementById('promptBar').innerHTML =
+      `<div class="prompt-seg"><button class="bar-pill bar-pill-ready" onclick="woRunBackToCursor()">Back to ${WO_STEP_LABELS[woRunRevisitStep]}</button></div>`;
+    return;
+  }
   const includesIssueParts = !CURRENT_WORKFLOW || CURRENT_WORKFLOW.steps.includes('issueparts');
   document.getElementById('promptBar').innerHTML = includesIssueParts
     ? `<div class="prompt-question">Do you need to issue parts?</div>
@@ -1635,20 +1611,30 @@ function goNext() {
     showToast(`Required: ${incomplete.label}`);
   }
 }
-// Auto-advance (2026-10-21, UXR feedback): confirming a check-type item moves on
-// to the next one. Scoped to `check` ONLY — a single tap is a complete answer
-// there, whereas number/text/slider/multi-select entries are still being
-// composed and would feel aggressive. Un-confirming (2nd tap) never advances,
-// the last item has nowhere to go, and the short delay lets the confirmed state
-// register; the cursor guard drops it if the user navigated away in the meantime.
+// AUTO-ADVANCE ON ANY TAP ANSWER (§16.1, widened 2026-10-23, user direction —
+// was check-only from 2026-10-21). A tap is a complete answer: a check, or one
+// option of a Yes/No or Pass/Fail/N/A toggle. Answers composed rather than
+// tapped NEVER advance — number and text entry (the keyboard is up, and the
+// value is still being typed) and the slider (it is adjusted, and releasing it
+// is not a decision). Un-confirming a check never advances, the last item has
+// nowhere to go, and the short delay lets the selected state register; the
+// cursor guard drops it if the user navigated away in the meantime. A toggle
+// that reveals follow-up items (dynamicRules) inserts them right after this
+// one, so the advance lands on the first follow-up, never past it.
 const CHECK_ADVANCE_MS = 350;
+function autoAdvanceFrom(from) {
+  setTimeout(() => { if (cursor === from && cursor < ITEMS.length - 1 && !showingInstructions) goNext(); }, CHECK_ADVANCE_MS);
+}
 function setCheck() {
   const it = ITEMS[cursor]; it.value = !it.value; if (it.dynamicRules) syncDynamicChildren(it); renderFocus();
   if (!it.value || showingInstructions) return;
-  const from = cursor;
-  setTimeout(() => { if (cursor === from && cursor < ITEMS.length - 1 && !showingInstructions) goNext(); }, CHECK_ADVANCE_MS);
+  autoAdvanceFrom(cursor);
 }
-function setToggle(label, cls) { const it = ITEMS[cursor]; it.value = label; if (it.dynamicRules) syncDynamicChildren(it); renderFocus(); }
+function setToggle(label, cls) {
+  const it = ITEMS[cursor]; it.value = label; if (it.dynamicRules) syncDynamicChildren(it); renderFocus();
+  if (showingInstructions) return;
+  autoAdvanceFrom(cursor);
+}
 function setNum(el) { const it = ITEMS[cursor]; it.value = el.value; if (it.dynamicRules) syncDynamicChildren(it); renderStepperHead(); updateFooter(); syncBannerDone(); }
 function setText(el) { const it = ITEMS[cursor]; it.value = el.value; if (it.dynamicRules) syncDynamicChildren(it); renderStepperHead(); updateFooter(); syncBannerDone(); }
 function setNote(el) { ITEMS[cursor].note = el.value; }
@@ -1974,6 +1960,9 @@ function closeOverview() { document.getElementById('overviewOverlay').classList.
 // uses, so Book Labor's arrival banner/Add-Labor auto-open (§18.7) fires
 // correctly whichever step actually preceded it. ──────────────────────
 function promptAnswer(issuedParts) {
+  // The question is a fork (§29.4): its answer is pinned in the run, once
+  // (§32.9), and decides what the rail previews as "Up next" from here on.
+  woRunPinFork('checklist', issuedParts ? 'issueparts' : 'booklabor', issuedParts ? 'Yes' : 'No');
   sessionStorage.setItem('eamArrivedViaNextStep', 'true');
   sessionStorage.setItem('eamOpenDemoWo', DEMO_WO);
   window.location.href = issuedParts ? WO_STEP_FILES.issueparts : WO_STEP_FILES.booklabor;

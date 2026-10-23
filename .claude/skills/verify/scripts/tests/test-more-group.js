@@ -37,7 +37,7 @@
    shouldn't try. */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 
-const SHARED = path.join('C:/Users/dkilburn/Projects/eam-mobile/prototypes/standalone/shared/eam-shared.js');
+const SHARED = path.join(__dirname, '..', '..', '..', '..', '..', 'prototypes/standalone/shared/eam-shared.js');
 
 let fail = 0;
 function ok(label, pass, detail) {
