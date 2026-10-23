@@ -664,6 +664,23 @@ node (real 390px emulator, not scaled).
   path is live on load: library entries disable with the reason, the node
   outlines in error red, a Banner counts them. A **family** switch confirms
   first; a clone switch inside a family does not.
+- **§32.13'S COMPOSITION RULES ARE BUILT** — `compositionIssues(w)`, pure, recomputed
+  every paint (`canvasIssues` memoizes one paint only). It walks **every path**
+  (`wfPaths()`, ≤2^forks) through `isForkKind()`/`forkBranches()`, so a fork routing
+  *around* a Start Timer warns on the Stop, naming the answer. Severity lands on the
+  node: **Error** = `node--err` + message, **Warning** = tag (full text when selected),
+  **Info** = a note in that node's editor via `nodeInfoHtml()`. **An Error refuses
+  assignment** through `assignErrorRefusal()`, checked *beside* `wouldClash()` on both
+  sides (`openAssign`/`toggleAssign`, `openGroupAssign`/`groupAssignPick`); assigned rows
+  are never touched, the card gets `wfc--err`, and **saving is never blocked**.
+  **"Completing" is WO-entity only** (`isCompletingNode()`, `sys:'C'` on the status
+  lists). **WO Closing is refused in More** at both drops *and* in `moveToRef()`
+  (`CLOSING_IN_MORE_MSG`). **Nothing precedes RV1**: clamped in `flowDrop()`,
+  `addNodeToWf()` (`minFlowIndex()`) and `normalizeWf()`; the actions right after it are
+  labeled **On Start Work** (`startWorkActions()`). A condition fork whose field
+  `validateForks()` clears **stays in error**. `visible` is deleted from node rows on
+  load. **Left: ADMN 8.13 (tab permissions)** — the portal has no per-group tab-permission
+  data, §20.
 - **`isStepKind()` — a UDS IS a step** (§29.5). It replaced every
   `kind==='step'` test in sequencing, N/A propagation and fork targets, so a
   UDS numbers, gates and gets skipped exactly like a delivered tab. Don't
@@ -1084,6 +1101,10 @@ More than one person pushes to this repo, and `master` deploys to Pages on merge
   spec § in the PR, and **flag a locked-rule conflict before acting, not after**.
 - **Checks:** `.claude/skills/verify/scripts/` — `bump-assets.js` on any stamped asset,
   `check-keyboard.js` on a sheet with a text input, the relevant `tests/test-*.js`.
+  **In a worktree, check which checkout a test reads**: `run-load.js` now resolves the repo
+  root from its own location, but `check-scope.js`, `test-booking-pullup.js`,
+  `test-bottom-reserve.js`, `test-editors.js` and `test-more-group.js` still hardcode the
+  main checkout's path, so from a worktree they test `master`'s files and pass regardless.
 - **Memory files named in this document are one person's local notes** and won't exist
   here. The repo docs are the source of truth; treat a dangling memory pointer as
   context, not a missing file to hunt for.
