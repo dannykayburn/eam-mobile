@@ -674,6 +674,25 @@ option,optgroup{
 .tbar__d{font-size:var(--uxt-theme-typography-body-2-font-size);color:var(--fg-muted);line-height:1.55;
   max-width:660px;margin-top:6px;}
 .tbar__r{margin-left:auto;display:flex;align-items:center;gap:var(--s-2);flex-shrink:0;}
+/* SCREEN LAYOUTS (§30.27) — one section per screen, one slot per type. */
+.slsec{margin-bottom:var(--s-5);}
+.slgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:var(--s-3);padding:var(--s-4);}
+.slslot{border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:var(--s-3);
+  display:flex;flex-direction:column;gap:var(--s-2);min-height:118px;}
+.slslot--empty{border-style:dashed;}
+.slslot__t{display:flex;align-items:center;gap:var(--s-2);font-weight:500;}
+.slslot__t .eyebrow{margin-left:auto;}
+.slslot__inh{color:var(--fg-faint);font-size:var(--uxt-theme-typography-caption-font-size);}
+.slrow{display:flex;align-items:center;gap:var(--s-2);padding:6px 8px;border-radius:var(--radius-sm);
+  background:var(--bg-app);cursor:pointer;}
+.slrow:hover{background:var(--bg-hover);}
+.slrow__t{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.slrow__n{font-family:var(--font-mono);color:var(--fg-muted);}
+.slrow--hit{box-shadow:inset 0 0 0 2px var(--accent);}
+.slrow--dim{background:transparent;color:var(--fg-faint);}
+.slrow--dlv{background:transparent;color:var(--fg-muted);cursor:default;border:1px dashed var(--border-subtle);}
+.slrow--dlv:hover{background:transparent;}
+.sladd{color:var(--accent);background:none;border:0;padding:4px 0;text-align:left;cursor:pointer;font:inherit;}
 .galgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(348px,1fr));gap:var(--s-4);}
 
 /* Flow vs Free Form reads as SHAPE — solid vs dashed leading edge. No second
@@ -1532,7 +1551,7 @@ option,optgroup{
       </div>
     </div>
 
-    <button class="rail__row rail__row--primary" onclick="createForArea()">
+    <button class="rail__row rail__row--primary" onclick="createForArea(event)">
       <span class="ms ms-18">add</span><span id="railCreateLabel">Create workflow</span>
     </button>
 
@@ -1541,6 +1560,11 @@ option,optgroup{
       <span class="ms ms-18">account_tree</span>
       <span class="rail__row-label">Workflows</span>
       <span class="rail__row-count" id="railWfCount">0</span>
+    </button>
+    <button class="rail__row" id="railScreens" onclick="setArea('screens')">
+      <span class="ms ms-18">view_quilt</span>
+      <span class="rail__row-label">Screen Layouts</span>
+      <span class="rail__row-count" id="railScreensCount">0</span>
     </button>
     <button class="rail__row" id="railHome" onclick="setArea('home')">
       <span class="ms ms-18">dashboard</span>
@@ -1895,7 +1919,7 @@ function fnHasTab(w, tabId){
    worked around (§26.5.1) — the fix is Screen Designer or Function
    Permissions, and silently dropping the step would hide a dead end. */
 function capabilityGaps(w){
-  if(!w) return [];
+  if(!w || w.screen) return [];
   return w.nodes.filter(nd => nd.kind === 'step' && !fnHasTab(w, nd.step));
 }
 
@@ -1994,6 +2018,27 @@ const STEP_LIB = [
   {id:'comments',   label:'Comments',    icon:'message',   grp:'Record tabs', api:'WSJOBS_CMT'},
   {id:'documents',  label:'Documents',   icon:'clip',      grp:'Record tabs', api:'WSJOBS_DOC'},
   {id:'equipment',  label:'Equipment',   icon:'wrench',    grp:'Record tabs', api:'WSJOBS_EQP'},
+  /* SCREEN LAYOUT TABS (§30.27). `screen` scopes an entry to one screen's
+     library: a workflow never offers these, and a screen layout offers only
+     its own screen's. Equipment's ten child tabs are the record view
+     prototype's own, in its order; OSOBJA is base's Asset page. The Work
+     Request and Operator Checklist codes are placeholders. */
+  {id:'eq_record',    label:'Record View',       icon:'file',      screen:'equipment',   api:'OSOBJA'},
+  {id:'eq_comments',  label:'Comments',          icon:'message',   screen:'equipment',   api:'OSOBJA_CMT'},
+  {id:'eq_documents', label:'Documents',         icon:'clip',      screen:'equipment',   api:'OSOBJA_DOC'},
+  {id:'eq_events',    label:'Events',            icon:'list',      screen:'equipment',   api:'OSOBJA_EVT'},
+  {id:'eq_costs',     label:'Costs',             icon:'layers',    screen:'equipment',   api:'OSOBJA_CST'},
+  {id:'eq_pm',        label:'PM Schedules',      icon:'clock',     screen:'equipment',   api:'OSOBJA_PM'},
+  {id:'eq_structure', label:'Structure Details', icon:'route',     screen:'equipment',   api:'OSOBJA_STR'},
+  {id:'eq_depr',      label:'Depreciation',      icon:'down',      screen:'equipment',   api:'OSOBJA_DEP'},
+  {id:'eq_meters',    label:'Meters',            icon:'sliders',   screen:'equipment',   api:'OSOBJA_MTR'},
+  {id:'eq_warranty',  label:'Warranties',        icon:'checkc',    screen:'equipment',   api:'OSOBJA_WAR'},
+  {id:'eq_parts',     label:'Parts Associated',  icon:'box',       screen:'equipment',   api:'OSOBJA_PRT'},
+  {id:'wr_record',    label:'Record View',       icon:'file',      screen:'workrequest', api:'WSREQS'},
+  {id:'wr_comments',  label:'Comments',          icon:'message',   screen:'workrequest', api:'WSREQS_CMT'},
+  {id:'wr_documents', label:'Documents',         icon:'clip',      screen:'workrequest', api:'WSREQS_DOC'},
+  {id:'oc_record',    label:'Checklist',         icon:'clipboard', screen:'opchecklist', api:'OSOPCL'},
+  {id:'oc_comments',  label:'Comments',          icon:'message',   screen:'opchecklist', api:'OSOPCL_CMT'},
 ];
 function libEntry(id){ return STEP_LIB.find(s=>s.id===id) || null; }
 function stepLabel(id){ const e = libEntry(id); return e ? e.label : id; }
@@ -2206,6 +2251,164 @@ const BEHAVIORS = [
   {k:'na',   t:'Not Available', d:'Struck through — the field exists but has no value here', bar:''},
 ];
 function behaviorMeta(b){ return BEHAVIORS.find(x=>x.k===b) || BEHAVIORS[1]; }
+
+/* SCREEN LAYOUT RECORD VIEWS (§30.27). Equipment's fields are the Equipment
+   record view prototype's own (FIELD_LABELS / RECORD there), not an export —
+   §20 says so. The other two are minimal placeholders. */
+Object.assign(LAYOUTS, {
+  eq_record: [
+    {container:'Header Fields', layout:'grid', display:'expanded', std:true, fields:[
+      {name:'Department', api:'OSOBJA_DEPT', type:'lov', behavior:'req', span:1},
+      {name:'Criticality', api:'OSOBJA_CRIT', type:'lov', behavior:'req', span:1},
+      {name:'Class', api:'OSOBJA_CLASS', type:'lov', behavior:'opt', span:1},
+      {name:'Category', api:'OSOBJA_CATEGORY', type:'lov', behavior:'opt', span:1},
+      {name:'Assigned To', api:'OSOBJA_ASSIGNEDTO', type:'lov', behavior:'opt', span:2},
+    ]},
+    {container:'Equipment Details', layout:'list', display:'expanded', std:true, fields:[
+      {name:'PM WO Department', api:'OSOBJA_PMWODEPT', type:'lov', behavior:'opt'},
+      {name:'Cost Code', api:'OSOBJA_COSTCODE', type:'lov', behavior:'opt'},
+      {name:'Organization', api:'OSOBJA_ORG', type:'lov', behavior:'prot'},
+    ]},
+    {container:'Nameplate', layout:'list', display:'collapsed', std:true, fields:[
+      {name:'Manufacturer', api:'OSOBJA_MANUFACT', type:'lov', behavior:'opt'},
+      {name:'Model', api:'OSOBJA_MODEL', type:'text', behavior:'opt'},
+      {name:'Serial Number', api:'OSOBJA_SERIALNO', type:'text', behavior:'opt'},
+      {name:'Equipment Value', api:'OSOBJA_EQUIPVALUE', type:'num', behavior:'opt'},
+      {name:'Alias', api:'OSOBJA_ALIAS', type:'text', behavior:'opt'},
+    ]},
+  ],
+  wr_record: [
+    {container:'Header Fields', layout:'grid', display:'expanded', std:true, fields:[
+      {name:'Equipment', api:'WSREQS_EQUIP', type:'lov', behavior:'req', span:2},
+      {name:'Location', api:'WSREQS_LOC', type:'lov', behavior:'opt', span:2},
+      {name:'Priority', api:'WSREQS_PRI', type:'lov', behavior:'opt', span:1},
+      {name:'Status', api:'WSREQS_STATUS', type:'lov', behavior:'req', span:1},
+    ]},
+    {container:'Request Details', layout:'list', display:'expanded', std:true, fields:[
+      {name:'Problem Code', api:'WSREQS_PROB', type:'lov', behavior:'opt'},
+      {name:'Requested By', api:'WSREQS_REQBY', type:'lov', behavior:'prot'},
+      {name:'Date Requested', api:'WSREQS_DATEREQ', type:'date', behavior:'prot'},
+    ]},
+  ],
+  /* Child tabs: the List/Detail card fields each tab shows, from the
+     Equipment record view prototype's own fieldDefs. Comments and Documents
+     take the same shape as the WO ones. */
+  eq_comments: [
+    {container:'Comment', layout:'list', fields:[
+      {name:'Comment Type', api:'OBJ_CMT_TYPE', type:'lov', behavior:'req'},
+      {name:'Comment', api:'OBJ_CMT_TEXT', type:'text', behavior:'req'},
+      {name:'Created By', api:'OBJ_CMT_BY', type:'text', behavior:'prot'},
+      {name:'Created', api:'OBJ_CMT_DATE', type:'date', behavior:'prot'},
+    ]},
+  ],
+  eq_documents: [
+    {container:'Document', layout:'list', fields:[
+      {name:'Document', api:'OBJ_DOC_CODE', type:'text', behavior:'prot'},
+      {name:'Description', api:'OBJ_DOC_DESC', type:'text', behavior:'opt'},
+      {name:'Category', api:'OBJ_DOC_CAT', type:'lov', behavior:'opt'},
+      {name:'Uploaded', api:'OBJ_DOC_DATE', type:'date', behavior:'prot'},
+    ]},
+  ],
+  eq_events: [
+    {container:'Event', layout:'list', fields:[
+      {name:'Event', api:'OBJ_EVT', type:'text', behavior:'prot'},
+      {name:'Description', api:'OBJ_EVT_DESC', type:'text', behavior:'prot'},
+      {name:'Date', api:'OBJ_EVT_DATE', type:'date', behavior:'prot'},
+    ]},
+  ],
+  eq_costs: [
+    {container:'Cost', layout:'list', fields:[
+      {name:'Work Order', api:'OBJ_CST_WO', type:'text', behavior:'prot'},
+      {name:'Total Cost', api:'OBJ_CST_TOTAL', type:'num', behavior:'prot'},
+    ]},
+  ],
+  eq_pm: [
+    {container:'PM Schedule', layout:'list', fields:[
+      {name:'Schedule', api:'OBJ_PM_DESC', type:'text', behavior:'prot'},
+      {name:'PM Code · Frequency', api:'OBJ_PM_CODE', type:'text', behavior:'prot'},
+      {name:'Next Due', api:'OBJ_PM_DUE', type:'date', behavior:'prot'},
+    ]},
+  ],
+  eq_structure: [
+    {container:'Structure', layout:'list', fields:[
+      {name:'Parent', api:'OBJ_STR_PARENT', type:'lov', behavior:'prot'},
+      {name:'Child', api:'OBJ_STR_CHILD', type:'lov', behavior:'prot'},
+      {name:'Rollup', api:'OBJ_STR_ROLLUP', type:'bool', behavior:'opt'},
+    ]},
+  ],
+  eq_depr: [
+    {container:'Depreciation', layout:'list', fields:[
+      {name:'Year', api:'OBJ_DEP_YEAR', type:'num', behavior:'prot'},
+      {name:'Basis', api:'OBJ_DEP_BASIS', type:'text', behavior:'prot'},
+      {name:'Book Value', api:'OBJ_DEP_VALUE', type:'num', behavior:'prot'},
+    ]},
+  ],
+  eq_meters: [
+    {container:'Meter', layout:'list', fields:[
+      {name:'Meter', api:'OBJ_MTR', type:'lov', behavior:'prot'},
+      {name:'Last Reading', api:'OBJ_MTR_DATE', type:'date', behavior:'prot'},
+      {name:'Value', api:'OBJ_MTR_VALUE', type:'num', behavior:'prot'},
+    ]},
+  ],
+  eq_warranty: [
+    {container:'Warranty', layout:'list', fields:[
+      {name:'Provider', api:'OBJ_WAR_PROV', type:'lov', behavior:'prot'},
+      {name:'Coverage', api:'OBJ_WAR_COV', type:'text', behavior:'prot'},
+      {name:'Status', api:'OBJ_WAR_STATUS', type:'lov', behavior:'prot'},
+    ]},
+  ],
+  eq_parts: [
+    {container:'Part', layout:'list', fields:[
+      {name:'Part', api:'OBJ_PRT', type:'lov', behavior:'prot'},
+      {name:'Part Code', api:'OBJ_PRT_CODE', type:'text', behavior:'prot'},
+      {name:'Qty on Hand', api:'OBJ_PRT_QTY', type:'num', behavior:'prot'},
+    ]},
+  ],
+  wr_comments: [
+    {container:'Comment', layout:'list', fields:[
+      {name:'Comment', api:'REQ_CMT_TEXT', type:'text', behavior:'req'},
+      {name:'Created By', api:'REQ_CMT_BY', type:'text', behavior:'prot'},
+    ]},
+  ],
+  wr_documents: [
+    {container:'Document', layout:'list', fields:[
+      {name:'Document', api:'REQ_DOC_CODE', type:'text', behavior:'prot'},
+      {name:'Description', api:'REQ_DOC_DESC', type:'text', behavior:'opt'},
+    ]},
+  ],
+  oc_comments: [
+    {container:'Comment', layout:'list', fields:[
+      {name:'Comment', api:'OPC_CMT_TEXT', type:'text', behavior:'req'},
+      {name:'Created By', api:'OPC_CMT_BY', type:'text', behavior:'prot'},
+    ]},
+  ],
+  oc_record: [
+    {container:'Header Fields', layout:'grid', display:'expanded', std:true, fields:[
+      {name:'Equipment', api:'OSOPCL_EQUIP', type:'lov', behavior:'req', span:2},
+      {name:'Checklist Date', api:'OSOPCL_DATE', type:'date', behavior:'prot', span:1},
+      {name:'Performed By', api:'OSOPCL_PERFBY', type:'lov', behavior:'prot', span:1},
+    ]},
+  ],
+});
+Object.assign(FIELD_CANDIDATES, {
+  eq_record: [
+    {name:'Location', api:'OSOBJA_LOC', type:'lov'},
+    {name:'Position', api:'OSOBJA_POS', type:'lov'},
+    {name:'Commission Date', api:'OSOBJA_COMMISS', type:'date'},
+    {name:'Purchase Date', api:'OSOBJA_PURCHDATE', type:'date'},
+    {name:'Vendor', api:'OSOBJA_VENDOR', type:'lov'},
+    {name:'Production', api:'OSOBJA_PRODUCTION', type:'bool'},
+    {name:'Safety', api:'OSOBJA_SAFETY', type:'bool'},
+    {name:'Out of Service', api:'OSOBJA_OUTOFSERV', type:'bool'},
+  ],
+  wr_record: [
+    {name:'Contact Phone', api:'WSREQS_PHONE', type:'text'},
+    {name:'Department', api:'WSREQS_DEPT', type:'lov'},
+  ],
+  oc_record: [
+    {name:'Shift', api:'OSOPCL_SHIFT', type:'lov'},
+  ],
+});
 
 /* One environment, one group list — the same one both eam-screen-designer
    and eam-user-group-setup carry. */
@@ -2913,8 +3116,126 @@ const ARTIFACT_TYPES = {
              cardinality:'multi-group', create:'modal', area:'offline'},
   home:     {label:'Home layout',    plural:'Home Layouts',    icon:'dashboard',
              cardinality:'per-group',  create:'canvas', area:'home'},
+  /* §30.27. `per-type` IS `per-wotype` WITH THE AXIS AS A PARAMETER: one
+     per (group, screen, type value) plus one fallback per (group, screen).
+     The slot is read only through slSlot(), for the same reason wfSlot()
+     exists. */
+  screen:   {label:'Screen layout',  plural:'Screen Layouts',  icon:'layout',
+             cardinality:'per-type',   create:'canvas', area:'screens'},
 };
 function artType(t){ return ARTIFACT_TYPES[t] || null; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SCREEN LAYOUTS (§30.27) — the workflow paradigm with Free Form always on
+   ═══════════════════════════════════════════════════════════════════════
+   A screen layout IS a workflow object as far as the editor is concerned —
+   same nodes, same deep-copied per-node layout, same Screen Designer panel —
+   which is the whole reason wf() reads both stores. What it does not carry
+   is anything only a sequence needs: no WO Type, no function picker, no
+   actions, no forks, no gates. `freeForm` is pinned true by normalizeSl().
+
+   EACH SCREEN DECLARES ITS TYPE AXIS, OR NONE. Equipment's is the system
+   type, exactly as §26.8 locked it — not class. A screen with no axis has
+   only a Fallback slot.
+   ═══════════════════════════════════════════════════════════════════════ */
+const SCREENS = [
+  {id:'equipment', label:'Equipment', icon:'wrench', fn:'EQUIPMENT', record:'eq_record',
+   axis:{label:'System type', values:[
+     {code:'A', desc:'Asset'}, {code:'P', desc:'Position'},
+     {code:'S', desc:'System'}, {code:'L', desc:'Location'}]}},
+  {id:'workrequest', label:'Work Request',       icon:'flag',      fn:null, record:'wr_record', axis:null},
+  {id:'opchecklist', label:'Operator Checklist', icon:'clipboard', fn:null, record:'oc_record', axis:null},
+];
+function screenDef(id){ return SCREENS.find(s => s.id === id) || null; }
+function slTypeDesc(screenId, code){
+  const s = screenDef(screenId);
+  if(!code || !s || !s.axis) return 'Fallback';
+  const v = s.axis.values.find(x => x.code === code);
+  return v ? v.desc : code;
+}
+/* THE SLOT A SCREEN LAYOUT OCCUPIES ON A GROUP — the screen plus the type or
+   its absence. One reader, like wfSlot(). */
+function slSlot(sl){ return sl.screen + '|' + (sl.sysType || 'FALLBACK'); }
+function slSlotLabel(slot){
+  const p = slot.split('|'); const s = screenDef(p[0]);
+  return (s ? s.label : p[0]) + ' ' + (p[1] === 'FALLBACK' ? 'fallback' : slTypeDesc(p[0], p[1]));
+}
+
+let SLS = [];
+const LS_SLS = 'eamScreenLayouts';
+function saveSLS(){ try{ localStorage.setItem(LS_SLS, JSON.stringify(SLS)); }catch(e){} }
+function normalizeSl(sl){
+  if(!sl) return sl;
+  const s = screenDef(sl.screen);
+  /* Free Form is not a choice here, so it is set rather than defaulted. */
+  sl.freeForm = true;
+  delete sl.woType;
+  if(!sl.notes) sl.notes = '';
+  if(s && s.axis && sl.sysType && !s.axis.values.some(v => v.code === sl.sysType)) sl.sysType = null;
+  if(!s || !s.axis) sl.sysType = null;
+  normalizeWf(sl);
+  /* No function picker: the screen decides the function. */
+  sl.fn = s ? s.fn : null;
+  /* The record view is pinned first, as on a workflow. */
+  const pi = sl.nodes.findIndex(n => n.pinned);
+  if(pi > 0) sl.nodes.unshift(sl.nodes.splice(pi, 1)[0]);
+  return sl;
+}
+function mkSl(screenId, sysType, desc, tabs, id){
+  const s = screenDef(screenId);
+  const sl = {id:id || 'sl-' + Math.random().toString(36).slice(2,8), screen:screenId,
+    sysType:sysType || null, desc:desc || '', notes:'', freeForm:true, updated:todayStr(), nodes:[]};
+  if(s) sl.nodes.push(mkNode(s.record, {pinned:true}));
+  (tabs || []).forEach(tab => sl.nodes.push(mkNode(tab, {})));
+  return normalizeSl(sl);
+}
+/* Demo set. The Asset slot holds THREE layouts on purpose: that is how groups
+   differ (§30.27), and it is the shape a migrated customer will have. */
+function defaultScreenLayouts(){
+  const out = [
+    mkSl('equipment', null, 'Equipment standard', ['eq_comments','eq_documents','eq_events','eq_meters'], 'sl-eq-std'),
+    mkSl('equipment', 'A', 'Asset — field tech', ['eq_comments','eq_documents','eq_events','eq_pm','eq_meters','eq_parts'], 'sl-eq-asset-tech'),
+    mkSl('equipment', 'A', 'Asset — stores', ['eq_parts','eq_documents'], 'sl-eq-asset-stores'),
+    mkSl('equipment', 'A', 'Asset — electrical', ['eq_meters','eq_warranty','eq_documents'], 'sl-eq-asset-elec'),
+    mkSl('equipment', 'P', 'Position standard', ['eq_structure','eq_comments'], 'sl-eq-pos'),
+    mkSl('workrequest', null, 'Work request standard', ['wr_comments','wr_documents'], 'sl-wr-std'),
+    mkSl('opchecklist', null, 'Operator checklist standard', ['oc_comments'], 'sl-oc-std'),
+  ];
+  /* Stores never sees criticality — one real per-group difference, so the
+     three Asset layouts are not three copies. */
+  const st = out[2].nodes[0].layout[0].fields.find(f => f.name === 'Criticality');
+  if(st) st.behavior = 'hid';
+  return out;
+}
+function seedScreenAssignments(){
+  if(ASSIGN.some(r => r.type === 'screen')) return;
+  const add = (id, gs) => gs.forEach(g => ASSIGN.push({type:'screen', artifactId:id, group:g}));
+  add('sl-eq-std', ['DK','MAINT-TECH','SUPERVISOR','TRANSPORT','CONTRACTOR','SALES-ENG','DC-OPS','STORES']);
+  add('sl-eq-asset-tech', ['DK','MAINT-TECH','SUPERVISOR','TRANSPORT','DC-OPS']);
+  add('sl-eq-asset-stores', ['STORES','SALES-ENG']);
+  add('sl-eq-asset-elec', ['CONTRACTOR']);
+  add('sl-eq-pos', ['DK','MAINT-TECH','SUPERVISOR','DC-OPS']);
+  add('sl-wr-std', ['DK','MAINT-TECH','SUPERVISOR','TRANSPORT','CONTRACTOR','SALES-ENG','DC-OPS','STORES']);
+  add('sl-oc-std', ['MAINT-TECH','DC-OPS','TRANSPORT']);
+  saveAssign();
+}
+function loadSLS(){
+  try{
+    const raw = localStorage.getItem(LS_SLS);
+    const parsed = raw ? JSON.parse(raw) : null;
+    if(Array.isArray(parsed) && parsed.length){
+      SLS = parsed; SLS.forEach(normalizeSl);
+      SLS.forEach(w => (w.nodes||[]).forEach(n => {
+        const m = /^n(\d+)-/.exec(n.nid||''); if(m) nidSeq = Math.max(nidSeq, +m[1]+1);
+      }));
+      seedScreenAssignments();
+      return;
+    }
+  }catch(e){}
+  SLS = defaultScreenLayouts();
+  saveSLS();
+  seedScreenAssignments();
+}
 
 /* ── THE MEMBERSHIP TABLE ── */
 let ASSIGN = [];
@@ -3866,6 +4187,7 @@ let state = {
   openProfile:null,   // offline profile being edited
   openHome:null,      // home layout being edited
   selGroup:null,      // the group shown in the User Groups area
+  slLens:null,        // Screen Layouts' "Viewing as" group — a FILTER, never the editing key (§30.27)
   filter:'all',       // 'all' | 'flow' | 'free'
   q:'',
   selNid:null,        // the node whose designer panel is open
@@ -3882,6 +4204,8 @@ let fieldDrag = null; // {cIdx, fIdx} inside the designer panel
 
 function saveWFS(){
   try{ localStorage.setItem(LS_KEY, JSON.stringify(WFS)); }catch(e){}
+  /* Every editor write lands here, and the editor also edits screen layouts. */
+  saveSLS();
 }
 function savePortal(){
   try{
@@ -4083,7 +4407,7 @@ function loadWFS(){
 }
 function resetPortal(){
   try{
-    [LS_KEY, LS_ASSIGN, LS_PROFILES, LS_TILES, LS_HOMES].forEach(k => localStorage.removeItem(k));
+    [LS_KEY, LS_ASSIGN, LS_PROFILES, LS_TILES, LS_HOMES, LS_SLS].forEach(k => localStorage.removeItem(k));
   }catch(e){}
   ASSIGN = []; PROFILES = []; TILES = []; HOMES = [];
   seedPortalDemo();
@@ -4096,13 +4420,18 @@ function resetPortal(){
      leaves three areas with artifacts nobody is assigned — which reads as
      the areas being broken rather than as a clean slate. */
   seedDemoAssignments();
+  SLS = defaultScreenLayouts();
+  seedScreenAssignments();
+  state.slLens = null;
   saveWFS();
   state.view='gallery'; state.wfId=null; state.selNid=null; state.dsnOpen=false;
   state.area='workflows'; state.openProfile=null; state.openHome=null; state.selGroup=null;
   render();
   toast('Demo data reset');
 }
-function wf(){ return WFS.find(w=>w.id===state.wfId) || null; }
+/* Reads BOTH stores (§30.27): a screen layout is edited by the same editor,
+   so everything that edits through wf() works on it unchanged. */
+function wf(){ return WFS.find(w=>w.id===state.wfId) || SLS.find(w=>w.id===state.wfId) || null; }
 
 /* ── MIGRATION / NORMALISATION ──
    Called on every load and every create. Persisted workflows predate the
@@ -4602,7 +4931,7 @@ function wfHasConflict(w){
 function render(){
   renderCrumb();
   const lbl = $('railCreateLabel');
-  if(lbl) lbl.textContent = {offline:'Create profile', home:'Create layout', groups:'No insert here'}[state.area] || 'Create workflow';
+  if(lbl) lbl.textContent = {offline:'Create profile', home:'Create layout', screens:'Create layout', groups:'No insert here'}[state.area] || 'Create workflow';
   const editing = state.view === 'edit';
   $('gallery').style.display = editing ? 'none' : 'block';
   $('edit').style.display    = editing ? 'flex' : 'none';
@@ -4618,12 +4947,16 @@ function render(){
 
 function renderCrumb(){
   const w = wf();
-  const areaName = {workflows:'Workflows', offline:'Offline Profiles', home:'Home Layouts', groups:'User Groups'}[state.area] || 'Workflows';
+  const areaName = {workflows:'Workflows', screens:'Screen Layouts', offline:'Offline Profiles', home:'Home Layouts', groups:'User Groups'}[state.area] || 'Workflows';
   let tail = '<span class="app-bar__crumb-current">' + areaName + '</span>';
   if(state.area === 'workflows' && state.view === 'edit'){
     tail = '<button class="app-bar__crumb-link" onclick="backToGallery()">Workflows</button>' +
       '<span class="app-bar__crumb-sep">' + ic('chevR',16) + '</span>' +
       '<span class="app-bar__crumb-current">' + esc(w ? (w.desc || 'Untitled workflow') : '') + '</span>';
+  } else if(state.area === 'screens' && state.view === 'edit'){
+    tail = '<button class="app-bar__crumb-link" onclick="backToGallery()">Screen Layouts</button>' +
+      '<span class="app-bar__crumb-sep">' + ic('chevR',16) + '</span>' +
+      '<span class="app-bar__crumb-current">' + esc(w ? (w.desc || 'Untitled layout') : '') + '</span>';
   } else if(state.area === 'offline' && state.openProfile){
     const p = artifactOf('offline', state.openProfile);
     tail = '<button class="app-bar__crumb-link" onclick="closeProfile()">Offline Profiles</button>' +
@@ -4645,11 +4978,12 @@ function renderCrumb(){
   const set = (id, v) => { const el = $(id); if(el) el.textContent = String(v); };
   set('railWfCount', WFS.length);
   set('railHomeCount', HOMES.length);
+  set('railScreensCount', SLS.length);
   set('railOfflineCount', PROFILES.length);
   /* The group count, not a conflict count — a badge that silently changes
      meaning when something is wrong is the summary pattern in miniature. */
   set('railGroupsCount', GROUPS.length);
-  [['railWorkflows','workflows'],['railHome','home'],['railOffline','offline'],['railGroups','groups']]
+  [['railWorkflows','workflows'],['railScreens','screens'],['railHome','home'],['railOffline','offline'],['railGroups','groups']]
     .forEach(([id, a]) => {
       const el = $(id);
       if(el && el.classList) el.classList.toggle('rail__row--active', state.area === a);
@@ -4666,6 +5000,7 @@ function setArea(a){
   state.view = 'gallery';
   state.openProfile = null;
   state.openHome = null;
+  state.wfId = null;
   closeMenu(); closePop();
   render();
 }
@@ -4673,7 +5008,8 @@ function setArea(a){
 /* The rail's one verb follows the area, so Create always means "create the
    thing this area holds" — a single Create that always made a workflow would
    be a trap in three of the four areas. */
-function createForArea(){
+function createForArea(ev){
+  if(state.area === 'screens') return openSlCreate(ev);
   if(state.area === 'offline') return createProfile();
   if(state.area === 'home') return createHome();
   if(state.area === 'groups') return toast('Groups are created in Security ▸ User Groups, never here');
@@ -4746,6 +5082,8 @@ function assignRuleText(type){
   const t = artType(type);
   if(t.cardinality === 'per-wotype')
     return 'A group may have one workflow per WO Type, and one Free Form.';
+  if(t.cardinality === 'per-type')
+    return 'A group may have one layout per screen and type, and one fallback per screen.';
   if(t.cardinality === 'multi-group')
     return 'A group may have several ' + t.plural.toLowerCase() +
       '. Past the first, the technician chooses one at login.';
@@ -4765,6 +5103,14 @@ function wouldClash(type, artifactId, group){
       return 'already has ' + (o ? artifactName(type, o) : 'another') + '';
     }
     return null;
+  }
+  if(t.cardinality === 'per-type'){
+    const sl = artifactOf('screen', artifactId); if(!sl) return null;
+    const key = slSlot(sl);
+    const o = ASSIGN.filter(r => r.type === 'screen' && r.group === group && r.artifactId !== artifactId)
+      .map(r => artifactOf('screen', r.artifactId)).filter(Boolean)
+      .find(x => slSlot(x) === key);
+    return o ? 'already has ' + esc(o.desc) + ' for ' + slSlotLabel(key) : null;
   }
   /* per-wotype. THE KEY IS THE WO TYPE OR ITS ABSENCE, AND Free Form NEVER
      ENTERS IT (§30.26). Free Form is a property any workflow may carry,
@@ -4800,14 +5146,16 @@ function artifactOf(type, id){
   if(type === 'workflow') return WFS.find(x => x.id === id) || null;
   if(type === 'offline') return PROFILES.find(x => x.id === id) || null;
   if(type === 'home') return HOMES.find(x => x.id === id) || null;
+  if(type === 'screen') return SLS.find(x => x.id === id) || null;
   return null;
 }
 function artifactName(type, art){
   if(!art) return '';
+  if(type === 'screen') return art.desc || 'Untitled layout';
   return type === 'workflow' ? (art.desc || 'Untitled workflow') : (art.name || 'Untitled');
 }
 function allArtifacts(type){
-  return type === 'workflow' ? WFS : type === 'offline' ? PROFILES : type === 'home' ? HOMES : [];
+  return type === 'workflow' ? WFS : type === 'offline' ? PROFILES : type === 'home' ? HOMES : type === 'screen' ? SLS : [];
 }
 
 /* ── Collisions across EVERY type, one function ──
@@ -4825,7 +5173,7 @@ function allConflicts(){
     const byKey = {};
     ASSIGN.filter(r => r.type === type).forEach(r => {
       const art = artifactOf(type, r.artifactId); if(!art) return;
-      const slot = t.cardinality === 'per-wotype' ? wfSlot(art) : 'ONE';
+      const slot = t.cardinality === 'per-wotype' ? wfSlot(art) : t.cardinality === 'per-type' ? slSlot(art) : 'ONE';
       const key = r.group + '|' + slot;
       (byKey[key] = byKey[key] || []).push(art);
     });
@@ -4838,7 +5186,9 @@ function allConflicts(){
           ? (slot === 'FALLBACK'
               ? 'is assigned ' + list.length + ' fallback workflows (no WO Type). A group may have only one.'
               : 'is assigned ' + list.length + ' workflows for WO Type ' + slot + '. A group may have only one per Type.')
-          : 'is assigned ' + list.length + ' ' + t.plural.toLowerCase() + '. A group may have exactly one.'});
+          : t.cardinality === 'per-type'
+            ? 'is assigned ' + list.length + ' layouts for ' + slSlotLabel(slot) + '. A group may have only one.'
+            : 'is assigned ' + list.length + ' ' + t.plural.toLowerCase() + '. A group may have exactly one.'});
     });
   });
   return out;
@@ -4870,8 +5220,251 @@ function renderArea(){
   const a = state.area;
   if(a === 'offline') return renderOfflineArea();
   if(a === 'home')    return renderHomeArea();
+  if(a === 'screens') return renderScreensArea();
   if(a === 'groups')  return renderGroupsArea();
   return renderGallery();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   AREA — SCREEN LAYOUTS (§30.27)
+   ═══════════════════════════════════════════════════════════════════════
+   One section per screen, and every value of its type axis drawn as a slot,
+   Fallback first. An empty slot SAYS it uses the fallback, so a gap is on
+   the screen rather than inferred from what is missing (§26.5 mechanic 2).
+   A slot holds several layouts — that is how groups differ — each carrying
+   its group count.
+
+   THE LENS IS A FILTER, NEVER THE EDITING KEY. Picking a group highlights
+   what resolves for it and dims the rest; it never changes what Open edits.
+   The one way to make a group-specific copy is Copy for <group> only, which
+   is base's Copy from Group made deliberate.
+   ═══════════════════════════════════════════════════════════════════════ */
+function slsFor(screenId, sysType){
+  return SLS.filter(sl => sl.screen === screenId && (sl.sysType || null) === (sysType || null));
+}
+/* What a group resolves to for one slot: its own layout, else (for a typed
+   slot) its fallback, else the delivered default. Three tiers, §30.26. */
+function slResolve(g, screenId, sysType){
+  const own = slsFor(screenId, sysType).find(sl => isAssigned('screen', sl.id, g));
+  if(own) return {tier:sysType ? 1 : 2, sl:own};
+  if(sysType){
+    const fb = slsFor(screenId, null).find(sl => isAssigned('screen', sl.id, g));
+    if(fb) return {tier:2, sl:fb};
+  }
+  return {tier:3, sl:null};
+}
+function slLensGroups(){ return GROUPS.filter(g => g !== '*'); }
+function setSlLens(g){ state.slLens = g || null; renderArea(); }
+function renderScreensArea(){
+  const lens = state.slLens;
+  const lensSel = '<div class="field" style="min-width:220px">' +
+    '<div class="field__label">Viewing as</div>' +
+    '<div class="input"><select id="slLens" onchange="setSlLens(this.value)">' +
+      '<option value=""' + (lens ? '' : ' selected') + '>All groups</option>' +
+      slLensGroups().map(g => '<option value="' + esc(g) + '"' + (lens === g ? ' selected' : '') + '>' + esc(g) + '</option>').join('') +
+    '</select>' + ic('chevD',20) + '</div></div>';
+  const body = SCREENS.map(s => slScreenSection(s, lens)).join('');
+  $('gallery').innerHTML = galleryShell({
+    title:'Screen Layouts',
+    desc:'A screen layout is screen design for a screen that is not a workflow: always Free Form, ' +
+      'one layout per type with a fallback, applied to user groups. Dragging a tab in shows it in this layout; ' +
+      'whether a group may open it stays with base tab permissions.',
+    actions:lensSel,
+    body:body,
+  });
+}
+function slScreenSection(s, lens){
+  const slots = [null].concat(s.axis ? s.axis.values.map(v => v.code) : []);
+  return '<div class="card slsec">' +
+    '<div class="card__head">' + ic(s.icon,16) + '<span class="card__title">' + esc(s.label) + '</span>' +
+      '<span class="eyebrow" style="margin-left:auto">' +
+        (s.axis ? 'Resolves on ' + esc(s.axis.label.toLowerCase()) : 'No type axis — fallback only') + '</span>' +
+    '</div>' +
+    '<div class="slgrid">' + slots.map(code => slSlotHtml(s, code, lens)).join('') + '</div>' +
+  '</div>';
+}
+function slSlotHtml(s, code, lens){
+  const list = slsFor(s.id, code);
+  const res = lens ? slResolve(lens, s.id, code) : null;
+  const rows = list.map(sl => {
+    const n = groupsOf('screen', sl.id).length;
+    const cls = lens ? (res.sl === sl ? ' slrow--hit' : ' slrow--dim') : '';
+    return '<div class="slrow' + cls + '" data-sl="' + sl.id + '" onclick="openWf(\'' + sl.id + '\')" title="Open in Screen Designer">' +
+      '<span class="slrow__t">' + esc(sl.desc || 'Untitled layout') + '</span>' +
+      '<span class="slrow__n" title="Groups this layout is applied to">' + n + '</span>' +
+      iconBtn('dots', {on:'event.stopPropagation();slMenu(event,\'' + sl.id + '\')', cls:'IconButton--sm IconButton--muted'}) +
+    '</div>';
+  }).join('');
+  /* The delivered default sits under the Fallback slot, read-only: it is
+     what a group with nothing assigned gets, and it has no membership row. */
+  const dlv = code ? '' :
+    '<div class="slrow slrow--dlv' + (lens && res.tier === 3 ? ' slrow--hit' : '') + '" ' +
+      'title="System delivered — read only. A group with no fallback falls through to it (§30.26).">' +
+      ic('lock',14) + '<span class="slrow__t">Delivered default</span></div>';
+  let inh = '';
+  if(!list.length && code) inh = '<div class="slslot__inh">No layouts — every group uses its fallback</div>';
+  if(lens && code && res.tier !== 1){
+    inh = '<div class="slslot__inh">' + esc(lens) + ' uses ' +
+      (res.sl ? 'Fallback: ' + esc(res.sl.desc) : 'the delivered default') + '</div>';
+  }
+  return '<div class="slslot' + (list.length ? '' : ' slslot--empty') + '" data-slot="' + s.id + '|' + (code || 'FALLBACK') + '">' +
+    '<div class="slslot__t">' + esc(slTypeDesc(s.id, code)) +
+      (list.length ? '<span class="eyebrow">' + list.length + '</span>' : '') + '</div>' +
+    rows + dlv + inh +
+    '<button class="sladd" onclick="createSl(\'' + s.id + '\',' + (code ? '\'' + code + '\'' : 'null') + ')">' +
+      ic('plus',14) + ' Add layout</button>' +
+  '</div>';
+}
+function slMenu(ev, id){
+  const sl = artifactOf('screen', id); if(!sl) return;
+  const lens = state.slLens;
+  const n = groupsOf('screen', id).length;
+  const canFork = lens && isAssigned('screen', id, lens) && n > 1;
+  openMenu(ev,
+    '<div class="menu__label">' + esc(sl.desc) + '</div>' +
+    '<div class="menu__item" onclick="closeMenu();openWf(\'' + id + '\')">' + ic('pencil',14) + ' Open in Screen Designer</div>' +
+    '<div class="menu__item" onclick="closeMenu();openAssign(event,\'screen\',\'' + id + '\')">' + ic('users',14) + ' Apply to groups' +
+      '<span class="menu__meta">' + n + '</span></div>' +
+    '<div class="menu__sep"></div>' +
+    (canFork
+      ? '<div class="menu__item" onclick="closeMenu();copySlForGroup(\'' + id + '\',\'' + esc(lens) + '\')">' + ic('copy',14) +
+          ' Copy for ' + esc(lens) + ' only<span class="menu__meta">moves ' + esc(lens) + '</span></div>'
+      : '') +
+    '<div class="menu__item" onclick="closeMenu();copySl(\'' + id + '\')">' + ic('copy',14) + ' Copy' +
+      '<span class="menu__meta">no groups</span></div>' +
+    '<div class="menu__item menu__item--danger" onclick="closeMenu();deleteSl(\'' + id + '\')">' + ic('trash',14) + ' Delete</div>');
+}
+/* Create from the rail: pick the slot first, since the slot is what the
+   layout is FOR. */
+function openSlCreate(ev){
+  openPopAt(ev || lastMenuEv,
+    '<div class="pop__head"><div class="pop__title">Create a screen layout</div>' +
+      '<div class="pop__sub">Pick the screen and type it is for.</div></div>' +
+    '<div class="pop__body">' +
+      SCREENS.map(s => [null].concat(s.axis ? s.axis.values.map(v => v.code) : []).map(code =>
+        '<div class="menu__item" onclick="closePop();createSl(\'' + s.id + '\',' + (code ? '\'' + code + '\'' : 'null') + ')">' +
+          ic(s.icon,16) + '<span class="menu__row-b"><span class="menu__row-t">' + esc(s.label) + ' — ' +
+          esc(slTypeDesc(s.id, code)) + '</span></span></div>').join('')).join('') +
+    '</div>');
+}
+function createSl(screenId, sysType){
+  const sl = mkSl(screenId, sysType, '');
+  SLS.push(sl); saveSLS();
+  state.area = 'screens';
+  state.wfId = sl.id; state.view = 'edit'; state.selNid = null; state.dsnOpen = false;
+  closeMenu(); closePop(); render();
+  const d = document.querySelector('#banner input');
+  if(d) d.focus();
+}
+/* Same rule as copyWf(): NO membership, fresh nids. */
+function copySl(id){
+  const dup = slDuplicate(id); if(!dup) return;
+  saveSLS(); render();
+  toast('Copied — no groups assigned to the copy');
+  return dup;
+}
+function slDuplicate(id, suffix){
+  const src = artifactOf('screen', id); if(!src) return null;
+  const dup = deepCopy(src);
+  dup.id = 'sl-' + Math.random().toString(36).slice(2,8);
+  dup.desc = src.desc + (suffix || ' (copy)');
+  dup.updated = todayStr();
+  dup.nodes.forEach(n => { n.nid = nid(); });
+  normalizeSl(dup);
+  SLS.splice(SLS.indexOf(src) + 1, 0, dup);
+  return dup;
+}
+/* THE ONE EXPLICIT FORK (§30.27): base's Copy from Group, made deliberate.
+   The copy takes THIS group's membership with it, so the group's slot never
+   holds two layouts and never goes empty — and every other group keeps the
+   original, untouched. */
+function copySlForGroup(id, g){
+  if(!isAssigned('screen', id, g)){ toast(esc(g) + ' is not on this layout'); return null; }
+  const dup = slDuplicate(id, ' — ' + g); if(!dup) return null;
+  setAssigned('screen', id, g, false);
+  setAssigned('screen', dup.id, g, true);
+  saveSLS();
+  state.wfId = dup.id; state.view = 'edit'; state.selNid = null; state.dsnOpen = false;
+  render();
+  toast('Copied for ' + esc(g) + ' — edits to the copy reach ' + esc(g) + ' only');
+  return dup;
+}
+function deleteSl(id){
+  const sl = artifactOf('screen', id); if(!sl) return;
+  const gs = groupsOf('screen', id);
+  confirmBox({
+    title:'Delete this screen layout?',
+    sub: esc(sl.desc),
+    body: gs.length
+      ? '<div style="font-size:12.5px;line-height:1.6">It is applied to <b>' + gs.length + '</b> user group' + (gs.length===1?'':'s') +
+        ' (' + gs.map(esc).join(', ') + '). They fall back for ' + esc(slSlotLabel(slSlot(sl))) + '.</div>'
+      : '<div style="font-size:12.5px;line-height:1.6">No user groups use it, so nothing on a device changes.</div>',
+    danger:true, ok:'Delete layout',
+    onOk:function(){
+      SLS.splice(SLS.indexOf(sl), 1); dropAssignmentsFor('screen', id); saveSLS();
+      if(state.wfId === id) backToGallery(); else render();
+      toast('Screen layout deleted');
+    }});
+}
+/* Changing the type moves the layout to another slot, which can collide on a
+   group it is already applied to — refused at the change, naming the group. */
+function setSlType(code){
+  const sl = wf(); if(!sl || !sl.screen) return;
+  const next = code || null;
+  const probe = {screen:sl.screen, sysType:next};
+  const hit = groupsOf('screen', sl.id).find(g =>
+    ASSIGN.some(r => r.type === 'screen' && r.group === g && r.artifactId !== sl.id &&
+      (o => o && slSlot(o) === slSlot(probe))(artifactOf('screen', r.artifactId))));
+  if(hit){
+    toast(esc(hit) + ' already has a layout for ' + esc(slSlotLabel(slSlot(probe))) + ' — un-apply it first');
+    renderBanner(); return;
+  }
+  sl.sysType = next; sl.updated = todayStr(); saveSLS(); renderBanner(); renderCrumb();
+}
+function renderSlBanner(w){
+  const s = screenDef(w.screen);
+  const n = groupsOf('screen', w.id).length;
+  $('banner').innerHTML =
+    '<div class="banner__main">' +
+      '<div class="field">' +
+        '<div class="field__label">Description <span class="field__req">*</span></div>' +
+        '<div class="input"><input value="' + esc(w.desc) + '" placeholder="Name this layout…" ' +
+          'oninput="setWfField(\'desc\',this.value)"></div>' +
+      '</div>' +
+      '<div class="field">' +
+        '<div class="field__label">Screen</div>' +
+        '<div class="input" title="A layout belongs to one screen">' + ic(s ? s.icon : 'file',16) +
+          '<input value="' + esc(s ? s.label : w.screen) + '" disabled></div>' +
+      '</div>' +
+      '<div class="field">' +
+        '<div class="field__label">' + esc(s && s.axis ? s.axis.label : 'Type') + '</div>' +
+        (s && s.axis
+          ? '<div class="input"><select onchange="setSlType(this.value)">' +
+              '<option value=""' + (w.sysType ? '' : ' selected') + '>None (fallback)</option>' +
+              s.axis.values.map(v => '<option value="' + v.code + '"' + (w.sysType === v.code ? ' selected' : '') + '>' +
+                esc(v.desc) + '</option>').join('') +
+            '</select>' + ic('chevD',14) + '</div>'
+          : '<div class="input" title="This screen has no type axis yet (§20)"><input value="Fallback only" disabled></div>') +
+      '</div>' +
+      '<div class="field" style="grid-column:1/-1">' +
+        '<div class="field__label">Notes</div>' +
+        '<div class="input input--ta"><textarea rows="2" placeholder="Who this layout is for…" ' +
+          'oninput="setWfField(\'notes\',this.value)">' + esc(w.notes) + '</textarea></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="banner__right">' +
+      '<div class="banner__acts">' +
+        '<button class="Button" onclick="openAssign(event,\'screen\',\'' + w.id + '\')">' + ic('users',14) + ' Apply to groups</button>' +
+        '<button class="Button" onclick="slMenu(event,\'' + w.id + '\')">' + ic('dots',14) + '</button>' +
+        '<button class="Button Button--contained Button--primary" onclick="saveWf()">' + ic('save',14) + ' Save</button>' +
+      '</div>' +
+      /* THE REACH, where the edit happens: an edit to a shared layout reaches
+         every group on it. */
+      '<div class="banner__meta" id="slReach">Always Free Form · ' + (n
+        ? 'edits reach ' + n + ' group' + (n === 1 ? '' : 's')
+        : 'applied to no groups') +
+        ' · updated ' + esc(w.updated||'') + '</div>' +
+    '</div>';
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -6563,6 +7156,7 @@ function unsetCopy(type){
   if(type === 'offline') return 'No profile — <b>online only</b>. That is a valid, deliberate provisioning choice, ' +
     'not a gap: Tier 0 and the outbox still apply, so the app works; it just cannot load work without a connection (§2.10).';
   if(type === 'home') return 'No Home layout assigned. The group gets no Home screen.';
+  if(type === 'screen') return 'No screen layout assigned. Every screen falls back to its delivered default (§30.27).';
   return 'No workflow assigned. This group falls back to §11\'s flat, unordered, ungated step rail.';
 }
 function groupArtRow(g, type, a, effState){
@@ -6590,6 +7184,8 @@ function artSummary(type, a){
   if(type === 'workflow') return (a.freeForm ? 'Free Form · ' : seqNodes(a).length + ' steps · ') + (a.fn || '');
   if(type === 'offline') return profileEnabledCount(a) + ' entities offline · cap ' + a.caps.rowCap + '/entity';
   if(type === 'home') return homeTileIds(a).length + ' tiles · ' + a.nav.length + ' nav slots';
+  if(type === 'screen') return (screenDef(a.screen) || {label:a.screen}).label + ' · ' +
+    slTypeDesc(a.screen, a.sysType) + ' · ' + a.nodes.length + ' tabs';
   return '';
 }
 /* ── ONE POPOVER, ONE GROUP (reworked 2026-09-17) ──
@@ -6958,7 +7554,8 @@ function createWf(){
   if(d) d.focus();
 }
 function openWf(id){
-  if(!WFS.find(x=>x.id===id)) return;
+  if(SLS.find(x=>x.id===id)) state.area = 'screens';
+  else if(!WFS.find(x=>x.id===id)) return;
   state.wfId = id; state.view='edit'; state.selNid=null; state.dsnOpen=false;
   closeMenu(); closeModal(); render();
 }
@@ -6968,6 +7565,7 @@ function openWf(id){
    ═══════════════════════════════════════════════════════════════════════ */
 function renderBanner(){
   const w = wf(); if(!w) return;
+  if(w.screen) return renderSlBanner(w);
   const ffDesc = w.freeForm
     ? 'Any tab, any time. Nothing is gated.'
     : 'Steps run in order. Later steps stay locked.';
@@ -7093,6 +7691,7 @@ function saveWf(){
   if(!(w.desc||'').trim()){ toast('A description is required before saving'); return; }
   const cleared = validateForks(w);
   w.updated = todayStr(); saveWFS(); render();
+  if(w.screen){ toast('Screen layout saved'); return; }
   toast(cleared ? 'Saved — ' + cleared + ' dangling fork target reset' : 'Workflow saved');
 }
 
@@ -7106,6 +7705,7 @@ function saveWf(){
 const FREE_FORM_NO_AUTOMATION = 'Free Form has no status or timer automation. The technician sets status and runs the timer by hand.';
 function toggleFreeForm(){
   const w = wf(); if(!w) return;
+  if(w.screen){ toast('A screen layout is always Free Form (§30.27)'); return; }
   if(!w.freeForm){
     const forks = w.nodes.filter(isForkKind).length;
     /* ADMN 8.17 — the actions go too, so the confirm names them BY KIND. */
@@ -7193,7 +7793,9 @@ function renderLib(){
      placement is configuration, not a property of the screen. Grouping them
      by where they "usually" go was the same mistake one level up. */
   let html = '<div class="lib__grp">Available screens</div>';
-  STEP_LIB.forEach(e => {
+  /* A screen layout offers ONLY its own screen's tabs, and a workflow never
+     offers a screen layout's (§30.27). */
+  STEP_LIB.filter(e => (e.screen || null) === (w.screen || null)).forEach(e => {
     const used = w.nodes.filter(nd => nd.kind === 'step' && nd.step === e.id).length;
     /* Two independent reasons an entry is unavailable, and they say different
        things: Free Form allows one of each, while a capability gap means the
@@ -7213,7 +7815,8 @@ function renderLib(){
   /* User Defined Screens are screens too, so they sit in the same list —
      marked by their icon, not by a heading. Placed, never authored
      (§27.4 role 1 / §29.5). */
-  UDS_DEFS.forEach(d => {
+  /* UDS-as-a-tab is a WO decision (§27); a screen layout has none yet. */
+  if(!w.screen) UDS_DEFS.forEach(d => {
     const usedU = w.nodes.filter(nd => nd.kind === 'uds' && nd.uds === d.id).length;
     html += '<div class="lib__item lib__item--uds" draggable="true" ' +
       'ondragstart="libDragStart(event,\'uds:' + d.id + '\')" ondragend="dragEnd()">' +
@@ -7286,8 +7889,11 @@ function renderCvBar(){
   const nSeq = seqNodes(w).length, nRef = refNodes(w).length, nFork = w.nodes.filter(isForkKind).length;
   $('cvbar').innerHTML =
     '<span class="cvbar__t">' + (w.freeForm ? 'Free Form canvas' : 'Flow canvas') + '</span>' +
-    '<span class="chip chip--dense chip--static" title="Base screen this workflow is authored against">' +
-      ic('layout',16) + esc(w.fn) + '</span>' +
+    (w.screen
+      ? '<span class="chip chip--dense chip--static" title="The screen this layout is for">' +
+          ic('layout',16) + esc(slSlotLabel(slSlot(w))) + '</span>'
+      : '<span class="chip chip--dense chip--static" title="Base screen this workflow is authored against">' +
+          ic('layout',16) + esc(w.fn) + '</span>') +
     '<span class="cvbar__d">' +
       (w.freeForm
         ? w.nodes.length + ' tab' + (w.nodes.length===1?'':'s') + ' · unordered'
@@ -9951,6 +10557,7 @@ loadWFS();
 loadPortal();
 migrateAssignments();
 seedDemoAssignments();
+loadSLS();
 applyRailWidth();
 renderNotes();
 render();
