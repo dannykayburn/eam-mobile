@@ -40,8 +40,8 @@ control needs a state or copy for an online-only user (§4.4.1/§2.10). **Don't
 re-open either, and don't re-run the options analysis** — four options were
 weighed once, and the brief was rolled up and retired (§21). Separately, the
 spec now runs **§1–§32**. §32 (workflow runs, the technician timer, composition rules) is
-the newest. §30 (the Workflow Designer Portal: four configuration areas over one membership
-table) runs to §30.26, and §29 (step instances, gates, forks) sits under it.
+the newest. §30 (the Workflow Designer Portal: five configuration areas over one membership
+table) runs to §30.27, and §29 (step instances, gates, forks) sits under it.
 
 ## Locked rules — don't re-derive these
 **Conclusions only. The rationale, rejected alternatives and revert recipes live
@@ -53,7 +53,7 @@ doc's Requirements section; neither file holds the reasoning.
 | --- | --- | --- |
 | **Start Work is the commitment boundary** | §14.11 | Five things happen at once and only make sense together: status → Start Work Status, **Type protects**, **the WO pins to the technician**, **children hydrate**, config version stamped. Starting a WO found by search **is** its promotion into Tier 1, and it is the **first device-originated pin** — a local pin must survive a server list that omits it, or the next sync evicts live work. |
 | **The punch list is BOTH a dataspy and pins** | §2.6 | Locked 2026-09-11, replacing a two-month A-or-B open item. A **dataspy** is the *automatic* layer, selected on the **Work Orders row of the offline profile** — which renders on **every** profile including `None`, because a work list is a membership question, not a consequence of replication (settled 2026-09-23, §2.6/§30.14; this reversed "on the user group", whose objection assumed a group-scoped dataspy when `My Open WOs` is user-relative); **pinning** (`R5PINS`) is the *manual* layer on top. Costs both backend asks, not one. The membership row must record **which source** pinned it, or a dataspy re-evaluation evicts a manual pin — and a local pin must survive a server list that omits it, which is now architecturally required rather than just advisable. |
-| **One paradigm for every configuration artifact** | §30.13 | Workflows, offline profiles, Home layouts and Home tiles are all **authored once and applied**, and the four answers are shared, not per-area: assignment runs **both directions over ONE membership table** (`{type, artifactId, group}`, every read through an accessor — four parallel arrays is the failure mode); **cardinality follows what the runtime resolves on**, and it now declares THREE values (§11 resolves a workflow on *(WO Type, group)* → `per-wotype`; an **offline profile resolves on *(group, the technician's login choice)*** → `multi-group`, **several per group, locked 2026-09-23 (§2.10.1)**; a Home layout resolves on the group alone → `per-group`, exactly one). **The third value is the rule working, not bending** — the resolution KEY gained a dimension, exactly as §29 did to the layout key, and nothing downstream needed a special case; **Create follows size** (modal for what fits one form, blank canvas for an arrangement); **Home tiles are global and reused by reference**, so editing one reaches every layout using it and only the *layout* is assignable. |
+| **One paradigm for every configuration artifact** | §30.13 | Workflows, offline profiles, Home layouts and Home tiles are all **authored once and applied**, and the four answers are shared, not per-area: assignment runs **both directions over ONE membership table** (`{type, artifactId, group}`, every read through an accessor — four parallel arrays is the failure mode); **cardinality follows what the runtime resolves on**, and it now declares FOUR values (§11 resolves a workflow on *(WO Type, group)* → `per-wotype`; a **Screen Layout** on *(screen, type, group)* → `per-type`, the same rule with the axis as a parameter (§30.27); an **offline profile resolves on *(group, the technician's login choice)*** → `multi-group`, **several per group, locked 2026-09-23 (§2.10.1)**; a Home layout resolves on the group alone → `per-group`, exactly one). **The third value is the rule working, not bending** — the resolution KEY gained a dimension, exactly as §29 did to the layout key, and nothing downstream needed a special case; **Create follows size** (modal for what fits one form, blank canvas for an arrangement); **Home tiles are global and reused by reference**, so editing one reaches every layout using it and only the *layout* is assignable. |
 | **Gating is forward-only** | §14.10 | A completed step is **always** reopenable; "Not Free Form" dictates forward order, not backward. Forward gating is untouched — a later step stays locked and explains itself. Completed rows carry a trailing chevron (`.step-map-back`), because `cursor:pointer` says nothing on a touch device. |
 | **Function resolution is per user group, never one blessed function** | §26.7 | Any function with `FUN_RENTITY = EVNT` may be workflow-enabled, opted in per **user group** — this customer already runs four `WSJOBS` clones (CCJOBS/TRJOBS/ZJ1000/WSJODC) as distinct business processes. **This half is still locked and holds either way.** *(What is NOT locked any more: "no new `FUN_CODE`s" — reuse `WSJOBS`/clones vs. a new standalone mobile function was reopened 2026-09-11 and is a **decision required**, §11/§20. A new Equipment function that renders by equipment type is **required** regardless, §26.8. Don't re-derive §26.7 with it.)* |
 | **Online-first, with declared offline scope** | §2.1 | Reads hit the server at full fidelity; the local store is a **scoped fallback**, never a projection of the whole database. **Database-wide search does not work offline.** Unchanged: one write path, always-on outbox, the UI never reads the network directly, **no mode the technician chooses**. Consequences live at §2.3/§2.7 (per-entity scope + traversal), §2.8 (three-way lookups), §2.9 (actions may narrow, field state never does), §2.10/§2.10.1 (profiles per user group — **several are allowed**, and past the first the technician picks one at login and can change it in Settings; still provisioning, since every option is admin-granted, narrowing-only and online-first), §2.5 (LWW withdrawn — per-shape conflicts). |
@@ -765,6 +765,23 @@ node (real 390px emulator, not scaled).
   width**, not beside it. **No `text-transform:uppercase` anywhere in this file**
   (§30.4) — note `eam-shared.css` still upper-cases the device's own More label,
   deliberately not synchronised.
+**SCREEN LAYOUTS** (§30.27, added 2026-10-28) — a rail row under Mobile
+configuration for screens that are **not** workflows (Equipment, Work Request,
+Operator Checklist). **A screen layout is a workflow object with Free Form
+pinned on**, in its own store `SLS` (`eamScreenLayouts`); `wf()` reads both
+stores, so the whole editor and Screen Designer panel are reused unchanged.
+- **The library is scoped by `screen` on `STEP_LIB`** — a workflow never
+  offers an `eq_*` tab, a screen layout never offers a WO tab, an Action or a
+  UDS. Every library entry still needs a `LAYOUTS` entry (a test asserts it).
+- **The slot is `slSlot()` = screen + system type or FALLBACK**, cardinality
+  `per-type`. Equipment's axis is **system type** (§26.8), not class.
+  Resolution is `slResolve()`'s three tiers, ending in a read-only delivered
+  default with no membership row.
+- **The "Viewing as" lens (`state.slLens`) is a FILTER, never the editing
+  key** — base's Copy from Group → Save to Group(s) was rejected as copy-drift.
+  The one fork is `copySlForGroup()`, which **moves** that group's row onto the
+  copy. Pinned in `test-workflow-portal.js`.
+
 **FOUR AREAS, ONE MEMBERSHIP TABLE** (§30.13/§30.14, added 2026-09-16). Three
 rail rows under **Mobile configuration** — Workflows, Home Layouts, Offline
 Profiles — plus **User Groups under Security**, which is where it belongs: a
@@ -1011,9 +1028,9 @@ prototype session trips over, one line each.
   every layout row, dataspy and permission set keys to the resolved function.
   §11/§20.
 - **A new Equipment screen function that renders by equipment type is required**
-  and unspecified — the function, its `PLO_PAGENAME` mapping across the four
-  system types and their clones, and the Screen Designer surface for them.
-  **Blocks the Equipment track.** §20/§26.8.
+  and unspecified — the function and its `PLO_PAGENAME` mapping across the four
+  system types and their clones. **Blocks the Equipment track.** The authoring
+  surface is built (portal Screen Layouts, §30.27). §20/§26.8.
 - **The `*` workflow's delivered CONTENT is unspecified** — its *model* closed
   2026-09-28 (§30.26: system delivered, carries the Default Page Layout, never an
   assignment target). What is owed is what that layout actually places, and a

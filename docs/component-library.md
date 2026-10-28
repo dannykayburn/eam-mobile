@@ -647,6 +647,23 @@ which is why this is the one confirm surface that raises no keyboard at all —
 §3.4 never engages, rather than being complied with. Its confirm is still the
 header ✓ with no footer, the house pattern for a full-attention sheet.
 
+**Also on the same track, added 2026-10-28 (§30.27):** the **Type Slot Grid**
+and the **Viewing As Lens**, both in the portal's Screen Layouts area.
+
+- **Type Slot Grid** — one card per screen, one slot per value of that
+  screen's type axis, **Fallback first**. Every value is drawn even when
+  empty, and an empty slot says *every group uses its fallback*. That is the
+  rule: a gap must be visible, not inferred from a missing card. A slot lists
+  several layouts, each with its group count, and the Fallback slot ends with a
+  dashed, locked **Delivered default** row that is never clickable. A screen
+  with no axis draws the Fallback slot only.
+- **Viewing As Lens** — a group select in the area header, defaulting to
+  *All groups*. It **highlights** the layout that resolves for the group, dims
+  the rest, and names the inherited fallback on an empty slot. **It is a
+  filter and never the editing key**: Open always edits the shared layout,
+  and the one way to fork for a group is the row menu's **Copy for <group>
+  only**.
+
 **Also related, on the same track:** the **Offline Policy Pill** on User Group
 Setup's Offline tab — one pill per §2.7 policy class (`work-set`,
 `reference`, `on-demand`, `server-only`, `external-replica`). Deliberately
@@ -666,6 +683,8 @@ not five hues for their own sake: the only distinction carrying weight is
 | Action Node *(Base track)* | Workflow Designer Portal ▸ flow canvas | Named 2026-09-17 (§30.11/§30.21) — status update, Start/Stop Timer; same card as the Step Instance Row, deliberately without a number or gates |
 | Booking Pull-up | Book Labor (timer running); portal preview of the Stop Timer action | Named + built 2026-09-17 (§30.21/§18.2) — shared/self-injecting, one editable value (a stepper, so no keyboard) over derived rows |
 | Hold Stepper | Book Labor ▸ Correction, Booking Pull-up | Promoted to shared 2026-09-17 (§18.6) — 1-min tap, 15-min repeat after a 3s hold; raises no keyboard, which is why a confirm sheet can use it |
+| Type Slot Grid *(Base track)* | Workflow Designer Portal ▸ Screen Layouts | Named 2026-10-28 (§30.27) — every type value drawn as a slot, empty slots say they fall back |
+| Viewing As Lens *(Base track)* | Workflow Designer Portal ▸ Screen Layouts | Named 2026-10-28 (§30.27) — group filter that highlights what resolves; never the editing key |
 | Offline Policy Pill *(Base track)* | User Group Setup ▸ Offline | Named 2026-09-08 (§2.7/§29.6) — five classes, but only writable-vs-not carries weight |
 | Field Grid Container | WO Record View, Equipment Record View, Insert Mode, field-behavior reference | Backfilled 2026-07-28 — always existed as a shape, never had a name entry here (§5.2) |
 | Collapsible Container | Equipment Record View, Custom Fields, Insert Mode, field-behavior reference | Backfilled 2026-07-28 — same gap as Field Grid Container (§5.2) |

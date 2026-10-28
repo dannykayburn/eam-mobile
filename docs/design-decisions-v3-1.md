@@ -6218,7 +6218,8 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **Profile screen contents** | Beyond the identity row/Settings/Log out shell (§4.3), full scope (session/tenant display, theme preference) is still undecided. |
 | **WO List's Search sub-screen still shows a back button instead of the avatar** | Per §4.2's browsing-tier rule, it should show the avatar like WO List's own main screen. |
 | **`WSJOBS` reuse vs. a new standalone mobile function — DECISION REQUIRED** | **Reopened 2026-09-11 (user direction)**, having read as locked ("no new `FUN_CODE`s") since July 2026. Needed **before the base track starts**, because every layout row, dataspy and permission set is keyed to whatever function the app resolves. Two candidates: ride the customer's existing `EVNT` functions (`WSJOBS` + the CCJOBS/TRJOBS/ZJ1000/WSJODC clones), or mint a standalone mobile function. The reuse case is dataspy-set fragmentation across functions (§6.3/§8.3); the new-function case gained a real input — **a new Equipment screen function that renders by equipment type is required regardless** (below), so the two tracks are asymmetric unless WO also gets one. **Do not re-derive §26.7 with it:** per-user-group function resolution is still locked and holds either way. Full framing in §11. |
-| **A new Equipment screen function that renders by equipment type — required, and unspecified** | Stated as a requirement 2026-09-11 (user direction). Base models Equipment as four screens (Location / Asset / Position / System) and mobile collapses them into one surface that re-renders by system type (§26.8); nothing existing does that, so the function is new. **This supersedes the older framing of this gap** — it was previously logged only as "Equipment's four system-type layouts have no authoring surface," which is the *layout* half. The *function* half is now explicit and is an input to the decision above. Still owed: the function itself, its `PLO_PAGENAME` mapping across the four types and their clones, and the Screen Designer surface that authors them. **Blocks the Equipment mobile track** — don't build Equipment RV against one hardcoded layout, or every child tab inherits the assumption. |
+| **Screen Layouts' open edges** | Opened 2026-10-28 with §30.27. (1) **Work Request and Operator Checklist have no type axis yet** — whether either resolves on a type, and which field, is unanswered, so both show a Fallback slot only. (2) **How much `R5PAGELAYOUT` duplication a migration removes is unmeasured** — identical per-group row sets should merge into one layout, but the export in `docs/Data_refs/Page Layouts perms/` covers one group. (3) **The workflow function picker still offers the Equipment family** — redundant now that Equipment has its own area; removing it is a call, not a cleanup. (4) **The Viewing as lens is not on the workflow gallery.** (5) The Equipment demo layouts are the prototype record view's fields, not an export. |
+| **A new Equipment screen function that renders by equipment type — required, and unspecified** | Stated as a requirement 2026-09-11 (user direction). Base models Equipment as four screens (Location / Asset / Position / System) and mobile collapses them into one surface that re-renders by system type (§26.8); nothing existing does that, so the function is new. **This supersedes the older framing of this gap** — it was previously logged only as "Equipment's four system-type layouts have no authoring surface," which is the *layout* half. The *function* half is now explicit and is an input to the decision above. Still owed: the function itself and its `PLO_PAGENAME` mapping across the four types and their clones. **The authoring surface now exists** — the portal's Screen Layouts area (§30.27, 2026-10-28). **Blocks the Equipment mobile track** — don't build Equipment RV against one hardcoded layout, or every child tab inherits the assumption. |
 | **The punch list's remaining cost is a BACKEND ask, not a screen** *(authoring closed and built 2026-09-23)* | Opened 2026-09-11 with the punch-list lock (§2.6). **Both halves of the authoring side are now done:** the selector is the `For Dataspy` control on the **Work Orders** row of the portal's Offline Profiles area, and it renders on every profile *including* the one that replicates nothing (§2.6/§30.14/§21). The two prototype defects that contradicted it are fixed and pinned by `test-workflow-portal.js` — both had **failed silently**, which is the argument for the tests: `normalizeProfile()` wiped the dataspy whenever the policy stopped needing a filter, and the control collapsed to a dash so there was nowhere to set one. Work Orders now declares `membership:true` and `isMembershipEntity()` is the single seam. **What is left is the sharper half, and it was always the sharper half:** the membership row merges two upstream sources, so a pinned row has to record **which source** pinned it, or a dataspy re-evaluation silently evicts the technician's own additions (§2.6 consequence 3). That is server-side work with no UI to build. **One small design residue:** "no profile assigned" and "a profile that replicates nothing" are no longer interchangeable — a group that needs an automatic work list has to be assigned the **Online only profile**, not left unassigned, because the dataspy has to live on something. Worth stating in the assignment control.
 | **Tiered record model review** | On approval: merge tier-model architecture into §2. |
 | **Activity Checklist's Checkbox-type control vs. the generic checkbox pattern** | §3.4's generic checkbox rule makes the whole row a compact tap target; the Checkbox-type item's control (§16.3) is a large, centered, full-width tap target instead, since the focused one-item-at-a-time screen has the room. Open call: is this divergence justified by context, or should it converge? |
@@ -7414,6 +7415,8 @@ parallel workstream. Building Equipment Record View against a single
 hardcoded layout would bake in exactly the assumption this finding
 disproves, and every child tab built on top of it would inherit that
 assumption. Tracked in the plan doc's sequence rather than here.
+
+**The authoring surface was built 2026-10-28 as the portal's Screen Layouts area (§30.27).** The function and its `PLO_PAGENAME` mapping are still owed (§20).
 
 ### System type is **Protected in update mode, always** (locked, user direction 2026-08-25)
 
@@ -9105,6 +9108,11 @@ from the artifact type's declared cardinality rather than written out per area.
 A clash is predicted **before** the click, in the assignment control, not
 reported after it.
 
+**A fourth value, `per-type`, joined 2026-10-28 with Screen Layouts
+(§30.27).** A screen layout resolves on *(screen, type, group)*, so a group
+holds one per screen and type plus one fallback per screen. It is `per-wotype`
+with the axis as a parameter, not a new rule.
+
 **The control's SHAPE is derived from it too** — checkboxes where a group may
 hold several, radios where it holds exactly one. See **§30.23**; that is the
 same derivation as the rule text, one level down.
@@ -10398,6 +10406,109 @@ no-Type workflow keyed `ANY`, separate from `FREEFORM`, so a group could hold
 **two** fallbacks — the one thing §30.2 names). Because "Any WO Type
 (fallback)" is the default selection for a new workflow, the second was the
 easy path into it.
+
+## 30.27 Screen Layouts — a fifth area, for screens that are not workflows (locked)
+
+Locked 2026-10-28, user direction. It closes the *authoring surface* half of
+§26.8's blocker and §20's Equipment-function row. The function itself is still
+owed.
+
+**The gap.** Equipment needs a different layout per system type, with a
+fallback, applied per user group. Work Requests and Operator Checklists will
+need the same later. The only authoring surface was the Workflows area, and
+the portal even let a workflow switch its function to the Equipment family.
+**Calling an Equipment layout a "workflow" is wrong as product language**:
+it has no steps, no order, no gating, no forks and no actions. It is screen
+design and nothing else.
+
+> A **Screen Layout** is the workflow paradigm with Free Form permanently on.
+> Same canvas, same drag of available tabs onto it, same Screen Designer
+> panel per node, same assignment over the one membership table. What it
+> drops is everything only a sequence needs.
+
+### What it reuses, and what it drops
+
+- **Reused unchanged:** the Free Form canvas (§30.2's More zone at full
+  extent), Record View pinned first, a node per placed tab with its **own
+  deep-copied layout** (§29.2's load-bearing rule), the Screen Designer panel
+  (§30.9/§30.10), Copy re-minting every nid, Delete dropping membership rows.
+- **Dropped:** the Free Form toggle (it is always on and shown protected), WO
+  Type, the function picker, Actions, both fork kinds and every gate. Free
+  Form already refuses actions, forks and gates (§30.11/§30.19), so this is
+  that refusal made permanent, not a second rule set.
+- **The library is the screen's own tabs** — for Equipment, Record View plus
+  its ten child tabs (Comments, Documents, Events, Costs, PM Schedules,
+  Structure Details, Depreciation, Meters, Warranties, Parts Associated).
+  A WO tab never appears in it, and an Equipment tab never appears in the
+  workflow library.
+- **Placing a tab is visibility in this layout, never a tab permission.**
+  Whether a group may open a tab stays with base's `R5TABPERMISSIONS`, the
+  same boundary as §26.5.1. A layout that places a tab the group cannot open
+  is §32.13's capability gap, still blocked on the portal holding no
+  tab-permission data (§20).
+
+### Resolution, cardinality and the fallback
+
+- **Each screen declares its type axis, or none.** Equipment's axis is the
+  **system type** — Asset, Position, System, Location — exactly as §26.8
+  locked it. That section is unchanged: it is not equipment *class*, and no
+  new column is needed. Work Request and Operator Checklist declare **no
+  axis** until someone answers what theirs is (§20).
+- **Cardinality is `per-type`**: one layout per *(group, screen, type value)*,
+  plus one fallback per *(group, screen)*. It is §30.2's `per-wotype` rule
+  with the axis as a parameter, so the clash is refused in the assignment
+  control before the click, from either side, the same way.
+- **The fallback follows §30.26's three tiers unchanged**: *(type, group)*,
+  then *(no type, group)* — the group's own fallback, authored and assigned
+  like any layout — then a **delivered default** per screen. The delivered
+  default is drawn read-only under the Fallback slot, so an admin can see what
+  an unassigned group gets. It has no membership row and no Create, exactly
+  like `*`.
+
+### The area's shape — grouped by screen, every type drawn
+
+The area is one section per screen, not a gallery of loose cards. Each
+section draws **every value of its type axis as a slot**, plus the Fallback
+slot first. An empty slot reads *uses fallback*. So a gap is visible on the
+screen rather than inferred from what is missing — the same
+declared-versus-effective point as §26.5 mechanic 2.
+
+**A slot holds several layouts, and that is how groups differ.** Base stores
+`R5PAGELAYOUT` rows per *(group, page)*, and that does not change. The portal
+authors one layout and applying it to eight groups writes eight row sets.
+So eight groups with one shared Asset layout is **one** entry in the Asset
+slot with a count of 8; eight genuinely different layouts are eight entries.
+Each entry carries its group count.
+
+A screen with a **long or open** type axis would list rows instead of slots.
+No screen has one yet, so it is not built.
+
+### The "Viewing as" lens — a filter, never the editing key
+
+The area carries a **Viewing as** group selector, defaulting to *All
+groups*. Picking a group:
+
+- **highlights** the one layout per slot that resolves for that group, dims
+  the rest, and shows each empty slot as inherited from the fallback (or the
+  delivered default);
+- **never changes what is being edited.** Opening a layout edits the layout,
+  and the editor says how many groups it reaches;
+- offers **Copy for <group> only**, the one explicit fork. It copies the
+  layout, moves *that group's* membership from the original to the copy, and
+  opens the copy. It is base's **Copy from Group** made deliberate.
+
+| Rejected | Why not |
+| --- | --- |
+| **The group selector as the editing key** — base's Copy from Group → Save to Group(s) | Editing "MAINT-TECH's Asset layout" when the layout is shared either reaches the other groups silently or forks a copy silently. That is copy-drift, and it contradicts §26.5.1 (assign is not copy) and §30.13 (author once, apply). |
+| **Loose cards** — one per fallback, per type, per screen | A missing type is only visible as an absence, and the screens scatter across one gallery. |
+| **Widen Workflows into "Screen configurations"** | Keeps the branding problem, and every sequence control would show as disabled clutter on a screen that has no sequence. |
+
+**The lens applies to Workflows too, in principle.** It is a filter over the
+same membership table, so it is not an Equipment-only deviation. It is not
+built on the workflow gallery yet (§20).
+
+**Naming.** The area is **Screen Layouts**, beside Home Layouts. The tool
+inside keeps base's own name, **Screen Designer**.
 
 ## 30.18 What §30 does not settle
 

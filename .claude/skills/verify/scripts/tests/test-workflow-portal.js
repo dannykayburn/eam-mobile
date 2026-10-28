@@ -3186,5 +3186,119 @@ console.log('\nComposition rules (§32.13) — path-aware, raised on the node');
     !/class="rail__row"[^>]*onclick="toast\(/.test(src));
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   SCREEN LAYOUTS (§30.27) — the workflow paradigm with Free Form always on
+   ═══════════════════════════════════════════════════════════════════════
+   Four things here pass a smoke test while being wrong:
+
+     1. THE LENS CHANGING WHAT IS EDITED. "Viewing as" is a filter. If it
+        ever became the editing key, editing a shared layout would either
+        leak to other groups or fork silently — base's copy-drift, which
+        §26.5.1 forbids. Checked by opening a layout with the lens set and
+        requiring the editor to hold the SHARED artifact.
+
+     2. COPY FOR <group> ONLY MUST MOVE THE MEMBERSHIP. A copy that left the
+        group on the original gives it two layouts in one slot; one that
+        dropped it leaves the slot empty. Both render a plausible card.
+
+     3. THE SLOT IS (screen, type). Keying on type alone lets an Equipment
+        fallback clash with a Work Request one; keying on screen alone
+        refuses the four type slots their point.
+
+     4. LIBRARY SCOPING BOTH WAYS. A workflow offering Warranties, or a
+        screen layout offering Book Labor or an Action, is the branding
+        problem §30.27 exists to remove. */
+console.log('\nScreen Layouts (§30.27)');
+{
+  const ctx = boot();
+  ok('seeds seven layouts over three screens', evb(ctx, 'SLS.length === 7 && SCREENS.length === 3'));
+  ok('the area is a rail row, not a link out',
+    evb(ctx, 'setArea("screens"); state.area === "screens"') &&
+    ev(ctx, 'document.getElementById("gallery").innerHTML').indexOf('data-slot="equipment|FALLBACK"') > -1);
+  const g = ev(ctx, 'document.getElementById("gallery").innerHTML');
+  ok('Equipment draws Fallback plus all four system types as slots',
+    ['FALLBACK','A','P','S','L'].every(c => g.indexOf('data-slot="equipment|' + c + '"') > -1));
+  ok('...an empty type slot says it uses the fallback',
+    g.indexOf('every group uses its fallback') > -1);
+  ok('...and a screen with no axis draws the Fallback slot only',
+    g.indexOf('data-slot="workrequest|FALLBACK"') > -1 && g.indexOf('data-slot="workrequest|A"') === -1);
+  ok('the delivered default is drawn read-only under every Fallback slot',
+    (g.match(/slrow--dlv/g) || []).length === 3);
+  ok('the Asset slot holds several layouts, each with its group count',
+    evb(ctx, 'slsFor("equipment","A").length === 3 && groupsOf("screen","sl-eq-asset-tech").length === 5'));
+
+  /* Cardinality */
+  ok('the rule text is derived from per-type cardinality',
+    evb(ctx, 'assignRuleText("screen").indexOf("one layout per screen and type") > -1'));
+  ok('a second Asset layout on one group is refused before the click',
+    !!evb(ctx, 'wouldClash("screen","sl-eq-asset-stores","MAINT-TECH")'));
+  ok('...but a different type slot on the same group is not',
+    evb(ctx, 'wouldClash("screen","sl-eq-pos","STORES") === null'));
+  ok('...and two screens\' fallbacks are different slots',
+    evb(ctx, 'slSlot({screen:"workrequest",sysType:null}) !== slSlot({screen:"equipment",sysType:null})'));
+  ok('the seeded screen assignments raise no conflict',
+    evb(ctx, 'allConflicts().filter(c => c.type === "screen").length === 0'));
+
+  /* Resolution, three tiers (§30.26) */
+  ok('a group resolves its own typed layout first',
+    evb(ctx, 'slResolve("STORES","equipment","A").sl.id === "sl-eq-asset-stores"'));
+  ok('...falls back to its own fallback for an empty type',
+    evb(ctx, 'var r = slResolve("STORES","equipment","S"); r.tier === 2 && r.sl.id === "sl-eq-std"'));
+  ok('...and to the delivered default with nothing assigned',
+    evb(ctx, 'var r2 = slResolve("STORES","opchecklist",null); r2.tier === 3 && r2.sl === null'));
+
+  /* 1. The lens is a filter */
+  ev(ctx, 'setSlLens("STORES")');
+  const gl = ev(ctx, 'document.getElementById("gallery").innerHTML');
+  ok('the lens highlights what resolves for the group',
+    /class="slrow slrow--hit" data-sl="sl-eq-asset-stores"/.test(gl) &&
+    /class="slrow slrow--dim" data-sl="sl-eq-asset-tech"/.test(gl));
+  ok('...and names the inherited fallback on an empty slot',
+    gl.indexOf('STORES uses Fallback: Equipment standard') > -1);
+  ev(ctx, 'setSlLens("DC-OPS"); openWf("sl-eq-asset-tech")');
+  ok('opening a layout with the lens set edits the SHARED layout, not a group copy',
+    evb(ctx, 'wf().id === "sl-eq-asset-tech" && SLS.length === 7'));
+  ok('...and the editor says how many groups an edit reaches',
+    /edits reach 5 groups/.test(ev(ctx, 'document.getElementById("banner").innerHTML')));
+
+  /* The editor is the workflow editor, Free Form pinned */
+  ok('a screen layout is always Free Form, and the toggle refuses',
+    evb(ctx, 'toggleFreeForm(); wf().freeForm === true'));
+  ok('its record view is pinned first',
+    evb(ctx, 'wf().nodes[0].pinned === true && wf().nodes[0].step === "eq_record"'));
+  const lib = ev(ctx, 'document.getElementById("libBody").innerHTML');
+  ok('the library offers only the screen\'s own tabs — no WO tab, no Action',
+    lib.indexOf('Warranties') > -1 && lib.indexOf('Book Labor') === -1 && lib.indexOf('Actions') === -1);
+  ok('the node opens in the Screen Designer panel',
+    evb(ctx, 'openDsn(wf().nodes[0].nid); document.getElementById("dsnBody").innerHTML.indexOf("emu-") > -1'));
+  ok('changing the type into a slot its groups already fill is refused',
+    evb(ctx, 'setSlType("P"); wf().sysType === "A"'));
+
+  /* 2. Copy for <group> only */
+  const dup = ev(ctx, 'copySlForGroup("sl-eq-asset-tech","DC-OPS").id');
+  ok('Copy for a group moves THAT group onto the copy',
+    evb(ctx, '!isAssigned("screen","sl-eq-asset-tech","DC-OPS") && isAssigned("screen",' + JSON.stringify(dup) + ',"DC-OPS")'));
+  ok('...leaves every other group on the original',
+    evb(ctx, 'groupsOf("screen","sl-eq-asset-tech").length === 4'));
+  ok('...never leaves the group with two layouts in the slot',
+    evb(ctx, 'allConflicts().filter(c => c.type === "screen").length === 0'));
+  ok('...and the copy\'s layout is its own (nids and fields independent)',
+    evb(ctx, '(function(){ var a = SLS.find(s => s.id === "sl-eq-asset-tech"), b = SLS.find(s => s.id === ' + JSON.stringify(dup) + ');' +
+      ' b.nodes[0].layout[0].fields[0].behavior = "hid";' +
+      ' return a.nodes[0].layout[0].fields[0].behavior === "req" && a.nodes[0].nid !== b.nodes[0].nid; })()'));
+  ok('a plain Copy carries no groups',
+    evb(ctx, 'groupsOf("screen", copySl("sl-eq-pos").id).length === 0'));
+
+  /* 4. Scoping, from the workflow side */
+  ev(ctx, 'setArea("workflows"); openWf("wf-bk-full")');
+  const wlib = ev(ctx, 'document.getElementById("libBody").innerHTML');
+  ok('a workflow\'s library never offers a screen layout\'s tabs',
+    wlib.indexOf('Warranties') === -1 && wlib.indexOf('Book Labor') > -1);
+  ok('the User Groups view reads screen layouts off the same table',
+    evb(ctx, 'artifactsForGroup("STORES","screen").map(r => r.artifactId).sort().join() === "sl-eq-asset-stores,sl-eq-std,sl-wr-std"'));
+  ok('a reset re-seeds the layouts and their membership',
+    evb(ctx, 'resetPortal(); SLS.length === 7 && ASSIGN.filter(r => r.type === "screen").length === 31 && state.slLens === null'));
+}
+
 console.log(fail ? '\n' + fail + ' FAILED\n' : '\nAll passed\n');
 process.exit(fail ? 1 : 0);
