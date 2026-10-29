@@ -914,6 +914,70 @@ Class is the clearest case, because it can fail **both** ways on the same screen
 definitions did not ship (row 3 — the Class should not be pickable) versus values
 did not traverse (§22 — the fields render and ask for connectivity).
 
+### When the value isn't on the device — a placeholder, fixed on Sync Status (decided 2026-10-28)
+
+User direction. This is what row 2 does when its option set **doesn't contain
+the value the technician needs**, or when nothing for that lookup was downloaded
+at all. Before this, the technician had nowhere to go: they couldn't pick the
+value, and they couldn't save without it.
+
+**1. Say so at the top of the LOV sheet.** An info strip sits above the search
+field, in the same place as row 2's scope message, because it is that message
+taken to its limit: *"You're offline. Employee data isn't on this device."*
+Under it is one action, **Use a placeholder**. When the list has some rows but a
+search finds nothing, the empty-result row offers the same action (*"Not on this
+device. Use a placeholder"*), so a partial list never dead-ends either. The
+strip only appears while offline. Online, the LOV queries the server as usual
+and none of this shows.
+
+**2. The technician can type the value, or leave it blank.** Use a placeholder
+opens the shared keyboard editor (§3.4: ✕/✓ in the top corners, nothing at the
+bottom edge). The technician can type the code if they know it. **What they type
+is not checked against the LOV**, because there is nothing on the device to
+check it against. If they confirm with the field blank, the system fills in a
+**dummy value**. The record saves and the workflow carries on.
+
+**3. The field shows that it's a placeholder.** Whatever the technician typed
+(or the dummy) stays visibly marked as unconfirmed until sync accepts it. There's
+no new color (§23), and the marker can't be an icon inside the value, which the
+no-icons-in-a-field rule (§3.4) forbids. §4.4 has no per-field sync glyph to reuse
+either, so the marker's form is open (§20). This is not the "Not set" hint text
+§3.4 rules out. That rule is about empty fields, and this field has a value.
+
+**4. Sync sends it as is.** The write goes through the outbox like any other.
+If the technician typed a valid code, the web service accepts it and nothing
+else happens. A dummy, or a wrong guess, is rejected, and the item lands on the
+**Sync Status Screen** (§4.5) once the device is back online. From there, the
+existing review flow opens the record, the LOV queries the server again, the
+technician picks the real value and taps Retry. Discard works as it always has.
+**A dummy must never be a value that could exist as a real code**, or an
+offline placeholder could sync silently onto a real record. How to guarantee
+that is in §20.
+
+**5. The device knows which field it is, even though the server doesn't say.**
+§4.5 still holds: the server never reports which field caused a rejection. But
+the device marked the placeholder itself, so the Sync Status card and the record
+banner can name that field ("Assigned To was a placeholder"). The information
+comes from the device, not from the server's response.
+
+**Where it does NOT apply:**
+
+| Case | Why not |
+| --- | --- |
+| Row 1, bounded code domains | Can't happen. The whole domain ships in Tier 0, and if Tier 0 is missing the app stops (§2.3 consequence 2). |
+| Row 3, definition-gated values (WO Type, system type, Class, Status) | A placeholder Type would re-resolve the screen against a configuration that isn't on the device. These values stay unpickable, as the row says. |
+| Issue Parts, an ad-hoc part not in the local stock snapshot | Stays `blocked-visible` (§2.9). The problem there is stock, which only the server knows, not a missing list. A placeholder part would issue stock that may not exist. |
+
+**How this fits the rules it touches.** §2.3 consequence 3 and the last row of
+§2.9 both describe *the form accepting values the server will later reject* as a
+failure. That failure is about a rejection the technician **can't see coming**:
+they see success and the problem shows up later as a surprise. Here the
+technician chose the placeholder, the field shows it, and the Sync Status card
+names it. The rejection is expected, and it is the planned way to fix the value.
+It also keeps §2.5's rule that **no write is ever silently discarded**, and in
+§2.9 terms the LOV is `substituted`: a weaker control (free entry) stands in for
+the full one (a validated pick).
+
 ## 2.9 Per-action offline capability — and the resolution of §2.1's tension (shape proposed 2026-09-08)
 
 §2.7's registry declares what each **entity** does offline; that is not
@@ -981,6 +1045,7 @@ what isn't" — §2.7 answers that for *entities*, this answers it for *actions*
 | **View** a non-cached document | `blocked-visible` | presigned URLs expire and previews are unavailable offline — already locked (§7.2); the 38px slot degrades to a file-type badge by design |
 | Insert WO / Equipment (Insert Mode) | `queued` | needs a client-side temp key + server rekey on sync, and may carry an **unresolved** equipment reference (a scanned tag the server resolves) |
 | Search within the cached scope | `allowed` | **must state the scope** (§2.8 row 2) |
+| Pick an LOV value that isn't on the device (§2.8 row 2) | `substituted` | **placeholder value**: typed and unvalidated, or a dummy if left blank. It syncs as is, and if it's rejected it is fixed on the Sync Status Screen (§2.8, 2026-10-28). Never offered for row 1 or row 3, or for the ad-hoc part row above |
 | Run the active dataspy offline | `substituted` | it filters what is on the device, under the scope rule. If its predicates can't be evaluated locally it falls back to the default view — **never disabled.** *(Revised 2026-09-08: this used to be two rows, `allowed` for an offline-capable dataspy and `blocked-visible` for an online-only one. Classification is gone with the index — there is no longer any such thing as an online-only dataspy.)* |
 | Server search | `substituted` | falls back to cached-scope search **with the scope stated**, rather than refusing. *(Was `blocked-visible` as a Tier 4 escalation; under §2.1 server search is the primary path, so its offline degradation matters more and deserves the better state.)* |
 | Manually cache a record — "keep offline" (R5) | **`blocked-visible`** | it has to fetch and traverse, so it needs connectivity by construction. Worth stating because the control is most tempting exactly when it cannot work |
@@ -1604,7 +1669,11 @@ progress (§4.4.2) stays there; this screen doesn't duplicate it.
   technically feasible.** Real server responses never return which field
   caused a rejection, only whether one occurred and sometimes a general
   message — so there is no field-highlighting/tap-to-jump flow to build.
-  See §21 for the original (unbuildable) spec.
+  See §21 for the original (unbuildable) spec. **One exception (2026-10-28):**
+  the device can name a field it marked as an offline **placeholder** (§2.8),
+  because it recorded that itself and doesn't need the server to say so. The
+  card and the record banner name that field, and fixing it is an ordinary LOV
+  pick (now online) followed by Retry.
 - **Protection rules, carried over from legacy Transaction Log:** WO
   Status is protected while its workflow is Started (Help-icon popup
   explains why); LOTO and Calibration records are read-only here entirely
@@ -6179,6 +6248,7 @@ into a locked-decision row in the section that governs it, or is deleted.
 
 | Item | Detail |
 | --- | --- |
+| **Offline LOV placeholders: the dummy value, dependent LOVs, outbox order** | Opened 2026-10-28 with §2.8's placeholder decision. Not built anywhere in the prototype. Four questions are open. **(1) The dummy value.** It must never match a real code, or a placeholder would sync silently onto a real record, but EAM code formats differ by entity and customer. Candidates: a reserved token the API rejects by rule, or not sending a dummy at all and keeping that item in the outbox until it's fixed (which differs from the user's "fails on sync" flow, so it needs a decision). **(2) Dependent LOVs** (Store → Bin → Lot, and any list filtered on a row-2 parent). Once the parent is a placeholder, the child has nothing to filter on, so either the child can only be a placeholder too, or it is protected until the parent is fixed. **(3) Outbox order** (§2.5 flushes in order). Does a rejected placeholder write hold back later writes on the same record, such as a status change queued after it? **(4) How the field shows it is a placeholder.** An icon in the value is ruled out (no icons inside any pill or field, §3.4) and §4.4 has no per-field glyph. Recommended: a one-line caption under the field (*"Placeholder. Confirm when online"*), which is neither an icon nor §3.4's empty-field hint. |
 | **System-mode status updates bypass group authorization — base must VERIFY them** | Opened 2026-10-23 with §32.8 (D-15, user direction). The device writes a System action's status without checking the technician's group authorizations, so the outbox envelope must carry the workflow id, the stamped version and the node, and base must confirm that version actually authors that transition before accepting it. Without the server check this is an authorization bypass for any client. Same family as the write-gate row below; needs the API team. |
 | **Workflow run state is device-only** | Opened 2026-10-23 (§32.7, D-5). v1 rebuilds a missing run from WO data (first unsatisfied Required step; forks re-asked), which loses fork answers and the action log on a reinstall or a second device. A server-side run record is the real answer. It's a backend ask, not v1. |
 | **§32.13's tab-permission rule has no portal model** | Opened 2026-10-23; narrowed the same day when the rest of §32.13 was built (`compositionIssues()`, pinned in `test-workflow-portal.js`). Left: "Required or gated step the group cannot open" (ADMN 8.13) — the portal holds **no tab-permission data** per group, so the Error cannot be computed, shown on the group's row in the assignment control, or counted in the assignment refusal. Needs base's tab permissions fed to the portal (same shape as §27.4's UDS check, which lives only in the retired User Group Setup). |
@@ -6187,6 +6257,7 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **When does a reassigned run end?** | Opened 2026-10-23 (§32.12). A WO reassigned in base mid-run keeps its local pin (§2.6) and the run stays open so the technician can book a running timer. Whether the run should then end, or stay open until the next sync confirms the reassignment, is undecided. |
 | **Portal UI — Octave Experience vs. a new base UI — DECISION REQUIRED** | Raised 2026-09-23 (user). §30.7 locked the portal onto the Octave / OUX design system and §30.8 catalogued where it differs from the app's own; what was **not** weighed at the time was OUX as a **delivery platform** rather than a visual language. The case for it: it sidesteps the mobile configuration screens already scattered through base for the two apps; it collapses admin configuration into one screen; the diagram-authored canvas and the 390px emulator preview (§30.9/§30.10) are affordances the base toolkit does not offer; and the shell would transfer to any other operational mobile app in the portfolio. Against it: **on-premise deployment**, **other-team dependencies**, and **longevity — whether it is a two-way door**. **This reaches two locked positions rather than sitting beside them**, and re-opening it re-opens both: §30.7 (OUX for base screens) and NG8/§21 (desktop UI out of scope, which is what retired "restyle onto the base components" as an available answer). Entangled with the Sencha→Angular item below, since "new base UI" means the Angular one. Framed here rather than decided; the design doc carries it as **Open issue 0**, ahead of the `WSJOBS` call. |
 | **Can an authored workflow eventually be EXECUTED from base?** | Raised 2026-09-23 (user), alongside the `WSJOBS` decision below and genuinely new — nothing in §10–§13 or §29–§30 designs for it. Everything to date assumes the workflow is **authored** in the portal and **executed** on the device. If the same definition could also drive a base session, two things follow: the resolved artifact has to be a **transport**, not a device-shaped structure, which reaches §10's API and the row-shape item above; and it would count as a point in favour of the portal platform decision above, since one authoring surface would then feed two runtimes. If it could not, that is worth stating explicitly rather than leaving as an assumption nobody has tested. **Ask before the `WSJOBS` call**, because reuse of the customer's `EVNT` functions is the option that makes base execution plausible at all. |
+| **Hyperlink steps — a step on ANOTHER entity's record, reached through a field (future idea, not scoped)** | Raised 2026-10-28 (user). **An idea to keep, not a decision and not phased.** A **hyperlink step** is a node whose screen belongs to a different entity than the WO — Case Management, Equipment — and which opens on the record **resolved from a field on the step in front of it** (the WO's *Related Case* opens that case), either directly by key or by running a dataspy filtered on the value. To make that declarative, the **workflow header** would carry **relationship definitions**: source field → target entity + target key (e.g. WO `EVT_UDFCHAR01` = Case `CSM_CODE`), written as **logical field names** (the app's JS field keys), not table columns, so the device evaluates them without knowing the schema; a hyperlink step picks one relationship. **Existing machinery it can reuse:** §30.19's evaluation rules transfer as-is — read at the **next tap**, from the **nearest step in front** (`condSourceStep()`), **job-captured fields only**, `validateForks()` clearing a stale field reference, and **empty is not false**; §30.11's Status Entity is already a node acting on a non-WO entity; and the relationship is exactly what §2.3's **reachability traversal** needs, so declaring it would let the linked record hydrate *with* the WO instead of failing offline. **What it would reopen — flag before building any of it:** (1) **§30.27 scopes `STEP_LIB` by `screen`, and a workflow never offers a non-WO tab** — this crosses that line on purpose, so it needs its own node kind, not a library entry; (2) **whose layout renders** — §29.2's per-instance layout copy, or the target's §30.27 Screen Layout resolved on *(screen, type, group)* (the second avoids a second copy-drift path); (3) **function resolution** (§11/§26.7) is one `EVNT` function per workflow, so the target screen's function and the group's permission to open it need a home — a §32.13-shaped Error when the group can't; (4) the **run stays the WO's** (§32.7) — what "complete" and the §29.3 gates mean for a step on a record the run doesn't own; (5) **zero / one / many** dataspy matches — N/A, open, or a chooser; and (6) **offline**: the target entity's §2.7 policy decides it, and an `Online only` target makes the step online-only, which §2.9 must allow without narrowing field state. |
 | **A non-step node's row shape on the base side is unspecified** | Opened 2026-09-23 with §29.2's final passage, which widened the tier-2 key from `Tab` to `Node` so that an action or a fork takes an instance row like a tab. That settles **identity**; it does not settle **payload**. A step's parameters are its layout rows, and a non-step node has none — so a Status update action's entity and status (§30.11) and an action's `mode` (§30.21) have nowhere declared to live. Two shapes are defensible: a column per parameter on the tier-2 row, which keys naturally like everything else in §12 but grows a column per action kind; or one typed payload column, which absorbs future kinds and gives up legibility. Deliberately not picked here, because §10's API in front of the workflow tables lands first and is what makes either affordable — and the prototype does not force the question, since it persists whole nodes as objects. **Pick it before any base-side table work, not during.** |
 | **The booking pull-up's SECOND caller is not wired** | Narrowed 2026-09-17 from "the pull-up is not built" — it is now built and wired to §18.2's tab trigger (see §18.2). What remains is that **nothing feeds a workflow definition to the app**, so §30.21's placed Stop Timer action cannot reach in and its `system` mode (book with no sheet) has no runtime caller. The component takes every derived value as an argument and honours `mode` itself, so the hand-off calls it unchanged — what is owed is the hand-off, not the sheet. A dev toggle on Book Labor's own theme bar drives the real `eamTimerRunning` key so the §18.2 condition is exercisable meanwhile. This is the first concrete instance of the general gap: **the portal authors workflows and the app cannot yet be told about them.** |
 | **A labour row's write shape when the hours are untouched** | Opened 2026-09-17. §18.2's pull-up books **direct hours** once the technician adjusts the figure, because an adjusted value cannot keep the timer's start and end true — and keeps the real span when it is untouched. That is two write shapes off one sheet. It is the honest rendering of what is known in each case, and §18's Time Entry Mode already models both, but whether the real outbox envelope should carry a span at all for a timer-derived booking is not settled. Low stakes while there is no backend; decide it before the envelope is built. **Sharpened 2026-10-23 (§32.1):** the shipping mixed-format rule (Book Labor §9.8/§9.16) rejects a Start/End booking for an employee who already has a direct-hours booking on that WO-Activity and day, so a direct-hours adjusted booking followed by a true-span one fails at sync. The `docs/scope` execution draft proposes keeping a span on an adjusted booking (End = Start + adjusted hours); that is **not locked**, and §18.2 still says otherwise. |
