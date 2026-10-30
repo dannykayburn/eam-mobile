@@ -128,9 +128,10 @@
 .home-row-sub{font-size:var(--k-caption);color:var(--k-text-2);}
 .home-row-end{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
 .home-row-time{font-size:var(--k-body2);font-weight:500;}
-/* Floating "+ Create" (extended FAB, Minh 2026-10-30), 8px above the bottom nav. */
+/* Floating "Create" text pill (Minh 2026-10-30), 8px above the bottom nav. */
 .home-fab{bottom:calc(var(--shell-pad-bottom) + 64px + var(--k-s2));}
-.home-fab uxt-button button{height:48px;padding:0 var(--k-s6) 0 var(--k-s4) !important;border-radius:var(--k-pill);}
+.home-fab uxt-button button{height:48px;padding:0 var(--k-s6) !important;border-radius:var(--k-pill);}
+.home-fab uxt-button button::before{display:none !important;}
 /* View switch: Tiles (default) | Calendar. */
 /* Calendar: an hour rail with scheduled work as cards. */
 .home-cal{display:flex;flex-direction:column;}
@@ -330,7 +331,7 @@
     </div>
   </header>
 
-  <!-- Create: a floating "+ Create" pill at the bottom right (feedback 2026-10-30:
+  <!-- Create: a floating "Create" text pill at the bottom right (feedback 2026-10-30:
        Pete and Mahesh asked for a floating action; Minh chose a labeled one). -->
   <div class="create-bar home-fab">
     <uxt-button variant="contained" text="Create" onclick="openCreateEntityMenu()"></uxt-button>
