@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — Home v1</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202610301638">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202610301638">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202610301642">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202610301642">
 <!--
   HOME SCREEN — session riff, first pass (2026-07-16). Loads the two
   shared files per docs/archive/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md;
@@ -73,7 +73,6 @@
    kit's own mobile density already sizes controls at 40px / Body 2, and a
    zoom would scale kit controls off their token sizes. */
 .home-body{flex:1;overflow-y:auto;padding:var(--k-s2) var(--k-s4) 172px;}
-.home-redesign-flag{display:flex;align-items:center;justify-content:center;aspect-ratio:1;width:100%;margin:var(--k-s4) 0;border-radius:var(--uxt-theme-shape-radius-lg,12px);background:var(--uxt-theme-palette-error-main,#f3434a);color:var(--uxt-theme-palette-common-white,#fff);font-family:var(--font-display);font-size:2rem;text-align:center;padding:var(--k-s6);}
 .home-greeting{margin:var(--k-s2) 0 var(--k-s1);font-family:var(--font-display);font-size:var(--uxt-theme-typography-h-5-font-size,1.5rem);font-weight:var(--uxt-theme-typography-h-5-font-weight,400);color:var(--k-text);}
 /* Section titles = h6 in Octave Display. */
 .home-section-label{display:flex;align-items:center;gap:var(--k-s1);margin:var(--k-s6) 0 var(--k-s2);font-family:var(--font-display);font-size:var(--uxt-theme-typography-h-6-font-size,1.125rem);font-weight:var(--uxt-theme-typography-h-6-font-weight,500);color:var(--k-text);}
@@ -97,6 +96,39 @@
 /* Create is now a floating action at the bottom right, sitting just above
    the bottom-nav pill, like Gmail's Compose (Minh, 2026-10-20). Kit buttons
    have no icon slot yet, so the leading "+" is drawn on the inner button. */
+
+/* Round floating Create "+" (feedback 2026-10-30). Sits above the Aria peek. */
+.home-fab{bottom:calc(var(--shell-pad-bottom) + 64px + 56px + var(--k-s4) + var(--k-s2));}
+.home-fab uxt-button button{width:56px;height:56px;min-width:0;padding:0 !important;border-radius:var(--k-pill);justify-content:center;font-size:0 !important;gap:0;overflow:hidden;}
+.home-fab uxt-button button > *:not(.btn-overlay){font-size:0;}
+.home-fab uxt-button button::before{width:24px !important;height:24px !important;margin:0 !important;}
+/* View switch: Tiles (default) | Calendar. */
+.home-view-toggle{display:block;margin:var(--k-s4) 0 0;}
+/* Calendar: an hour rail with scheduled work as cards. */
+.home-cal{display:flex;flex-direction:column;}
+.home-cal-hour{display:flex;gap:var(--k-s2);min-height:48px;border-top:1px solid var(--k-divider);}
+.home-cal-time{flex:0 0 44px;padding-top:var(--k-s1);font-family:var(--font-mono);font-size:var(--k-caption);color:var(--k-text-2);}
+.home-cal-slot{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--k-s1);padding:var(--k-s1) 0;}
+.home-cal-item{display:flex;flex-direction:column;gap:2px;text-align:left;padding:var(--k-s2) var(--k-s4);background:var(--k-card);border:1px solid var(--k-divider);border-left:4px solid var(--k-primary);border-radius:var(--k-r);font-family:var(--font-sans);color:var(--k-text);cursor:pointer;}
+.home-cal-item-time{font-size:var(--k-caption);color:var(--k-text-2);}
+.home-cal-item-title{font-size:var(--k-body2);font-weight:500;}
+.home-cal-item-meta{font-size:var(--k-caption);color:var(--k-text-2);}
+/* "More" tile: neutral square on the card fill. */
+.home-tile-more .home-tile-sq{background:var(--k-card);border:1px solid var(--k-divider);color:var(--k-text-2);box-sizing:border-box;}
+/* Aria "Start your day" peek: docked just above the bottom nav pill. */
+.aria-peek{position:absolute;left:var(--k-s4);right:var(--k-s4);bottom:calc(var(--shell-pad-bottom) + 64px + var(--k-s2));z-index:50;display:flex;flex-direction:column;align-items:center;gap:var(--k-s1);padding:var(--k-s1) var(--k-s4) var(--k-s2);background:var(--k-card);border:1px solid var(--k-divider);border-radius:var(--k-r);box-shadow:var(--k-e2);font-family:var(--font-sans);color:var(--k-text);cursor:pointer;text-align:left;}
+.aria-peek-handle{width:32px;height:4px;border-radius:var(--k-pill);background:var(--k-divider);}
+.aria-peek-row{display:flex;align-items:center;gap:var(--k-s2);width:100%;}
+.aria-peek-mark{flex:none;width:28px;height:28px;border-radius:var(--k-pill);display:flex;align-items:center;justify-content:center;background:var(--k-primary);color:var(--k-on-primary);font-size:var(--k-caption);font-weight:500;}
+.aria-peek-text{flex:1;min-width:0;display:flex;flex-direction:column;}
+.aria-peek-title{font-size:var(--k-body2);font-weight:500;}
+.aria-peek-sub{font-size:var(--k-caption);color:var(--k-text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.aria-body{display:flex;flex-direction:column;gap:var(--k-s2);padding:var(--k-s4);}
+.aria-card{padding:var(--k-s4);background:var(--k-card);border:1px solid var(--k-divider);border-radius:var(--k-r);}
+.aria-card-title{font-size:var(--k-body2);font-weight:500;color:var(--k-text);}
+.aria-card-text{font-size:var(--k-caption);color:var(--k-text-2);margin-top:2px;}
+/* Content clears the peek + FAB stack. */
+.home-body{padding-bottom:calc(var(--shell-pad-bottom) + 64px + 72px + var(--k-s6)) !important;}
 
 /* Home tiles — "Tile A": tinted square + glyph + count, label below,
    horizontally scrolling rows (Danny's). Card radius from the shape scale. */
@@ -252,7 +284,9 @@
     </div>
   </header>
 
-  <div class="create-bar">
+  <!-- Create: a round floating "+" at the bottom right (feedback 2026-10-30:
+       Pete and Mahesh). Opens the same entity menu as before. -->
+  <div class="create-bar home-fab">
     <uxt-button variant="contained" text="Create" onclick="openCreateEntityMenu()"></uxt-button>
   </div>
 
@@ -278,19 +312,74 @@
          no run is in progress. Built by eam-shared.js renderResumeCard(). -->
     <div id="resumeCardMount"></div>
 
-    <!-- Placeholder: Home content is being redesigned (Minh, 2026-10-20). Tiles below stay live. -->
-    <div class="home-redesign-flag" role="note">Being redesigned</div>
+    <!-- View switch (feedback 2026-10-30): Tiles is the default; Calendar is an
+         option for technicians whose work is scheduled to the hour. Remembered
+         per device (lsGet/lsSet). -->
+    <uxt-toggle-button-group class="home-view-toggle" id="homeViewToggle" density="m" value="tiles"
+      options='[{"value":"tiles","label":"Tiles","icon":"grid-view"},{"value":"calendar","label":"Calendar","icon":"calendar-today"}]'></uxt-toggle-button-group>
 
-    <h2 class="home-section-label" id="favSectionLabel">Favorites<uxt-icon-button presentational icon="star" density="m"></uxt-icon-button></h2>
-    <div class="fav-row" id="favRow"></div>
+    <!-- TILES: Danny's sections on kit styling. "More" ends the last row and
+         opens every screen, so screens past WOs/Equipment have a way in. -->
+    <div id="homeTilesView">
+      <h2 class="home-section-label" id="favSectionLabel">Favorites<uxt-icon-button presentational icon="star" density="m"></uxt-icon-button></h2>
+      <div class="fav-row" id="favRow"></div>
 
-    <!-- My Work / My Equipment / Reference Section tile grids removed while
-         Home is redesigned (Minh, 2026-10-20). HOME_TILES and renderTileGroup()
-         stay so the grids can come back by restoring these containers. -->
+      <h2 class="home-section-label">My Work</h2>
+      <div class="home-tilegrid" id="homeTileGridMyWork"></div>
+
+      <h2 class="home-section-label">My Equipment</h2>
+      <div class="home-tilegrid" id="homeTileGridReference"></div>
+
+      <h2 class="home-section-label">Reference Section</h2>
+      <div class="home-tilegrid" id="homeTileGridRefSection"></div>
+    </div>
+
+    <!-- CALENDAR: today's scheduled work by the hour. -->
+    <div id="homeCalendarView" hidden>
+      <h2 class="home-section-label" id="homeCalDate"></h2>
+      <div class="home-cal" id="homeCal"></div>
+    </div>
   </div>
 
   <div class="reorder-done-bar" id="reorderDoneBar">
     <uxt-button class="kit-btn-block" variant="contained" text="Done" onclick="exitReorderMode()"></uxt-button>
+  </div>
+
+  <!-- ARIA "Start your day" (feedback 2026-10-30): room reserved for an AI
+       summary of crew, nearby work orders and equipment. Placement is still
+       open; this is Danny's pull-up suggestion. Content is placeholder. -->
+  <button type="button" class="aria-peek" id="ariaPeek" onclick="openSheetExclusive('ariaSheet')" aria-haspopup="dialog">
+    <span class="aria-peek-handle" aria-hidden="true"></span>
+    <span class="aria-peek-row">
+      <span class="aria-peek-mark" aria-hidden="true">A</span>
+      <span class="aria-peek-text"><span class="aria-peek-title">Start your day</span><span class="aria-peek-sub">Aria summary of your crew, nearby work and equipment</span></span>
+      <uxt-icon-button presentational icon="keyboard-arrow-up" density="m"></uxt-icon-button>
+    </span>
+  </button>
+  <div class="bottom-sheet" id="ariaSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
+      <div class="sheet-title">Start your day</div>
+      <div class="kit-sheet-spacer"></div>
+    </div>
+    <div class="sheet-body aria-body">
+      <uxt-message-bar intent="info" heading="Placeholder">Aria's daily summary goes here. Content and placement are still open.</uxt-message-bar>
+      <div class="aria-card"><div class="aria-card-title">Your crew today</div><div class="aria-card-text">3 technicians on shift. 1 on leave.</div></div>
+      <div class="aria-card"><div class="aria-card-title">Nearby work orders</div><div class="aria-card-text">4 open within 2 km, 1 high priority.</div></div>
+      <div class="aria-card"><div class="aria-card-title">Equipment to watch</div><div class="aria-card-text">2 pumps with rising vibration since yesterday.</div></div>
+    </div>
+  </div>
+
+  <!-- MORE: every screen, including ones with no Home tile yet. -->
+  <div class="bottom-sheet" id="moreScreensSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
+      <div class="sheet-title">All screens</div>
+      <div class="kit-sheet-spacer"></div>
+    </div>
+    <div class="sheet-body" id="moreScreensBody"></div>
   </div>
 
   <nav class="bottom-nav" id="bottomNav">
@@ -547,12 +636,12 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/notifications.js?v=202610301638"></script>
+<script src="../../data/notifications.js?v=202610301642"></script>
 <!-- The Resume card names the WO it resumes (§32.7) — descriptions only. -->
-<script src="../../data/wo-19257.js?v=202610301638"></script>
-<script src="../../data/wo-19831.js?v=202610301638"></script>
-<script src="../../data/wo-20450.js?v=202610301638"></script>
-<script src="shared/eam-shared.js?v=202610301638"></script>
+<script src="../../data/wo-19257.js?v=202610301642"></script>
+<script src="../../data/wo-19831.js?v=202610301642"></script>
+<script src="../../data/wo-20450.js?v=202610301642"></script>
+<script src="shared/eam-shared.js?v=202610301642"></script>
 <script>
 // Insert Mode's Type pill (§9.4.1, added 2026-07-29) re-scopes the flat
 // fields section on every change, not just on entity switch — same
@@ -884,7 +973,72 @@ function renderTiles() {
   renderTileGroup('homeTileGridMyWork', 'mywork');
   renderTileGroup('homeTileGridReference', 'reference');
   renderTileGroup('homeTileGridRefSection', 'refsection');
+  // "More" closes the last row: not a HOME_TILES entry, so it never reorders.
+  const last = document.getElementById('homeTileGridRefSection');
+  if (last && reorderTarget !== 'tile') last.insertAdjacentHTML('beforeend', `
+    <div class="home-tile home-tile-more" role="button" tabindex="0" onclick="openMoreScreens()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMoreScreens()}">
+      <span class="home-tile-sq">${kitGlyph('more-horiz')}</span>
+      <span class="home-tile-label">More</span>
+    </div>`);
 }
+// Every screen the app has, tiles or not (feedback 2026-10-30: Danny's Home
+// put every screen on a tile; a combined layout needs an overflow).
+const MORE_SCREENS = [
+  { icon: 'build', text: 'Work Orders', page: 'eam-wo-list-prototype-v5_1.html' },
+  { icon: 'inventory-2', text: 'Equipment', page: 'eam-equipment-list-prototype-v1.html' },
+  { icon: 'notifications', text: 'Notifications', page: 'eam-notifications-prototype-v1.html' },
+  { icon: 'sync', text: 'Sync Status', page: 'eam-sync-status-prototype-v1.html' },
+  { icon: 'description', text: 'Work Requests', soon: true },
+  { icon: 'speed', text: 'Meter Readings', soon: true },
+  { icon: 'checklist', text: 'Operator Checklists', soon: true },
+  { icon: 'inventory', text: 'Parts', soon: true },
+];
+function openMoreScreens() {
+  document.getElementById('moreScreensBody').innerHTML = MORE_SCREENS.map((m, i) =>
+    `<uxt-list-item density="m" icon="${m.icon}" text="${m.text}"${m.soon ? ' secondary="Coming soon"' : ''} trailing-icon="chevron-right" onclick="pickMoreScreen(${i})"></uxt-list-item>`).join('');
+  openSheetExclusive('moreScreensSheet');
+}
+function pickMoreScreen(i) {
+  const m = MORE_SCREENS[i];
+  if (m.soon) { showToast(m.text + ' is coming soon'); return; }
+  closeAllSheets();
+  location.href = m.page;
+}
+// CALENDAR view: today's scheduled work, by the hour.
+const HOME_SCHEDULE = [
+  { time: '07:30', end: '09:00', wo: '19831', type: 'PM' },
+  { time: '09:30', end: '12:00', wo: '19257', type: 'Breakdown' },
+  { time: '13:00', end: '14:30', wo: '20450', type: 'Routine' },
+];
+function renderHomeCalendar() {
+  const d = document.getElementById('homeCalDate');
+  if (d) d.textContent = 'Today, ' + new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+  const el = document.getElementById('homeCal');
+  if (!el) return;
+  const hours = [];
+  for (let h = 7; h <= 16; h++) hours.push(String(h).padStart(2, '0') + ':00');
+  el.innerHTML = hours.map(h => {
+    const items = HOME_SCHEDULE.filter(s => s.time.slice(0, 2) === h.slice(0, 2));
+    return `<div class="home-cal-hour"><span class="home-cal-time">${h}</span><div class="home-cal-slot">${items.map(s => `
+      <button type="button" class="home-cal-item" onclick="openDemoWoAtCursor('${s.wo}')">
+        <span class="home-cal-item-time">${s.time} – ${s.end}</span>
+        <span class="home-cal-item-title"><span class="resume-card-wo">${s.wo}</span> ${kitEsc(runWoDesc(s.wo))}</span>
+        <span class="home-cal-item-meta">${s.type}</span>
+      </button>`).join('')}</div></div>`;
+  }).join('');
+}
+const HOME_VIEW_KEY = 'eamHomeView';
+function setHomeView(v) {
+  const cal = v === 'calendar';
+  document.getElementById('homeTilesView').hidden = cal;
+  document.getElementById('homeCalendarView').hidden = !cal;
+  const t = document.getElementById('homeViewToggle');
+  if (t && t.getAttribute('value') !== v) t.setAttribute('value', v);
+  if (cal) renderHomeCalendar();
+  lsSet(HOME_VIEW_KEY, v);
+}
+document.getElementById('homeViewToggle').addEventListener('change', (e) => setHomeView(e.detail.value));
+setHomeView(lsGet(HOME_VIEW_KEY) === 'calendar' ? 'calendar' : 'tiles');
 // Greeting strip — time-of-day greeting only (no due-today/status count,
 // see the CSS comment above for why). Name reused from the profile menu
 // identity row above rather than a separate hardcoded value.
