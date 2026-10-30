@@ -164,6 +164,8 @@ body{font-family:var(--font-sans);font-size:var(--k-body2);background:var(--bg-p
 .app .nav uxt-icon-button{flex-shrink:0;}
 .app .nav uxt-icon-button > .ib,.kit-drawer-head uxt-icon-button > .ib{background:var(--k-card);}
 .app .nav uxt-status-chip .chip{background:var(--k-card);}
+/* The top-bar search sits on the same card fill as the Icon Buttons (mobile kit SearchBar `outlined`). */
+.app .nav uxt-search-bar .sb{background:var(--k-card);}
 /* Optional MIDDLE slot (mobile kit AppShell `search`): any direct child of the
    bar other than .nav-left / .nav-title / .nav-actions — e.g. an exposed
    <uxt-search-bar> or a .nav-middle wrapper — fills the space between the
