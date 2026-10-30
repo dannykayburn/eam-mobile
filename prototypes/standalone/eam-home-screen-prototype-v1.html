@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — Home v1</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202610301720">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202610301720">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202610301726">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202610301726">
 <!--
   HOME SCREEN — session riff, first pass (2026-07-16). Loads the two
   shared files per docs/archive/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md;
@@ -203,6 +203,46 @@
 /* ── Sheet controls moved onto kit elements (this file's hand-copied
    shared sheets). Host layout only. ── */
 .qr-scan-footer > uxt-button{display:block;width:100%;}
+
+/* ═══ HOME CARD SYSTEM (Minh, 2026-10-30) ═══════════════════════════════════
+   One spec for every Home card; kit typography roles only, never a custom size.
+   Surface   card fill, 1px divider edge, 16px radius, 16px padding, flat.
+             The Aria card is the one dark variant (Octave ink), same geometry.
+   Rhythm    8px between cards; section title 24px above, 8px below.
+   Type      Section title   H6 (Octave Display)
+             Section action  Button 1 (14px, mobile)
+             Eyebrow         Overline, uppercase, text-secondary
+             Hero title      H6 (Resume equipment, Aria)
+             Card title      Subtitle 2 (tiles, rows)
+             Description     Body 2, text-secondary (hero second line, Aria copy)
+             Meta            Caption, text-secondary (counts, times, steps)
+             Values          Subtitle 2 (row time, timer; IDs keep the mono face)
+   Icons     40px circle, 24px glyph, tinted fill (tiles and rows alike). */
+.resume-showcase,.home-tile,.home-row,.aria-hero{border-radius:var(--uxt-theme-shape-radius-xl,16px) !important;padding:var(--k-s4) !important;box-shadow:none !important;}
+.resume-showcase,.home-tile,.home-row{background:var(--k-card) !important;border:1px solid var(--k-divider) !important;}
+.aria-hero{padding-right:128px !important;border:0 !important;}
+.home-tilegrid,.home-list{gap:var(--k-s2) !important;}
+.resume-showcase{margin:var(--k-s2) 0 0 !important;}
+.aria-stack{margin-top:var(--k-s2) !important;}
+.home-section-head{margin-top:var(--k-s6);}
+.home-section-head .home-section-label{margin:0 0 var(--k-s2) !important;}
+.home-section-link{font-family:var(--uxt-theme-typography-button-1-font-family);font-size:var(--uxt-theme-typography-button-1-font-size);font-weight:var(--uxt-theme-typography-button-1-font-weight);line-height:var(--uxt-theme-typography-button-1-line-height);letter-spacing:var(--uxt-theme-typography-button-1-letter-spacing);color:var(--k-text) !important;}
+.resume-card-eyebrow,.aria-hero-eyebrow{font-family:var(--uxt-theme-typography-overline-font-family);font-size:var(--uxt-theme-typography-overline-font-size);font-weight:var(--uxt-theme-typography-overline-font-weight);line-height:var(--uxt-theme-typography-overline-line-height);letter-spacing:var(--uxt-theme-typography-overline-letter-spacing);text-transform:uppercase;color:var(--k-text-2) !important;}
+.aria-hero-eyebrow{color:color-mix(in srgb,var(--uxt-theme-palette-octave-logo-ink,#fff) 64%,transparent) !important;}
+.rs-title,.aria-hero-title{font-family:var(--uxt-theme-typography-h-6-font-family);font-size:var(--uxt-theme-typography-h-6-font-size);font-weight:var(--uxt-theme-typography-h-6-font-weight);line-height:var(--uxt-theme-typography-h-6-line-height);letter-spacing:var(--uxt-theme-typography-h-6-letter-spacing);}
+.rs-title{color:var(--k-text);}
+.home-tile-label,.home-row-title,.rs-foot-left{font-family:var(--uxt-theme-typography-sub-title-2-font-family);font-size:var(--uxt-theme-typography-sub-title-2-font-size);font-weight:var(--uxt-theme-typography-sub-title-2-font-weight);line-height:var(--uxt-theme-typography-sub-title-2-line-height);letter-spacing:var(--uxt-theme-typography-sub-title-2-letter-spacing);color:var(--k-text);}
+.rs-sub,.aria-hero-text{font-family:var(--uxt-theme-typography-body-2-font-family);font-size:var(--uxt-theme-typography-body-2-font-size);font-weight:var(--uxt-theme-typography-body-2-font-weight);line-height:var(--uxt-theme-typography-body-2-line-height);letter-spacing:var(--uxt-theme-typography-body-2-letter-spacing);}
+.rs-sub{color:var(--k-text-2) !important;}
+.aria-hero-text{color:color-mix(in srgb,var(--uxt-theme-palette-octave-logo-ink,#fff) 72%,transparent) !important;}
+.home-tile-sub,.home-row-sub,.rs-step{font-family:var(--uxt-theme-typography-caption-font-family);font-size:var(--uxt-theme-typography-caption-font-size);font-weight:var(--uxt-theme-typography-caption-font-weight);line-height:var(--uxt-theme-typography-caption-line-height);letter-spacing:var(--uxt-theme-typography-caption-letter-spacing);color:var(--k-text-2) !important;margin-top:0 !important;}
+.home-row-time,.rs-timer{font-family:var(--uxt-theme-typography-sub-title-2-font-family);font-size:var(--uxt-theme-typography-sub-title-2-font-size);font-weight:var(--uxt-theme-typography-sub-title-2-font-weight);line-height:var(--uxt-theme-typography-sub-title-2-line-height);letter-spacing:var(--uxt-theme-typography-sub-title-2-letter-spacing);}
+.rs-timer{font-family:var(--font-mono) !important;}
+.home-tile-sq,.home-row-title .resume-card-wo{font-weight:inherit;}
+.home-row-icon{width:40px !important;height:40px !important;border-radius:var(--k-pill) !important;}
+.home-tile-sq{margin-bottom:var(--k-s4) !important;}
+.home-tile{min-height:0 !important;gap:2px;}
+.home-row-main,.rs-titles,.rs-foot-left{gap:2px !important;}
 </style>
 </head>
 <body>
@@ -673,14 +713,14 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/notifications.js?v=202610301720"></script>
+<script src="../../data/notifications.js?v=202610301726"></script>
 <!-- The Resume card names the WO it resumes (§32.7) — descriptions only. -->
-<script src="../../data/equipment.js?v=202610301720"></script>
-<script src="shared/vendor/three.min.js?v=202610301720"></script>
-<script src="../../data/wo-19257.js?v=202610301720"></script>
-<script src="../../data/wo-19831.js?v=202610301720"></script>
-<script src="../../data/wo-20450.js?v=202610301720"></script>
-<script src="shared/eam-shared.js?v=202610301720"></script>
+<script src="../../data/equipment.js?v=202610301726"></script>
+<script src="shared/vendor/three.min.js?v=202610301726"></script>
+<script src="../../data/wo-19257.js?v=202610301726"></script>
+<script src="../../data/wo-19831.js?v=202610301726"></script>
+<script src="../../data/wo-20450.js?v=202610301726"></script>
+<script src="shared/eam-shared.js?v=202610301726"></script>
 <script>
 // Insert Mode's Type pill (§9.4.1, added 2026-07-29) re-scopes the flat
 // fields section on every change, not just on entity switch — same
