@@ -12,11 +12,11 @@
 <link rel="manifest" href="../../manifest.webmanifest">
 <link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
-<title>HxGN EAM Mobile — Home v1</title>
+<title>Attune EAM Mobile — Home v1</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202610221658">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202610221658">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202610301611">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202610301611">
 <!--
   HOME SCREEN — session riff, first pass (2026-07-16). Loads the two
   shared files per docs/archive/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md;
@@ -268,6 +268,10 @@
 
   <div class="home-body">
     <div class="home-greeting" id="homeGreeting"></div>
+    <!-- RESUME (§32.7) — system-delivered, like Favorites: the technician's own
+         work in progress, never an authored tile. Empty (renders nothing) when
+         no run is in progress. Built by eam-shared.js renderResumeCard(). -->
+    <div id="resumeCardMount"></div>
 
     <!-- Placeholder: Home content is being redesigned (Minh, 2026-10-20). Tiles below stay live. -->
     <div class="home-redesign-flag" role="note">Being redesigned</div>
@@ -538,8 +542,12 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/notifications.js?v=202610221658"></script>
-<script src="shared/eam-shared.js?v=202610221658"></script>
+<script src="../../data/notifications.js?v=202610301611"></script>
+<!-- The Resume card names the WO it resumes (§32.7) — descriptions only. -->
+<script src="../../data/wo-19257.js?v=202610301611"></script>
+<script src="../../data/wo-19831.js?v=202610301611"></script>
+<script src="../../data/wo-20450.js?v=202610301611"></script>
+<script src="shared/eam-shared.js?v=202610301611"></script>
 <script>
 // Insert Mode's Type pill (§9.4.1, added 2026-07-29) re-scopes the flat
 // fields section on every change, not just on entity switch — same
@@ -937,6 +945,7 @@ let RECORD = {};
 renderEntityFields(); // pre-render defaults so the sheet isn't empty the first time it opens
 
 initSharedApp({ contentSelector: '.home-body' });
+renderResumeCard('resumeCardMount');
 initDemoOnlineToggle();
 
 </script>

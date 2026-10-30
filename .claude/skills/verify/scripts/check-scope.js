@@ -2,7 +2,7 @@
    which is what the browser actually does for classic <script> tags. Catches
    redeclaration errors that per-block checking cannot see. */
 const fs = require('fs'), vm = require('vm'), path = require('path');
-const DIR = 'C:/Users/dkilburn/Projects/eam-mobile/prototypes/standalone';
+const DIR = require('path').join(__dirname, '..', '..', '..', '..') + '/prototypes/standalone';
 const shared = fs.readFileSync(DIR + '/shared/eam-shared.js', 'utf8');
 
 // Top-level lexical declarations only (column 0, not indented).

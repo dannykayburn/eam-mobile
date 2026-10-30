@@ -1,4 +1,4 @@
-# HxGN EAM Mobile — Project Requirements (one-pager)
+# Attune EAM Mobile — Project Requirements (one-pager)
 
 **What this is:** the product-level requirements the design answers to — the
 things that would still be true if every screen were redrawn. **What this is

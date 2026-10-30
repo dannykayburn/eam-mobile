@@ -1,4 +1,4 @@
-# Continuum — HxGN EAM Mobile v1
+# Continuum — Attune EAM Mobile v1
 
 *One app, one online/offline continuum, one guided workflow.*
 "Continuum" is a working codename so the project can be named in a sentence; drop
@@ -53,7 +53,7 @@ need rather than reading it end to end.**
 
 ## Objective
 
-Replace HxGN EAM's two mobile apps with **one native, technician-first work-order
+Replace Attune EAM's two mobile apps with **one native, technician-first work-order
 execution app** in which online and offline are a single continuum the technician
 never has to think about, and in which no completed work is ever lost.
 
@@ -181,8 +181,13 @@ there and leave this list alone.
 - **"Offline" is provisioned, not chosen.** Three layers — Tier 0 always
   persisted, the outbox always on, **record replication as the only switchable
   layer** — assigned as a named profile in the portal's User Groups area, with
-  "none" as the off state. Admin-provisioned, invisible to the technician, fixed
-  for the session: that is provisioning, not a mode. *(Spec §2.10.)*
+  "none" as the off state. Admin-provisioned and fixed for the session: that is
+  provisioning, not a mode. **A group may be granted SEVERAL profiles**
+  *(revised 2026-09-23)*, and where it is, the technician **picks one at login**
+  and can change it in Settings. Still provisioning: the list is admin-granted,
+  no option can widen it, and every option is online-first — what is chosen is
+  *which declared scope to hydrate*, never whether to be offline. One profile
+  stays silent and invisible, which is the common case. *(Spec §2.10/§2.10.1.)*
 - **The write path stays disabled until status authorizations are present.**
   *(Spec §2.3; see Security.)*
 - **Lookups resolve three ways offline** — bounded code domains replicate whole;
@@ -236,8 +241,26 @@ there and leave this list alone.
   exceptions and no permission escape**; Equipment's system type is Protected in
   update mode, always. One paradigm, two trigger points. *(Spec §13.5/§26.8.)*
 - **Configuration is versioned, and a WO in flight finishes on the shape it
-  started with** — pin the resolved config version at Start Work. *(Proposal, not
-  locked; Open issue 5.)*
+  started with.** The resolved config version is stamped at Start Work, and the
+  device keeps every version a live run is stamped with, so an admin edit, a
+  re-assignment or an unassignment never changes work already under way. *(Locked
+  2026-10-23, spec §32.12.)*
+- **A started work order is a durable, resumable run.** Start Work creates a run
+  keyed *(technician, WO, Activity)*. It holds the current step, the fork answers,
+  what each action did, any open prompt, and the current step's unsaved edits, and
+  it survives an app kill, a device restart and being offline. Testable form:
+  **kill the app mid-step, relaunch, select Resume on Home, and land on the same
+  step with nothing lost.** A technician may have several runs in progress. Home
+  carries a system-delivered **Resume** card, positioned by the Home layout like
+  Favorites, and opening an in-progress WO from any list also lands on its current
+  step. v1 keeps runs on the device; one missing there is rebuilt from the WO's
+  data. *(Spec §32.7.)*
+- **The technician has one timer, and it belongs to the technician, not the
+  screen.** It is time-stamped from a start record synced to base, so it is
+  correct after a kill and visible from a second device. **Navigation never pauses
+  or stops it.** It is either booked or reset, never silently lost, and it
+  inherits the shipping product's AUTOBOOK rule when a second timer starts or a WO
+  completes with one running. *(Spec §32.1–§32.6.)*
 - **UDS authoring is three-way and stays split:** base UDS setup defines the
   fields, the portal's workflow canvas places the tab, and its User Groups area
   assigns it. *(Spec §27.)*
@@ -353,7 +376,10 @@ control shows a state that is honest about this rather than reading as an error.
 *(Spec §2.10; and see Open issue 7 — that state does not exist yet.)*
 
 **This is what profile `None` is for** — an internal online-only user group: a
-storeroom or planner group that is always in network.
+storeroom or planner group that is always in network. It is the **zero** case of
+§2.10.1's three: none, one, or several. A group granted several is the opposite
+end — the technician picks which scope to hydrate at login — and both are
+provisioning, because the admin decides what is on the list either way.
 
 ## Screens
 
@@ -393,7 +419,7 @@ is not a per-area choice: it follows what the runtime resolves on. *(§30.)*
 | **Home Layouts** | Three levels — layout ▸ section ▸ placement — plus the pinned Create control's contents, over a **global tile catalogue holding tile ids, never copies**. The section lives on the *layout*, never on the tile, or reuse dies. Insert Mode is a **flag** on a tile, not a kind. **Also authors the app's bottom navigation bar** (up to five slots; label, screen and icon, never colour). *(§30.16/§30.24.)* | `proto` |
 | **Offline Profiles** | Authors §2.7's per-entity registry: four policies on the **capability** axis, Tier 0 and the outbox rendered first as never-switchable, and caps shown because a budget you cannot see is not a budget. Whether a dataspy is **required** is arithmetic against the caps, never a description. Dataspies are *selected* here and authored on the record list screen. **Its Work Orders row is also where the punch-list dataspy lives** — the automatic half of §2.6 — settled 2026-09-23, **and it renders on every profile including `None`**, since a work list is a membership question rather than a consequence of replication. *(§30.14/§2.7/§2.10/§2.6.)* | `proto` |
 | **User Groups** *(under Security)* | The inverse view, and a **binding surface only** — assignment, never steps, gating or layout, and assign is not copy. **Create refuses here:** a user group is made in Security ▸ User Groups. Carries the consistency checks, including "a Required UDS step for a group without that tab permission is an **error**." *(§26.5.1/§30.13/§27.4.)* | `proto` |
-| **Equipment system-type layout authoring** | The four Location / Asset / Position / System layouts, plus the new function that renders by type. The one authoring gap that **blocks a whole track**. *(Open issue 1b.)* | `no surface` |
+| **Screen Layouts** | Screen design for screens that are not workflows — Equipment first, then Work Requests and Operator Checklists. The workflow paradigm with **Free Form always on**: same canvas, same Screen Designer panel, same membership table. One section per screen, **every type drawn as a slot** with the fallback first, and a **Viewing as** group lens that filters and never becomes the editing key. *(§30.27.)* The Equipment **function** is still owed. *(Open issue 1b.)* | `proto` |
 
 **Two rules about this portal that are easy to get wrong.** There are **zero
 links out of it** — a rail row is an *area*, never a link to another file, and a
@@ -481,7 +507,7 @@ own, so a status update or a timer can also be placed more than once.
 | --- | --- | --- |
 | **Equipment List** | A copy of the WO List standard — dataspy bar, favourites, 6 chips + sort, its own Create. *(§8.3.)* | `proto` |
 | **Equipment Record View** | **The canonical full record view** — copy its header/section pattern for any new record view. Carries the 74px photo slot that collapses with status on scroll. **Must re-render under a different layout by system type** (Location / Asset / Position / System) without navigating: tap an asset, then a position, and the layout changes. System type is **Protected in update mode, always**. *(§5.3/§7.5/§26.8.)* | `proto`, but against **one hardcoded layout** — see below |
-| **The four system-type layouts** | Base already models these as four `PLO_PAGENAME` values, so no new column and no new table. But **the function and the authoring surface are both missing**, and that **blocks the Equipment track**: build the record view against one layout and all eight child tabs inherit the assumption. *(Open issue 1b.)* | `no surface` |
+| **The four system-type layouts** | Base already models these as four `PLO_PAGENAME` values, so no new column and no new table. The authoring surface is now the portal's **Screen Layouts** area (§30.27), but **the function is still missing**, and that **blocks the Equipment track**: build the record view against one layout and all eight child tabs inherit the assumption. *(Open issue 1b.)* | `function owed` |
 | **Child tabs (8)** | Each is its own endeavour, priced individually. Priority order: **Events, Structure Details, Parts Associated**, then the rest. No hidden design dependency — Events and Parts Associated bind to the shared List/Detail container; Structure Details binds to the shared **Structure Tree**, which needs its mount, data source and row action parameterized out of the Equipment LOV plus an additive per-node status dot. | `delta` |
 
 #### Notifications
@@ -662,9 +688,10 @@ Things the design had to bend around, not preferences.
    nav sits below the fold. Both cost device rounds to learn. *(Spec §3.4.)*
 5. **No approved API contract or field-mapping artifact exists.** Everything in the
    prototype inventory is untrustworthy in production until one does.
-6. **Equipment's four system-type layouts have no authoring surface**, and that is
-   a **blocker rather than a parallel task**: build Equipment Record View against
-   one hardcoded layout and all eight child tabs inherit the assumption.
+6. **Equipment's four system-type layouts need their function before the record
+   view is built**, and that is a **blocker rather than a parallel task**: build
+   Equipment Record View against one hardcoded layout and all eight child tabs
+   inherit the assumption. *(The authoring surface was built 2026-10-28 — §30.27.)*
 7. **Typeface licensing is unresolved.** Aptos (brand, Microsoft-proprietary) vs.
    Inter (prototype stand-in). Needs a licensing owner. Note the Octave deck
    template is itself on Aptos, so the brand answer and the app answer may not be
@@ -749,11 +776,11 @@ owners, and putting fake ones here would be the least useful part of the doc.
 | **M1** | **Backend items have owners and dates.** Highest-leverage item is now the **per-entity policy registry + traversal contract** — not dataspy pre-evaluation, whose floor lifted with NG2. | A table of owners. The policy registry, as a document. |
 | **M2** | **Timeboxed engine spike** — WatermelonDB vs. op-sqlite. FTS5 is **not** an exit criterion; decide on write durability, RN maturity, migration ergonomics. | A written recommendation with the spike code attached. |
 | **M3** | **Navigation-shell proof-of-concept** — iframe/`postMessage` vs. real page-to-page navigation with record identity on the query string. Two files, throwaway. Decides the compiled shell **and** Screen Designer's live emulator: prove once, apply twice. | The two files, and a one-paragraph decision. |
-| **M4** | **The data layer lands.** Local record store + outbox + delta pull + state machine + **server-side closure assembly**. Plus: off-work-set offline search instrumented from day one. | A WO that can be started, worked and synced with no UI beyond a test harness. **Nothing user-facing is trustworthy before this exists.** |
+| **M4** | **The data layer lands.** Local record store + outbox + delta pull + state machine + **server-side closure assembly**, plus the **durable workflow-run record** and the **time-stamped technician timer** (spec §32.3/§32.7). Both have to survive an app kill, so they belong with the store, not with the screens. Plus: off-work-set offline search instrumented from day one. | A WO that can be started, worked and synced with no UI beyond a test harness. **Nothing user-facing is trustworthy before this exists.** |
 | **M5** | **Nav shell extracted for real**, then shared-component consolidation. **Before** screen porting, so screens are ported onto the shell rather than retrofitted. | Bottom nav, avatar/profile menu and sync control running in the production shell. |
-| **M6** | **WO workflow ported in flow order** — WO List → WO Record View → Activity Checklist → Issue Parts → Book Labor → WO Closing, plus the two WO child tabs. Each canonical file is the contract. | S1–S5 executable on a device against a real server. |
+| **M6** | **WO workflow ported in flow order** — WO List → WO Record View → Activity Checklist → Issue Parts → Book Labor → WO Closing, plus the two WO child tabs. Each canonical file is the contract. | S1–S5 executable on a device against a real server. **And a WO killed mid-step reopens on that step, with its fork answers and timer intact** (spec §32.7). |
 | **M7** | **Equipment track** — gated on its own prerequisite. The **Equipment system-type screen-design capability must land first** (Constraint 6). Then Equipment List → Equipment Record View shell → its tabs individually, **Events, Structure, Parts Associated first**. | A record view that re-renders under a different layout when you tap an asset and then a position, without navigating anywhere. |
-| **M8** | **App-shell screens** — Home, Notifications, Sync Status, then the real Login and server-configuration screens once designed. | S1 and S7 executable end to end. |
+| **M8** | **App-shell screens** — Home (including the **Resume** card, spec §32.7), Notifications, Sync Status, then the real Login and server-configuration screens once designed. | S1 and S7 executable end to end. |
 | **M9** | **Base track**, mostly parallel, gated on the layout/workflow API. the **Workflow Designer Portal** as its own small independently-deployed web app — the single base-screen entry point, with Screen Designer invoked inside it (§30.6/§30.9) — launched by the legacy menu item into a new window — **strangler-fig, not an embed**. **Re-check that shape before building:** it was chosen to avoid embedding modern drag-and-drop in decades-old page chrome, and base is being migrated onto Angular (Open issue 16), which may make "a module in the new base UI" the better answer. | S6 executable by an admin with no developer present. |
 
 **Design work runs in parallel throughout and is not on the critical path**: the
@@ -959,16 +986,17 @@ re-listing of §20.
 | --- | --- | --- | --- |
 | **0** | **Portal UI — Octave Experience vs. a new base UI. DECISION REQUIRED, and it precedes every other item here.** Raised 2026-09-23 (TPM). The portal is prototyped on OUX (§30.7) and that is where the diagram-authored workflow canvas and the mobile emulator come from; the alternative is building it as new base UI. **For OUX:** it sidesteps the mobile config screens already littered through base for the two apps; it gives the admin one screen for all configuration; drag-and-drop plus an emulator preview are affordances the base toolkit does not have; and it is a shell that could be applied to any operational mobile app in the portfolio. **Against:** on-premise deployment, other-team dependencies, and long-term longevity — **is it a two-way door?** Note this reaches two locked positions rather than sitting beside them: §30.7 locks OUX *for base screens*, and NG8 put desktop UI out of scope entirely, which is what removed "restyle onto the base components" as an option. Re-opening the platform question re-opens both. | Answer the two-way-door question first, since it is the only one of the three cons that cannot be mitigated later — specifically, what a migration off OUX would cost once the portal is authoring real customer configuration. | The whole base track, and it is entangled with issue 16 (the Angular migration). |
 | **1** | **`WSJOBS` reuse vs. a new standalone mobile function — DECISION REQUIRED.** Reopened 2026-09-11, having read as locked since July 2026. Every layout row, dataspy and permission set is keyed to whatever function the app resolves, so this cannot be deferred past the start of base work. The reuse case is dataspy-set fragmentation across functions; the new-function case gained a real input — **a new Equipment screen function that renders by equipment type is required regardless**, so the two tracks are asymmetric unless WO also gets one. **Do not re-derive §26.7 with it** — per-user-group resolution is still locked and holds either way. | Decide before M9, and before any layout authoring. Record in §21. | **M7, M9** |
-| **1b** | **The required new Equipment function is unspecified.** Owed: the function itself, its `PLO_PAGENAME` mapping across Location / Asset / Position / System and their clones, and the Screen Designer surface that authors the four layouts. This is the *function* half of what was previously logged only as a missing authoring surface. | Same decision forum as issue 1. **Blocks the Equipment track** (see issue 4). | **M7** |
+| **1b** | **The required new Equipment function is unspecified.** Owed: the function itself, its `PLO_PAGENAME` mapping across Location / Asset / Position / System and their clones. *(The surface that authors the four layouts is built — §30.27.)* This is the *function* half of what was previously logged only as a missing authoring surface. | Same decision forum as issue 1. **Blocks the Equipment track** (see issue 4). | **M7** |
 | **1c** | **The punch list's remaining cost is a backend ask, not a screen.** *(Authoring closed and built 2026-09-23.)* The selector is the `For Dataspy` control on the **Work Orders** row of the portal's Offline Profiles area, and it renders on every profile including the one that replicates nothing. Both prototype defects are fixed and pinned. What is left: a pinned row must record **which source** pinned it, or re-evaluating the dataspy silently evicts the technician's own additions — server-side, no UI. | Backend owner at M1, with the `R5PINS` projection. Also state in the assignment control that a group needing an automatic list is assigned the Online only *profile*, not left unassigned. | M4 |
 | **1d** | ~~The portal's User Groups area is not built~~ — **RESOLVED 2026-09-16** (§30.13). Built as an area of the portal, over a **single membership table** read from both directions: the artifact side assigns one artifact to many groups, the group side answers *"what does this group get?"* — the question §26.5 noted nothing in the product answers. Cardinality is derived from what the runtime resolves on, so one rule covers all four artifact types: a workflow resolves on `(WO Type, group)` and is one-per-WO-Type-plus-Free-Form; everything else resolves on the group alone and is exactly one. §21's six surviving mechanics carried over. **Still open and now in §30.18**, because neither is a prototype gap: the `*` default group as an assignment target, and what happens to in-flight work when an assignment is removed. | No action. | — |
 | **1e** | ~~Two surfaces can now express a workflow sequence~~ — **RESOLVED 2026-09-16** (§30.9). Screen Designer standalone is not a thing: it is invoked per step node from the Workflow Designer Portal and opens in that screen's own panel. One surface expresses a sequence, so §26.5.1's duplication concern is closed at the level it was raised, and the portal now has zero links out (pinned by test). The **fidelity** gap closed the same day — the panel was built to parity and the old file archived — so nothing is outstanding. | No action. Kept visible here for one cycle because it was raised as an M7/M9 blocker the same day. | — |
 | **2** | **Conflict rules per write shape** — required regardless of NG7, and the reason ~7 shapes matters. State machines reject and surface; field edits surface both values; appends cannot conflict; inserts ride the idempotency UUID. | Write it down as a table, one row per shape, as part of the outbox API contract. | M4 |
 | **3** | **Tier 0 contract** — contents per domain, per-domain version stamp, partial-failure reporting. The *ordering* is settled; the contract is not. | Owner at M1. Recommend **server-side** code-domain scoping. | M4, SLO-9 |
-| **4** | **Equipment's four system-type layouts have no authoring surface.** A blocker, not a parallel task (Constraint 6). | Pull the Equipment screen-design capability **forward, ahead of M7**. | M7 |
-| **5** | **Workflow config revisioning at runtime.** Authoring is handled (dangling and backward fork targets are cleared). **Runtime is not**: a fork's target is a pointer to another step, so reordering or deleting steps invalidates routing a technician may be mid-way through. | Ratify §14.11's config-version stamp as the answer, or reject it and propose another. Either way, stop carrying it as "recommended." | M6 |
+| **4** | ~~Equipment's four system-type layouts have no authoring surface~~ — **RESOLVED 2026-10-28** (§30.27). Built as the portal's **Screen Layouts** area: the workflow paradigm with Free Form always on, one slot per system type plus a fallback, applied over the same membership table. **Still open:** the function (issue 1b), and the area's open edges in §20. | No action. | M7 |
+| **5** | ~~Workflow config revisioning at runtime~~ — **RESOLVED 2026-10-23** (spec §32.12). §14.11's config-version stamp is ratified: a run finishes on the version stamped at Start Work, and the device retains every version a live run uses. **Still open, in §20:** the *authoring* half (Draft / Current Rev), and whether an edit to an assigned workflow may introduce an authoring Error. | No action at M6. Revisit with the authoring half before workflow config is editable in production. | — |
 | **6** | ~~Offline-profile authoring has no surface~~ — **RESOLVED 2026-09-16** (§30.14). Built as an area of the portal, not improvised into User Group Setup, so the reason for keeping it off the group side still holds. It composes §2.7's per-entity registry with caps enforced at authoring time, §2.8's lookup classes read-only, and Tier 0 + the outbox rendered first on every profile including **None**. **Two things came out of building it and are now open in §20** — see issue 6b, and note that 11 of 31 entities have no policy decision at all. Still unmodelled and still owed: the **device** axis as `min(group, device)`, and per-user as override only. It remains a **privacy control**; price it accordingly. | Scope the two unmodelled axes as a base-track screen at M9. | M9 |
 | **6b** | **§2.7 narrows offline capability relative to the SHIPPING product — DECISION REQUIRED.** Found 2026-09-16 by mapping the live **User Group ▸ Mobile Settings** tab onto §2.7 (§30.14). §2.7 puts **equipment/WO history** and **meter readings** in `server-only`; the shipping product downloads both and customers use them. A technician who could read meter history offline yesterday and cannot today experiences a **downgrade**, and nothing has acknowledged it as one. Either §2.7 stands and this is communicated as a known regression with the online path as the answer — defensible under R1 but only where coverage is good — or §2.7 gets a **bounded** carve-out (last N readings, last N WOs per asset), never the unbounded history the current product ships, because unbounded history is what §2.7's row cap exists to refuse. | Product + the offline owner, together. Needed at **M1**, since it changes the per-entity policy registry that M1 delivers. | M1, M4 |
+| **6c** | **§2.10.1's login profile chooser has no device side.** Opened 2026-09-23 with the several-profiles decision. The portal assigns the set; the app has none of what the decision owes — no chooser inside the login round-trip, no Settings row naming the profile in force, and no sticky *(user, device)* answer. Treat it as **one item in three parts**, since any one alone is unusable, and note the blocker in front of all three is the general one: **nothing feeds the app a portal artifact yet**, so a chooser built today would choose from a hardcoded list. Four rules ride on the Settings row and are the part most likely to be got wrong — a switch states its cost, **never drops the outbox**, is **refused with no connectivity**, and **never evicts live work** (a Started WO or a manual pin). | Sequence it with the same hand-off that feeds the app workflow definitions; do the Settings row and the chooser together. Also **name the profile in force in the sync panel**, which folds into issue 7. | M8 |
 | **7** | **The sync control has no state or copy for an online-only user** (S7). Fell out of the R1 decision; the only prototype change that did. | UX, small. Do it before M8. | M8 |
 | **8** | **UDS: two answers left** — cardinality (1:1 or 1:N per `(WO, UDS)`), needed **before** the write envelope is built; and whether UDS fields are governed by status authorizations at all, which is a hole in the write gate. Plus two now-required guards: a per-UDS row cap, and authoring-time FK-mapping validation. | Both to the base team at M1. | M4 |
 | **9** | **Where user-defined text translations live.** The question fork is the first place an admin types prose a technician reads; the language-keyed map on the prompt row is a **stand-in, not a schema proposal** (no confirmed EAM table). One rule must survive any answer: a missing translation **falls back to the base language and never blanks**, because an empty question on a gated step is unanswerable. | Base team, at M1. | M6 |
@@ -1007,6 +1035,7 @@ Recorded so they are not re-opened. **Full "old → new, why" for each lives in
 | WO Type protection | **Protects at Start Work**, not at insert. Replaced a proposed four-tier gate ladder and closed required-field drift. Equipment's system type is Protected in update mode, always. One paradigm, two trigger points. | 2026-08-25 |
 | Start Work | **The commitment boundary** — five things happen at once and only make sense together (S2). | 2026-08-25 |
 | Activity Checklist navigation — the largest open *design* question | **Snap-scroll between items**, resolved on a device against paged Prev/Next. Snapping is **JS-owned on deceleration**; CSS `scroll-snap` was rejected on device. The paged path and its flag were **deleted, not pinned**, so there is one render path and no dead branch. Prev/Next is retained and commits the cursor directly. | 2026-09-21 |
+| How many offline profiles a user group gets | **Several, and then the technician picks one at login** — with a setting to change it, and the answer remembered per device. Cardinality on the offline profile moves from *exactly one per group* to *several*; §30.13's rule is untouched, because the resolution key gained a dimension rather than the rule gaining an exception. It is **not** a mode: every option is admin-granted, narrowing-only and online-first, so what is chosen is *which declared scope to hydrate*. One profile — the common case — still applies silently. The portal half is built; **the device half is not** (Open issue 6c). | 2026-09-23 |
 | The punch-list dataspy selector's home | **The offline profile's Work Orders row** — it was already built there, so the doc was trailing the prototype. Reverses the 2026-09-11 "on the user group" answer, whose objection assumed a *group-scoped* dataspy; the punch-list one is **user-relative** (`My Open WOs`), so a shared profile still yields a per-technician list. **Profile `None` gets one too**: the Work Orders row renders on every profile, policy fixed at online-only, because the punch list is a membership question and was never a consequence of replication — the same argument that already puts Tier 0 and the outbox on every profile. What remains is implementation only (Open issue 1c). | 2026-09-23 |
 | Gating direction | **Forward-only.** A completed step is always reopenable; a later step stays locked and explains itself. | 2026-08-11 |
 | Platform target | **Native React Native**, not a responsive PWA. The spec's own header cell contradicted this for weeks while naming a React-Native-only library. | 2026-08-25 |

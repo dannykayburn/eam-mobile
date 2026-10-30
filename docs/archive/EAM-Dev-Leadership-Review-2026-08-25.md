@@ -1,4 +1,4 @@
-# HxGN EAM Mobile — Dev Leadership Review & Deck Source
+# Attune EAM Mobile — Dev Leadership Review & Deck Source
 
 Audience: Dev Manager, Lead Dev Tech, Architecture · Date: 2026-08-25,
 **revised 2026-09-08** (offline read polarity decided; GIS scoped to Phase 2 —

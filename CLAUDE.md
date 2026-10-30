@@ -1,8 +1,8 @@
-# HxGN EAM Mobile — Project Memory
+# Attune EAM Mobile — Project Memory
 
 ## What this is
 A technician-first, offline-capable work order execution app (iOS/Android)
-for HxGN EAM. We are prototyping a guided 5-step WO workflow — WO Record
+for Attune EAM. We are prototyping a guided 5-step WO workflow — WO Record
 View, Activity Checklist, Issue Parts, Book Labor, WO Closing — plus a Home
 screen and the app-level navigation shell (bottom nav, avatar/profile menu,
 sync icon) that wraps around all of it. The nav shell's *mechanics* are
@@ -39,9 +39,9 @@ in older notes, and the prototype was unaffected except one new item: the sync
 control needs a state or copy for an online-only user (§4.4.1/§2.10). **Don't
 re-open either, and don't re-run the options analysis** — four options were
 weighed once, and the brief was rolled up and retired (§21). Separately, the
-spec now runs **§1–§30**; §30 (the Workflow Designer Portal — four configuration
-areas over one membership table) is the newest and runs to **§30.23**, and §29
-(step instances, gates, forks) sits under it.
+spec now runs **§1–§32**. §32 (workflow runs, the technician timer, composition rules) is
+the newest. §30 (the Workflow Designer Portal: five configuration areas over one membership
+table) runs to §30.27, and §29 (step instances, gates, forks) sits under it.
 
 ## Locked rules — don't re-derive these
 **Conclusions only. The rationale, rejected alternatives and revert recipes live
@@ -53,16 +53,17 @@ doc's Requirements section; neither file holds the reasoning.
 | --- | --- | --- |
 | **Start Work is the commitment boundary** | §14.11 | Five things happen at once and only make sense together: status → Start Work Status, **Type protects**, **the WO pins to the technician**, **children hydrate**, config version stamped. Starting a WO found by search **is** its promotion into Tier 1, and it is the **first device-originated pin** — a local pin must survive a server list that omits it, or the next sync evicts live work. |
 | **The punch list is BOTH a dataspy and pins** | §2.6 | Locked 2026-09-11, replacing a two-month A-or-B open item. A **dataspy** is the *automatic* layer, selected on the **Work Orders row of the offline profile** — which renders on **every** profile including `None`, because a work list is a membership question, not a consequence of replication (settled 2026-09-23, §2.6/§30.14; this reversed "on the user group", whose objection assumed a group-scoped dataspy when `My Open WOs` is user-relative); **pinning** (`R5PINS`) is the *manual* layer on top. Costs both backend asks, not one. The membership row must record **which source** pinned it, or a dataspy re-evaluation evicts a manual pin — and a local pin must survive a server list that omits it, which is now architecturally required rather than just advisable. |
-| **One paradigm for every configuration artifact** | §30.13 | Workflows, offline profiles, Home layouts and Home tiles are all **authored once and applied**, and the four answers are shared, not per-area: assignment runs **both directions over ONE membership table** (`{type, artifactId, group}`, every read through an accessor — four parallel arrays is the failure mode); **cardinality follows what the runtime resolves on** (§11 resolves a workflow on *(WO Type, group)* → one per Type plus Free Form; everything else resolves on the group alone → exactly one); **Create follows size** (modal for what fits one form, blank canvas for an arrangement); **Home tiles are global and reused by reference**, so editing one reaches every layout using it and only the *layout* is assignable. |
+| **One paradigm for every configuration artifact** | §30.13 | Workflows, offline profiles, Home layouts and Home tiles are all **authored once and applied**, and the four answers are shared, not per-area: assignment runs **both directions over ONE membership table** (`{type, artifactId, group}`, every read through an accessor — four parallel arrays is the failure mode); **cardinality follows what the runtime resolves on**, and it now declares FOUR values (§11 resolves a workflow on *(WO Type, group)* → `per-wotype`; a **Screen Layout** on *(screen, type, group)* → `per-type`, the same rule with the axis as a parameter (§30.27); an **offline profile resolves on *(group, the technician's login choice)*** → `multi-group`, **several per group, locked 2026-09-23 (§2.10.1)**; a Home layout resolves on the group alone → `per-group`, exactly one). **The third value is the rule working, not bending** — the resolution KEY gained a dimension, exactly as §29 did to the layout key, and nothing downstream needed a special case; **Create follows size** (modal for what fits one form, blank canvas for an arrangement); **Home tiles are global and reused by reference**, so editing one reaches every layout using it and only the *layout* is assignable. |
 | **Gating is forward-only** | §14.10 | A completed step is **always** reopenable; "Not Free Form" dictates forward order, not backward. Forward gating is untouched — a later step stays locked and explains itself. Completed rows carry a trailing chevron (`.step-map-back`), because `cursor:pointer` says nothing on a touch device. |
 | **Function resolution is per user group, never one blessed function** | §26.7 | Any function with `FUN_RENTITY = EVNT` may be workflow-enabled, opted in per **user group** — this customer already runs four `WSJOBS` clones (CCJOBS/TRJOBS/ZJ1000/WSJODC) as distinct business processes. **This half is still locked and holds either way.** *(What is NOT locked any more: "no new `FUN_CODE`s" — reuse `WSJOBS`/clones vs. a new standalone mobile function was reopened 2026-09-11 and is a **decision required**, §11/§20. A new Equipment function that renders by equipment type is **required** regardless, §26.8. Don't re-derive §26.7 with it.)* |
-| **Online-first, with declared offline scope** | §2.1 | Reads hit the server at full fidelity; the local store is a **scoped fallback**, never a projection of the whole database. **Database-wide search does not work offline.** Unchanged: one write path, always-on outbox, the UI never reads the network directly, **no mode the technician chooses**. Consequences live at §2.3/§2.7 (per-entity scope + traversal), §2.8 (three-way lookups), §2.9 (actions may narrow, field state never does), §2.10 (profile per user group), §2.5 (LWW withdrawn — per-shape conflicts). |
+| **Online-first, with declared offline scope** | §2.1 | Reads hit the server at full fidelity; the local store is a **scoped fallback**, never a projection of the whole database. **Database-wide search does not work offline.** Unchanged: one write path, always-on outbox, the UI never reads the network directly, **no mode the technician chooses**. Consequences live at §2.3/§2.7 (per-entity scope + traversal), §2.8 (three-way lookups), §2.9 (actions may narrow, field state never does), §2.10/§2.10.1 (profiles per user group — **several are allowed**, and past the first the technician picks one at login and can change it in Settings; still provisioning, since every option is admin-granted, narrowing-only and online-first), §2.5 (LWW withdrawn — per-shape conflicts). |
 | **R2 (GIS / maps) is Phase 2** | §28 | The map is an **editor, not a viewer** (the viewer reduction does not exist); it is a **second sync engine** and GIS edits **never** ride the EAM outbox; its offline unit is a **per-map-area download**. One v1 consequence: keep §27.3's definition-driven renderer generic enough for a map tab. |
 | **Hydration has a Tier 0** | §2.3 | Bootstrap config sits in front of the record tiers and is deliberately not one of them — records degrade (fewer rows), configuration doesn't (a missing layout is a blank screen). **Layout is first because it scopes everything after it.** Fetched inside the login round-trip — **not a separate modal**, though login itself legitimately blocks (§2.3 clarifies what "no blocking modals" actually prohibits: bulk record download and connectivity-triggered interruptions, not a user-initiated round-trip). Say **"my open pinned work orders"**, never "today's WOs". |
 | **WO resolves on Type; Equipment on system type** | §11–§13, §26.8 | WO needs a `PLO_WOTYPE` column + two WO Workflow tables. Equipment's four system types **already are** four `PLO_PAGENAME` values — no new column, no new table — so four base screens collapse into one mobile surface. **But the authoring surface for those four doesn't exist, and that blocks the Equipment track**: don't build Equipment RV against one hardcoded layout, or every child tab inherits it. |
 | **Type protects at its commitment point** | §13.5 | WO Type is editable while not started (confirm → immediate commit → re-render) and **Protected from Start Work onward, no exceptions, no permission escape**. Equipment's system type is **Protected in update mode, always** — so Equipment has no re-resolution exposure at all. One paradigm, two triggers. This replaced a four-tier gate ladder and withdrew the §23 required-marker tension — **§23 stands as written.** |
 | **User Defined Screens are scoped, not designed** | §27 | A **UDS** is a customer-authored *screen* — **not** §22's Custom Fields, which are admin-defined *fields*. Don't merge the mechanics; a record can carry both. **In:** UDS-as-a-tab-on-WO. **Deferred:** standalone UDS. **Out:** UDS field authoring. What's needed is **one generic definition-driven tab renderer** (§27.3), never a screen per UDS — and sequence it after a 2nd real child tab exists, since the Equipment tab is a sample size of one. |
 | **Workflow steps are *instances*** | §29 | The tier-2 key gained an `Instance` dimension — `(WO Type, User Group, Tab, Instance)` — because "a tab placed twice" and "a second Record View with a different layout" are the same requirement. Layout key is the bare tab id for instance 1 and `tab#n` after, so **nothing migrates**. An instance is either a Step or a More entry, never both, so **forward gating stays unbypassable**. Adds comment/document gates (§29.3) and a **question fork** that routes forward-only and marks skipped steps **N/A rather than hiding them** (§29.4). Authoring is Screen Designer's alone — **don't put any of it on User Group Setup** (§26.5.1) and don't revive a third surface. |
+| **Workflow runs + ONE timer per technician** | §32 | Locked 2026-10-23. The timer is the **technician's**, time-stamped from a synced start record, and it inherits the shipping product's AUTOBOOK/MOBSTST rules. **Navigation never touches it**: §14.7.1's "Pause & Leave" is gone. It starts **only from a placed Start Timer** ("On Start Work" = an action right after RV1), **Pause books the segment**, it is booked or reset (never "stopped, unbooked"), and **a declined timer shows NOTHING in the rail**, so manual Start is a header-ellipsis action. A **run** is `(technician, WO, Activity)`, durable, device-local in v1, and an **MEC child has none** (the parent owns it). Revisits edit in place, and **forks/actions never re-fire**. **System-mode Status updates bypass group authorization**, so base must verify them against the stamped workflow version (§20). §32.13's composition rules are **path-aware** (a fork can route around a Start Timer), and **`Visible` is gone** from node rows. Flows live in `docs/scope/` SCOPE drafts, rules live in §32 — don't restate either in the other. |
 | **Responsive: WIDTH CLASSES, never device names** | §31 | Scope is the **mobile app only** — the portal is web and needs no modes (the mirror of §30.7). **Three classes, and `orientation` is never queried anywhere**: Compact `<600px` (bottom bar, one pane), Medium `600–839` (rail, one pane — foldables and small tablets in portrait; **skipping it is how a foldable gets a stretched phone layout**), Expanded `>=840` **and** height `>=600` (rail, two panes). The height floor is what makes it orientation-free — a rotated phone and a tablet in portrait both correctly stay single-pane. Fluid within a class, **320px floor**, measure capped on typographic not device grounds. Expanded is a *width* problem: a tablet in landscape has roughly the same usable height as a phone in portrait. The **band model** (§4.2 already names the three levels) and **rail-in-band-2** are **proposed, not locked** — frames in `mockups/landscape-mode-approach-options.html`. Amending §4.2's browsing-XOR-record-open binary and §30.16's single `HOME_FOLD` is required to land it; both in §20. |
 | **Six cross-device rules — APPLIED 2026-09-21** | §31.5 | All six are done and verified (every screen loads, 10/10 tests). **Every one had been invisible on the device it was authored on**, which is the argument for auditing against the rule, not a device. What landed: pinch-zoom unblocked on every screen; **354 `font-size` declarations px→rem** (exact /16, so identical at a 16px root) with **6 deliberate px exceptions** — glyphs inside fixed-size circles, which scale with their control not with reading text; hit areas grown to 48px by transparent `::after`, **painted sizes untouched**; a solid `background` before `.bottom-nav`s `color-mix()`; all storage via **`lsGet()`/`lsSet()`/`lsRemove()`** (never call `localStorage` directly again — it throws in iOS Private Browsing and the symptom is a control *silently doing nothing*); and both fonts self-hosted, so the app now has **zero runtime network dependencies**. Residue in §20: the top-nav cluster cannot reach 48×48 without a §4.2 spacing call, and `mockups/`/`old versions/` still block zoom on purpose. |
 | **Native-app feel — and the ZOOM TRAP** | §31.6 | **Two things are called zoom and conflating them caused a wrong fix once.** **Pinch**-zoom is never blocked (it is an accessibility affordance, the app never *needs* it) — and blocking it buys no native feel anyway, because **iOS has ignored `user-scalable=no` for pinch since iOS 10**, so the old tag only restricted Android. The real jank is **iOS force-zooming the page when a text input under 16px takes focus, and not zooming back**. Fix is to **remove the trigger: every text input is `1rem`** (14 rules raised from 13/14/15px — accepted visible cost; iOS system field text is 17pt, so this is *closer* to native). **Never cap viewport scale to fix a field.** What actually delivers app feel, all now in `eam-shared.css`: tap-highlight transparent (the grey flash was the biggest web tell), `overscroll-behavior:none`, `user-select`/`touch-callout` **scoped to chrome so record values stay copyable**, and `touch-action:manipulation` (**not `none`** — that breaks scrolling). Plus a **PWA manifest** + apple meta + generated 180/192/512 icons: Add to Home Screen launches fullscreen, no browser UI. **Install gotchas, both found on device:** the **manifest lives at the REPO ROOT** so `index.html` is inside its `scope` — it was one directory down and the root could not launch standalone at all; and the tags must be on `index.html`/`screens.html` too, not just the screens, since the root URL is what people actually add. **An existing home-screen icon NEVER upgrades itself** — iOS snapshots the config at add time, so changes need a delete-and-re-add. iOS <16.4 also leaves the installed window on cross-file navigation — §20. |
@@ -232,7 +233,7 @@ All 5 steps are rebuilt onto the shared-file architecture: `eam-wo-record-
 view-prototype-v1.html` (Step 1), `eam-activity-checklist-prototype-v2.html`
 (Step 2), `eam-wo-prototype-issue-parts-v1.html` (Step 3), `eam-book-labor-
 prototype-v2.html` (Step 4), `eam-wo-closing-prototype-v2.html` (Step 5).
-Shared chrome: step rail + timer pill, the **"More" group** pinned after the
+Shared chrome: step rail + timer, the **"More" group** pinned after the
 last numbered step, and the per-step bottom bar (§14.2/§14.5–§14.8). More's
 membership is **configuration, not definition** — driven by `WO_MORE_TABS` /
 `stepMapMoreGroupHtml()` / `openWoMoreTab()` in `eam-shared.js`, so don't
@@ -247,7 +248,39 @@ covers 3 WO identities — **19257** (Breakdown, full 5-step flow), **19831**
 (PM, skips Issue Parts), **20450** (Routine, no configured workflow — §11
 fallback: flat, unordered, ungated step rail). WO List routes any tapped WO
 to the correct identity by its Type (§24 rule 3); an unrecognized WO number
-falls back to 20450.
+falls back to 20450. A reload keeps its WO: `DEMO_WO` falls back to
+`eamLastDemoWo` (sessionStorage), saved by `initSharedApp()`.
+
+**Timer + workflow runs (§32.16 — what is built of §32).** All in `eam-shared.js`;
+no screen holds timer state.
+- **One technician timer** (`techTimer()`, key `eamTechTimer` via
+  `lsGet()`/`lsSet()`): WO + activity, segment start moment, Running/Paused.
+  Elapsed is **calculated**, so reloads and navigation are correct. Pause books
+  the segment (`eamTimerBookings`, device-local — Book Labor lists them), Stop
+  opens `openBookingPullup()`, Reset confirms then discards. Starting while it
+  runs on another WO asks AUTOBOOK's PROMPT question (`techTimerStart()`).
+- **The rail pill/panel render ONLY while a timer is Running or Paused on this
+  WO** (`railTimerPanelHtml()` returns `''` otherwise — pinned). No step screen
+  carries timer markup; don't add it back. Manual start is a self-injected
+  **Start timer** row in the record's ellipsis menu (`syncStartTimerMenuRow()`).
+- **A run per (technician, WO, activity)** (`woRunFor()`, key `eamWorkflowRuns`),
+  created in `proceedStartWork()` after the timer question (Cancel creates
+  nothing). Both rail renderers call `woRunTouch()`: a gated cursor moves only
+  forward, Free Form's is the last step opened. **The rail's position is the
+  cursor, not the screen** — a completed step reopened is a revisit
+  (`woRunRevisitStep`) whose bar reads "Back to <cursor>"
+  (`applyRunRevisitBar()`; Record View and the checklist prompt bar have their
+  own). WO List, Notifications and Home Resume open via `openDemoWoAtCursor()`.
+  A completing status ends the run in `showCompletionOverlay()`; On hold keeps it.
+- **"Up next" preview** (§14.2/§32.15): `stepUpNextText()` → `#stepNext`,
+  self-injected under `.step-rail-collapsed`; `.has-next` hides the segment
+  bar. The one fork is declared in `WO_DEMO_FORKS` (checklist → Issue Parts or
+  Book Labor); `promptAnswer()` pins it, and the skipped step renders N/A.
+- **Stand-ins, both §20:** the gated demo workflows act as if they carried an
+  "On Start Work" System Start Timer; the fork is app-declared. **MEC children
+  get no run** (D-13 undecided) — positional rail, own timer key.
+- **Test-shim trap:** `run-load.js` shares ONE storage across boots and each
+  boot clears it — carry a screen's keys out before booting the next.
 
 Per-screen notes — **design rules live in §15–§19; these are implementation
 facts and traps only.**
@@ -265,14 +298,21 @@ facts and traps only.**
   copy that carried both were **deleted, not pinned**, so there is one render
   path and no dead branch; the old paged v2 is in `old versions/`. Prev/Next is
   retained and commits the cursor directly. Snapping is JS-owned on
-  deceleration — CSS `scroll-snap` was rejected on device.
+  deceleration — CSS `scroll-snap` was rejected on device. **Any tap answer
+  auto-advances** (check, Yes/No, Pass/Fail/N/A — `autoAdvanceFrom()`);
+  keyboard entry and the slider never do (§16.1).
   No separate "Instructions" field on an item — the description *is* the
   instructional text (`feedback_checklist_field_model` memory); a task plan's
   own instructions are a different concept (§16.7). **Equipment-scoped items
   fan out per equipment** (§16.9), recomputed from the store at load, so
   removing equipment removes its items with no separate teardown path. The
   scale is deliberate — demo Routes of 24 and 156 equipment give ~96/~624
-  items; **don't "fix" that by capping the fan-out.** §16.8 records several
+  items; **don't "fix" that by capping the fan-out** (a 3rd route was added
+  for UXR instead — see below). **The task plan is per-WO** (`CHECKLIST_DEFS`,
+  2026-09-25): 19257/20450 get the default 8-item single-asset plan, 19831 gets
+  a 3-item route plan (brief / one check per asset / close-out) that fans out to
+  14. Keyed on the WO, not on "has a route", so the plan is the same before and
+  after the route is picked. Pinned by `test-route-checklist.js`. §16.8 records several
   filtering/search gotchas worth reading before touching that area again.
 - **Issue Parts** (§17): Store/Bin/Lot picking is screen-local (dynamic
   per-sheet options). **Still on its own hardcoded parts data — not wired to
@@ -293,9 +333,14 @@ workflow step (not in `WO_STEP_FILES`) but it **does carry the step rail** —
 it has no bottom bar, so the rail is its only way back.
 - **State model:** a shared persisted store (`eamWoEquipment`) is the single
   truth for this tab *and* WO RV's pill. Empty unless a Route is set on the WO
-  header; selecting one inserts that Route's equipment (PUMPS 24 / FIREEXT 156)
-  and mints **one MEC child WO per row**; manual adds do the same. The pill is
-  exactly `rows exist`.
+  header; selecting one inserts that Route's equipment (**PUMPSPM 12** / PUMPS 24
+  / FIREEXT 156) and mints **one MEC child WO per row**; manual adds do the same.
+  The pill is exactly `rows exist`. **One exception: 19831 is seeded with PUMPSPM
+  by `resetDemoState()`** (`seedDemoRoute()`, 2026-09-25) so the UXR route task
+  needs no setup — a remote moderator cannot touch the participant’s phone, and
+  walking them through attaching a route would be a moderator instruction, which
+  fails the task under the study’s own help-level rule. Seeded on reset only,
+  never on page load, so a deliberate clear stays cleared.
 - **MEC children are real records:** WO List merges them in as child rows, and
   a child opens as itself via the session-scoped **WO identity override**
   (`woIdentitySet()`/`woIdentity()`/`woIdentityClear()`) while `eamOpenDemoWo`
@@ -319,7 +364,9 @@ files (§4.2/§4.3). Create opens an entity-choice menu
 that entity. **A deliberate, named exception to the monochrome palette rule
 (§23)** — tile/favorite icons keep real colour. **Tile/chip *content* (which
 dataspies, which tiles, counts) is still an unlocked design riff**; only the
-layout mechanics are locked.
+layout mechanics are locked. The **Resume card** (`#resumeCardMount`,
+`renderResumeCard()`, §32.7) sits under the greeting and renders nothing with
+no run in progress; it is system-delivered, not a tile.
 
 ### Comments & Documents (locked 2026-08-11, app-wide)
 §7.2 owns the rules: top 3 inline on the Record View plus a `View more` footer
@@ -485,11 +532,17 @@ node (real 390px emulator, not scaled).
 - **A node IS a §29.2 step instance.** `inst` is minted (smallest unused) and
   stable, the layout key is `id` then `id#n`, and **each instance deep-copies its
   own layout** — same load-bearing assertion as `test-step-instances.js`.
-- **New locked rule (§30.2):** a group gets **one workflow per WO Type** and **one
-  Free Form** — now a special case of §30.13's cardinality rule rather than a
-  workflow-only rule. Collisions are **predicted in the assignment control before
-  the click**, from either side, and **Copy carries no assignments** (it would
-  collide with its own source on every group) and re-mints every nid.
+- **Locked rule (§30.2, corrected by §30.26):** a group gets **one workflow per
+  WO Type plus ONE fallback** — a special case of §30.13's cardinality rule. **The
+  slot is the WO Type or its absence, and Free Form NEVER enters the key** — it
+  is a property any workflow may carry, typed or not (`wf-free-insp` is INS *and*
+  Free Form), read only through **`wfSlot()`**; three call sites built the key
+  themselves and all three carried the same two bugs. **`*` is system delivered**,
+  carries the **Default Page Layout**, and is outside the clash space entirely —
+  no membership row, fallen through to rather than resolved onto. Collisions are
+  **predicted in the assignment control before the click**, from either side, and
+  **Copy carries no assignments** (it would collide with its own source on every
+  group) and re-mints every nid.
 - **Forks are authored from the `+` on a connector** (recommended over a library
   entry: it names the insertion point), are still `kind:'prompt'` underneath, and
   are capped at two answers. `validateForks()` re-runs on **every** structural
@@ -611,6 +664,23 @@ node (real 390px emulator, not scaled).
   path is live on load: library entries disable with the reason, the node
   outlines in error red, a Banner counts them. A **family** switch confirms
   first; a clone switch inside a family does not.
+- **§32.13'S COMPOSITION RULES ARE BUILT** — `compositionIssues(w)`, pure, recomputed
+  every paint (`canvasIssues` memoizes one paint only). It walks **every path**
+  (`wfPaths()`, ≤2^forks) through `isForkKind()`/`forkBranches()`, so a fork routing
+  *around* a Start Timer warns on the Stop, naming the answer. Severity lands on the
+  node: **Error** = `node--err` + message, **Warning** = tag (full text when selected),
+  **Info** = a note in that node's editor via `nodeInfoHtml()`. **An Error refuses
+  assignment** through `assignErrorRefusal()`, checked *beside* `wouldClash()` on both
+  sides (`openAssign`/`toggleAssign`, `openGroupAssign`/`groupAssignPick`); assigned rows
+  are never touched, the card gets `wfc--err`, and **saving is never blocked**.
+  **"Completing" is WO-entity only** (`isCompletingNode()`, `sys:'C'` on the status
+  lists). **WO Closing is refused in More** at both drops *and* in `moveToRef()`
+  (`CLOSING_IN_MORE_MSG`). **Nothing precedes RV1**: clamped in `flowDrop()`,
+  `addNodeToWf()` (`minFlowIndex()`) and `normalizeWf()`; the actions right after it are
+  labeled **On Start Work** (`startWorkActions()`). A condition fork whose field
+  `validateForks()` clears **stays in error**. `visible` is deleted from node rows on
+  load. **Left: ADMN 8.13 (tab permissions)** — the portal has no per-group tab-permission
+  data, §20.
 - **`isStepKind()` — a UDS IS a step** (§29.5). It replaced every
   `kind==='step'` test in sequencing, N/A propagation and fork targets, so a
   UDS numbers, gates and gets skipped exactly like a delivered tab. Don't
@@ -695,6 +765,23 @@ node (real 390px emulator, not scaled).
   width**, not beside it. **No `text-transform:uppercase` anywhere in this file**
   (§30.4) — note `eam-shared.css` still upper-cases the device's own More label,
   deliberately not synchronised.
+**SCREEN LAYOUTS** (§30.27, added 2026-10-28) — a rail row under Mobile
+configuration for screens that are **not** workflows (Equipment, Work Request,
+Operator Checklist). **A screen layout is a workflow object with Free Form
+pinned on**, in its own store `SLS` (`eamScreenLayouts`); `wf()` reads both
+stores, so the whole editor and Screen Designer panel are reused unchanged.
+- **The library is scoped by `screen` on `STEP_LIB`** — a workflow never
+  offers an `eq_*` tab, a screen layout never offers a WO tab, an Action or a
+  UDS. Every library entry still needs a `LAYOUTS` entry (a test asserts it).
+- **The slot is `slSlot()` = screen + system type or FALLBACK**, cardinality
+  `per-type`. Equipment's axis is **system type** (§26.8), not class.
+  Resolution is `slResolve()`'s three tiers, ending in a read-only delivered
+  default with no membership row.
+- **The "Viewing as" lens (`state.slLens`) is a FILTER, never the editing
+  key** — base's Copy from Group → Save to Group(s) was rejected as copy-drift.
+  The one fork is `copySlForGroup()`, which **moves** that group's row onto the
+  copy. Pinned in `test-workflow-portal.js`.
+
 **FOUR AREAS, ONE MEMBERSHIP TABLE** (§30.13/§30.14, added 2026-09-16). Three
 rail rows under **Mobile configuration** — Workflows, Home Layouts, Offline
 Profiles — plus **User Groups under Security**, which is where it belongs: a
@@ -713,7 +800,15 @@ twice until 2026-09-16.
 - **Deleting an artifact drops its membership rows** (`dropAssignmentsFor()`) —
   a row pointing at a deleted artifact is a group silently provisioned with
   nothing.
-- **Offline Profiles** authors §2.7's per-entity registry: **four** policies
+- **Offline Profiles** — **a group may hold SEVERAL** (§2.10.1, locked
+  2026-09-23), so it is the one `multi-group` type: checkboxes on both
+  sides, **no None row** (un-ticking everything IS none) and **no clash to
+  refuse**. What replaces the clash is the consequence — `assignNote()` on
+  the row that would add a second, and a live state line naming which of the
+  three states the set produces. `allConflicts()` **skips the whole
+  cardinality**, or the state we now want would report as a fault. The login
+  prompt, the sticky answer and the Settings row are **device-side and not
+  built** — §20. It authors §2.7's per-entity registry: **four** policies
   (reduced from five 2026-09-18), each **defined at the point of choice**, and
   labelled on the **capability** axis — Online only / Offline read / Offline
   read/write / Offline read/write — external. *Who decided this is on the
@@ -908,14 +1003,14 @@ exists and the **record ellipsis menu** otherwise — two homes because §4.2
 gives the nav bar one slot, so no control is on every screen. A screen adds its
 own row with `PROTO_MENU_EXTRA` (same optional-global shape as
 `TAB_PLUS_HANDLERS`); **Book Labor's timer toggle and the WO Equipment tab's
-row-tap toggle both use it, and both are load-bearing** — the first drives
-§18.2's booking-pull-up condition, the second is the open `chooser`/`split`
+row-tap toggle both use it, and both are load-bearing** — the first writes the
+shared timer backdated 83 minutes, which is §18.2's booking-pull-up condition, the second is the open `chooser`/`split`
 experiment. `ensureProfileMenu()` injects the §4.3 dropdown beside any
 `.nav-avatar` that lacks one (this is how WO List got a real menu instead of a
 "coming soon" toast). **Four screens keep the banner** because they have no
 header menu at all — Login, the two component-reference pages, Equipment List
 and Sync Status; the last two are a §20 item. The actual reset,
-`resetDemoState()` in `eam-shared.js`, clears all demo `localStorage` keys and
+`resetDemoState()` in `eam-shared.js`, clears all demo `localStorage` keys (timer, runs and timer bookings included) and
 runs on Log In. The online/offline control is a 3-way cycle (Offline → Online →
 **Synced**, `toggleDemoOnline()`) — Synced forces the nav-bar sync control green
 regardless of `SYNC_DEMO_ITEMS`' own seeded error rows, so a live demo doesn't
@@ -933,13 +1028,14 @@ prototype session trips over, one line each.
   every layout row, dataspy and permission set keys to the resolved function.
   §11/§20.
 - **A new Equipment screen function that renders by equipment type is required**
-  and unspecified — the function, its `PLO_PAGENAME` mapping across the four
-  system types and their clones, and the Screen Designer surface for them.
-  **Blocks the Equipment track.** §20/§26.8.
-- **The `*` default group has no model** — the User Groups area is built, but a
-  wildcard row is a different shape from a named group: under one-per-group
-  cardinality it *always* collides unless the resolver reads it as a fallback
-  rather than a member. §30.18.
+  and unspecified — the function and its `PLO_PAGENAME` mapping across the four
+  system types and their clones. **Blocks the Equipment track.** The authoring
+  surface is built (portal Screen Layouts, §30.27). §20/§26.8.
+- **The `*` workflow's delivered CONTENT is unspecified** — its *model* closed
+  2026-09-28 (§30.26: system delivered, carries the Default Page Layout, never an
+  assignment target). What is owed is what that layout actually places, and a
+  read-only `*` row in the portal so an admin can see the behaviour their groups
+  inherit. §30.18.
 - **What happens to in-flight work when an assignment is removed** — the
   membership table makes removal one click from either side, which raises the
   question harder than §26.5 did. §29.5's config-version stamp is the mechanism;
@@ -954,6 +1050,13 @@ prototype session trips over, one line each.
   REQUIRED.** It puts equipment/WO history and meter readings in `server-only`;
   the live product downloads both. Either communicate the regression or give
   §2.7 a **bounded** carve-out (last N), never unbounded history. §20.
+- **§2.10.1's login profile chooser has no device side** — the portal grants
+  several profiles; the app has no chooser in the login round-trip, no Settings
+  row naming the one in force, and no sticky *(user, device)* answer. One item,
+  three parts, blocked behind the same gap as §30.24's nav bar: nothing feeds
+  the app a portal artifact. Four rules ride on the Settings row — state the
+  cost, **never drop the outbox**, refuse it offline, **never evict live work**.
+  §20.
 - **11 offline entities have no policy decision** — marked in the registry and
   warned on, which is not the same as decided. Main Isolation Tables and
   Inspection Results deserve deliberate calls. §20.
@@ -1003,6 +1106,26 @@ prototype session trips over, one line each.
   external dependencies.
 - Reference screenshots for visual matching are in
   `prototypes/reference-screenshots/`.
+
+## Collaboration
+More than one person pushes to this repo, and `master` deploys to Pages on merge.
+- **Branch and PR, never push to `master`.** One branch per change, PR into `master`.
+- **Use `.github/pull_request_template.md` as the PR body** — fill it in, don't
+  bypass it with a bare `--body`. It is the checklist that keeps the docs in sync.
+- **Same PR as the change:** a design decision → `docs/design-decisions-v3-1.md`; a
+  requirement or sequence change → the design doc; a UI pattern → `component-library.md`;
+  a screen's state or traps → this file's "Current state" (snapshot only). Name the
+  spec § in the PR, and **flag a locked-rule conflict before acting, not after**.
+- **Checks:** `.claude/skills/verify/scripts/` — `bump-assets.js` on any stamped asset,
+  `check-keyboard.js` on a sheet with a text input, the relevant `tests/test-*.js`.
+  **In a worktree, check which checkout a test reads**: `run-load.js` now resolves the repo
+  root from its own location, but `check-scope.js`, `test-booking-pullup.js`,
+  `test-bottom-reserve.js`, `test-editors.js` and `test-more-group.js` still hardcode the
+  main checkout's path, so from a worktree they test `master`'s files and pass regardless.
+- **Memory files named in this document are one person's local notes** and won't exist
+  here. The repo docs are the source of truth; treat a dangling memory pointer as
+  context, not a missing file to hunt for.
+- **US English** in every comment, commit message, doc and identifier.
 
 ## Working style
 - **Flag any request that conflicts with a locked rule** before acting on it.

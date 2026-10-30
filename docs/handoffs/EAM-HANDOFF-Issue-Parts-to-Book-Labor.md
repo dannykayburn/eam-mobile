@@ -1,4 +1,4 @@
-# HxGN EAM Mobile — Session Handoff
+# Attune EAM Mobile — Session Handoff
 ## Completed: Issue Parts (Step 3) → Next: Book Labor (Step 4)
 **Date:** May 2026
 
@@ -114,4 +114,4 @@ Load the following into the new session:
 1. Upload `HxGN-EAM-Mobile-Design-Decisions-v2.docx` as a project file
 2. Upload `eam-issue-parts-prototype.html` for visual reference
 3. Upload the three Book Labor reference screenshots
-4. Tell Claude: *"We are building the HxGN EAM Mobile app. Issue Parts is complete. We are now designing Book Labor (Step 4 of 5 in the WO execution workflow). The design decisions doc and Issue Parts prototype are uploaded. Follow the locked design system throughout."*
+4. Tell Claude: *"We are building the Attune EAM Mobile app. Issue Parts is complete. We are now designing Book Labor (Step 4 of 5 in the WO execution workflow). The design decisions doc and Issue Parts prototype are uploaded. Follow the locked design system throughout."*

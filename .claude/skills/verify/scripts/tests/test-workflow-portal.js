@@ -283,9 +283,13 @@ console.log('\nDrop arithmetic — the auto-laid-out column');
 console.log('\nThe More group (§14.8) — a More entry can never be gated');
 {
   const ctx = boot('wf-bk-full');
-  const cls = 'wf().nodes.find(n=>n.step==="closing")';
-  ok('Closing starts Required and comment-gated',
-    ev(ctx, `${cls}.required && ${cls}.reqComment`));
+  /* Book Labor, not Closing: Closing can never be a More entry (§32.13,
+     D-8) — pinned in the composition block below. Both gates are set here
+     so the clear has something to clear. */
+  const cls = 'wf().nodes.find(n=>n.step==="booklabor")';
+  ev(ctx, `${cls}.reqComment = true; ${cls}.reqDoc = true;`);
+  ok('Book Labor starts Required and gated',
+    ev(ctx, `${cls}.required && ${cls}.reqComment && ${cls}.reqDoc`));
   ev(ctx, `moveToRef(${cls}.nid, true);`);
   ok('moving it to More clears Required and BOTH gates',
     ev(ctx, `${cls}.zone==="ref" && !${cls}.required && !${cls}.reqComment && !${cls}.reqDoc`));
@@ -1038,12 +1042,38 @@ console.log('\nAreas: cardinality follows what the runtime resolves on');
      per Type. Everything else resolves on the group alone. That is why the
      rule generalises instead of needing a special case per area. */
   ok('workflow is per-WO-Type', ev(ctx, 'ARTIFACT_TYPES.workflow.cardinality') === 'per-wotype');
-  ok('offline and home are per-group',
-    ev(ctx, 'ARTIFACT_TYPES.offline.cardinality') === 'per-group' &&
-    ev(ctx, 'ARTIFACT_TYPES.home.cardinality') === 'per-group');
+  ok('home is per-group', ev(ctx, 'ARTIFACT_TYPES.home.cardinality') === 'per-group');
+  /* THE THIRD VALUE (2026-09-23). An offline profile's resolution key gained a
+     session dimension — (user group, the technician's own login choice) — the
+     way §29 gave the layout key an Instance one. So a group may hold SEVERAL,
+     which is the same derivation rather than an exception to it. */
+  ok('offline is multi-group', ev(ctx, 'ARTIFACT_TYPES.offline.cardinality') === 'multi-group');
   ok('the rule TEXT is derived, not written per area', ev(ctx,
-    'assignRuleText("offline").indexOf("exactly one") > -1 && ' +
+    'assignRuleText("home").indexOf("exactly one") > -1 && ' +
+    'assignRuleText("offline").indexOf("at login") > -1 && ' +
     'assignRuleText("workflow").indexOf("per WO Type") > -1'));
+  /* A multi-group type has no slot to collide in, so there is nothing to
+     refuse and nothing to report — from either side. */
+  ok('a second offline profile on a group is NOT a clash', evb(ctx,
+    '(function(){var mine=artifactsForGroup("MAINT-TECH","offline")[0];' +
+    'var other=PROFILES.filter(function(p){return p.id!==mine.artifactId;})[0];' +
+    'return !wouldClash("offline", other.id, "MAINT-TECH");})()'));
+  ok('...and two assigned at once is not a conflict either', evb(ctx,
+    '(function(){var mine=artifactsForGroup("MAINT-TECH","offline")[0];' +
+    'var other=PROFILES.filter(function(p){return p.id!==mine.artifactId;})[0];' +
+    'setAssigned("offline", other.id, "MAINT-TECH", true);' +
+    'var n=allConflicts().filter(function(c){return c.type==="offline";}).length;' +
+    'setAssigned("offline", other.id, "MAINT-TECH", false);' +
+    'return n === 0;})()'));
+  /* What IS real is the consequence, and it is stated on the row that would
+     cause it rather than discovered at someone's login. */
+  ok('...but the row that would cause it names who then chooses', evb(ctx,
+    '(function(){var mine=artifactsForGroup("MAINT-TECH","offline")[0];' +
+    'var other=PROFILES.filter(function(p){return p.id!==mine.artifactId;})[0];' +
+    'return /at login/.test(assignNote("offline", other.id, "MAINT-TECH") || "");})()'));
+  ok('...and the FIRST one says nothing, because one profile is invisible', evb(ctx,
+    '(function(){var mine=artifactsForGroup("MAINT-TECH","offline")[0];' +
+    'return assignNote("offline", mine.artifactId, "SUPERVISOR") === null;})()'));
   /* A per-group clash is predicted BEFORE the click, not reported after. */
   ok('assigning a second per-group artifact is predicted as a clash', evb(ctx,
     '(function(){var mine=artifactsForGroup("SUPERVISOR","home")[0];' +
@@ -1069,6 +1099,43 @@ console.log('\nAreas: cardinality follows what the runtime resolves on');
     'if(!held || !free) return false;' +
     'var msg = wouldClash("workflow", free.id, "CONTRACTOR");' +
     'return !!msg && !isAssigned("workflow", free.id, "CONTRACTOR");})()'));
+  /* ── §30.26 THE SLOT KEY IS THE WO TYPE OR ITS ABSENCE ──────────────
+     Free Form is a PROPERTY, not a slot, so it must never enter the key.
+     The old key (freeForm ? FREEFORM : woType||ANY) failed both ways, and
+     each failure renders as a perfectly plausible screen — only a key test
+     catches them. Both cases below are latent in the seed data. ── */
+  ok('a typed Free Form workflow keys on its WO Type, not on Free Form',
+    evb(ctx, '(function(){' +
+    /* wf-free-insp is INS *and* Free Form. A second Free Form workflow for a
+       DIFFERENT Type must be assignable alongside it — §11 resolves each on
+       its own Type, so refusing this was over-refusal. */
+    'var insp=WFS.filter(function(w){return w.freeForm && w.woType==="INS";})[0];' +
+    'if(!insp) return false;' +
+    'var g=groupsOf("workflow",insp.id)[0];' +
+    'if(!g) return false;' +
+    'var probe={id:"__probe_typed",desc:"Probe",woType:"CAL",freeForm:true,fn:"WSJOBS",nodes:[]};' +
+    'WFS.push(probe);' +
+    'var clash=wouldClash("workflow", probe.id, g);' +
+    'WFS.pop();' +
+    'return wfSlot(insp)==="INS" && !clash;})()'));
+  ok('a no-Type workflow shares ONE fallback slot whether Free Form or not',
+    evb(ctx, '(function(){' +
+    /* §30.2: a group cannot have two fallbacks. The old key gave a
+       non-Free-Form no-Type workflow its own ANY slot, so a group could hold
+       two — and "Any WO Type (fallback)" is the DEFAULT for a new workflow,
+       which is the easy path into it. */
+    'var ff=WFS.filter(function(w){return w.freeForm && !w.woType;})[0];' +
+    'if(!ff) return false;' +
+    'var g=groupsOf("workflow",ff.id)[0];' +
+    'if(!g) return false;' +
+    'var probe={id:"__probe_any",desc:"Probe",woType:null,freeForm:false,fn:"WSJOBS",nodes:[]};' +
+    'WFS.push(probe);' +
+    'var clash=wouldClash("workflow", probe.id, g);' +
+    'WFS.pop();' +
+    'return wfSlot(ff)==="FALLBACK" && wfSlot(probe)==="FALLBACK" && !!clash;})()'));
+  ok('all three slot call sites read the one accessor',
+    evb(ctx, '[wouldClash, assignmentConflicts, allConflicts]' +
+      '.every(function(f){return f.toString().indexOf("wfSlot")>-1;})'));
   ok('and nothing was auto-resolved',
     ev(ctx, 'WFS.filter(w=>groupsOf("workflow",w.id).indexOf("MAINT-TECH")>-1).length') >= 2);
   ok('no collision roll-up is rendered anywhere',
@@ -2704,9 +2771,9 @@ console.log('\nStop Timer — the action that BOOKS (§30.21, reversed 2026-09-1
     (gal().match(/Security ▸ User Groups/g) || []).length === 1);
 
   /* CARDINALITY DECIDES THE CONTROL SHAPE (§30.13). One-of-many is not a
-     checkbox: a tick box beside each of three per-group artifacts invites a
-     second tick and then reports a collision for taking the invitation. */
-  ev(ctx, 'openGroupAssign({clientX:10,clientY:10},"MAINT-TECH","offline");');
+     checkbox: a tick box beside a per-group artifact invites a second tick
+     and then reports a collision for taking the invitation. */
+  ev(ctx, 'openGroupAssign({clientX:10,clientY:10},"MAINT-TECH","home");');
   ok('a per-group artifact is offered as RADIOS', pop().indexOf('class="rdo') > -1 &&
     pop().indexOf('class="cbx') === -1);
   ok('...including a None row, so the control can express every state it enforces',
@@ -2719,25 +2786,60 @@ console.log('\nStop Timer — the action that BOOKS (§30.21, reversed 2026-09-1
   ok('...and keeps a Done button, because a multi-select needs a way out',
     pop().indexOf('closePop()') > -1);
 
-  /* A RADIO PICK REPLACES. That is the difference between the control being
-     honest about "exactly one" and the screen reporting a collision the user
-     was invited to create. */
-  const profOf = g => ev(ctx, 'artifactsForGroup(' + JSON.stringify(g) + ',"offline").length');
-  ok('MAINT-TECH starts with exactly one offline profile', profOf('MAINT-TECH') === 1);
-  ok('picking a different one REPLACES rather than adding a second', evb(ctx,
+  /* THE THIRD SHAPE (2026-09-23). Several offline profiles are legal, so it is
+     a checkbox list — and it needs NO None row, because un-ticking everything
+     IS none. What it carries instead is the state the current set produces,
+     since past one the person who decides changes (§2.10). */
+  ev(ctx, 'openGroupAssign({clientX:10,clientY:10},"MAINT-TECH","offline");');
+  ok('a multi-group artifact is offered as CHECKBOXES',
+    pop().indexOf('class="cbx') > -1 && pop().indexOf('class="rdo') === -1);
+  ok('...with no None row, because un-ticking everything is none',
+    pop().indexOf('>None<') === -1);
+  ok('...and one profile reads as provisioning, with no prompt',
+    /no prompt/.test(pop()));
+  ok('a second profile is an ADDITION, and the control says who then chooses', evb(ctx,
     '(function(){' +
     'var had=artifactsForGroup("MAINT-TECH","offline")[0].artifactId;' +
     'var other=PROFILES.filter(function(p){return p.id!==had;})[0];' +
     'if(!other) return false;' +
     'groupAssignPick("offline", other.id, "MAINT-TECH");' +
-    'var now=artifactsForGroup("MAINT-TECH","offline");' +
+    'var h=document.getElementById("pop").innerHTML;' +
+    'return artifactsForGroup("MAINT-TECH","offline").length === 2 &&' +
+    '  /chooses one at login/.test(h) &&' +
+    '  document.getElementById("pop").classList.contains("open");})()'));
+  /* The same fact where the set is READ rather than made — and this is a
+     render path, so it is driven rather than inspected as a string. */
+  ok('...and the group band repeats it at two', evb(ctx,
+    '(function(){ render();' +
+    'return /profiles — the technician chooses one at login/' +
+    '  .test(document.getElementById("gallery").innerHTML); })()'));
+  ok('...and two is still not a collision', ev(ctx,
+    'allConflicts().filter(function(c){return c.type==="offline";}).length') === 0);
+  ok('un-ticking back to zero is the online-only state, and it says that too', evb(ctx,
+    '(function(){ artifactsForGroup("MAINT-TECH","offline").slice().forEach(function(r){' +
+    '  groupAssignPick("offline", r.artifactId, "MAINT-TECH"); });' +
+    'return artifactsForGroup("MAINT-TECH","offline").length === 0 &&' +
+    '  /online only/.test(document.getElementById("pop").innerHTML);})()'));
+
+  /* A RADIO PICK REPLACES. That is the difference between the control being
+     honest about "exactly one" and the screen reporting a collision the user
+     was invited to create. Measured on the one type that is still per-group. */
+  const homeOf = g => ev(ctx, 'artifactsForGroup(' + JSON.stringify(g) + ',"home").length');
+  ok('SUPERVISOR starts with exactly one home layout', homeOf('SUPERVISOR') === 1);
+  ok('picking a different one REPLACES rather than adding a second', evb(ctx,
+    '(function(){' +
+    'var had=artifactsForGroup("SUPERVISOR","home")[0].artifactId;' +
+    'var other=HOMES.filter(function(h){return h.id!==had;})[0];' +
+    'if(!other) return false;' +
+    'groupAssignPick("home", other.id, "SUPERVISOR");' +
+    'var now=artifactsForGroup("SUPERVISOR","home");' +
     'return now.length === 1 && now[0].artifactId === other.id;})()'));
   ok('...so a per-group collision can no longer be created from this side',
     ev(ctx, 'allConflicts().filter(function(c){' +
-      'return c.type==="offline" && c.group==="MAINT-TECH";}).length') === 0);
+      'return c.type==="home" && c.group==="SUPERVISOR";}).length') === 0);
   ok('the None row clears the explicit row', evb(ctx,
-    '(function(){ groupAssignPick("offline","","MAINT-TECH");' +
-    'return artifactsForGroup("MAINT-TECH","offline").length === 0; })()'));
+    '(function(){ groupAssignPick("home","","SUPERVISOR");' +
+    'return artifactsForGroup("SUPERVISOR","home").length === 0; })()'));
   ok('...and it CLOSES on the pick, no second popover', evb(ctx,
     '!document.getElementById("pop").classList.contains("open")'));
 
@@ -2780,6 +2882,255 @@ console.log('\nStop Timer — the action that BOOKS (§30.21, reversed 2026-09-1
     'var p = window.__pair; if(!p) return false;' +
     'return groupsOf("workflow", p.id).indexOf(p.g) > -1 &&' +
     '  artifactsForGroup(p.g,"workflow").some(function(r){return r.artifactId===p.id;});})()'));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   COMPOSITION RULES (§32.13 — EAM.ADMN.SCOPE.WorkflowComposition 8.1–8.19)
+   ═══════════════════════════════════════════════════════════════════════
+   PATH-AWARE is the load-bearing property. A rule checked node by node
+   passes a fork that routes AROUND a Start Timer, so the headline case below
+   builds exactly that and requires the Warning to name the answer.
+
+   Every case owns its setup: wf-bk-full's nodes are REPLACED with a short
+   spec, so no assertion inherits another's mutations (the contamination
+   this file has been bitten by three times).
+
+   Spec tokens: rv (pinned Record View 1), a step id, timer, stop, stopU,
+   status:<CODE> (System mode, WO), statusU (User selected), fork, cond.
+   A fork's answers are wired after the build, by index. */
+console.log('\nComposition rules (§32.13) — path-aware, raised on the node');
+{
+  const ctx = boot('wf-bk-full');
+  ev(ctx, `
+    var __mk = function(spec){
+      var w = wf();
+      w.nodes = spec.map(function(t){
+        if(t === 'rv') return mkNode('recordview', {pinned:true, required:true});
+        if(t === 'timer') return mkTimerNode({});
+        if(t === 'stop') return mkStopTimerNode({});
+        if(t === 'stopU') return mkStopTimerNode({mode:'user'});
+        if(t === 'statusU') return mkStatusNode({mode:'user'});
+        if(t.indexOf('status:') === 0) return mkStatusNode({status:t.slice(7)});
+        if(t === 'fork') return mkNode('fork', {question:'Q?', yesLabel:'Yes', noLabel:'No'});
+        if(t === 'cond') return mkCondNode({});
+        if(t.indexOf('ref:') === 0) return mkNode(t.slice(4), {zone:'ref'});
+        return mkNode(t, {});
+      });
+      normalizeWf(w);
+      return w;
+    };
+    var __iss = function(code){ return compositionIssues(wf()).filter(function(i){ return !code || i.code === code; }); };
+    var __at = function(i){ return flowNodes(wf())[i]; };
+  `);
+  const sev = (code) => ev(ctx, `(__iss(${JSON.stringify(code)})[0]||{}).sev`);
+  const msg = (code) => ev(ctx, `(__iss(${JSON.stringify(code)})[0]||{}).msg`) || '';
+  const onNode = (code, i) => evb(ctx, `__iss(${JSON.stringify(code)}).some(function(x){return x.nid===__at(${i}).nid;})`);
+
+  /* BASIC FLOW (ADMN 7.0) — the clean case raises nothing at all. */
+  ev(ctx, `__mk(['rv','status:INPROG','timer','checklist','parts','stop','closing'])`);
+  ok('the basic flow raises no Error and no Warning',
+    evb(ctx, `__iss().filter(function(i){return i.sev!=='info';}).length === 0`),
+    JSON.stringify(ev(ctx, '__iss().map(function(i){return i.code;})')));
+  ok('...and exactly one path through a fork-less flow', ev(ctx, 'wfPaths(wf()).length') === 1);
+  ok('the two actions after Record View are the "On Start Work" group',
+    evb(ctx, `startWorkActions(wf()).join() === [__at(1).nid, __at(2).nid].join()`));
+  ok('...and the canvas labels that group',
+    evb(ctx, `render(); document.getElementById('cv').innerHTML.indexOf('On Start Work') > -1`));
+
+  /* 8.1 — no Start on ANY path: Error. */
+  ev(ctx, `__mk(['rv','stop','closing'])`);
+  ok('8.1 a Stop Timer that nothing starts is an ERROR', sev('stop-no-start') === 'error');
+  ok('...with the scoped wording', msg('stop-no-start') === 'Nothing starts the timer before this. It will never book any time.');
+  ok('...raised on the Stop Timer node itself', onNode('stop-no-start', 1));
+  ok('...outlined on the card (node--err), not in a banner',
+    evb(ctx, `render(); var h=document.getElementById('cv').innerHTML; h.indexOf('node--err') > -1 && h.indexOf('Nothing starts the timer') > -1`));
+
+  /* 8.2 — THE HEADLINE CASE: a fork routes AROUND the Start Timer. Checked
+     node by node the Stop has a Start before it; on the 'No' path it does
+     not. Warning, not Error, and it names the fork and the answer. */
+  ev(ctx, `var w=__mk(['rv','fork','timer','checklist','stop','closing']); __at(1).noTarget = __at(3).nid;`);
+  ok('8.2 a fork routing around the Start Timer gives the Stop a WARNING',
+    sev('stop-some-start') === 'warn' && !ev(ctx, `__iss('stop-no-start').length`));
+  ok('...naming the answer and the fork question',
+    msg('stop-some-start') === 'The timer is not started on the ‘No’ route of ‘Q?’. On that route this does nothing.',
+    msg('stop-some-start'));
+  ok('...two paths were enumerated, one per answer', ev(ctx, 'wfPaths(wf()).length') === 2);
+  ok('...and a Warning does NOT refuse assignment', ev(ctx, `assignErrorRefusal('workflow', wf().id)`) === null);
+  ok('a User-selected Start Timer counts as present (declining is the technician’s choice)',
+    evb(ctx, `__mk(['rv','timer','stop','closing']); __at(1).mode='user'; __iss('stop-no-start').length===0 && __iss('stop-some-start').length===0`));
+
+  /* 8.3 — never stopped; Book Labor counts as the stop. */
+  ev(ctx, `__mk(['rv','timer','checklist','closing'])`);
+  ok('8.3 a Start never stopped is a Warning on the Start Timer',
+    sev('start-never-stopped') === 'warn' && onNode('start-never-stopped', 1));
+  ok('...worded per the scope', msg('start-never-stopped') ===
+    'Nothing in this workflow stops the timer on its only route. It will be booked when the work order is completed, according to AUTOBOOK.');
+  ok('...and a Book Labor step before the end counts as stopping it',
+    evb(ctx, `__mk(['rv','timer','booklabor','closing']); __iss('start-never-stopped').length === 0`));
+  ok('a Book Labor step plus a Stop Timer is NOT a rule (§18.2)',
+    evb(ctx, `__mk(['rv','timer','booklabor','stop','closing']); __iss().filter(function(i){return i.sev!=='info';}).length === 0`));
+
+  /* 8.4 — two in a row. */
+  ev(ctx, `__mk(['rv','timer','timer','stop','stop','closing'])`);
+  ok('8.4 a second Start in a row warns "already running" on the second',
+    sev('start-twice') === 'warn' && onNode('start-twice', 2) && !onNode('start-twice', 1));
+  ok('...and a second Stop warns "already stopped" on the second',
+    sev('stop-twice') === 'warn' && onNode('stop-twice', 4) && msg('stop-twice') === 'The timer is already stopped here. This does nothing.');
+
+  /* 8.5 — Stop after a completing status: Error, naming what completed it. */
+  ev(ctx, `__mk(['rv','timer','closing','stop'])`);
+  ok('8.5 a Stop Timer after WO Closing is an ERROR',
+    sev('stop-after-complete') === 'error' && msg('stop-after-complete').indexOf('Move it before Closing.') > -1,
+    msg('stop-after-complete'));
+  ev(ctx, `__mk(['rv','timer','status:CLOSE','stop'])`);
+  ok('...and after a System Status update to a Closed system status',
+    sev('stop-after-complete') === 'error' && msg('stop-after-complete').indexOf('the Status update to Closed') > -1);
+  ok('a Status update to a NON-completing status is not completing',
+    evb(ctx, `__mk(['rv','timer','status:INPROG','stop','closing']); __iss('stop-after-complete').length === 0`));
+  ok('a User-selected status is not completing at authoring time (§32.10 guards it on the device)',
+    evb(ctx, `__mk(['rv','timer','statusU','stop','closing']); __iss('stop-after-complete').length === 0`));
+
+  /* 8.6 — a flow step after completion; More entries unaffected. */
+  ev(ctx, `__mk(['rv','status:CLOSE','checklist','ref:comments'])`);
+  ok('8.6 a flow step after a completing status is an ERROR on that step',
+    sev('step-after-complete') === 'error' && onNode('step-after-complete', 2));
+  ok('...and a More entry is not affected',
+    evb(ctx, `__iss('step-after-complete').length === 1`));
+
+  /* 8.7 / 8.8 — Info in the Status update editor. */
+  ev(ctx, `__mk(['rv','statusU','checklist','closing'])`);
+  ok('8.7 a User-selected status with steps after it is an INFO',
+    sev('user-status-steps-after') === 'info');
+  ok('...shown inside the Status update editor, not on the canvas',
+    evb(ctx, `openStatusEditor(__at(1).nid); document.getElementById('mbox').innerHTML.indexOf('the app refuses it') > -1`) &&
+    evb(ctx, `render(); document.getElementById('cv').innerHTML.indexOf('the app refuses it') === -1`));
+  ok('8.8 the User-mode editor says the list comes from Security',
+    evb(ctx, `document.getElementById('mbox').innerHTML.indexOf('That list comes from Security, not from this workflow.') > -1`));
+  ok('8.8 the System-mode editor states the bypass, naming the status',
+    evb(ctx, `__mk(['rv','status:INPROG','closing']); openStatusEditor(__at(1).nid);` +
+      `document.getElementById('mbox').innerHTML.indexOf('Sets In Progress whatever the technician') > -1 &&` +
+      `document.getElementById('mbox').innerHTML.indexOf('The workflow is the authorization.') > -1`));
+  ok('...and no Warning is raised about group authorizations for a System action',
+    evb(ctx, `__iss().filter(function(i){return i.sev!=='info';}).length === 0`));
+
+  /* 8.9 — routes that never change status; a fork End before Closing. */
+  ev(ctx, `__mk(['rv','checklist'])`);
+  ok('8.9 a route with no Status update and no Closing warns on its last node',
+    sev('no-status') === 'warn' && onNode('no-status', 1) &&
+    msg('no-status') === 'This route ends without changing the work order’s status.');
+  ev(ctx, `__mk(['rv','fork','checklist','closing']); __at(1).noTarget = '__end';`);
+  ok('...and a fork End that skips Closing warns on the fork, naming the answer',
+    sev('end-before-closing') === 'warn' && onNode('end-before-closing', 1) &&
+    msg('end-before-closing').indexOf('This answer ends the workflow before WO Closing.') > -1 &&
+    msg('end-before-closing').indexOf('No') > -1, msg('end-before-closing'));
+
+  /* 8.10 — nothing precedes Record View 1, AT THE MUTATION. */
+  ev(ctx, `__mk(['rv','checklist','closing']); drag={from:'lib',stepId:'timer'}; dropIdx=0; dropZone='flow'; flowDrop(${DRAG_EV});`);
+  ok('8.10 a node dropped above Record View lands directly after it',
+    evb(ctx, `__at(0).pinned && __at(1).kind==='action' && __at(1).action==='timer'`));
+  ok('...and the admin is told why',
+    ev(ctx, `document.getElementById('toast').textContent`) === 'Record View is always first. Placed after it, so it runs on Start Work.');
+  ok('...the clamp lives in addNodeToWf() too, so no caller can route around it',
+    evb(ctx, `var n=addNodeToWf(wf(),'stoptimer',0,'flow'); wf().nodes[0].pinned && wf().nodes[1]===n`));
+  ok('...and a stored workflow with something ahead of Record View is repaired on load',
+    evb(ctx, `var w=__mk(['checklist','rv','closing']); w.nodes[0].pinned === true && w.nodes[0].step === 'recordview'`));
+
+  /* 8.11 — WO Closing can never be a More entry. */
+  ev(ctx, `__mk(['rv','checklist','closing'])`);
+  ok('8.11 moveToRef() refuses Closing — guarded at the mutation',
+    evb(ctx, `moveToRef(__at(2).nid, true); __at(2).zone === 'flow' && __at(2).step === 'closing'`));
+  ok('...with the scoped toast',
+    ev(ctx, `document.getElementById('toast').textContent`) ===
+    'WO Closing completes the work order, so it can’t be reachable at any time. Leave it in the flow.');
+  ok('...the canvas drop into More refuses it too',
+    evb(ctx, `drag={from:'canvas',nid:__at(2).nid}; dropZone='ref'; refDrop(${DRAG_EV}); refNodes(wf()).length === 0`));
+  ok('...and so does a library drop into More',
+    evb(ctx, `drag={from:'lib',stepId:'closing'}; dropZone='ref'; refDrop(${DRAG_EV}); refNodes(wf()).length === 0`));
+  ok('...while another step still moves to More normally',
+    evb(ctx, `moveToRef(__at(1).nid, true); refNodes(wf()).length === 1`));
+
+  /* 8.12 — same tab as a Step and a More entry. */
+  ev(ctx, `__mk(['rv','checklist','booklabor','closing','ref:booklabor'])`);
+  ok('8.12 a tab placed as a Step AND in More warns on the More instance',
+    sev('step-and-more') === 'warn' && msg('step-and-more') === 'The technician can do this from More before reaching step 3.',
+    msg('step-and-more'));
+
+  /* 8.14 — a fork that routes nothing. */
+  ev(ctx, `__mk(['rv','fork','checklist','closing'])`);
+  ok('8.14 a fork with both answers on "continue" warns',
+    sev('fork-same') === 'warn' && onNode('fork-same', 1));
+  ok('...and so does an explicit target that IS the next step',
+    evb(ctx, `__at(1).noTarget = __at(2).nid; __iss('fork-same').length === 1`));
+  ok('...while a real route clears it',
+    evb(ctx, `__at(1).noTarget = __at(3).nid; __iss('fork-same').length === 0`));
+
+  /* 8.15 — condition fork with no / a stale field: KEPT VISIBLY BROKEN. */
+  ev(ctx, `__mk(['rv','checklist','cond','parts','closing'])`);
+  ok('8.15 a condition fork with no field is an ERROR naming the step to pick from',
+    sev('cond-no-field') === 'error' && msg('cond-no-field') === 'Pick a field from ' + ev(ctx, '__at(1).name') + '.');
+  ok('...and one with no step in front of it says so',
+    evb(ctx, `var w=wf(); w.nodes=[mkCondNode({}), mkNode('checklist',{})];` +
+      `__iss('cond-no-source').length===1 && __iss('cond-no-source')[0].msg==='There is no step before this to read a field from.'`));
+  {
+    const c2 = boot('wf-pm-routed');
+    ok('a STALE field is still cleared by validateForks()...',
+      evb(c2, `var c=wf().nodes.filter(function(n){return n.kind==='cond';})[0]; c.field='NO_SUCH_FIELD'; validateForks(wf()); c.field===''`));
+    ok('...but the node now STAYS in error instead of reading as unfinished',
+      evb(c2, `compositionIssues(wf()).some(function(i){return i.nid===c.nid && i.sev==='error';})`) &&
+      evb(c2, `render(); document.getElementById('cv').innerHTML.indexOf('node--err') > -1`));
+    ok('...and that Error refuses assignment', !!ev(c2, `assignErrorRefusal('workflow', wf().id)`));
+    ok('the seeded routed workflow is clean before that edit',
+      evb(boot('wf-pm-routed'), `compositionIssues(wf()).filter(function(i){return i.sev==='error';}).length === 0`));
+  }
+
+  /* 8.16 — condition fork reading a step some path skips: Info. */
+  ev(ctx, `__mk(['rv','fork','checklist','cond','closing']);` +
+    `var cn=__at(3); cn.field=condFieldsFor(wf(), cn)[0].api; cn.op='notempty'; __at(1).noTarget = cn.nid;`);
+  ok('8.16 a condition fork whose source step a path skips is an INFO',
+    sev('cond-skippable') === 'info' &&
+    msg('cond-skippable').indexOf('is skipped on the ‘No’ route of ‘Q?’. There the field is empty') > -1,
+    msg('cond-skippable'));
+  ok('...shown in the condition editor',
+    evb(ctx, `openCondEditor(__at(3).nid); document.getElementById('mbox').innerHTML.indexOf('There the field is empty') > -1`));
+
+  /* 8.18 — consecutive identical Status updates. */
+  ev(ctx, `__mk(['rv','status:INPROG','status:INPROG','closing'])`);
+  ok('8.18 a second identical Status update warns on the second',
+    sev('status-twice') === 'warn' && onNode('status-twice', 2) && msg('status-twice') === 'The status is already In Progress here. This does nothing.');
+
+  /* 8.19 — an Error refuses assignment, from BOTH sides, before the click. */
+  ev(ctx, `__mk(['rv','stop','closing']); ASSIGN = ASSIGN.filter(function(r){return r.artifactId!==wf().id;});`);
+  const refusal = 'This workflow has 1 error. Fix them before assigning it.';
+  ok('8.19 the refusal reads as the scope words it', ev(ctx, `assignErrorRefusal('workflow', wf().id)`) === refusal);
+  ok('...shown on every group row in the gallery-side control, before the click',
+    evb(ctx, `openAssign(null,'workflow',wf().id); document.getElementById('pop').innerHTML.indexOf(${JSON.stringify(refusal)}) > -1`));
+  ok('...and the click is refused there',
+    evb(ctx, `toggleAssign('workflow', wf().id, 'DK'); groupsOf('workflow', wf().id).length === 0`));
+  ok('...shown on the group-side control too',
+    evb(ctx, `openGroupAssign(null,'DK','workflow'); document.getElementById('pop').innerHTML.indexOf(${JSON.stringify(refusal)}) > -1`));
+  ok('...and refused by groupAssignPick()',
+    evb(ctx, `groupAssignPick('workflow', wf().id, 'DK'); groupsOf('workflow', wf().id).length === 0`));
+  ok('...while saving is never blocked', evb(ctx, `saveWFS(); true`));
+  ok('an ASSIGNED workflow that gains an Error keeps its groups and outlines its card',
+    evb(ctx, `__mk(['rv','checklist','closing']); setAssigned('workflow', wf().id, 'DK', true);` +
+      `__mk(['rv','stop','closing']); state.view='gallery'; renderGallery();` +
+      `groupsOf('workflow', wf().id).indexOf('DK') > -1 && document.getElementById('gallery').innerHTML.indexOf('wfc--err') > -1`));
+  ok('...and un-assigning it is still allowed',
+    evb(ctx, `toggleAssign('workflow', wf().id, 'DK'); groupsOf('workflow', wf().id).indexOf('DK') === -1`));
+  ok('no seeded workflow carries an Error (the demo assignments stay legal)',
+    evb(boot(), `WFS.every(function(w){ return wfErrors(w).length === 0; })`));
+
+  /* 8.17 — Free Form confirm names the actions, by kind. */
+  ev(ctx, `openWf(wf().id); __mk(['rv','status:INPROG','timer','checklist','stop','closing']); toggleFreeForm();`);
+  ok('8.17 the Free Form confirm lists the actions it removes, by kind',
+    evb(ctx, `var h=document.getElementById('mbox').innerHTML; h.indexOf('1 Status update') > -1 && h.indexOf('1 Start Timer') > -1 && h.indexOf('1 Stop Timer') > -1`));
+  ok('...plus the no-automation Info',
+    evb(ctx, `document.getElementById('mbox').innerHTML.indexOf('Free Form has no status or timer automation. The technician sets status and runs the timer by hand.') > -1`));
+  ok('a Free Form workflow is not path-evaluated', evb(ctx, `applyFreeForm(wf()); compositionIssues(wf()).length === 0`));
+
+  /* D-16 — Visible is gone from node rows. */
+  ok('normalizeWf() drops a stored `visible` flag from every node',
+    evb(ctx, `var w={nodes:[{nid:'x',kind:'step',step:'checklist',zone:'flow',visible:false,layout:[]}]}; normalizeWf(w); !('visible' in w.nodes[0])`));
 }
 
 /* ── THREE DEVICE-REPORTED FAULTS, 2026-09-23 ──
@@ -2833,6 +3184,120 @@ console.log('\nStop Timer — the action that BOOKS (§30.21, reversed 2026-09-1
     src.indexOf('rail__row-label">Function Permissions') === -1);
   ok('...and no rail row raises a toast instead of opening an area',
     !/class="rail__row"[^>]*onclick="toast\(/.test(src));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SCREEN LAYOUTS (§30.27) — the workflow paradigm with Free Form always on
+   ═══════════════════════════════════════════════════════════════════════
+   Four things here pass a smoke test while being wrong:
+
+     1. THE LENS CHANGING WHAT IS EDITED. "Viewing as" is a filter. If it
+        ever became the editing key, editing a shared layout would either
+        leak to other groups or fork silently — base's copy-drift, which
+        §26.5.1 forbids. Checked by opening a layout with the lens set and
+        requiring the editor to hold the SHARED artifact.
+
+     2. COPY FOR <group> ONLY MUST MOVE THE MEMBERSHIP. A copy that left the
+        group on the original gives it two layouts in one slot; one that
+        dropped it leaves the slot empty. Both render a plausible card.
+
+     3. THE SLOT IS (screen, type). Keying on type alone lets an Equipment
+        fallback clash with a Work Request one; keying on screen alone
+        refuses the four type slots their point.
+
+     4. LIBRARY SCOPING BOTH WAYS. A workflow offering Warranties, or a
+        screen layout offering Book Labor or an Action, is the branding
+        problem §30.27 exists to remove. */
+console.log('\nScreen Layouts (§30.27)');
+{
+  const ctx = boot();
+  ok('seeds seven layouts over three screens', evb(ctx, 'SLS.length === 7 && SCREENS.length === 3'));
+  ok('the area is a rail row, not a link out',
+    evb(ctx, 'setArea("screens"); state.area === "screens"') &&
+    ev(ctx, 'document.getElementById("gallery").innerHTML').indexOf('data-slot="equipment|FALLBACK"') > -1);
+  const g = ev(ctx, 'document.getElementById("gallery").innerHTML');
+  ok('Equipment draws Fallback plus all four system types as slots',
+    ['FALLBACK','A','P','S','L'].every(c => g.indexOf('data-slot="equipment|' + c + '"') > -1));
+  ok('...an empty type slot says it uses the fallback',
+    g.indexOf('every group uses its fallback') > -1);
+  ok('...and a screen with no axis draws the Fallback slot only',
+    g.indexOf('data-slot="workrequest|FALLBACK"') > -1 && g.indexOf('data-slot="workrequest|A"') === -1);
+  ok('the delivered default is drawn read-only under every Fallback slot',
+    (g.match(/slrow--dlv/g) || []).length === 3);
+  ok('the Asset slot holds several layouts, each with its group count',
+    evb(ctx, 'slsFor("equipment","A").length === 3 && groupsOf("screen","sl-eq-asset-tech").length === 5'));
+
+  /* Cardinality */
+  ok('the rule text is derived from per-type cardinality',
+    evb(ctx, 'assignRuleText("screen").indexOf("one layout per screen and type") > -1'));
+  ok('a second Asset layout on one group is refused before the click',
+    !!evb(ctx, 'wouldClash("screen","sl-eq-asset-stores","MAINT-TECH")'));
+  ok('...but a different type slot on the same group is not',
+    evb(ctx, 'wouldClash("screen","sl-eq-pos","STORES") === null'));
+  ok('...and two screens\' fallbacks are different slots',
+    evb(ctx, 'slSlot({screen:"workrequest",sysType:null}) !== slSlot({screen:"equipment",sysType:null})'));
+  ok('the seeded screen assignments raise no conflict',
+    evb(ctx, 'allConflicts().filter(c => c.type === "screen").length === 0'));
+
+  /* Resolution, three tiers (§30.26) */
+  ok('a group resolves its own typed layout first',
+    evb(ctx, 'slResolve("STORES","equipment","A").sl.id === "sl-eq-asset-stores"'));
+  ok('...falls back to its own fallback for an empty type',
+    evb(ctx, 'var r = slResolve("STORES","equipment","S"); r.tier === 2 && r.sl.id === "sl-eq-std"'));
+  ok('...and to the delivered default with nothing assigned',
+    evb(ctx, 'var r2 = slResolve("STORES","opchecklist",null); r2.tier === 3 && r2.sl === null'));
+
+  /* 1. The lens is a filter */
+  ev(ctx, 'setSlLens("STORES")');
+  const gl = ev(ctx, 'document.getElementById("gallery").innerHTML');
+  ok('the lens highlights what resolves for the group',
+    /class="slrow slrow--hit" data-sl="sl-eq-asset-stores"/.test(gl) &&
+    /class="slrow slrow--dim" data-sl="sl-eq-asset-tech"/.test(gl));
+  ok('...and names the inherited fallback on an empty slot',
+    gl.indexOf('STORES uses Fallback: Equipment standard') > -1);
+  ev(ctx, 'setSlLens("DC-OPS"); openWf("sl-eq-asset-tech")');
+  ok('opening a layout with the lens set edits the SHARED layout, not a group copy',
+    evb(ctx, 'wf().id === "sl-eq-asset-tech" && SLS.length === 7'));
+  ok('...and the editor says how many groups an edit reaches',
+    /edits reach 5 groups/.test(ev(ctx, 'document.getElementById("banner").innerHTML')));
+
+  /* The editor is the workflow editor, Free Form pinned */
+  ok('a screen layout is always Free Form, and the toggle refuses',
+    evb(ctx, 'toggleFreeForm(); wf().freeForm === true'));
+  ok('its record view is pinned first',
+    evb(ctx, 'wf().nodes[0].pinned === true && wf().nodes[0].step === "eq_record"'));
+  const lib = ev(ctx, 'document.getElementById("libBody").innerHTML');
+  ok('the library offers only the screen\'s own tabs — no WO tab, no Action',
+    lib.indexOf('Warranties') > -1 && lib.indexOf('Book Labor') === -1 && lib.indexOf('Actions') === -1);
+  ok('the node opens in the Screen Designer panel',
+    evb(ctx, 'openDsn(wf().nodes[0].nid); document.getElementById("dsnBody").innerHTML.indexOf("emu-") > -1'));
+  ok('changing the type into a slot its groups already fill is refused',
+    evb(ctx, 'setSlType("P"); wf().sysType === "A"'));
+
+  /* 2. Copy for <group> only */
+  const dup = ev(ctx, 'copySlForGroup("sl-eq-asset-tech","DC-OPS").id');
+  ok('Copy for a group moves THAT group onto the copy',
+    evb(ctx, '!isAssigned("screen","sl-eq-asset-tech","DC-OPS") && isAssigned("screen",' + JSON.stringify(dup) + ',"DC-OPS")'));
+  ok('...leaves every other group on the original',
+    evb(ctx, 'groupsOf("screen","sl-eq-asset-tech").length === 4'));
+  ok('...never leaves the group with two layouts in the slot',
+    evb(ctx, 'allConflicts().filter(c => c.type === "screen").length === 0'));
+  ok('...and the copy\'s layout is its own (nids and fields independent)',
+    evb(ctx, '(function(){ var a = SLS.find(s => s.id === "sl-eq-asset-tech"), b = SLS.find(s => s.id === ' + JSON.stringify(dup) + ');' +
+      ' b.nodes[0].layout[0].fields[0].behavior = "hid";' +
+      ' return a.nodes[0].layout[0].fields[0].behavior === "req" && a.nodes[0].nid !== b.nodes[0].nid; })()'));
+  ok('a plain Copy carries no groups',
+    evb(ctx, 'groupsOf("screen", copySl("sl-eq-pos").id).length === 0'));
+
+  /* 4. Scoping, from the workflow side */
+  ev(ctx, 'setArea("workflows"); openWf("wf-bk-full")');
+  const wlib = ev(ctx, 'document.getElementById("libBody").innerHTML');
+  ok('a workflow\'s library never offers a screen layout\'s tabs',
+    wlib.indexOf('Warranties') === -1 && wlib.indexOf('Book Labor') > -1);
+  ok('the User Groups view reads screen layouts off the same table',
+    evb(ctx, 'artifactsForGroup("STORES","screen").map(r => r.artifactId).sort().join() === "sl-eq-asset-stores,sl-eq-std,sl-wr-std"'));
+  ok('a reset re-seeds the layouts and their membership',
+    evb(ctx, 'resetPortal(); SLS.length === 7 && ASSIGN.filter(r => r.type === "screen").length === 31 && state.slLens === null'));
 }
 
 console.log(fail ? '\n' + fail + ' FAILED\n' : '\nAll passed\n');

@@ -12,11 +12,11 @@
 <link rel="manifest" href="../../manifest.webmanifest">
 <link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
-<title>HxGN EAM Mobile — WO List v5</title>
+<title>Attune EAM Mobile — WO List v5</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202610221658">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202610221658">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202610301611">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202610301611">
 <style>
   /* ── Octave kit host layer (screen-local, 2026-10-20): places and sizes
      the real <uxt-*> elements in this screen's own markup; the kit owns
@@ -592,8 +592,8 @@ uxt-icon-button.ld-card-chev{position:absolute;left:var(--k-s2);top:var(--k-s2);
 
 </div><!-- /app -->
 
-<script src="../../data/notifications.js?v=202610221658"></script>
-<script src="shared/eam-shared.js?v=202610221658"></script>
+<script src="../../data/notifications.js?v=202610301611"></script>
+<script src="shared/eam-shared.js?v=202610301611"></script>
 <script>
 /* ══ OCTAVE KIT GLUE (screen-local, 2026-10-20) — the controls below are real
    <uxt-*> elements, which take their state from ATTRIBUTES. These keep this
@@ -673,11 +673,11 @@ const TM={
   CM: {name:'Corrective maint',  color: woTypeBadgeMetaForCode('CM').color},
   INS:{name:'Inspection'},
   MOD:{name:'Modification'},
-  PM: {name:'Preventive maint',  color: woTypeBadgeMetaForCode('PM').color},
+  PM: {name:'Preventive Maintenance',  color: woTypeBadgeMetaForCode('PM').color},
   // Added 2026-07-22 (punch-list item) — real WO Type for WO 20450, the
   // §11 fallback demo (no configured workflow). Matches data/wotype.js's
   // own ROUT ("Routine Maintenance") description.
-  ROUT:{name:'Routine maint',    color: woTypeBadgeMetaForCode('ROUT').color},
+  ROUT:{name:'Routine Maintenance', color: woTypeBadgeMetaForCode('ROUT').color},
 };
 // Priority gained real colour 2026-07-28 (Primary palette pass) —
 // High/Critical now render as a small filled pill, same treatment Type's
@@ -731,7 +731,7 @@ const WOS=[
   // used to disagree (CM/Corrective) with its own step rail/workflow
   // identity, invisible while Type carried no colour but a real
   // contradiction the instant it does (WO Type Colour + Icon Badge).
-  {id:'WO-19257',desc:'Pump Cavitating; lost head',                    eq:'Pump, Centrifugal',      ec:'PUMP-C-0045',tp:'BK',pr:'4',st:'RELEASED',   loc:'PUMP-HOUSE-3',org:'FBPP',due:'07/20/2026',isP:false,pid:null},
+  {id:'WO-19257',desc:'Pump Cavitating; lost head',                    eq:'Pump, Centrifugal',      ec:'PUMP-C-0045',tp:'BK',pr:'4',st:'RELEASED',   loc:'PUMP-HOUSE-3',org:'FBPP',due:'07/18/2026',isP:false,pid:null},
   {id:'WO-19244',desc:'Quarterly preventive maintenance inspection',    eq:'Conveyor Drive Unit',     ec:'CONV-D-0012',tp:'PM',pr:'3',st:'RELEASED',loc:'LINE-B-WEST', org:'ORG1', due:'07/20/2026',isP:true, pid:null},
   {id:'WO-19243',desc:'Belt tension drifting out of spec',              eq:'Conveyor Belt Tensioner', ec:'CONV-T-0012',tp:'CM',pr:'3',st:'RELEASED',loc:'LINE-B-WEST', org:'ORG1', due:'07/20/2026',isP:false,pid:'WO-19244'},
   {id:'WO-19242',desc:'Gearbox oil change and inspection',              eq:'Conveyor Drive Gearbox',  ec:'CONV-G-0012',tp:'PM',pr:'3',st:'RELEASED',   loc:'LINE-B-WEST', org:'ORG1', due:'07/21/2026',isP:false,pid:'WO-19244'},
@@ -745,8 +745,11 @@ const WOS=[
   // now have real rows here too, not just 19257 — so "My Assigned WOs"
   // (DSF.ds1 below) can show exactly the 3 known-good identities, and
   // each opens as itself via openWO()'s literal-number match.
+  // Due dates 07/18 (19257) < 07/20 (20450) < 07/22 (19831) are deliberate: the
+  // default Due sort then lists My Assigned WOs in the UXR script order — Task 2
+  // (breakdown 19257), Task 3 (routine 20450), Task 4 (PM 19831 + seeded route).
   {id:'WO-19831',desc:'General inspection request',                     eq:'Pump, Centrifugal',       ec:'PUMP-C-0045',tp:'PM',pr:'2',st:'RELEASED',loc:'PUMP-HOUSE-3',org:'FBPP', due:'07/22/2026',isP:false,pid:null},
-  {id:'WO-20450',desc:'Replace batteries in lobby TV remote',            eq:'Building A — Main Lobby', ec:'BLDG-A',     tp:'ROUT',pr:'2',st:'RELEASED',loc:'MAIN-LOBBY', org:'FBPP', due:'07/25/2026',isP:false,pid:null},
+  {id:'WO-20450',desc:'Replace batteries in lobby TV remote',            eq:'Building A — Main Lobby', ec:'BLDG-A',     tp:'ROUT',pr:'2',st:'RELEASED',loc:'MAIN-LOBBY', org:'FBPP', due:'07/20/2026',isP:false,pid:null},
 ];
 /* MEC child WOs (§16.10) — the WO Equipment tab mints one child WO per piece
    of equipment on the header WO and persists them in the shared store. They
@@ -1310,8 +1313,8 @@ function openWO(id){
   } else {
     demoWo = (w && TYPE_TO_DEMO_WO[w.tp]) || '20450';
   }
-  sessionStorage.setItem('eamOpenDemoWo', demoWo);
-  location.href = 'eam-wo-record-view-prototype-v1.html';
+  // A WO with a workflow run in progress opens at its cursor (§32.7).
+  openDemoWoAtCursor(demoWo);
 }
 
 

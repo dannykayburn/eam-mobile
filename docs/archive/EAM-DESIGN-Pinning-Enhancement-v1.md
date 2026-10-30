@@ -2,7 +2,7 @@
 
 **Version:** 1.0 — Draft for review
 **Date:** July 2026
-**Status:** Concept design, not yet merged into HxGN EAM Mobile Design Decisions doc
+**Status:** Concept design, not yet merged into Attune EAM Mobile Design Decisions doc
 **Origin:** Mobile offline hydration design sessions (tiered record model / Tier 1 work set)
 
 ---
@@ -246,6 +246,6 @@ It also collapses the Sync Config wall of checkboxes into one human-legible conc
 
 ---
 
-*This document intentionally lives outside the HxGN EAM Mobile Design Decisions doc until
+*This document intentionally lives outside the Attune EAM Mobile Design Decisions doc until
 the concept is reviewed. On approval, Sections 7–9 should merge into the mobile design
 doc's architecture section; Sections 2–6 belong in a base EAM enhancement spec.*

@@ -4,7 +4,10 @@
    undefined globals, and anything thrown during init — which is the class of
    bug that left the search screens dead. */
 const fs = require('fs'), vm = require('vm'), path = require('path');
-const ROOT = 'C:/Users/dkilburn/Projects/eam-mobile';
+/* Resolved from this file, not hardcoded: a hardcoded checkout path made every
+   worktree silently test the MAIN checkout's screens instead of its own.
+   scripts → verify → skills → .claude → repo root. */
+const ROOT = path.resolve(__dirname, '..', '..', '..', '..').replace(/\\/g, '/');
 const DIR = ROOT + '/prototypes/standalone';
 
 function makeStyle() {
@@ -168,6 +171,8 @@ function runScreen(file, seed) {
   const load = (code, name) => new vm.Script(code, { filename: name }).runInContext(ctx);
 
   for (const s of srcTags) {
+    // The Octave design kit is a CDN module; the shared code falls back without it.
+    if (/^https?:/.test(s)) continue;
     const p = s.startsWith('../../') ? path.join(ROOT, s.replace('../../', '')) : path.join(DIR, s);
     if (!fs.existsSync(p)) throw new Error('missing <script src>: ' + s);
     load(fs.readFileSync(p, 'utf8'), s);

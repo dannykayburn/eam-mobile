@@ -2,7 +2,7 @@
 const { runScreen } = require('./_lib.js');
 const vm = require('vm');
 const fs = require('fs');
-const DIR = 'C:/Users/dkilburn/Projects/eam-mobile/prototypes/standalone';
+const DIR = require('path').join(__dirname, '..', '..', '..', '..', '..') + '/prototypes/standalone';
 
 let fail = 0;
 const ok = (label, cond, extra) => {
