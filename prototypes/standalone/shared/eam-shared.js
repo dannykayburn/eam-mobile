@@ -5202,30 +5202,131 @@ function runWoDesc(wo) {
                 '20450': typeof WO_20450 !== 'undefined' ? WO_20450 : null };
   return (map[wo] && map[wo].description) || '';
 }
+// Resume work as a showcase card (Minh, 2026-10-30): the equipment's name on
+// top, the equipment in 3D in the middle (equip3dMount, three.js vendored in
+// shared/vendor), and the run's WO + step bottom left, the timer bottom right.
+// The whole card resumes; "+N more" still lists every run in progress.
+function runEquipment(wo) {
+  const w = { '19257': typeof WO_19257 !== 'undefined' ? WO_19257 : null,
+              '19831': typeof WO_19831 !== 'undefined' ? WO_19831 : null,
+              '20450': typeof WO_20450 !== 'undefined' ? WO_20450 : null }[wo];
+  const id = w && w.equipmentAssetId;
+  const eq = id && typeof EAM_EQUIPMENT !== 'undefined' ? EAM_EQUIPMENT[id] : null;
+  return { id: id || '', name: (eq && eq.desc) || 'Equipment', maker: eq ? [eq.manufacturer, eq.customFieldValues && eq.customFieldValues.HP ? eq.customFieldValues.HP + ' HP' : ''].filter(Boolean).join(' ') : '' };
+}
 function resumeCardHtml() {
   const runs = woRunsInProgress();
   if (!runs.length) return '';
   const r = runs[0];
   const ts = runTimerState(r);
   const desc = runWoDesc(r.wo);
-  return '<div class="resume-card" onclick="openDemoWoAtCursor(\'' + r.wo + '\')">'
-    + '<div class="resume-card-head"><span class="resume-card-eyebrow">Resume work</span>'
-      + (ts ? '<span class="timer-pill' + (ts === 'Paused' ? ' stopped' : '') + '"><div class="timer-dot' + (ts === 'Paused' ? ' stopped' : '') + '"></div>'
-        + '<span id="resumeTimerText">' + techTimerText() + '</span></span>' : '')
+  const eq = runEquipment(r.wo);
+  return '<div class="resume-card resume-showcase" role="button" tabindex="0" aria-label="Resume ' + r.wo + ', ' + kitEsc(desc) + '" onclick="openDemoWoAtCursor(\'' + r.wo + '\')">'
+    + '<div class="rs-head"><div class="rs-titles"><span class="resume-card-eyebrow">Resume work</span>'
+      + '<span class="rs-title">' + kitEsc(eq.name) + '</span>'
+      + '<span class="rs-sub">' + kitEsc([eq.id, eq.maker].filter(Boolean).join(' · ')) + '</span></div>'
+      + '<uxt-icon-button presentational icon="chevron-right" density="m"></uxt-icon-button></div>'
+    + '<canvas class="rs-3d" aria-hidden="true"></canvas>'
+    + '<div class="rs-foot"><span class="rs-foot-left"><span class="resume-card-wo">' + r.wo + '</span> ' + kitEsc(desc)
+      + '<span class="rs-step">' + (r.activityLabel ? 'Activity ' + r.activityLabel + ' · ' : '') + runStepLabel(r) + '</span></span>'
+      + (ts ? '<span class="rs-timer' + (ts === 'Paused' ? ' paused' : '') + '"><span class="timer-dot' + (ts === 'Paused' ? ' stopped' : '') + '"></span><span id="resumeTimerText">' + techTimerText() + '</span></span>' : '')
     + '</div>'
-    + '<div class="resume-card-title"><span class="resume-card-wo">' + r.wo + '</span>' + (desc ? ' ' + desc : '') + '</div>'
-    + '<div class="resume-card-meta">' + (r.activityLabel ? r.activityLabel + ' · ' : '') + runStepLabel(r) + '</div>'
-    + '<div class="resume-card-actions">'
-      + '<button class="bar-pill bar-pill-ready resume-card-btn" onclick="event.stopPropagation();openDemoWoAtCursor(\'' + r.wo + '\')">Resume</button>'
-      + (runs.length > 1 ? '<button class="resume-card-more" onclick="event.stopPropagation();openRunsInProgress()">+'
-          + (runs.length - 1) + ' more in progress</button>' : '')
-    + '</div></div>';
+    + '<div class="rs-actions" onclick="event.stopPropagation()">'
+      + '<uxt-button class="rs-resume" variant="contained" text="Resume" onclick="openDemoWoAtCursor(\'' + r.wo + '\')"></uxt-button>'
+      + '<uxt-icon-button icon="photo-camera" label="Add photo" density="m" onclick="showToast(\'Add photo (prototype)\')"></uxt-icon-button>'
+      + '<uxt-icon-button icon="bookmark" label="Pin work order" density="m" onclick="showToast(\'Pinned ' + r.wo + '\')"></uxt-icon-button>'
+      + '<uxt-icon-button icon="share" label="Share" density="m" onclick="showToast(\'Share (prototype)\')"></uxt-icon-button>'
+    + '</div>'
+    + (runs.length > 1 ? '<button class="resume-card-more" onclick="event.stopPropagation();openRunsInProgress()">+' + (runs.length - 1) + ' more in progress</button>' : '')
+    + '</div>';
 }
 function renderResumeCard(mountId) {
   const el = document.getElementById(mountId || 'resumeCardMount');
   if (!el) return;
   el.innerHTML = resumeCardHtml();
+  const c = el.querySelector('.rs-3d');
+  if (c) equip3dMount(c);
   if (techTimer()) startTechTimerTicker();
+}
+/* A procedural centrifugal pump in three.js: base skid, motor with cooling fins,
+   coupling guard, volute casing, suction + discharge pipes with flanges. Turns
+   slowly on its own; drag sideways to spin it. No-op without THREE or WebGL. */
+// Flat side view of the same pump, for devices without WebGL.
+const EQUIP_PUMP_SVG = '<svg class="rs-3d rs-flat" viewBox="0 0 320 150" aria-hidden="true">'
+  + '<ellipse cx="160" cy="132" rx="130" ry="10" fill="rgba(0,0,0,.12)"/>'
+  + '<rect x="20" y="112" width="280" height="14" rx="3" fill="#2a2e36"/>'
+  + '<rect x="30" y="52" width="120" height="56" rx="26" fill="#2f5fb3"/>'
+  + '<rect x="22" y="58" width="14" height="44" rx="5" fill="#2a2e36"/>'
+  + '<rect x="78" y="38" width="30" height="16" rx="3" fill="#2f5fb3"/>'
+  + '<path d="M150 66h40v28h-40z" fill="#f46600"/>'
+  + '<rect x="190" y="62" width="26" height="36" rx="6" fill="#55606f"/>'
+  + '<circle cx="246" cy="80" r="34" fill="#55606f"/>'
+  + '<rect x="276" y="70" width="30" height="20" fill="#9aa1ad"/><rect x="304" y="62" width="6" height="36" rx="2" fill="#9aa1ad"/>'
+  + '<rect x="236" y="14" width="20" height="34" fill="#9aa1ad"/><rect x="228" y="10" width="36" height="6" rx="2" fill="#9aa1ad"/>'
+  + '<rect x="218" y="106" width="56" height="8" fill="#2a2e36"/></svg>';
+function equip3dMount(canvas) {
+  if (!canvas || canvas._eq3d) return;
+  let renderer = null;
+  if (typeof THREE !== 'undefined') { try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); } catch (e) { renderer = null; } }
+  if (!renderer) { canvas.insertAdjacentHTML('afterend', EQUIP_PUMP_SVG); canvas.remove(); return; }
+  canvas._eq3d = true;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  if ('outputEncoding' in renderer) renderer.outputEncoding = THREE.sRGBEncoding;
+  const scene = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(30, 2, 0.1, 100);
+  cam.position.set(0, 2.4, 9.2); cam.lookAt(0, 0.35, 0);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x8a909c, 0.9));
+  const key = new THREE.DirectionalLight(0xffffff, 1.1); key.position.set(4, 6, 5); scene.add(key);
+  const rim = new THREE.DirectionalLight(0xbcd2ff, 0.5); rim.position.set(-5, 3, -4); scene.add(rim);
+  const M = (color, metal = 0.55, rough = 0.38) => new THREE.MeshStandardMaterial({ color, metalness: metal, roughness: rough });
+  const steel = M(0x9aa1ad, 0.75, 0.3), dark = M(0x2a2e36, 0.4, 0.55), motorBlue = M(0x2f5fb3, 0.35, 0.42),
+        orange = M(0xf46600, 0.2, 0.5), casing = M(0x55606f, 0.6, 0.35);
+  const g = new THREE.Group();
+  const add = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); g.add(m); return m; };
+  const H = Math.PI / 2;
+  add(new THREE.BoxGeometry(4.6, 0.22, 1.5), dark, 0, -0.62, 0);                       // base skid
+  add(new THREE.CylinderGeometry(0.62, 0.62, 2.0, 40), motorBlue, -1.15, 0.12, 0, 0, 0, H); // motor body
+  for (let i = 0; i < 9; i++) add(new THREE.CylinderGeometry(0.67, 0.67, 0.05, 40), motorBlue, -1.95 + i * 0.2, 0.12, 0, 0, 0, H); // fins
+  add(new THREE.CylinderGeometry(0.5, 0.56, 0.18, 40), dark, -2.24, 0.12, 0, 0, 0, H);  // fan cover
+  add(new THREE.BoxGeometry(0.5, 0.36, 0.42), motorBlue, -1.1, 0.82, 0);                // terminal box
+  add(new THREE.BoxGeometry(1.7, 0.2, 1.0), dark, -1.15, -0.44, 0);                     // motor feet
+  add(new THREE.CylinderGeometry(0.34, 0.34, 0.7, 32, 1, false, 0, Math.PI), orange, 0.22, 0.12, 0, 0, 0, H); // coupling guard
+  add(new THREE.CylinderGeometry(0.12, 0.12, 0.9, 20), steel, 0.25, 0.12, 0, 0, 0, H);  // shaft
+  add(new THREE.CylinderGeometry(0.42, 0.5, 0.55, 32), casing, 0.85, 0.12, 0, 0, 0, H); // bearing frame
+  add(new THREE.CylinderGeometry(0.95, 0.95, 0.62, 48), casing, 1.5, 0.22, 0, 0, 0, H); // volute
+  add(new THREE.TorusGeometry(0.8, 0.2, 16, 48, Math.PI * 1.6), casing, 1.5, 0.22, 0, 0, H, 0); // volute scroll
+  add(new THREE.CylinderGeometry(0.3, 0.3, 0.9, 28), steel, 2.2, 0.22, 0, 0, 0, H);     // suction pipe
+  add(new THREE.CylinderGeometry(0.46, 0.46, 0.08, 28), steel, 2.65, 0.22, 0, 0, 0, H); // suction flange
+  add(new THREE.CylinderGeometry(0.24, 0.24, 1.0, 28), steel, 1.5, 1.4, 0);             // discharge pipe
+  add(new THREE.CylinderGeometry(0.4, 0.4, 0.08, 28), steel, 1.5, 1.92, 0);             // discharge flange
+  add(new THREE.BoxGeometry(1.1, 0.5, 0.9), dark, 1.5, -0.6, 0);                        // pump pedestal
+  g.position.y = 0.05;
+  scene.add(g);
+  // Soft contact shadow.
+  const sh = document.createElement('canvas'); sh.width = sh.height = 128;
+  const sx = sh.getContext('2d'); const gr = sx.createRadialGradient(64, 64, 4, 64, 64, 64);
+  gr.addColorStop(0, 'rgba(0,0,0,.35)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); sx.fillStyle = gr; sx.fillRect(0, 0, 128, 128);
+  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 2.6), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sh), transparent: true, depthWrite: false }));
+  shadow.rotation.x = -H; shadow.position.y = -0.74; scene.add(shadow);
+  let rot = -0.5, vel = 0.004, drag = null;
+  canvas.addEventListener('pointerdown', (e) => { drag = e.clientX; e.stopPropagation(); });
+  window.addEventListener('pointermove', (e) => { if (drag === null) return; rot += (e.clientX - drag) * 0.01; drag = e.clientX; });
+  window.addEventListener('pointerup', () => { drag = null; });
+  canvas.addEventListener('click', (e) => { if (canvas._dragged) { e.stopPropagation(); canvas._dragged = false; } });
+  const size = () => {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (!w || !h) return;
+    if (canvas.width !== Math.round(w * renderer.getPixelRatio())) { renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
+  };
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  (function frame() {
+    if (!canvas.isConnected) { renderer.dispose(); return; }
+    size();
+    if (drag === null && !reduce) rot += vel;
+    g.rotation.y = rot; shadow.rotation.z = 0;
+    renderer.render(scene, cam);
+    requestAnimationFrame(frame);
+  })();
 }
 function runsInProgressRowsHtml() {
   return woRunsInProgress().map(r => {

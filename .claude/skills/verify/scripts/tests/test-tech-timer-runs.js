@@ -128,7 +128,7 @@ console.log('\n4. Resume lands on the cursor (§32.7)');
   ok('Home renders the Resume card', /resume-card/.test(card));
   ok('...naming the WO, its description and the current step',
     /19257/.test(card) && /Pump Cavitating/.test(card) && /Issue Parts/.test(card));
-  ok('...with the timer pill, because this run is timed', /timer-pill/.test(card));
+  ok('...with the timer, because this run is timed', /rs-timer/.test(card));
   ev(home, 'openDemoWoAtCursor("19257")');
   ok('Resume opens Issue Parts, the cursor', /issue-parts/.test(ev(home, 'location.href')));
   const wl = runScreen('eam-wo-list-prototype-v5_1.html', seed);
