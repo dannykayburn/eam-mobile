@@ -15,8 +15,8 @@
 <title>HxGN EAM Mobile — Activity Checklist (Step 2)</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202610201808">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202610201808">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202610221658">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202610221658">
 <!--
   SCROLL NAVIGATION IS THE MODEL — A/B RESOLVED 2026-09-21 (user direction:
   "Remove the A/B checklist option. We will go with the scroll version.").
@@ -612,6 +612,9 @@ uxt-status-chip.ov-group-badge { flex-shrink: 0; }
          tapping the stub above still steps back; goPrev() stays defined).
          Next is a kit contained button; its label is set via setNextLabel(). -->
     <uxt-button class="kit-btn-block kit-flex-btn" id="nextBtn" variant="contained" density="m" text="Next" onclick="goNext()"></uxt-button>
+    <!-- Audio (2026-10-22, Minh): icon button beside Start Checklist only;
+         shown/hidden by setNextLabel(). Kit has no speaker glyph, so "mic". -->
+    <uxt-icon-button id="audioBtn" icon="mic" label="Audio checklist" outlined density="m" onclick="showToast('Audio checklist coming soon')"></uxt-icon-button>
   </div>
 
   <!-- ── PROMPT BAR — appears once every required item is complete AND
@@ -720,13 +723,13 @@ uxt-status-chip.ov-group-badge { flex-shrink: 0; }
 
 </div><!-- /app -->
 
-<script src="../../data/wo-19257.js?v=202610201808"></script>
-<script src="../../data/wo-19831.js?v=202610201808"></script>
-<script src="../../data/wo-20450.js?v=202610201808"></script>
-<script src="../../data/wotype.js?v=202610201808"></script>
-<script src="../../data/wo-workflow.js?v=202610201808"></script>
-<script src="../../data/wo-workflow-steps.js?v=202610201808"></script>
-<script src="shared/eam-shared.js?v=202610201808"></script>
+<script src="../../data/wo-19257.js?v=202610221658"></script>
+<script src="../../data/wo-19831.js?v=202610221658"></script>
+<script src="../../data/wo-20450.js?v=202610221658"></script>
+<script src="../../data/wotype.js?v=202610221658"></script>
+<script src="../../data/wo-workflow.js?v=202610221658"></script>
+<script src="../../data/wo-workflow-steps.js?v=202610221658"></script>
+<script src="shared/eam-shared.js?v=202610221658"></script>
 <script>
 /* ── Octave kit glue (2026-10-20) ─────────────────────────────────────
    Next is a kit <uxt-button>: its label is an attribute, never innerHTML.
@@ -735,6 +738,8 @@ uxt-status-chip.ov-group-badge { flex-shrink: 0; }
 function setNextLabel(text) {
   const b = document.getElementById('nextBtn');
   if (b && b.getAttribute('text') !== text) b.setAttribute('text', text);
+  const a = document.getElementById('audioBtn');
+  if (a) a.style.display = text === 'Start Checklist' ? '' : 'none';
 }
 /* Numeric answers keep the decimal keypad (§3.4): the kit input has no
    inputmode attribute, so it is set on the inner field after each render. */

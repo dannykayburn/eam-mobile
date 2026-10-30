@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>EAM Mobile in a Phone Frame</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #1a1a1f; font-family: -apple-system, sans-serif; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 16px; box-sizing: border-box; }
+  .stage { display: flex; gap: 24px; align-items: center; width: 100%; height: calc(100% - 50px); justify-content: center; }
+  .kit { flex: 1; max-width: 1100px; height: 100%; border-radius: 12px; overflow: hidden; background: #fff; display: flex; flex-direction: column; }
+  .kit .head { padding: 8px 12px; background: #26262c; color: #ccc; font-size: 13px; display: flex; justify-content: space-between; }
+  .kit .head a { color: #0ff; }
+  .kit iframe { flex: 1; border: 0; width: 100%; }
+  .stage.nokit .kit { display: none; }
+  .bar { display: flex; gap: 8px; align-items: center; color: #aaa; font-size: 13px; }
+  .bar input { width: 380px; padding: 6px 8px; border-radius: 6px; border: 1px solid #444; background: #26262c; color: #eee; }
+  .bar button { padding: 6px 10px; border-radius: 6px; border: 1px solid #444; background: #26262c; color: #eee; cursor: pointer; }
+  .phone { position: relative; flex-shrink: 0; max-height: 100%; aspect-ratio: 393/852; width: 393px; height: 852px; padding: 12px; border-radius: 56px;
+           background: #0b0b0d; box-shadow: 0 0 0 2px #333, 0 30px 80px rgba(0,0,0,.6); }
+  .screen { width: 100%; height: 100%; border-radius: 44px; overflow: hidden; background: #fff; position: relative;
+            box-sizing: border-box; padding-top: 54px; }
+  .screen iframe { width: 100%; height: 100%; border: 0; display: block; }
+  .island { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); width: 120px; height: 34px;
+            border-radius: 20px; background: #000; z-index: 2; pointer-events: none; }
+  .phone.landscape { width: 852px; height: 393px; aspect-ratio: 852/393; }
+  .phone.landscape .screen { padding-top: 0; padding-left: 54px; }
+  .phone.landscape .island { top: 50%; left: 22px; transform: translateY(-50%); width: 34px; height: 120px; }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <input id="url" value="index.html">
+    <button id="go">Load</button>
+    <button id="rot">Rotate</button>
+    <button id="kitbtn">Hide components</button>
+  </div>
+  <div class="stage" id="stage">
+  <div class="phone" id="phone">
+    <div class="island"></div>
+    <div class="screen"><iframe id="f" src="index.html"></iframe></div>
+  </div>
+  <div class="kit">
+    <div class="head"><span>Octave mobile kit components</span><a href="https://octave-mobile-kit.vercel.app" target="_blank">Open in new tab</a></div>
+    <iframe src="https://octave-mobile-kit.vercel.app"></iframe>
+  </div>
+  </div>
+<script>
+  const f = document.getElementById('f'), u = document.getElementById('url');
+  // Paint the notch strip with whatever the app's page background is (follows theme + screen changes).
+  const scr = document.querySelector('.screen');
+  const isClear = c => !c || c === 'transparent' || c === 'rgba(0, 0, 0, 0)';
+  setInterval(() => {
+    try {
+      const d = f.contentDocument; if (!d || !d.body) return;
+      let bg = '';
+      for (const el of [d.querySelector('.app'), d.body, d.documentElement]) {
+        if (!el) continue;
+        const c = getComputedStyle(el).backgroundColor;
+        if (!isClear(c)) { bg = c; break; }
+      }
+      if (bg && scr.style.background !== bg) scr.style.background = bg;
+    } catch (e) {}
+  }, 300);
+  document.getElementById('go').onclick = () => f.src = u.value;
+  u.onkeydown = e => { if (e.key === 'Enter') f.src = u.value; };
+  document.getElementById('rot').onclick = () => document.getElementById('phone').classList.toggle('landscape');
+  document.getElementById('kitbtn').onclick = e => {
+    const st = document.getElementById('stage'); st.classList.toggle('nokit');
+    e.target.textContent = st.classList.contains('nokit') ? 'Show components' : 'Hide components';
+  };
+</script>
+</body>
+</html>

@@ -15,8 +15,8 @@
 <title>HxGN EAM Mobile — Home v1</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202610201808">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202610201808">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202610221658">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202610221658">
 <!--
   HOME SCREEN — session riff, first pass (2026-07-16). Loads the two
   shared files per docs/archive/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md;
@@ -97,9 +97,6 @@
 /* Create is now a floating action at the bottom right, sitting just above
    the bottom-nav pill, like Gmail's Compose (Minh, 2026-10-20). Kit buttons
    have no icon slot yet, so the leading "+" is drawn on the inner button. */
-.create-bar{position:absolute;right:var(--k-s4);bottom:calc(var(--shell-pad-bottom) + 64px + var(--k-s4));z-index:51;}
-.create-bar uxt-button button{box-shadow:var(--uxt-theme-shadows-3,0 3px 8px rgba(26,26,31,.18));padding-left:var(--k-s4);padding-right:var(--k-s6);}
-.create-bar uxt-button button::before{content:"";width:20px;height:20px;margin-right:var(--k-s2);flex-shrink:0;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M11 13H5v-2h6V5h2v6h6v2h-6v6h-2z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M11 13H5v-2h6V5h2v6h6v2h-6v6h-2z'/%3E%3C/svg%3E") center/contain no-repeat;}
 
 /* Home tiles — "Tile A": tinted square + glyph + count, label below,
    horizontally scrolling rows (Danny's). Card radius from the shape scale. */
@@ -541,8 +538,8 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/notifications.js?v=202610201808"></script>
-<script src="shared/eam-shared.js?v=202610201808"></script>
+<script src="../../data/notifications.js?v=202610221658"></script>
+<script src="shared/eam-shared.js?v=202610221658"></script>
 <script>
 // Insert Mode's Type pill (§9.4.1, added 2026-07-29) re-scopes the flat
 // fields section on every change, not just on entity switch — same

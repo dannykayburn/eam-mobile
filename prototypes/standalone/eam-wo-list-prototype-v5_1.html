@@ -15,8 +15,8 @@
 <title>HxGN EAM Mobile — WO List v5</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202610201808">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202610201808">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202610221658">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202610221658">
 <style>
   /* ── Octave kit host layer (screen-local, 2026-10-20): places and sizes
      the real <uxt-*> elements in this screen's own markup; the kit owns
@@ -45,7 +45,7 @@
 
 /* Card list / table scroll containers. Bottom room clears the floating
    64px pill nav plus its --shell-pad-bottom gap. */
-.wo-list{flex:1;overflow-y:auto;padding:var(--k-s1) 0 calc(64px + var(--shell-pad-bottom) + var(--k-s6));}
+.wo-list{flex:1;overflow-y:auto;padding:var(--k-s1) 0 calc(64px + var(--shell-pad-bottom) + var(--k-s6) + 80px);}
 .wo-list::-webkit-scrollbar{display:none;}
 /* The table scrolls itself here (it sits in the screen's flex column, not
    inside an already-scrolling tab body like the shared .ld-table-wrap). */
@@ -265,6 +265,9 @@ uxt-icon-button.ld-card-chev{position:absolute;left:var(--k-s2);top:var(--k-s2);
         <div class="kit-sheet-spacer"></div>
       </div>
       <div class="sheet-body" id="dsList"></div>
+    </div>
+    <div class="create-bar">
+      <uxt-button variant="contained" text="Create" onclick="event.stopPropagation();openCreateSheet('WO')"></uxt-button>
     </div>
   </div>
 
@@ -589,8 +592,8 @@ uxt-icon-button.ld-card-chev{position:absolute;left:var(--k-s2);top:var(--k-s2);
 
 </div><!-- /app -->
 
-<script src="../../data/notifications.js?v=202610201808"></script>
-<script src="shared/eam-shared.js?v=202610201808"></script>
+<script src="../../data/notifications.js?v=202610221658"></script>
+<script src="shared/eam-shared.js?v=202610221658"></script>
 <script>
 /* ══ OCTAVE KIT GLUE (screen-local, 2026-10-20) — the controls below are real
    <uxt-*> elements, which take their state from ATTRIBUTES. These keep this
