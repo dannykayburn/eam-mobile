@@ -278,7 +278,7 @@ body{font-family:var(--font-sans);font-size:var(--k-body2);background:var(--bg-p
    a visual override of §4.2's "anchored, not floating". Every destination
    and handler is the screen's own markup, untouched. Max 4 is the kit rule;
    no screen has more than 3 today. */
-.bottom-nav{position:absolute;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 2 * var(--k-s4));bottom:var(--shell-pad-bottom);height:64px;background:var(--k-card);border:1px solid var(--k-divider);border-radius:var(--k-pill);box-shadow:var(--k-e3);box-sizing:border-box;display:flex;align-items:stretch;gap:var(--k-s1);padding:var(--k-s1);flex-shrink:0;z-index:50;}
+.bottom-nav{position:absolute;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 2 * var(--k-s4));bottom:var(--shell-pad-bottom);height:64px;background:var(--k-card);border:1px solid var(--k-divider);border-radius:var(--k-pill);box-shadow:var(--k-e3);box-sizing:border-box;display:flex;align-items:stretch;gap:var(--k-s1);padding:var(--k-s1) var(--k-s2);flex-shrink:0;z-index:50;}
 .bottom-nav.hidden{display:none;}
 .bottom-nav-item{flex:0 1 80px;width:80px;min-width:0;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--k-text-2);background:none;border:none;border-radius:var(--k-pill);font-family:var(--font-sans);font-size:var(--k-caption);font-weight:500;padding:0;cursor:pointer;transition:background .15s;}
 /* Kit glyphs in the pill nav: 24px box (the kit's own button-height var). */
