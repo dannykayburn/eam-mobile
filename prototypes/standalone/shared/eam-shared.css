@@ -2508,3 +2508,5 @@ uxt-list-item.kit-drawer-row{display:block;}
    Checkboxes and text buttons keep the control border. Focus states still win. */
 .nav-back,.nav-avatar,.nav-icon-btn,.rec-ellipsis-btn,.step-btn,.ds-bar,
 input.ld-search-input,.edit-input,.lov-search-row input{border-color:var(--k-divider);}
+/* No PROTOTYPE watermark in the top bar (Minh, 2026-10-30). */
+.nav .prototype-label{display:none !important;}
