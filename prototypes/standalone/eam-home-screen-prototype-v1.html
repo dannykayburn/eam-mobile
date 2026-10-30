@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — Home v1</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202610301642">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202610301642">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202610301647">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202610301647">
 <!--
   HOME SCREEN — session riff, first pass (2026-07-16). Loads the two
   shared files per docs/archive/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md;
@@ -103,7 +103,6 @@
 .home-fab uxt-button button > *:not(.btn-overlay){font-size:0;}
 .home-fab uxt-button button::before{width:24px !important;height:24px !important;margin:0 !important;}
 /* View switch: Tiles (default) | Calendar. */
-.home-view-toggle{display:block;margin:var(--k-s4) 0 0;}
 /* Calendar: an hour rail with scheduled work as cards. */
 .home-cal{display:flex;flex-direction:column;}
 .home-cal-hour{display:flex;gap:var(--k-s2);min-height:48px;border-top:1px solid var(--k-divider);}
@@ -280,6 +279,9 @@
     </div>
     <div class="nav-title">Home</div>
     <div class="nav-actions">
+      <!-- View switch (Tiles default, Calendar optional): one outlined Icon
+           Button showing the view it switches to. -->
+      <uxt-icon-button id="homeViewBtn" icon="calendar-today" label="Calendar view" outlined density="m" onclick="event.stopPropagation();setHomeView(homeView === 'calendar' ? 'tiles' : 'calendar')"></uxt-icon-button>
       <span id="syncCtrl"></span>
     </div>
   </header>
@@ -311,12 +313,6 @@
          work in progress, never an authored tile. Empty (renders nothing) when
          no run is in progress. Built by eam-shared.js renderResumeCard(). -->
     <div id="resumeCardMount"></div>
-
-    <!-- View switch (feedback 2026-10-30): Tiles is the default; Calendar is an
-         option for technicians whose work is scheduled to the hour. Remembered
-         per device (lsGet/lsSet). -->
-    <uxt-toggle-button-group class="home-view-toggle" id="homeViewToggle" density="m" value="tiles"
-      options='[{"value":"tiles","label":"Tiles","icon":"grid-view"},{"value":"calendar","label":"Calendar","icon":"calendar-today"}]'></uxt-toggle-button-group>
 
     <!-- TILES: Danny's sections on kit styling. "More" ends the last row and
          opens every screen, so screens past WOs/Equipment have a way in. -->
@@ -636,12 +632,12 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/notifications.js?v=202610301642"></script>
+<script src="../../data/notifications.js?v=202610301647"></script>
 <!-- The Resume card names the WO it resumes (§32.7) — descriptions only. -->
-<script src="../../data/wo-19257.js?v=202610301642"></script>
-<script src="../../data/wo-19831.js?v=202610301642"></script>
-<script src="../../data/wo-20450.js?v=202610301642"></script>
-<script src="shared/eam-shared.js?v=202610301642"></script>
+<script src="../../data/wo-19257.js?v=202610301647"></script>
+<script src="../../data/wo-19831.js?v=202610301647"></script>
+<script src="../../data/wo-20450.js?v=202610301647"></script>
+<script src="shared/eam-shared.js?v=202610301647"></script>
 <script>
 // Insert Mode's Type pill (§9.4.1, added 2026-07-29) re-scopes the flat
 // fields section on every change, not just on entity switch — same
@@ -1027,17 +1023,21 @@ function renderHomeCalendar() {
       </button>`).join('')}</div></div>`;
   }).join('');
 }
+// View switch (feedback 2026-10-30): Tiles is the default; Calendar is an
+// option for technicians whose work is scheduled to the hour. Remembered per
+// device (lsGet/lsSet).
 const HOME_VIEW_KEY = 'eamHomeView';
+let homeView = 'tiles';
 function setHomeView(v) {
-  const cal = v === 'calendar';
+  homeView = v === 'calendar' ? 'calendar' : 'tiles';
+  const cal = homeView === 'calendar';
   document.getElementById('homeTilesView').hidden = cal;
   document.getElementById('homeCalendarView').hidden = !cal;
-  const t = document.getElementById('homeViewToggle');
-  if (t && t.getAttribute('value') !== v) t.setAttribute('value', v);
+  const b = document.getElementById('homeViewBtn');
+  if (b) { b.setAttribute('icon', cal ? 'grid-view' : 'calendar-today'); b.setAttribute('label', cal ? 'Tiles view' : 'Calendar view'); }
   if (cal) renderHomeCalendar();
-  lsSet(HOME_VIEW_KEY, v);
+  lsSet(HOME_VIEW_KEY, homeView);
 }
-document.getElementById('homeViewToggle').addEventListener('change', (e) => setHomeView(e.detail.value));
 setHomeView(lsGet(HOME_VIEW_KEY) === 'calendar' ? 'calendar' : 'tiles');
 // Greeting strip — time-of-day greeting only (no due-today/status count,
 // see the CSS comment above for why). Name reused from the profile menu

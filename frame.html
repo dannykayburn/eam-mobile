@@ -58,9 +58,24 @@
         const c = getComputedStyle(el).backgroundColor;
         if (!isClear(c)) { bg = c; break; }
       }
-      if (bg && scr.style.background !== bg) scr.style.background = bg;
+      // iOS status bar is transparent: an open drawer runs up behind it, so the
+      // strip shows the sheet over its width and the scrim beside it.
+      let paint = bg;
+      const sheet = d.querySelector('uxt-navigation-drawer[open] .uxt-nd__sheet');
+      if (sheet && bg) {
+        const w = Math.round(sheet.getBoundingClientRect().right);
+        const sc = d.querySelector('uxt-navigation-drawer[open] .uxt-nd__scrim');
+        const sheetBg = getComputedStyle(sheet).backgroundColor;
+        const scrimBg = sc ? getComputedStyle(sc).backgroundColor : 'rgba(26,26,31,.5)';
+        paint = `linear-gradient(to right, ${sheetBg} ${w}px, transparent ${w}px), linear-gradient(${scrimBg}, ${scrimBg}), ${bg}`;
+      }
+      if (paint && scr.style.background !== paint) scr.style.background = paint;
     } catch (e) {}
-  }, 300);
+  }, 100);
+  // Prefer the local mobile kit preview (localhost:3005) when it is running.
+  fetch('http://localhost:3005/', { mode: 'no-cors' }).then(() => {
+    const k = document.querySelector('.kit iframe'); if (k) k.src = 'http://localhost:3005/';
+  }).catch(() => {});
   document.getElementById('go').onclick = () => f.src = u.value;
   u.onkeydown = e => { if (e.key === 'Enter') f.src = u.value; };
   document.getElementById('rot').onclick = () => document.getElementById('phone').classList.toggle('landscape');
