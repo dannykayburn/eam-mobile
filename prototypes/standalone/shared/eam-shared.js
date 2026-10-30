@@ -1558,16 +1558,31 @@ function kitDrawerSourceRows(menu) {
 }
 function kitNavDrawerIsOpen() {
   const dr = document.getElementById('kitNavDrawer');
-  return !!(dr && dr.classList.contains('open'));
+  return !!(dr && dr.hasAttribute('open'));
 }
+/* The hamburger opens the kit's <uxt-navigation-drawer> (design kit, mobile):
+   close + help, the profile card, the #profileMenu rows as action rows, the
+   help card, then the Octave logo and legal links. Every row clicks its
+   #profileMenu source row, so no screen handler is re-implemented. */
+const KIT_DRAWER_LINKS = ['Legal & Privacy', 'Disclosures', 'Accessibility Statement', 'Attributions'];
+// A source row's trailing text as a plain value: drop glyphs, keep words.
+function kitDrawerValue(v) { const t = String(v || '').replace(/[^\p{L}\p{N}\s.,:%/-]/gu, '').trim(); return /\p{L}|\p{N}/u.test(t) ? t : ''; }
 function kitRenderNavDrawerRows(dr, menu) {
   const rows = kitDrawerSourceRows(menu);
   dr._rows = rows;
-  const list = dr.querySelector('.kit-drawer-list');
-  list.innerHTML = rows.map((r, i) => r.header
-    ? `<uxt-list-item class="kit-drawer-row" header density="m" text="${kitEsc(r.text)}"${r.lineAbove ? ' divider' : ''}></uxt-list-item>`
-    : `<uxt-list-item class="kit-drawer-row" role="menuitem" density="m" data-row="${i}" value="${i}" text="${kitEsc(r.text)}"`
-      + `${r.icon ? ` icon="${kitEsc(r.icon)}"` : ''}${r.shortcut ? ` shortcut="${kitEsc(r.shortcut)}"` : ''}${r.lineAbove ? ' divider' : ''}></uxt-list-item>`).join('');
+  const dark = document.documentElement.hasAttribute('data-theme');
+  const items = rows.map((r, i) => {
+    if (r.divider) return '';
+    if (r.header) return `<uxt-list-item header text="${kitEsc(r.text)}"></uxt-list-item>`;
+    const isTheme = /^appearance$/i.test(String(r.text || '').trim());
+    return `<uxt-list-item value="${i}" text="${kitEsc(isTheme ? 'Dark mode' : r.text)}"`
+      + `${r.icon ? ` icon="${kitEsc(r.icon)}"` : ''}`
+      + (isTheme ? ` toggle${dark ? ' checked' : ''}` : (kitDrawerValue(r.shortcut) ? ` shortcut="${kitEsc(kitDrawerValue(r.shortcut))}"` : ''))
+      + `></uxt-list-item>`;
+  }).join('');
+  const links = KIT_DRAWER_LINKS.map(t => `<a slot="link" href="#">${kitEsc(t)}</a>`).join('');
+  dr.innerHTML = items + links;
+  dr.querySelectorAll('[slot="link"]').forEach(a => { a.onclick = (e) => { e.preventDefault(); showToast(a.textContent + ' (prototype)'); }; });
 }
 function kitBuildNavDrawer() {
   const menu = document.getElementById('profileMenu');
@@ -1576,53 +1591,18 @@ function kitBuildNavDrawer() {
   menu.classList.add('kit-source-menu');
   menu.classList.remove('open');
   const name = menu.querySelector('.profile-menu-name');
-  const org = menu.querySelector('.profile-menu-org');
-  const userName = (name && name.textContent.trim()) || 'Bruce Campbell';
-  const userRole = (org && org.textContent.trim()) || '';
-  const dr = document.createElement('div');
+  const dr = document.createElement('uxt-navigation-drawer');
   dr.id = 'kitNavDrawer';
-  dr.className = 'kit-drawer';
-  dr.setAttribute('aria-hidden', 'true');
-  dr.inert = true;
-  dr.innerHTML = `
-    <div class="kit-drawer-scrim" aria-hidden="true"></div>
-    <aside class="kit-drawer-sheet" role="dialog" aria-modal="true" aria-label="Menu">
-      <div class="kit-drawer-head">
-        <uxt-icon-button class="kit-drawer-close" icon="close" label="Close menu" outlined density="m"></uxt-icon-button>
-        <span class="kit-drawer-mark" role="img" aria-label="Octave">O</span>
-        <span class="kit-drawer-brand">Octave</span>
-      </div>
-      <div class="kit-drawer-body">
-        <div class="kit-drawer-profile">
-          <uxt-avatar density="m" name="${kitEsc(userName)}"></uxt-avatar>
-          <div class="kit-drawer-who">
-            <div class="kit-drawer-name">${kitEsc(userName)}</div>
-            ${userRole ? `<div class="kit-drawer-role">${kitEsc(userRole)}</div>` : ''}
-          </div>
-        </div>
-        <div class="kit-drawer-list" role="menu" aria-label="Menu"></div>
-      </div>
-    </aside>`;
+  dr.setAttribute('name', (name && name.textContent.trim()) || 'Bruce Campbell');
+  dr.setAttribute('avatar-src', 'shared/img/bcampbell.jpg');
+  dr.setAttribute('help-text', 'Find answers to common questions or talk to us');
   app.appendChild(dr);
-  dr.querySelector('.kit-drawer-scrim').addEventListener('click', () => closeNavDrawer());
-  dr.querySelector('.kit-drawer-close').addEventListener('click', (e) => { e.stopPropagation(); closeNavDrawer(); });
-  // The kit List Item fires `select` on click / Enter / Space; without the
-  // kit (DOM shim) only `click` exists. One pick per open either way.
-  const pick = (e) => {
-    const li = e.target.closest && e.target.closest('uxt-list-item[data-row]');
-    if (!li || !kitNavDrawerIsOpen() || dr._picked) return;
-    const r = dr._rows && dr._rows[+li.getAttribute('data-row')];
-    if (!r || !r.el) return;
-    dr._picked = true;
-    closeNavDrawer({ keepFocus: true });
-    r.el.click();
-  };
-  const list = dr.querySelector('.kit-drawer-list');
-  list.addEventListener('select', pick);
-  list.addEventListener('click', pick);
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && kitNavDrawerIsOpen()) { e.preventDefault(); closeNavDrawer(); }
-  });
+  const run = (r) => { if (r && r.el) r.el.click(); };
+  dr.addEventListener('select', (e) => run(dr._rows && dr._rows[+e.detail.value]));
+  dr.addEventListener('toggle', (e) => run(dr._rows && dr._rows[+e.detail.value]));
+  dr.addEventListener('profile', () => showToast('Account & settings (prototype)'));
+  dr.addEventListener('help', () => showToast('Help (prototype)'));
+  dr.addEventListener('close', () => document.querySelectorAll('.nav .kit-nav-menu').forEach(b => b.setAttribute('aria-expanded', 'false')));
 }
 function openNavDrawer(trigger) {
   const dr = document.getElementById('kitNavDrawer');
@@ -1630,26 +1610,15 @@ function openNavDrawer(trigger) {
   if (!dr || !menu) return;
   if (typeof closeAllHeaderMenus === 'function') closeAllHeaderMenus();
   kitRenderNavDrawerRows(dr, menu);
-  dr._picked = false;
-  dr._trigger = (trigger && trigger.nodeType === 1) ? trigger : document.querySelector('.nav .kit-nav-menu');
-  dr.inert = false;
-  dr.setAttribute('aria-hidden', 'false');
-  dr.classList.add('open');
+  const t = (trigger && trigger.nodeType === 1) ? trigger : document.querySelector('.nav .kit-nav-menu');
+  const focusable = t && (t.querySelector && t.querySelector('button') || t);
+  if (dr.show) dr.show(focusable); else dr.setAttribute('open', '');
   document.querySelectorAll('.nav .kit-nav-menu').forEach(b => b.setAttribute('aria-expanded', 'true'));
-  const close = dr.querySelector('.kit-drawer-close');
-  setTimeout(() => { const b = close && (close.querySelector('button') || close); if (b && b.focus) b.focus(); }, 50);
 }
 function closeNavDrawer(opts) {
   const dr = document.getElementById('kitNavDrawer');
-  if (!dr || !dr.classList.contains('open')) return;
-  dr.classList.remove('open');
-  dr.setAttribute('aria-hidden', 'true');
-  dr.inert = true;
-  document.querySelectorAll('.nav .kit-nav-menu').forEach(b => b.setAttribute('aria-expanded', 'false'));
-  if (!(opts && opts.keepFocus) && dr._trigger) {
-    const b = dr._trigger.querySelector && dr._trigger.querySelector('button') || dr._trigger;
-    if (b && b.focus) b.focus();
-  }
+  if (!dr || !dr.hasAttribute('open')) return;
+  if (dr.hide) dr.hide(opts); else dr.removeAttribute('open');
 }
 // Leading slot of every top-level bar: the hamburger. Reuses one a screen
 // already wrote (`uxt-icon-button[icon="menu"]`) rather than doubling it.
