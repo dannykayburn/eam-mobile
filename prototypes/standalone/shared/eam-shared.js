@@ -2353,8 +2353,10 @@ function updateNotifBadge() {
   const count = EAM_NOTIFICATIONS.filter(n => !n.read).length;
   const el = document.getElementById('notifBadge');
   if (kitIsEl(el)) {
-    // Kit <uxt-badge> anchored on the bottom-nav bell: value 0 hides it.
-    el.setAttribute('value', String(count));
+    // Kit <uxt-badge> anchored on the bottom-nav bell: a plain dot while
+    // anything is unread (no number, mobile kit rule); count 0 hides it.
+    el.setAttribute('variant', count > 0 ? 'dot' : 'count');
+    el.setAttribute('value', count > 0 ? '' : '0');
     el.setAttribute('label', count > 0 ? `${count} unread notifications` : 'No unread notifications');
   } else if (el) {
     el.textContent = count;
