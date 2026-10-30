@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — Home v1</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202610301658">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202610301658">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202610301700">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202610301700">
 <!--
   HOME SCREEN — session riff, first pass (2026-07-16). Loads the two
   shared files per docs/archive/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md;
@@ -668,14 +668,14 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/notifications.js?v=202610301658"></script>
+<script src="../../data/notifications.js?v=202610301700"></script>
 <!-- The Resume card names the WO it resumes (§32.7) — descriptions only. -->
-<script src="../../data/equipment.js?v=202610301658"></script>
-<script src="shared/vendor/three.min.js?v=202610301658"></script>
-<script src="../../data/wo-19257.js?v=202610301658"></script>
-<script src="../../data/wo-19831.js?v=202610301658"></script>
-<script src="../../data/wo-20450.js?v=202610301658"></script>
-<script src="shared/eam-shared.js?v=202610301658"></script>
+<script src="../../data/equipment.js?v=202610301700"></script>
+<script src="shared/vendor/three.min.js?v=202610301700"></script>
+<script src="../../data/wo-19257.js?v=202610301700"></script>
+<script src="../../data/wo-19831.js?v=202610301700"></script>
+<script src="../../data/wo-20450.js?v=202610301700"></script>
+<script src="shared/eam-shared.js?v=202610301700"></script>
 <script>
 // Insert Mode's Type pill (§9.4.1, added 2026-07-29) re-scopes the flat
 // fields section on every change, not just on entity switch — same
@@ -1227,6 +1227,12 @@ let RECORD = {};
 renderEntityFields(); // pre-render defaults so the sheet isn't empty the first time it opens
 
 initSharedApp({ contentSelector: '.home-body' });
+// Demo seed (Minh, 2026-10-30): Home always opens with work in progress, so the
+// Resume work showcase is there on load. WO 19257 at WO Closing, timer ~12 min in.
+if (!woRunsInProgress().length) {
+  woRunStart('19257', 'A10', '10', 'closing');
+  if (!techTimer()) techTimerSave({ tech: DEMO_TECH, wo: '19257', activity: 'A10', activityLabel: '10', state: 'running', startedAt: timerNow() - 12 * 60000, bookedMs: 0 });
+}
 renderResumeCard('resumeCardMount');
 initDemoOnlineToggle();
 

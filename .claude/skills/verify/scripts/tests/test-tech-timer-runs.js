@@ -135,7 +135,8 @@ console.log('\n4. Resume lands on the cursor (§32.7)');
   ev(wl, 'openWO("19257")');
   ok('opening the same WO from WO List lands on the cursor too', /issue-parts/.test(ev(wl, 'location.href')));
   const empty = runScreen('eam-home-screen-prototype-v1.html', null);
-  ok('no run in progress → no card at all', ev(empty, 'document.getElementById("resumeCardMount").innerHTML') === '');
+  // Changed 2026-10-30 (Minh): Home seeds a demo run on load, so it opens on Resume work for 19257.
+  ok('Home with no run seeds 19257 and shows Resume work', /Resume work/.test(ev(empty, 'document.getElementById("resumeCardMount").innerHTML')) && ev(empty, 'woRunsInProgress().length') === 1);
   // Several runs: the timed one leads, the rest are "+N more".
   const two = JSON.parse(runSeed('19831', 'booklabor', { updatedAt: Date.now() }));
   Object.assign(two, JSON.parse(runSeed('19257', 'issueparts')));

@@ -5216,23 +5216,25 @@ function runEquipment(wo) {
 }
 function resumeCardHtml() {
   const runs = woRunsInProgress();
-  if (!runs.length) return '';
-  const r = runs[0];
-  const ts = runTimerState(r);
+  // No run in progress: the same card shows the next work order, "Up next",
+  // so the showcase is always there (Minh, 2026-10-30).
+  const upNext = !runs.length;
+  const r = upNext ? { wo: '19257', activityLabel: '', cursor: 'record' } : runs[0];
+  const ts = upNext ? null : runTimerState(r);
   const desc = runWoDesc(r.wo);
   const eq = runEquipment(r.wo);
-  return '<div class="resume-card resume-showcase" role="button" tabindex="0" aria-label="Resume ' + r.wo + ', ' + kitEsc(desc) + '" onclick="openDemoWoAtCursor(\'' + r.wo + '\')">'
-    + '<div class="rs-head"><div class="rs-titles"><span class="resume-card-eyebrow">Resume work</span>'
+  return '<div class="resume-card resume-showcase" role="button" tabindex="0" aria-label="' + (upNext ? 'Up next ' : 'Resume ') + r.wo + ', ' + kitEsc(desc) + '" onclick="openDemoWoAtCursor(\'' + r.wo + '\')">'
+    + '<div class="rs-head"><div class="rs-titles"><span class="resume-card-eyebrow">' + (upNext ? 'Up next' : 'Resume work') + '</span>'
       + '<span class="rs-title">' + kitEsc(eq.name) + '</span>'
       + '<span class="rs-sub">' + kitEsc([eq.id, eq.maker].filter(Boolean).join(' · ')) + '</span></div>'
       + '<uxt-icon-button presentational icon="chevron-right" density="m"></uxt-icon-button></div>'
     + '<canvas class="rs-3d" aria-hidden="true"></canvas>'
     + '<div class="rs-foot"><span class="rs-foot-left"><span class="resume-card-wo">' + r.wo + '</span> ' + kitEsc(desc)
-      + '<span class="rs-step">' + (r.activityLabel ? 'Activity ' + r.activityLabel + ' · ' : '') + runStepLabel(r) + '</span></span>'
+      + '<span class="rs-step">' + (upNext ? 'Breakdown · due today' : (r.activityLabel ? 'Activity ' + r.activityLabel + ' · ' : '') + runStepLabel(r)) + '</span></span>'
       + (ts ? '<span class="rs-timer' + (ts === 'Paused' ? ' paused' : '') + '"><span class="timer-dot' + (ts === 'Paused' ? ' stopped' : '') + '"></span><span id="resumeTimerText">' + techTimerText() + '</span></span>' : '')
     + '</div>'
     + '<div class="rs-actions" onclick="event.stopPropagation()">'
-      + '<uxt-button class="rs-resume" variant="contained" text="Resume" onclick="openDemoWoAtCursor(\'' + r.wo + '\')"></uxt-button>'
+      + '<uxt-button class="rs-resume" variant="contained" text="' + (upNext ? 'Start work' : 'Resume') + '" onclick="openDemoWoAtCursor(\'' + r.wo + '\')"></uxt-button>'
       + '<uxt-icon-button icon="photo-camera" label="Add photo" density="m" onclick="showToast(\'Add photo (prototype)\')"></uxt-icon-button>'
       + '<uxt-icon-button icon="bookmark" label="Pin work order" density="m" onclick="showToast(\'Pinned ' + r.wo + '\')"></uxt-icon-button>'
       + '<uxt-icon-button icon="share" label="Share" density="m" onclick="showToast(\'Share (prototype)\')"></uxt-icon-button>'
