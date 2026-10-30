@@ -278,9 +278,9 @@ body{font-family:var(--font-sans);font-size:var(--k-body2);background:var(--bg-p
    a visual override of §4.2's "anchored, not floating". Every destination
    and handler is the screen's own markup, untouched. Max 4 is the kit rule;
    no screen has more than 3 today. */
-.bottom-nav{position:absolute;left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 2 * var(--k-s4));bottom:var(--shell-pad-bottom);height:64px;background:var(--k-card);border:1px solid var(--k-divider);border-radius:var(--k-pill);box-shadow:var(--k-e3);box-sizing:border-box;display:flex;align-items:stretch;gap:var(--k-s1);padding:var(--k-s1) var(--k-s2);flex-shrink:0;z-index:50;}
+.bottom-nav{position:absolute;left:var(--k-s4);right:var(--k-s4);bottom:var(--shell-pad-bottom);height:64px;background:var(--k-card);border:1px solid var(--k-divider);border-radius:var(--k-pill);box-shadow:var(--k-e3);box-sizing:border-box;display:flex;align-items:stretch;gap:var(--k-s1);padding:var(--k-s1);flex-shrink:0;z-index:50;}
 .bottom-nav.hidden{display:none;}
-.bottom-nav-item{flex:0 1 80px;width:80px;min-width:0;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--k-text-2);background:none;border:none;border-radius:var(--k-pill);font-family:var(--font-sans);font-size:var(--k-caption);font-weight:500;padding:0;cursor:pointer;transition:background .15s;}
+.bottom-nav-item{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--k-text-2);background:none;border:none;border-radius:var(--k-pill);font-family:var(--font-sans);font-size:var(--k-caption);font-weight:500;padding:0;cursor:pointer;transition:background .15s;}
 /* Kit glyphs in the pill nav: 24px box (the kit's own button-height var). */
 .bottom-nav-item uxt-icon-button{--uxt-theme-height-button:24px;}
 .bottom-nav-item.active{color:var(--k-text);background:var(--k-selected);}
@@ -2500,7 +2500,6 @@ uxt-list-item.kit-drawer-row{display:block;}
 .create-bar uxt-button button{box-shadow:var(--uxt-theme-shadows-3,0 3px 8px rgba(26,26,31,.18));padding-left:var(--k-s4);padding-right:var(--k-s6);}
 /* Kit buttons have no icon slot yet, so the leading "+" is drawn on the inner button. */
 .create-bar uxt-button button::before{content:"";width:20px;height:20px;margin-right:var(--k-s2);flex-shrink:0;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M11 13H5v-2h6V5h2v6h6v2h-6v6h-2z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M11 13H5v-2h6V5h2v6h6v2h-6v6h-2z'/%3E%3C/svg%3E") center/contain no-repeat;}
-/* Bottom nav pill hugs its destinations (80px slots, centered), never full width (Minh, 2026-10-30). */
 /* The kit drawer is position:fixed; in the prototype it stays inside the phone column. */
 .app > uxt-navigation-drawer{position:absolute;}
 /* Mobile: icon buttons and inputs rest on the 1px divider line, same as the kit's
