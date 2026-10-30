@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — Home v1</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202610301647">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202610301647">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202610301653">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202610301653">
 <!--
   HOME SCREEN — session riff, first pass (2026-07-16). Loads the two
   shared files per docs/archive/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md;
@@ -97,8 +97,8 @@
    the bottom-nav pill, like Gmail's Compose (Minh, 2026-10-20). Kit buttons
    have no icon slot yet, so the leading "+" is drawn on the inner button. */
 
-/* Round floating Create "+" (feedback 2026-10-30). Sits above the Aria peek. */
-.home-fab{bottom:calc(var(--shell-pad-bottom) + 64px + 56px + var(--k-s4) + var(--k-s2));}
+/* Round floating Create "+" (feedback 2026-10-30), above the bottom nav. */
+.home-fab{bottom:calc(var(--shell-pad-bottom) + 64px + var(--k-s4));}
 .home-fab uxt-button button{width:56px;height:56px;min-width:0;padding:0 !important;border-radius:var(--k-pill);justify-content:center;font-size:0 !important;gap:0;overflow:hidden;}
 .home-fab uxt-button button > *:not(.btn-overlay){font-size:0;}
 .home-fab uxt-button button::before{width:24px !important;height:24px !important;margin:0 !important;}
@@ -114,10 +114,24 @@
 .home-cal-item-meta{font-size:var(--k-caption);color:var(--k-text-2);}
 /* "More" tile: neutral square on the card fill. */
 .home-tile-more .home-tile-sq{background:var(--k-card);border:1px solid var(--k-divider);color:var(--k-text-2);box-sizing:border-box;}
-/* Aria "Start your day" peek: docked just above the bottom nav pill. */
-.aria-peek{position:absolute;left:var(--k-s4);right:var(--k-s4);bottom:calc(var(--shell-pad-bottom) + 64px + var(--k-s2));z-index:50;display:flex;flex-direction:column;align-items:center;gap:var(--k-s1);padding:var(--k-s1) var(--k-s4) var(--k-s2);background:var(--k-card);border:1px solid var(--k-divider);border-radius:var(--k-r);box-shadow:var(--k-e2);font-family:var(--font-sans);color:var(--k-text);cursor:pointer;text-align:left;}
-.aria-peek-handle{width:32px;height:4px;border-radius:var(--k-pill);background:var(--k-divider);}
-.aria-peek-row{display:flex;align-items:center;gap:var(--k-s2);width:100%;}
+/* Aria "Start your day": a card in the page under Resume. */
+.aria-hero{position:relative;display:flex;align-items:stretch;width:100%;min-height:136px;box-sizing:border-box;margin:var(--k-s2) 0 0;padding:var(--k-s4) 128px var(--k-s4) var(--k-s4);overflow:hidden;border:0;border-radius:var(--uxt-theme-shape-radius-xl,16px);background-color:var(--uxt-theme-palette-octave-logo-background,#1a1a1f);color:var(--uxt-theme-palette-octave-logo-ink,#fff);text-align:left;cursor:pointer;font-family:var(--font-sans);box-shadow:var(--k-e2);}
+.aria-hero-copy{position:relative;z-index:1;display:flex;flex-direction:column;justify-content:center;gap:var(--k-s1);}
+.aria-hero-eyebrow{font-size:var(--uxt-theme-typography-overline-font-size,.75rem);font-weight:var(--uxt-theme-typography-overline-font-weight,500);letter-spacing:var(--uxt-theme-typography-overline-letter-spacing,.08em);text-transform:uppercase;color:color-mix(in srgb,currentColor 64%,transparent);}
+.aria-hero-title{font-family:var(--font-display);font-size:var(--uxt-theme-typography-h-6-font-size,1.25rem);font-weight:var(--uxt-theme-typography-h-6-font-weight,500);line-height:1.2;}
+.aria-hero-text{font-size:var(--k-body2);line-height:1.43;color:color-mix(in srgb,currentColor 72%,transparent);}
+.aria-hero-art{position:absolute;right:-40px;bottom:-40px;width:188px;height:188px;transform:rotate(-12deg);background:var(--aria-grad,linear-gradient(45deg,#00F 0%,#FF00C7 50%,#0FF 100%));-webkit-mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20512%20512%27%3E%3Cpath%20d%3D%27M345.2258%2C154.4092l48.3546-48.3545c-27.9454-11.4647-66.4618-19.5342-120.1795-19.5342-89.0889%2C0-161.3097%2C42.386-161.3097%2C94.6717%2C0%2C42.9558%2C48.746%2C79.2298%2C115.544%2C90.8075l-25.3316%2C25.3315c-70.0282-30.953-146.837-2.3193-146.837%2C36.843%2C0%2C22.8683%2C26.1903%2C42.1465%2C61.9273%2C48.0667l-26.7324%2C26.7323c19.373%2C6.3267%2C39.5785%2C8.5061%2C61.4075%2C8.5061%2C46.9944%2C0%2C85.0908-22.3587%2C85.0908-49.9394%2C0-14.8649-11.0703-28.2104-28.6316-37.3587%2C23.3335%2C5.528%2C51.8043%2C8.9352%2C86.6953%2C8.9352%2C89.0889%2C0%2C161.3096-42.3859%2C161.3096-94.6717%2C0-42.0424-46.6949-77.684-111.3075-90.0356ZM146.3564%2C377.3511c-35.0264%2C0-63.4209-12.9627-63.4209-28.953%2C0-15.9903%2C28.3945-28.953%2C63.4209-28.953%2C35.0264%2C0%2C63.4209%2C12.9627%2C63.4209%2C28.953%2C0%2C15.9903-28.3945%2C28.953-63.4209%2C28.953ZM285.7908%2C268.8329c-67.5146%2C0-122.2461-25.1023-122.2461-56.0678%2C0-30.9653%2C54.7315-56.0677%2C122.2461-56.0677%2C67.5147%2C0%2C122.246%2C25.1024%2C122.246%2C56.0678%2C0%2C30.9654-54.7314%2C56.0677-122.2461%2C56.0677Z%27/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20512%20512%27%3E%3Cpath%20d%3D%27M345.2258%2C154.4092l48.3546-48.3545c-27.9454-11.4647-66.4618-19.5342-120.1795-19.5342-89.0889%2C0-161.3097%2C42.386-161.3097%2C94.6717%2C0%2C42.9558%2C48.746%2C79.2298%2C115.544%2C90.8075l-25.3316%2C25.3315c-70.0282-30.953-146.837-2.3193-146.837%2C36.843%2C0%2C22.8683%2C26.1903%2C42.1465%2C61.9273%2C48.0667l-26.7324%2C26.7323c19.373%2C6.3267%2C39.5785%2C8.5061%2C61.4075%2C8.5061%2C46.9944%2C0%2C85.0908-22.3587%2C85.0908-49.9394%2C0-14.8649-11.0703-28.2104-28.6316-37.3587%2C23.3335%2C5.528%2C51.8043%2C8.9352%2C86.6953%2C8.9352%2C89.0889%2C0%2C161.3096-42.3859%2C161.3096-94.6717%2C0-42.0424-46.6949-77.684-111.3075-90.0356ZM146.3564%2C377.3511c-35.0264%2C0-63.4209-12.9627-63.4209-28.953%2C0-15.9903%2C28.3945-28.953%2C63.4209-28.953%2C35.0264%2C0%2C63.4209%2C12.9627%2C63.4209%2C28.953%2C0%2C15.9903-28.3945%2C28.953-63.4209%2C28.953ZM285.7908%2C268.8329c-67.5146%2C0-122.2461-25.1023-122.2461-56.0678%2C0-30.9653%2C54.7315-56.0677%2C122.2461-56.0677%2C67.5147%2C0%2C122.246%2C25.1024%2C122.246%2C56.0678%2C0%2C30.9654-54.7314%2C56.0677-122.2461%2C56.0677Z%27/%3E%3C/svg%3E") center/contain no-repeat;}
+.aria-hero::after{content:"";position:absolute;right:-60px;bottom:-60px;width:220px;height:220px;border-radius:50%;background:var(--aria-grad,linear-gradient(45deg,#00F 0%,#FF00C7 50%,#0FF 100%));opacity:.22;filter:blur(40px);pointer-events:none;}
+.aria-stack{position:relative;height:152px;margin:var(--k-s2) 0 0;touch-action:pan-y;}
+.aria-stack .aria-hero{position:absolute;inset:0 0 16px 0;margin:0;min-height:0;transition:transform .32s cubic-bezier(0.4,0,0.2,1),opacity .32s cubic-bezier(0.4,0,0.2,1);will-change:transform;}
+.aria-stack .aria-hero[data-pos="1"]{transform:translateY(8px) scale(.95);opacity:.7;z-index:2;pointer-events:none;}
+.aria-stack .aria-hero[data-pos="2"]{transform:translateY(16px) scale(.9);opacity:.4;z-index:1;pointer-events:none;}
+.aria-stack .aria-hero[data-pos="0"]{z-index:3;}
+.aria-stack .aria-hero[data-pos="3"]{opacity:0;transform:translateY(16px) scale(.9);pointer-events:none;}
+.aria-stack .aria-hero.leaving{transform:translateX(-110%) rotate(-6deg);opacity:0;}
+.aria-dots{display:flex;justify-content:center;gap:6px;margin-top:var(--k-s1);}
+.aria-dots span{width:6px;height:6px;border-radius:50%;background:var(--k-divider);transition:background .2s,width .2s;}
+.aria-dots span.on{width:16px;border-radius:var(--k-pill);background:var(--k-text);}
 .aria-peek-mark{flex:none;width:28px;height:28px;border-radius:var(--k-pill);display:flex;align-items:center;justify-content:center;background:var(--k-primary);color:var(--k-on-primary);font-size:var(--k-caption);font-weight:500;}
 .aria-peek-text{flex:1;min-width:0;display:flex;flex-direction:column;}
 .aria-peek-title{font-size:var(--k-body2);font-weight:500;}
@@ -127,7 +141,7 @@
 .aria-card-title{font-size:var(--k-body2);font-weight:500;color:var(--k-text);}
 .aria-card-text{font-size:var(--k-caption);color:var(--k-text-2);margin-top:2px;}
 /* Content clears the peek + FAB stack. */
-.home-body{padding-bottom:calc(var(--shell-pad-bottom) + 64px + 72px + var(--k-s6)) !important;}
+.home-body{padding-bottom:calc(var(--shell-pad-bottom) + 64px + 56px + var(--k-s6)) !important;}
 
 /* Home tiles — "Tile A": tinted square + glyph + count, label below,
    horizontally scrolling rows (Danny's). Card radius from the shape scale. */
@@ -250,11 +264,6 @@
     <div class="nav-left">
       <span class="prototype-label">PROTOTYPE</span>
     </div>
-    <!-- Kit top bar search (mobile kit AppShell). An entry point only: it
-         hands off to WO List's Search screen, which owns results. -->
-    <div class="nav-search" onclick="event.stopPropagation()">
-      <uxt-search-bar density="m" placeholder="Search work orders" onfocusin="openWoSearchFromNav()"></uxt-search-bar>
-    </div>
     <!-- §4.3 Profile dropdown — 100% reused: same .rec-actions-menu/
          .rec-actions-item/.rec-actions-divider component every other
          header ellipsis menu already uses, just left-anchored under the
@@ -308,11 +317,16 @@
   </div>
 
   <div class="home-body">
-    <div class="home-greeting" id="homeGreeting"></div>
     <!-- RESUME (§32.7) — system-delivered, like Favorites: the technician's own
          work in progress, never an authored tile. Empty (renders nothing) when
          no run is in progress. Built by eam-shared.js renderResumeCard(). -->
     <div id="resumeCardMount"></div>
+
+    <!-- ARIA "Start your day" (feedback 2026-10-30): room for an AI summary of
+         the crew, nearby work orders and equipment. Placeholder content;
+         placement is still open. Opens the full summary sheet. -->
+    <div class="aria-stack" id="ariaStack" role="region" aria-roledescription="carousel" aria-label="Aria, start your day"></div>
+    <div class="aria-dots" id="ariaDots" aria-hidden="true"></div>
 
     <!-- TILES: Danny's sections on kit styling. "More" ends the last row and
          opens every screen, so screens past WOs/Equipment have a way in. -->
@@ -341,17 +355,6 @@
     <uxt-button class="kit-btn-block" variant="contained" text="Done" onclick="exitReorderMode()"></uxt-button>
   </div>
 
-  <!-- ARIA "Start your day" (feedback 2026-10-30): room reserved for an AI
-       summary of crew, nearby work orders and equipment. Placement is still
-       open; this is Danny's pull-up suggestion. Content is placeholder. -->
-  <button type="button" class="aria-peek" id="ariaPeek" onclick="openSheetExclusive('ariaSheet')" aria-haspopup="dialog">
-    <span class="aria-peek-handle" aria-hidden="true"></span>
-    <span class="aria-peek-row">
-      <span class="aria-peek-mark" aria-hidden="true">A</span>
-      <span class="aria-peek-text"><span class="aria-peek-title">Start your day</span><span class="aria-peek-sub">Aria summary of your crew, nearby work and equipment</span></span>
-      <uxt-icon-button presentational icon="keyboard-arrow-up" density="m"></uxt-icon-button>
-    </span>
-  </button>
   <div class="bottom-sheet" id="ariaSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
@@ -632,12 +635,12 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/notifications.js?v=202610301647"></script>
+<script src="../../data/notifications.js?v=202610301653"></script>
 <!-- The Resume card names the WO it resumes (§32.7) — descriptions only. -->
-<script src="../../data/wo-19257.js?v=202610301647"></script>
-<script src="../../data/wo-19831.js?v=202610301647"></script>
-<script src="../../data/wo-20450.js?v=202610301647"></script>
-<script src="shared/eam-shared.js?v=202610301647"></script>
+<script src="../../data/wo-19257.js?v=202610301653"></script>
+<script src="../../data/wo-19831.js?v=202610301653"></script>
+<script src="../../data/wo-20450.js?v=202610301653"></script>
+<script src="shared/eam-shared.js?v=202610301653"></script>
 <script>
 // Insert Mode's Type pill (§9.4.1, added 2026-07-29) re-scopes the flat
 // fields section on every change, not just on entity switch — same
@@ -1023,6 +1026,68 @@ function renderHomeCalendar() {
       </button>`).join('')}</div></div>`;
   }).join('');
 }
+// ARIA "Start your day" as a stack of cards (feedback 2026-10-30): swipe or tap
+// the back of the stack to move to the next one; tapping the front card opens
+// the full summary. Placeholder content; each card on its own Octave gradient.
+const ARIA_CARDS = [
+  { eyebrow: 'Aria', title: 'Start your day', text: 'Your crew, nearby work orders and equipment in one summary.', grad: 4 },
+  { eyebrow: 'Crew', title: '3 on shift today', text: 'Ana and Raj are on site. Lee is on leave.', grad: 0 },
+  { eyebrow: 'Nearby work', title: '4 open within 2 km', text: '1 high priority: WO 19257, pump cavitating.', grad: 2 },
+  { eyebrow: 'Equipment', title: '2 pumps to watch', text: 'Vibration on P-14 and P-22 is up since yesterday.', grad: 5 },
+];
+let ariaIndex = 0;
+function renderAriaStack() {
+  const el = document.getElementById('ariaStack');
+  if (!el) return;
+  const n = ARIA_CARDS.length;
+  el.innerHTML = ARIA_CARDS.map((c, i) => {
+    const pos = (i - ariaIndex + n) % n;
+    return `<button type="button" class="aria-hero" data-pos="${Math.min(pos, 3)}" style="--aria-grad:var(--uxt-theme-palette-gradients-octave-${c.grad})"
+      ${pos === 0 ? '' : 'tabindex="-1" aria-hidden="true"'} onclick="openSheetExclusive('ariaSheet')" aria-haspopup="dialog">
+      <span class="aria-hero-copy"><span class="aria-hero-eyebrow">${c.eyebrow}</span><span class="aria-hero-title">${c.title}</span><span class="aria-hero-text">${c.text}</span></span>
+      <span class="aria-hero-art" aria-hidden="true"></span>
+    </button>`;
+  }).join('');
+  document.getElementById('ariaDots').innerHTML = ARIA_CARDS.map((_, i) => `<span class="${i === ariaIndex ? 'on' : ''}"></span>`).join('');
+}
+function nextAriaCard(dir = -1) {
+  const front = document.querySelector('#ariaStack .aria-hero[data-pos="0"]');
+  if (front) {
+    front.style.transition = 'transform .28s cubic-bezier(0.4,0,0.2,1), opacity .28s';
+    front.style.transform = `translateX(${dir * 120}%) rotate(${dir * 8}deg)`;
+    front.style.opacity = '0';
+  }
+  setTimeout(() => { ariaIndex = (ariaIndex + 1) % ARIA_CARDS.length; renderAriaStack(); }, 240);
+}
+// Swipe the front card out: it follows the finger, and past 80px it flies off
+// in that direction and the next card comes forward; short of that it springs back.
+(function initAriaStack() {
+  const el = document.getElementById('ariaStack');
+  if (!el) return;
+  renderAriaStack();
+  let x0 = null, dx = 0, card = null, swiped = false;
+  el.addEventListener('pointerdown', (e) => {
+    card = el.querySelector('.aria-hero[data-pos="0"]');
+    if (!card) return;
+    x0 = e.clientX; dx = 0; swiped = false;
+    card.style.transition = 'none';
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (x0 === null || !card) return;
+    dx = e.clientX - x0;
+    if (Math.abs(dx) > 6) { try { el.setPointerCapture(e.pointerId); } catch (_) {} }
+    card.style.transform = `translateX(${dx}px) rotate(${dx / 24}deg)`;
+  });
+  const end = () => {
+    if (x0 === null || !card) return;
+    x0 = null;
+    if (Math.abs(dx) > 80) { swiped = true; nextAriaCard(dx < 0 ? -1 : 1); }
+    else { if (Math.abs(dx) > 6) swiped = true; card.style.transition = ''; card.style.transform = ''; }
+  };
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+  el.addEventListener('click', (e) => { if (swiped) { e.stopPropagation(); e.preventDefault(); swiped = false; } }, true);
+})();
 // View switch (feedback 2026-10-30): Tiles is the default; Calendar is an
 // option for technicians whose work is scheduled to the hour. Remembered per
 // device (lsGet/lsSet).
@@ -1046,7 +1111,8 @@ function renderGreeting() {
   const hour = new Date().getHours();
   const part = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
   const firstName = document.querySelector('.profile-menu-name').textContent.split(' ')[0];
-  document.getElementById('homeGreeting').textContent = `Good ${part}, ${firstName}`;
+  const g = document.getElementById('homeGreeting'); // greeting removed from Home (Minh, 2026-10-30)
+  if (g) g.textContent = `Good ${part}, ${firstName}`;
 }
 renderGreeting();
 renderFavorites();
