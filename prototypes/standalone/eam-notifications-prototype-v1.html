@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — Notifications</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202610301611">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202610301611">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202610301618">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202610301618">
 <!--
   NOTIFICATIONS SCREEN (v1, 2026-07-22) — the "quick and dirty" build
   called out as deferred backlog during the app-wide nav/palette rollout
@@ -84,6 +84,11 @@
   <header class="nav" onclick="scrollFormToTop()">
     <div class="nav-left">
       <span class="prototype-label">PROTOTYPE</span>
+    </div>
+    <!-- Kit top bar search (mobile kit AppShell). An entry point only: it
+         hands off to WO List's Search screen, which owns results. -->
+    <div class="nav-search" onclick="event.stopPropagation()">
+      <uxt-search-bar density="m" placeholder="Search work orders" onfocusin="openWoSearchFromNav()"></uxt-search-bar>
     </div>
     <div class="rec-actions-menu anchor-left" id="profileMenu">
       <div class="profile-menu-identity">
@@ -169,8 +174,8 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/notifications.js?v=202610301611"></script>
-<script src="shared/eam-shared.js?v=202610301611"></script>
+<script src="../../data/notifications.js?v=202610301618"></script>
+<script src="shared/eam-shared.js?v=202610301618"></script>
 <script>
 const CURRENT_USER_NAME = 'Bruce Campbell';
 let notifFilter = 'all';

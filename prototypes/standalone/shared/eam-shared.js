@@ -1680,6 +1680,11 @@ function kitInitTopBars() {
     }
   });
 }
+// Top-bar search on Home/Notifications: hands off to WO List's Search screen.
+function openWoSearchFromNav() {
+  sessionStorage.setItem('eamOpenWoSearch', '1');
+  location.href = 'eam-wo-list-prototype-v5_1.html';
+}
 function kitEnsureMenuScrim() {
   const host = document.querySelector('.app');
   if (!host || document.getElementById('kitMenuScrim')) return;
