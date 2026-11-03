@@ -1080,7 +1080,7 @@ function renderSortSheet() {
   const tog = document.getElementById('sortDirTog');
   if (tog && tog.getAttribute('value') !== sortSheetDir) tog.setAttribute('value', sortSheetDir);
   document.getElementById('sortList').innerHTML = sortSheetFields.map(f => `
-    <uxt-list-item class="lov-option" density="m" text="${kitEsc(f.label)}"${sortSheetKey === f.key ? ' selected' : ''} onclick="pickSortKey('${f.key}')"></uxt-list-item>`).join('');
+    <uxt-list-item class="lov-option" density="m" text="${kitEsc(f.label)}"${sortSheetKey === f.key ? ' selected trailing-icon="check"' : ''} onclick="pickSortKey('${f.key}')"></uxt-list-item>`).join('');
 }
 function applySort() {
   closeAllSheets();
