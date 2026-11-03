@@ -141,9 +141,11 @@ const KIT_EXTRA_ICONS = {
 // target, warning tone when favourited) beside a kit List Item; the current
 // dataspy is the gray `selected` row. Shared by every dataspy sheet.
 function kitDataspyRow(name, fav, selected, favExpr, selectExpr) {
-  return `<div class="kit-ds-row">`
-    + `<uxt-icon-button class="kit-ds-star" icon="star" label="${fav ? 'Remove favorite' : 'Favorite'}"${fav ? ' tone="warning"' : ''} density="m" onclick="event.stopPropagation();${favExpr}"></uxt-icon-button>`
-    + `<uxt-list-item class="lov-option" density="m" text="${kitEsc(name)}"${selected ? ' selected' : ''} onclick="${selectExpr}"></uxt-list-item></div>`;
+  // Pin on the RIGHT (Minh, 2026-11-03), replacing the leading star: a
+  // pinned dataspy is a favorite (same store, sorted first, on Home).
+  return `<div class="kit-ds-row${selected ? ' is-selected' : ''}">`
+    + `<uxt-list-item class="lov-option" density="m" text="${kitEsc(name)}"${selected ? ' selected' : ''} onclick="${selectExpr}"></uxt-list-item>`
+    + `<uxt-icon-button class="kit-ds-pin${fav ? ' pinned' : ''}" icon="keep" label="${fav ? 'Unpin' : 'Pin'}" aria-pressed="${fav}" density="m" onclick="event.stopPropagation();${favExpr}"></uxt-icon-button></div>`;
 }
 // Tap anywhere in a kit field's cell focuses it, caret at the end
 // (focusInlineField()'s contract, for a cell holding a <uxt-input>).
@@ -225,7 +227,51 @@ function closeAllSheets() {
 function openSheet(id) {
   const overlay = document.getElementById('sheetOverlay');
   if (overlay) overlay.classList.add('open');
-  document.getElementById(id).classList.add('open');
+  const sh = document.getElementById(id);
+  kitFloatSheetCta(sh);
+  kitPushPageSheet(sh);
+  sh.classList.add('open');
+}
+/* Floating CTA (Minh, 2026-11-03): a sheet's header ✓ confirm becomes a
+   contained button floating at the sheet's foot. It CLICKS the original
+   (kept, hidden), so every sheet's own apply/gating logic is untouched, and
+   it mirrors the original's disabled state. The keyboard editor keeps its
+   ✓ (§3.4), and the floating button hides while the keyboard is up, so it
+   never sits on iOS's accessory bar. */
+/* A sheet marked .as-push-page (the dataspy picker, Minh 2026-11-03) opens
+   as a full page sliding in from the end edge, with a Back button where a
+   sheet would have its close. Same markup and handlers as the sheet. */
+function kitPushPageSheet(sh) {
+  if (!sh || !sh.classList.contains('as-push-page') || sh._pushBack) return;
+  const head = sh.querySelector('.sheet-header');
+  if (!head) return;
+  const back = document.createElement('uxt-icon-button');
+  back.className = 'kit-page-back';
+  back.setAttribute('icon', 'arrow-back'); back.setAttribute('label', 'Back');
+  back.setAttribute('outlined', ''); back.setAttribute('density', 'm');
+  back.addEventListener('click', (e) => { e.stopPropagation(); closeAllSheets(); });
+  head.prepend(back);
+  sh._pushBack = back;
+}
+function kitFloatSheetCta(sh) {
+  if (!sh || sh.id === 'textEditorSheet' || sh.querySelector(':scope > .sheet-footer')) return;
+  const ok = sh.querySelector('.sheet-header .sheet-confirm-btn');
+  if (!ok || sh._ctaFloat) return;
+  const label = ok.getAttribute('label') || ok.getAttribute('aria-label') || 'Apply';
+  const foot = document.createElement('div');
+  foot.className = 'sheet-footer sheet-cta-float';
+  foot.innerHTML = `<uxt-button class="kit-btn-block" variant="contained" text="${kitEsc(label)}"></uxt-button>`;
+  const btn = foot.firstElementChild;
+  btn.addEventListener('click', (e) => { e.stopPropagation(); const inner = ok.querySelector('button') || ok; inner.click(); });
+  const sync = () => {
+    const off = ok.hasAttribute('disabled') || ok.classList.contains('disabled') || (ok.classList.contains('ready-gated') && !ok.classList.contains('ready'));
+    if (off) btn.setAttribute('disabled', ''); else btn.removeAttribute('disabled');
+  };
+  sync();
+  new MutationObserver(sync).observe(ok, { attributes: true, attributeFilter: ['disabled', 'class'] });
+  sh.appendChild(foot);
+  sh.classList.add('has-cta-float');
+  sh._ctaFloat = foot;
 }
 /* Opens a sheet as the ONLY open sheet (2026-08-11, real-device report: the
    "Set Equipment Photo" sheet was visible underneath the comment editor, its
@@ -258,6 +304,7 @@ function syncKeyboardInset() {
   if (!vv) return;
   const inset = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
   document.documentElement.style.setProperty('--kb-inset', inset + 'px');
+  document.documentElement.classList.toggle('kb-up', inset > 0);
 }
 function initKeyboardInsetSync() {
   if (!window.visualViewport) return;
@@ -284,6 +331,7 @@ function closeSheet(id) {
     const overlay = document.getElementById('sheetOverlay');
     if (overlay) overlay.classList.remove('open');
     document.documentElement.style.setProperty('--kb-inset', '0px');
+    document.documentElement.classList.remove('kb-up');
   }
 }
 
@@ -1735,6 +1783,18 @@ function confirmDeleteAccount() {
     setTimeout(() => { if (typeof goToLogin === 'function') goToLogin(); }, 900);
   }, 'Delete account');
 }
+// Create slides down while any list scrolls and returns once scrolling
+// pauses (Minh, 2026-11-03). Bottom sheets' own scrolling is ignored.
+function initCreateScrollHide() {
+  let t = null;
+  document.addEventListener('scroll', (e) => {
+    const bar = document.querySelector('.create-bar');
+    if (!bar || (e.target && e.target.closest && e.target.closest('.bottom-sheet, uxt-navigation-drawer'))) return;
+    bar.classList.add('scroll-hidden');
+    clearTimeout(t);
+    t = setTimeout(() => bar.classList.remove('scroll-hidden'), 350);
+  }, true);
+}
 function kitPushPageBack(dr) {
   dr.classList.add('kit-push-page');
   const swap = () => { const b = dr.querySelector('.uxt-nd__close'); if (b && b.getAttribute('icon') !== 'arrow-back') { b.setAttribute('icon', 'arrow-back'); b.setAttribute('label', 'Back'); } };
@@ -1923,7 +1983,7 @@ function renderListDetailShell(tabKey, extraTopHtml) {
     <div class="ds-bar" onclick="openDataspySheet('${tabKey}')">
       <div class="ds-icon-w">${LD_ICONS.database}</div>
       <div class="ds-body"><div class="ds-name">${ds.name}</div></div>
-      <svg class="ds-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg class="ds-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
     ${kitToggleGroup('', [['detailed', 'Detailed'], ['list', 'List']], mode, `setListDetailMode('${tabKey}',`)}
     <div class="res-row">
@@ -2430,6 +2490,12 @@ function renderSyncControl() {
      opens the panel instead, so the change handler puts it back. */
   if (state === 'synced') {
     el.innerHTML = `<uxt-icon-button class="sync-ctrl-dot" icon="cloud" tone="success" outlined density="m" label="Sync status: Synced" onclick="event.stopPropagation();openSyncPanel()"></uxt-icon-button>`;
+    return;
+  }
+  // Error is an ICON, not a status-dot chip (Minh, 2026-11-03): the same
+  // outlined Icon Button as Synced, "sync problem" glyph in the error tone.
+  if (state === 'error') {
+    el.innerHTML = `<uxt-icon-button class="sync-ctrl-dot state-error" icon="sync-problem" tone="error" outlined density="m" label="Sync status: Error" onclick="event.stopPropagation();openSyncPanel()"></uxt-icon-button>`;
     return;
   }
   const sev = { syncing: 'info', offline: 'neutral', error: 'critical' }[state] || 'neutral';
@@ -3673,7 +3739,7 @@ function renderEquipSearchShell() {
     <div class="ds-bar" onclick="showToast('Equipment views — coming soon')">
       <div class="ds-icon-w">${LD_ICONS.database}</div>
       <div class="ds-body"><div class="ds-name">${EQUIP_SEARCH_DATASPY_NAME}</div></div>
-      <svg class="ds-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg class="ds-chevron" width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
     ${kitToggleGroup('', [['detailed', 'Detailed'], ['list', 'List']], mode, 'setEquipSearchMode(')}
     <div class="ld-search-bar">
@@ -5780,6 +5846,7 @@ function initSharedApp(opts) {
   // (a module, so it runs after this) defines them.
   kitInitTopBars();
   kitBuildNavDrawer();
+  initCreateScrollHide();
   initInsertModeDrag();
   initKeyboardInsetSync();
   renderSyncControl();

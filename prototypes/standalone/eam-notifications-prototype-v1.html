@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — Notifications</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031706">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202611031706">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031716">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611031716">
 <!--
   NOTIFICATIONS SCREEN (v1, 2026-07-22) — the "quick and dirty" build
   called out as deferred backlog during the app-wide nav/palette rollout
@@ -57,14 +57,21 @@
   /* ── Screen-local: the Octave mobile kit Notifications template (Minh,
      2026-11-03). Kit Tabs (All / Unread n), a text "Mark all read", then
      per day an overline label OUTSIDE a card of kit List Items: icon,
-     subject, body, WO; trailing time + unread dot, and ✕ dismiss
+     subject, body, WO; trailing time + unread dot; swipe left to dismiss
      (Danny's interaction, kept). ── */
   .notif-tabs{display:block;flex-shrink:0;}
   .notif-actions{display:flex;justify-content:flex-end;padding:var(--k-s1) var(--k-s2) 0;flex-shrink:0;}
   .notif-day{font-family:var(--uxt-theme-typography-overline-font-family,var(--font-sans));font-size:var(--uxt-theme-typography-overline-font-size,0.75rem);font-weight:var(--uxt-theme-typography-overline-font-weight,400);letter-spacing:var(--uxt-theme-typography-overline-letter-spacing,1px);line-height:var(--uxt-theme-typography-overline-line-height,2);text-transform:uppercase;color:var(--k-text-2);padding:var(--k-s2) var(--k-s6) var(--k-s1);}
   .notif-group{background:var(--k-card);border-radius:var(--k-r);box-shadow:var(--k-e1);margin:0 var(--k-s4) var(--k-s2);overflow:hidden;}
-  .notif-group > uxt-list-item{display:block;}
-  .notif-group > uxt-list-item + uxt-list-item{border-top:1px solid var(--k-divider);}
+  /* Swipe to dismiss (Minh, 2026-11-03), replacing the ✕: drag a row left;
+     past 35% of its width it slides out and is removed. The error-tone band
+     under it says what the gesture does. */
+  .notif-swipe{position:relative;overflow:hidden;touch-action:pan-y;}
+  .notif-swipe + .notif-swipe{border-top:1px solid var(--k-divider);}
+  .notif-swipe-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding:0 var(--k-s6);background:var(--uxt-theme-palette-error-main,#f3434a);color:var(--uxt-theme-palette-error-contrast-text,#fff);font-size:var(--k-body2);font-weight:600;}
+  .notif-swipe > uxt-list-item{display:block;position:relative;background:var(--k-card);will-change:transform;}
+  .notif-swipe > uxt-list-item.settle{transition:transform .2s cubic-bezier(0.4,0,0.2,1);}
+  .notif-swipe.leaving{transition:height .2s cubic-bezier(0.4,0,0.2,1);}
   /* Trailing column: time over the unread dot, as the kit template draws it. */
   uxt-list-item.notif-row .uxt-li-shortcut{display:flex;flex-direction:column;align-items:flex-end;gap:var(--k-s1);font-size:var(--k-caption);color:var(--k-text-2);}
   uxt-list-item.notif-row .uxt-li-shortcut::after{content:"";width:8px;height:8px;border-radius:var(--k-pill);background:transparent;}
@@ -172,8 +179,8 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/notifications.js?v=202611031706"></script>
-<script src="shared/eam-shared.js?v=202611031706"></script>
+<script src="../../data/notifications.js?v=202611031716"></script>
+<script src="shared/eam-shared.js?v=202611031716"></script>
 <script>
 const CURRENT_USER_NAME = 'Bruce Campbell';
 let notifFilter = 'all';
@@ -209,16 +216,16 @@ function notifGroup(n) {
 }
 
 // One notification = one kit List Item: subject, body, Work Order; trailing
-// time (+ unread dot via CSS) and ✕ = dismiss. Row tap fires the kit
-// `select` event and ✕ its `trailing` event (wired once on #notifList).
+// time (+ unread dot via CSS). Row tap fires the kit
+// `select` event; a left swipe dismisses (wired once on #notifList).
 function notifTime(n) {
   const [date, time] = n.time.split(' · ');
   return notifGroup(n) === 'Today' ? (time || date) : date.slice(0, 5);
 }
 function notifCard(n) {
-  return `<uxt-list-item class="notif-row${n.read ? '' : ' unread'}" role="listitem" density="m" data-id="${n.id}"
+  return `<div class="notif-swipe" data-id="${n.id}"><div class="notif-swipe-bg" aria-hidden="true"><span>Dismiss</span></div><uxt-list-item class="notif-row${n.read ? '' : ' unread'}" role="listitem" density="m" data-id="${n.id}"
     icon="${notifIcon(n.type)}" text="${kitEsc(n.subject)}" secondary="${kitEsc(n.body)}"${n.wo ? ` tertiary="Work Order ${kitEsc(n.wo)}"` : ''}
-    shortcut="${kitEsc(notifTime(n))}" trailing-icon="close" aria-label="${kitEsc(n.subject)}${n.read ? '' : ', unread'}"></uxt-list-item>`;
+    shortcut="${kitEsc(notifTime(n))}" aria-label="${kitEsc(n.subject)}${n.read ? '' : ', unread'}"></uxt-list-item></div>`;
 }
 
 function renderNotifList() {
@@ -245,10 +252,40 @@ function renderNotifList() {
     const row = e.target.closest && e.target.closest('.notif-row');
     if (row) openNotification(row.dataset.id);
   });
-  list.addEventListener('trailing', (e) => {
-    const row = e.target.closest && e.target.closest('.notif-row');
-    if (row) confirmDismissNotif(row.dataset.id);
+  // Swipe left to dismiss. A swipe also swallows the row's own `select`.
+  let drag = null, swiped = false;
+  list.addEventListener('pointerdown', (e) => {
+    const wrap = e.target.closest && e.target.closest('.notif-swipe');
+    if (!wrap) return;
+    drag = { wrap, row: wrap.querySelector('.notif-row'), x: e.clientX, y: e.clientY, dx: 0, on: false };
+    swiped = false;
   });
+  list.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const dx = Math.min(0, e.clientX - drag.x), dy = Math.abs(e.clientY - drag.y);
+    if (!drag.on) { if (Math.abs(dx) > 10 && Math.abs(dx) > dy) { drag.on = true; drag.row.classList.remove('settle'); } else if (dy > 10) { drag = null; return; } else return; }
+    drag.dx = dx;
+    drag.row.style.transform = `translateX(${dx}px)`;
+  });
+  const end = () => {
+    if (!drag) return;
+    const d = drag; drag = null;
+    if (!d.on) return;
+    swiped = true;
+    d.row.classList.add('settle');
+    if (Math.abs(d.dx) > d.wrap.offsetWidth * 0.35) {
+      d.row.style.transform = 'translateX(-100%)';
+      setTimeout(() => {
+        d.wrap.style.height = d.wrap.offsetHeight + 'px';
+        d.wrap.classList.add('leaving');
+        requestAnimationFrame(() => { d.wrap.style.height = '0px'; });
+        setTimeout(() => dismissNotif(d.wrap.dataset.id), 200);
+      }, 180);
+    } else d.row.style.transform = '';
+  };
+  list.addEventListener('pointerup', end);
+  list.addEventListener('pointercancel', end);
+  list.addEventListener('select', (e) => { if (swiped) { e.stopImmediatePropagation(); swiped = false; } }, true);
 })();
 
 // Punching into a WO from this screen (2026-07-22, punch-list item) —
@@ -273,6 +310,12 @@ function openNotification(id) {
   openDemoWoAtCursor(demoWo);
 }
 
+function dismissNotif(id) {
+  const idx = EAM_NOTIFICATIONS.findIndex(n => n.id === id);
+  if (idx > -1) EAM_NOTIFICATIONS.splice(idx, 1);
+  showToast('Notification dismissed');
+  renderNotifList();
+}
 function confirmDismissNotif(id) {
   openConfirm('Dismiss this notification? This won’t affect the source record.', () => {
     const idx = EAM_NOTIFICATIONS.findIndex(n => n.id === id);

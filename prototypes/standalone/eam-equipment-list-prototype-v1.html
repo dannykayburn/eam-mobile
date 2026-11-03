@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — Equipment</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031706">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202611031706">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031716">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611031716">
 <style>
   /* ── Octave kit host layer (screen-local, 2026-10-20): places and sizes
      the real <uxt-*> elements in this screen's own markup; the kit owns
@@ -272,7 +272,7 @@
     <div class="ds-bar" onclick="openEquipDsSheet()">
       <div class="ds-icon-w"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke-linecap="round"/></svg></div>
       <div class="ds-body"><span class="ds-name" id="dsName">All Equipment</span></div>
-      <svg class="ds-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg class="ds-chevron" width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
 
     <!-- Detailed/List mode toggle (§8.3) — same single-toggle-in-Screen-1
@@ -349,7 +349,7 @@
        localStorage key from WO List's own — see the JS note by
        LS_FAVORITE_EQUIP_DS_KEY — so it surfaces on Home's Favorites row
        tagged as an Equipment favorite, not mislabeled as a WO one. -->
-  <div class="bottom-sheet" id="equipDsSheet">
+  <div class="bottom-sheet as-push-page" id="equipDsSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
       <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
@@ -579,7 +579,7 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="shared/eam-shared.js?v=202611031706"></script>
+<script src="shared/eam-shared.js?v=202611031716"></script>
 <script>
 /* ══ OCTAVE KIT GLUE (screen-local, 2026-10-20) — the controls below are real
    <uxt-*> elements, which take their state from ATTRIBUTES. These keep this
@@ -984,15 +984,14 @@ function filterCSRows(v) {
   const q = v.toLowerCase();
   renderCSRows(CD[ack].rows.filter(r => r.name.toLowerCase().includes(q) || r.code.toLowerCase().includes(q)));
 }
-function renderCSRows(rows) {
+let csShown=[];
+// Multi-select on mobile = check marks, not checkboxes (Minh, 2026-11-03).
+function renderCSRows(rows){csShown=rows;
   document.getElementById('csList').innerHTML = rows.map(r => `
-    <uxt-list-item class="lov-option" density="m" checkbox id="csr-${r.code}" text="${kitEsc(r.name)}"${csel[r.code] ? ' checked' : ''} onclick="togCS('${r.code}')"></uxt-list-item>`).join('');
+    <uxt-list-item class="lov-option" density="m" id="csr-${r.code}" text="${kitEsc(r.name)}"${csel[r.code] ? ' selected trailing-icon="check" aria-selected="true"' : ''} onclick="togCS('${r.code}')"></uxt-list-item>`).join('');
 }
-function togCS(c) {
-  csel[c] = !csel[c];
-  const el = document.getElementById('csr-' + c);
-  if (el) el.toggleAttribute('checked', !!csel[c]);
-}
+function togCS(c) { csel[c] = !csel[c]; renderCSRows(csShown); }
+
 function clearCS() { csel = {}; renderCSRows(CD[ack].rows); }
 function applyCS() {
   const sel = Object.keys(csel).filter(k => csel[k]);

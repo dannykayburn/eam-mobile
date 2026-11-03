@@ -76,6 +76,9 @@
   fetch('http://localhost:3005/', { mode: 'no-cors' }).then(() => {
     const k = document.querySelector('.kit iframe'); if (k) k.src = 'http://localhost:3005/';
   }).catch(() => {});
+  // ?src=<page> opens that screen in the phone (e.g. frame.html?src=prototypes/standalone/eam-home-screen-prototype-v1.html).
+  const qs = new URLSearchParams(location.search).get('src');
+  if (qs) { u.value = qs; f.src = qs; }
   document.getElementById('go').onclick = () => f.src = u.value;
   u.onkeydown = e => { if (e.key === 'Enter') f.src = u.value; };
   document.getElementById('rot').onclick = () => document.getElementById('phone').classList.toggle('landscape');

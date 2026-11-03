@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — WO List v5</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031706">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202611031706">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031716">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611031716">
 <style>
   /* ── Octave kit host layer (screen-local, 2026-10-20): places and sizes
      the real <uxt-*> elements in this screen's own markup; the kit owns
@@ -252,7 +252,7 @@ uxt-icon-button.ld-card-expand-chev.open{transform:rotate(180deg);}
       <div class="ds-body">
         <div class="ds-name" id="dsName">My Assigned WOs</div>
       </div>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ico-chevdown"/></svg>
+      <svg class="ds-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
     </div>
 
     <div class="kit-mode-tog"><uxt-toggle-button-group id="modeTog" density="m" options='[{"value":"detailed","label":"Detailed"},{"value":"list","label":"List"}]' value="detailed" onchange="setMode(event.detail.value)"></uxt-toggle-button-group></div>
@@ -267,7 +267,7 @@ uxt-icon-button.ld-card-expand-chev.open{transform:rotate(180deg);}
 
     <!-- Dataspy sheet (favorite star per row persisted to localStorage
          so it surfaces on Home's Favorites row). -->
-    <div class="bottom-sheet" id="dsSheet">
+    <div class="bottom-sheet as-push-page" id="dsSheet">
       <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
       <div class="sheet-header">
         <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
@@ -604,8 +604,8 @@ uxt-icon-button.ld-card-expand-chev.open{transform:rotate(180deg);}
 
 </div><!-- /app -->
 
-<script src="../../data/notifications.js?v=202611031706"></script>
-<script src="shared/eam-shared.js?v=202611031706"></script>
+<script src="../../data/notifications.js?v=202611031716"></script>
+<script src="shared/eam-shared.js?v=202611031716"></script>
 <script>
 /* ══ OCTAVE KIT GLUE (screen-local, 2026-10-20) — the controls below are real
    <uxt-*> elements, which take their state from ATTRIBUTES. These keep this
@@ -1251,15 +1251,17 @@ function openCS(k){
   renderCSRows(CD[k].rows);
   openSheet('csSheet');
 }
-function renderCSRows(rows){
+let csShown=[];
+// Multi-select on mobile = check marks, not checkboxes (Minh, 2026-11-03).
+function renderCSRows(rows){csShown=rows;
   document.getElementById('csList').innerHTML=rows.map(r=>`
-    <uxt-list-item class="lov-option" density="m" checkbox id="csr-${r.code}" text="${kitEsc(r.name)}"${csel[r.code] ? ' checked' : ''} onclick="togCS('${r.code}')"></uxt-list-item>`).join('');
+    <uxt-list-item class="lov-option" density="m" id="csr-${r.code}" text="${kitEsc(r.name)}"${csel[r.code] ? ' selected trailing-icon="check" aria-selected="true"' : ''} onclick="togCS('${r.code}')"></uxt-list-item>`).join('');
 }
 function filterCSRows(v){
   const q=v.toLowerCase();
   renderCSRows(CD[ack].rows.filter(r=>r.name.toLowerCase().includes(q)||r.code.toLowerCase().includes(q)));
 }
-function togCS(c){csel[c]=!csel[c];const el=document.getElementById('csr-'+c);if (el) el.toggleAttribute('checked', !!csel[c]);}
+function togCS(c){csel[c]=!csel[c];renderCSRows(csShown);}
 function clearCS(){csel={};renderCSRows(CD[ack].rows);}
 function applyCS(){
   const sel=Object.keys(csel).filter(k=>csel[k]);

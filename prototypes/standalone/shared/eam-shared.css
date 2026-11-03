@@ -1676,7 +1676,7 @@ body{font-family:var(--font-sans);font-size:var(--k-body2);background:var(--bg-p
    16dp side padding, room under the direction switch, and a check on the one
    selected field (single-select). */
 #sortSheet .kit-mode-tog{margin-bottom:var(--k-s2);}
-#sortList > uxt-list-item > .uxt-li,#prefList > uxt-list-item > .uxt-li{min-height:48px;padding:0 var(--k-s2) 0 var(--k-s4);}
+#sortList > uxt-list-item > .uxt-li,#prefList > uxt-list-item > .uxt-li,#csList > uxt-list-item > .uxt-li{min-height:48px;padding:0 var(--k-s2) 0 var(--k-s4);}
 .sheet-footer{padding:var(--k-s4) var(--k-s4) var(--k-s6);border-top:1px solid var(--k-divider);flex-shrink:0;}
 /* Legacy LOV rows (screen markup) — kit List Item look: 40px+, Body 2, gray
    action-selected for the chosen row. Shared pickers emit <uxt-list-item>. */
@@ -2404,7 +2404,11 @@ uxt-icon-button.kit-bar-btn.active > .ib,uxt-icon-button.kit-bar-btn.pinned > .i
 .kit-sheet-search > uxt-search-bar{display:block;width:100%;}
 .kit-sheet-search.hidden{display:none;}
 /* Dataspy sheet row (kitDataspyRow()): star Icon Button beside a List Item. */
-.kit-ds-row{display:flex;align-items:center;gap:var(--k-s1);padding-left:var(--k-s2);}
+.kit-ds-row{display:flex;align-items:center;gap:var(--k-s1);padding-right:var(--k-s2);}
+.kit-ds-row.is-selected{background:var(--k-selected);}
+.kit-ds-row > uxt-list-item > .uxt-li{padding-left:var(--k-s4);}
+uxt-icon-button.kit-ds-pin{color:var(--k-hint);}
+uxt-icon-button.kit-ds-pin.pinned{color:var(--k-text);}
 .kit-ds-row > uxt-list-item{flex:1;min-width:0;display:block;}
 .kit-ds-row > uxt-icon-button{flex-shrink:0;}
 /* Segmented mode switch (Detailed/List, Asc/Desc). */
@@ -2524,3 +2528,33 @@ uxt-list-item.kit-drawer-row{display:block;}
 input.ld-search-input,.edit-input,.lov-search-row input{border-color:var(--k-divider);}
 /* No PROTOTYPE watermark in the top bar (Minh, 2026-10-30). */
 .nav .prototype-label{display:none !important;}
+
+/* ── Bottom sheets (Minh, 2026-11-03) ─────────────────────────────────────
+   No close icons on any sheet: dismiss is the handle, a drag or the scrim.
+   The keyboard editor (#textEditorSheet) keeps its ✕/✓ pair, per §3.4 (a
+   control at the bottom of a keyboard sheet collides with iOS's bar).
+   CTAs float at the foot: no divider bar, the sheet fades out behind them. */
+.bottom-sheet:not(#textEditorSheet) .sheet-header .kit-sheet-close,
+.bottom-sheet:not(#textEditorSheet) .sheet-header > uxt-icon-button[icon="close"],
+.bottom-sheet:not(#textEditorSheet) .sheet-header .kit-sheet-spacer{display:none !important;}
+.bottom-sheet:not(#textEditorSheet) .sheet-header{justify-content:center;}
+.bottom-sheet .sheet-footer{border-top:none;background:linear-gradient(to top,var(--k-card) 72%,transparent);margin-top:calc(-1 * var(--k-s6));padding-top:var(--k-s6);position:relative;z-index:1;}
+.bottom-sheet .sheet-footer uxt-button button{box-shadow:var(--uxt-theme-shadows-3,0 3px 8px rgba(26,26,31,.18));}
+/* Create hides while the list scrolls and returns on pause (eam-shared.js). */
+.create-bar{transition:transform .2s cubic-bezier(0.4,0,0.2,1),opacity .2s cubic-bezier(0.4,0,0.2,1);}
+.create-bar.scroll-hidden{transform:translateY(var(--k-s4));opacity:0;pointer-events:none;}
+/* The header ✓ moves to the floating CTA (kitFloatSheetCta); hidden while the keyboard is up (§3.4). */
+.bottom-sheet.has-cta-float .sheet-header .sheet-confirm-btn{display:none !important;}
+html.kb-up .bottom-sheet .sheet-cta-float{display:none;}
+/* Filter chips sit on the card fill, like the top bar's controls. */
+.filter-chip-row > uxt-status-chip:not([active]) .chip{background:var(--k-card);}
+/* Push-page sheets (.as-push-page): full height, page background, slide in
+   from the end edge; no handle, no scrim. */
+.bottom-sheet.as-push-page{top:0;bottom:0;max-height:none;height:100%;border-radius:0;box-shadow:none;background:var(--k-paper);transform:translateX(100%);transition:transform .28s cubic-bezier(0.4,0,0.2,1);z-index:300;}
+.bottom-sheet.as-push-page.open{transform:translateX(0);}
+.bottom-sheet.as-push-page .sheet-handle-row{display:none;}
+.bottom-sheet.as-push-page .sheet-header{justify-content:flex-start;min-height:var(--nav-height,56px);border-bottom:none;padding:0 var(--k-s4);}
+.bottom-sheet.as-push-page .sheet-title{flex:1;text-align:left;}
+.bottom-sheet.as-push-page .kit-page-back > .ib,.bottom-sheet.as-push-page .kit-page-back button{background:var(--k-card);}
+.bottom-sheet.as-push-page .sheet-body{background:var(--k-card);margin:0 var(--k-s4) var(--k-s4);border-radius:var(--k-r);box-shadow:var(--k-e1);flex:0 1 auto;}
+.app:has(> .bottom-sheet.as-push-page.open) > .sheet-overlay{opacity:0 !important;}
