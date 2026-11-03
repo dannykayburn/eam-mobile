@@ -61,9 +61,10 @@ uxt-icon-button.ld-chev.open, uxt-icon-button.ld-card-chev.open{transform:rotate
 uxt-icon-button.ld-chev{vertical-align:middle;margin-right:var(--k-s1);}
 .ld-chev-ph{display:inline-block;width:44px;}
 /* Expand row: a full-width row at the card's foot, under a divider. */
-.ld-card-expand{display:flex;align-items:center;justify-content:space-between;width:calc(100% + 2 * var(--k-s4));margin:var(--k-s4) calc(-1 * var(--k-s4)) calc(-1 * var(--k-s4));padding:var(--k-s1) var(--k-s2) var(--k-s1) var(--k-s4);min-height:48px;background:none;border:none;border-top:1px solid var(--k-divider);border-radius:0 0 var(--k-r) var(--k-r);font-family:var(--font-sans);font-size:var(--k-body2);color:var(--k-text);cursor:pointer;text-align:left;}
+.ld-card-expand{display:flex !important;box-sizing:border-box;align-items:center;justify-content:space-between;width:calc(100% + 2 * var(--k-s4));margin:var(--k-s4) calc(-1 * var(--k-s4)) calc(-1 * var(--k-s4));padding:var(--k-s1) var(--k-s2) var(--k-s1) var(--k-s4);min-height:48px;background:none;border:none;border-top:1px solid var(--k-divider);border-radius:0 0 var(--k-r) var(--k-r);font-family:var(--font-sans);font-size:var(--k-body2);color:var(--k-text);cursor:pointer;text-align:left;}
 .ld-card-expand:hover{background:var(--k-hover);}
-uxt-icon-button.ld-card-expand-chev{transition:transform .18s cubic-bezier(0.4,0,0.2,1);}
+.ld-card-expand > span{flex:1;min-width:0;}
+uxt-icon-button.ld-card-expand-chev{margin-left:auto;flex-shrink:0;transition:transform .18s cubic-bezier(0.4,0,0.2,1);}
 uxt-icon-button.ld-card-expand-chev.open{transform:rotate(180deg);}
 /* Child WO card (§6.9) — a real indent with a connector elbow and a
    "Child of" caption, so the hierarchy reads without relying on a tint. */
