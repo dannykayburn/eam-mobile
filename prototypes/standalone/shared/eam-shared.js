@@ -69,6 +69,11 @@ function kitReady(tag) {
 // the meaning matches: green = done/operational, red = down/blocked, orange =
 // waiting approval, outline = in progress/neutral.
 const KIT_TIER_SEVERITY = { green: 'success', red: 'critical', orange: 'warning', outline: 'neutral', blue: 'info', gray: 'neutral' };
+// Status in a card or grid is a kit Status Dot, never a chip (mobile kit
+// DataGrid; Minh, 2026-11-03). Chips stay for filters and clickable states.
+function kitStatusDot(text, tier) {
+  return `<uxt-status-dot density="m" severity="${KIT_TIER_SEVERITY[tier] || 'neutral'}" text="${kitEsc(text)}"></uxt-status-dot>`;
+}
 function kitStatusChip(text, tier, extra) {
   return `<uxt-status-chip variant="filled" density="m" severity="${KIT_TIER_SEVERITY[tier] || 'neutral'}" text="${kitEsc(text)}"${extra || ''}></uxt-status-chip>`;
 }
@@ -1705,9 +1710,9 @@ function renderStdCard(fields) {
   let html = '<div class="ld-card">';
   html += '<div class="ld-card-top">';
   if (head) {
-    // Status headline → kit filled status chip (tier mapped by KIT_TIER_SEVERITY).
+    // Status headline → kit Status Dot (tier mapped by KIT_TIER_SEVERITY).
     html += head.type === 'status'
-      ? `<span class="ld-card-headline ld-card-status">${kitStatusChip(head.value, head.tier)}</span>`
+      ? `<span class="ld-card-headline ld-card-status">${kitStatusDot(head.value, head.tier)}</span>`
       : `<div class="ld-card-headline">${fieldDisplay(head)}</div>`;
   }
   if (org) html += `<span class="ld-card-org">${fieldDisplay(org)}</span>`;
@@ -1746,7 +1751,7 @@ function renderStdTable(rowsOfFields, rowOnclick) {
   };
   return `<div class="ld-table-wrap"><table class="ld-table"><thead><tr>${labels.map(l => `<th>${l}</th>`).join('')}</tr></thead><tbody>${
     rowsOfFields.map((fields, i) => `<tr data-search="${ldSearchText(fields)}"${onclickAttrFor(i)}>${fields.map(f => f.type === 'status'
-      ? `<td>${kitStatusChip(f.value, f.tier)}</td>`
+      ? `<td>${kitStatusDot(f.value, f.tier)}</td>`
       : `<td>${fieldDisplay(f)}</td>`).join('')}</tr>`).join('')
   }</tbody></table></div>`;
 }

@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — WO List v5</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031652">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202611031652">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031654">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611031654">
 <style>
   /* ── Octave kit host layer (screen-local, 2026-10-20): places and sizes
      the real <uxt-*> elements in this screen's own markup; the kit owns
@@ -52,7 +52,7 @@
 .ld-table-wrap{flex:1;overflow-y:auto;margin-bottom:calc(64px + var(--shell-pad-bottom) + var(--k-s4));}
 .ld-table tbody tr{cursor:pointer;}
 .ld-table tbody tr.child-row{background:var(--k-paper);}
-.ld-table td uxt-status-chip{vertical-align:middle;}
+.ld-table td uxt-status-dot{vertical-align:middle;}
 
 /* Parent/child expand (§6.9) — WO-only. The chevron is a kit Icon Button;
    only its rotation is ours. */
@@ -594,8 +594,8 @@ uxt-icon-button.ld-card-expand-chev.open{transform:rotate(180deg);}
 
 </div><!-- /app -->
 
-<script src="../../data/notifications.js?v=202611031652"></script>
-<script src="shared/eam-shared.js?v=202611031652"></script>
+<script src="../../data/notifications.js?v=202611031654"></script>
+<script src="shared/eam-shared.js?v=202611031654"></script>
 <script>
 /* ══ OCTAVE KIT GLUE (screen-local, 2026-10-20) — the controls below are real
    <uxt-*> elements, which take their state from ATTRIBUTES. These keep this
@@ -1003,7 +1003,7 @@ function card(w,isChild){
   // Expand row at the card's foot (Minh, 2026-11-03): replaces the left
   // chevron gutter, which pushed the whole card's content over.
   const expandRow=hk
-    ?`<button type="button" class="ld-card-expand" aria-expanded="${ex}" onclick="event.stopPropagation();toggleP('${w.id}')"><span>${ex?'Hide child work orders':`Show ${ck.length} child work order${ck.length===1?'':'s'}`}</span><uxt-icon-button class="ld-card-expand-chev${ex?' open':''}" presentational icon="chevron-down" density="s"></uxt-icon-button></button>`
+    ?`<button type="button" class="ld-card-expand" aria-expanded="${ex}" onclick="event.stopPropagation();toggleP('${w.id}')"><span>${ex?'Hide child work orders':`Show ${ck.length} child work order${ck.length===1?'':'s'}`}</span><uxt-icon-button class="ld-card-expand-chev${ex?' open':''}" presentational icon="expand-more" density="s"></uxt-icon-button></button>`
     :'';
   // A child states its parent outright. The indent/connector carry the
   // hierarchy visually, but a Route can expand to 24+ children and once the
@@ -1032,10 +1032,10 @@ function tRow(w,isChild){
     ?`<uxt-icon-button class="ld-chev${ex?' open':''}" id="chev-${w.id}" icon="chevron-right" label="${ex?'Collapse':'Expand'} child work orders" density="m" onclick="event.stopPropagation();toggleP('${w.id}')"></uxt-icon-button>`
     :`<span class="ld-chev-ph"></span>`;
   let h=`<tr class="${isChild?'child-row':''}" onclick="openWO('${w.id}')">${fields.map((f,i)=>{
-    if(f.type==='status')return`<td>${kitStatusChip(f.value,f.tier)}</td>`;
+    if(f.type==='status')return`<td>${kitStatusDot(f.value,f.tier)}</td>`;
     if(f.type==='wotype')return`<td>${f.color?`<span class="wotype-dot" style="background:${f.color}"></span>`:''}${f.value}</td>`;
     // Priority High/Critical keep their fill (§23.4) as the kit filled status chip.
-    if(f.type==='priority')return`<td>${f.color?kitStatusChip(f.value,f.value==='Critical'?'red':'orange'):f.value}</td>`;
+    if(f.type==='priority')return`<td>${f.color?kitStatusDot(f.value,f.value==='Critical'?'red':'orange'):f.value}</td>`;
     const val=i===1?chevBtn+f.value:f.value; // chevron sits in front of Description, col index 1
     return`<td>${val}</td>`;
   }).join('')}</tr>`;
