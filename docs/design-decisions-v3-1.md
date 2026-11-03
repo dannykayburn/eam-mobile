@@ -11,7 +11,7 @@ Version 3.1 — July 2026 — Technician Persona / Work Order Execution
 | **Platform** | iOS and Android — **a native (React Native) app, not a PWA.** Corrected 2026-08-25 (user direction); this cell used to read "responsive PWA" and contradicted the architecture the rest of the doc specifies. See §2.2 for why the offline model forces native, and §21 for the supersession. |
 | **Prototype files** | Don't maintain a file list here — it drifts. `CLAUDE.md`'s "Current state" is the live inventory of which screen lives in which file; `prototypes/standalone/old versions/` holds retired ones. |
 | **Status** | Don't maintain a status summary here either, for the same reason. Open work lives in §20 (design-level) and in `docs/EAM-Mobile-Design-Doc-v1.md` — its **Timeline** is what to build next and its **Open issues** is the blocking shortlist; built-vs-unbuilt lives in `CLAUDE.md`. |
-| **Doc version** | v3.1. This cell is a pointer, not a changelog — locked rules live in the numbered sections below (§1–§28), each governing its own topic; superseded/reversed decisions live in §21 with a short "old → new, why" note; genuinely open items live in §20. Don't restate a decision here — add it to the section that owns it. Structural convention: Standard Model sections (§5–§9) hold the canonical/generic version of any cross-cutting rule; other sections point back to them rather than repeating them. |
+| **Doc version** | v3.1. This cell is a pointer, not a changelog — locked rules live in the numbered sections below (§1–§33), each governing its own topic; superseded/reversed decisions live in §21 with a short "old → new, why" note; genuinely open items live in §20. Don't restate a decision here — add it to the section that owns it. Structural convention: Standard Model sections (§5–§9) hold the canonical/generic version of any cross-cutting rule; other sections point back to them rather than repeating them. |
 
 # 1. Project Context
 
@@ -6258,6 +6258,7 @@ into a locked-decision row in the section that governs it, or is deleted.
 | **Portal UI — Octave Experience vs. a new base UI — DECISION REQUIRED** | Raised 2026-09-23 (user). §30.7 locked the portal onto the Octave / OUX design system and §30.8 catalogued where it differs from the app's own; what was **not** weighed at the time was OUX as a **delivery platform** rather than a visual language. The case for it: it sidesteps the mobile configuration screens already scattered through base for the two apps; it collapses admin configuration into one screen; the diagram-authored canvas and the 390px emulator preview (§30.9/§30.10) are affordances the base toolkit does not offer; and the shell would transfer to any other operational mobile app in the portfolio. Against it: **on-premise deployment**, **other-team dependencies**, and **longevity — whether it is a two-way door**. **This reaches two locked positions rather than sitting beside them**, and re-opening it re-opens both: §30.7 (OUX for base screens) and NG8/§21 (desktop UI out of scope, which is what retired "restyle onto the base components" as an available answer). Entangled with the Sencha→Angular item below, since "new base UI" means the Angular one. Framed here rather than decided; the design doc carries it as **Open issue 0**, ahead of the `WSJOBS` call. |
 | **Can an authored workflow eventually be EXECUTED from base?** | Raised 2026-09-23 (user), alongside the `WSJOBS` decision below and genuinely new — nothing in §10–§13 or §29–§30 designs for it. Everything to date assumes the workflow is **authored** in the portal and **executed** on the device. If the same definition could also drive a base session, two things follow: the resolved artifact has to be a **transport**, not a device-shaped structure, which reaches §10's API and the row-shape item above; and it would count as a point in favour of the portal platform decision above, since one authoring surface would then feed two runtimes. If it could not, that is worth stating explicitly rather than leaving as an assumption nobody has tested. **Ask before the `WSJOBS` call**, because reuse of the customer's `EVNT` functions is the option that makes base execution plausible at all. |
 | **Hyperlink steps — a step on ANOTHER entity's record, reached through a field (future idea, not scoped)** | Raised 2026-10-28 (user). **An idea to keep, not a decision and not phased.** A **hyperlink step** is a node whose screen belongs to a different entity than the WO — Case Management, Equipment — and which opens on the record **resolved from a field on the step in front of it** (the WO's *Related Case* opens that case), either directly by key or by running a dataspy filtered on the value. To make that declarative, the **workflow header** would carry **relationship definitions**: source field → target entity + target key (e.g. WO `EVT_UDFCHAR01` = Case `CSM_CODE`), written as **logical field names** (the app's JS field keys), not table columns, so the device evaluates them without knowing the schema; a hyperlink step picks one relationship. **Existing machinery it can reuse:** §30.19's evaluation rules transfer as-is — read at the **next tap**, from the **nearest step in front** (`condSourceStep()`), **job-captured fields only**, `validateForks()` clearing a stale field reference, and **empty is not false**; §30.11's Status Entity is already a node acting on a non-WO entity; and the relationship is exactly what §2.3's **reachability traversal** needs, so declaring it would let the linked record hydrate *with* the WO instead of failing offline. **What it would reopen — flag before building any of it:** (1) **§30.27 scopes `STEP_LIB` by `screen`, and a workflow never offers a non-WO tab** — this crosses that line on purpose, so it needs its own node kind, not a library entry; (2) **whose layout renders** — §29.2's per-instance layout copy, or the target's §30.27 Screen Layout resolved on *(screen, type, group)* (the second avoids a second copy-drift path); (3) **function resolution** (§11/§26.7) is one `EVNT` function per workflow, so the target screen's function and the group's permission to open it need a home — a §32.13-shaped Error when the group can't; (4) the **run stays the WO's** (§32.7) — what "complete" and the §29.3 gates mean for a step on a record the run doesn't own; (5) **zero / one / many** dataspy matches — N/A, open, or a chooser; and (6) **offline**: the target entity's §2.7 policy decides it, and an `Online only` target makes the step online-only, which §2.9 must allow without narrowing field state. |
+| **Location and travel — §33's open questions (future design, not scoped)** | Raised 2026-11-03 (user) with §33. **Not phased.** Owed before any of it is built: (1) **the travel Type of Hours code**: where it's configured (an install parameter, or an org-level setting) and whether this customer's Type of Hours domain already has a travel code (§33.6); (2) **radius *R***: one value, or per org or per equipment class (§33.5); (3) **an en-route status**, which needs a placement moment at **Arrived** that no node has (§33.7); (4) **the first consumer of the map view**: the Equipment Lookup or the WO Equipment tab's Route (§33.3); (5) **where equipment X/Y lives in the data model**, since `data/equipment.js` carries none and the WO's `latitude`/`longitude` are Hidden in every layout this customer has (§33.2); (6) **the basemap's tile source and its licensing**, which is §28.7 item 3's question met from the cheap side (§33.1). |
 | **A non-step node's row shape on the base side is unspecified** | Opened 2026-09-23 with §29.2's final passage, which widened the tier-2 key from `Tab` to `Node` so that an action or a fork takes an instance row like a tab. That settles **identity**; it does not settle **payload**. A step's parameters are its layout rows, and a non-step node has none — so a Status update action's entity and status (§30.11) and an action's `mode` (§30.21) have nowhere declared to live. Two shapes are defensible: a column per parameter on the tier-2 row, which keys naturally like everything else in §12 but grows a column per action kind; or one typed payload column, which absorbs future kinds and gives up legibility. Deliberately not picked here, because §10's API in front of the workflow tables lands first and is what makes either affordable — and the prototype does not force the question, since it persists whole nodes as objects. **Pick it before any base-side table work, not during.** |
 | **The booking pull-up's SECOND caller is not wired** | Narrowed 2026-09-17 from "the pull-up is not built" — it is now built and wired to §18.2's tab trigger (see §18.2). What remains is that **nothing feeds a workflow definition to the app**, so §30.21's placed Stop Timer action cannot reach in and its `system` mode (book with no sheet) has no runtime caller. The component takes every derived value as an argument and honours `mode` itself, so the hand-off calls it unchanged — what is owed is the hand-off, not the sheet. A dev toggle on Book Labor's own theme bar drives the real `eamTimerRunning` key so the §18.2 condition is exercisable meanwhile. This is the first concrete instance of the general gap: **the portal authors workflows and the app cannot yet be told about them.** |
 | **A labour row's write shape when the hours are untouched** | Opened 2026-09-17. §18.2's pull-up books **direct hours** once the technician adjusts the figure, because an adjusted value cannot keep the timer's start and end true — and keeps the real span when it is untouched. That is two write shapes off one sheet. It is the honest rendering of what is known in each case, and §18's Time Entry Mode already models both, but whether the real outbox envelope should carry a span at all for a timer-derived booking is not settled. Low stakes while there is no backend; decide it before the envelope is built. **Sharpened 2026-10-23 (§32.1):** the shipping mixed-format rule (Book Labor §9.8/§9.16) rejects a Start/End booking for an employee who already has a direct-hours booking on that WO-Activity and day, so a direct-hours adjusted booking followed by a true-span one fails at sync. The `docs/scope` execution draft proposes keeping a span on an adjusted booking (End = Start + adjusted hours); that is **not locked**, and §18.2 still says otherwise. |
@@ -7917,7 +7918,8 @@ Mobile Offline's superset.
    Equipment tab and the Checklist tab's Locate From/To Point) and a **map tab**.
    The tab is the same generic definition-driven renderer §27.3 already owes for
    UDS — **shared work, not new work**, which is a reason to keep §27.3's
-   renderer genuinely generic when it is built in v1.
+   renderer genuinely generic when it is built in v1. *§33 (future design)
+   sketches the location field's non-GIS renderer, which this one would share.*
 5. **GIS identity is a second identity domain, and Tier 0 has no slot for it.**
    It needs an **ArcGIS Portal account per mobile user** (for license validation
    alone, independent of whether the services themselves are secured), **up to
@@ -9938,7 +9940,9 @@ workflow-level constant. Whether a given hour is overtime depends on **the
 shift worked**, not on the workflow the technician happened to run — so a
 constant would misbook every callout it did not anticipate. It books
 **Normal**, and §18.3's correction path is how a misbooking is fixed, since
-booked labour is immutable.
+booked labor is immutable. *§33.6 (future design) books travel time under a
+configured travel code without making Type of Hours authorable. The code
+follows the segment's purpose, never the workflow.*
 
 #### In `User selected` mode, Hours is the ONE editable field
 
@@ -11088,3 +11092,136 @@ card with "+N more in progress". It is a **stand-in** in two places, both §20: 
 gated workflows behave as if they carried a System Start Timer in the "On Start Work"
 slot, and the one fork is the checklist's Issue Parts question, declared in the app
 rather than read from a portal definition.
+
+# 33. Location and Travel — future design, unscheduled
+
+*Raised 2026-11-03 (user). **Future design, not phased and not locked.** It is written down
+so the shape survives, and so the three locked rules it touches are reconciled once rather
+than re-derived when it is picked up. Nothing in the prototype builds any of it. Open
+questions are in §20.*
+
+**What it is.** Three pieces that share one input, a record's coordinates: a **location
+field** on the Record View (§33.2), a **map view inside the Equipment Lookup** (§33.3), and
+**travel**: starting the job by driving to it, with directions and a timer that books the
+drive as travel hours (§33.4–§33.6).
+
+**What the shipping product already has, and what it doesn't.** *Highlight on Map* on WO,
+Equipment and the WO Equipment tab, offered only when `GISOBJID` is populated
+(`EAM.MOBILE.REQ.WOEquipmentforWorkOrder`); **Closing Latitude/Longitude** captured at close
+(`EAM.MOBILE.REQ.WorkOrders` → CloseWorkOrder); a **Location Provider** setting, GPS or Fused,
+Android only (`EAM.MOBILE.REQ.Settings`); and a GPS breadcrumb recorded on connectivity loss
+(`EAM.MOBILE.REQ.StandardModel`). The WO record already carries `latitude`/`longitude`, both
+Hidden in all three of this customer's `WSJOBS`-family layouts (`r5pagelayout.csv`). **Travel
+time exists nowhere in the shipping product.** The travel half of this section is new.
+
+## 33.1 It is not GIS, and it is not the rejected viewer-only map
+
+§28.1 and the design doc's rejected alternatives turn down a **viewer-only map** as a cheap
+reduction of R2. This section is **not that reduction**, and the difference is structural:
+
+- It plots **EAM coordinates on EAM records**. No GIS features, no geometry, no editing, no
+  replica, no second sync engine (§28.2). It replaces **nothing** in Phase 2's Map View parity,
+  so it can't stand in for it.
+- **One field type, two renderers.** Where GIS is configured (Phase 2), the same location field
+  draws the GIS way, using Highlight on Map's `GISOBJID` gate. Elsewhere it draws a coordinate
+  pin on a generic basemap. This is the **location field type** §28.7 item 4 already says
+  Screen Designer owes, arriving from the non-GIS side first.
+- **The basemap is §28.7 item 3's cheap reading** (MapLibre over an OSM-family tile source).
+  It doesn't settle item 3's question. It only uses the reading that needs no ESRI pipeline.
+
+If this ever grows editing, feature layers or offline map areas, it has become §28, and it goes
+back there.
+
+## 33.2 The location field on the Record View
+
+- **The coordinate chain:** the WO's own `latitude`/`longitude`, then the equipment's X/Y, then
+  the nearest **ancestor** with coordinates (§2.3: ancestors only, never children). The first
+  value found wins, and the field names its source ("from Equipment 00067333").
+- **No coordinates → the field doesn't render.** It never shows "no location". An absent fact
+  isn't a state the technician can act on.
+- **It is a field, so Screen Designer places it**: Optional or Hidden (§5.2), full width, under
+  the Equipment LOV by default. It is never drawn *inside* the Equipment field. §15.5's
+  Equipment treatment stays one tap target, and its photo tile keeps its own.
+- **Tap → a full-screen map** with one action, **Directions** (§33.5's hand-off).
+- **Offline, the tiles are gone; the field isn't.** It degrades to the coordinates as text plus
+  Directions. The native maps app handles its own offline maps, so directions still work. It
+  never blanks, which is §2.9's "degrade by data class" applied to a field.
+
+## 33.3 The map view in the Equipment Lookup
+
+- **A third view beside Search and Structure** (§15.5). Pins for equipment with coordinates,
+  centered on the device. Tapping a pin selects the equipment, exactly as tapping a Search row
+  does. **It's a way to pick, not a viewer.**
+- **It follows §2.1's scope.** Online, it shows the same results Search would. Offline, it shows
+  only the local store's. It never implies database-wide coverage (NG2).
+- **Offline, the map is §2.9 `blocked-visible`, and a Nearby sort takes its place.** Distance
+  from the device's GPS fix to stored coordinates needs no network, so "closest first" works
+  anywhere. Equipment with no coordinates sorts last, and isn't hidden.
+- **The WO Equipment tab is probably the stronger first consumer.** A 24-pump Route on one map
+  (§16.10) is where shipping already offers Highlight on Map. Which one comes first is §20's.
+
+## 33.4 Travel is a Start Timer option, not a new action (reconciles §32.2)
+
+§32.2 starts a timer **only from a placed Start Timer**. Travel keeps that rule:
+
+- **"Offer travel when not on site" is a property of the On Start Work Start Timer**, authored in
+  the portal on that node. It isn't a fourth action kind (§30.21's three stand), and it means
+  nothing on a Start Timer placed later in the flow. By then the technician is on site.
+- **No Start Timer in the On Start Work slot → no travel offer**, the same as no timer.
+- **Manual travel follows §32.6.** *Start travel* sits next to *Start timer* in the header
+  ellipsis.
+- **Free Form and the §11/`*` fallback** add the same choice to §15.4's Start Work prompt.
+
+## 33.5 The flow
+
+1. **At Start Work, the confirm asks where the technician is.** If the device is farther than
+   radius *R* from the WO's location (§33.2's chain), the confirm offers **Start travel** as
+   primary and **Start work** as secondary. If the device is within *R*, or the WO has no
+   coordinates, it's the ordinary confirm. **Never gate on GPS:** with location permission
+   denied or no fix, both choices show and the technician picks. Travel needs no coordinates.
+   You can drive without directions.
+2. **Start travel is Start Work in full** (§14.11): On Start Work actions, pin, hydrate, version
+   stamp, run created (§32.7). The timer then starts **as a Travel segment**. **Hydrating before
+   driving is a benefit, not a side effect.** The technician arrives at a dead zone holding the
+   WO they're about to work.
+3. **Directions hand off to the native maps app** by deep link: Apple Maps or Google Maps on
+   iOS, a `geo:` intent on Android. There's **no in-app routing.** Backgrounding the app
+   doesn't touch the timer (§32.3).
+4. **While traveling,** the rail's timer panel reads "Travel · 00:23" with **Arrived** as its
+   main action, and elsewhere the header indicator shows it (§32.6). **Nothing is gated by
+   travel**, so the technician can read or edit the WO while parked.
+5. **Arrived uses §32.4's Pause mechanics.** It books the Travel segment and opens a new start
+   record as a Work segment. Still **one timer**, now with **two true spans**, so the timer model
+   gains nothing new.
+6. **Arrival is manual, with a foreground geofence prompt.** When the app is in the foreground
+   within *R* of the location, it offers "You've arrived. Switch to work time?" **There's no
+   background location tracking.** Tracking a technician between jobs is a privacy and
+   works-council exposure the design doc's privacy section would have to carry. The shipping
+   breadcrumb is a precedent for recording location, not for this, and isn't extended.
+
+Everything else is inherited from §32, unchanged: starting travel to WO B while A's timer runs
+is **AUTOBOOK** (§32.11); a segment under a minute is discarded and over 24 hours forces User
+mode; an MEC WO books travel on the **parent** (D-13); **Stop while traveling books the
+travel**; and **Reset discards it** (§32.5).
+
+## 33.6 Travel hours get a code without the workflow authoring one (reconciles §30.21)
+
+§30.21 makes **Type of Hours not authorable**: Stop Timer books Normal, because overtime
+depends on the **shift**, which no workflow can know. That rule stands. Travel is a different
+fact. It's a property of **the segment**, chosen live by the technician, not a workflow
+constant.
+
+- **A segment carries a purpose, Travel or Work.** Work books Normal, as §30.21 says. **Travel
+  books one configured travel Type of Hours code**, set once, install-parameter-shaped, and
+  **never per workflow**.
+- **Travel on overtime is still §18.3's correction path**, exactly as overtime work is.
+- **In the User-mode booking pull-up** (§18.2), the Travel segment shows its Type of Hours
+  **protected**, like every other derived field. Hours stays the one editable field.
+
+## 33.7 Deliberately not covered
+
+- **Travel with no WO** (back to the depot, or home at the end of the day). There's no WO, so
+  there's no run and no Start Timer to carry it. Out of scope.
+- **An en-route status.** On Start Work actions fire whether the technician chose travel or work,
+  so an en-route status needs a *second* status update at **Arrived**, which is a new placement
+  moment no node has. **None in v1 of this.** §20 holds the question.

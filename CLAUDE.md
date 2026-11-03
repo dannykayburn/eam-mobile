@@ -39,8 +39,9 @@ in older notes, and the prototype was unaffected except one new item: the sync
 control needs a state or copy for an online-only user (§4.4.1/§2.10). **Don't
 re-open either, and don't re-run the options analysis** — four options were
 weighed once, and the brief was rolled up and retired (§21). Separately, the
-spec now runs **§1–§32**. §32 (workflow runs, the technician timer, composition rules) is
-the newest. §30 (the Workflow Designer Portal: five configuration areas over one membership
+spec now runs **§1–§33**. §33 (location field, Equipment Lookup map, travel time) is
+**future design, unscheduled and not locked**. Nothing builds it. §32 (workflow runs, the
+technician timer, composition rules) is the newest locked section. §30 (the Workflow Designer Portal: five configuration areas over one membership
 table) runs to §30.27, and §29 (step instances, gates, forks) sits under it.
 
 ## Locked rules — don't re-derive these
