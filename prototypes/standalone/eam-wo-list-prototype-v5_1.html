@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — WO List v5</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031648">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202611031648">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031649">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611031649">
 <style>
   /* ── Octave kit host layer (screen-local, 2026-10-20): places and sizes
      the real <uxt-*> elements in this screen's own markup; the kit owns
@@ -60,8 +60,11 @@ uxt-icon-button.ld-chev, uxt-icon-button.ld-card-chev{transition:transform .18s 
 uxt-icon-button.ld-chev.open, uxt-icon-button.ld-card-chev.open{transform:rotate(90deg);}
 uxt-icon-button.ld-chev{vertical-align:middle;margin-right:var(--k-s1);}
 .ld-chev-ph{display:inline-block;width:44px;}
-.ld-card.has-chev{padding-left:56px;position:relative;}
-uxt-icon-button.ld-card-chev{position:absolute;left:var(--k-s2);top:var(--k-s2);}
+/* Expand row: a full-width row at the card's foot, under a divider. */
+.ld-card-expand{display:flex;align-items:center;justify-content:space-between;width:calc(100% + 2 * var(--k-s4));margin:var(--k-s4) calc(-1 * var(--k-s4)) calc(-1 * var(--k-s4));padding:var(--k-s1) var(--k-s2) var(--k-s1) var(--k-s4);min-height:48px;background:none;border:none;border-top:1px solid var(--k-divider);border-radius:0 0 var(--k-r) var(--k-r);font-family:var(--font-sans);font-size:var(--k-body2);color:var(--k-text);cursor:pointer;text-align:left;}
+.ld-card-expand:hover{background:var(--k-hover);}
+uxt-icon-button.ld-card-expand-chev{transition:transform .18s cubic-bezier(0.4,0,0.2,1);}
+uxt-icon-button.ld-card-expand-chev.open{transform:rotate(180deg);}
 /* Child WO card (§6.9) — a real indent with a connector elbow and a
    "Child of" caption, so the hierarchy reads without relying on a tint. */
 .ld-card.child-card{margin-left:40px;position:relative;}
@@ -590,8 +593,8 @@ uxt-icon-button.ld-card-chev{position:absolute;left:var(--k-s2);top:var(--k-s2);
 
 </div><!-- /app -->
 
-<script src="../../data/notifications.js?v=202611031648"></script>
-<script src="shared/eam-shared.js?v=202611031648"></script>
+<script src="../../data/notifications.js?v=202611031649"></script>
+<script src="shared/eam-shared.js?v=202611031649"></script>
 <script>
 /* ══ OCTAVE KIT GLUE (screen-local, 2026-10-20) — the controls below are real
    <uxt-*> elements, which take their state from ATTRIBUTES. These keep this
@@ -996,8 +999,10 @@ function card(w,isChild){
   const ck=kids(WOS,w.id);
   const hk=w.isP&&ck.length>0;
   const ex=!!exp[w.id];
-  const chevBtn=hk
-    ?`<uxt-icon-button class="ld-card-chev${ex?' open':''}" icon="chevron-right" label="${ex?'Collapse':'Expand'} child work orders" density="m" onclick="event.stopPropagation();toggleP('${w.id}')"></uxt-icon-button>`
+  // Expand row at the card's foot (Minh, 2026-11-03): replaces the left
+  // chevron gutter, which pushed the whole card's content over.
+  const expandRow=hk
+    ?`<button type="button" class="ld-card-expand" aria-expanded="${ex}" onclick="event.stopPropagation();toggleP('${w.id}')"><span>${ex?'Hide child work orders':`Show ${ck.length} child work order${ck.length===1?'':'s'}`}</span><uxt-icon-button class="ld-card-expand-chev${ex?' open':''}" presentational icon="chevron-down" density="s"></uxt-icon-button></button>`
     :'';
   // A child states its parent outright. The indent/connector carry the
   // hierarchy visually, but a Route can expand to 24+ children and once the
@@ -1007,7 +1012,8 @@ function card(w,isChild){
     ?`<span class="ld-child-caption">Child of ${woNum(w.pid)}</span>`
     :'';
   const fields=woCardFields(w).map(f=>f.type==='wotype'?{...f,html:woTypeHtml(f)}:f);
-  return renderStdCard(fields).replace('<div class="ld-card">',`<div class="ld-card${hk?' has-chev':''}${isChild?' child-card':''}" onclick="openWO('${w.id}')">${chevBtn}${caption}`);
+  const html=renderStdCard(fields).replace('<div class="ld-card">',`<div class="ld-card${isChild?' child-card':''}" onclick="openWO('${w.id}')">${caption}`);
+  return expandRow?html.replace(/<\/div>\s*$/,expandRow+'</div>'):html;
 }
 
 /* ══ LIST TABLE — all fields (§8.3), local (not the generic shared
