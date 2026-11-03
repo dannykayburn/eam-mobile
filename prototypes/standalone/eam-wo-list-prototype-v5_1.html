@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — WO List v5</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031716">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202611031716">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031719">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611031719">
 <style>
   /* ── Octave kit host layer (screen-local, 2026-10-20): places and sizes
      the real <uxt-*> elements in this screen's own markup; the kit owns
@@ -51,7 +51,17 @@
    inside an already-scrolling tab body like the shared .ld-table-wrap). */
 .ld-table-wrap{flex:1;overflow-y:auto;margin-bottom:calc(64px + var(--shell-pad-bottom) + var(--k-s4));}
 .ld-table tbody tr{cursor:pointer;}
-.ld-table tbody tr.child-row{background:var(--k-paper);}
+.ld-table tbody tr.child-row{background:var(--k-card);}
+.ld-table tbody tr.parent-row td{font-weight:600;}
+.ld-table td.ld-first{white-space:nowrap;}
+.ld-table thead th:first-child{padding-left:calc(var(--k-s4) + 28px);}
+.ld-table td.ld-first > *{vertical-align:middle;}
+uxt-icon-button.ld-caret{margin:-4px var(--k-s1) -4px -4px;transition:transform .18s cubic-bezier(0.4,0,0.2,1);}
+uxt-icon-button.ld-caret:not(.open){transform:rotate(-90deg);}
+.ld-caret-ph{display:inline-block;width:28px;}
+.ld-indent{display:inline-block;width:44px;}
+.ld-table tbody tr.group-gap{background:var(--k-paper);pointer-events:none;}
+.ld-table tbody tr.group-gap td{height:var(--k-s4);padding:0;border:none;}
 .ld-table td uxt-status-dot{vertical-align:middle;}
 
 /* Parent/child expand (§6.9) — WO-only. The chevron is a kit Icon Button;
@@ -604,8 +614,8 @@ uxt-icon-button.ld-card-expand-chev.open{transform:rotate(180deg);}
 
 </div><!-- /app -->
 
-<script src="../../data/notifications.js?v=202611031716"></script>
-<script src="shared/eam-shared.js?v=202611031716"></script>
+<script src="../../data/notifications.js?v=202611031719"></script>
+<script src="shared/eam-shared.js?v=202611031719"></script>
 <script>
 /* ══ OCTAVE KIT GLUE (screen-local, 2026-10-20) — the controls below are real
    <uxt-*> elements, which take their state from ATTRIBUTES. These keep this
@@ -1033,23 +1043,25 @@ function card(w,isChild){
 function tHdr(){
   return`<tr>${woAllFields(WOS[0]).map(f=>`<th>${f.label}</th>`).join('')}</tr>`;
 }
+// Parent/child in the table = the kit Data Grid's group treatment (Minh,
+// 2026-11-03): the parent is a group row, caret first and a bold label; its
+// children are plain white rows indented under it; a gap row closes an open
+// group. Leaf roots keep the caret's space so every WO number lines up.
 function tRow(w,isChild){
   const fields=woAllFields(w);
   const ck=kids(WOS,w.id);
   const hk=w.isP&&ck.length>0;
   const ex=!!exp[w.id];
-  const chevBtn=hk
-    ?`<uxt-icon-button class="ld-chev${ex?' open':''}" id="chev-${w.id}" icon="chevron-right" label="${ex?'Collapse':'Expand'} child work orders" density="m" onclick="event.stopPropagation();toggleP('${w.id}')"></uxt-icon-button>`
-    :`<span class="ld-chev-ph"></span>`;
-  let h=`<tr class="${isChild?'child-row':''}" onclick="openWO('${w.id}')">${fields.map((f,i)=>{
+  const lead=isChild?'<span class="ld-indent"></span>':hk
+    ?`<uxt-icon-button class="ld-caret${ex?' open':''}" id="chev-${w.id}" icon="arrow-drop-down" label="${ex?'Collapse':'Expand'} child work orders" density="s" onclick="event.stopPropagation();toggleP('${w.id}')"></uxt-icon-button>`
+    :'<span class="ld-caret-ph"></span>';
+  let h=`<tr class="${isChild?'child-row':hk?'parent-row':''}" onclick="openWO('${w.id}')">${fields.map((f,i)=>{
     if(f.type==='status')return`<td>${kitStatusDot(f.value,f.tier)}</td>`;
     if(f.type==='wotype')return`<td>${f.color?`<span class="wotype-dot" style="background:${f.color}"></span>`:''}${f.value}</td>`;
-    // Priority High/Critical keep their fill (§23.4) as the kit filled status chip.
     if(f.type==='priority')return`<td>${f.color?kitStatusDot(f.value,f.value==='Critical'?'red':'orange'):f.value}</td>`;
-    const val=i===1?chevBtn+f.value:f.value; // chevron sits in front of Description, col index 1
-    return`<td>${val}</td>`;
+    return i===0?`<td class="ld-first">${lead}<span>${f.value}</span></td>`:`<td>${f.value}</td>`;
   }).join('')}</tr>`;
-  if(hk&&ex)ck.forEach(c=>{h+=tRow(c,true);});
+  if(hk&&ex){ck.forEach(c=>{h+=tRow(c,true);});h+=`<tr class="group-gap" aria-hidden="true"><td colspan="${fields.length}"></td></tr>`;}
   return h;
 }
 

@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — Notifications</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031716">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202611031716">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031719">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611031719">
 <!--
   NOTIFICATIONS SCREEN (v1, 2026-07-22) — the "quick and dirty" build
   called out as deferred backlog during the app-wide nav/palette rollout
@@ -66,8 +66,16 @@
   /* Swipe to dismiss (Minh, 2026-11-03), replacing the ✕: drag a row left;
      past 35% of its width it slides out and is removed. The error-tone band
      under it says what the gesture does. */
+  uxt-list-item.notif-row .uxt-li-icon{width:40px;height:40px;border-radius:var(--k-pill);display:flex;align-items:center;justify-content:center;flex:none;align-self:flex-start;margin-top:var(--k-s1);}
+  uxt-list-item.notif-row .uxt-li-icon .ib{color:inherit !important;background:transparent !important;}
+  uxt-list-item.notif-row.tone-info .uxt-li-icon{background:var(--k-info-bg);color:var(--k-info-fg);}
+  uxt-list-item.notif-row.tone-ok .uxt-li-icon{background:var(--k-ok-bg);color:var(--k-ok-fg);}
+  uxt-list-item.notif-row.tone-warn .uxt-li-icon{background:var(--k-warn-bg);color:var(--k-warn-fg);}
+  uxt-list-item.notif-row.tone-err .uxt-li-icon{background:var(--k-err-bg);color:var(--k-err-fg);}
+  uxt-list-item.notif-row.tone-purple .uxt-li-icon{background:var(--uxt-theme-palette-status-purple-50,#f5e9ff);color:var(--uxt-theme-palette-status-purple-900,#7a1fd1);}
   .notif-swipe{position:relative;overflow:hidden;touch-action:pan-y;}
   .notif-swipe + .notif-swipe{border-top:1px solid var(--k-divider);}
+  .notif-swipe:not(.dragging) .notif-swipe-bg{visibility:hidden;}
   .notif-swipe-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding:0 var(--k-s6);background:var(--uxt-theme-palette-error-main,#f3434a);color:var(--uxt-theme-palette-error-contrast-text,#fff);font-size:var(--k-body2);font-weight:600;}
   .notif-swipe > uxt-list-item{display:block;position:relative;background:var(--k-card);will-change:transform;}
   .notif-swipe > uxt-list-item.settle{transition:transform .2s cubic-bezier(0.4,0,0.2,1);}
@@ -179,8 +187,8 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/notifications.js?v=202611031716"></script>
-<script src="shared/eam-shared.js?v=202611031716"></script>
+<script src="../../data/notifications.js?v=202611031719"></script>
+<script src="shared/eam-shared.js?v=202611031719"></script>
 <script>
 const CURRENT_USER_NAME = 'Bruce Campbell';
 let notifFilter = 'all';
@@ -211,6 +219,11 @@ function notifIcon(type) {
   return icons[type] || icons.wo_status;
 }
 
+// Icon tone per type (Minh, 2026-11-03): a light tinted circle with the
+// darker glyph, the Home row-icon treatment (status 50 / 900 pairs).
+function notifTone(type) {
+  return { wo_assigned: 'info', wo_reassigned: 'info', wo_status: 'ok', comment_mention: 'purple', pm_due: 'warn', follow_up_created: 'err' }[type] || 'info';
+}
 function notifGroup(n) {
   return n.time.startsWith('07/22/2026') ? 'Today' : 'Earlier';
 }
@@ -223,7 +236,7 @@ function notifTime(n) {
   return notifGroup(n) === 'Today' ? (time || date) : date.slice(0, 5);
 }
 function notifCard(n) {
-  return `<div class="notif-swipe" data-id="${n.id}"><div class="notif-swipe-bg" aria-hidden="true"><span>Dismiss</span></div><uxt-list-item class="notif-row${n.read ? '' : ' unread'}" role="listitem" density="m" data-id="${n.id}"
+  return `<div class="notif-swipe" data-id="${n.id}"><div class="notif-swipe-bg" aria-hidden="true"><span>Dismiss</span></div><uxt-list-item class="notif-row tone-${notifTone(n.type)}${n.read ? '' : ' unread'}" role="listitem" density="m" data-id="${n.id}"
     icon="${notifIcon(n.type)}" text="${kitEsc(n.subject)}" secondary="${kitEsc(n.body)}"${n.wo ? ` tertiary="Work Order ${kitEsc(n.wo)}"` : ''}
     shortcut="${kitEsc(notifTime(n))}" aria-label="${kitEsc(n.subject)}${n.read ? '' : ', unread'}"></uxt-list-item></div>`;
 }
@@ -263,7 +276,7 @@ function renderNotifList() {
   list.addEventListener('pointermove', (e) => {
     if (!drag) return;
     const dx = Math.min(0, e.clientX - drag.x), dy = Math.abs(e.clientY - drag.y);
-    if (!drag.on) { if (Math.abs(dx) > 10 && Math.abs(dx) > dy) { drag.on = true; drag.row.classList.remove('settle'); } else if (dy > 10) { drag = null; return; } else return; }
+    if (!drag.on) { if (Math.abs(dx) > 10 && Math.abs(dx) > dy) { drag.on = true; drag.wrap.classList.add('dragging'); drag.row.classList.remove('settle'); } else if (dy > 10) { drag = null; return; } else return; }
     drag.dx = dx;
     drag.row.style.transform = `translateX(${dx}px)`;
   });
@@ -281,7 +294,7 @@ function renderNotifList() {
         requestAnimationFrame(() => { d.wrap.style.height = '0px'; });
         setTimeout(() => dismissNotif(d.wrap.dataset.id), 200);
       }, 180);
-    } else d.row.style.transform = '';
+    } else { d.row.style.transform = ''; setTimeout(() => d.wrap.classList.remove('dragging'), 200); }
   };
   list.addEventListener('pointerup', end);
   list.addEventListener('pointercancel', end);

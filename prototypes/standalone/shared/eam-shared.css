@@ -2558,3 +2558,16 @@ html.kb-up .bottom-sheet .sheet-cta-float{display:none;}
 .bottom-sheet.as-push-page .kit-page-back > .ib,.bottom-sheet.as-push-page .kit-page-back button{background:var(--k-card);}
 .bottom-sheet.as-push-page .sheet-body{background:var(--k-card);margin:0 var(--k-s4) var(--k-s4);border-radius:var(--k-r);box-shadow:var(--k-e1);flex:0 1 auto;}
 .app:has(> .bottom-sheet.as-push-page.open) > .sheet-overlay{opacity:0 !important;}
+/* Sheet titles are small (Minh, 2026-11-03): the kit Subtitle 2 role, not H6. */
+.bottom-sheet:not(.as-push-page) .sheet-title{font-family:var(--uxt-theme-typography-sub-title-2-font-family,var(--font-sans));font-size:var(--uxt-theme-typography-sub-title-2-font-size,0.875rem);font-weight:var(--uxt-theme-typography-sub-title-2-font-weight,600);line-height:var(--uxt-theme-typography-sub-title-2-line-height,1.43);letter-spacing:var(--uxt-theme-typography-sub-title-2-letter-spacing,normal);}
+.bottom-sheet:not(.as-push-page) .sheet-header{min-height:44px;}
+/* Step rail (Minh, 2026-11-03): no blurred Type-tinted glow. While the
+   technician's timer RUNS on this WO, the rail carries the kit's attention
+   ring (global-styles.js .uxt-attention-ring): a 1px primary linear-gradient
+   that flows around the edge. The breathing glow half is left out. */
+.tab-rail, .step-rail{box-shadow:var(--k-e1) !important;}
+.tab-rail:hover, .step-rail:hover{box-shadow:var(--k-e2) !important;}
+.step-rail:has(.timer-pill:not(.stopped)){position:relative;overflow:visible;}
+.step-rail:has(.timer-pill:not(.stopped))::before{content:"";position:absolute;inset:-1px;padding:1px;border-radius:inherit;background:linear-gradient(90deg,var(--uxt-theme-palette-primary-main,#0055ff),var(--uxt-theme-palette-primary-light,#5c92ff),var(--uxt-theme-palette-primary-main,#0055ff));background-size:200% 100%;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);pointer-events:none;animation:railRingFlow 1.4s linear infinite;z-index:1;}
+@keyframes railRingFlow{from{background-position:0% 0;}to{background-position:200% 0;}}
+@media (prefers-reduced-motion:reduce){.step-rail:has(.timer-pill:not(.stopped))::before{animation:none;background:var(--uxt-theme-palette-primary-main,#0055ff);}}
