@@ -72,6 +72,13 @@ uxt-icon-button.ld-card-expand-chev.open{transform:rotate(180deg);}
 .ld-card.child-card::before{content:'';position:absolute;left:-20px;top:-8px;width:16px;height:calc(50% + 8px);border-left:1px solid var(--k-control);border-bottom:1px solid var(--k-control);border-bottom-left-radius:var(--k-r);pointer-events:none;}
 .ld-child-caption{display:block;font-size:var(--k-caption);color:var(--k-text-2);margin-bottom:var(--k-s1);}
 
+/* Search Recents: overline-style group label + a kit card of list rows. */
+.search-recents{padding-top:var(--k-s2);}
+.recents-head{display:flex;align-items:center;justify-content:space-between;min-height:40px;padding:0 var(--k-s2) 0 var(--k-s6);}
+.recents-label{font-family:var(--uxt-theme-typography-overline-font-family,var(--font-sans));font-size:var(--uxt-theme-typography-overline-font-size,0.75rem);letter-spacing:var(--uxt-theme-typography-overline-letter-spacing,1px);text-transform:uppercase;color:var(--k-text-2);}
+.recents-card{background:var(--k-card);border-radius:var(--k-r);box-shadow:var(--k-e1);margin:0 var(--k-s4) var(--k-s2);overflow:hidden;}
+.recents-card > uxt-list-item{display:block;}
+.recents-card > uxt-list-item + uxt-list-item{border-top:1px solid var(--k-divider);}
 /* Empty state — no kit empty-state component; kit type + tokens. */
 .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--k-s2);padding:var(--k-s6) var(--k-s4);}
 .empty-icon{width:48px;height:48px;border-radius:var(--k-pill);background:var(--k-selected);color:var(--k-glyph);display:flex;align-items:center;justify-content:center;}
@@ -276,20 +283,20 @@ uxt-icon-button.ld-card-expand-chev.open{transform:rotate(180deg);}
 
   <!-- ═══════════════════════ SCREEN 2 — SEARCH ════════════════════════ -->
   <div class="screen" id="s2">
-    <header class="nav" onclick="scrollListToTop()">
+    <!-- Search screen top bar (Minh, 2026-11-03): the bar sits IN the top
+         row beside Back, the way the top-level bar slides left on focus; no
+         title row and no second line. -->
+    <header class="nav">
       <div class="nav-left">
         <uxt-icon-button icon="arrow-back" label="Back" outlined density="m" onclick="event.stopPropagation();closeSearch()"></uxt-icon-button>
-        <span class="prototype-label">PROTOTYPE</span>
       </div>
-      <div class="nav-title">Search work orders</div>
+      <div class="nav-search" onclick="event.stopPropagation()">
+        <uxt-search-bar id="sInp" density="m" placeholder="Search work orders" oninput="onSearch(this.value)"></uxt-search-bar>
+      </div>
       <div class="nav-actions">
         <span id="syncCtrl"></span>
       </div>
     </header>
-
-    <div class="ld-search-bar">
-      <uxt-search-bar id="sInp" density="m" placeholder="Search work orders…" oninput="onSearch(this.value)"></uxt-search-bar>
-    </div>
 
     <!-- Filter chips — dataspy-driven, the same 6 fields the card uses
          (§8.3/§6.11). All 6 are real as of 2026-08-11, in the three shapes
@@ -312,7 +319,10 @@ uxt-icon-button.ld-card-expand-chev.open{transform:rotate(180deg);}
       <uxt-status-chip class="kit-filter-chip" id="cOrg" variant="outline" density="m" severity="neutral" text="Organization" onclick="openCS('org')" onchange="scrChipKeep(event,this)"></uxt-status-chip>
     </div>
 
-    <div class="res-row"><span class="res-count" id="s2Count">8 work orders</span></div>
+    <!-- Idle search (nothing typed, no filter): Recents, kit List Items. -->
+    <div class="wo-list search-recents" id="s2Recents"></div>
+
+    <div class="res-row" id="s2ResRow"><span class="res-count" id="s2Count">8 work orders</span></div>
 
     <div class="wo-list" id="s2DL"></div>
     <div id="s2TW" style="display:none"></div>
@@ -1078,7 +1088,37 @@ function refS1(){
   const n=roots(wos).length;
   document.getElementById('s1Count').textContent=n+' work order'+(n===1?'':'s');
 }
+/* RECENTS (Minh, 2026-11-03): an idle Search screen shows recent searches
+   and recently opened WOs, not the whole list. Device-local, demo-seeded. */
+const LS_RECENT_SEARCH='eamWoRecentSearches', LS_RECENT_WO='eamWoRecentViewed';
+function recentsGet(k,seed){try{const v=JSON.parse(lsGet(k)||'null');return Array.isArray(v)?v:seed;}catch(e){return seed;}}
+function recentsPush(k,v,seed){const l=recentsGet(k,seed).filter(x=>x!==v);l.unshift(v);lsSet(k,JSON.stringify(l.slice(0,5)));}
+const RECENT_SEARCH_SEED=['pump','cooling tower','19831'];
+const RECENT_WO_SEED=['WO-19257','WO-19831'];
+function searchIdle(){return !sv&&!tf.desc&&!tf.num&&!dr.from&&!dr.to&&!['status','org','type'].some(k=>cf[k]&&cf[k].length);}
+function renderRecents(){
+  const qs=recentsGet(LS_RECENT_SEARCH,RECENT_SEARCH_SEED);
+  const ws=recentsGet(LS_RECENT_WO,RECENT_WO_SEED).map(id=>WOS.find(w=>w.id===id)).filter(Boolean);
+  let h='';
+  if(qs.length){
+    h+='<div class="recents-head"><span class="recents-label">Recent searches</span><uxt-button variant="text" tone="neutral" text="Clear" onclick="clearRecentSearches()"></uxt-button></div><div class="recents-card">';
+    h+=qs.map(q=>`<uxt-list-item density="m" role="listitem" icon="history" text="${kitEsc(q)}" onclick="useRecentSearch('${kitEsc(q).replace(/'/g,"\\'")}')"></uxt-list-item>`).join('');
+    h+='</div>';
+  }
+  if(ws.length){
+    h+='<div class="recents-head"><span class="recents-label">Recently viewed</span></div><div class="recents-card">';
+    h+=ws.map(w=>`<uxt-list-item density="m" role="listitem" icon="build" text="${kitEsc(woNum(w.id))}" secondary="${kitEsc(w.desc)}" trailing-icon="chevron-right" onclick="openWO('${w.id}')"></uxt-list-item>`).join('');
+    h+='</div>';
+  }
+  document.getElementById('s2Recents').innerHTML=h;
+}
+function useRecentSearch(q){const inp=document.getElementById('sInp');inp.value=q;onSearch(q);}
+function clearRecentSearches(){lsSet(LS_RECENT_SEARCH,'[]');renderRecents();}
 function refS2(){
+  const idle=searchIdle();
+  document.getElementById('s2Recents').style.display=idle?'':'none';
+  document.getElementById('s2ResRow').style.display=idle?'none':'';
+  if(idle){renderRecents();document.getElementById('s2DL').style.display='none';document.getElementById('s2TW').style.display='none';return;}
   const wos=sFilt();const d=mode==='detailed';
   document.getElementById('s2DL').style.display=d?'':'none';
   document.getElementById('s2TW').style.display=d?'none':'';
@@ -1294,6 +1334,8 @@ function restoreListState(){
 
 const TYPE_TO_DEMO_WO = { BK: '19257', PM: '19831' };
 function openWO(id){
+  recentsPush(LS_RECENT_WO,id,RECENT_WO_SEED);
+  if(sv&&document.getElementById('s2').classList.contains('active'))recentsPush(LS_RECENT_SEARCH,sv,RECENT_SEARCH_SEED);
   listStateSave(LIST_STATE_KEY_WO, captureListState());
   const num = woNum(id);
   const w = WOS.find(x => woNum(x.id) === num);
