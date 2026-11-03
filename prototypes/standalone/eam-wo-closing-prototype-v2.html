@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — WO Closing (Step 5)</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031723">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202611031723">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031730">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611031730">
 <!--
   WO WORKFLOW — STEP 5: WO CLOSING (rebuilt 2026-07-16 onto shared/eam-
   shared.css + shared/eam-shared.js, per docs/archive/EAM-REBUILD-Strategy-and-
@@ -156,6 +156,9 @@ uxt-list-item.attach-add-row { border-top: 1px solid var(--k-divider); }
 .viewer-file-placeholder { width: 72px; height: 72px; border-radius: var(--k-r); display: flex; align-items: center; justify-content: center; background: var(--k-card); color: var(--k-glyph); border: 1px solid var(--k-divider); }
 .viewer-file-label { font-size: var(--k-body2); color: var(--k-text-2); text-align: center; }
 .viewer-footer { padding: var(--k-sm) var(--k-s4) var(--k-s6); border-top: 1px solid var(--k-divider); display: flex; gap: var(--k-s1); flex-shrink: 0; }
+/* Close status as rounded status tags (Minh, 2026-11-03), not tiles. */
+.status-row{align-items:center;}
+.status-row .status-pill{border-radius:var(--k-pill) !important;min-height:32px !important;height:auto !important;padding:var(--k-s1) var(--k-s4) !important;flex:0 0 auto !important;font-size:var(--k-body2) !important;}
 </style>
 </head>
 <body>
@@ -444,8 +447,10 @@ uxt-list-item.attach-add-row { border-top: 1px solid var(--k-divider); }
       <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
       <div class="sheet-title" id="codeLovSheetTitle">Select code</div>
       <uxt-button class="kit-sheet-text-btn" id="codeLovClearBtn" onclick="clearCodeLov()" variant="text" tone="neutral" text="Clear"></uxt-button>
+      <!-- Search is an icon button top right (Minh, 2026-11-03); the bar opens under the header. -->
+      <uxt-icon-button id="codeLovSearchBtn" icon="search" label="Search codes" outlined density="m" onclick="toggleCodeLovSearch()"></uxt-icon-button>
     </div>
-    <div class="kit-sheet-search" id="codeLovSearchRow">
+    <div class="kit-sheet-search" id="codeLovSearchRow" hidden>
       <uxt-search-bar id="codeLovSearchInput" density="m" placeholder="Search code or description" oninput="filterCodeLovOptions(this.value)"></uxt-search-bar>
     </div>
     <div class="sheet-body" id="codeLovSheetBody"></div>
@@ -569,14 +574,14 @@ uxt-list-item.attach-add-row { border-top: 1px solid var(--k-divider); }
 
 </div><!-- /app -->
 
-<script src="../../data/closing_codes.js?v=202611031723"></script>
-<script src="../../data/wo-19257.js?v=202611031723"></script>
-<script src="../../data/wo-19831.js?v=202611031723"></script>
-<script src="../../data/wo-20450.js?v=202611031723"></script>
-<script src="../../data/wotype.js?v=202611031723"></script>
-<script src="../../data/wo-workflow.js?v=202611031723"></script>
-<script src="../../data/wo-workflow-steps.js?v=202611031723"></script>
-<script src="shared/eam-shared.js?v=202611031723"></script>
+<script src="../../data/closing_codes.js?v=202611031730"></script>
+<script src="../../data/wo-19257.js?v=202611031730"></script>
+<script src="../../data/wo-19831.js?v=202611031730"></script>
+<script src="../../data/wo-20450.js?v=202611031730"></script>
+<script src="../../data/wotype.js?v=202611031730"></script>
+<script src="../../data/wo-workflow.js?v=202611031730"></script>
+<script src="../../data/wo-workflow-steps.js?v=202611031730"></script>
+<script src="shared/eam-shared.js?v=202611031730"></script>
 <script>
 /* ── screen-specific config/behavior — chrome (nav, header, step rail,
    confirm modal, toast, theme toggle, date/edit sheets) comes from
@@ -637,6 +642,13 @@ function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 // ── CLOSING CODE SHEET — local, distinct from shared's openLov/selectLov/
 // clearLov (file-header note [4]). ──────────────────────────────────────
 let activeCodeLov = null;
+function toggleCodeLovSearch() {
+  const row = document.getElementById('codeLovSearchRow');
+  row.hidden = !row.hidden;
+  const inp = document.getElementById('codeLovSearchInput');
+  if (row.hidden) { inp.value = ''; filterCodeLovOptions(''); return; }
+  const fld = inp.querySelector('.sb-field, input'); if (fld) fld.focus();
+}
 function openCodeLov(type) {
   const cell = document.getElementById('field'+cap(type));
   if (cell.classList.contains('field-locked')) return;
@@ -648,6 +660,7 @@ function openCodeLov(type) {
   const hideClear = (type === 'problem') || !codeState[type];
   document.getElementById('codeLovClearBtn').classList.toggle('hidden', hideClear);
   document.getElementById('codeLovSearchInput').value = '';
+  document.getElementById('codeLovSearchRow').hidden = true;
   const body = document.getElementById('codeLovSheetBody');
   const currentCode = codeState[type];
   // Kit List Items: description over code, selected = the kit's gray fill.

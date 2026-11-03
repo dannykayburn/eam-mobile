@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — Notifications</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031723">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202611031723">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031730">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611031730">
 <!--
   NOTIFICATIONS SCREEN (v1, 2026-07-22) — the "quick and dirty" build
   called out as deferred backlog during the app-wide nav/palette rollout
@@ -67,6 +67,14 @@
   /* Swipe to dismiss (Minh, 2026-11-03), replacing the ✕: drag a row left;
      past 35% of its width it slides out and is removed. The error-tone band
      under it says what the gesture does. */
+  /* Breathing room + word limits (Minh, 2026-11-03): 16dp row padding, a
+     12dp icon gap; subject one line, body two lines max. */
+  uxt-list-item.notif-row > .uxt-li{padding-top:var(--k-s4) !important;padding-bottom:var(--k-s4) !important;}
+  uxt-list-item.notif-row .uxt-li-content{gap:var(--k-s4);align-items:flex-start;}
+  uxt-list-item.notif-row .uxt-li-text{gap:var(--k-s1);}
+  uxt-list-item.notif-row .uxt-li-l1{font-weight:600;color:var(--k-text);}
+  uxt-list-item.notif-row .uxt-li-l2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  uxt-list-item.notif-row .uxt-li-l1,uxt-list-item.notif-row .uxt-li-l3{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   uxt-list-item.notif-row .uxt-li-icon{width:40px;height:40px;border-radius:var(--k-pill);display:flex;align-items:center;justify-content:center;flex:none;align-self:flex-start;margin-top:var(--k-s1);}
   uxt-list-item.notif-row .uxt-li-icon .ib{color:inherit !important;background:transparent !important;}
   uxt-list-item.notif-row.tone-info .uxt-li-icon{background:var(--k-info-bg);color:var(--k-info-fg);}
@@ -188,8 +196,8 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/notifications.js?v=202611031723"></script>
-<script src="shared/eam-shared.js?v=202611031723"></script>
+<script src="../../data/notifications.js?v=202611031730"></script>
+<script src="shared/eam-shared.js?v=202611031730"></script>
 <script>
 const CURRENT_USER_NAME = 'Bruce Campbell';
 let notifFilter = 'all';

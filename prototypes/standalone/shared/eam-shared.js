@@ -600,8 +600,8 @@ function renderStepRail(workflow, activeStep, jobType, activeRef) {
       const why = ("Skipped by '" + pin.answer + "' at '" + f.question + "'.").replace(/'/g, "\\'");
       return `<div class="step-map-item" onclick="showToast('${why}')"><div class="step-map-icon smi-na">–</div><span class="step-map-label step-map-label-na">${label}</span></div>`;
     }
-    if (revisit && i === viewIdx) return `<div class="step-map-item active"><div class="step-map-icon smi-done">✓</div><span class="step-map-label active-label">${label}</span></div>`;
-    if (i < activeIdx) return `<div class="step-map-item" onclick="goToWoStep('${s}')"><div class="step-map-icon smi-done">✓</div><span class="step-map-label">${label}</span><span class="step-map-back">${STEP_BACK_CHEVRON}</span></div>`;
+    if (revisit && i === viewIdx) return `<div class="step-map-item active"><div class="step-map-icon smi-done"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M9.55 18 3.85 12.3l1.43-1.43 4.27 4.28 9.17-9.18 1.43 1.43z"/></svg></div><span class="step-map-label active-label">${label}</span></div>`;
+    if (i < activeIdx) return `<div class="step-map-item" onclick="goToWoStep('${s}')"><div class="step-map-icon smi-done"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M9.55 18 3.85 12.3l1.43-1.43 4.27 4.28 9.17-9.18 1.43 1.43z"/></svg></div><span class="step-map-label">${label}</span><span class="step-map-back">${STEP_BACK_CHEVRON}</span></div>`;
     // The current step: navigable from a More destination (§16.10), where the
     // rail is the only way back into the flow, and from a revisit (§32.9). On
     // its own step screen it's the screen you're already on.
@@ -1119,8 +1119,10 @@ function openSortSheet(opts) {
       <div class="sheet-title">Sort by</div>
       <div class="kit-sheet-spacer"></div>
     </div>
-    ${kitToggleGroup('sortDirTog', [['asc', 'Ascending'], ['desc', 'Descending']], 'asc', 'setSortDir(')}
-    <div class="sheet-body" id="sortList"></div>
+    <div class="sheet-body">
+      <div class="sort-by-row"><span class="sheet-group-label">Sort by</span><span class="sort-dir-btns" id="sortDirList"></span></div>
+      <div id="sortList"></div>
+    </div>
     <div class="sheet-footer"><uxt-button class="kit-btn-block" variant="contained" text="Apply" onclick="applySort()"></uxt-button></div>`);
   sortSheetOnApply = opts.onApply || null;
   sortSheetFields = opts.fields || [];
@@ -1134,8 +1136,10 @@ function openSortSheet(opts) {
 function setSortDir(d) { sortSheetDir = d; renderSortSheet(); }
 function pickSortKey(k) { sortSheetKey = k; renderSortSheet(); }
 function renderSortSheet() {
-  const tog = document.getElementById('sortDirTog');
-  if (tog && tog.getAttribute('value') !== sortSheetDir) tog.setAttribute('value', sortSheetDir);
+  // Order (Minh, 2026-11-03): a "Sort by" row with up / down icon buttons
+  // side by side; the current direction carries the selected fill.
+  document.getElementById('sortDirList').innerHTML = [['asc', 'arrow-upward', 'Ascending'], ['desc', 'arrow-downward', 'Descending']].map(([v, ic, t]) =>
+    `<uxt-icon-button class="sort-dir-btn${sortSheetDir === v ? ' on' : ''}" icon="${ic}" label="${t}" aria-pressed="${sortSheetDir === v}" outlined density="m" onclick="setSortDir('${v}')"></uxt-icon-button>`).join('');
   document.getElementById('sortList').innerHTML = sortSheetFields.map(f => `
     <uxt-list-item class="lov-option" density="m" text="${kitEsc(f.label)}"${sortSheetKey === f.key ? ' selected trailing-icon="check"' : ''} onclick="pickSortKey('${f.key}')"></uxt-list-item>`).join('');
 }
@@ -2671,9 +2675,12 @@ function openSyncPanel() {
   }
   const listEl = document.getElementById('syncPanelList');
   if (listEl) {
-    const row = (i, dotClass, action) => `
+    // Standardized (Minh, 2026-11-03): overline label outside a card of rows,
+    // a tinted icon circle (light fill, darker glyph) for the state, Body 2
+    // name over a secondary meta line, and a kit text button as the action.
+    const row = (i, tone, icon, action) => `
       <div class="sync-item-row">
-        <span class="sync-item-dot ${dotClass}"></span>
+        <span class="sync-item-ico tone-${tone}"><uxt-icon-button presentational tone="inherit" density="m" icon="${icon}"></uxt-icon-button></span>
         <div class="sync-item-info">
           <div class="sync-item-name">${i.recordLabel}</div>
           <div class="sync-item-meta">${i.entity} · ${i.timestamp}</div>
@@ -2682,18 +2689,18 @@ function openSyncPanel() {
       </div>`;
     let html = '';
     if (errorItems.length) {
-      html += '<div class="sync-panel-section-label">Needs Attention</div>';
-      html += errorItems.map(i => row(i, 'error', `<uxt-button class="sync-item-action" variant="outlined" text="Review" onclick="reviewSyncItem('${i.id}')"></uxt-button>`)).join('');
+      html += '<div class="sync-panel-section-label">Needs attention</div><div class="sync-card">';
+      html += errorItems.map(i => row(i, 'err', 'sync-problem', `<uxt-button class="sync-item-action" variant="text" text="Review" onclick="reviewSyncItem('${i.id}')"></uxt-button>`)).join('') + '</div>';
     }
     if (queuedItems.length) {
-      html += '<div class="sync-panel-section-label">Queued</div>';
-      html += queuedItems.map(i => row(i, 'queued', `<uxt-button class="sync-item-action" variant="outlined" text="Retry" onclick="retrySyncItem('${i.id}')"></uxt-button>`)).join('');
+      html += '<div class="sync-panel-section-label">Queued</div><div class="sync-card">';
+      html += queuedItems.map(i => row(i, 'neutral', 'cloud-upload', `<uxt-button class="sync-item-action" variant="text" text="Retry" onclick="retrySyncItem('${i.id}')"></uxt-button>`)).join('') + '</div>';
     }
     listEl.innerHTML = html || `<div class="sync-panel-empty">No Transactions</div>`;
   }
   const hydrateEl = document.getElementById('syncPanelHydrate');
   if (hydrateEl) {
-    hydrateEl.innerHTML = [
+    hydrateEl.innerHTML = '<div class="sync-panel-section-label">Downloads</div><div class="sync-card sync-card-pad">' + [
       /* §2.3/§4.4.2, resequenced 2026-08-25. Configuration is Tier 0 —
          bootstrap config (identity, nav/function resolution, page layout +
          workflow tables, status authorizations, dataspy defs, the code
@@ -2707,7 +2714,7 @@ function openSyncPanel() {
       <div class="sync-hydrate-row">
         <div class="sync-hydrate-label"><span>${label}</span><span>${pct}%</span></div>
         <div class="sync-hydrate-track"><div class="sync-hydrate-fill" style="width:${pct}%"></div></div>
-      </div>`).join('');
+      </div>`).join('') + '</div>';
   }
   openSheet('syncPanelSheet');
 }
@@ -5428,12 +5435,50 @@ function resumeCardHtml() {
     + '</div>'
     + '<div class="rs-actions" onclick="event.stopPropagation()">'
       + '<uxt-button class="rs-resume" variant="contained" text="' + (upNext ? 'Start work' : 'Resume') + '" onclick="openDemoWoAtCursor(\'' + r.wo + '\')"></uxt-button>'
-      + '<uxt-icon-button icon="photo-camera" label="Add photo" density="m" onclick="showToast(\'Add photo (prototype)\')"></uxt-icon-button>'
-      + '<uxt-icon-button icon="bookmark" label="Pin work order" density="m" onclick="showToast(\'Pinned ' + r.wo + '\')"></uxt-icon-button>'
-      + '<uxt-icon-button icon="share" label="Share" density="m" onclick="showToast(\'Share (prototype)\')"></uxt-icon-button>'
+      // No Add photo; bookmark is a pin (Minh, 2026-11-03: every bookmark/star is a pin).
+      + '<uxt-icon-button icon="keep" label="Pin work order" density="m" onclick="showToast(\'Pinned ' + r.wo + '\')"></uxt-icon-button>'
+      + '<uxt-icon-button icon="share" label="Share" density="m" onclick="openShareSheet({ wo: \'' + r.wo + '\', title: \'' + kitEsc(desc).replace(/'/g, '&#39;') + '\', eq: \'' + kitEsc(eq.name).replace(/'/g, '&#39;') + '\', step: \'' + kitEsc(upNext ? 'Breakdown · due today' : runStepLabel(r)).replace(/'/g, '&#39;') + '\' })"></uxt-icon-button>'
     + '</div>'
     + (runs.length > 1 ? '<button class="resume-card-more" onclick="event.stopPropagation();openRunsInProgress()">+' + (runs.length - 1) + ' more in progress</button>' : '')
     + '</div>';
+}
+/* SHARE (Minh, 2026-11-03): a preview sheet. The work item as a card on
+   top (what the recipient will see), then the share targets as round icon
+   buttons in a horizontal scroll: Message, Email, Copy link, and more. */
+const SHARE_TARGETS = [
+  ['message', 'chat-bubble', 'Message'], ['email', 'mail', 'Email'], ['copy', 'link', 'Copy link'],
+  ['crew', 'send', 'Send to crew'], ['more', 'more-horiz', 'More'],
+];
+let shareItem = null;
+function openShareSheet(item) {
+  shareItem = item;
+  ensureSharedSheet('shareSheet', `
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header"><div class="sheet-title">Share work order</div></div>
+    <div class="sheet-body"><div id="sharePreview"></div><div class="share-targets" id="shareTargets"></div></div>`);
+  const link = 'https://eam.attune.app/wo/' + item.wo;
+  document.getElementById('sharePreview').innerHTML = `
+    <div class="share-card">
+      <span class="resume-card-eyebrow">Work order</span>
+      <div class="share-card-title"><span class="resume-card-wo">${kitEsc(item.wo)}</span> ${item.title}</div>
+      <div class="share-card-sub">${item.eq}</div>
+      <div class="share-card-step">${item.step}</div>
+      <div class="share-card-link">${kitEsc(link)}</div>
+    </div>`;
+  document.getElementById('shareTargets').innerHTML = SHARE_TARGETS.map(([id, icon, label]) => `
+    <button type="button" class="share-target" onclick="shareTo('${id}')">
+      <span class="share-target-ico"><uxt-icon-button presentational tone="inherit" density="m" icon="${icon}"></uxt-icon-button></span>
+      <span class="share-target-label">${label}</span>
+    </button>`).join('');
+  openSheetExclusive('shareSheet');
+}
+function shareTo(id) {
+  if (!shareItem) return;
+  const link = 'https://eam.attune.app/wo/' + shareItem.wo;
+  const label = (SHARE_TARGETS.find(t => t[0] === id) || [])[2] || 'Share';
+  if (id === 'copy') { try { navigator.clipboard && navigator.clipboard.writeText(link); } catch (e) {} closeAllSheets(); showToast('Link copied'); return; }
+  closeAllSheets();
+  showToast(label + ' (prototype)');
 }
 function renderResumeCard(mountId) {
   const el = document.getElementById(mountId || 'resumeCardMount');

@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — Home v1</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031723">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202611031723">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031730">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611031730">
 <!--
   HOME SCREEN — session riff, first pass (2026-07-16). Loads the two
   shared files per docs/archive/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md;
@@ -403,7 +403,7 @@
     <!-- TILES: Danny's sections on kit styling. "More" ends the last row and
          opens every screen, so screens past WOs/Equipment have a way in. -->
     <div id="homeTilesView">
-      <h2 class="home-section-label" id="favSectionLabel">Favorites<uxt-icon-button presentational icon="star" density="m"></uxt-icon-button></h2>
+      <h2 class="home-section-label" id="favSectionLabel">Pinned<uxt-icon-button presentational icon="keep" density="m"></uxt-icon-button></h2>
       <div class="fav-row" id="favRow"></div>
 
       <div class="home-section-head"><h2 class="home-section-label">Quick actions</h2><button type="button" class="home-section-link" onclick="openMoreScreens()">More</button></div>
@@ -710,14 +710,14 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/notifications.js?v=202611031723"></script>
+<script src="../../data/notifications.js?v=202611031730"></script>
 <!-- The Resume card names the WO it resumes (§32.7) — descriptions only. -->
-<script src="../../data/equipment.js?v=202611031723"></script>
-<script src="shared/vendor/three.min.js?v=202611031723"></script>
-<script src="../../data/wo-19257.js?v=202611031723"></script>
-<script src="../../data/wo-19831.js?v=202611031723"></script>
-<script src="../../data/wo-20450.js?v=202611031723"></script>
-<script src="shared/eam-shared.js?v=202611031723"></script>
+<script src="../../data/equipment.js?v=202611031730"></script>
+<script src="shared/vendor/three.min.js?v=202611031730"></script>
+<script src="../../data/wo-19257.js?v=202611031730"></script>
+<script src="../../data/wo-19831.js?v=202611031730"></script>
+<script src="../../data/wo-20450.js?v=202611031730"></script>
+<script src="shared/eam-shared.js?v=202611031730"></script>
 <script>
 // Insert Mode's Type pill (§9.4.1, added 2026-07-29) re-scopes the flat
 // fields section on every change, not just on entity switch — same
@@ -1054,7 +1054,7 @@ function quickFavTilesHtml() {
     return `<div class="home-tile" data-id="${f.id}" onpointerdown="onItemPointerDown(event,'fav','${f.id}')">
       <span class="home-tile-sq" style="background:${tint};color:${glyphColor}">${kitGlyph(m.icon)}</span>
       <span class="home-tile-label">${f.name}</span>
-      <span class="home-tile-sub">Favorite</span>
+      <span class="home-tile-sub">Pinned</span>
     </div>`;
   }).join('');
 }

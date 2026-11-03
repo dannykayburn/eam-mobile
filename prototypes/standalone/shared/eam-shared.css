@@ -2573,3 +2573,53 @@ html.kb-up .bottom-sheet .sheet-cta-float{display:none;}
 @media (prefers-reduced-motion:reduce){.step-rail:has(.timer-pill:not(.stopped))::before{animation:none;background:var(--uxt-theme-palette-primary-main,#0055ff);}}
 .bottom-sheet.as-push-page .sheet-body{padding-bottom:0;overflow-y:auto;}
 .bottom-sheet.as-push-page .kit-sheet-search uxt-search-bar .sb{background:var(--k-card);}
+.sheet-group-label{font-family:var(--uxt-theme-typography-overline-font-family,var(--font-sans));font-size:var(--uxt-theme-typography-overline-font-size,0.75rem);letter-spacing:var(--uxt-theme-typography-overline-letter-spacing,1px);text-transform:uppercase;color:var(--k-text-2);padding:var(--k-s4) var(--k-s4) var(--k-s1);}
+#sortSheet .sheet-body{padding-bottom:var(--k-s2);}
+.sort-by-row{display:flex;align-items:center;justify-content:space-between;padding:var(--k-s2) var(--k-s4) var(--k-s1);}
+.sort-by-row .sheet-group-label{padding:0;}
+.sort-dir-btns{display:flex;gap:var(--k-s2);}
+uxt-icon-button.sort-dir-btn.on .ib{background:var(--k-selected);}
+/* Step map icons (Minh, 2026-11-03): light status fill with the darker glyph,
+   the app's icon treatment. Done = green 50 / 900 with a real check glyph;
+   current = blue 50 / 900 with the step number. */
+.step-map-icon.smi-done{background:var(--k-ok-bg) !important;color:var(--k-ok-fg) !important;}
+.step-map-icon.smi-active{background:var(--k-info-bg) !important;color:var(--k-info-fg) !important;font-weight:600;}
+.step-map-icon svg{display:block;}
+.kit-sheet-search[hidden]{display:none !important;}
+/* Sync panel, standardized (Minh, 2026-11-03): page fill behind cards. */
+#syncPanelSheet{background:var(--k-paper);}
+#syncPanelSheet .sheet-header{background:var(--k-card);}
+.sync-panel-state{color:var(--k-text-2) !important;font-weight:400;padding:var(--k-s2) var(--k-s4) 0;}
+.sync-panel-state.state-error{color:var(--k-err-fg) !important;}
+#syncPanelSheet .sync-panel-section-label{font-family:var(--uxt-theme-typography-overline-font-family,var(--font-sans));font-size:var(--uxt-theme-typography-overline-font-size,0.75rem);letter-spacing:var(--uxt-theme-typography-overline-letter-spacing,1px);font-weight:400;padding:var(--k-s4) var(--k-s6) var(--k-s1);}
+.sync-card{background:var(--k-card);border-radius:var(--k-r);box-shadow:var(--k-e1);margin:0 var(--k-s4);overflow:hidden;}
+.sync-card-pad{padding:var(--k-s2) var(--k-s4);}
+.sync-card .sync-item-row{border-bottom:none;gap:var(--k-s4);padding:var(--k-s2) var(--k-s2) var(--k-s2) var(--k-s4);min-height:64px;}
+.sync-card .sync-item-row + .sync-item-row{border-top:1px solid var(--k-divider);}
+.sync-item-ico{width:40px;height:40px;border-radius:var(--k-pill);display:flex;align-items:center;justify-content:center;flex:none;}
+.sync-item-ico.tone-err{background:var(--k-err-bg);color:var(--k-err-fg);}
+.sync-item-ico.tone-neutral{background:var(--k-selected);color:var(--k-text-2);}
+.sync-item-info{flex:1;min-width:0;}
+.sync-item-name{font-size:var(--k-body2);font-weight:600;color:var(--k-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sync-item-meta{font-family:var(--font-sans) !important;}
+#syncPanelHydrate{padding:0 0 var(--k-s6);}
+/* The "Preview theme" dev bar is gone everywhere (Minh, 2026-11-03); Dark
+   mode lives on the menu page. */
+.proto-theme-bar{display:none !important;}
+/* Share preview sheet. */
+#shareSheet .sheet-body{padding:var(--k-s4) 0 var(--k-s6);background:var(--k-paper);}
+.share-card{margin:0 var(--k-s4);padding:var(--k-s4);background:var(--k-card);border-radius:var(--k-r);box-shadow:var(--k-e1);display:flex;flex-direction:column;gap:var(--k-s1);}
+.share-card-title{font-size:var(--k-body1,1rem);font-weight:600;color:var(--k-text);}
+.share-card-sub{font-size:var(--k-body2);color:var(--k-text);}
+.share-card-step{font-size:var(--k-caption);color:var(--k-text-2);}
+.share-card-link{margin-top:var(--k-s2);padding-top:var(--k-s2);border-top:1px solid var(--k-divider);font-size:var(--k-caption);color:var(--k-text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.share-targets{display:flex;gap:var(--k-s4);overflow-x:auto;padding:var(--k-s6) var(--k-s4) 0;scrollbar-width:none;}
+.share-targets::-webkit-scrollbar{display:none;}
+.share-target{flex:none;width:72px;display:flex;flex-direction:column;align-items:center;gap:var(--k-s2);background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-sans);}
+.share-target-ico{width:56px;height:56px;border-radius:var(--k-pill);background:var(--k-card);border:1px solid var(--k-divider);display:flex;align-items:center;justify-content:center;color:var(--k-text);}
+.share-target:active .share-target-ico{background:var(--k-selected);}
+.share-target-label{font-size:var(--k-caption);color:var(--k-text);text-align:center;line-height:1.3;}
+/* Download bars: thinner, more room (Minh, 2026-11-03). */
+.sync-hydrate-row{padding:var(--k-s2) 0 !important;}
+.sync-hydrate-track{height:2px !important;}
+.sync-hydrate-label{margin-bottom:6px !important;}
