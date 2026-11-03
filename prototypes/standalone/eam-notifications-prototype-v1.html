@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — Notifications</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031719">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202611031719">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031721">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611031721">
 <!--
   NOTIFICATIONS SCREEN (v1, 2026-07-22) — the "quick and dirty" build
   called out as deferred backlog during the app-wide nav/palette rollout
@@ -55,12 +55,13 @@
 -->
 <style>
   /* ── Screen-local: the Octave mobile kit Notifications template (Minh,
-     2026-11-03). Kit Tabs (All / Unread n), a text "Mark all read", then
+     2026-11-03). kit Toggle Button Group (All / Unread n, matching Detailed/List), a text "Mark all read", then
      per day an overline label OUTSIDE a card of kit List Items: icon,
      subject, body, WO; trailing time + unread dot; swipe left to dismiss
      (Danny's interaction, kept). ── */
   .notif-tabs{display:block;flex-shrink:0;}
-  .notif-actions{display:flex;justify-content:flex-end;padding:var(--k-s1) var(--k-s2) 0;flex-shrink:0;}
+  .notif-actions{flex-shrink:0;}
+  .notif-actions > uxt-button{margin-left:auto;}
   .notif-day{font-family:var(--uxt-theme-typography-overline-font-family,var(--font-sans));font-size:var(--uxt-theme-typography-overline-font-size,0.75rem);font-weight:var(--uxt-theme-typography-overline-font-weight,400);letter-spacing:var(--uxt-theme-typography-overline-letter-spacing,1px);line-height:var(--uxt-theme-typography-overline-line-height,2);text-transform:uppercase;color:var(--k-text-2);padding:var(--k-s2) var(--k-s6) var(--k-s1);}
   .notif-group{background:var(--k-card);border-radius:var(--k-r);box-shadow:var(--k-e1);margin:0 var(--k-s4) var(--k-s2);overflow:hidden;}
   /* Swipe to dismiss (Minh, 2026-11-03), replacing the ✕: drag a row left;
@@ -131,10 +132,10 @@
     </div>
   </header>
 
-  <!-- Kit Tabs: All / Unread (count). Mark all read is a kit text button
-       on its own row, right-aligned, as in the mobile kit template. -->
-  <uxt-tabs class="notif-tabs" id="notifTabs" density="m" full-width value="all" options='[{"value":"all","label":"All"},{"value":"unread","label":"Unread"}]' onchange="setNotifFilter(event.detail.value)"></uxt-tabs>
-  <div class="notif-actions">
+  <!-- All / Unread (count): the same kit Toggle Button Group as WO List's
+       Detailed/List. Under it, the unread count and Mark all read. -->
+  <div class="kit-mode-tog"><uxt-toggle-button-group id="notifTabs" density="m" value="all" options='[{"value":"all","label":"All"},{"value":"unread","label":"Unread"}]' onchange="setNotifFilter(event.detail.value)"></uxt-toggle-button-group></div>
+  <div class="res-row notif-actions"><span class="res-count" id="notifCount"></span>
     <uxt-button id="markAllBtn" variant="text" tone="neutral" text="Mark all read" onclick="markAllRead()"></uxt-button>
   </div>
 
@@ -187,8 +188,8 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/notifications.js?v=202611031719"></script>
-<script src="shared/eam-shared.js?v=202611031719"></script>
+<script src="../../data/notifications.js?v=202611031721"></script>
+<script src="shared/eam-shared.js?v=202611031721"></script>
 <script>
 const CURRENT_USER_NAME = 'Bruce Campbell';
 let notifFilter = 'all';
@@ -204,6 +205,8 @@ function syncNotifFilterChips() {
   const unread = EAM_NOTIFICATIONS.filter(n => !n.read).length;
   tabs.setAttribute('options', JSON.stringify([{ value: 'all', label: 'All' }, { value: 'unread', label: 'Unread', count: unread }]));
   tabs.setAttribute('value', notifFilter);
+  const c = document.getElementById('notifCount');
+  if (c) c.textContent = unread ? `${unread} unread` : 'All caught up';
 }
 
 // Kit icon registry names per notification type.
