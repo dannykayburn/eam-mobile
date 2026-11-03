@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — Activity Checklist (Step 2)</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031730">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202611031730">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031733">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611031733">
 <!--
   SCROLL NAVIGATION IS THE MODEL — A/B RESOLVED 2026-09-21 (user direction:
   "Remove the A/B checklist option. We will go with the scroll version.").
@@ -498,6 +498,25 @@ uxt-input.f-text-kit { display: block; }
 uxt-status-chip.ov-group-badge { flex-shrink: 0; }
 .ov-req-star { color: var(--uxt-theme-palette-text-error, #e4171f); font-weight: 500; font-size: var(--k-caption); }
 .kit-spacer-16 { height: var(--k-s4); }
+/* ── Checklist standardized on the app's card system (Minh, 2026-11-03) ──
+   Counters in the sans face (mono stays for nothing here), a thin progress
+   bar, the item banner on the page fill, the confirm control as ONE card
+   (no box inside a card), and Follow-up as a card row like Comments. */
+.stepper-item-count{font-family:var(--font-sans) !important;font-size:var(--k-caption) !important;font-weight:400 !important;color:var(--k-text-2) !important;}
+.stepper-progress-bar{height:2px !important;}
+.stepper-progress-fill{background:var(--k-primary) !important;}
+.snap-banner{background:transparent !important;border:none !important;height:auto !important;min-height:40px;padding:var(--k-s2) var(--k-s4) 0 !important;}
+.snap-banner-num{font-family:var(--font-sans) !important;font-size:var(--k-body2) !important;font-weight:600 !important;letter-spacing:0 !important;color:var(--k-text-2) !important;}
+.snap-banner-of{font-family:var(--font-sans) !important;font-size:var(--k-body2) !important;font-weight:400 !important;color:var(--k-text-2) !important;align-self:auto !important;padding:0 !important;}
+.snap-banner-eq-code{font-family:var(--font-sans) !important;font-size:var(--k-caption) !important;font-weight:600 !important;}
+.snap-banner-eq-desc{font-size:var(--k-caption) !important;color:var(--k-text-2) !important;}
+.snap-banner-none{font-family:var(--font-sans) !important;letter-spacing:0 !important;text-transform:none !important;}
+.f-chk{border:none !important;justify-content:flex-start !important;min-height:56px !important;padding:var(--k-s2) var(--k-s2) !important;}
+.f-chk-lbl{font-size:var(--k-body1,1rem) !important;font-weight:400 !important;}
+.ch-row-card{width:100%;display:flex;align-items:center;gap:var(--k-s4);min-height:56px;padding:var(--k-s2) var(--k-s4);background:var(--k-card);border:none;border-radius:var(--k-r);box-shadow:var(--k-e1);font-family:var(--font-sans);cursor:pointer;text-align:left;}
+.ch-row-ico{width:40px;height:40px;border-radius:var(--k-pill);display:flex;align-items:center;justify-content:center;background:var(--k-err-bg);color:var(--k-err-fg);flex:none;}
+.ch-row-lbl{flex:1;font-size:var(--k-body2);font-weight:600;color:var(--k-text);}
+.ch-row-card.on{background:var(--k-err-bg);}
 </style>
 </head>
 <body>
@@ -711,13 +730,13 @@ uxt-status-chip.ov-group-badge { flex-shrink: 0; }
 
 </div><!-- /app -->
 
-<script src="../../data/wo-19257.js?v=202611031730"></script>
-<script src="../../data/wo-19831.js?v=202611031730"></script>
-<script src="../../data/wo-20450.js?v=202611031730"></script>
-<script src="../../data/wotype.js?v=202611031730"></script>
-<script src="../../data/wo-workflow.js?v=202611031730"></script>
-<script src="../../data/wo-workflow-steps.js?v=202611031730"></script>
-<script src="shared/eam-shared.js?v=202611031730"></script>
+<script src="../../data/wo-19257.js?v=202611031733"></script>
+<script src="../../data/wo-19831.js?v=202611031733"></script>
+<script src="../../data/wo-20450.js?v=202611031733"></script>
+<script src="../../data/wotype.js?v=202611031733"></script>
+<script src="../../data/wo-workflow.js?v=202611031733"></script>
+<script src="../../data/wo-workflow-steps.js?v=202611031733"></script>
+<script src="shared/eam-shared.js?v=202611031733"></script>
 <script>
 /* ── Octave kit glue (2026-10-20) ─────────────────────────────────────
    Next is a kit <uxt-button>: its label is an attribute, never innerHTML.
@@ -1475,7 +1494,13 @@ function itemFullHtml(it) {
       </div>
     </div>
 
-    <div class="followup-btn-lg"><uxt-button class="kit-btn-block" variant="${it.followup ? 'contained' : 'outlined'}" tone="error" text="${it.followup ? 'Flagged for Follow-up' : 'Flag for Follow-up'}" onclick="toggleFollowup()"></uxt-button></div>
+    <!-- Follow-up as a card row like Comments / Documents (Minh, 2026-11-03):
+         tinted flag circle, label, and a kit switch for the flagged state. -->
+    <div class="followup-btn-lg"><button type="button" class="ch-row-card${it.followup ? ' on' : ''}" onclick="toggleFollowup()" aria-pressed="${!!it.followup}">
+      <span class="ch-row-ico"><uxt-icon-button presentational tone="inherit" density="m" icon="flag"></uxt-icon-button></span>
+      <span class="ch-row-lbl">${it.followup ? 'Flagged for follow-up' : 'Flag for follow-up'}</span>
+      <uxt-switch density="m" inert ${it.followup ? 'checked' : ''} aria-hidden="true"></uxt-switch>
+    </button></div>
 
     ${it.followup ? `<div class="create-fu-wo-btn"><uxt-button class="kit-btn-block" variant="contained" text="Create Follow-up WO" onclick="createFollowupWO()"></uxt-button></div>` : ''}
 

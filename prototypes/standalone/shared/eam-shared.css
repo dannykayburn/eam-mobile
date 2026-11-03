@@ -2623,3 +2623,13 @@ uxt-icon-button.sort-dir-btn.on .ib{background:var(--k-selected);}
 .sync-hydrate-row{padding:var(--k-s2) 0 !important;}
 .sync-hydrate-track{height:2px !important;}
 .sync-hydrate-label{margin-bottom:6px !important;}
+/* Booking pull-up on the design kit (Minh, 2026-11-03): white rows, kit
+   type (label Body 2 secondary, value Body 2 primary), no mono, kit lock. */
+#bookingPullupSheet .sheet-body{background:var(--k-card);}
+#bookingPullupSheet .form-field.protected{background:var(--k-card) !important;min-height:48px;padding:var(--k-s2) var(--k-s4);border-bottom:1px solid var(--k-divider);display:flex;align-items:center;gap:var(--k-s2);}
+#bookingPullupSheet .form-field.protected .field-label{flex:1;font-size:var(--k-body2);color:var(--k-text-2);}
+#bookingPullupSheet .form-field.protected .field-value,#bookingPullupSheet .form-field.protected .field-lov-desc{font-family:var(--font-sans) !important;font-size:var(--k-body2);color:var(--k-text);}
+#bookingPullupSheet .form-field.protected .field-lov-code{font-family:var(--font-sans) !important;font-size:var(--k-caption);color:var(--k-text-2);}
+#bookingPullupSheet .form-field.protected .field-lov-value{display:flex;flex-direction:column;align-items:flex-end;}
+#bookingPullupSheet .field-lock{color:var(--k-hint);flex:none;}
+#bookingPullupSheet .bkg-note{padding:var(--k-s4);font-size:var(--k-body2);color:var(--k-text-2);}

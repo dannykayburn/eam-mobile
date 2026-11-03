@@ -5971,9 +5971,8 @@ function stopHoldStep() {
    discards. That is the whole reason a technician can open Book Labor from
    the More group just to look at the list without it costing them their
    clock. ══════════════════════════════════════════════════════════════════ */
-const BOOKING_LOCK_SVG = '<svg class="field-lock" width="13" height="13" fill="none" viewBox="0 0 24 24">'
-  + '<rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/>'
-  + '<path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+// Kit lock glyph (Minh, 2026-11-03: booking sheet on the design kit).
+const BOOKING_LOCK_SVG = '<uxt-icon-button class="field-lock" presentational icon="lock" density="s" aria-hidden="true"></uxt-icon-button>';
 
 /* Live state for the open sheet. Null when closed, which is also how the
    confirm handler refuses a stale tap. */
