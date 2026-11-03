@@ -104,7 +104,7 @@ consulted rather than read.
 
 | Document | What it owns | Read it when |
 | --- | --- | --- |
-| `docs/design-decisions-v3-1.md` | **Every locked design rule, and its rationale.** §1–§31. Open items §20, superseded decisions §21. | "What is the rule for X?" **Grep for the section.** |
+| `docs/design-decisions-v3-1.md` | **Every locked design rule, and its rationale.** §1–§33 (§33 is future design, not locked). Open items §20, superseded decisions §21. | "What is the rule for X?" **Grep for the section.** |
 | `docs/component-library.md` | What a UI pattern is **called**, and its rules. | Before naming or inventing a component. |
 | `docs/ui-component-inventory.md` | Raw CSS-level component audit. | Porting a component. |
 | `docs/handoffs/EAM-HANDOFF-UX-User-Testing-Brief.md` §4 | Catalogue of known prototype stubs. | Before device testing — do not rediscover the list. |
@@ -307,6 +307,7 @@ Explicit, so the squad can say no with a citation.
 | **NG6** | **Personas beyond the field technician.** | Supervisor, planner and storeroom personas are out of v1. The Standard Model is built so each additional entity is a field-set exercise, not a new app. |
 | **NG7** | **Last-write-wins conflict resolution.** | Withdrawn 2026-09-08: it is silently lossy and directly contradicts R6. Conflicts resolve **per write shape** instead. *(Spec §2.5.)* |
 | **NG8** | **The base product's desktop UI, in any form.** | **Out of scope entirely** (user direction 2026-09-16: *"It is just the Mobile App and this portal now. Total."*). A prototype existed and was retired to `old versions/` — a scope call, not a quality one. **This programme has exactly two surfaces: the mobile app, and the Workflow Designer Portal that configures it.** The consequence worth citing: any request to restyle, extend or reference "the Base/Desktop UI components" no longer has a destination, and the base track's whole scope is now the portal. *(Spec §21.)* |
+| **NG9** | **Location and travel** (a location field, a map in the Equipment Lookup, travel time). | **Future design, unscheduled.** A non-GIS coordinate view plus a travel segment on the technician timer, sketched so it doesn’t get re-derived. It isn’t R2 and it isn’t the rejected viewer-only map: it plots EAM coordinates and replaces nothing in GIS parity. *(Spec §33; open questions in §20.)* |
 
 ---
 
@@ -1059,7 +1060,7 @@ Brief by design. Each rejection has a fuller record in §21.
 | **One blessed function (`WSJOBS`, always)** | Reversed 2026-08-24 — this customer already runs four `WSJOBS` clones as distinct processes, so "always `WSJOBS`" describes nobody's installation. |
 | **A separate Workflow Designer** | Built, then retired for contradicting the one-authoring-surface rule. A third surface is not the answer either. |
 | **UDS field authoring inside Screen Designer** | Repeats the Workflow Designer mistake. Base's own UDS setup owns field definition; Screen Designer only **places**. |
-| **A viewer-only map** (the cheap GIS reduction) | **The viewer reduction does not exist** — parity means editing, and the map is a second sync engine either way. Better to scope it honestly to Phase 2 than to ship a viewer nobody asked for. |
+| **A viewer-only map** (the cheap GIS reduction) | **The viewer reduction does not exist** — parity means editing, and the map is a second sync engine either way. Better to scope it honestly to Phase 2 than to ship a viewer nobody asked for. *A coordinate pin on an EAM record is a different thing, not this reduction (NG9, spec §33.1).* |
 | **A four-tier gate ladder for WO Type re-resolution** | Replaced by one rule (protect at Start Work), which closed three open items at once. |
 | **The punch list as an either/or** — a sync dataspy *or* a pin projection | Held as a two-option kickoff decision for two months, and wrong in its framing: the two mechanisms are bad at exactly what the other is for. Resolved 2026-09-11 as **both**, with the dataspy automatic and pinning manual. The honest cost is that both backend asks are now in scope. *(Spec §2.6/§21.)* |
 | **A launch-time hydration modal** | Rejected outright — progressive hydration instead, with Tier 0 inside the login round-trip. SLO-2 exists to keep the pressure to re-add it off the table. |
