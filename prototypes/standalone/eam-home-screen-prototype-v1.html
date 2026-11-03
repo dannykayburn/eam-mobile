@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — Home v1</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202610301726">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202610301726">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031648">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611031648">
 <!--
   HOME SCREEN — session riff, first pass (2026-07-16). Loads the two
   shared files per docs/archive/EAM-REBUILD-Strategy-and-Execution-Plan-v1.md;
@@ -713,14 +713,14 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/notifications.js?v=202610301726"></script>
+<script src="../../data/notifications.js?v=202611031648"></script>
 <!-- The Resume card names the WO it resumes (§32.7) — descriptions only. -->
-<script src="../../data/equipment.js?v=202610301726"></script>
-<script src="shared/vendor/three.min.js?v=202610301726"></script>
-<script src="../../data/wo-19257.js?v=202610301726"></script>
-<script src="../../data/wo-19831.js?v=202610301726"></script>
-<script src="../../data/wo-20450.js?v=202610301726"></script>
-<script src="shared/eam-shared.js?v=202610301726"></script>
+<script src="../../data/equipment.js?v=202611031648"></script>
+<script src="shared/vendor/three.min.js?v=202611031648"></script>
+<script src="../../data/wo-19257.js?v=202611031648"></script>
+<script src="../../data/wo-19831.js?v=202611031648"></script>
+<script src="../../data/wo-20450.js?v=202611031648"></script>
+<script src="shared/eam-shared.js?v=202611031648"></script>
 <script>
 // Insert Mode's Type pill (§9.4.1, added 2026-07-29) re-scopes the flat
 // fields section on every change, not just on entity switch — same
@@ -959,6 +959,7 @@ function onItemPointerDown(e, kind, id) {
   el.addEventListener('pointermove', moveHandler);
 }
 function startReorder(kind) {
+  if (kind === 'fav') return; // favorites are Quick action cards now; their order follows the list screens
   reorderTarget = kind;
   document.getElementById('reorderDoneBar').classList.add('active');
   document.getElementById('bottomNav').classList.add('hidden'); // now absolutely positioned (glass nav) — hide rather than let it overlap the Done bar, and navigating away mid-reorder isn't a sensible action anyway
@@ -1002,30 +1003,13 @@ function onItemTap(kind, id) {
 }
 
 function renderFavorites() {
-  const mode = reorderTarget === 'fav';
-  // Section header hidden entirely when there are no favorites yet
-  // (2026-07-23, design decision) — an empty "Favorites ⭐" label with
-  // nothing under it read as broken, not just empty, especially now
-  // that WO dataspies start unfavorited by default (this session's own
-  // fix) makes a genuinely-zero state reachable in practice, not just
-  // theoretical. Reappears the instant a first favorite is added, back
-  // in this exact spot — no separate empty-state placeholder needed,
-  // this is a plain show/hide, not a 2nd rendered state.
   const labelEl = document.getElementById('favSectionLabel');
   const rowEl = document.getElementById('favRow');
-  if (labelEl) labelEl.style.display = FAVORITES.length ? '' : 'none';
-  if (rowEl) rowEl.style.display = FAVORITES.length ? '' : 'none';
-  document.getElementById('favRow').innerHTML = FAVORITES.map((f, i) => {
-    const m = SCREEN_META[f.screen];
-    return `<div class="fav-chip${mode ? ' reordering' : ''}" data-id="${f.id}" onpointerdown="onItemPointerDown(event,'fav','${f.id}')">
-      <span class="fav-chip-icon" style="background:${m.color};color:${m.iconColor}">${kitGlyph(m.icon)}</span>
-      <span class="fav-chip-name">${f.name}</span>
-      ${mode ? `<span class="reorder-arrows">
-        <uxt-icon-button icon="chevron-left" label="Move left" outlined density="s" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation();moveItem('fav',${i},-1)"${i === 0 ? ' disabled' : ''}></uxt-icon-button>
-        <uxt-icon-button icon="chevron-right" label="Move right" outlined density="s" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation();moveItem('fav',${i},1)"${i === FAVORITES.length - 1 ? ' disabled' : ''}></uxt-icon-button>
-      </span>` : ''}
-    </div>`;
-  }).join('');
+  // Favorites merged into Quick actions (Minh, 2026-11-03): they render as
+  // cards in that grid (quickFavTilesHtml), so the old row stays hidden.
+  if (labelEl) labelEl.style.display = 'none';
+  if (rowEl) rowEl.style.display = 'none';
+  renderTileGroup('homeTileGridMyWork', t => QUICK_TILE_IDS.includes(t.id), 'grid');
 }
 // Tiles render into two group-scoped grids ("My Work" / "My Equipment"), but
 // moveItem() swaps by index into the flat HOME_TILES array, so each tile
@@ -1056,7 +1040,26 @@ function renderTileGroup(containerId, pick, layout) {
         <uxt-icon-button icon="chevron-left" label="Move left" outlined density="s" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation();moveItem('tile',${i},-1)"${i === 0 ? ' disabled' : ''}></uxt-icon-button>
         <uxt-icon-button icon="chevron-right" label="Move right" outlined density="s" onpointerdown="event.stopPropagation()" onclick="event.stopPropagation();moveItem('tile',${i},1)"${i === HOME_TILES.length - 1 ? ' disabled' : ''}></uxt-icon-button>
       </span>` : ''}
-    </div>`).join('');
+    </div>`).join('') + (containerId === 'homeTileGridMyWork' ? quickFavTilesHtml() : '');
+}
+// A favorite is a Quick action card too, after the four fixed ones. A
+// favorite that opens the same list as a quick tile is shown once, and the
+// grid stops at QUICK_MAX cards (Minh, 2026-11-03: max 6).
+const QUICK_MAX = 6;
+function quickFavTilesHtml() {
+  const quick = HOME_TILES.filter(t => QUICK_TILE_IDS.includes(t.id));
+  const quickKeys = new Set(quick.map(t => t.screen + ':' + (t.spy || '')));
+  const room = Math.max(0, QUICK_MAX - quick.length);
+  return FAVORITES.filter(f => !quickKeys.has(f.screen + ':' + (f.spy || ''))).slice(0, room).map(f => {
+    const m = SCREEN_META[f.screen];
+    const tint = f.screen === 'equip' ? 'var(--equip-tint)' : m.color + '22';
+    const glyphColor = f.screen === 'equip' ? 'var(--equip-accent)' : m.color;
+    return `<div class="home-tile" data-id="${f.id}" onpointerdown="onItemPointerDown(event,'fav','${f.id}')">
+      <span class="home-tile-sq" style="background:${tint};color:${glyphColor}">${kitGlyph(m.icon)}</span>
+      <span class="home-tile-label">${f.name}</span>
+      <span class="home-tile-sub">Favorite</span>
+    </div>`;
+  }).join('');
 }
 function renderTiles() {
   // Quick actions: four cards (2 x 2). Everything else lists as rows.

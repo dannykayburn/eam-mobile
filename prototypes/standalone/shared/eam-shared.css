@@ -2406,7 +2406,7 @@ uxt-icon-button.kit-bar-btn.active > .ib,uxt-icon-button.kit-bar-btn.pinned > .i
 /* Full-width segmented switch: equal segments across the row. The kit group
    has no full-width attribute yet (kit ask), so its pill grid is stretched
    here, scoped to this wrapper only. */
-.kit-mode-tog > uxt-toggle-button-group > .tbg{display:grid;grid-auto-columns:1fr;width:100%;}
+.kit-mode-tog > uxt-toggle-button-group > .tbg{display:grid;grid-auto-columns:1fr;width:100%;background:var(--k-card);}
 /* Long-text editor's Discard (kit Button): hidden until the first close tap
    on a dirty editor adds .show (textEditorCloseTap()). */
 uxt-button.text-editor-discard:not(.show){display:none !important;}
