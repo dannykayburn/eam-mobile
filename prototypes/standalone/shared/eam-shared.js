@@ -4371,6 +4371,8 @@ function updateInlineFieldLayout(input) {
 function toggleCheckbox(row) {
   // Kit checkbox (fieldRowCheckbox): presentational inside the row, which
   // owns the tap — flip its value; `.checked` mirrors a native checkbox.
+  const sw = row.querySelector && row.querySelector('uxt-switch');
+  if (sw) { if (sw.hasAttribute('checked')) sw.removeAttribute('checked'); else sw.setAttribute('checked', ''); return; }
   const kit = row.querySelector && row.querySelector('uxt-checkbox');
   if (kit) { kit.checked = !kit.checked; return; }
   const box = row.querySelector('.field-checkbox');
@@ -4616,7 +4618,7 @@ function renderCommentsExcerptMount() {
   const tabKey = typeof COMMENTS_TAB_KEY !== 'undefined' ? COMMENTS_TAB_KEY : null;
   const all = commentsNewestFirst();
   const shown = limit ? all.slice(0, limit) : all;
-  let html = `<uxt-list-item class="comment-add-row" density="m" icon="add" text="Add comment" onclick="openTextEditor('__comment','Add Comment',(t)=>addCommentToData(t))"></uxt-list-item>`;
+  let html = commentComposerHTML();
   html += `<div class="comment-card-list">${shown.map(renderCommentItemHTML).join('')}</div>`;
   html += viewMoreRowHTML(all.length, limit, tabKey,
     typeof COMMENTS_VIEW_MORE_ONCLICK !== 'undefined' ? COMMENTS_VIEW_MORE_ONCLICK : null);
@@ -4635,8 +4637,31 @@ function renderCommentsTabContent() {
   // drifting asymmetric (Comments relied on the header Plus alone).
   // Newest first, same order as the excerpt (§7.2, 2026-08-11).
   const all = commentsNewestFirst();
-  return `<div class="section-card"><uxt-list-item class="comment-add-row" density="m" icon="add" text="Add comment" onclick="openTextEditor('__comment','Add Comment',(t)=>addCommentToData(t))"></uxt-list-item></div>
+  return `${commentComposerHTML()}
     <div class="comment-card-list">${all.length ? all.map(renderCommentItemHTML).join('') : '<div class="field-caption" style="text-align:center;padding:20px;">No comments yet.</div>'}</div>`;
+}
+
+/* Inline comment composer (2026-11-03): an embedded box on the page, not a
+   bottom sheet. Grows with its text; Post enables once there is text. Sits
+   in page flow, so §3.4's sheet-bottom keyboard rule does not apply. */
+function commentComposerHTML(postFn) {
+  return `<div class="cmt-compose" data-post="${postFn || 'addCommentToData'}">
+    <textarea class="cmt-compose-input" rows="1" maxlength="2000" placeholder="Add comment" aria-label="Add comment" oninput="onComposeInput(this)" onkeydown="if(event.key==='Enter'&&(event.metaKey||event.ctrlKey)){event.preventDefault();postInlineComment(this);}"></textarea>
+    <uxt-icon-button class="cmt-compose-send" icon="arrow-upward" label="Post comment" density="m" disabled onclick="postInlineComment(this)"></uxt-icon-button>
+  </div>`;
+}
+function onComposeInput(ta) {
+  ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 160) + 'px';
+  const btn = ta.parentElement.querySelector('.cmt-compose-send');
+  if (btn) { if (ta.value.trim()) btn.removeAttribute('disabled'); else btn.setAttribute('disabled', ''); }
+}
+function postInlineComment(el) {
+  const box = el.closest('.cmt-compose'); const ta = box && box.querySelector('.cmt-compose-input');
+  if (!ta || !ta.value.trim()) return;
+  const text = ta.value.trim(); ta.value = '';
+  const fn = window[box.dataset.post || 'addCommentToData'];
+  if (typeof fn === 'function') fn(text);
+  if (typeof showToast === 'function') showToast('Comment added');
 }
 function addCommentToData(text) {
   if (!text.trim()) return;
@@ -5741,7 +5766,7 @@ function fieldRowCheckbox(key, label, checkIcon) {
   const v = RECORD[key];
   return `<div class="form-field" data-field="${key}" onclick="toggleCheckbox(this)">
     <span class="field-label">${label}</span>
-    <uxt-checkbox class="field-checkbox-kit" inert aria-label="${kitEsc(label)}" value="${v ? 'checked' : 'unchecked'}"></uxt-checkbox>
+    <uxt-switch class="field-checkbox-kit" inert aria-label="${kitEsc(label)}"${v ? ' checked' : ''}></uxt-switch>
   </div>`;
 }
 function fieldRowProtected(label, value, lockIcon) {

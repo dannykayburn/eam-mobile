@@ -2679,3 +2679,15 @@ body{font-variant-numeric:tabular-nums;}
 .bottom-sheet.as-push-page .sheet-cta-float{background:var(--k-paper);}
 /* No gray inset bands inside cards: part header and locked fields sit on the card; locked reads from the lock glyph + muted text. */
 .sheet-part-header,.form-field.protected{background:var(--k-card) !important;}
+/* On/off options are kit switches, never checkboxes (2026-11-03). */
+.f-chk{justify-content:space-between !important;}
+uxt-switch.field-checkbox-kit,uxt-switch.f-chk-kit{pointer-events:none;flex-shrink:0;}
+.form-field > uxt-switch.field-checkbox-kit{margin-left:auto;}
+/* Inline comment composer + document icons on light tints (2026-11-03). */
+.cmt-compose{display:flex;align-items:flex-end;gap:var(--k-s2);background:var(--k-card);border:1px solid var(--k-control);border-radius:var(--k-r);padding:var(--k-s2) var(--k-s2) var(--k-s2) var(--k-s4);margin:0 0 var(--k-s2);}
+.cmt-compose:focus-within{border-color:var(--uxt-theme-palette-primary-main,#004fec);}
+.cmt-compose-input{flex:1;min-height:32px;max-height:160px;border:0;outline:0;resize:none;background:transparent;color:var(--k-text);font:inherit;font-size:1rem;line-height:1.5;padding:4px 0;}
+.cmt-compose-input::placeholder{color:var(--k-text-2);}
+.cmt-compose-send{flex-shrink:0;}
+.doc-icon{border:0 !important;border-radius:50% !important;width:40px !important;height:40px !important;background:var(--k-info-bg) !important;color:var(--k-info-fg) !important;}
+.tab-content > .cmt-compose{margin:var(--k-s2) var(--k-s4);} .cmt-compose{box-sizing:border-box;width:auto;}

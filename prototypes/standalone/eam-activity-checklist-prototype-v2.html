@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — Activity Checklist (Step 2)</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202611032018">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202611032018">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611032026">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611032026">
 <!--
   SCROLL NAVIGATION IS THE MODEL — A/B RESOLVED 2026-09-21 (user direction:
   "Remove the A/B checklist option. We will go with the scroll version.").
@@ -740,13 +740,13 @@ uxt-status-chip.ov-group-badge { flex-shrink: 0; }
 
 </div><!-- /app -->
 
-<script src="../../data/wo-19257.js?v=202611032018"></script>
-<script src="../../data/wo-19831.js?v=202611032018"></script>
-<script src="../../data/wo-20450.js?v=202611032018"></script>
-<script src="../../data/wotype.js?v=202611032018"></script>
-<script src="../../data/wo-workflow.js?v=202611032018"></script>
-<script src="../../data/wo-workflow-steps.js?v=202611032018"></script>
-<script src="shared/eam-shared.js?v=202611032018"></script>
+<script src="../../data/wo-19257.js?v=202611032026"></script>
+<script src="../../data/wo-19831.js?v=202611032026"></script>
+<script src="../../data/wo-20450.js?v=202611032026"></script>
+<script src="../../data/wotype.js?v=202611032026"></script>
+<script src="../../data/wo-workflow.js?v=202611032026"></script>
+<script src="../../data/wo-workflow-steps.js?v=202611032026"></script>
+<script src="shared/eam-shared.js?v=202611032026"></script>
 <script>
 /* ── Octave kit glue (2026-10-20) ─────────────────────────────────────
    Next is a kit <uxt-button>: its label is an attribute, never innerHTML.
@@ -981,8 +981,8 @@ function renderStepperHead() {
 function controlHtml(it) {
   if (it.type === 'check') {
     return `<div class="f-chk ${it.value?'checked':''}" onclick="setCheck()">
-      <uxt-checkbox class="f-chk-kit" inert aria-label="${kitEsc(it.label)}" value="${it.value ? 'checked' : 'unchecked'}"></uxt-checkbox>
       <span class="f-chk-lbl">${it.value ? 'Confirmed' : 'Tap to confirm'}</span>
+      <uxt-switch class="f-chk-kit" inert aria-label="${kitEsc(it.label)}"${it.value ? ' checked' : ''}></uxt-switch>
     </div>`;
   }
   if (it.type === 'toggle2' || it.type === 'toggle3') {

@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — WO Record View</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202611032018">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202611032018">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611032026">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611032026">
 <!--
   WO WORKFLOW — STEP 1: WO RECORD VIEW (rebuilt 2026-07-16 onto shared/
   eam-shared.css + shared/eam-shared.js, per docs/archive/EAM-REBUILD-Strategy-and-
@@ -659,7 +659,7 @@ uxt-radio-button.act-radio .rb-label { position: absolute; width: 1px; height: 1
                after comparing 7 mockup options) needed no JS changes. -->
           <div class="attr-item checkbox-zone-row" data-field="activityCompleted" onclick="toggleCheckbox(this)">
             <span class="attr-label">Completed</span>
-            <div class="attr-checkbox-zone"><uxt-checkbox class="field-checkbox-kit" inert aria-label="Completed" value="unchecked"></uxt-checkbox></div>
+            <div class="attr-checkbox-zone"><uxt-switch class="field-checkbox-kit" inert aria-label="Completed"></uxt-switch></div>
           </div>
         </div>
       </div>
@@ -672,7 +672,7 @@ uxt-radio-button.act-radio .rb-label { position: absolute; width: 1px; height: 1
         <div class="section-card-body">
           <div class="form-field" data-field="activityMultipleTrades" onclick="toggleCheckbox(this)">
             <span class="field-label">Multiple Trades</span>
-            <uxt-checkbox class="field-checkbox-kit" inert aria-label="Multiple Trades" value="unchecked"></uxt-checkbox>
+            <uxt-switch class="field-checkbox-kit" inert aria-label="Multiple Trades"></uxt-switch>
           </div>
           <div class="form-field" data-field="activityHoursRemaining" onclick="openEdit('activityHoursRemaining','Hours Remaining','number')">
             <span class="field-label">Hours Remaining</span>
@@ -686,7 +686,7 @@ uxt-radio-button.act-radio .rb-label { position: absolute; width: 1px; height: 1
           </div>
           <div class="form-field" data-field="activityHiredLabor" onclick="toggleCheckbox(this); onActivityHiredLaborToggled()">
             <span class="field-label">Hired Labor</span>
-            <uxt-checkbox class="field-checkbox-kit" inert aria-label="Hired Labor" value="unchecked"></uxt-checkbox>
+            <uxt-switch class="field-checkbox-kit" inert aria-label="Hired Labor"></uxt-switch>
           </div>
           <div class="form-field protected" data-field="activitySupplier" id="activitySupplierField" onclick="onActivityProtectedFieldTap('activitySupplier','Supplier')">
             <span class="field-label">Supplier</span>
@@ -720,17 +720,17 @@ uxt-radio-button.act-radio .rb-label { position: absolute; width: 1px; height: 1
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/custom_field_defs.js?v=202611032018"></script>
+<script src="../../data/custom_field_defs.js?v=202611032026"></script>
 <!-- Needed so the header Equipment field can resolve each demo WO's own
      equipmentAssetId to a real record (applyDemoWoEquipment below). -->
-<script src="../../data/equipment.js?v=202611032018"></script>
-<script src="../../data/wo-19257.js?v=202611032018"></script>
-<script src="../../data/wo-19831.js?v=202611032018"></script>
-<script src="../../data/wo-20450.js?v=202611032018"></script>
-<script src="../../data/wotype.js?v=202611032018"></script>
-<script src="../../data/wo-workflow.js?v=202611032018"></script>
-<script src="../../data/wo-workflow-steps.js?v=202611032018"></script>
-<script src="shared/eam-shared.js?v=202611032018"></script>
+<script src="../../data/equipment.js?v=202611032026"></script>
+<script src="../../data/wo-19257.js?v=202611032026"></script>
+<script src="../../data/wo-19831.js?v=202611032026"></script>
+<script src="../../data/wo-20450.js?v=202611032026"></script>
+<script src="../../data/wotype.js?v=202611032026"></script>
+<script src="../../data/wo-workflow.js?v=202611032026"></script>
+<script src="../../data/wo-workflow-steps.js?v=202611032026"></script>
+<script src="shared/eam-shared.js?v=202611032026"></script>
 <script>
 /* ── screen-specific config — everything below is data/wiring only;
    all behavior comes from shared/eam-shared.js. ── */
@@ -1420,13 +1420,15 @@ function setLovCellText(key, code, desc) {
 // a row that owns the tap; state lives in its `value` attribute. Without the
 // kit (DOM shim) the attribute is still the source of truth.
 function isActivityChecked(field) {
-  const box = document.querySelector(`#activityEditPopup [data-field="${field}"] uxt-checkbox`);
+  const box = document.querySelector(`#activityEditPopup [data-field="${field}"] uxt-switch, #activityEditPopup [data-field="${field}"] uxt-checkbox`);
   if (!box) return false;
+  if (box.tagName === 'UXT-SWITCH') return box.hasAttribute('checked');
   return typeof box.checked === 'boolean' ? box.checked : box.getAttribute('value') === 'checked';
 }
 function setActivityChecked(field, val) {
-  const box = document.querySelector(`#activityEditPopup [data-field="${field}"] uxt-checkbox`);
+  const box = document.querySelector(`#activityEditPopup [data-field="${field}"] uxt-switch, #activityEditPopup [data-field="${field}"] uxt-checkbox`);
   if (!box) return;
+  if (box.tagName === 'UXT-SWITCH') { if (val) box.setAttribute('checked', ''); else box.removeAttribute('checked'); return; }
   box.checked = !!val;   // kit setter (or a plain property under the DOM shim)
   box.setAttribute('value', val ? 'checked' : 'unchecked');
 }
@@ -1457,7 +1459,7 @@ function onActivityProtectedFieldTap(field, label) {
 function renderActivityCommentsHTML(act) {
   const rows = (act.comments || []).map(c => `
     <div class="comment-item"><div class="comment-header"><span class="comment-author">${c.author}</span><span class="comment-time">${c.time}</span></div><p class="comment-text">${c.text}</p></div>`).join('');
-  return `<uxt-list-item class="comment-add-row" density="m" icon="add" text="Add comment" onclick="openTextEditor('__activityComment','Add Comment',(t)=>addActivityComment(t))"></uxt-list-item>${rows || '<div class="field-caption">No comments yet.</div>'}`;
+  return `${commentComposerHTML('addActivityComment')}${rows || '<div class="field-caption">No comments yet.</div>'}`;
 }
 function addActivityComment(text) {
   if (!text.trim() || !activityDraft) return;
