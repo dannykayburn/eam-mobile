@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>/* guarded: localStorage throws in iOS Private Browsing, and this runs before eam-shared.js so lsGet() does not exist yet */document.documentElement.setAttribute('data-uxt-density','mobile');document.documentElement.setAttribute('data-uxt-theme','light');try{if(localStorage.getItem('eamTheme')==='dark'){document.documentElement.setAttribute('data-theme','dark');document.documentElement.setAttribute('data-uxt-theme','dark');}}catch(e){}</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1A1A1F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="EAM">
+<link rel="manifest" href="../../manifest.webmanifest">
+<link rel="apple-touch-icon" href="shared/img/icon-180.png">
+<meta name="format-detection" content="telephone=no">
+<title>Attune EAM Mobile — Permissions</title>
+<!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
+<script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611032018">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611032018">
+<!--
+  Permissions (Foundations, 2026-11-03). Two layers a technician meets:
+  1. Device access: the OS permissions the app asks for (Notifications,
+     Camera, Location, Microphone), each tied to the feature that needs it.
+     Turning one on shows the native system prompt.
+  2. Your access: what the user group allows (Epic 2, "each technician sees
+     only what their user group allows"). Read-only; set by the admin.
+-->
+<style>
+  .perm-intro{padding:var(--k-s2) var(--k-s4) var(--k-s4);color:var(--k-text-2);font-size:var(--k-body2);margin:0;}
+  .perm-label{margin:0;padding:var(--k-s4) var(--k-s4) var(--k-s2);font-size:var(--uxt-theme-typography-overline-font-size,.75rem);letter-spacing:var(--uxt-theme-typography-overline-letter-spacing,.08em);text-transform:uppercase;color:var(--k-text-2);font-weight:400;}
+  .perm-card{margin:0 var(--k-s4) var(--k-s2);background:var(--k-card);border:1px solid var(--k-divider);border-radius:var(--k-r);overflow:hidden;}
+  .perm-row{display:flex;align-items:center;gap:var(--k-s3,12px);padding:var(--k-s3,12px) var(--k-s4);min-height:64px;}
+  .perm-row + .perm-row{border-top:1px solid var(--k-divider);}
+  .perm-ic{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .perm-ic uxt-icon-button{pointer-events:none;color:inherit;--uxt-icon-button-color:currentColor;}
+  .perm-ic uxt-icon-button *{color:inherit !important;background:transparent !important;border-color:transparent !important;}
+  .tone-info{background:var(--k-info-bg);color:var(--k-info-fg);}
+  .tone-ok{background:var(--k-ok-bg);color:var(--k-ok-fg);}
+  .tone-warn{background:var(--k-warn-bg);color:var(--k-warn-fg);}
+  .tone-err{background:var(--k-err-bg);color:var(--k-err-fg);}
+  .tone-neutral{background:var(--k-neutral-bg);color:var(--k-neutral-fg);}
+  .perm-text{flex:1;min-width:0;}
+  .perm-title{font-size:var(--k-body1,1rem);color:var(--k-text);}
+  .perm-sub{font-size:var(--k-body2);color:var(--k-text-2);margin-top:2px;}
+  .perm-state{display:inline-flex;align-items:center;gap:6px;font-size:var(--k-caption,.75rem);color:var(--k-text-2);margin-top:4px;}
+  .perm-state::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--uxt-theme-palette-ui-grey-600,#6f7480);}
+  .perm-state.on::before{background:var(--uxt-theme-palette-status-green-600,#209f43);}
+  .perm-state.ask::before{background:var(--uxt-theme-palette-status-orange-600,#f59300);}
+  .perm-role{display:flex;align-items:center;gap:var(--k-s3,12px);padding:var(--k-s3,12px) var(--k-s4);}
+  .perm-lock{color:var(--k-glyph);flex-shrink:0;}
+  .perm-foot{padding:var(--k-s2) var(--k-s4) var(--k-s6,32px);color:var(--k-text-2);font-size:var(--k-caption,.75rem);}
+  /* Native system prompt (native per OS, mobile kit rule): iOS-style alert. */
+  .os-scrim{position:absolute;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:1600;}
+  .os-scrim.open{display:flex;}
+  .os-alert{width:270px;border-radius:14px;background:rgba(242,242,247,.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);text-align:center;overflow:hidden;font-family:-apple-system,system-ui,sans-serif;color:#000;}
+  .os-alert-body{padding:20px 16px 16px;}
+  .os-alert-title{font-size:17px;font-weight:600;line-height:22px;}
+  .os-alert-msg{font-size:13px;line-height:18px;margin-top:4px;}
+  .os-alert-btns{display:flex;border-top:.5px solid rgba(60,60,67,.29);}
+  .os-alert-btns button{flex:1;height:44px;background:none;border:0;font-size:17px;color:#007aff;font-family:inherit;cursor:pointer;}
+  .os-alert-btns button + button{border-left:.5px solid rgba(60,60,67,.29);font-weight:600;}
+  [data-theme="dark"] .os-alert{background:rgba(30,30,32,.96);color:#fff;}
+  [data-theme="dark"] .os-alert-btns{border-color:rgba(84,84,88,.6);} [data-theme="dark"] .os-alert-btns button{color:#0a84ff;}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <header class="nav" onclick="scrollFormToTop()">
+    <div class="nav-left">
+      <uxt-icon-button class="kit-bar-btn" icon="arrow-back" label="Back" outlined density="m" onclick="event.stopPropagation();navBack()"></uxt-icon-button>
+      <span class="prototype-label">PROTOTYPE</span>
+    </div>
+    <div class="nav-title">Permissions</div>
+    <div class="nav-actions"><span id="syncCtrl"></span></div>
+  </header>
+
+  <div class="content" id="permContent">
+    <p class="perm-intro">Attune EAM only asks for what a feature needs. You can change these any time.</p>
+
+    <h2 class="perm-label">Device access</h2>
+    <div class="perm-card" id="deviceList"></div>
+
+    <h2 class="perm-label">Your access</h2>
+    <div class="perm-card">
+      <div class="perm-role">
+        <div class="perm-ic tone-neutral"><uxt-icon-button icon="person" label="" density="m"></uxt-icon-button></div>
+        <div class="perm-text">
+          <div class="perm-title">Bruce Campbell</div>
+          <div class="perm-sub">Technician · Water Utility · FBPP</div>
+        </div>
+      </div>
+    </div>
+    <div class="perm-card" id="groupList"></div>
+    <div class="perm-foot">Set by your EAM admin for your user group. Fields you can't see or edit stay hidden or locked on every screen.</div>
+  </div>
+
+  <div class="os-scrim" id="osScrim">
+    <div class="os-alert" role="alertdialog" aria-labelledby="osTitle">
+      <div class="os-alert-body">
+        <div class="os-alert-title" id="osTitle"></div>
+        <div class="os-alert-msg" id="osMsg"></div>
+      </div>
+      <div class="os-alert-btns">
+        <button onclick="answerOs(false)">Don't Allow</button>
+        <button onclick="answerOs(true)">Allow</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+  <div class="bottom-sheet" id="syncPanelSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
+      <div class="sheet-title">Sync Status</div>
+      <div class="kit-sheet-spacer"></div>
+    </div>
+    <div class="sync-panel-state" id="syncPanelStateLabel"></div>
+    <div class="sheet-body" id="syncPanelList"></div>
+    <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
+  </div>
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+</div>
+
+<script src="shared/eam-shared.js?v=202611032018"></script>
+<script>
+const LS_PERMS = 'eamDevicePerms';
+const DEVICE = [
+  { id:'notifications', icon:'notifications', tone:'info', title:'Notifications', sub:'New assignments, sync problems and PM reminders', os:'“Attune EAM” Would Like to Send You Notifications', osMsg:'Notifications may include alerts, sounds and icon badges.' },
+  { id:'camera', icon:'photo-camera', tone:'ok', title:'Camera', sub:'Scan equipment barcodes and add photos to work orders', os:'“Attune EAM” Would Like to Access the Camera', osMsg:'Scan equipment barcodes and attach photos to work orders.' },
+  { id:'location', icon:'location-on', tone:'warn', title:'Location', sub:'Show work orders and equipment near you', os:'Allow “Attune EAM” to use your location?', osMsg:'Used to show nearby work orders and equipment. Only while you use the app.' },
+  { id:'mic', icon:'mic', tone:'err', title:'Microphone', sub:'Hands-free audio checklist', os:'“Attune EAM” Would Like to Access the Microphone', osMsg:'Answer checklist items by voice while your hands are busy.' },
+];
+const GROUP = [
+  { title:'Work orders', sub:'View, edit, book labor and close', on:true },
+  { title:'Equipment', sub:'View only', on:true },
+  { title:'Parts', sub:'Issue and return from IND-MAIN', on:true },
+  { title:'Costs', sub:'Hidden for your user group', on:false },
+  { title:'Create work requests', sub:'Not allowed for your user group', on:false },
+];
+function permState(){ try{ return JSON.parse(localStorage.getItem(LS_PERMS)) || {notifications:'on', camera:'on'}; }catch(e){ return {notifications:'on', camera:'on'}; } }
+function savePerms(s){ try{ localStorage.setItem(LS_PERMS, JSON.stringify(s)); }catch(e){} }
+const STATE_TXT = { on:'Allowed', off:'Not allowed', ask:'Not asked yet' };
+function renderPerms(){
+  const s = permState();
+  document.getElementById('deviceList').innerHTML = DEVICE.map(d => {
+    const st = s[d.id] || 'ask';
+    return `<div class="perm-row" onclick="togglePerm('${d.id}')">
+      <div class="perm-ic tone-${d.tone}"><uxt-icon-button icon="${d.icon}" label="" density="m"></uxt-icon-button></div>
+      <div class="perm-text"><div class="perm-title">${d.title}</div><div class="perm-sub">${d.sub}</div>
+        <div class="perm-state ${st === 'on' ? 'on' : st === 'ask' ? 'ask' : ''}">${STATE_TXT[st]}</div></div>
+      <uxt-switch density="m" inert ${st === 'on' ? 'checked' : ''} aria-hidden="true"></uxt-switch>
+    </div>`;
+  }).join('');
+  document.getElementById('groupList').innerHTML = GROUP.map(g => `<div class="perm-row">
+      <div class="perm-text"><div class="perm-title">${g.title}</div><div class="perm-sub">${g.sub}</div></div>
+      ${g.on ? '<uxt-icon-button class="perm-lock" icon="check-circle" label="Allowed" density="m"></uxt-icon-button>' : '<uxt-icon-button class="perm-lock" icon="lock" label="Locked" density="m"></uxt-icon-button>'}
+    </div>`).join('');
+}
+let osPending = null;
+function togglePerm(id){
+  const s = permState(), st = s[id] || 'ask';
+  if (st === 'on') { s[id] = 'off'; savePerms(s); renderPerms(); showToast('Turned off. You can turn it back on here.'); return; }
+  if (st === 'off') { showToast('Opening Settings › Attune EAM'); s[id] = 'on'; savePerms(s); setTimeout(renderPerms, 400); return; }
+  const d = DEVICE.find(x => x.id === id); osPending = id;
+  document.getElementById('osTitle').textContent = d.os; document.getElementById('osMsg').textContent = d.osMsg;
+  document.getElementById('osScrim').classList.add('open');
+}
+function answerOs(allow){
+  const s = permState(); s[osPending] = allow ? 'on' : 'off'; savePerms(s);
+  document.getElementById('osScrim').classList.remove('open'); renderPerms();
+}
+renderPerms();
+initSharedApp({ contentSelector: '.content' });
+</script>
+</body>
+</html>

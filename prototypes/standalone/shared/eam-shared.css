@@ -2663,3 +2663,19 @@ body{font-variant-numeric:tabular-nums;}
 .status-pill::before{content:"";width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--uxt-theme-palette-ui-grey-600,#6f7480);}
 .status-pill.from::before,.status-pill.to.fill-completed::before{background:var(--uxt-theme-palette-status-green-600,#209f43);}
 .status-pill.to.fill-onhold::before{background:var(--uxt-theme-palette-status-red-600,#e4171f);}
+
+/* 2026-11-03: sheet titles always dead center (hidden close/Clear slots
+   no longer push them off), and every sheet list row gets the kit inset. */
+.bottom-sheet .sheet-header{position:relative;}
+.bottom-sheet .sheet-header .sheet-title{position:absolute;left:72px;right:72px;top:50%;transform:translateY(-50%);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;}
+.bottom-sheet .sheet-header .sheet-header-right,.bottom-sheet .sheet-header > .sheet-clear-btn{margin-left:auto;}
+.bottom-sheet .sheet-body > uxt-list-item > .uxt-li{min-height:48px;padding:0 var(--k-s2) 0 var(--k-s4);}
+.bottom-sheet .sheet-body > uxt-list-item > .uxt-li.is-multi{min-height:64px;padding-block:var(--k-s2);}
+/* Expanded row details sit on the card, not a gray inset (2026-11-03). */
+.action-row-detail,[data-theme="dark"] .action-row-detail{background:var(--k-card);border-top:1px solid var(--k-divider);}
+.action-row-detail uxt-button[variant="outlined"]{background:var(--k-card);border-radius:var(--k-pill);}
+.bottom-sheet .sheet-header{justify-content:space-between;}
+.bottom-sheet.as-push-page .sheet-header{justify-content:flex-start !important;}
+.bottom-sheet.as-push-page .sheet-cta-float{background:var(--k-paper);}
+/* No gray inset bands inside cards: part header and locked fields sit on the card; locked reads from the lock glyph + muted text. */
+.sheet-part-header,.form-field.protected{background:var(--k-card) !important;}

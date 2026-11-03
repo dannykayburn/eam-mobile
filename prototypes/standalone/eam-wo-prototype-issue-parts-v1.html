@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — Issue Parts (Step 3)</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031945">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202611031945">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611032018">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611032018">
 <!--
   WO WORKFLOW — STEP 3: ISSUE PARTS (rebuilt 2026-07-16 onto shared/
   eam-shared.css + shared/eam-shared.js, per docs/archive/EAM-REBUILD-Strategy-and-
@@ -410,7 +410,7 @@ uxt-status-chip.qty-badge { flex-shrink: 0; }
   </div>
 
   <!-- ── ISSUE/RETURN SHEET (§17.8/§17.9) ─────────────────────────────── -->
-  <div class="bottom-sheet" id="issueSheet">
+  <div class="bottom-sheet as-push-page" id="issueSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
       <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeSheet()"></uxt-icon-button>
@@ -500,14 +500,14 @@ uxt-status-chip.qty-badge { flex-shrink: 0; }
 
 </div><!-- /app -->
 
-<script src="../../data/parts.js?v=202611031945"></script>
-<script src="../../data/wo-19257.js?v=202611031945"></script>
-<script src="../../data/wo-19831.js?v=202611031945"></script>
-<script src="../../data/wo-20450.js?v=202611031945"></script>
-<script src="../../data/wotype.js?v=202611031945"></script>
-<script src="../../data/wo-workflow.js?v=202611031945"></script>
-<script src="../../data/wo-workflow-steps.js?v=202611031945"></script>
-<script src="shared/eam-shared.js?v=202611031945"></script>
+<script src="../../data/parts.js?v=202611032018"></script>
+<script src="../../data/wo-19257.js?v=202611032018"></script>
+<script src="../../data/wo-19831.js?v=202611032018"></script>
+<script src="../../data/wo-20450.js?v=202611032018"></script>
+<script src="../../data/wotype.js?v=202611032018"></script>
+<script src="../../data/wo-workflow.js?v=202611032018"></script>
+<script src="../../data/wo-workflow-steps.js?v=202611032018"></script>
+<script src="shared/eam-shared.js?v=202611032018"></script>
 <script>
 
 /* ── screen-specific config/behavior — chrome (nav, header, step rail,
@@ -661,6 +661,7 @@ function openIssueSheet(partId) {
   setSegActive('ISSUE');
   document.getElementById('sheetOverlay').classList.add('open');
   document.getElementById('issueSheet').classList.add('open');
+  if (typeof kitFloatSheetCta === 'function') { kitFloatSheetCta(document.getElementById('issueSheet')); kitPushPageSheet(document.getElementById('issueSheet')); }
 }
 
 function openAdHocSheet() {
@@ -673,6 +674,7 @@ function openAdHocSheet() {
   setSegActive('ISSUE');
   document.getElementById('sheetOverlay').classList.add('open');
   document.getElementById('issueSheet').classList.add('open');
+  if (typeof kitFloatSheetCta === 'function') { kitFloatSheetCta(document.getElementById('issueSheet')); kitPushPageSheet(document.getElementById('issueSheet')); }
 }
 
 // "Modify" — Action Row standard, 2026-07-24 (design-decisions-v3-1.md
@@ -700,6 +702,7 @@ function openModifySheet(partId) {
   setSegActive('PLANNED');
   document.getElementById('sheetOverlay').classList.add('open');
   document.getElementById('issueSheet').classList.add('open');
+  if (typeof kitFloatSheetCta === 'function') { kitFloatSheetCta(document.getElementById('issueSheet')); kitPushPageSheet(document.getElementById('issueSheet')); }
 }
 
 function closeAnySheet() {

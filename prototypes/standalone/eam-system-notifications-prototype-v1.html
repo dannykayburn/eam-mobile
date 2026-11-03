@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>/* guarded: localStorage throws in iOS Private Browsing, and this runs before eam-shared.js so lsGet() does not exist yet */document.documentElement.setAttribute('data-uxt-density','mobile');document.documentElement.setAttribute('data-uxt-theme','light');try{if(localStorage.getItem('eamTheme')==='dark'){document.documentElement.setAttribute('data-theme','dark');document.documentElement.setAttribute('data-uxt-theme','dark');}}catch(e){}</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1A1A1F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="EAM">
+<link rel="manifest" href="../../manifest.webmanifest">
+<link rel="apple-touch-icon" href="shared/img/icon-180.png">
+<meta name="format-detection" content="telephone=no">
+<title>Attune EAM Mobile — System Notifications</title>
+<!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
+<script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611032018">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611032018">
+<!--
+  System notifications (Foundations, 2026-11-03): what EAM sends through the
+  OS while the app is closed (lock screen) or open (in-app banner). Native
+  surfaces, so they follow iOS, not the kit. Tap one to open its target.
+-->
+<style>
+  .sn-wrap{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;}
+  .sn-top{padding:var(--k-s2) var(--k-s4);display:flex;justify-content:center;position:relative;z-index:2;}
+  .sn-lock{flex:1;position:relative;background:linear-gradient(160deg,#1a1a1f 0%,#3a1c3f 55%,#7a1f6b 100%);color:#fff;font-family:-apple-system,system-ui,sans-serif;overflow:auto;padding:24px 10px 40px;}
+  .sn-date{text-align:center;font-size:20px;font-weight:500;opacity:.9;}
+  .sn-time{text-align:center;font-size:84px;font-weight:600;line-height:1;margin:2px 0 28px;letter-spacing:-2px;}
+  .sn-n{display:flex;gap:10px;align-items:flex-start;background:rgba(245,245,245,.72);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);color:#000;border-radius:20px;padding:12px 14px;margin:0 0 8px;cursor:pointer;}
+  .sn-app{width:38px;height:38px;border-radius:9px;background:#1a1a1f;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff;font-weight:700;font-size:14px;}
+  .sn-body{flex:1;min-width:0;}
+  .sn-head{display:flex;justify-content:space-between;font-size:15px;font-weight:600;}
+  .sn-head span{font-weight:400;font-size:13px;opacity:.6;}
+  .sn-msg{font-size:15px;line-height:20px;margin-top:1px;}
+  .sn-stack{position:relative;margin-bottom:22px;}
+  .sn-section{font-size:13px;opacity:.75;margin:14px 6px 8px;}
+  .sn-app-view{flex:1;position:relative;background:var(--k-page,var(--k-paper));overflow:hidden;}
+  .sn-app-view iframe{width:100%;height:100%;border:0;display:block;}
+  .sn-banner{position:absolute;top:10px;left:10px;right:10px;z-index:5;transform:translateY(-140%);transition:transform .35s cubic-bezier(.4,0,.2,1);box-shadow:0 8px 24px rgba(0,0,0,.18);}
+  .sn-banner.show{transform:none;}
+  .sn-wrap[data-view="lock"] .sn-app-view,.sn-wrap[data-view="app"] .sn-lock{display:none;}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="sn-wrap" id="snWrap" data-view="lock">
+    <div class="sn-top"><uxt-toggle-button-group id="snToggle" density="m" value="lock" options='[{"value":"lock","label":"Lock screen"},{"value":"app","label":"In app"}]' onchange="setView(event.detail.value)"></uxt-toggle-button-group></div>
+    <div class="sn-lock" id="snLock">
+      <div class="sn-date" id="snDate"></div>
+      <div class="sn-time">9:41</div>
+      <div id="snList"></div>
+    </div>
+    <div class="sn-app-view">
+      <div class="sn-n sn-banner" id="snBanner" onclick="openTarget('wo')"></div>
+      <iframe id="snFrame" title="Home" src="about:blank"></iframe>
+    </div>
+  </div>
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+</div>
+<script src="shared/eam-shared.js?v=202611032018"></script>
+<script>
+const TARGETS = { wo:'eam-wo-record-view-prototype-v1.html', sync:'eam-sync-status-prototype-v1.html', notif:'eam-notifications-prototype-v1.html', equip:'eam-equipment-record-view-prototype-v1.html' };
+const NOTES = [
+  { t:'now',    title:'New work order assigned', msg:'19257 · Pump Cavitating; lost head. High priority, due today.', to:'wo' },
+  { t:'2m ago', title:'2 changes didn’t sync', msg:'Tap to review them before you lose connection again.', to:'sync' },
+  { t:'8:30 AM',title:'PM due today',            msg:'Quarterly bearing lubrication on Pump P-204, Line 3.', to:'equip', older:true },
+  { t:'8:02 AM',title:'Comment from Meera Kumar', msg:'Replacement bearing staged at Mech B.', to:'notif', older:true },
+];
+function noteHtml(n){ return `<div class="sn-n" onclick="openTarget('${n.to}')"><div class="sn-app">EAM</div><div class="sn-body"><div class="sn-head">${n.title}<span>${n.t}</span></div><div class="sn-msg">${n.msg}</div></div></div>`; }
+function render(){
+  const d = new Date(); document.getElementById('snDate').textContent = d.toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'});
+  const now = NOTES.filter(n => !n.older), old = NOTES.filter(n => n.older);
+  document.getElementById('snList').innerHTML = now.map(noteHtml).join('') + '<div class="sn-section">Earlier</div><div class="sn-stack">' + noteHtml(old[0]) + '</div>' + noteHtml(old[1]);
+  document.getElementById('snBanner').innerHTML = noteHtml(NOTES[0]).replace(/^<div class="sn-n"[^>]*>/,'').replace(/<\/div>$/,'');
+}
+function openTarget(k){ location.href = TARGETS[k]; }
+function setView(v){
+  document.getElementById('snWrap').dataset.view = v;
+  const b = document.getElementById('snBanner'); b.classList.remove('show');
+  if (v === 'app') { const f = document.getElementById('snFrame'); if (f.src.indexOf('home') < 0) f.src = 'eam-home-screen-prototype-v1.html'; setTimeout(() => b.classList.add('show'), 900); setTimeout(() => b.classList.remove('show'), 6000); }
+}
+render();
+</script>
+</body>
+</html>
