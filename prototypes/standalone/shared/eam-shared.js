@@ -3480,7 +3480,7 @@ function updateRequiredBadges() {
 // render the outline variant — no code color left.
 function renderColorBadge(meta) {
   if (!meta) return `<span class="attr-badge attr-badge-outline"></span>`;
-  if (meta.color) return `<span class="attr-badge attr-badge-fill" style="background:${meta.color}">${meta.icon}</span>`;
+  if (meta.color) return `<span class="attr-badge attr-badge-fill" style="--b:${meta.color}">${meta.icon}</span>`;
   return `<span class="attr-badge${meta.critical ? ' attr-badge-critical' : ' attr-badge-outline'}">${meta.icon}</span>`;
 }
 let activeLovKey = null;

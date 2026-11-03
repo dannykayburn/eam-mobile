@@ -16,7 +16,7 @@
      (WO Type, Priority) stay as they were. */
   --font-sans: var(--uxt-theme-typography-font-family, "Octave Sans", "Noto Sans", system-ui, sans-serif);
   --font-display: var(--uxt-theme-typography-h-5-font-family, "Octave Display", "Noto Sans", sans-serif);
-  --font-mono: "JetBrains Mono", monospace;
+  --font-mono: var(--font-sans); /* 2026-11-03: kit fonts only, no mono; digits use tabular-nums */
   --octave-black: var(--uxt-theme-palette-ui-black-700, #1A1A1F); --gray-5:var(--uxt-theme-palette-ui-grey-900, #3E4047); --gray-4:var(--uxt-theme-palette-ui-grey-600, #6F7480); --gray-3:var(--uxt-theme-palette-ui-grey-200, #B2B8C4); --gray-2:var(--uxt-theme-palette-ui-grey-50, #CBD0D8); --gray-1:var(--uxt-theme-palette-ui-white-400, #E7EBF2); --white:var(--uxt-theme-palette-common-white, #FFFFFF);
   --purple:#9933FF; --orange:var(--uxt-theme-palette-cross-pillar-main, #F46600); --octave-yellow:var(--uxt-theme-palette-build-main, #FFF500);
   /* Bumped bolder 2026-07-28 (Primary palette pass) — was #00AA14/#E24B4A,
@@ -2636,3 +2636,30 @@ uxt-icon-button.sort-dir-btn.on .ib{background:var(--k-selected);}
 /* One divider, not two (Minh, 2026-11-03): the expanded rail's step map
    already draws the line above the timer panel. */
 .step-map .step-timer-panel,.step-rail .step-timer-panel{border-top:none !important;}
+
+/* ── 2026-11-03: icon badges = light tint + dark icon (Minh: "icons always
+   go bg light to icon color being dark"). --b is the type/priority hue. ── */
+.attr-badge-fill{background:color-mix(in srgb,var(--b) 16%,var(--k-card));color:color-mix(in srgb,var(--b) 80%,var(--k-text));border:none;}
+.attr-badge-critical{background:var(--k-err-bg);border-color:transparent;color:var(--k-err-fg);}
+[data-theme="dark"] .attr-badge-fill{background:color-mix(in srgb,var(--b) 24%,var(--k-card));color:color-mix(in srgb,var(--b) 70%,var(--k-text));}
+
+/* Record header status = outlined chip with a status dot (mobile: status is
+   a dot, never a filled tint pill). Same shell as the org pill beside it. */
+.rec-status-btn,.rec-status-btn[class*="st-"]{background:var(--k-card);color:var(--k-text);border:1px solid var(--k-control);font-weight:var(--k-btn-weight);}
+.rec-status-btn::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--k-glyph);flex-shrink:0;}
+.rec-status-btn.st-operational::before{background:var(--uxt-theme-palette-status-green-600,#209f43);}
+.rec-status-btn.st-down::before{background:var(--uxt-theme-palette-status-red-600,#e4171f);}
+.rec-status-btn.st-waiting::before{background:var(--uxt-theme-palette-status-orange-600,#f59300);}
+.rec-status-btn.st-standby::before{background:var(--uxt-theme-palette-ui-grey-600,#6f7480);}
+.rec-status-btn svg{color:var(--k-glyph);}
+
+/* ── 2026-11-03 flow sweep ── */
+/* Numbers, IDs and codes: kit sans with tabular digits (no mono). */
+body{font-variant-numeric:tabular-nums;}
+/* Own comment: gray selected fill, never a blue tint. */
+.comment-item[data-mine="true"]{background:var(--uxt-theme-palette-action-selected,#e7ebf2);}
+/* WO Closing status: outlined chips with a status dot, like the record header. */
+.status-pill,.status-pill.from,.status-pill.to[class*="fill-"]{background:var(--k-card) !important;color:var(--k-text) !important;border:1px solid var(--k-control) !important;font-weight:var(--k-btn-weight) !important;display:inline-flex;align-items:center;gap:var(--k-s2);}
+.status-pill::before{content:"";width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--uxt-theme-palette-ui-grey-600,#6f7480);}
+.status-pill.from::before,.status-pill.to.fill-completed::before{background:var(--uxt-theme-palette-status-green-600,#209f43);}
+.status-pill.to.fill-onhold::before{background:var(--uxt-theme-palette-status-red-600,#e4171f);}
