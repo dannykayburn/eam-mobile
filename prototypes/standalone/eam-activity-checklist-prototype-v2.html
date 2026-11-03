@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — Activity Checklist (Step 2)</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031733">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202611031733">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031737">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611031737">
 <!--
   SCROLL NAVIGATION IS THE MODEL — A/B RESOLVED 2026-09-21 (user direction:
   "Remove the A/B checklist option. We will go with the scroll version.").
@@ -517,6 +517,16 @@ uxt-status-chip.ov-group-badge { flex-shrink: 0; }
 .ch-row-ico{width:40px;height:40px;border-radius:var(--k-pill);display:flex;align-items:center;justify-content:center;background:var(--k-err-bg);color:var(--k-err-fg);flex:none;}
 .ch-row-lbl{flex:1;font-size:var(--k-body2);font-weight:600;color:var(--k-text);}
 .ch-row-card.on{background:var(--k-err-bg);}
+/* "View all" overview on the card system (Minh, 2026-11-03): an overline
+   group label on the page fill, then the group's items in one white card. */
+.overview-body{background:var(--k-paper);}
+.ov-group-hdr{background:transparent !important;padding:var(--k-s4) var(--k-s6) var(--k-s1) !important;font-family:var(--uxt-theme-typography-overline-font-family,var(--font-sans));font-size:var(--uxt-theme-typography-overline-font-size,0.75rem) !important;font-weight:400 !important;letter-spacing:var(--uxt-theme-typography-overline-letter-spacing,1px);text-transform:uppercase;color:var(--k-text-2) !important;}
+.ov-group-body{background:var(--k-card);border-radius:var(--k-r);box-shadow:var(--k-e1);margin:0 var(--k-s4);overflow:hidden;}
+.ov-group-body > .ov-row:last-child{border-bottom:none !important;}
+.ov-row{min-height:48px;}
+#ovGroupedList{padding-bottom:var(--k-s6);}
+.ov-row-num,.ov-group-hdr-code{font-family:var(--font-sans) !important;font-size:var(--k-body2) !important;font-weight:400 !important;color:var(--k-text-2) !important;}
+.ov-row-ghost{background:var(--k-card) !important;font-style:normal;}
 </style>
 </head>
 <body>
@@ -730,13 +740,13 @@ uxt-status-chip.ov-group-badge { flex-shrink: 0; }
 
 </div><!-- /app -->
 
-<script src="../../data/wo-19257.js?v=202611031733"></script>
-<script src="../../data/wo-19831.js?v=202611031733"></script>
-<script src="../../data/wo-20450.js?v=202611031733"></script>
-<script src="../../data/wotype.js?v=202611031733"></script>
-<script src="../../data/wo-workflow.js?v=202611031733"></script>
-<script src="../../data/wo-workflow-steps.js?v=202611031733"></script>
-<script src="shared/eam-shared.js?v=202611031733"></script>
+<script src="../../data/wo-19257.js?v=202611031737"></script>
+<script src="../../data/wo-19831.js?v=202611031737"></script>
+<script src="../../data/wo-20450.js?v=202611031737"></script>
+<script src="../../data/wotype.js?v=202611031737"></script>
+<script src="../../data/wo-workflow.js?v=202611031737"></script>
+<script src="../../data/wo-workflow-steps.js?v=202611031737"></script>
+<script src="shared/eam-shared.js?v=202611031737"></script>
 <script>
 /* ── Octave kit glue (2026-10-20) ─────────────────────────────────────
    Next is a kit <uxt-button>: its label is an attribute, never innerHTML.

@@ -2633,3 +2633,6 @@ uxt-icon-button.sort-dir-btn.on .ib{background:var(--k-selected);}
 #bookingPullupSheet .form-field.protected .field-lov-value{display:flex;flex-direction:column;align-items:flex-end;}
 #bookingPullupSheet .field-lock{color:var(--k-hint);flex:none;}
 #bookingPullupSheet .bkg-note{padding:var(--k-s4);font-size:var(--k-body2);color:var(--k-text-2);}
+/* One divider, not two (Minh, 2026-11-03): the expanded rail's step map
+   already draws the line above the timer panel. */
+.step-map .step-timer-panel,.step-rail .step-timer-panel{border-top:none !important;}
