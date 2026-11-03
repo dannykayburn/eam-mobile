@@ -1676,7 +1676,7 @@ body{font-family:var(--font-sans);font-size:var(--k-body2);background:var(--bg-p
    16dp side padding, room under the direction switch, and a check on the one
    selected field (single-select). */
 #sortSheet .kit-mode-tog{margin-bottom:var(--k-s2);}
-#sortList > uxt-list-item > .uxt-li{min-height:48px;padding:0 var(--k-s2) 0 var(--k-s4);}
+#sortList > uxt-list-item > .uxt-li,#prefList > uxt-list-item > .uxt-li{min-height:48px;padding:0 var(--k-s2) 0 var(--k-s4);}
 .sheet-footer{padding:var(--k-s4) var(--k-s4) var(--k-s6);border-top:1px solid var(--k-divider);flex-shrink:0;}
 /* Legacy LOV rows (screen markup) — kit List Item look: 40px+, Body 2, gray
    action-selected for the chosen row. Shared pickers emit <uxt-list-item>. */

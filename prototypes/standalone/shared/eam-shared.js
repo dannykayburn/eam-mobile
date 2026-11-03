@@ -118,6 +118,8 @@ function kitGate(btn, cls, on, disabled) {
 // screen: Material Symbols Outlined "keep" (weight 400, rescaled to 24) for
 // the record pin.
 const KIT_EXTRA_ICONS = {
+  // Material Symbols Outlined "language" (globe), for the Language setting.
+  language: '<g transform="scale(0.025) translate(0 960)"><path d="M480-80q-82 0-155-31.5t-127.5-86Q143-252 111.5-325T80-480q0-83 31.5-155.5t86-127Q252-817 325-848.5T480-880q83 0 155.5 31.5t127 86q54.5 54.5 86 127T880-480q0 82-31.5 155t-86 127.5q-54.5 54.5-127 86T480-80Zm0-82q26-36 45-75t31-83H404q12 44 31 83t45 75Zm-104-16q-18-33-31.5-68.5T322-320H204q29 50 72.5 87t99.5 55Zm208 0q56-18 99.5-55t72.5-87H638q-9 38-22.5 73.5T584-178ZM170-400h136q-3-20-4.5-39.5T300-480q0-21 1.5-40.5T306-560H170q-5 20-7.5 39.5T160-480q0 21 2.5 40.5T170-400Zm216 0h188q3-20 4.5-39.5T580-480q0-21-1.5-40.5T574-560H386q-3 20-4.5 39.5T380-480q0 21 1.5 40.5T386-400Zm268 0h136q5-20 7.5-39.5T800-480q0-21-2.5-40.5T790-560H654q3 20 4.5 39.5T660-480q0 21-1.5 40.5T654-400Zm-16-240h118q-29-50-72.5-87T584-782q18 33 31.5 68.5T638-640Zm-234 0h152q-12-44-31-83t-45-75q-26 36-45 75t-31 83Zm-200 0h118q9-38 22.5-73.5T376-782q-56 18-99.5 55T204-640Z"/></g>',
   keep: '<g transform="scale(0.025) translate(0 960)"><path d="m640-480 80 80v80H520v240l-40 40-40-40v-240H240v-80l80-80v-280h-40v-80h400v80h-40v280Zm-286 80h252l-46-46v-314H400v314l-46 46Zm126 0Z"/></g>',
 };
 (function kitRegisterExtraIcons() {
@@ -1609,10 +1611,74 @@ function kitBuildNavDrawer() {
   dr.addEventListener('help', () => showToast('Help (prototype)'));
   dr.addEventListener('close', () => document.querySelectorAll('.nav .kit-nav-menu').forEach(b => b.setAttribute('aria-expanded', 'false')));
 }
+/* PREFERENCES (Minh, 2026-11-03): Language, First day of week and Date
+   format sit under Settings in the profile menu / drawer. Each row shows its
+   current value and opens one shared single-select bottom sheet (a check on
+   the current option; a tap picks and closes). Device-local via lsSet(). */
+const PREFS = {
+  language: { label: 'Language', icon: 'language', key: 'eamLanguage', def: 'en',
+    options: [['en', 'English'], ['de', 'Deutsch'], ['es', 'Español'], ['fr', 'Français'], ['ja', '日本語']] },
+  firstDay: { label: 'First day of week', icon: 'calendar-today', key: 'eamFirstDayOfWeek', def: 'sun',
+    options: [['sun', 'Sunday'], ['mon', 'Monday'], ['sat', 'Saturday']] },
+  dateFormat: { label: 'Date format', icon: 'calendar-month', key: 'eamDateFormat', def: 'mdy12',
+    options: [['mdy12', 'MM/DD/YYYY - 11:59 PM'], ['dmy24', 'DD/MM/YY - 23:59'], ['iso12', 'YYYY-MM-DD - 11:59 PM']] },
+};
+function prefGet(id) { const p = PREFS[id]; const v = lsGet(p.key); return p.options.some(o => o[0] === v) ? v : p.def; }
+function prefLabel(id) { const v = prefGet(id); return (PREFS[id].options.find(o => o[0] === v) || [])[1] || ''; }
+function prefShortLabel(id) { return id === 'dateFormat' ? prefLabel(id).split(' - ')[0] : prefLabel(id); }
+function kitEnsurePrefRows(menu) {
+  if (!menu) return;
+  const settings = [...menu.querySelectorAll('uxt-list-item')].find(el => /^settings$/i.test((el.getAttribute('text') || '').trim()));
+  let anchor = settings;
+  Object.keys(PREFS).forEach(id => {
+    let row = menu.querySelector(`[data-pref="${id}"]`);
+    if (!row) {
+      row = document.createElement('uxt-list-item');
+      row.className = 'kit-menu-row';
+      row.setAttribute('role', 'menuitem');
+      row.setAttribute('density', 'm');
+      row.setAttribute('data-pref', id);
+      row.setAttribute('icon', PREFS[id].icon);
+      row.setAttribute('text', PREFS[id].label);
+      row.setAttribute('onclick', `if(typeof closeProfileMenu==='function')closeProfileMenu();openPrefSheet('${id}')`);
+      if (anchor && anchor.parentNode === menu) anchor.after(row);
+      else { const lo = menu.querySelector('[data-menu-logout]'); lo ? menu.insertBefore(row, lo) : menu.appendChild(row); }
+    }
+    row.setAttribute('shortcut', prefShortLabel(id));
+    anchor = row;
+  });
+}
+let prefSheetId = null;
+function openPrefSheet(id) {
+  if (typeof closeNavDrawer === 'function') closeNavDrawer();
+  ensureSharedSheet('prefSheet', `
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      ${kitSheetClose('closeAllSheets()')}
+      <div class="sheet-title" id="prefSheetTitle"></div>
+      <div class="kit-sheet-spacer"></div>
+    </div>
+    <div class="sheet-body" id="prefList"></div>`);
+  prefSheetId = id;
+  document.getElementById('prefSheetTitle').textContent = PREFS[id].label;
+  const cur = prefGet(id);
+  document.getElementById('prefList').innerHTML = PREFS[id].options.map(([v, t]) => `
+    <uxt-list-item class="lov-option" density="m" text="${kitEsc(t)}"${v === cur ? ' selected trailing-icon="check"' : ''} onclick="pickPref('${v}')"></uxt-list-item>`).join('');
+  openSheetExclusive('prefSheet');
+}
+function pickPref(v) {
+  const id = prefSheetId;
+  if (!id) return;
+  lsSet(PREFS[id].key, v);
+  kitEnsurePrefRows(document.getElementById('profileMenu'));
+  closeAllSheets();
+  showToast(PREFS[id].label + ': ' + prefLabel(id));
+}
 function openNavDrawer(trigger) {
   const dr = document.getElementById('kitNavDrawer');
   const menu = document.getElementById('profileMenu');
   if (!dr || !menu) return;
+  kitEnsurePrefRows(menu);
   if (typeof closeAllHeaderMenus === 'function') closeAllHeaderMenus();
   kitRenderNavDrawerRows(dr, menu);
   const t = (trigger && trigger.nodeType === 1) ? trigger : document.querySelector('.nav .kit-nav-menu');
