@@ -1538,9 +1538,11 @@ function kitDrawerSourceRows(menu) {
     }
     if (el.hasAttribute('data-menu-logout')) {
       const b = el.querySelector('uxt-button, button, [onclick]') || el;
-      // The menu's action bar (Log out) always sits under a divider line.
-      rows.push({ divider: true });
-      rows.push({ el: b, text: (b.getAttribute && b.getAttribute('text')) || b.textContent.trim() || 'Log out', icon: 'logout' });
+      // Account group (Minh, 2026-11-03): Sign out, then Delete account, in
+      // their own card under an "Account" label at the foot of the menu page.
+      rows.push({ header: true, text: 'Account' });
+      rows.push({ el: b, text: 'Sign out', icon: 'logout' });
+      rows.push({ action: confirmDeleteAccount, text: 'Delete account', icon: 'delete' });
       return;
     }
     if (el.localName === 'uxt-list-item') {
@@ -1574,8 +1576,25 @@ function kitNavDrawerIsOpen() {
 const KIT_DRAWER_LINKS = ['Legal & Privacy', 'Disclosures', 'Accessibility Statement', 'Attributions'];
 // A source row's trailing text as a plain value: drop glyphs, keep words.
 function kitDrawerValue(v) { const t = String(v || '').replace(/[^\p{L}\p{N}\s.,:%/-]/gu, '').trim(); return /\p{L}|\p{N}/u.test(t) ? t : ''; }
+// Menu page layout (Minh, 2026-11-03): no "Prototype" section. Dark mode
+// joins the settings card after Date format; Connectivity and Reset demo
+// leave the menu (Sign out → Log in still runs resetDemoState()).
+function kitMenuPageRows(rows) {
+  const isTheme = (r) => /^appearance$/i.test(String(r.text || '').trim());
+  const out = []; let skip = false; let theme = null;
+  rows.forEach(r => {
+    if (r.header) { skip = /^prototype$/i.test(String(r.text || '').trim()); if (skip) return; }
+    if (skip) { if (isTheme(r)) theme = r; return; }
+    out.push(r);
+  });
+  if (theme) {
+    const lastPref = out.map(r => r.el && r.el.getAttribute && r.el.getAttribute('data-pref')).lastIndexOf('dateFormat');
+    out.splice(lastPref >= 0 ? lastPref + 1 : out.length, 0, Object.assign({}, theme, { lineAbove: false }));
+  }
+  return out;
+}
 function kitRenderNavDrawerRows(dr, menu) {
-  const rows = kitDrawerSourceRows(menu);
+  const rows = kitMenuPageRows(kitDrawerSourceRows(menu));
   dr._rows = rows;
   const dark = document.documentElement.hasAttribute('data-theme');
   const items = rows.map((r, i) => {
@@ -1604,9 +1623,20 @@ function kitBuildNavDrawer() {
   dr.setAttribute('avatar-src', 'shared/img/bcampbell.jpg');
   dr.setAttribute('help-text', 'Find answers to common questions or talk to us');
   app.appendChild(dr);
-  const run = (r) => { if (r && r.el) r.el.click(); };
+  const run = (r) => { if (r && r.action) r.action(); else if (r && r.el) r.el.click(); };
   dr.addEventListener('select', (e) => run(dr._rows && dr._rows[+e.detail.value]));
   dr.addEventListener('toggle', (e) => run(dr._rows && dr._rows[+e.detail.value]));
+  // Settings rows (Language / First day / Date format) open their bottom sheet
+  // over the menu page. Caught in the capture phase, before the kit's own row
+  // handler, which would close the page first.
+  dr.addEventListener('click', (e) => {
+    const row = e.target.closest && e.target.closest('.uxt-nd__row');
+    if (!row) return;
+    const id = Object.keys(PREFS).find(k => PREFS[k].label === row.getAttribute('aria-label'));
+    if (!id) return;
+    e.stopPropagation(); e.preventDefault();
+    openPrefSheet(id);
+  }, true);
   dr.addEventListener('profile', () => showToast('Account & settings (prototype)'));
   dr.addEventListener('help', () => showToast('Help (prototype)'));
   dr.addEventListener('close', () => document.querySelectorAll('.nav .kit-nav-menu').forEach(b => b.setAttribute('aria-expanded', 'false')));
@@ -1647,10 +1677,13 @@ function kitEnsurePrefRows(menu) {
     row.setAttribute('shortcut', prefShortLabel(id));
     anchor = row;
   });
+  // The placeholder "Settings" row (a coming-soon toast) is dropped from the
+  // menu (Minh, 2026-11-03): its three real settings now sit in its place.
+  if (settings) settings.setAttribute('hidden', '');
 }
 let prefSheetId = null;
 function openPrefSheet(id) {
-  if (typeof closeNavDrawer === 'function') closeNavDrawer();
+  // Opens OVER the menu page (it stays open behind), never by closing it.
   ensureSharedSheet('prefSheet', `
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
@@ -1670,7 +1703,10 @@ function pickPref(v) {
   const id = prefSheetId;
   if (!id) return;
   lsSet(PREFS[id].key, v);
-  kitEnsurePrefRows(document.getElementById('profileMenu'));
+  const menu = document.getElementById('profileMenu');
+  kitEnsurePrefRows(menu);
+  const dr = document.getElementById('kitNavDrawer');
+  if (dr && dr.hasAttribute('open')) { kitRenderNavDrawerRows(dr, menu); kitPushPageBack(dr); }
   closeAllSheets();
   showToast(PREFS[id].label + ': ' + prefLabel(id));
 }
@@ -1684,7 +1720,25 @@ function openNavDrawer(trigger) {
   const t = (trigger && trigger.nodeType === 1) ? trigger : document.querySelector('.nav .kit-nav-menu');
   const focusable = t && (t.querySelector && t.querySelector('button') || t);
   if (dr.show) dr.show(focusable); else dr.setAttribute('open', '');
+  kitPushPageBack(dr);
   document.querySelectorAll('.nav .kit-nav-menu').forEach(b => b.setAttribute('aria-expanded', 'true'));
+}
+/* PUSH PAGE (Minh, 2026-11-03): the hamburger opens the menu as a full page
+   that slides in, not a side flyover, so its rows' bottom sheets can open
+   over it. The kit drawer is restyled (eam-shared.css, .kit-push-page); its
+   close button reads as Back. */
+// Delete account: destructive, so it confirms first; the prototype then
+// signs out (a real app would start the deletion request here).
+function confirmDeleteAccount() {
+  openConfirm('Delete your account? Your profile and device data will be removed. Work you already synced stays on the server.', () => {
+    showToast('Account deletion requested');
+    setTimeout(() => { if (typeof goToLogin === 'function') goToLogin(); }, 900);
+  }, 'Delete account');
+}
+function kitPushPageBack(dr) {
+  dr.classList.add('kit-push-page');
+  const swap = () => { const b = dr.querySelector('.uxt-nd__close'); if (b && b.getAttribute('icon') !== 'arrow-back') { b.setAttribute('icon', 'arrow-back'); b.setAttribute('label', 'Back'); } };
+  swap(); requestAnimationFrame(swap);
 }
 function closeNavDrawer(opts) {
   const dr = document.getElementById('kitNavDrawer');

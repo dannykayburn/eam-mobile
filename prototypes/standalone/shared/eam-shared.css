@@ -2508,6 +2508,15 @@ uxt-list-item.kit-drawer-row{display:block;}
 .create-bar uxt-button button{height:48px;padding:0 var(--k-s6) !important;border-radius:var(--k-pill);box-shadow:var(--uxt-theme-shadows-3,0 3px 8px rgba(26,26,31,.18));}
 /* The kit drawer is position:fixed; in the prototype it stays inside the phone column. */
 .app > uxt-navigation-drawer{position:absolute;}
+/* Push page (Minh, 2026-11-03): the hamburger menu is a full-width page that
+   slides in from the end edge, on the page background, with no scrim. Its
+   bottom sheets, scrim and toast layer above it. */
+.app > uxt-navigation-drawer.kit-push-page .uxt-nd__scrim{display:none;}
+.app > uxt-navigation-drawer.kit-push-page .uxt-nd__sheet{width:100%;max-width:none;box-shadow:none;background:var(--k-paper);transform:translateX(100%);}
+.app > uxt-navigation-drawer.kit-push-page[open] .uxt-nd__sheet{transform:translateX(0);}
+#prefSheet{z-index:1402;}
+.app:has(> uxt-navigation-drawer[open]) .sheet-overlay{z-index:1401;}
+.app:has(> uxt-navigation-drawer[open]) .toast{z-index:1403;}
 /* Mobile: icon buttons and inputs rest on the 1px divider line, same as the kit's
    outlined Icon Button / Search Bar / Input at mobile density (Minh, 2026-10-30).
    Checkboxes and text buttons keep the control border. Focus states still win. */
