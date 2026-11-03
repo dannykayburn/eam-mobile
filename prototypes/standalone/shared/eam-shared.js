@@ -1645,7 +1645,25 @@ function kitMenuPageRows(rows) {
     const lastPref = out.map(r => r.el && r.el.getAttribute && r.el.getAttribute('data-pref')).lastIndexOf('dateFormat');
     out.splice(lastPref >= 0 ? lastPref + 1 : out.length, 0, Object.assign({}, theme, { lineAbove: false }));
   }
+  // Offline section (2026-11-03): restored after the Prototype group was
+  // dropped. Work offline is a switch; Offline data opens the sync panel.
+  // Placed before the Account group when there is one, else at the end.
+  const acct = out.findIndex(r => r.header && /^account$/i.test(String(r.text || '').trim()));
+  const offline = [
+    { header: true, text: 'Offline' },
+    { text: 'Work offline', icon: 'cloud', offlineToggle: true, action: () => kitSetWorkOffline() },
+    { text: 'Offline data', icon: 'cloud-download', action: () => { if (typeof openSyncPanel === 'function') openSyncPanel(); } },
+  ];
+  out.splice(acct >= 0 ? acct : out.length, 0, ...offline);
   return out;
+}
+function kitSetWorkOffline() {
+  const goOffline = DEMO_ONLINE;
+  DEMO_ONLINE = !goOffline; DEMO_SYNCED_OVERRIDE = !goOffline;
+  lsSet('eamSyncOnline', String(DEMO_ONLINE));
+  lsSet('eamSyncForceSynced', String(DEMO_SYNCED_OVERRIDE));
+  updateOnlineToggleLabel(); renderSyncControl();
+  showToast(goOffline ? 'Working offline. Changes wait in the outbox.' : 'Back online. Syncing your changes.');
 }
 function kitRenderNavDrawerRows(dr, menu) {
   const rows = kitMenuPageRows(kitDrawerSourceRows(menu));
@@ -1657,7 +1675,7 @@ function kitRenderNavDrawerRows(dr, menu) {
     const isTheme = /^appearance$/i.test(String(r.text || '').trim());
     return `<uxt-list-item value="${i}" text="${kitEsc(isTheme ? 'Dark mode' : r.text)}"`
       + `${r.icon ? ` icon="${kitEsc(r.icon)}"` : ''}`
-      + (isTheme ? ` toggle${dark ? ' checked' : ''}` : (kitDrawerValue(r.shortcut) ? ` shortcut="${kitEsc(kitDrawerValue(r.shortcut))}"` : ''))
+      + (isTheme ? ` toggle${dark ? ' checked' : ''}` : r.offlineToggle ? ` toggle${(typeof DEMO_ONLINE !== 'undefined' && !DEMO_ONLINE) ? ' checked' : ''}` : (kitDrawerValue(r.shortcut) ? ` shortcut="${kitEsc(kitDrawerValue(r.shortcut))}"` : ''))
       + `></uxt-list-item>`;
   }).join('');
   const links = KIT_DRAWER_LINKS.map(t => `<a slot="link" href="#">${kitEsc(t)}</a>`).join('');
