@@ -54,24 +54,24 @@
   markup, behavior comes entirely from eam-shared.js.
 -->
 <style>
-  /* ── Screen-local (Octave kit restyle 2026-10-20). Each notification is a
-     kit <uxt-list-item> (icon · subject · body · time/WO · trailing ✕),
-     grouped Today/Earlier under a kit list header row on a 1dp card panel.
-     All/Unread are kit outline filter chips and Mark all read a kit button;
-     this block only places those hosts and carries the unread emphasis. ── */
-  .notif-filters{display:flex;align-items:center;gap:var(--k-s2);padding:var(--k-s2) var(--k-s4);flex-shrink:0;}
-  .notif-filters > uxt-status-chip{flex-shrink:0;}
-  .notif-filters > uxt-button{margin-left:auto;flex-shrink:0;}
-  .notif-group{background:var(--k-card);border-radius:var(--k-r);box-shadow:var(--k-e1);margin:var(--k-s2) var(--k-s4);overflow:hidden;}
+  /* ── Screen-local: the Octave mobile kit Notifications template (Minh,
+     2026-11-03). Kit Tabs (All / Unread n), a text "Mark all read", then
+     per day an overline label OUTSIDE a card of kit List Items: icon,
+     subject, body, WO; trailing time + unread dot, and ✕ dismiss
+     (Danny's interaction, kept). ── */
+  .notif-tabs{display:block;flex-shrink:0;}
+  .notif-actions{display:flex;justify-content:flex-end;padding:var(--k-s1) var(--k-s2) 0;flex-shrink:0;}
+  .notif-day{font-family:var(--uxt-theme-typography-overline-font-family,var(--font-sans));font-size:var(--uxt-theme-typography-overline-font-size,0.75rem);font-weight:var(--uxt-theme-typography-overline-font-weight,400);letter-spacing:var(--uxt-theme-typography-overline-letter-spacing,1px);line-height:var(--uxt-theme-typography-overline-line-height,2);text-transform:uppercase;color:var(--k-text-2);padding:var(--k-s2) var(--k-s6) var(--k-s1);}
+  .notif-group{background:var(--k-card);border-radius:var(--k-r);box-shadow:var(--k-e1);margin:0 var(--k-s4) var(--k-s2);overflow:hidden;}
   .notif-group > uxt-list-item{display:block;}
-  .notif-group > uxt-list-item + uxt-list-item:not([header]){border-top:1px solid var(--k-divider);}
-  /* Unread: subject at Medium weight plus a 8px dot on the row's leading
-     edge (the kit row has no unread state of its own). */
-  uxt-list-item.notif-row{position:relative;}
-  uxt-list-item.notif-row.unread .uxt-li-l1{font-weight:500;color:var(--k-text);}
-  uxt-list-item.notif-row.unread::before{content:"";position:absolute;left:var(--k-s1);top:50%;width:8px;height:8px;margin-top:-4px;border-radius:var(--k-pill);background:var(--k-text);z-index:1;}
-  .notif-empty{padding:70px var(--k-s6);text-align:center;}
-  .notif-empty-title{font-family:var(--font-display);font-size:var(--uxt-theme-typography-h-6-font-size,1.125rem);font-weight:var(--uxt-theme-typography-h-6-font-weight,500);color:var(--k-text);margin-bottom:var(--k-s1);}
+  .notif-group > uxt-list-item + uxt-list-item{border-top:1px solid var(--k-divider);}
+  /* Trailing column: time over the unread dot, as the kit template draws it. */
+  uxt-list-item.notif-row .uxt-li-shortcut{display:flex;flex-direction:column;align-items:flex-end;gap:var(--k-s1);font-size:var(--k-caption);color:var(--k-text-2);}
+  uxt-list-item.notif-row .uxt-li-shortcut::after{content:"";width:8px;height:8px;border-radius:var(--k-pill);background:transparent;}
+  uxt-list-item.notif-row.unread .uxt-li-shortcut::after{background:var(--uxt-theme-palette-primary-main,#0050ff);}
+  uxt-list-item.notif-row.unread .uxt-li-l1{font-weight:600;color:var(--k-text);}
+  .notif-empty{background:var(--k-card);border-radius:var(--k-r);box-shadow:var(--k-e1);margin:var(--k-s2) var(--k-s4);padding:var(--k-s6) var(--k-s4);text-align:center;}
+  .notif-empty-title{font-family:var(--font-display);font-size:var(--uxt-theme-typography-h-6-font-size,1.125rem);font-weight:var(--uxt-theme-typography-h-6-font-weight,600);color:var(--k-text);margin-bottom:var(--k-s1);}
   .notif-empty-sub{font-size:var(--k-body2);color:var(--k-text-2);}
 </style>
 </head>
@@ -116,12 +116,10 @@
     </div>
   </header>
 
-  <!-- All/Unread = kit outline filter chips (single-select: the chip toggles
-       its own `active`, so onchange puts it back to the filter state).
-       Mark all read sits on the same row, pushed to the far right. -->
-  <div class="notif-filters">
-    <uxt-status-chip class="notif-filter-chip" data-f="all" variant="outline" density="m" severity="neutral" text="All" active onclick="setNotifFilter('all')" onchange="event.stopPropagation();syncNotifFilterChips()"></uxt-status-chip>
-    <uxt-status-chip class="notif-filter-chip" data-f="unread" variant="outline" density="m" severity="neutral" text="Unread" onclick="setNotifFilter('unread')" onchange="event.stopPropagation();syncNotifFilterChips()"></uxt-status-chip>
+  <!-- Kit Tabs: All / Unread (count). Mark all read is a kit text button
+       on its own row, right-aligned, as in the mobile kit template. -->
+  <uxt-tabs class="notif-tabs" id="notifTabs" density="m" full-width value="all" options='[{"value":"all","label":"All"},{"value":"unread","label":"Unread"}]' onchange="setNotifFilter(event.detail.value)"></uxt-tabs>
+  <div class="notif-actions">
     <uxt-button id="markAllBtn" variant="text" tone="neutral" text="Mark all read" onclick="markAllRead()"></uxt-button>
   </div>
 
@@ -186,7 +184,11 @@ function setNotifFilter(f) {
   renderNotifList();
 }
 function syncNotifFilterChips() {
-  document.querySelectorAll('.notif-filter-chip').forEach(c => c.toggleAttribute('active', c.dataset.f === notifFilter));
+  const tabs = document.getElementById('notifTabs');
+  if (!tabs) return;
+  const unread = EAM_NOTIFICATIONS.filter(n => !n.read).length;
+  tabs.setAttribute('options', JSON.stringify([{ value: 'all', label: 'All' }, { value: 'unread', label: 'Unread', count: unread }]));
+  tabs.setAttribute('value', notifFilter);
 }
 
 // Kit icon registry names per notification type.
@@ -206,14 +208,17 @@ function notifGroup(n) {
   return n.time.startsWith('07/22/2026') ? 'Today' : 'Earlier';
 }
 
-// One notification = one kit List Item: subject (line 1), body (line 2),
-// time · Work Order (line 3), trailing ✕ = dismiss. Row tap fires the kit
+// One notification = one kit List Item: subject, body, Work Order; trailing
+// time (+ unread dot via CSS) and ✕ = dismiss. Row tap fires the kit
 // `select` event and ✕ its `trailing` event (wired once on #notifList).
+function notifTime(n) {
+  const [date, time] = n.time.split(' · ');
+  return notifGroup(n) === 'Today' ? (time || date) : date.slice(0, 5);
+}
 function notifCard(n) {
-  const meta = n.time + (n.wo ? ` | Work Order ${n.wo}` : '');
   return `<uxt-list-item class="notif-row${n.read ? '' : ' unread'}" role="listitem" density="m" data-id="${n.id}"
-    icon="${notifIcon(n.type)}" text="${kitEsc(n.subject)}" secondary="${kitEsc(n.body)}" tertiary="${kitEsc(meta)}"
-    trailing-icon="close" aria-label="${kitEsc(n.subject)}"></uxt-list-item>`;
+    icon="${notifIcon(n.type)}" text="${kitEsc(n.subject)}" secondary="${kitEsc(n.body)}"${n.wo ? ` tertiary="Work Order ${kitEsc(n.wo)}"` : ''}
+    shortcut="${kitEsc(notifTime(n))}" trailing-icon="close" aria-label="${kitEsc(n.subject)}${n.read ? '' : ', unread'}"></uxt-list-item>`;
 }
 
 function renderNotifList() {
@@ -223,13 +228,15 @@ function renderNotifList() {
   let html = '';
   ['Today', 'Earlier'].forEach(g => {
     if (!groups[g].length) return;
-    html += `<div class="notif-group"><uxt-list-item class="notif-section-label" header density="m" text="${g}"></uxt-list-item>`;
+    html += `<div class="notif-day">${g}</div><div class="notif-group">`;
     groups[g].forEach(n => { html += notifCard(n); });
     html += '</div>';
   });
   document.getElementById('notifList').innerHTML = html || `<div class="notif-empty"><div class="notif-empty-title">${notifFilter === 'unread' ? 'No unread notifications' : 'No notifications'}</div><div class="notif-empty-sub">You’re all caught up.</div></div>`;
   const anyUnread = EAM_NOTIFICATIONS.some(n => !n.read);
-  document.getElementById('markAllBtn').toggleAttribute('disabled', !anyUnread);
+  const markAll = document.getElementById('markAllBtn');
+  if (anyUnread) markAll.removeAttribute('disabled'); else markAll.setAttribute('disabled', '');
+  syncNotifFilterChips();
   updateNotifBadge();
 }
 (function wireNotifRows() {
