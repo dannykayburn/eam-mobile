@@ -15,8 +15,8 @@
 <title>Attune EAM Mobile — WO Closing (Step 5)</title>
 <!-- Octave design kit: tokens, fonts and every <uxt-*> component (mobile density, set above). -->
 <script type="module" src="https://octave-design-kit.vercel.app/latest/design-kit.js"></script>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031721">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202611031721">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611031723">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611031723">
 <!--
   WO WORKFLOW — STEP 5: WO CLOSING (rebuilt 2026-07-16 onto shared/eam-
   shared.css + shared/eam-shared.js, per docs/archive/EAM-REBUILD-Strategy-and-
@@ -437,7 +437,8 @@ uxt-list-item.attach-add-row { border-top: 1px solid var(--k-divider); }
        Clear is hidden on Problem (never-clearable) and whenever the target
        cell is currently empty; clearing Failure/Cause/Action cascades
        downstream to keep the sequential chain intact. ══ -->
-  <div class="bottom-sheet" id="codeLovSheet">
+  <!-- Closing codes / failure modes run long: a push page, not a sheet (Minh, 2026-11-03). -->
+  <div class="bottom-sheet as-push-page" id="codeLovSheet">
     <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
     <div class="sheet-header">
       <uxt-icon-button class="kit-sheet-close" icon="close" label="Close" density="m" onclick="closeAllSheets()"></uxt-icon-button>
@@ -568,14 +569,14 @@ uxt-list-item.attach-add-row { border-top: 1px solid var(--k-divider); }
 
 </div><!-- /app -->
 
-<script src="../../data/closing_codes.js?v=202611031721"></script>
-<script src="../../data/wo-19257.js?v=202611031721"></script>
-<script src="../../data/wo-19831.js?v=202611031721"></script>
-<script src="../../data/wo-20450.js?v=202611031721"></script>
-<script src="../../data/wotype.js?v=202611031721"></script>
-<script src="../../data/wo-workflow.js?v=202611031721"></script>
-<script src="../../data/wo-workflow-steps.js?v=202611031721"></script>
-<script src="shared/eam-shared.js?v=202611031721"></script>
+<script src="../../data/closing_codes.js?v=202611031723"></script>
+<script src="../../data/wo-19257.js?v=202611031723"></script>
+<script src="../../data/wo-19831.js?v=202611031723"></script>
+<script src="../../data/wo-20450.js?v=202611031723"></script>
+<script src="../../data/wotype.js?v=202611031723"></script>
+<script src="../../data/wo-workflow.js?v=202611031723"></script>
+<script src="../../data/wo-workflow-steps.js?v=202611031723"></script>
+<script src="shared/eam-shared.js?v=202611031723"></script>
 <script>
 /* ── screen-specific config/behavior — chrome (nav, header, step rail,
    confirm modal, toast, theme toggle, date/edit sheets) comes from
