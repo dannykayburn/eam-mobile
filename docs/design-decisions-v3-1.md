@@ -3716,7 +3716,7 @@ ones a configured workflow gets.**
 - **Bottom bar:** stays real and working. WO Record View's bar reads
   "Start Work" exactly like a configured workflow's Step 1 (gated on "an
   activity is selected") and goes to Activity Checklist once tapped. Each
-  subsequent screen's bar already said "Next: X" or "Close Work Order"
+  subsequent screen's bar says "Next" or "Complete Work Order" (§14.5.1)
   unconditionally, carrying the fallback identity forward on each Next tap.
 - **Not changed:** the Free Form flag's other effects (status field stays
   editable, no Not Free Form lock-icon/toast) — this is scoped to the
@@ -4203,8 +4203,8 @@ one consumer so far.
   - **Forked flow:** while a question or condition fork ahead is unanswered,
     both branches — **"Up next: Issue Parts or Book Labor"**. Once the answer
     is pinned in the run (§32.9) it shows the branch taken.
-  - **Revisit or More destination:** "Back to <current step>", matching the
-    bar (§32.9). **Last step:** "Last step". **Free Form's flat rail** (§11
+  - **Revisit or More destination:** "Back to <current step>". The rail names
+    the step; the bar itself reads **Resume** (§14.5.1, §32.9). **Last step:** "Last step". **Free Form's flat rail** (§11
     fallback) has no order, so it shows no preview.
   - The 5-segment progress bar is **no longer drawn in the collapsed rail** —
     the preview replaces it, as drawn. The expanded step map is the full list,
@@ -4295,6 +4295,35 @@ one consumer so far.
 - Inset pill: ready state = full green fill, white text, checkmark icon
 - Meta counter right of pill (e.g. "3 / 6 done") — turns green when ready
 - Tapping locked bar fires a toast: context-specific message per step
+
+## 14.5.1 The bar's label set — four fixed strings (locked 2026-11-05)
+
+User direction. **The bar says what the tap does; the rail says where it goes.**
+The collapsed rail's "Up next" line (§14.2) already names the destination, so
+the button never carries a step name. There are four labels, product strings
+translated once, defined in one place (`BAR_LABELS`, `eam-shared.js`):
+
+| Moment | Label |
+| --- | --- |
+| Move forward to the next step (any step, including Record View → Activities) | **Next** |
+| The §14.11 commitment, on the Activities screen only | **Start Work** |
+| The step that finishes the workflow (WO Closing, or Book Labor when it is last) | **Complete Work Order** |
+| A reopened step, returning to the run's cursor (§32.9) | **Resume** |
+
+**No portal override.** A per-step label was weighed and rejected for scope and
+translation: every authored label would need its own translations and length
+checks, and Start Work / Complete Work Order describe system actions an authored
+label could misdescribe.
+
+**Why no step names:** step names are authored and renamed (a step can be placed
+twice, §29), they run long at §31's 320px floor, and "Continue to {step}" is
+string concatenation whose word order and case do not survive translation.
+
+**Not in the set:** a **locked** bar keeps its own explaining text ("Select an
+activity to start", "Activity is completed"), and a fork's answers stay the
+fork's own (§14.6, §29.4). **Complete Work Order** is used whatever status the
+confirm sheet then commits; the sheet names the target status before anything
+is written, so an On hold close is still visible as one (§19.7).
 
 ## 14.6 Prompt bar — Yes/No fork
 
@@ -5749,14 +5778,13 @@ OR assignment status Completed, drawn as a strike-through on the number and
 notes only; no toast on select.
 
 **After Start Work:** the selection is protected (a run owns its activity) and
-the bar reads "Continue to <cursor>". Start Work is never offered twice, the
+the bar reads **Resume** (§14.5.1). Start Work is never offered twice, the
 same rule Record View's bar follows (§32.9).
 
 **WO Record View's bar changed with it.** Record View no longer selects an
-activity or starts work, so its bar no longer says "Start Work". **The label is "Select activity"** (decided 2026-11-05,
-user direction): before work starts, Record View's bar reads **Select activity**
-and opens this screen. Once a run exists it keeps its existing "Continue to
-<cursor>" / "Back to <cursor>" revisit state (§32.9). **Built 2026-11-05:**
+activity or starts work, so its bar no longer says "Start Work". Before work
+starts it reads **Next** and opens this screen; once a run exists it reads
+**Next**, or **Resume** on a revisit (§14.5.1). **Built 2026-11-05:**
 Record View's `startWork()`/`proceedStartWork()` moved here, so this screen is
 the only place work starts.
 
@@ -5981,7 +6009,7 @@ either.
 - Labor list — inline-expand rows (Action Row, §18.3)
 - Add Labor button (full-width contained)
 - Activity summary cards — Total/Regular/OT/Est. hours, Entries
-- Bottom bar — auto-ready, "Next: WO Closing"
+- Bottom bar — auto-ready, "Next" (§14.5.1)
 
 ## 18.2 Timer integration
 
@@ -6229,7 +6257,7 @@ Prototype: `eam-wo-closing-prototype-v2.html` (v1 retired to
 - Downtime Details section — Date completed (defaulted), Downtime hours, Downtime cost (both optional)
 - Closing Comments section — required textarea, 1000-char limit
 - Attachments section — source picker, list rows, viewer sheet
-- Bottom bar — locked until comments present; "Close Work Order" pill
+- Bottom bar — locked until comments present; "Complete Work Order" pill (§14.5.1)
 
 Note: the WO Details section was removed from this screen — the tech already knows the WO. The screen starts with the status banner, then codes.
 
@@ -6300,7 +6328,7 @@ Note: the WO Details section was removed from this screen — the tech already k
 
 ## 19.7 Close confirmation
 
-- "Close Work Order" bar → confirm summary sheet: WO details + all codes + attachment count + target status
+- "Complete Work Order" bar → confirm summary sheet: WO details + all codes + attachment count + target status
 - Execute Close → green full-screen closed overlay
 - **Post-close navigation:** overlay, then back to this same WO's Record
   View (not the WO List) — the technician sees the WO they just closed,
@@ -6355,7 +6383,7 @@ into a locked-decision row in the section that governs it, or is deleted.
 
 | Item | Detail |
 | --- | --- |
-| **Is the Activities screen a numbered step or a More entry?** | Opened 2026-11-05 with §16.12. The prototype reaches it two ways: Record View's "Select activity" bar, and More (`WO_MORE_TABS`). The rail does not number it. Since Start Work fires there, it is arguably step 2, between Record View and the checklist. That moves the portal's "On Start Work" anchor, which today is "the actions directly after Record View instance 1" (§32.2, `startWorkActions()`): the anchor would become the Activities screen. The portal's Step Library has no Activities entry yet, either. |
+| **Is the Activities screen a numbered step or a More entry?** | Opened 2026-11-05 with §16.12. The prototype reaches it two ways: Record View's "Next" bar, and More (`WO_MORE_TABS`). The rail does not number it. Since Start Work fires there, it is arguably step 2, between Record View and the checklist. That moves the portal's "On Start Work" anchor, which today is "the actions directly after Record View instance 1" (§32.2, `startWorkActions()`): the anchor would become the Activities screen. The portal's Step Library has no Activities entry yet, either. |
 | **The Activity LOV fallback on activity-dependent screens is not built** | Opened 2026-11-05 with §32.13's new row. Neither half exists: the portal's `compositionIssues()` does not check for an Activities step before Activity Checklist, Issue Parts or Book Labor, and none of those three screens has an Activity LOV in its header. Owed: the LOV's placement on each screen, what happens if the technician changes it mid-step, and whether placing Activities AFTER a dependent step should warn rather than inform. |
 | **The Activities screen's Plus/Edit and shared activity data** | Opened 2026-11-05 with §16.12. Add and Edit are toasts: the Activity Insert/Update popup (§15.2) is screen-local to WO Record View and not ported. The screen's activity rows are a copy of Record View's demo `ACTIVITIES`, so an edit on one does not reach the other, and WO Closing's "mark this activity Completed" hand-off is consumed only by Record View. Promote the activity data to a shared store before either screen edits activities for real. |
 | **The LOV push page (§3.4.2) is not designed or built** | Opened 2026-11-05 with §3.4.2. The prototypes still open every LOV as a pull-up, **deliberately** (user direction: docs only, no prototype change). Owed before it is built: **(1)** the page's anatomy: header (back, field label as title, Clear), search bar, the row list, and whether a selection pops back immediately (the pull-up's current behavior) or needs a confirm; **(2)** the push transition and how it composes with the step rail and the bottom bar (a push page is not a sheet, so `openSheetExclusive()`/`closeAllSheets()` do not govern it); **(3)** the Equipment LOV's Search / Structure tabs, QR scan and multi-select "Add N" footer on a full page; **(4)** an LOV opened from inside Insert Mode, which is already full-screen; **(5)** the source of the dropdown-vs-LOV flag per field: base screen metadata, carried in Tier 0 with the layout (§2.3), so the device never guesses from list length; **(6)** retiring `NO_SEARCH_LOVS` in `eam-shared.js` once the flag exists. Then run `check-keyboard.js` against the new surface. |
@@ -6461,6 +6489,8 @@ its original section with a note attached.
 
 | Former decision | Superseded by |
 | --- | --- |
+| **Bar labels that name the destination** (July 2026 – 2026-11-05): "Next: Book Labor", "Next: WO Closing", "Continue to <step>", "Back to <current step>", plus "Close Work Order" on WO Closing. Each screen wrote its own. | §14.5.1: four fixed strings (Next / Start Work / Complete Work Order / Resume); the rail's "Up next" line names the destination. |
+| **"Select activity" on WO Record View's bar** (§16.12, decided and built 2026-11-05, superseded the same day) | §14.5.1: Record View's bar reads **Next**, like every forward step; the rail names Activities. |
 | **Every list field opens a bottom-sheet LOV picker; search is on or off by an exception list** (§3.4/§5.1, July 2026 – 2026-11-05). Each LOV and dropdown used the same pull-up (`#lovSheet`/`openLov()`), and an explicit `NO_SEARCH_LOVS` set marked the short ones that got no search bar. | §3.4.2: the base control type decides. A dropdown keeps the pull-up; an LOV opens a push page. `NO_SEARCH_LOVS` is a prototype stand-in until the flag comes from base metadata (§20). |
 | **The collapsed step rail's segment bar** (§14.2, 2026-07). Row 2 of the collapsed rail was a full-width 5-segment progress bar (done green, active ink, future gray) under the step name. | §14.2 / §32.15 (2026-10-23, user direction): an "Up next" mini stepper — the current step beside the timer, "Up next: <step>" (or "X or Y" ahead of a fork) beneath. The segments are still rendered in markup but hidden while the preview shows. |
 | **Checklist auto-advance on `check` items only** (§16.1, 2026-10-21). Toggle, number, text and slider entries did not advance. | §16.1 (2026-10-23, user direction): **any tap answer** advances, toggles included; keyboard entry and the slider still do not. |
@@ -11066,7 +11096,7 @@ still be reset. Revisit if UXR shows mis-starts.
 ## 32.9 Revisiting a completed step edits it in place (D-6)
 
 §14.10 makes a completed step reopenable; this settles where its button goes. **The bar reads
-"Back to <current step>", not "Next: X"**, and returns to the cursor. **Forks do not
+"Resume"** (§14.5.1, 2026-11-05; was "Back to <current step>", §21), and returns to the cursor. **Forks do not
 re-evaluate and actions do not re-fire.** A fork's result is pinned in the run at first
 traversal — the run-level form of §30.19's "evaluate at one moment". *Rejected:* re-traversal,
 which can re-route behind the technician and strand data on an abandoned branch (§13.3 item
@@ -11196,7 +11226,7 @@ The technician half of §32.1–§32.9 is built on the shared files: one durable
 time-stamped timer (`techTimer()`), a run per *(technician, WO, activity)*
 (`woRunFor()`), Back with no prompt, Pause booking the segment, Stop through the booking
 pull-up, Reset with a confirm, no rail timer unless one runs or is paused here, *Start
-timer* in the header ellipsis, "Back to <current step>" on a revisit, and Home's Resume
+timer* in the header ellipsis, "Resume" on a revisit (§14.5.1), and Home's Resume
 card with "+N more in progress". It is a **stand-in** in two places, both §20: the demo's
 gated workflows behave as if they carried a System Start Timer in the "On Start Work"
 slot, and the one fork is the checklist's Issue Parts question, declared in the app

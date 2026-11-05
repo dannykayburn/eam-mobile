@@ -13,8 +13,8 @@
 <link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>Attune EAM Mobile — Work Order › Activities</title>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202611051940">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202611051940">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611051955">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611051955">
 <!--
   WORK ORDER › ACTIVITIES (built 2026-11-05, design-decisions-v3-1.md §16.12).
 
@@ -42,7 +42,7 @@
   - completed = Completed checkbox OR assignment status Completed, drawn as a
     strike-through on the activity number and notes only.
   - once work is started (a run exists, §32.7) the selection is protected and
-    the bar reads "Continue to <cursor>"; Start Work is never offered twice.
+    the bar reads "Resume" (§14.5.1); Start Work is never offered twice.
 
   STUBS, honest about what isn't real:
   - Plus (add activity) and the ellipsis's Edit toast. The Activity Insert/
@@ -50,7 +50,7 @@
     ported (§20).
   - Activity data is a copy of WO Record View's demo ACTIVITIES, so a change
     on one screen does not reach the other. Both read the same two rows.
-  - WO Record View's bar reads "Select activity" and opens this screen; it no
+  - WO Record View's bar reads "Next" and opens this screen; it no
     longer starts work itself (§16.12). This is the only place work starts.
 -->
 <style>
@@ -215,10 +215,10 @@
 
 </div>
 
-<script src="../../data/wotype.js?v=202611051940"></script>
-<script src="../../data/wo-workflow.js?v=202611051940"></script>
-<script src="../../data/wo-workflow-steps.js?v=202611051940"></script>
-<script src="shared/eam-shared.js?v=202611051940"></script>
+<script src="../../data/wotype.js?v=202611051955"></script>
+<script src="../../data/wo-workflow.js?v=202611051955"></script>
+<script src="../../data/wo-workflow-steps.js?v=202611051955"></script>
+<script src="shared/eam-shared.js?v=202611051955"></script>
 <script>
 /* ══ PARENT WO IDENTITY ══════════════════════════════════════════════ */
 const WO_META = {
@@ -355,7 +355,7 @@ function updateStartGate() {
   if (run) {
     btn.className = 'bar-pill bar-pill-ready';
     lock.style.display = 'none';
-    label.textContent = 'Continue to ' + (WO_STEP_LABELS[run.cursor] || WO_STEP_LABELS.checklist);
+    label.textContent = BAR_LABELS.resume;
     return;
   }
   const act = ACTIVITIES.find(a => a.id === selectedActivity);
@@ -365,7 +365,7 @@ function updateStartGate() {
   lock.style.display = ready ? 'none' : '';
   label.textContent = !act ? 'Select an activity to start'
     : completed ? 'Activity is completed'
-    : 'Start Work';
+    : BAR_LABELS.start;
 }
 function onBarPillTap() {
   const run = woRunFor();

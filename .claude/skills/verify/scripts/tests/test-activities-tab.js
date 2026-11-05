@@ -8,7 +8,7 @@
      3. Start Work from HERE is the §14.11 commitment: it creates the run for
         (technician, WO, activity) and hands off to Activity Checklist.
      4. Once a run exists the selection is protected and the bar reads
-        "Continue to <cursor>". Start Work is never offered twice.
+        "Resume" (§14.5.1). Start Work is never offered twice.
      5. The screen is a More-group member, so every WO step can reach it.
    The DOM is the run-load.js shim; assertions read JS state and storage.
    ══════════════════════════════════════════════════════════════════════ */
@@ -52,12 +52,37 @@ ok('hands off to Activity Checklist', /activity-checklist/.test(ev(s, 'location.
 
 console.log('\n4. Once started, the selection is protected');
 ev(s, 'updateStartGate();');
-ok('bar reads "Continue to Activity Checklist"', label(s) === 'Continue to Activity Checklist', label(s));
+ok('bar reads "Resume"', label(s) === 'Resume', label(s));
 ok('selecting another activity is refused', ev(s, 'selectActivity("20"); selectedActivity') === '10');
 
 console.log('\n5. Reachable from the More group');
 ok('WO_MORE_TABS carries Activities', ev(s, 'WO_MORE_TABS.some(t => t.key === "activities")') === true);
 ok('its row marks active here', /step-map-item active[\s\S]*Activities/.test(ev(s, 'stepMapMoreGroupHtml("activities")')));
+
+console.log('\n6. The bar label set is fixed: four strings, no step names (§14.5.1)');
+{
+  const keys = ev(s, 'Object.keys(BAR_LABELS).join()');
+  ok('BAR_LABELS is exactly next/start/complete/resume', keys === 'next,start,complete,resume', keys);
+  // The shim doesn't parse static markup, so a JS-written label is read from
+  // the live element and a static one from the screen's own source.
+  const strip = h => String(h).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  const live = (file, seed, id) => strip(ev(runScreen(file, seed), `document.getElementById("${id}").innerHTML || document.getElementById("${id}").textContent`));
+  const fsx = require('fs'), px = require('path');
+  const stat = (file, id) => {
+    const src = fsx.readFileSync(px.join(__dirname, '..', '..', '..', '..', '..', 'prototypes/standalone', file), 'utf8');
+    const m = src.match(new RegExp('id="' + id + '"[^>]*>([\\s\\S]*?)</button>'));
+    return m ? strip(m[1]) : '<no button>';
+  };
+  ok('Record View reads "Next"', live('eam-wo-record-view-prototype-v1.html', { eamOpenDemoWo: '19257' }, 'barBtnLabel') === 'Next');
+  ok('Issue Parts reads "Next", not "Next: Book Labor"', stat('eam-wo-prototype-issue-parts-v1.html', 'nextBtn') === 'Next', stat('eam-wo-prototype-issue-parts-v1.html', 'nextBtn'));
+  ok('Book Labor (Closing follows) reads "Next"', stat('eam-book-labor-prototype-v2.html', 'nextBtn') === 'Next');
+  ok('Book Labor as the last step (PM) reads "Complete Work Order"', live('eam-book-labor-prototype-v2.html', { eamOpenDemoWo: '19831' }, 'nextBtn') === 'Complete Work Order');
+  ok('WO Closing reads "Complete Work Order"', stat('eam-wo-closing-prototype-v2.html', 'closeBtn') === 'Complete Work Order');
+  const cl = runScreen('eam-activity-checklist-prototype-v2.html', { eamOpenDemoWo: '19831' });
+  ev(cl, 'renderPromptBar()');
+  const bar = String(ev(cl, 'document.getElementById("promptBar").innerHTML'));
+  ok('the checklist\'s no-question bar reads "Next", not "Continue to Book Labor"', />Next</.test(bar) && !/Continue to/.test(bar));
+}
 
 console.log(fail ? `\n${fail} FAILED` : '\nActivities screen holds');
 process.exit(fail ? 1 : 0);

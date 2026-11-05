@@ -185,7 +185,10 @@ A screen placed as a numbered step in a WO workflow. §14, §29, §32.
 - **Activity-dependent steps need an activity.** Activity Checklist, Issue
   Parts and Book Labor follow an Activities step. Where a workflow does not put
   one in front of them, each carries a required Activity LOV (§32.13).
-- **Per-step bottom bar:** Next carries the WO identity forward. A fork renders
+- **Per-step bottom bar:** four fixed labels, never a step name: **Next**,
+  **Start Work** (Activities only), **Complete Work Order** (the finishing
+  step), **Resume** (a reopened step). The rail's "Up next" names where Next
+  goes. No portal override (§14.5.1). Next carries the WO identity forward. A fork renders
   a prompt bar, and a skipped step shows N/A rather than hiding (§14.5–§14.7,
   §29.4).
 - **One technician timer.** It shows in the rail only while Running or Paused
@@ -549,7 +552,7 @@ Persona: technician. The app's own design system (§23), not Octave.
 - **Paradigm:** P1, P5, P7
 - **Summary:** The WO record under a configuration-resolved layout.
 - **Design:**
-  - Start Work moved to the standalone Activities screen (§16.12). Before work starts, the bottom bar reads **Select activity** and opens that screen. After Start Work it reads "Continue to" or "Back to" the current step.
+  - Start Work moved to the standalone Activities screen (§16.12). The bottom bar reads **Next** and opens that screen; on a revisit it reads **Resume** (§14.5.1).
   - Before Start Work, WO Type is editable: confirm, commit and re-render.
   - Header fields grid, with Equipment as its own full-width cell (Equipment Lookup plus a 44px photo badge).
   - Dropdown fields (Type, Priority, Status) open the pull-up. LOV fields (Department, Problem Code, Equipment) open a push page.
@@ -703,7 +706,7 @@ Persona: technician. The app's own design system (§23), not Octave.
   - Exception: a bottom bar. Start Work stays locked until an activity is selected, and is the full §14.11 commitment, creating the run for the selected activity.
   - One activity auto-selects; two or more start with nothing selected.
   - A completed activity is selectable, but its bar reads "Activity is completed".
-  - After Start Work the selection is protected and the bar reads "Continue to <cursor>".
+  - After Start Work the selection is protected and the bar reads **Resume**.
 - **Shared components:** List/Detail shell, dataspy bar, detail header, step rail, More group, technician timer
 - **Exceptions:** radio selector; bottom bar on a child tab
 - **State:** proto

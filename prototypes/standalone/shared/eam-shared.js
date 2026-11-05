@@ -231,6 +231,19 @@ const WO_STEP_LABELS = {
   booklabor: 'Book Labor',
   closing: 'WO Closing',
 };
+/* THE BOTTOM BAR'S LABEL SET (§14.5.1, locked 2026-11-05, user direction).
+   The bar says WHAT THE TAP DOES; the rail's "Up next" line says WHERE IT GOES.
+   So a label never carries a step name: names are authored and renamed, run
+   long at 320px, and "Continue to {step}" is string concatenation that does
+   not translate. Four fixed product strings, translated once, no portal
+   override. Locked/explaining states ("Select an activity to start") are
+   not in this set; they keep their own text. */
+const BAR_LABELS = {
+  next: 'Next',                       // move forward to the next step
+  start: 'Start Work',                // the §14.11 commitment, Activities screen only
+  complete: 'Complete Work Order',    // the step that finishes the workflow
+  resume: 'Resume',                   // a reopened step, back to the run's cursor (§32.9)
+};
 const WO_STEP_FILES = {
   record: 'eam-wo-record-view-prototype-v1.html',
   checklist: 'eam-activity-checklist-prototype-v2.html',
@@ -4385,7 +4398,7 @@ function questionAnswerNo() {
    kept in durable storage: the cursor (the WO's real position), per-step
    state and fork answers. Opening an in-progress WO lands on the cursor,
    and a completed step reopened from the rail edits in place and offers
-   "Back to <cursor>" (§32.9) — nothing re-fires.
+   "Resume" (§32.9/§14.5.1) — nothing re-fires.
 
    NOT BUILT HERE, on purpose (§20): an MEC child has no run of its own
    (D-13 is open against applyDemoWoIdentity(), so a child keeps behaving
@@ -4533,11 +4546,11 @@ function woRunBackToCursor() {
   const run = woRunFor();
   if (run) goToWoStep(run.cursor);
 }
-/* Rewrites a step's bar button as "Back to <current step>" when this screen
-   is a revisit. Returns true when it did, so a caller can skip its own Next. */
+/* Rewrites a step's bar button as "Resume" (§14.5.1) when this screen is a
+   revisit; the rail's line still names the step it returns to. Returns true when it did, so a caller can skip its own Next. */
 function applyRunRevisitBar(btn, labelEl) {
   if (!btn || !woRunRevisitStep) return false;
-  const text = 'Back to ' + WO_STEP_LABELS[woRunRevisitStep];
+  const text = BAR_LABELS.resume;
   if (labelEl) labelEl.textContent = text; else btn.textContent = text;
   btn.className = 'bar-pill bar-pill-ready';
   btn.onclick = woRunBackToCursor;

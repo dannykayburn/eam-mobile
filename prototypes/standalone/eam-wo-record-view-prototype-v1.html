@@ -13,8 +13,8 @@
 <link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>Attune EAM Mobile — WO Record View</title>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202611051940">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202611051940">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611051955">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611051955">
 <!--
   WO WORKFLOW — STEP 1: WO RECORD VIEW (rebuilt 2026-07-16 onto shared/
   eam-shared.css + shared/eam-shared.js, per docs/archive/EAM-REBUILD-Strategy-and-
@@ -364,11 +364,11 @@
        dispatch (this screen has no tabs at all, unlike the Standard Model). -->
   <div id="recordContentSlot"></div>
 
-  <!-- BOTTOM BAR — "Select activity" opens the Activities screen (§16.12) -->
+  <!-- BOTTOM BAR — "Next" opens the Activities screen (§16.12/§14.5.1) -->
   <div class="bottom-bar" id="bottomBar">
     <button class="bar-pill bar-pill-ready" id="barBtn" onclick="onBarPillTap()">
       <svg id="barLock" style="display:none" width="16" height="16" fill="none" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <span id="barBtnLabel">Select activity</span>
+      <span id="barBtnLabel">Next</span>
     </button>
   </div>
 
@@ -759,17 +759,17 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/custom_field_defs.js?v=202611051940"></script>
+<script src="../../data/custom_field_defs.js?v=202611051955"></script>
 <!-- Needed so the header Equipment field can resolve each demo WO's own
      equipmentAssetId to a real record (applyDemoWoEquipment below). -->
-<script src="../../data/equipment.js?v=202611051940"></script>
-<script src="../../data/wo-19257.js?v=202611051940"></script>
-<script src="../../data/wo-19831.js?v=202611051940"></script>
-<script src="../../data/wo-20450.js?v=202611051940"></script>
-<script src="../../data/wotype.js?v=202611051940"></script>
-<script src="../../data/wo-workflow.js?v=202611051940"></script>
-<script src="../../data/wo-workflow-steps.js?v=202611051940"></script>
-<script src="shared/eam-shared.js?v=202611051940"></script>
+<script src="../../data/equipment.js?v=202611051955"></script>
+<script src="../../data/wo-19257.js?v=202611051955"></script>
+<script src="../../data/wo-19831.js?v=202611051955"></script>
+<script src="../../data/wo-20450.js?v=202611051955"></script>
+<script src="../../data/wotype.js?v=202611051955"></script>
+<script src="../../data/wo-workflow.js?v=202611051955"></script>
+<script src="../../data/wo-workflow-steps.js?v=202611051955"></script>
+<script src="shared/eam-shared.js?v=202611051955"></script>
 <script>
 /* ── screen-specific config — everything below is data/wiring only;
    all behavior comes from shared/eam-shared.js. ── */
@@ -1645,14 +1645,14 @@ const EQUIP_LOOKUP_ON_SELECT = { equipment: (o) => {
   markDirty();
 } };
 
-/* ── BOTTOM BAR — "Select activity" (§16.12, 2026-11-05) ─────────────────
+/* ── BOTTOM BAR — "Next" to the Activities screen (§16.12/§14.5.1, 2026-11-05) ─────────────────
    Start Work moved to the standalone Activities screen, where the activity is
    selected, so this bar no longer starts work and no longer gates on the
    Activities panel above (that panel is a future consideration, §15.2, kept
-   as-is). Before work starts the bar is always ready, reads "Select activity"
-   and opens the Activities screen. Once a run exists (§32.7) Start Work is
+   as-is). Before work starts the bar is always ready, reads "Next" and opens
+   the Activities screen (the rail's "Up next" names it). Once a run exists (§32.7) Start Work is
    behind the technician, so nothing re-fires (§32.9): a gated workflow is a
-   revisit, "Back to <current step>"; Free Form simply carries on. ── */
+   revisit, "Resume"; Free Form simply carries on, "Next". ── */
 function updateStartGate() {
   const btn = document.getElementById('barBtn');
   const label = document.getElementById('barBtnLabel');
@@ -1660,12 +1660,10 @@ function updateStartGate() {
   btn.className = 'bar-pill bar-pill-ready';
   if (lock) lock.style.display = 'none';
   if (woRunFor()) {
-    label.textContent = woRunRevisitStep
-      ? 'Back to ' + WO_STEP_LABELS[woRunRevisitStep]
-      : 'Continue to ' + WO_STEP_LABELS.checklist;
+    label.textContent = woRunRevisitStep ? BAR_LABELS.resume : BAR_LABELS.next;
     return;
   }
-  label.textContent = 'Select activity';
+  label.textContent = BAR_LABELS.next;
 }
 function onBarPillTap() {
   if (woRunFor()) { goToWoStep(woRunRevisitStep || 'checklist'); return; }
@@ -1694,8 +1692,8 @@ function onStatusBtnTap() {
    a real rail + bar too — a flat, unnumbered, free-flow-tappable rail
    listing all 5 WO-workflow steps (renderFlatStepRail(), same visual
    paradigm as Equipment RV's own tab rail) instead of the numbered/
-   gated one, plus a working bar (since 2026-11-05 it reads "Select
-   activity" and opens the Activities screen, §16.12). */
+   gated one, plus a working bar (since 2026-11-05 it reads "Next"
+   and opens the Activities screen, §16.12). */
 // Bug fix, 2026-07-28 — the Type field/badge showed "Breakdown" on every
 // demo WO regardless of which was actually open (RECORD.type was a
 // static default, never wired to DEMO_WO — see applyDemoWoIdentity()'s
