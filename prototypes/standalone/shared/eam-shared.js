@@ -538,6 +538,7 @@ function goToWoStep(step) {
 const WO_MORE_TAB_ICONS = {
   comment: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>',
   paperclip: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.48-8.48l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>',
+  activities: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="7" r="2.2"/><path d="M11 7h9M11 17h9"/><circle cx="6" cy="17" r="2.2"/></svg>',
   equipment: '<svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" stroke-linecap="round"/></svg>',
 };
 /* One curated icon per tab. WHICH icon a configured tab gets is an open
@@ -545,6 +546,10 @@ const WO_MORE_TAB_ICONS = {
    bottom-nav slot icons — whether the curated set is authored anywhere or
    hardcoded. Solve it once for both, not twice. */
 const WO_MORE_TABS = [
+  // The standalone Activities screen (§16.12, 2026-11-05). In More for now
+  // because WO Record View's bar still starts work itself; whether it becomes
+  // a numbered step between Record View and the checklist is §20.
+  { key: 'activities', label: 'Activities', icon: 'activities', open: () => goToWoActivitiesTab() },
   { key: 'comments',  label: 'Comments',  icon: 'comment',   open: () => goToWoReferenceTab('comments') },
   { key: 'documents', label: 'Documents', icon: 'paperclip', open: () => goToWoReferenceTab('documents') },
   { key: 'equipment', label: 'Equipment', icon: 'equipment', open: () => goToWoEquipmentTab() },
@@ -628,6 +633,15 @@ function goToWoEquipmentTab(fromStep) {
   // the WO's position to render it the same way the screen you left did.
   sessionStorage.setItem('eamEquipTabOrigin', fromStep || woCurrentStep || 'record');
   location.href = WO_EQUIPMENT_TAB_FILE;
+}
+/* The standalone Activities screen (§16.12, built 2026-11-05) — same
+   child-tab shape as the Equipment tab above, plus the radio selector that
+   gates Start Work. Not in WO_STEP_FILES, for the same reason. */
+const WO_ACTIVITIES_TAB_FILE = 'eam-wo-activities-prototype-v1.html';
+function goToWoActivitiesTab(fromStep) {
+  sessionStorage.setItem('eamOpenDemoWo', DEMO_WO);
+  sessionStorage.setItem('eamActivitiesTabOrigin', fromStep || woCurrentStep || 'record');
+  location.href = WO_ACTIVITIES_TAB_FILE;
 }
 /* jumpToEquipmentStub() removed 2026-08-25 — the "More" group now dispatches
    through openWoMoreTab(), so the shim had no callers left. */

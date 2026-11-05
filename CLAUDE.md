@@ -54,6 +54,7 @@ doc's Requirements section; neither file holds the reasoning.
 | **Start Work is the commitment boundary** | §14.11 | Five things happen at once and only make sense together: status → Start Work Status, **Type protects**, **the WO pins to the technician**, **children hydrate**, config version stamped. Starting a WO found by search **is** its promotion into Tier 1, and it is the **first device-originated pin** — a local pin must survive a server list that omits it, or the next sync evicts live work. |
 | **The punch list is BOTH a dataspy and pins** | §2.6 | Locked 2026-09-11, replacing a two-month A-or-B open item. A **dataspy** is the *automatic* layer, selected on the **Work Orders row of the offline profile** — which renders on **every** profile including `None`, because a work list is a membership question, not a consequence of replication (settled 2026-09-23, §2.6/§30.14; this reversed "on the user group", whose objection assumed a group-scoped dataspy when `My Open WOs` is user-relative); **pinning** (`R5PINS`) is the *manual* layer on top. Costs both backend asks, not one. The membership row must record **which source** pinned it, or a dataspy re-evaluation evicts a manual pin — and a local pin must survive a server list that omits it, which is now architecturally required rather than just advisable. |
 | **One paradigm for every configuration artifact** | §30.13 | Workflows, offline profiles, Home layouts and Home tiles are all **authored once and applied**, and the four answers are shared, not per-area: assignment runs **both directions over ONE membership table** (`{type, artifactId, group}`, every read through an accessor — four parallel arrays is the failure mode); **cardinality follows what the runtime resolves on**, and it now declares FOUR values (§11 resolves a workflow on *(WO Type, group)* → `per-wotype`; a **Screen Layout** on *(screen, type, group)* → `per-type`, the same rule with the axis as a parameter (§30.27); an **offline profile resolves on *(group, the technician's login choice)*** → `multi-group`, **several per group, locked 2026-09-23 (§2.10.1)**; a Home layout resolves on the group alone → `per-group`, exactly one). **The third value is the rule working, not bending** — the resolution KEY gained a dimension, exactly as §29 did to the layout key, and nothing downstream needed a special case; **Create follows size** (modal for what fits one form, blank canvas for an arrangement); **Home tiles are global and reused by reference**, so editing one reaches every layout using it and only the *layout* is assignable. |
+| **Dropdown → pull-up, LOV → push page** | §3.4.2 | The base field's **control type** picks the surface, never list length: a base dropdown keeps today's bottom-sheet pull-up (no search); a base LOV (incl. Equipment) opens a full-screen **push page** with search. Locked 2026-11-05 **docs-only, by user direction: do NOT update the prototypes for it** until told to; every LOV still opens the pull-up, and the push page's anatomy is §20. `NO_SEARCH_LOVS` is the stand-in until the flag ships with the layout in Tier 0. |
 | **Gating is forward-only** | §14.10 | A completed step is **always** reopenable; "Not Free Form" dictates forward order, not backward. Forward gating is untouched — a later step stays locked and explains itself. Completed rows carry a trailing chevron (`.step-map-back`), because `cursor:pointer` says nothing on a touch device. |
 | **Function resolution is per user group, never one blessed function** | §26.7 | Any function with `FUN_RENTITY = EVNT` may be workflow-enabled, opted in per **user group** — this customer already runs four `WSJOBS` clones (CCJOBS/TRJOBS/ZJ1000/WSJODC) as distinct business processes. **This half is still locked and holds either way.** *(What is NOT locked any more: "no new `FUN_CODE`s" — reuse `WSJOBS`/clones vs. a new standalone mobile function was reopened 2026-09-11 and is a **decision required**, §11/§20. A new Equipment function that renders by equipment type is **required** regardless, §26.8. Don't re-derive §26.7 with it.)* |
 | **Online-first, with declared offline scope** | §2.1 | Reads hit the server at full fidelity; the local store is a **scoped fallback**, never a projection of the whole database. **Database-wide search does not work offline.** Unchanged: one write path, always-on outbox, the UI never reads the network directly, **no mode the technician chooses**. Consequences live at §2.3/§2.7 (per-entity scope + traversal), §2.8 (three-way lookups), §2.9 (actions may narrow, field state never does), §2.10/§2.10.1 (profiles per user group — **several are allowed**, and past the first the technician picks one at login and can change it in Settings; still provisioning, since every option is admin-granted, narrowing-only and online-first), §2.5 (LWW withdrawn — per-shape conflicts). |
@@ -83,6 +84,7 @@ files may *point* at it; they must not restate it. Changing a fact means editing
 | A locked design rule, and its rationale | `docs/design-decisions-v3-1.md` |
 | Open/deferred items, and rejected alternatives | same file, §20 and §21 |
 | What to build next, and in what order | the design doc's **Timeline** |
+| Every screen in scope: its paradigm, shared components, exceptions, state (and the Aha CSV, generated by `docs/scripts/build-aha-csv.js`) | `docs/screen-inventory.md` |
 | What a UI pattern is *called*, and its rules | `docs/component-library.md` |
 | Raw CSS-level component audit | `docs/ui-component-inventory.md` |
 | Current state of the prototypes, and their traps | this file |
@@ -101,7 +103,9 @@ Check it for "what should I work on."
 without flagging that to the user first.** It's long — **grep for the section
 you need rather than reading it end to end.**
 
-**The doc set was cut back 2026-09-11** to the four files above plus this one.
+**The doc set was cut back 2026-09-11** to the four files above plus this one;
+`screen-inventory.md` joined it 2026-11-05, replacing the design doc's Screens
+section and the retired *Total Project Scope Summary brief*.
 Anything not in that set is not pointed at on purpose — **don't add pointers
 back**, and don't treat a doc's absence from this file as evidence it never
 existed.
@@ -292,6 +296,15 @@ facts and traps only.**
   compact variant (`openDescEditor()`), not an inline edit — same as Equipment
   RV's header, both via `eam-shared.js`. Closing a WO returns *here*, not to
   WO List (§15.2/§19.7).
+- **WO › Activities** (§16.12, built 2026-11-05): `eam-wo-activities-prototype-v1.html`, the
+  Equipment tab's List/Detail shape with two exceptions: a row tap **selects** (radio in the card
+  headline, `:has()` styles the card), and a bottom bar carries **Start Work**, which now fires here.
+  The **Record View Activities panel is a future consideration** and was deliberately left untouched,
+  but **Record View no longer starts work**: its bar reads **"Select activity"** and opens this screen
+  (`goToWoActivitiesTab()`), and `startWork()`/`proceedStartWork()` live here now. Also in More
+  (`WO_MORE_TABS`), unnumbered on the rail; step vs. More is §20. Activity data is a local copy of Record View's;
+  Plus/Edit are toasts. Pinned by `test-activities-tab.js`. Activity Checklist / Issue Parts / Book
+  Labor with no Activities step before them need a **required Activity LOV** (§32.13, unbuilt).
 - **Activity Checklist** ("Focused Stepper", v2, §16): one item at a time,
   and **navigation is a snap-SCROLL between items — the A/B closed 2026-09-21
   in favour of scroll (§16.1)**. The paged path, its `SCROLL_MODE` flag and the

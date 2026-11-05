@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>/* guarded: localStorage throws in iOS Private Browsing, and this runs before eam-shared.js so lsGet() does not exist yet */try{if(localStorage.getItem('eamTheme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1A1A1F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="EAM">
+<link rel="manifest" href="../../manifest.webmanifest">
+<link rel="apple-touch-icon" href="shared/img/icon-180.png">
+<meta name="format-detection" content="telephone=no">
+<title>Attune EAM Mobile — Work Order › Activities</title>
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611051940">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611051940">
+<!--
+  WORK ORDER › ACTIVITIES (built 2026-11-05, design-decisions-v3-1.md §16.12).
+
+  The standalone Activities screen. It REPLACES the Activities panel on WO
+  Record View as the design going forward; the panel itself is kept on Record
+  View as a FUTURE CONSIDERATION (§15.2) and is deliberately untouched here.
+
+  SAME PARADIGM AS THE WO EQUIPMENT TAB (§16.10): a List/Detail child tab.
+  - Header = protected parent identity (§8.1) + Plus / Search / Ellipsis.
+  - Body = the shared List/Detail shell (renderListDetailShell): dataspy bar,
+    Detailed/List modes, record count + sort, inline search. Config only.
+  - Carries the WO step rail, highlighted on its own More row.
+
+  THE ONE EXCEPTION, and the reason this screen exists: a RADIO SELECTOR.
+  A row tap SELECTS the activity instead of opening it, single-select, and
+  the selection gates the bottom bar's Start Work (§14.11). So, unlike the
+  Equipment tab, this child tab has a bottom bar. Start Work fires from here.
+  The radio sits inside the card headline (field `html`), so the shared card
+  renderer is reused unchanged; the selected-card treatment is `:has()`.
+
+  CARRIED OVER FROM §15.2 unchanged:
+  - one activity auto-selects; two or more start with nothing selected;
+  - a completed activity stays selectable, but Start Work on it is protected
+    and explains itself ("Activity is completed");
+  - completed = Completed checkbox OR assignment status Completed, drawn as a
+    strike-through on the activity number and notes only.
+  - once work is started (a run exists, §32.7) the selection is protected and
+    the bar reads "Continue to <cursor>"; Start Work is never offered twice.
+
+  STUBS, honest about what isn't real:
+  - Plus (add activity) and the ellipsis's Edit toast. The Activity Insert/
+    Update popup is still screen-local to WO Record View (§15.2) and isn't
+    ported (§20).
+  - Activity data is a copy of WO Record View's demo ACTIVITIES, so a change
+    on one screen does not reach the other. Both read the same two rows.
+  - WO Record View's bar reads "Select activity" and opens this screen; it no
+    longer starts work itself (§16.12). This is the only place work starts.
+-->
+<style>
+/* Screen-local only (one consumer). Same visual language as WO Record
+   View's .act-radio (§15.2), re-declared rather than shared because the
+   panel it came from is now a future consideration, not a 2nd consumer. */
+.content { padding: 0 0 var(--bar-reserve); }
+
+.act-sel { display: inline-flex; align-items: center; gap: 10px; }
+.act-sel-radio { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--border-strong); background: var(--bg-section); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .15s; }
+.act-sel-radio svg { display: none; color: white; }
+.act-sel-radio.on { border-color: var(--octave-black); background: var(--octave-black); }
+.act-sel-radio.on svg { display: block; }
+[data-theme="dark"] .act-sel-radio.on { border-color: var(--white); background: var(--white); }
+[data-theme="dark"] .act-sel-radio.on svg { color: var(--octave-black); }
+.act-sel-num { font-family: var(--font-mono); font-weight: 700; }
+
+/* Selected card: the same left-bar + section tint the Record View panel
+   used, applied to the shared card wrapper. */
+.ld-card-wrap:has(.act-sel-radio.on) .ld-card { box-shadow: inset 3px 0 0 var(--octave-black); background: var(--bg-section); }
+[data-theme="dark"] .ld-card-wrap:has(.act-sel-radio.on) .ld-card { box-shadow: inset 3px 0 0 var(--white); }
+.ld-table tr:has(.act-sel-radio.on) td { background: var(--bg-section); }
+
+/* Started work: rows are protected, same dimming every locked row uses. */
+.act-locked .ld-card-wrap, .act-locked .ld-table tr { opacity: .75; }
+
+/* §15.2 completed treatment: number + notes only. */
+.act-done { text-decoration: line-through; }
+.act-mono { font-family: var(--font-mono); }
+
+.act-empty { margin: 28px 20px; text-align: center; }
+.act-empty-title { font-size: 0.875rem; font-weight: 700; color: var(--octave-black); }
+[data-theme="dark"] .act-empty-title { color: var(--white); }
+.act-empty-sub { font-size: 0.78125rem; color: var(--gray-4); margin-top: 5px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <header class="nav" onclick="scrollFormToTop()">
+    <div class="nav-left">
+      <button class="nav-back" aria-label="Back" onclick="event.stopPropagation(); goToWoStep(ORIGIN_STEP)">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="prototype-label">PROTOTYPE</span>
+    </div>
+    <div class="nav-title">Activities</div>
+    <div class="nav-actions">
+      <span id="syncCtrl"></span>
+    </div>
+  </header>
+
+  <!-- List/Detail header (§8.1). `active` is REQUIRED: eam-shared.css hides
+       #listDetailHeader unless it carries it (CLAUDE.md, §16.10). -->
+  <div class="rec-header active" id="listDetailHeader" onclick="scrollFormToTop()">
+    <div class="rec-id-row">
+      <div class="rec-id-text">
+        <span class="rec-num" id="ldNum">19257</span>
+        <span class="rec-desc protected" id="ldDesc">Pump Cavitating; lost head</span>
+      </div>
+      <div class="rec-header-actions">
+        <button class="rec-ellipsis-btn" onclick="event.stopPropagation(); onListDetailPlusTap()" aria-label="Add activity">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button class="rec-ellipsis-btn" id="listDetailSearchBtn" onclick="event.stopPropagation(); onListDetailSearchTap()" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        </button>
+        <button class="rec-ellipsis-btn" onclick="event.stopPropagation(); toggleListDetailMenu()" aria-label="More actions">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+        </button>
+        <!-- §8.4: Edit acts on the SELECTED activity, so it is row-scoped in
+             spirit; it stays here (not an Action Row) because the selection
+             IS the row state on this screen, same as §15.2's pencil. -->
+        <div class="rec-actions-menu" id="listDetailMenu">
+          <div class="rec-actions-group">
+            <div class="rec-actions-item" onclick="closeListDetailMenu(); editSelectedActivity()">Edit selected activity</div>
+          </div>
+          <div class="rec-actions-divider"></div>
+          <div class="rec-actions-group"><div class="rec-actions-item" onclick="closeListDetailMenu(); showToast('Sort — coming soon')">Sort</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step-rail" id="stepRail">
+    <div class="step-rail-collapsed">
+      <div class="step-name">Activities</div>
+      <div class="step-rail-right">
+        <svg class="step-chevron" id="stepChevron" width="16" height="16" fill="none" viewBox="0 0 24 24">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+    <div class="step-segments"></div>
+    <div class="step-map" id="stepMap"></div>
+  </div>
+
+  <div class="content">
+    <div class="tab-content active" data-tab="activities"></div>
+  </div>
+
+  <!-- BOTTOM BAR — the exception to the List/Detail paradigm: locked until an
+       activity is selected, then Start Work (§14.11/§16.12). -->
+  <div class="bottom-bar" id="bottomBar">
+    <button class="bar-pill bar-pill-locked" id="barBtn" onclick="onBarPillTap()">
+      <svg id="barLock" width="16" height="16" fill="none" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span id="barBtnLabel">Select an activity to start</span>
+    </button>
+  </div>
+
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeAllSheets()"></div>
+
+  <div class="bottom-sheet" id="syncPanelSheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Sync Status</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sync-panel-state" id="syncPanelStateLabel"></div>
+    <div class="sheet-body" id="syncPanelList"></div>
+    <div class="sync-panel-hydrate" id="syncPanelHydrate"></div>
+  </div>
+
+  <div class="bottom-sheet" id="dataspySheet">
+    <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+    <div class="sheet-header">
+      <button class="sheet-close" onclick="closeAllSheets()">✕</button>
+      <div class="sheet-title">Select dataspy</div>
+      <div style="width:30px;flex-shrink:0;"></div>
+    </div>
+    <div class="sheet-body" id="dataspySheetBody"></div>
+  </div>
+
+  <!-- openConfirm()'s shell. -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-modal">
+      <div class="confirm-message" id="confirmMessage">Are you sure?</div>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="confirm-btn confirm-danger" id="confirmDangerBtn" onclick="confirmDangerAction()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- openQuestion()'s own shell (Yes/No/Cancel): Free Form's "Start the timer
+       for this work order?" (§32.6). Without it a Free Form Start Work throws. -->
+  <div class="confirm-overlay" id="questionOverlay">
+    <div class="question-modal">
+      <div class="question-message" id="questionMessage">Are you sure?</div>
+      <div class="question-actions">
+        <button class="question-btn yes" onclick="questionAnswerYes()">Yes</button>
+        <button class="question-btn no" onclick="questionAnswerNo()">No</button>
+        <button class="question-btn cancel" onclick="closeQuestion()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Without this every showToast() is a silent no-op (§16.10's trap). -->
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+</div>
+
+<script src="../../data/wotype.js?v=202611051940"></script>
+<script src="../../data/wo-workflow.js?v=202611051940"></script>
+<script src="../../data/wo-workflow-steps.js?v=202611051940"></script>
+<script src="shared/eam-shared.js?v=202611051940"></script>
+<script>
+/* ══ PARENT WO IDENTITY ══════════════════════════════════════════════ */
+const WO_META = {
+  '19257': { desc: 'Pump Cavitating; lost head' },
+  '19831': { desc: 'General inspection request' },
+  '20450': { desc: 'Replace batteries in lobby TV remote' },
+};
+
+/* ══ ACTIVITIES ══════════════════════════════════════════════════════
+   A copy of WO Record View's demo ACTIVITIES (same two rows, same fields
+   the card needs). Record View is deliberately not edited, so its copy is
+   not read from here; see the header comment. */
+const ACTIVITIES = [
+  { id: '10', num: 'Activity 10', name: 'Pump overhaul — bearing replacement', tradeCode: 'MECH', discipline: 'Mechanical', date: '2025-11-07', estimatedHours: 6, peopleRequired: 2, assignmentStatus: 'In Progress', completed: false },
+  { id: '20', num: 'Activity 20', name: '', tradeCode: 'TECH', discipline: 'Technician', date: '2025-11-07', estimatedHours: 2, peopleRequired: 1, assignmentStatus: 'Unfinished', completed: false },
+];
+function isActivityComplete(a) { return !!a.completed || a.assignmentStatus === 'Completed'; }
+
+/* Selection survives a reload and a round-trip through another tab, keyed
+   per WO. Session-scoped: it is the technician's pick on this device, not
+   record data. */
+const SEL_KEY = () => 'eamActivitySelected:' + woRunWo();
+let selectedActivity = null;
+function loadSelection() {
+  const run = woRunFor();
+  if (run && run.activity) return run.activity;          // started: the run owns it
+  const saved = sessionStorage.getItem(SEL_KEY());
+  if (saved && ACTIVITIES.some(a => a.id === saved)) return saved;
+  return ACTIVITIES.length === 1 ? ACTIVITIES[0].id : null; // §15.2 default
+}
+function selectActivity(id) {
+  const run = woRunFor();
+  if (run) {
+    const act = ACTIVITIES.find(a => a.id === run.activity);
+    showToast('Work is started on ' + (act ? act.num : 'this activity') + '. The activity cannot change.');
+    return;
+  }
+  selectedActivity = id;
+  sessionStorage.setItem(SEL_KEY(), id);
+  rebuildRows();
+  updateStartGate();
+}
+
+/* ══ FIELD SETS ══════════════════════════════════════════════════════
+   `value` is plain text (feeds data-search); `html` carries the radio. */
+const CHECK = '<svg width="11" height="11" fill="none" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function radioHtml(a) {
+  const done = isActivityComplete(a) ? ' act-done' : '';
+  return `<span class="act-sel"><span class="act-sel-radio${a.id === selectedActivity ? ' on' : ''}" role="radio" aria-checked="${a.id === selectedActivity}">${CHECK}</span><span class="act-sel-num${done}">${a.id}</span></span>`;
+}
+function cardFields(a) {
+  const done = isActivityComplete(a);
+  return [
+    { label: 'Activity',          value: a.id, html: radioHtml(a) },
+    { label: 'Notes',             value: a.name || a.num, html: `<span class="${done ? 'act-done' : ''}">${a.name || a.num}</span>` },
+    { label: 'Trade',             value: a.tradeCode + ' ' + a.discipline, html: `<span class="act-mono">${a.tradeCode}</span> ${a.discipline}` },
+    { label: 'Start Date',        value: isoToDisplay(a.date) },
+    { label: 'Assignment Status', value: a.assignmentStatus },
+    { label: 'Est. Hours',        value: String(a.estimatedHours) },
+  ];
+}
+function allFields(a) {
+  return [
+    { label: 'Activity',          value: a.id, html: radioHtml(a) },
+    { label: 'Notes',             value: a.name || '—' },
+    { label: 'Trade',             value: a.tradeCode + ' ' + a.discipline },
+    { label: 'Start Date',        value: isoToDisplay(a.date) },
+    { label: 'Assignment Status', value: a.assignmentStatus },
+    { label: 'Est. Hours',        value: String(a.estimatedHours) },
+    { label: 'People Required',   value: String(a.peopleRequired) },
+  ];
+}
+function ldRow(a) {
+  const ds = ['all'];
+  if (!isActivityComplete(a)) ds.push('open');
+  return { ds, a, fields: cardFields(a), allFields: allFields(a) };
+}
+
+/* ══ LIST/DETAIL CONFIG (§8.2/§8.3) ══════════════════════════════════ */
+const LIST_DETAIL_TABS = {
+  activities: {
+    label: 'Activities',
+    sortLabel: 'Activity',
+    dataspies: [
+      { key: 'all',  name: 'All Activities' },
+      { key: 'open', name: 'Open Activities' },
+    ],
+    fieldDefs: [
+      { key: 'act',    label: 'Activity' },
+      { key: 'notes',  label: 'Notes' },
+      { key: 'trade',  label: 'Trade' },
+      { key: 'date',   label: 'Start Date' },
+      { key: 'status', label: 'Assignment Status' },
+      { key: 'hours',  label: 'Est. Hours' },
+    ],
+    rows: [],
+  },
+};
+function rebuildRows() {
+  LIST_DETAIL_TABS.activities.rows = ACTIVITIES.map(ldRow);
+  renderActiveTabContent();
+}
+
+/* ══ ROW TAP = SELECT (the exception to §8's "opens this record") ═════ */
+const ROW_TAP_HANDLERS = { activities: (row) => selectActivity(row.a.id) };
+
+/* ══ PLUS / EDIT — stubs until the Activity popup is ported (§20) ═════ */
+const TAB_PLUS_HANDLERS = { activities: () => showToast('Add activity — coming soon') };
+function editSelectedActivity() {
+  if (!selectedActivity) { showToast('Select an activity to edit.'); return; }
+  showToast('Edit activity — coming soon');
+}
+
+/* ══ RENDER ══════════════════════════════════════════════════════════ */
+const TAB_RENDERERS = {
+  activities: () => {
+    if (!ACTIVITIES.length) return `
+      <div class="act-empty">
+        <div class="act-empty-title">No activities on this work order</div>
+        <div class="act-empty-sub">Use <strong>+</strong> to add one. Work can't start until an activity is selected.</div>
+      </div>`;
+    const locked = woRunFor() ? ' act-locked' : '';
+    return `<div class="act-list${locked}">${renderListDetailShell('activities')}</div>`;
+  },
+};
+currentTab = 'activities';
+
+/* ══ BOTTOM BAR — Start Work (§14.11), gated as §15.2 gated it ════════ */
+function updateStartGate() {
+  const btn = document.getElementById('barBtn');
+  const label = document.getElementById('barBtnLabel');
+  const lock = document.getElementById('barLock');
+  const run = woRunFor();
+  if (run) {
+    btn.className = 'bar-pill bar-pill-ready';
+    lock.style.display = 'none';
+    label.textContent = 'Continue to ' + (WO_STEP_LABELS[run.cursor] || WO_STEP_LABELS.checklist);
+    return;
+  }
+  const act = ACTIVITIES.find(a => a.id === selectedActivity);
+  const completed = act && isActivityComplete(act);
+  const ready = !!act && !completed;
+  btn.className = 'bar-pill ' + (ready ? 'bar-pill-ready' : 'bar-pill-locked');
+  lock.style.display = ready ? 'none' : '';
+  label.textContent = !act ? 'Select an activity to start'
+    : completed ? 'Activity is completed'
+    : 'Start Work';
+}
+function onBarPillTap() {
+  const run = woRunFor();
+  if (run) { goToWoStep(run.cursor || 'checklist'); return; }
+  const act = ACTIVITIES.find(a => a.id === selectedActivity);
+  if (!act) { showToast('Select an activity to start'); return; }
+  if (isActivityComplete(act)) { showToast('Activity is completed. Uncheck Completed on the activity to reopen it.'); return; }
+  startWork(act);
+}
+/* Same commitment as WO Record View's startWork()/proceedStartWork()
+   (§14.11/§32.2/§32.7): the timer question, then the run, then Step 2. */
+function startWork(act) {
+  const wo = woRunWo();
+  const withTimer = () => techTimerStart(wo, act.id, act.num, () => proceedStartWork(act));
+  if (WORKFLOW.freeForm) {
+    openQuestion('Start the timer for this work order?', withTimer, () => proceedStartWork(act));
+    return;
+  }
+  withTimer();
+}
+function proceedStartWork(act) {
+  sessionStorage.setItem('eamArrivedViaNextStep', 'true');
+  sessionStorage.setItem('eamOpenDemoWo', DEMO_WO);
+  sessionStorage.setItem('eamActiveActivityId', act.id);
+  if (woRunEligible()) woRunStart(DEMO_WO, act.id, act.num, 'checklist');
+  window.location.href = WO_STEP_FILES.checklist;
+}
+
+/* ══ INIT ════════════════════════════════════════════════════════════ */
+const OPEN_DEMO_WO = sessionStorage.getItem('eamOpenDemoWo');
+if (OPEN_DEMO_WO) { sessionStorage.removeItem('eamOpenDemoWo'); DEMO_WO = OPEN_DEMO_WO; }
+const PARENT_WO = WO_META[DEMO_WO] || WO_META['19257'];
+const CHILD_IDENTITY = woIdentity();
+document.getElementById('ldNum').textContent = CHILD_IDENTITY ? CHILD_IDENTITY.number : DEMO_WO;
+document.getElementById('ldDesc').textContent = CHILD_IDENTITY ? CHILD_IDENTITY.desc : PARENT_WO.desc;
+
+selectedActivity = loadSelection();
+rebuildRows();
+
+const ORIGIN_STEP = sessionStorage.getItem('eamActivitiesTabOrigin') || 'record';
+const jobType = DEMO_WO_JOBTYPES[DEMO_WO];
+const WORKFLOW = resolveWoWorkflow(jobType);
+if (WORKFLOW.configured) renderStepRail(WORKFLOW, ORIGIN_STEP, jobType, 'activities');
+else renderFlatStepRail(ORIGIN_STEP, jobType, 'activities');
+updateStartGate();
+
+initDemoOnlineToggle();
+initSharedApp({ contentSelector: '.content' });
+</script>
+</body>
+</html>

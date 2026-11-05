@@ -53,9 +53,21 @@ const timerSeed = (wo, minsAgo, state) => JSON.stringify({
   tech: 'BCAMPBELL', wo, activity: '10', activityLabel: 'Activity 10', state: state || 'running',
   startedAt: Date.now() - minsAgo * MIN, bookedMs: 0 });
 
-console.log('\nStart Work (gated, 19257) creates the run and starts the timer');
-let rv = runScreen('eam-wo-record-view-prototype-v1.html', { eamOpenDemoWo: '19257' });
-ev(rv, 'RECORD.selectedActivity = "10"; startWork();');
+console.log('\nRecord View no longer starts work: its bar reads "Select activity" (§16.12)');
+{
+  const r0 = runScreen('eam-wo-record-view-prototype-v1.html', { eamOpenDemoWo: '19257' });
+  ok('the bar reads "Select activity" and is ready',
+    ev(r0, 'document.getElementById("barBtnLabel").textContent') === 'Select activity'
+    && /bar-pill-ready/.test(ev(r0, 'document.getElementById("barBtn").className')));
+  ev(r0, 'onBarPillTap()');
+  ok('...and opens the Activities screen', /wo-activities/.test(ev(r0, 'location.href')));
+  ok('...without starting anything', ev(r0, 'woRunFor("19257") === null && techTimer() === null') === true);
+  ok('Record View carries no startWork() any more', ev(r0, 'typeof startWork') === 'undefined');
+}
+
+console.log('\nStart Work (gated, 19257), from the Activities screen, creates the run and starts the timer');
+let rv = runScreen('eam-wo-activities-prototype-v1.html', { eamOpenDemoWo: '19257' });
+ev(rv, 'selectActivity("10"); onBarPillTap();');
 const started = carry(rv);
 ok('a run exists for (technician, WO, activity)', /BCAMPBELL\|19257\|10/.test(started.eamWorkflowRuns || ''));
 ok('...its cursor is Activity Checklist', ev(rv, 'woRunFor("19257").cursor') === 'checklist');
@@ -100,8 +112,8 @@ console.log('\n2. Back does not prompt (§32.3 — §14.7.1 retired)');
 
 console.log('\n3. A declined timer renders no rail timer (§32.6)');
 {
-  rv = runScreen('eam-wo-record-view-prototype-v1.html', { eamOpenDemoWo: '19831' });
-  ev(rv, 'RECORD.selectedActivity = "10"; startWork();');
+  rv = runScreen('eam-wo-activities-prototype-v1.html', { eamOpenDemoWo: '19831' });
+  ev(rv, 'selectActivity("10"); onBarPillTap();');
   ok('Free Form asks first', ev(rv, 'document.getElementById("questionMessage").textContent') === 'Start the timer for this work order?');
   ev(rv, 'questionAnswerNo()');
   ok('No still starts the work (a run exists)', ev(rv, 'woRunFor("19831") !== null') === true);
@@ -115,8 +127,8 @@ console.log('\n3. A declined timer renders no rail timer (§32.6)');
   ok('Start timer starts it on this WO', ev(cl, 'techTimer().wo') === '19831');
   ok('...and the offer is withdrawn while it runs', ev(cl, 'startTimerOfferedHere()') === false);
   // Cancel on the question starts nothing at all — not the work, not a run.
-  const rv2 = runScreen('eam-wo-record-view-prototype-v1.html', { eamOpenDemoWo: '19831' });
-  ev(rv2, 'RECORD.selectedActivity = "10"; startWork(); closeQuestion();');
+  const rv2 = runScreen('eam-wo-activities-prototype-v1.html', { eamOpenDemoWo: '19831' });
+  ev(rv2, 'selectActivity("10"); onBarPillTap(); closeQuestion();');
   ok('Cancel on the question starts nothing', ev(rv2, 'woRunFor("19831") === null && techTimer() === null') === true);
 }
 
