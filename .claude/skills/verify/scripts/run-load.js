@@ -191,6 +191,8 @@ const cases = [
   ['eam-wo-reference-tab-prototype-v1.html', { eamReferenceTab: 'documents', eamOpenDemoWo: '19257' }, 'documents tab'],
   ['eam-wo-reference-tab-prototype-v1.html', { eamReferenceTab: 'comments' }, 'comments tab'],
   ['eam-wo-equipment-tab-prototype-v1.html', null, 'cold'],
+  ['eam-wo-activities-prototype-v1.html', null, 'cold'],
+  ['eam-wo-activities-prototype-v1.html', { eamOpenDemoWo: '19831' }, 'PM work order'],
   ['eam-activity-checklist-prototype-v2.html', null, 'cold'],
   ['eam-activity-checklist-prototype-v2.html', { eamWoEquipment: JSON.stringify({ '19257': { route: { code:'PUMPS', desc:'Monthly Pump Inspections' }, rows: [ {equip:'P-1042',desc:'Pump A',source:'route',childWo:'20451',parentWo:'19257'}, {equip:'P-1043',desc:'Pump B',source:'route',childWo:'20452',parentWo:'19257'} ] }, __nextChildWo: 20453 }) }, 'checklist fan-out (2 equipment)'],
   ['eam-book-labor-prototype-v2.html', null, 'cold'],

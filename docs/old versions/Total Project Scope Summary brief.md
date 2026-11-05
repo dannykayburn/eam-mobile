@@ -1,3 +1,8 @@
+> **DEPRECATED 2026-11-05.** Superseded by `docs/screen-inventory.md`, which owns
+> the screen list, each screen's paradigm, shared components, exceptions and
+> state, and generates the Aha import. Open major decisions live in the design
+> doc's **Open issues**. Kept for history only; do not update or cite it.
+
 # Mobile project summary for presentation
 
 > **This is a snapshot, and it owns nothing.** Written to communicate

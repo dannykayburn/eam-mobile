@@ -37,7 +37,7 @@ to end and start work without opening anything else.
 
 **It owns outright** — nothing else holds these: the **objective**, the
 **requirements R1–R6** and the requirement-level rules behind them, the
-**goals and non-goals**, the **scenarios**, the **screen map**, the **SLOs**,
+**goals and non-goals**, the **scenarios**, the **SLOs**,
 **monitoring**, **security**, **privacy**, **legal**, **logging**, the
 **timeline**, and the **sign-off record**.
 
@@ -99,12 +99,13 @@ for a design doc rather than another spec section.
 ## Related documents
 
 The doc set was cut back on 2026-09-11 to keep the reading surface small: four
-maintained documents plus `CLAUDE.md`, and two reference folders that are
+maintained documents (five since the screen inventory, 2026-11-05) plus `CLAUDE.md`, and two reference folders that are
 consulted rather than read.
 
 | Document | What it owns | Read it when |
 | --- | --- | --- |
 | `docs/design-decisions-v3-1.md` | **Every locked design rule, and its rationale.** §1–§31. Open items §20, superseded decisions §21. | "What is the rule for X?" **Grep for the section.** |
+| `docs/screen-inventory.md` | **Every screen in scope**: paradigm, shared components, exceptions, state, blockers. Source of the Aha CSV. | "What screens are there, and where does each stand?" |
 | `docs/component-library.md` | What a UI pattern is **called**, and its rules. | Before naming or inventing a component. |
 | `docs/ui-component-inventory.md` | Raw CSS-level component audit. | Porting a component. |
 | `docs/handoffs/EAM-HANDOFF-UX-User-Testing-Brief.md` §4 | Catalogue of known prototype stubs. | Before device testing — do not rediscover the list. |
@@ -148,7 +149,7 @@ a change here is a change to what we promised, not a preference.
 
 **Trimmed 2026-09-23, from ~50 bullets to 18.** What came out was every bullet
 whose fact has a better home elsewhere in this doc — a Goal, a Non-goal, a
-Constraint, a diagram caption or a Screens row. What stayed is the set of
+Constraint, a diagram caption or a screen-inventory card. What stayed is the set of
 obligations that are stated **only** here. The rule going forward: if a rule you
 want to add is already a G, an NG, a Constraint or a diagram caption, add it
 there and leave this list alone.
@@ -383,177 +384,22 @@ provisioning, because the admin decides what is on the list either way.
 
 ## Screens
 
-**What this section is:** every surface the product has, what each one is *for*,
-and the high-level requirement it has to meet. It is the map a new squad member
-reads to understand the shape of the app.
+**The screen map moved to `docs/screen-inventory.md`** on 2026-11-05. It is the
+single home for every screen in scope: its base paradigm (Record View,
+List/Detail, record list and Search, Create, Modify, link buttons, workflow
+step, app shell), the shared components it uses, its exceptions, design state
+and blockers. It also generates the Aha feature import
+(`node docs/scripts/build-aha-csv.js`).
 
-**It is in two halves, and the split is the programme's own** (NG8: *"It is just
-the Mobile App and this portal now. Total."*). **Section 1** is the configuration
-portal the administrator uses; **Section 2** is the app the technician holds.
-Two personas, two design systems, one membership table between them. Anything
-that is not in one of these two halves is not in scope.
+Two things stay true here, because they are scope rather than screen design:
 
-**What it is not:** implementation state. Which screen lives in which file, and
-the traps in each, is `CLAUDE.md`'s job — check there before touching a
-prototype. Locked per-screen rules live in the spec at the `§` given.
-
-**State column:** `proto` = navigable prototype on the shared component system,
-decisions locked · `design owed` = needs a design pass before dev · `delta` =
-cheap, a variation on an existing canonical screen · `no surface` = specified but
-nothing authors or renders it yet.
-
----
-
-### Section 1 — the Mobile Configuration Portal
-
-**Persona: administrator.** One web app, on the Octave / OUX design system, and
-**the only base-side surface this programme has** (NG8). It is what makes the
-mobile app configuration-driven instead of hardcoded. Four areas over **one
-membership table** — three that author metadata, one that binds it. Cardinality
-is not a per-area choice: it follows what the runtime resolves on. *(§30.)*
-
-| Area | What it must do | State |
-| --- | --- | --- |
-| **Workflows** | The guided flow, authored as an artifact rather than as the residue of saving a layout. Gallery of workflow cards → a drag-and-drop single-column canvas of **step instances** (§29.2), with **Screen Designer opening as a panel alongside the selected node** — not a separate screen. Non-step nodes drop between steps: two **forks** (question, condition) and three **actions** (status update, start timer, stop timer). One workflow per **(WO Type, group)**, plus one Free Form. *(§30.1–§30.4/§30.9/§30.19/§30.21.)* | `proto` |
-| **— Screen Designer, as a panel** | Places fields and containers for the selected step instance, in a real 390px emulator. Each instance **deep-copies its own layout**, which is the one way to break the whole feature while everything still renders. Authors nothing about sequencing — that is the canvas's job. *(§10–§13/§29/§30.10.)* | `proto` |
-| **Home Layouts** | Three levels — layout ▸ section ▸ placement — plus the pinned Create control's contents, over a **global tile catalogue holding tile ids, never copies**. The section lives on the *layout*, never on the tile, or reuse dies. Insert Mode is a **flag** on a tile, not a kind. **Also authors the app's bottom navigation bar** (up to five slots; label, screen and icon, never colour). *(§30.16/§30.24.)* | `proto` |
-| **Offline Profiles** | Authors §2.7's per-entity registry: four policies on the **capability** axis, Tier 0 and the outbox rendered first as never-switchable, and caps shown because a budget you cannot see is not a budget. Whether a dataspy is **required** is arithmetic against the caps, never a description. Dataspies are *selected* here and authored on the record list screen. **Its Work Orders row is also where the punch-list dataspy lives** — the automatic half of §2.6 — settled 2026-09-23, **and it renders on every profile including `None`**, since a work list is a membership question rather than a consequence of replication. *(§30.14/§2.7/§2.10/§2.6.)* | `proto` |
-| **User Groups** *(under Security)* | The inverse view, and a **binding surface only** — assignment, never steps, gating or layout, and assign is not copy. **Create refuses here:** a user group is made in Security ▸ User Groups. Carries the consistency checks, including "a Required UDS step for a group without that tab permission is an **error**." *(§26.5.1/§30.13/§27.4.)* | `proto` |
-| **Screen Layouts** | Screen design for screens that are not workflows — Equipment first, then Work Requests and Operator Checklists. The workflow paradigm with **Free Form always on**: same canvas, same Screen Designer panel, same membership table. One section per screen, **every type drawn as a slot** with the fallback first, and a **Viewing as** group lens that filters and never becomes the editing key. *(§30.27.)* The Equipment **function** is still owed. *(Open issue 1b.)* | `proto` |
-
-**Two rules about this portal that are easy to get wrong.** There are **zero
-links out of it** — a rail row is an *area*, never a link to another file, and a
-test asserts it, because the dead User Group Setup link is how this erodes. And
-**no summary panels anywhere** (§30.20, user direction): every validator is kept
-and still called, but by the control that can violate it — a clash is refused in
-the assignment popover, a missing dataspy is an error on its own select. Raise
-the error where the action is; do not add a roll-up back.
-
-> **Retired 2026-09-16, and nothing should point at them again:** standalone
-> **Screen Designer** and **User Group Setup** were separate screens until the
-> portal became the single base entry point. Both are in `old versions/`, and
-> their `eamDesignerEntry` hand-off contract retired with them.
-> *(§30.6/§30.9/§21.)*
-
-### Section 2 — the Mobile Application
-
-**Persona: technician, the executor of work.** Everything below is the app the
-technician holds. It is a different design system from the portal by deliberate
-decision — §30.8 catalogues where the two diverge, and **no component crosses the
-seam unchanged**.
-#### App shell — wraps everything
-
-| Surface | What it must do | State |
-| --- | --- | --- |
-| **Bottom nav** | Slot-bound from base configuration, not hardcoded — which destinations appear is resolved per user group. Reachable on every screen. Authored on the **Home layout** in the portal, up to five slots. *(§4.2/§26.3/§30.24.)* | `proto` device-side; authoring built |
-| **Avatar / profile menu** | Identity, org, sign-out, and the route into Profile. *(§4.3.)* | `proto` |
-| **Sync control** | Always visible, always honest: 4 states (Synced / Offline / Syncing / Error) as an adaptive icon-or-pill. Opens the sync panel from anywhere. *(§4.4.1.)* | `proto` |
-| **Profile screen contents** | Identity plus the technician's own avatar photo. Today's nav-bar icon "adds no real value on mobile," and Equipment's photo mechanic did not generalise into it. | `design owed` |
-
-#### Login & first run
-
-| Surface | What it must do | State |
-| --- | --- | --- |
-| **Server configuration / first-run** | QR scan of org / tenant / server URL / OIDC endpoints, or manual entry, plus a connection test. Assumed at parity with the current apps and **never designed**. Inherently modal — there is no app behind it yet. | `design owed` |
-| **Login** | Authenticate, and **carry the Tier 0 bootstrap bundle on the same round-trip** — this is the one place the app legitimately blocks (§2.3). Must report Tier 0 partial failure honestly: a missing layout is fatal, missing long-tail codes are degraded-but-usable. Also runs demo reset in the prototype. | `proto` is a placeholder only; real design owed |
-
-#### Home
-
-| Surface | What it must do | State |
-| --- | --- | --- |
-| **Home** | A personalized landing surface, not a settings screen — a first-class roadmap MVP. Layout *mechanics* are locked (scroll-collapse, tap-to-top, horizontal sections); **tile and chip content is a deliberately unlocked design riff** — do not build to today's tiles. Tiles route into a list screen's Search, never a bespoke list. The one named exception to the monochrome palette. *(§9.4/§23.)* | `proto` |
-| **Create entity menu** | Home's `+` opens an entity choice, then shared Insert Mode locked to it. Covers WO and Equipment; the legacy system actions (Meter Reading, Work Request, Operator Checklist) are candidates, each needing a call on full Insert Mode vs. a lighter action sheet. *(§9.4.1.)* | `proto` (WO/Equipment only) |
-| **Home quick-action admin** | Whichever set Home exposes has to be admin-configurable rather than hardcoded. No such base screen is located or named. | `no surface` |
-
-#### Search — a cross-cutting standard, not a screen
-
-Search is the surface most affected by the online-first decision, so it gets its
-own entry rather than being folded into each list.
-
-| Requirement | Detail |
-| --- | --- |
-| **One standard, reused** | Dataspy bar with favourites, filter chips, sort, and a dedicated Search screen. Defined once (§8.3) and copied, never redesigned per entity. WO List is the reference implementation; Equipment List is a copy of it. |
-| **Dataspies run server-side at full fidelity** | All fields, all joins, all predicates, identical to desktop. This is what makes **R4 an improvement rather than a compromise**, and it is the primary read path now. *(§6.13.)* |
-| **A server search may block** | It is a discrete, user-initiated round-trip — permitted to show a waiting state, bounded by SLO-3. Clarified 2026-09-11; it is not a violation of "no blocking modals." *(§2.3.)* |
-| **Database-wide search does not work offline** | Offline search covers the work set plus what was manually cached, **and says so**. Never a silent short list — a short list looks like correct data. *(§2.1/§6.13; NG2.)* |
-| **Tolerate how people type** | Partial values and keywords across several fields, not exact syntax or formatting. *(VoC "Search flexibility", High.)* |
-| **Sort is missing on each Search sub-screen** | Markup gap only — the shared sort sheet already re-renders both. | 
-
-#### Work Orders
-
-The guided flow is the product. Steps are **instances** resolved from
-configuration (§29), so the numbering below is the default shape, not a fixed
-set. The `Instance` dimension is what makes the flow authorable at all: it is
-what lets one screen be placed more than once with its own layout each time,
-and what gives a **non-step node** — an action or a fork — an identity of its
-own, so a status update or a timer can also be placed more than once.
-
-| Surface | What it must do | State |
-| --- | --- | --- |
-| **WO List / WO Search** | The template for every top-level record list. Dataspy bar, Detailed/List modes, 6 filter chips + sort, merges locally created records and MEC child WOs. Routes each row to the right workflow by WO Type. *(§6/§8.3.)* | `proto` |
-| **Step 1 — WO Record View** | The record, under a layout resolved from `PLO_PAGENAME × PLO_USERGROUP × PLO_WOTYPE × instance variant`. Header fields grid, activity selector, equipment lookup + photo, custom fields, inline Comments/Documents excerpts, conditional Route/MEC pill. **Start Work lives here** — the commitment boundary (§14.11). *(§15.)* | `proto` |
-| **Step 2 — Activity Checklist** | One item at a time ("focused stepper"). 17 item types, dynamic follow-on items, per-item notes/comments/documents. **Equipment-scoped items fan out per equipment** — a 156-equipment Route produces ~624 items, and that scale is deliberate. The description *is* the instruction; there is no separate instructions field. *(§16.)* | `proto` |
-| **Step 3 — Issue Parts** | Planned lines plus ad-hoc add, store/bin/lot picking, quick-issue-all. Row-scoped buttons are Action Rows. *(§17.)* | `proto`; still on hardcoded parts data |
-| **Step 4 — Book Labor** | Employee, crew, trade, hours. Booking a crew expands to one row per current member. Owns the Time Only field type. *(§18.)* | `proto` |
-| **Step 5 — WO Closing** | Status change, closing codes with sequential unlock, downtime, attachments. Closing returns to the Record View, not the list. *(§19.)* | `proto` |
-| **Child tab — Equipment** | The first real child-tab screen and the template for the next. Backed by one shared store that is also the truth for the Record View's Route/MEC pill. Mints real MEC child work orders. *(§16.10.)* | `proto` |
-| **Child tab — Comments & Documents** | One screen carrying both tabs, reached from the Record View's `View more`. Top 3 inline on the record, newest first, for every record type with these sections. *(§7.2.)* | `proto` |
-| **Child tab — a UDS** | A customer-authored screen placed as a WO tab. Enters the candidate set by construction, and **can be a numbered, gated, Required step**. Needs **one generic definition-driven renderer**, never a screen per UDS. *(§27.)* | `no surface` |
-| **Activity Screen** | Timer, task-plan reference, assignment status. Could double as the closing surface for Activity-driven WO Types. | `design owed` |
-
-#### Equipment
-
-| Surface | What it must do | State |
-| --- | --- | --- |
-| **Equipment List** | A copy of the WO List standard — dataspy bar, favourites, 6 chips + sort, its own Create. *(§8.3.)* | `proto` |
-| **Equipment Record View** | **The canonical full record view** — copy its header/section pattern for any new record view. Carries the 74px photo slot that collapses with status on scroll. **Must re-render under a different layout by system type** (Location / Asset / Position / System) without navigating: tap an asset, then a position, and the layout changes. System type is **Protected in update mode, always**. *(§5.3/§7.5/§26.8.)* | `proto`, but against **one hardcoded layout** — see below |
-| **The four system-type layouts** | Base already models these as four `PLO_PAGENAME` values, so no new column and no new table. The authoring surface is now the portal's **Screen Layouts** area (§30.27), but **the function is still missing**, and that **blocks the Equipment track**: build the record view against one layout and all eight child tabs inherit the assumption. *(Open issue 1b.)* | `function owed` |
-| **Child tabs (8)** | Each is its own endeavour, priced individually. Priority order: **Events, Structure Details, Parts Associated**, then the rest. No hidden design dependency — Events and Parts Associated bind to the shared List/Detail container; Structure Details binds to the shared **Structure Tree**, which needs its mount, data source and row action parameterized out of the Equipment LOV plus an additive per-node status dot. | `delta` |
-
-#### Notifications
-
-| Surface | What it must do | State |
-| --- | --- | --- |
-| **Notifications inbox** | A first-class surface, not a settings screen — a roadmap MVP. Grouped Today/Earlier, All/Unread filter, mark-all-read, per-card dismiss, tap through to the source record. Modeled on the real `R5MAILEVENTS` table. *(§25.)* | `proto` |
-| **Read/unread state** | **`R5MAILEVENTS` has no read/unread column**, and the All/Unread filter depends on one. Base change or a filter redesign. *(Open issue 10.)* | blocked |
-| **`comment_mention` type** | A forward reference — **@mention tagging in Comments is not built anywhere**. | not built |
-
-#### Sync & transaction confidence
-
-This cluster exists because of one VoC theme: *users cannot tell whether a
-transaction actually landed.*
-
-| Surface | What it must do | State |
-| --- | --- | --- |
-| **Sync panel** (bottom sheet) | The nav control's destination from any screen — what is queued, what failed, what to do about it. *(§4.4.2.)* | `proto` |
-| **Sync Status Screen** | The full surface: per-item outbox state, and the shared trouble-field component with Retry / Discard. Every failed write is inspectable and actionable **on the device**, and no write is ever silently discarded. *(R6; §4.5.)* | `proto` |
-| **Online-only state** | The sync control has no state or copy for a user group with no offline profile. For a replicating user "Offline" means *working from the device*; for this one it means *you cannot load work*. Same icon, opposite promise. *(Open issue 7.)* | `design owed` |
-| **Per-row hydration / freshness affordance** | What a WO List row can honestly claim about its freshness depends on how the real sync layer behaves — deliberately unbuilt, because designing it in isolation is guesswork. | `design owed` (needs dev input) |
-| **Settings / Sync Config / Transaction Log** | Three screens in the requirement set with requirement docs inherited from DUX and **no design started**. The Transaction Log is the on-device surface that keeps R6 honest without a back-office round-trip. | `design owed` |
-
-#### Insert Mode — one create path, not a screen
-
-| Requirement | Detail |
-| --- | --- |
-| **One shared implementation** | Every `+` and Create in the app opens the same sheet — WO List, Equipment List, Home. *(§9.6/§9.7.)* |
-| **Always locked to an entity before it opens** | The entity shows as a protected badge in the header. There is no "what am I creating?" state. |
-| **Renders the record's own screen design** | Layout comes from configuration and varies by **Type** as well as entity — a `default` variant plus one shared `alt`, cheap differences only, never a bespoke layout per Type code. *(§9.8.)* |
-| **The one documented exception to the required-marker rule** | Required markers render here and nowhere else, because a blank form has nothing to clear yet. *(§9.8/§23.)* |
-| **Equipment's system type is set here or never** | It is Protected in update mode for life, which makes the pill's missing `Location` option a real defect rather than a cosmetic one. *(Open issues.)* |
-
-### Two cross-cutting rules that decide screen questions without a review
-
-Worth stating here because they remove most "where should this go?" debates:
-
-1. **Button placement is deterministic.** If a base-EAM link button errors
-   *"Record must be selected before performing this action,"* it is row-scoped →
-   an **Action Row**. Everything else is a header action in the ellipsis, **even
-   when it sits on a tab**. Plus is Insert Mode only. *(§8.4.)*
-2. **A new screen is a delta, not a design project.** Two canonical files define
-   every field type in both containers and the full record view. A new entity is
-   a field-set exercise against them. *(§5.2/§5.3.)*
-
----
+- **Two halves, and the split is the program's own** (NG8): the
+  **Mobile Configuration Portal** (administrator, Octave / OUX) and the
+  **Mobile Application** (technician, §23). Anything in neither half is out of
+  scope.
+- **A new screen is a delta, not a design project.** It is a field-set exercise
+  against the canonical files and the paradigms in the inventory's Part A
+  (§5.2/§5.3).
 
 ---
 

@@ -13,8 +13,8 @@
 <link rel="apple-touch-icon" href="shared/img/icon-180.png">
 <meta name="format-detection" content="telephone=no">
 <title>Attune EAM Mobile — WO Record View</title>
-<link rel="stylesheet" href="shared/eam-fonts.css?v=202610231612">
-<link rel="stylesheet" href="shared/eam-shared.css?v=202610231612">
+<link rel="stylesheet" href="shared/eam-fonts.css?v=202611051955">
+<link rel="stylesheet" href="shared/eam-shared.css?v=202611051955">
 <!--
   WO WORKFLOW — STEP 1: WO RECORD VIEW (rebuilt 2026-07-16 onto shared/
   eam-shared.css + shared/eam-shared.js, per docs/archive/EAM-REBUILD-Strategy-and-
@@ -364,11 +364,11 @@
        dispatch (this screen has no tabs at all, unlike the Standard Model). -->
   <div id="recordContentSlot"></div>
 
-  <!-- BOTTOM BAR — locked until an activity is selected (§14.7) -->
+  <!-- BOTTOM BAR — "Next" opens the Activities screen (§16.12/§14.5.1) -->
   <div class="bottom-bar" id="bottomBar">
-    <button class="bar-pill bar-pill-locked" id="barBtn" onclick="onBarPillTap()">
-      <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <span id="barBtnLabel">Select an activity to start</span>
+    <button class="bar-pill bar-pill-ready" id="barBtn" onclick="onBarPillTap()">
+      <svg id="barLock" style="display:none" width="16" height="16" fill="none" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span id="barBtnLabel">Next</span>
     </button>
   </div>
 
@@ -471,8 +471,9 @@
   </div>
 
   <!-- Question message — 3-outcome Yes/No/Cancel modal (markup only,
-       behavior in eam-shared.js). New consumer 2026-07-24: startWork()'s
-       "start the timer?" prompt for Free Form WOs (§15.4/§20). -->
+       behavior in eam-shared.js). Its 2026-07-24 consumer, startWork()'s
+       "start the timer?" prompt, moved to the Activities screen with Start
+       Work (§16.12); the markup stays for openQuestion()'s other callers. -->
   <div class="confirm-overlay" id="questionOverlay">
     <div class="question-modal">
       <div class="question-message" id="questionMessage">Are you sure?</div>
@@ -758,17 +759,17 @@
   <div class="toast" id="toast"><span id="toastMsg"></span></div>
 </div>
 
-<script src="../../data/custom_field_defs.js?v=202610231612"></script>
+<script src="../../data/custom_field_defs.js?v=202611051955"></script>
 <!-- Needed so the header Equipment field can resolve each demo WO's own
      equipmentAssetId to a real record (applyDemoWoEquipment below). -->
-<script src="../../data/equipment.js?v=202610231612"></script>
-<script src="../../data/wo-19257.js?v=202610231612"></script>
-<script src="../../data/wo-19831.js?v=202610231612"></script>
-<script src="../../data/wo-20450.js?v=202610231612"></script>
-<script src="../../data/wotype.js?v=202610231612"></script>
-<script src="../../data/wo-workflow.js?v=202610231612"></script>
-<script src="../../data/wo-workflow-steps.js?v=202610231612"></script>
-<script src="shared/eam-shared.js?v=202610231612"></script>
+<script src="../../data/equipment.js?v=202611051955"></script>
+<script src="../../data/wo-19257.js?v=202611051955"></script>
+<script src="../../data/wo-19831.js?v=202611051955"></script>
+<script src="../../data/wo-20450.js?v=202611051955"></script>
+<script src="../../data/wotype.js?v=202611051955"></script>
+<script src="../../data/wo-workflow.js?v=202611051955"></script>
+<script src="../../data/wo-workflow-steps.js?v=202611051955"></script>
+<script src="shared/eam-shared.js?v=202611051955"></script>
 <script>
 /* ── screen-specific config — everything below is data/wiring only;
    all behavior comes from shared/eam-shared.js. ── */
@@ -1644,41 +1645,29 @@ const EQUIP_LOOKUP_ON_SELECT = { equipment: (o) => {
   markDirty();
 } };
 
-/* ── BOTTOM BAR GATE — Step 1 rule (§14.7): locked until an activity is
-   selected, then "Start Work" starts the WO timer (moves to Step 2). ── */
+/* ── BOTTOM BAR — "Next" to the Activities screen (§16.12/§14.5.1, 2026-11-05) ─────────────────
+   Start Work moved to the standalone Activities screen, where the activity is
+   selected, so this bar no longer starts work and no longer gates on the
+   Activities panel above (that panel is a future consideration, §15.2, kept
+   as-is). Before work starts the bar is always ready, reads "Next" and opens
+   the Activities screen (the rail's "Up next" names it). Once a run exists (§32.7) Start Work is
+   behind the technician, so nothing re-fires (§32.9): a gated workflow is a
+   revisit, "Resume"; Free Form simply carries on, "Next". ── */
 function updateStartGate() {
   const btn = document.getElementById('barBtn');
   const label = document.getElementById('barBtnLabel');
-  // WORK IS ALREADY STARTED (§32.7) — Start Work is the commitment boundary
-  // and is behind the technician, so it is never offered twice and nothing
-  // re-fires (§32.9). A gated workflow is a revisit: "Back to <current
-  // step>". Free Form has no forward order, so it simply carries on.
+  const lock = document.getElementById('barLock');
+  btn.className = 'bar-pill bar-pill-ready';
+  if (lock) lock.style.display = 'none';
   if (woRunFor()) {
-    btn.className = 'bar-pill bar-pill-ready';
-    label.textContent = woRunRevisitStep
-      ? 'Back to ' + WO_STEP_LABELS[woRunRevisitStep]
-      : 'Continue to ' + WO_STEP_LABELS.checklist;
+    label.textContent = woRunRevisitStep ? BAR_LABELS.resume : BAR_LABELS.next;
     return;
   }
-  const selectedAct = ACTIVITIES.find(a => a.id === RECORD.selectedActivity);
-  // A completed activity is still selectable (§15.2, so it can be reopened
-  // for edit — see openActivityEditPopup()), but Start Work on it is
-  // protected, same "still tappable, explains itself instead of just going
-  // inert" language as the header status button (§15.4) — not a plain
-  // disabled/gray state.
-  const completed = selectedAct && isActivityComplete(selectedAct);
-  const ready = !!selectedAct && !completed;
-  btn.className = 'bar-pill ' + (ready ? 'bar-pill-ready' : 'bar-pill-locked');
-  label.textContent = !selectedAct ? 'Select an activity to start'
-    : completed ? 'Activity is completed'
-    : 'Start Work';
+  label.textContent = BAR_LABELS.next;
 }
 function onBarPillTap() {
   if (woRunFor()) { goToWoStep(woRunRevisitStep || 'checklist'); return; }
-  const selectedAct = ACTIVITIES.find(a => a.id === RECORD.selectedActivity);
-  if (!selectedAct) { showToast('Select an activity to start'); return; }
-  if (isActivityComplete(selectedAct)) { showToast('Activity is completed. Uncheck Completed on the activity to reopen it.'); return; }
-  startWork();
+  goToWoActivitiesTab('record');
 }
 // Status button tap (§15.4, redesigned 2026-07-22) — protected (Not Free
 // Form) no longer disables the button or grays its colour; it stays
@@ -1690,55 +1679,9 @@ function onStatusBtnTap() {
   }
   openLov('__status');
 }
-function startWork() {
-  // §32.2 / §32.6 (2026-10-23). The timer is the technician's, time-stamped
-  // and durable (eam-shared.js techTimerStart()); nothing here is a
-  // sessionStorage flag any more.
-  //  - FREE FORM keeps §15.4's question. No starts work with NO timer, and
-  //    no timer appears anywhere on the rail (§32.6) — manual start is the
-  //    header ellipsis's "Start timer".
-  //  - NOT FREE FORM never starts a timer by itself; a placed Start Timer
-  //    does. Nothing feeds the app portal definitions yet (§20), so the demo's
-  //    gated workflows stand in for one carrying a System Start Timer in the
-  //    "On Start Work" slot — the same behavior the technician saw before.
-  // Starting while the timer runs on ANOTHER WO goes through AUTOBOOK's
-  // question inside techTimerStart(); its Cancel still starts the work.
-  const act = ACTIVITIES.find(a => a.id === RECORD.selectedActivity);
-  const actLabel = act ? act.num : '';
-  const wo = woRunWo();
-  const withTimer = () => techTimerStart(wo, RECORD.selectedActivity, actLabel, () => proceedStartWork());
-  if (CURRENT_WORKFLOW && CURRENT_WORKFLOW.freeForm) {
-    openQuestion('Start the timer for this work order?', withTimer, () => proceedStartWork());
-    return;
-  }
-  withTimer();
-}
-function proceedStartWork() {
-  // Every configured workflow's 2nd step is Activity Checklist (both BRKD
-  // and PM). Locked in 2026-07-22 (user direction): the §11 fallback
-  // (ROUT) now keeps a real, working Start Work bar too instead of hiding
-  // it (see onDemoWoChanged() below) — Activity Checklist is always Step
-  // 2 regardless, so this needs no CURRENT_WORKFLOW.configured guard at
-  // all anymore. eamOpenDemoWo carries the current demo WO's identity
-  // forward, same mechanism goToWoStep() (eam-shared.js) uses for the
-  // fallback rail's own free-flow taps.
-  sessionStorage.setItem('eamArrivedViaNextStep', 'true');
-  sessionStorage.setItem('eamOpenDemoWo', DEMO_WO);
-  // Rides along, unread, through every step of this workflow instance —
-  // WO Closing reads it back at the very end to mark this same activity
-  // Completed regardless of source status (design-decisions-v3-1.md
-  // §15.2/§19.8, 2026-07-23).
-  sessionStorage.setItem('eamActiveActivityId', RECORD.selectedActivity);
-  // THE RUN (§32.7) is created here, in the same moment as §14.11's
-  // commitment — after the timer question, so a Cancel there starts nothing.
-  // Every workflow's second step is Activity Checklist, so that is the cursor.
-  // An MEC child never gets one (D-13 is open — §20).
-  if (woRunEligible()) {
-    const act = ACTIVITIES.find(a => a.id === RECORD.selectedActivity);
-    woRunStart(DEMO_WO, RECORD.selectedActivity, act ? act.num : '', 'checklist');
-  }
-  window.location.href = WO_STEP_FILES.checklist;
-}
+/* startWork()/proceedStartWork() moved to the Activities screen
+   (eam-wo-activities-prototype-v1.html, §16.12) on 2026-11-05: Start Work
+   fires where the activity is selected. Nothing on this screen starts work. */
 
 /* Demo-WO workflow hook (design-decisions-v3-1.md §11-13, added
    2026-07-22) — called once at init, keyed off whichever of the 3 demo
@@ -1749,8 +1692,8 @@ function proceedStartWork() {
    a real rail + bar too — a flat, unnumbered, free-flow-tappable rail
    listing all 5 WO-workflow steps (renderFlatStepRail(), same visual
    paradigm as Equipment RV's own tab rail) instead of the numbered/
-   gated one, plus a working Start Work bar (startWork() above no longer
-   guards on .configured). */
+   gated one, plus a working bar (since 2026-11-05 it reads "Next"
+   and opens the Activities screen, §16.12). */
 // Bug fix, 2026-07-28 — the Type field/badge showed "Breakdown" on every
 // demo WO regardless of which was actually open (RECORD.type was a
 // static default, never wired to DEMO_WO — see applyDemoWoIdentity()'s

@@ -7,7 +7,9 @@
    pptx is a zip of XML that git can only store as a fresh blob per rebuild.
    That rule only holds if the binary stays REPRODUCIBLE from something tracked
    — so this generator is the tracked source, and the deck is a build artifact.
-   Content comes from `docs/Total Project Scope Summary brief.md`; if that doc
+   DEPRECATED 2026-11-05 with its source doc, now in `docs/old versions/`.
+   For current scope use `docs/screen-inventory.md`.
+   Content came from `docs/Total Project Scope Summary brief.md`; if that doc
    and this file ever disagree, the doc is right and this needs regenerating.
 
    IT IS BUILT ON OCTAVE'S OWN BRAND TEMPLATE, which is also gitignored

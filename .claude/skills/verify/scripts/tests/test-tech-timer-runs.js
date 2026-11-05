@@ -17,7 +17,7 @@
 
    Plus the rules a regression would most quietly break: Pause books the
    segment, Stop books through the shared pull-up, Reset discards, a
-   revisit edits in place with "Back to <cursor>" (§32.9), AUTOBOOK asks
+   revisit edits in place with "Resume" (§32.9/§14.5.1), AUTOBOOK asks
    before a second WO's timer starts, and Reset demo clears every key.
 
    The DOM is the run-load.js shim, not a browser — assertions read JS state,
@@ -53,9 +53,21 @@ const timerSeed = (wo, minsAgo, state) => JSON.stringify({
   tech: 'BCAMPBELL', wo, activity: '10', activityLabel: 'Activity 10', state: state || 'running',
   startedAt: Date.now() - minsAgo * MIN, bookedMs: 0 });
 
-console.log('\nStart Work (gated, 19257) creates the run and starts the timer');
-let rv = runScreen('eam-wo-record-view-prototype-v1.html', { eamOpenDemoWo: '19257' });
-ev(rv, 'RECORD.selectedActivity = "10"; startWork();');
+console.log('\nRecord View no longer starts work: its bar reads "Next" (§16.12/§14.5.1)');
+{
+  const r0 = runScreen('eam-wo-record-view-prototype-v1.html', { eamOpenDemoWo: '19257' });
+  ok('the bar reads "Next" and is ready',
+    ev(r0, 'document.getElementById("barBtnLabel").textContent') === 'Next'
+    && /bar-pill-ready/.test(ev(r0, 'document.getElementById("barBtn").className')));
+  ev(r0, 'onBarPillTap()');
+  ok('...and opens the Activities screen', /wo-activities/.test(ev(r0, 'location.href')));
+  ok('...without starting anything', ev(r0, 'woRunFor("19257") === null && techTimer() === null') === true);
+  ok('Record View carries no startWork() any more', ev(r0, 'typeof startWork') === 'undefined');
+}
+
+console.log('\nStart Work (gated, 19257), from the Activities screen, creates the run and starts the timer');
+let rv = runScreen('eam-wo-activities-prototype-v1.html', { eamOpenDemoWo: '19257' });
+ev(rv, 'selectActivity("10"); onBarPillTap();');
 const started = carry(rv);
 ok('a run exists for (technician, WO, activity)', /BCAMPBELL\|19257\|10/.test(started.eamWorkflowRuns || ''));
 ok('...its cursor is Activity Checklist', ev(rv, 'woRunFor("19257").cursor') === 'checklist');
@@ -100,8 +112,8 @@ console.log('\n2. Back does not prompt (§32.3 — §14.7.1 retired)');
 
 console.log('\n3. A declined timer renders no rail timer (§32.6)');
 {
-  rv = runScreen('eam-wo-record-view-prototype-v1.html', { eamOpenDemoWo: '19831' });
-  ev(rv, 'RECORD.selectedActivity = "10"; startWork();');
+  rv = runScreen('eam-wo-activities-prototype-v1.html', { eamOpenDemoWo: '19831' });
+  ev(rv, 'selectActivity("10"); onBarPillTap();');
   ok('Free Form asks first', ev(rv, 'document.getElementById("questionMessage").textContent') === 'Start the timer for this work order?');
   ev(rv, 'questionAnswerNo()');
   ok('No still starts the work (a run exists)', ev(rv, 'woRunFor("19831") !== null') === true);
@@ -115,8 +127,8 @@ console.log('\n3. A declined timer renders no rail timer (§32.6)');
   ok('Start timer starts it on this WO', ev(cl, 'techTimer().wo') === '19831');
   ok('...and the offer is withdrawn while it runs', ev(cl, 'startTimerOfferedHere()') === false);
   // Cancel on the question starts nothing at all — not the work, not a run.
-  const rv2 = runScreen('eam-wo-record-view-prototype-v1.html', { eamOpenDemoWo: '19831' });
-  ev(rv2, 'RECORD.selectedActivity = "10"; startWork(); closeQuestion();');
+  const rv2 = runScreen('eam-wo-activities-prototype-v1.html', { eamOpenDemoWo: '19831' });
+  ev(rv2, 'selectActivity("10"); onBarPillTap(); closeQuestion();');
   ok('Cancel on the question starts nothing', ev(rv2, 'woRunFor("19831") === null && techTimer() === null') === true);
 }
 
@@ -146,11 +158,11 @@ console.log('\n4. Resume lands on the cursor (§32.7)');
   ok('the list holds both, built from local run data', (String(ev(h2, 'runsInProgressRowsHtml()')).match(/run-row"/g) || []).length === 2);
 }
 
-console.log('\nRevisit edits in place: "Back to <current step>" (§32.9)');
+console.log('\nRevisit edits in place: "Resume" (§32.9/§14.5.1)');
 {
   const r = runScreen('eam-wo-record-view-prototype-v1.html', { eamOpenDemoWo: '19257', eamWorkflowRuns: runSeed('19257', 'issueparts') });
   ok('Record View knows it is a revisit', ev(r, 'woRunRevisitStep') === 'issueparts');
-  ok('its bar reads "Back to Issue Parts", not Start Work', ev(r, 'document.getElementById("barBtnLabel").textContent') === 'Back to Issue Parts');
+  ok('its bar reads "Resume", not Start Work', ev(r, 'document.getElementById("barBtnLabel").textContent') === 'Resume');
   ev(r, 'onBarPillTap()');
   ok('...and returns to the cursor', /issue-parts/.test(ev(r, 'location.href')));
   ok('nothing re-fired: still one run, no new timer', ev(r, 'Object.keys(woRuns()).length === 1 && techTimer() === null') === true);
@@ -159,7 +171,7 @@ console.log('\nRevisit edits in place: "Back to <current step>" (§32.9)');
   ok('Activity Checklist stays done and reopenable', /goToWoStep\('checklist'\)"><div class="step-map-icon smi-done"/.test(html));
   ok('forward gating intact — Book Labor is still locked', /smi-locked">4<\/div><span class="step-map-label">Book Labor/.test(html));
   const cl = runScreen('eam-activity-checklist-prototype-v2.html', { eamOpenDemoWo: '19257', eamWorkflowRuns: runSeed('19257', 'issueparts') });
-  ok('the checklist does not ask its question again', /Back to Issue Parts/.test(ev(cl, 'document.getElementById("promptBar").innerHTML')) &&
+  ok('the checklist does not ask its question again', />Resume</.test(ev(cl, 'document.getElementById("promptBar").innerHTML')) &&
     !/Do you need to issue parts/.test(ev(cl, 'document.getElementById("promptBar").innerHTML')));
   ok('landing past the cursor via Next moves it forward', ev(runScreen('eam-book-labor-prototype-v2.html',
     { eamOpenDemoWo: '19257', eamWorkflowRuns: runSeed('19257', 'issueparts') }), 'woRunFor("19257").cursor') === 'booklabor');

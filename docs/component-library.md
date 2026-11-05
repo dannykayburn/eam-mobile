@@ -97,7 +97,25 @@ since both are the same type).
 
 ---
 
+## Field Picker — Dropdown Pull-up vs. LOV Push Page
+
+**Locked 2026-11-05 (user direction), design-decisions-v3-1.md §3.4.2.** Two
+surfaces, chosen by the field's control type **in base EAM**, never by list length:
+
+| Base control | Surface | Search bar | Examples |
+| --- | --- | --- | --- |
+| Dropdown | **Pull-up**: today's bottom sheet (`openLov()`/`#lovSheet`) | No | Status, Type, Priority |
+| LOV | **Push page**: a full-screen page pushed over the current screen, back to return | Yes, under the header | Department, Cost Code, Assigned To, Equipment |
+
+Both keep code + description rows, Clear in the header with its visibility rule,
+and §2.8's offline placeholders. **The push page is not built yet, and the
+prototype is deliberately unchanged:** every LOV still opens the pull-up. Its
+anatomy is an open item (§20). Don't name a third picker surface.
+
 ## Equipment LOV
+
+> **Becomes a push page (§3.4.2).** Equipment is an LOV in base. The
+> full-screen picker described below is the prototype's current shape.
 
 **Decided 2026-07-21 (user direction):** what used to be two divergent
 pickers — WO Record View's full two-tab lookup and WO Insert Mode's
@@ -366,6 +384,12 @@ taking the selected codes. Every function no-ops without the markup.
 ---
 
 ## Activity Selector
+
+> **Moved 2026-11-05 (§16.12).** The selector now lives on the standalone
+> **WO › Activities** screen (`eam-wo-activities-prototype-v1.html`): a radio in
+> the shared List/Detail card's headline, single-select, gating Start Work in a
+> bottom bar. The Record View panel described below is a **future
+> consideration** (§15.2), left in the prototype unchanged.
 
 **Where:** WO Record View only (`eam-wo-record-view-prototype-v1.html`,
 `.act-item`, lines 737-754). Governing spec: §15.2.
@@ -689,13 +713,14 @@ not five hues for their own sake: the only distinction carrying weight is
 | Field Grid Container | WO Record View, Equipment Record View, Insert Mode, field-behavior reference | Backfilled 2026-07-28 — always existed as a shape, never had a name entry here (§5.2) |
 | Collapsible Container | Equipment Record View, Custom Fields, Insert Mode, field-behavior reference | Backfilled 2026-07-28 — same gap as Field Grid Container (§5.2) |
 | Field Types (13, category term) | App-wide | Backfilled 2026-07-28 — locked rules already existed in §5.2, never indexed here |
+| Field Picker (Dropdown Pull-up / LOV Push Page) | Every dropdown and LOV field, app-wide | Locked 2026-11-05 (§3.4.2). Pull-up is built; **push page is not built**, prototype deliberately unchanged |
 | Equipment LOV | WO Record View, WO Insert Mode | Converged 2026-07-21 — one shared picker, both screens (§7.4/§15.5) |
 | Equipment LOV — Multi-Select mode | WO Equipment tab (Plus) | New paradigm 2026-08-10 (§16.10) — same picker, rows toggle + "Add N" footer; single consumer so far |
 | Structure Tree | Equipment LOV's Structure tab (so: WO Record View, WO Insert Mode, WO Equipment tab). **2nd consumer pending: Equipment RV's Structure Details tab** | Named 2026-08-25 (user direction) — already shared code, previously unnamed and mis-described in §7.4 as nonexistent. Complete as a renderer, coupled as a picker: mount/data/row-action need parameterizing for a non-picker consumer |
 | Multi-Select Delete | WO Equipment tab (ellipsis) | New paradigm 2026-08-10 (§16.10) — mirror of the above over records already on screen; mandatory confirm; single consumer so far |
 | Equipment ID Badge | Activity Checklist | Built, read-only, deliberately separate from the LOV (§16) |
 | Notification Card | Notifications | Built 2026-07-22 (§25); single consumer so far |
-| Activity Selector (rows = Activity Rows) | WO Record View | Built (§15.2); cross-screen hand-off undefined |
+| Activity Selector (rows = Activity Rows) | **WO › Activities** (radio on the List/Detail card); the WO Record View panel is a future consideration | Moved 2026-11-05 (§16.12). Gates Start Work; the RV panel stays built but is not the design |
 | Action Row | Book Labor, Issue Parts | Merged + built 2026-07-24 (§17.4/§18.3) — real shared component, was "Labor Row"/"Part Card" |
 | Booked Labor List | Book Labor | Built (§18.3/§18.6); rows are Action Rows; correction sheet content hardcoded |
 | Entry Row (category term — Activity Row / Action Row) | WO Record View, Book Labor, Issue Parts | Category only; Action Row is a real merge, Activity Row stays a deliberate exception |
